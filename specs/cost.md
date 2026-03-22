@@ -164,11 +164,11 @@ Configurable spend threshold per service or model. When exceeded:
 
 ## 9. Definition of Done
 
-- [ ] Cost formula implemented in `OtlpConverter` (computed at ingestion)
-- [ ] Pricing tables created via DuckDB migration
-- [ ] Seed data loads on first boot
-- [ ] Pre-aggregated cost view refreshes correctly
-- [ ] All 8 API endpoints return paginated results
-- [ ] Budget alerts fire when threshold exceeded
-- [ ] Pricing override works without restarting the server
+- [x] Cost formula implemented in `ModelPricingService.EnrichBatchWithCost()` (computed at ingestion)
+- [x] Pricing tables created via DuckDB migration (V20260322)
+- [x] Seed data loads on first boot (30 models, FrozenDictionary cache)
+- [x] Pre-aggregated cost view refreshes correctly (`cost_by_model_hourly`)
+- [x] All 7 API endpoints return paginated results
+- [ ] Budget alerts fire when threshold exceeded (endpoint exists, alert_firings not wired)
+- [x] Pricing override works without restarting the server (PUT + cache refresh)
 - [ ] Recomputation job updates historical costs when pricing changes

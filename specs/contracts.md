@@ -67,7 +67,7 @@ eng/semconv/generate-semconv.ts
 
 ## 5. Definition of Done
 
-- [ ] All model types generated from TypeSpec, not hand-written
-- [ ] Zero PackageReference in qyl.contracts.csproj
-- [ ] All downstream projects compile against contracts without additional package dependencies
-- [ ] Semconv attributes match OTel Semantic Conventions 1.40
+- [x] All model types generated from TypeSpec, not hand-written
+- [x] Zero PackageReference in qyl.contracts.csproj
+- [x] All downstream projects compile against contracts without additional package dependencies
+- [x] Semconv attributes match OTel Semantic Conventions 1.40

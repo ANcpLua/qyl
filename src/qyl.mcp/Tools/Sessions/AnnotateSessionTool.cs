@@ -14,7 +14,7 @@ public sealed class AnnotateSessionTool(HttpClient client)
         Name = "annotate_session",
         Title = "Annotate Session",
         ReadOnly = false,
-        Destructive = true,
+        Destructive = false,
         Idempotent = true)]
     [Description("Add an annotation with optional tags to a debugging session.")]
     public async Task<string> AnnotateSession(

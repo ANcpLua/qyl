@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that runs the Loom two-pass fix-generation pipeline:
-///     Phase 1 — focused RCA agent (≤8 tool calls) identifies root cause.
+///     Phase 1 — focused RCA agent (up to 16 tool calls) identifies root cause.
 ///     Phase 2 — single LLM call produces a structured <c>changes_json</c> patch.
 ///     Results are stored in the collector via PATCH /api/v1/issues/{id}/fix-runs/{runId}.
 /// </summary>
@@ -29,7 +29,7 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
     [Description("""
                  Run the Loom two-pass fix-generation pipeline for an error issue.
 
-                 Phase 1: Focused root cause analysis agent (≤8 tool calls) investigates
+                 Phase 1: Focused root cause analysis agent (up to 16 tool calls) investigates
                           the error using spans, logs, and error events.
                  Phase 2: Single LLM call generates a structured patch (changes_json)
                           with file paths, hunks, and a PR-ready description.
@@ -149,7 +149,7 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         var agent = new ChatClientBuilder(_llm!)
             .UseFunctionInvocation(configure: static invoker =>
             {
-                invoker.MaximumIterationsPerRequest = 8;
+                invoker.MaximumIterationsPerRequest = FixPipelineSettings.RcaToolCallBudget;
                 invoker.AllowConcurrentInvocation = false;
             })
             .Build();

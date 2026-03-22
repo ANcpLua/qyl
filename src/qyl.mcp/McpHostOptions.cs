@@ -72,7 +72,7 @@ internal sealed class McpHostOptions
     public string ResolvePublicMcpUrl(HttpRequest request)
     {
         var baseUrl = !string.IsNullOrWhiteSpace(PublicBaseUrl)
-            ? PublicBaseUrl!.TrimEnd('/')
+            ? PublicBaseUrl.TrimEnd('/')
             : $"{request.Scheme}://{request.Host}{request.PathBase}".TrimEnd('/');
 
         return $"{baseUrl}{Path}";

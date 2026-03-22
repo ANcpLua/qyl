@@ -218,8 +218,8 @@ internal sealed class TraceExplorerTools(HttpClient client)
 
     private static TraceViewerPayload BuildPayload(List<TraceSpanDto> spans)
     {
-        var minStart = spans.Min(s => ParseMs(s.StartTime));
-        var maxEnd = spans.Max(s => ParseMs(s.StartTime) + s.Duration);
+        var minStart = spans.Min(static s => ParseMs(s.StartTime));
+        var maxEnd = spans.Max(static s => ParseMs(s.StartTime) + s.Duration);
         var totalDuration = maxEnd - minStart;
 
         return new TraceViewerPayload(spans, totalDuration);

@@ -80,6 +80,8 @@
 
 ### Changed
 
+- **Fix generation RCA budget**: `qyl.generate_fix` Phase 1 now allows up to 16 tool calls instead of 8, with the
+  runtime invocation limit and prompt text sharing the same source of truth.
 - **WriteJob boilerplate consolidation**: Converted all 48 write methods across 13 DuckDbStore partial files to use the
   existing `ExecuteWriteAsync` / `ExecuteWriteAsync<T>` helpers instead of manually constructing `WriteJob<int>` +
   `_jobs.Writer.WriteAsync` + `job.Task`. Net reduction of ~800 lines. `new WriteJob` now only appears in the two
@@ -122,6 +124,8 @@
 
 ### Fixed
 
+- **qyl.loom compile blocker**: Removed stale `Qyl.Collector.ConsoleBridge` global using from
+  `src/qyl.loom/Identity/GlobalUsings.cs` after the MCP console bridge cleanup, restoring solution compile.
 - **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
   that produced zero matchers. Azure.AI.OpenAI's new pattern uses `OpenAI.Chat.ChatClient` via `GetChatClient()` and
   is already covered by the OpenAI SDK entries.

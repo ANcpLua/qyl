@@ -12,7 +12,7 @@ public sealed class CreateProjectTool(HttpClient client)
         Name = "create_project",
         Title = "Create Project",
         ReadOnly = false,
-        Destructive = true,
+        Destructive = false,
         Idempotent = false)]
     [Description("Create a new observability project.")]
     public async Task<string> CreateProjectAsync(

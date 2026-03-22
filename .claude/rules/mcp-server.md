@@ -105,3 +105,10 @@ Before submitting to the directory, verify:
 - [ ] Tool descriptions are clear enough for a model to select them correctly without human guidance
 - [ ] Category determined (Engineering/Observability) and described in submission form
 - [ ] Interactive badge eligibility assessed — if any tools render live UI, prepare interactive demo
+
+## Response density rules
+
+- Prefer flat structured data over deeply nested hierarchies
+- Use explicit field names — no generic `data`, `value`, `item` keys
+- Consistent entity ID formats across all tools (for tool-call chaining)
+- Timestamps in ISO 8601 UTC — never relative ("5 minutes ago")

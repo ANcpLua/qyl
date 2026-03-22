@@ -18,7 +18,7 @@ internal sealed partial class RiderMcpProxy(
 
     public async Task<CallToolResult> CallToolAsync(
         string toolName,
-        IReadOnlyDictionary<string, object>? arguments = null,
+        IReadOnlyDictionary<string, object?>? arguments = null,
         CancellationToken ct = default)
     {
         var client = await GetOrConnectAsync(ct).ConfigureAwait(false);

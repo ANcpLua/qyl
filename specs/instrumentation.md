@@ -148,11 +148,11 @@ Emits: `gen_ai.system`, `gen_ai.request.model`, `gen_ai.request.temperature`, `g
 
 ## 6. Definition of Done
 
-- [ ] All generators are IIncrementalGenerator with ForAttributeWithMetadataName
-- [ ] Generated interceptors produce correct OTel spans with semconv 1.40 attributes
-- [ ] Generated interceptors emit `code.filepath`, `code.function`, `code.lineno` on every span
-- [ ] No runtime reflection anywhere in the instrumentation pipeline
-- [ ] Analyzer releases tracked in AnalyzerReleases.Shipped.md / Unshipped.md
-- [ ] All generators pass ANcpLua.Roslyn.Utilities test suite
-- [ ] CollectorDiscovery auto-detects collector endpoint without manual configuration
-- [ ] InstrumentedChatClient emits all GenAI semconv 1.40 attributes
+- [x] All generators are IIncrementalGenerator with ForAttributeWithMetadataName
+- [x] Generated interceptors produce correct OTel spans with semconv 1.40 attributes
+- [x] Generated interceptors emit `code.filepath`, `code.function`, `code.lineno` on every span
+- [x] No runtime reflection anywhere in the instrumentation pipeline
+- [x] Analyzer releases tracked in AnalyzerReleases.Shipped.md / Unshipped.md
+- [x] All generators pass ANcpLua.Roslyn.Utilities test suite
+- [x] CollectorDiscovery auto-detects collector endpoint without manual configuration
+- [x] InstrumentedChatClient emits all GenAI semconv 1.40 attributes

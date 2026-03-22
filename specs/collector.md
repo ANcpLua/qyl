@@ -141,12 +141,12 @@ Exclusions: see `00-architecture.md` section 1.1 (scope) and section 5 (kill lis
 
 ## 8. Definition of Done
 
-- [ ] gRPC and HTTP OTLP endpoints accept and decode all three signals
-- [ ] OtlpConverter produces identical internal model from both transports
-- [ ] Promoted columns match GenAI semconv 1.40 attribute names
-- [ ] SSE streams deliver spans/logs/metrics within 1 second of ingestion
-- [ ] DuckDB schema migrations apply idempotently
-- [ ] Data retention deletes records older than configured threshold
-- [ ] REST API returns paginated results (no unbounded queries)
-- [ ] Health endpoints report storage and ingestion status
-- [ ] Single Docker image serves dashboard + API + OTLP on configured ports
+- [x] gRPC and HTTP OTLP endpoints accept and decode all three signals
+- [x] OtlpConverter produces identical internal model from both transports
+- [x] Promoted columns match GenAI semconv 1.40 attribute names
+- [x] SSE streams deliver spans/logs/metrics within 1 second of ingestion
+- [x] DuckDB schema migrations apply idempotently
+- [x] Data retention deletes records older than configured threshold
+- [x] REST API returns paginated results (no unbounded queries)
+- [x] Health endpoints report storage and ingestion status
+- [x] Single Docker image serves dashboard + API + OTLP on configured ports

@@ -14,7 +14,7 @@ public sealed class AnnotateTraceTool(HttpClient client)
         Name = "annotate_trace",
         Title = "Annotate Trace",
         ReadOnly = false,
-        Destructive = true,
+        Destructive = false,
         Idempotent = true)]
     [Description("Add an annotation with optional tags to a trace for triage purposes.")]
     public async Task<string> AnnotateTrace(

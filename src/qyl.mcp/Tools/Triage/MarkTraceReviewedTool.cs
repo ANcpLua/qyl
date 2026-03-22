@@ -13,7 +13,7 @@ public sealed class MarkTraceReviewedTool(HttpClient client)
         Name = "mark_trace_reviewed",
         Title = "Mark Trace Reviewed",
         ReadOnly = false,
-        Destructive = true,
+        Destructive = false,
         Idempotent = true)]
     [Description("Mark a trace as reviewed during triage.")]
     public async Task<string> MarkTraceReviewed(

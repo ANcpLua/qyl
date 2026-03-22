@@ -1,19 +1,19 @@
 // src/qyl.mcp/Formatting/ResponseFormatter.cs
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Qyl.Contracts.Models;
 
 namespace qyl.mcp.Formatting;
 
 /// <summary>
-///     Formats collector API responses as markdown for AI consumption.
+///     Formats collector API responses for AI consumption.
 ///     Rules: summary before detail, backtick IDs, suggest next tools,
 ///     paginate by default (25 items), 20k token budget per response.
+///     Structured responses separate facts/analysis/actions per spec section 5.2.
 /// </summary>
 public static class ResponseFormatter
 {
-    private const int MaxTokenBudget = 20_000;
-
     public static string FormatPagedList<T>(
         PagedResult<T> result,
         string title,
@@ -77,4 +77,85 @@ public static class ResponseFormatter
 
     public static string FormatJson<T>(T value, JsonSerializerOptions? options = null) =>
         JsonSerializer.Serialize(value, options ?? JsonSerializerOptions.Default);
+
+    /// <summary>
+    ///     Formats a structured response with facts/analysis/actions separation
+    ///     per spec section 5.2 and tool contract section 8.
+    /// </summary>
+    public static string FormatStructured(StructuredResponse response) =>
+        JsonSerializer.Serialize(response, StructuredResponseJsonContext.Default.StructuredResponse);
+
 }
+
+/// <summary>
+///     Structured response envelope per spec section 8 tool contract.
+///     Separates raw telemetry facts from AI analysis and proposed actions.
+/// </summary>
+public sealed class StructuredResponse
+{
+    [JsonPropertyName("facts")]
+    public required object Facts { get; init; }
+
+    [JsonPropertyName("analysis")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? Analysis { get; init; }
+
+    [JsonPropertyName("actions")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<SuggestedAction>? Actions { get; init; }
+
+    [JsonPropertyName("pagination")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PaginationInfo? Pagination { get; init; }
+
+    [JsonPropertyName("evidence")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public EvidenceInfo? Evidence { get; init; }
+}
+
+public sealed class SuggestedAction
+{
+    [JsonPropertyName("tool")]
+    public required string Tool { get; init; }
+
+    [JsonPropertyName("description")]
+    public required string Description { get; init; }
+
+    [JsonPropertyName("parameters")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string>? Parameters { get; init; }
+}
+
+public sealed class PaginationInfo
+{
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
+
+    [JsonPropertyName("has_more")]
+    public bool HasMore { get; init; }
+}
+
+public sealed class EvidenceInfo
+{
+    [JsonPropertyName("sources")]
+    public IReadOnlyList<string> Sources { get; init; } = [];
+
+    [JsonPropertyName("time_range")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TimeRangeInfo? TimeRange { get; init; }
+}
+
+public sealed class TimeRangeInfo
+{
+    [JsonPropertyName("from")]
+    public required string From { get; init; }
+
+    [JsonPropertyName("to")]
+    public required string To { get; init; }
+}
+
+[JsonSerializable(typeof(StructuredResponse))]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+internal sealed partial class StructuredResponseJsonContext : JsonSerializerContext;

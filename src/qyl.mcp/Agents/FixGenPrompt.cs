@@ -6,31 +6,31 @@ namespace qyl.mcp.Agents;
 /// </summary>
 internal static class FixGenPrompt
 {
-    /// <summary>System prompt for Phase 1: focused RCA agent (≤8 tool calls).</summary>
-    internal const string RcaSystem = """
-                                      You are an expert root cause analyst investigating a specific error issue.
-                                      Your goal is to produce a concise root cause report to inform a code fix.
+    /// <summary>System prompt for Phase 1: focused RCA agent with a bounded tool-call budget.</summary>
+    internal static readonly string RcaSystem = $$"""
+                                               You are an expert root cause analyst investigating a specific error issue.
+                                               Your goal is to produce a concise root cause report to inform a code fix.
 
-                                      Use the available tools to understand:
-                                      1. The error details (type, message, culprit, stack trace)
-                                      2. Recent error events and timing patterns
-                                      3. Related spans around the error time window
+                                               Use the available tools to understand:
+                                               1. The error details (type, message, culprit, stack trace)
+                                               2. Recent error events and timing patterns
+                                               3. Related spans around the error time window
 
-                                      Keep the investigation tight — maximum 8 tool calls.
-                                      Finish with a structured report:
+                                               Keep the investigation tight - maximum {{FixPipelineSettings.RcaToolCallBudget}} tool calls.
+                                               Finish with a structured report:
 
-                                      ## Root Cause
-                                      <one clear sentence>
+                                               ## Root Cause
+                                               <one clear sentence>
 
-                                      ## Evidence
-                                      <bullet points: error message, relevant span/log lines, timing>
+                                               ## Evidence
+                                               <bullet points: error message, relevant span/log lines, timing>
 
-                                      ## Affected Code
-                                      <file path and function name if identifiable from culprit/stack trace>
+                                               ## Affected Code
+                                               <file path and function name if identifiable from culprit/stack trace>
 
-                                      ## Fix Hypothesis
-                                      <what change would prevent this error>
-                                      """;
+                                               ## Fix Hypothesis
+                                               <what change would prevent this error>
+                                               """;
 
     /// <summary>System prompt for Phase 2: single fix-generation call (no tools).</summary>
     internal const string FixGenSystem = """

@@ -515,31 +515,31 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 
 ### 13.1 Product criteria
 
-- [ ] `docker run qyl` starts a working server with dashboard in < 5 seconds
-- [ ] `dotnet add package qyl` + `builder.AddQyl()` produces traces in the dashboard
-- [ ] GenAI spans show model, tokens, latency, and computed cost
-- [ ] Cost dashboard shows per-model, per-service, per-session aggregations
-- [ ] Non-.NET app emitting OTel GenAI spans appears in the same dashboard
-- [ ] MCP server answers "what failed in the last hour?" from qyl data
-- [ ] Server has zero LLM provider dependencies
-- [ ] Server process survives qyl-loom being offline
+- [x] `docker run qyl` starts a working server with dashboard in < 5 seconds
+- [x] `dotnet add package qyl` + `builder.AddQyl()` produces traces in the dashboard
+- [x] GenAI spans show model, tokens, latency, and computed cost
+- [x] Cost dashboard shows per-model, per-service, per-session aggregations
+- [x] Non-.NET app emitting OTel GenAI spans appears in the same dashboard
+- [x] MCP server answers "what failed in the last hour?" from qyl data
+- [x] Server has zero LLM provider dependencies
+- [x] Server process survives qyl-loom being offline
 
 ### 13.2 Architecture criteria
 
-- [ ] Collector contains <= 15 domain directories (down from 30+)
-- [ ] No code path in the server calls an LLM provider
-- [ ] SDK contains exactly one `DelegatingChatClient` (`InstrumentedChatClient`)
-- [ ] SDK contains zero middleware beyond instrumentation
-- [ ] qyl-mcp communicates with server via HTTP only (no ProjectReference)
-- [ ] qyl.contracts has zero NuGet package dependencies
-- [ ] No component on the kill list exists in the codebase
+- [x] Collector contains <= 15 domain directories (down from 30+)
+- [x] No code path in the server calls an LLM provider
+- [x] SDK contains exactly one `DelegatingChatClient` (`InstrumentedChatClient`)
+- [x] SDK contains zero middleware beyond instrumentation
+- [x] qyl-mcp communicates with server via HTTP only (no ProjectReference)
+- [x] qyl.contracts has zero NuGet package dependencies
+- [x] No component on the kill list exists in the codebase
 
 ### 13.3 UX criteria
 
 - [ ] Setup time (server + SDK + first trace) <= 2 minutes
 - [ ] Dashboard loads in < 1 second with 100K spans in DuckDB
-- [ ] Cost view answers "how much did I spend today?" in one click
-- [ ] GenAI view answers "which model is slowest?" in one click
+- [x] Cost view answers "how much did I spend today?" in one click
+- [x] GenAI view answers "which model is slowest?" in one click
 
 ---
 

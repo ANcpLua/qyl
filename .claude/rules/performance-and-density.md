@@ -19,6 +19,16 @@ Prefer:
 - responsive interactions
 - restrained visual chrome
 - clear emphasis on live data and analysis context
+- timeline clarity — time context always visible alongside data
+- entity linkage — every entity links to its related entities
+- side-by-side comparison when useful (traces, spans, deployments)
+- navigation back to raw data from AI analysis
+
+## Surface rules
+
+- reduce context-switching — keep investigation in one surface
+- entity scope obvious — always clear which project/service/time range is active
+- no dead-end modal traps — every modal must have a navigation path back to raw data
 
 ## Avoid
 

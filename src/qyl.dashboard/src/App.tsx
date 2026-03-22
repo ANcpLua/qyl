@@ -4,27 +4,18 @@ import {IconContext} from '@phosphor-icons/react';
 import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
 import {
-    AgentRunDetailPage,
-    AgentsPage,
     AlertsPage,
-    BotConversationDetailPage,
-    BotPage,
-    BotUserJourneyPage,
-    CodeReviewPage,
+    CostPage,
     DashboardPage,
     ErrorsOutagesPage,
     GenAIPage,
-    InsightsOverviewPage,
     IssueDetailPage,
-    IssueFixRunsPage,
     IssuesPage,
-    IssueTriagePage,
     LogsPage,
-    LoomDashboardPage,
     OnboardingPage,
     PerformancePage,
-    ResourcesPage,
     SearchPage,
+    ServicesPage,
     SettingsPage,
     SpanExplorerPage,
     TracesPage,
@@ -53,7 +44,7 @@ function FirstVisitGate() {
 
     if (isLoading) return null;
     if (!data?.configured) return <Navigate to="/onboarding" replace/>;
-    return <ResourcesPage/>;
+    return <DashboardPage/>;
 }
 
 export default function App() {
@@ -68,27 +59,19 @@ export default function App() {
                             <Route path="/traces" element={<TracesPage/>}/>
                             <Route path="/logs" element={<LogsPage/>}/>
                             <Route path="/genai" element={<GenAIPage/>}/>
+                            <Route path="/cost" element={<CostPage/>}/>
+                            <Route path="/services" element={<ServicesPage/>}/>
                             <Route path="/dashboards" element={<DashboardPage/>}/>
                             <Route path="/dashboards/:id" element={<DashboardPage/>}/>
                             <Route path="/search" element={<SearchPage/>}/>
                             <Route path="/settings" element={<SettingsPage/>}/>
-                            <Route path="/agents" element={<AgentsPage/>}/>
-                            <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
                             <Route path="/issues" element={<IssuesPage/>}/>
                             <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
                             <Route path="/onboarding" element={<OnboardingPage/>}/>
-                            <Route path="/bot" element={<BotPage/>}/>
-                            <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>
-                            <Route path="/bot/users/:userId/journey" element={<BotUserJourneyPage/>}/>
-                            <Route path="/Loom" element={<LoomDashboardPage/>}/>
-                            <Route path="/Loom/code-review" element={<CodeReviewPage/>}/>
-                            <Route path="/issues/:issueId/triage" element={<IssueTriagePage/>}/>
-                            <Route path="/issues/:issueId/fix-runs" element={<IssueFixRunsPage/>}/>
                             <Route path="/alerts" element={<AlertsPage/>}/>
                             <Route path="/performance" element={<PerformancePage/>}/>
                             <Route path="/errors" element={<ErrorsOutagesPage/>}/>
                             <Route path="/spans" element={<SpanExplorerPage/>}/>
-                            <Route path="/insights" element={<InsightsOverviewPage/>}/>
                         </Route>
                     </Routes>
                 </BrowserRouter>

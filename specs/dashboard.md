@@ -145,12 +145,15 @@ shadcn is the shell layer. Base UI is the primitive layer. They do not compete.
 
 ## 7. Definition of Done
 
-- [ ] Zero imports from `@radix-ui/*`
-- [ ] All dense data surfaces use TanStack Table with sort/filter/paginate
-- [ ] Heavy telemetry charts use ECharts
+- [x] Zero imports from `@radix-ui/*`
+- [ ] All dense data surfaces use TanStack Table with sort/filter/paginate (CostPage only — TracesPage, LogsPage, IssuesPage need migration)
+- [x] Heavy telemetry charts use ECharts
 - [ ] Realtime handoff streams attach and resume correctly
-- [ ] Dark mode works across all pages
-- [ ] Keyboard navigation works for all interactive elements
-- [ ] Virtualization applied to surfaces with > 1000 rows
-- [ ] No motion that harms scanability or reading speed
+- [x] Dark mode works across all pages (CSS variable token system in index.css)
+- [ ] Keyboard navigation works for all interactive elements (partial — 29 files have aria/onKeyDown but not audited)
+- [x] Virtualization applied to surfaces with > 1000 rows (TracesPage, LogsPage use @tanstack/react-virtual)
+- [x] No motion that harms scanability, keyboard usage, responsiveness, or reading speed
 - [ ] AI-generated analysis visually distinct from raw telemetry facts
+- [ ] Accessibility semantics preserved across all components
+- [ ] No hidden conventions introduced that a future agent cannot understand
+- [ ] Lint and CI checks pass

@@ -22,8 +22,6 @@ using qyl.mcp.Tools;
 using qyl.mcp.Tools.Debug;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
-using BuildJsonContext = qyl.mcp.Tools.BuildJsonContext;
-using ConsoleJsonContext = qyl.mcp.Tools.ConsoleJsonContext;
 using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
 using FixToolsJsonContext = qyl.mcp.Tools.FixToolsJsonContext;
 using GenAiJsonContext = qyl.mcp.Tools.GenAiJsonContext;
@@ -138,7 +136,6 @@ static JsonSerializerOptions ConfigureCommonServices(
     if (skills.IsEnabled(QylSkillKind.Inspect))
     {
         services.AddCollectorToolClient<ReplayTools>(collectorUrl);
-        services.AddCollectorToolClient<ConsoleTools>(collectorUrl);
         services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
         services.AddCollectorToolClient<GenAiTools>(collectorUrl);
         services.AddCollectorToolClient<ErrorTools>(collectorUrl);
@@ -161,11 +158,6 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddCollectorToolClient<SummaryTools>(collectorUrl);
     }
 
-    if (skills.IsEnabled(QylSkillKind.Build))
-    {
-        services.AddCollectorToolClient<BuildTools>(collectorUrl);
-    }
-
     if (skills.IsEnabled(QylSkillKind.Anomaly))
     {
         services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
@@ -179,7 +171,6 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddCollectorToolClient<AutofixMcpTools>(collectorUrl);
         services.AddCollectorToolClient<RegressionTools>(collectorUrl);
         services.AddCollectorToolClient<GitHubMcpTools>(collectorUrl);
-        services.AddCollectorToolClient<AgentHandoffTools>(collectorUrl);
         services.AddCollectorToolClient<AssistedQueryTools>(collectorUrl);
         services.AddCollectorToolClient<TestGenerationTools>(collectorUrl);
     }
@@ -205,9 +196,7 @@ static JsonSerializerOptions ConfigureCommonServices(
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(TelemetryToolsJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(BuildJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(StorageHealthJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SpanQueryJsonContext.Default);

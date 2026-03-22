@@ -5,11 +5,9 @@ import {
     Bug,
     CaretLeft,
     CaretRight,
-    ChartBar,
-    ChartLine,
     ChatDots,
+    CurrencyDollar,
     Database,
-    Eye,
     FileText,
     Gauge,
     GearSix,
@@ -17,7 +15,6 @@ import {
     Lightning,
     MagnifyingGlass,
     Pulse,
-    Robot,
     Sparkle,
     SquaresFour,
     Stack,
@@ -39,24 +36,19 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    {to: '/', icon: Pulse, label: 'RESOURCES', shortcut: 'R'},
+    {to: '/', icon: Pulse, label: 'DASHBOARD', shortcut: 'H'},
     {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
     {to: '/errors', icon: WarningCircle, label: 'ERRORS', shortcut: 'E'},
     {to: '/traces', icon: TreeStructure, label: 'TRACES', shortcut: 'T'},
     {to: '/spans', icon: Stack, label: 'SPANS', shortcut: 'X'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/genai', icon: Sparkle, label: 'GENAI', shortcut: 'M'},
+    {to: '/cost', icon: CurrencyDollar, label: 'COST', shortcut: '$'},
+    {to: '/services', icon: Globe, label: 'SERVICES', shortcut: 'V'},
     {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
-    {to: '/insights', icon: ChartLine, label: 'INSIGHTS', shortcut: 'N'},
     {to: '/dashboards', icon: SquaresFour, label: 'DASHBOARDS', shortcut: 'D'},
     {to: '/search', icon: MagnifyingGlass, label: 'SEARCH', shortcut: '/'},
     {to: '/alerts', icon: Warning, label: 'ALERTS', shortcut: 'L'},
-];
-
-const aiNavItems: NavItem[] = [
-    {to: '/agents', icon: Robot, label: 'AGENTS', shortcut: 'A'},
-    {to: '/bot', icon: ChartBar, label: 'BOT', shortcut: 'B'},
-    {to: '/Loom', icon: Eye, label: 'Loom', shortcut: 'S'},
 ];
 
 const dashboardIconMap: Record<string, PhosphorIcon> = {
@@ -159,56 +151,6 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         return linkContent;
                     })}
                 </nav>
-
-                {/* AI Section */}
-                <div className="px-2 space-y-1">
-                    {!collapsed && (
-                        <div
-                            className="px-3 pt-2 pb-1 text-[11px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
-                            AI
-                        </div>
-                    )}
-                    {aiNavItems.map((item) => {
-                        const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-                        const Icon = item.icon;
-
-                        const aiLinkContent = (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                className={cn(
-                                    'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
-                                    isActive
-                                        ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
-                                        : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
-                                )}
-                            >
-                                <Icon className="w-4 h-4 flex-shrink-0"/>
-                                {!collapsed && (
-                                    <>
-                                        <span className="flex-1">{item.label}</span>
-                                        <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
-                                    </>
-                                )}
-                            </NavLink>
-                        );
-
-                        if (collapsed) {
-                            return (
-                                <Tooltip key={item.to}>
-                                    <TooltipTrigger render={aiLinkContent}/>
-                                    <TooltipContent side="right"
-                                                    className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
-                                        {item.label}
-                                        <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
-                                    </TooltipContent>
-                                </Tooltip>
-                            );
-                        }
-
-                        return aiLinkContent;
-                    })}
-                </div>
 
                 {/* Auto-detected dashboards */}
                 {dashboards && dashboards.length > 0 && (

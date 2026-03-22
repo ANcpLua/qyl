@@ -21,9 +21,7 @@ internal sealed class McpToolRegistry(IServiceProvider services)
     [
         typeof(TelemetryTools),
         typeof(ReplayTools),
-        typeof(ConsoleTools),
         typeof(StructuredLogTools),
-        typeof(BuildTools),
         typeof(GenAiTools),
         typeof(StorageHealthTools),
         typeof(SpanQueryTools),

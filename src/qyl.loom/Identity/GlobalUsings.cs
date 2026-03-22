@@ -27,7 +27,6 @@ global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.ObjectPool;
-global using Qyl.Collector.ConsoleBridge;
 global using Qyl.Collector.Errors;
 global using Qyl.Collector.Ingestion;
 global using Qyl.Collector.Mapping;

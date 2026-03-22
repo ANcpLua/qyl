@@ -7,6 +7,7 @@ using qyl.mcp.Tools;
 using qyl.mcp.Tools.Analysis;
 using qyl.mcp.Tools.Debug;
 using qyl.mcp.Tools.Discovery;
+using qyl.mcp.Tools.Intelligence;
 using qyl.mcp.Tools.Logs;
 using qyl.mcp.Tools.Management;
 using qyl.mcp.Tools.Metrics;
@@ -37,12 +38,14 @@ internal static class SkillRegistrationExtensions
             mcpBuilder
                 .WithTools<TelemetryTools>(jsonOptions)
                 .WithTools<ReplayTools>(jsonOptions)
-                .WithTools<ConsoleTools>(jsonOptions)
                 .WithTools<StructuredLogTools>(jsonOptions)
                 .WithTools<GenAiTools>(jsonOptions)
                 .WithTools<ErrorTools>(jsonOptions)
                 .WithTools<ServiceTools>(jsonOptions)
                 .WithTools<SpanQueryTools>(jsonOptions);
+
+            // Intelligence: pattern listing and evaluation (inspect-level)
+            mcpBuilder.WithTools<IntelligenceTools>();
 
             // Directory-facing inspect tools
             mcpBuilder
@@ -95,8 +98,6 @@ internal static class SkillRegistrationExtensions
         // Build: build failures and analysis
         if (skills.IsEnabled(QylSkillKind.Build))
         {
-            mcpBuilder.WithTools<BuildTools>(jsonOptions);
-
             // Directory-facing management tools
             mcpBuilder
                 .WithTools<CreateProjectTool>()
@@ -121,7 +122,6 @@ internal static class SkillRegistrationExtensions
                 .WithTools<AutofixMcpTools>(jsonOptions)
                 .WithTools<RegressionTools>(jsonOptions)
                 .WithTools<GitHubMcpTools>(jsonOptions)
-                .WithTools<AgentHandoffTools>(jsonOptions)
                 .WithTools<AssistedQueryTools>(jsonOptions)
                 .WithTools<TestGenerationTools>(jsonOptions);
         }

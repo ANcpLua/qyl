@@ -551,14 +551,14 @@ Fix generation                        code diff
 
 ## 10. Definition of Done
 
-- [ ] TypeSpec definitions in `core/specs/intelligence/` compile without errors
-- [ ] C# types generated to `src/qyl.contracts/Intelligence/`
-- [ ] Static registries generated with all v1 seed patterns, rules, and strategies
-- [ ] `IPatternEngine` implemented in Loom with deterministic evaluation
-- [ ] Every seed pattern has a unit test: given signals → expected match
-- [ ] Every seed strategy has queries validated against `telemetry-data-model.md` schema
-- [ ] CausalRule references validated at generation time (no dangling pattern IDs)
-- [ ] MCP tools `list-diagnostic-patterns` and `evaluate-patterns` operational
+- [x] TypeSpec definitions in `core/specs/intelligence/` compile without errors
+- [x] C# types generated to `src/qyl.contracts/Intelligence/`
+- [x] Static registries generated with all v1 seed patterns, rules, and strategies
+- [x] `IPatternEngine` implemented in collector with deterministic evaluation
+- [x] Every seed pattern has a unit test: given signals → expected match
+- [x] Every seed strategy has queries validated against `telemetry-data-model.md` schema
+- [x] CausalRule references validated at generation time (no dangling pattern IDs)
+- [x] MCP tools `list-diagnostic-patterns` and `evaluate-patterns` operational
 - [ ] `docs/intelligence-model.md` generated from TypeSpec
 - [ ] Loom pipeline invokes pattern engine before LLM reasoning
-- [ ] No hand-written pattern definitions in C# — all generated from TypeSpec
+- [x] No hand-written pattern definitions in C# — all generated from TypeSpec

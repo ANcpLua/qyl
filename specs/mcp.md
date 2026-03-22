@@ -223,15 +223,15 @@ Standardized `QylDataException` with error codes:
 
 ## 9. Definition of Done
 
-- [ ] All tools have readOnlyHint and destructiveHint annotations
-- [ ] All tools declare inputSchema and outputSchema
-- [ ] All tools include toolVersion
-- [ ] All list tools paginate with cursor (no unbounded results)
-- [ ] All responses under 25,000 tokens
-- [ ] Facts and analysis structurally separated in responses
-- [ ] Both deployment modes work: stdio, streamable HTTP
-- [ ] Skills-based authorization restricts tools by level
+- [x] All tools have readOnlyHint and destructiveHint annotations (112 tools)
+- [x] All tools declare inputSchema and outputSchema
+- [ ] All tools include toolVersion (SDK lacks Version property — blocked)
+- [ ] All list tools paginate with cursor (list_services, list_metrics, list_error_issues, list_triage lack cursor)
+- [ ] All responses under 25,000 tokens (no hard enforcement — implicit via page sizes only)
+- [x] Facts and analysis structurally separated in responses (StructuredResponse envelope)
+- [x] Both deployment modes work: stdio, streamable HTTP
+- [x] Skills-based authorization restricts tools by level
 - [ ] Interactive apps render correctly in Claude Desktop
 - [ ] Entity IDs consistent across all tools for chaining
-- [ ] All tools use standardized error codes
+- [x] All tools use standardized error codes
 - [ ] Evidence/citation references included in analysis responses

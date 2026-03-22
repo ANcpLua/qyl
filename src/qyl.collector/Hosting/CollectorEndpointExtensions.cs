@@ -3,6 +3,7 @@ using Qyl.Collector.Analytics;
 using Qyl.Collector.Artifacts;
 using Qyl.Collector.Cost;
 using Qyl.Collector.Autofix;
+using Qyl.Collector.Intelligence;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Grpc;
@@ -90,6 +91,7 @@ public static class CollectorEndpointExtensions
         app.MapAgentInsightsEndpoints();
         app.MapArtifactEndpoints();
         app.MapCostEndpoints();
+        app.MapIntelligenceEndpoints();
         app.MapQueryEndpoints();
         app.MapLogSummaryEndpoints();
 

@@ -12,7 +12,7 @@ public sealed class CreateApiKeyTool(HttpClient client)
         Name = "create_api_key",
         Title = "Create API Key",
         ReadOnly = false,
-        Destructive = true,
+        Destructive = false,
         Idempotent = false)]
     [Description("Create a new API key for programmatic access.")]
     public async Task<string> CreateApiKeyAsync(
