@@ -169,7 +169,7 @@ internal static class ErrorExplorerHtml
                                           </div>
                                           <div class="text-xs text-gray-200 truncate">${escHtml(e.message)}</div>
                                           <div class="flex items-center gap-3 mt-1 text-[10px] text-gray-500">
-                                            <span>${e.services?.join(', ') || 'unknown'}</span>
+                                            <span>${escHtml(e.services?.join(', ') || 'unknown')}</span>
                                             <span>${ago(e.lastSeen)}</span>
                                           </div>
                                         </div>
@@ -197,7 +197,7 @@ internal static class ErrorExplorerHtml
                                       </div>
                                       <div class="grid grid-cols-2 gap-3">
                                         <div class="bg-surface-0 rounded p-3 border border-surface-3"><div class="text-[10px] text-gray-500 mb-1">Events</div><div class="text-base text-white font-semibold">${selected.count.toLocaleString()}</div></div>
-                                        <div class="bg-surface-0 rounded p-3 border border-surface-3"><div class="text-[10px] text-gray-500 mb-1">Services</div><div class="text-xs text-gray-200">${selected.services?.join(', ') || 'n/a'}</div></div>
+                                        <div class="bg-surface-0 rounded p-3 border border-surface-3"><div class="text-[10px] text-gray-500 mb-1">Services</div><div class="text-xs text-gray-200">${escHtml(selected.services?.join(', ') || 'n/a')}</div></div>
                                         <div class="bg-surface-0 rounded p-3 border border-surface-3"><div class="text-[10px] text-gray-500 mb-1">First Seen</div><div class="text-xs text-gray-200">${new Date(selected.firstSeen).toLocaleString()}</div></div>
                                         <div class="bg-surface-0 rounded p-3 border border-surface-3"><div class="text-[10px] text-gray-500 mb-1">Last Seen</div><div class="text-xs text-gray-200">${new Date(selected.lastSeen).toLocaleString()}</div></div>
                                       </div>
