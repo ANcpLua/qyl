@@ -146,6 +146,8 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
             ValidateAudience = _audience is not null,
             ValidAudience = _audience,
             ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            RequireSignedTokens = true,
             IssuerSigningKeys = keys,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
