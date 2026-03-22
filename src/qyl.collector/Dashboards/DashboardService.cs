@@ -23,7 +23,7 @@ public sealed partial class DashboardService(
         await Task.Delay(TimeSpan.FromSeconds(5), _timeProvider, stoppingToken).ConfigureAwait(false);
         await DetectAsync(stoppingToken).ConfigureAwait(false);
 
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60), _timeProvider);
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5), _timeProvider);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
             try

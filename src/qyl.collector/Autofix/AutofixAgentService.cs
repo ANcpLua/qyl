@@ -18,7 +18,7 @@ public sealed partial class AutofixAgentService(
     : BackgroundService
 {
     private readonly bool _enabled = configuration.GetValue("QYL_AUTOFIX_ENABLED", true);
-    private readonly int _intervalSeconds = configuration.GetValue("QYL_AUTOFIX_INTERVAL_SECONDS", 15);
+    private readonly int _intervalSeconds = configuration.GetValue("QYL_AUTOFIX_INTERVAL_SECONDS", 120);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

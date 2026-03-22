@@ -17,7 +17,7 @@ public sealed partial class TriagePipelineService(
 {
     private readonly double _autoThreshold = configuration.GetValue("QYL_TRIAGE_AUTO_THRESHOLD", 0.8);
     private readonly bool _enabled = configuration.GetValue("QYL_TRIAGE_ENABLED", true);
-    private readonly int _intervalSeconds = configuration.GetValue("QYL_TRIAGE_INTERVAL_SECONDS", 30);
+    private readonly int _intervalSeconds = configuration.GetValue("QYL_TRIAGE_INTERVAL_SECONDS", 120);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

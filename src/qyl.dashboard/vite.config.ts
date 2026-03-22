@@ -10,6 +10,18 @@ export default defineConfig({
             '@': resolve(__dirname, './src'),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'echarts': ['echarts', 'echarts-for-react'],
+                    'recharts': ['recharts'],
+                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+                    'tanstack': ['@tanstack/react-query', '@tanstack/react-table', '@tanstack/react-virtual'],
+                },
+            },
+        },
+    },
     server: {
         port: 5173,
         proxy: {

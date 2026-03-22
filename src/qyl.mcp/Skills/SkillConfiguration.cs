@@ -15,7 +15,14 @@ public sealed class SkillConfiguration
         _all = all;
     }
 
-    public bool IsEnabled(QylSkillKind skill) => _all || _enabled.Contains(skill);
+    /// <summary>
+    ///     Debug skill requires explicit opt-in (QYL_SKILLS=debug,...) — never included in "all"
+    ///     because it exposes IDE debugger control to MCP clients.
+    /// </summary>
+    public bool IsEnabled(QylSkillKind skill) =>
+        skill is QylSkillKind.Debug
+            ? _enabled.Contains(skill)
+            : _all || _enabled.Contains(skill);
 
     public static SkillConfiguration FromEnvironment()
     {

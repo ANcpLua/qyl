@@ -72,15 +72,30 @@ public static class ArtifactEndpoints
             if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
                 return TypedResults.NotFound();
 
+            ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
             // If the client accepts JSON, return structured response
             var accept = ctx.Request.Headers.Accept.ToString();
             if (accept.ContainsIgnoreCase("application/json"))
                 return TypedResults.Ok(ToResponse(row));
 
-            // Otherwise return raw content with appropriate content type
-            return TypedResults.Content(row.Content, row.ContentType);
+            // Only serve safe content types inline — force text/plain for anything executable
+            var safeType = SanitizeContentType(row.ContentType);
+            return TypedResults.Content(row.Content, safeType);
         });
     }
+
+    /// <summary>
+    ///     Allowlist of content types safe to serve inline. Everything else becomes text/plain
+    ///     to prevent stored XSS via attacker-controlled content_type (e.g. text/html, image/svg+xml).
+    /// </summary>
+    private static string SanitizeContentType(string contentType) =>
+        contentType switch
+        {
+            "text/plain" or "application/json" or "text/csv"
+                or "text/markdown" or "application/xml" or "text/xml" => contentType,
+            _ => "text/plain"
+        };
 
     private static ArtifactResponse ToResponse(ArtifactRow row)
     {

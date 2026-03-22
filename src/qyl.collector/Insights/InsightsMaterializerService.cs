@@ -19,7 +19,7 @@ public sealed partial class InsightsMaterializerService(
         await Task.Delay(TimeSpan.FromSeconds(10), _timeProvider, stoppingToken).ConfigureAwait(false);
         await MaterializeAllAsync(stoppingToken).ConfigureAwait(false);
 
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5), _timeProvider);
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(15), _timeProvider);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
             try

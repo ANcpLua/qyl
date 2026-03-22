@@ -2,7 +2,7 @@ namespace Qyl.Collector.Services;
 
 /// <summary>
 ///     Background service that recomputes service_instances aggregates
-///     from spans/logs tables every 5 minutes.
+///     from spans/logs tables every 15 minutes.
 /// </summary>
 public sealed partial class ServiceMaterializerService(
     DuckDbStore store,
@@ -16,7 +16,7 @@ public sealed partial class ServiceMaterializerService(
     {
         await Task.Delay(TimeSpan.FromSeconds(30), _timeProvider, stoppingToken).ConfigureAwait(false);
 
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5), _timeProvider);
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(15), _timeProvider);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
             try
