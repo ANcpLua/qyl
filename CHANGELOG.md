@@ -8,7 +8,8 @@
   `cost_by_model_hourly` view. `ModelPricingService` seeds from `data/model-pricing.json` (30 models across OpenAI,
   Anthropic, Google, Meta, Mistral, DeepSeek) on first boot. Server-side cost computation at ingestion time — both
   gRPC and HTTP OTLP paths enrich spans with `gen_ai_cost_usd` from pricing lookup. SDK-reported costs are preserved.
-  REST API: `/api/v1/cost/by-session`, `/by-service`, `/by-model`, `/timeseries`, `/budget`, `PUT /pricing/{provider}/{model}`.
+  REST API: `GET /api/v1/cost/by-session`, `/by-service`, `/by-model`, `/timeseries`, `/budget`;
+  `POST /cost/sync-pricing`; `PUT /cost/pricing/{provider}/{model}`.
 - **CostPage**: New `/cost` route with ECharts timeseries (hourly cost by model), TanStack Table breakdown
   (sort/filter/paginate by model), KPI cards (spend today, top model, budget status), and per-service cost summary.
 - **ServicesPage**: New `/services` route with sortable service table showing span counts, error counts, version,
@@ -20,6 +21,21 @@
   `Evaluate()` matches observed signals against diagnostic patterns via type-coerced comparison, `BuildCausalGraph()`
   traverses causal rules to identify root causes, `SelectStrategy()` resolves investigation strategies by pattern ID
   then category fallback. No I/O, no LLM, no DI — deterministic same-input-same-output.
+- **Intelligence REST API**: 4 endpoints in `src/qyl.collector/Intelligence/IntelligenceEndpoints.cs` —
+  `GET /api/v1/intelligence/evaluate` (extract signals from trace/issue spans, run pattern matching),
+  `/causal-chain` (build causal graph from pattern IDs), `/strategy` (select investigation strategy),
+  `/execute-step` (execute strategy step DuckDB query with template substitution). `IPatternEngine` registered
+  as singleton in DI with static registries.
+- **Intelligence + cost test suite**: 62 tests in `tests/qyl.collector.tests/Intelligence/` and `Cost/`.
+  PatternEngineTests (31): every seed pattern positive/negative match, causal graph building, root cause
+  identification, strategy selection. CostComputationTests (10): pricing lookup, cost formula verification,
+  unknown model handling, batch enrichment. InvestigationQueryValidationTests (21): validates all DuckDB queries
+  from investigation strategies against live schema — caught `code_filepath` column missing from spans.
+- **MCP intelligence tools**: 5 new tools in `src/qyl.mcp/Tools/Intelligence/IntelligenceTools.cs` —
+  `list_diagnostic_patterns` (static registry), `evaluate_patterns`, `explain_causal_chain`,
+  `suggest_investigation`, `execute_investigation_step`. All ReadOnly, structured output.
+- **MCP structured output**: `StructuredResponse` envelope in `ResponseFormatter.cs` — separates `facts`,
+  `analysis`, `actions`, `pagination`, `evidence` per spec section 5.2 and tool contract section 8.
 - **Telemetry Intelligence Model spec**: `specs/telemetry-intelligence.md` — canonical reasoning model over telemetry
   data. Defines diagnostic patterns, causal rules, and investigation strategies as TypeSpec → generated C# types.
   Completes the deterministic stack: emit → store → group → **reason** → investigate.
@@ -36,105 +52,6 @@
 - **CapabilityEmitter restored**: Fixed pre-existing empty emitter file that broke the instrumentation generators build.
 - **CodingAgent types relocated**: `CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord` moved from
   `Qyl.Collector.CodingAgent` to `Qyl.Contracts.Loom` for cross-project sharing.
-
-### Changed
-
-- **WriteJob boilerplate consolidation**: Converted all 48 write methods across 13 DuckDbStore partial files to use the
-  existing `ExecuteWriteAsync` / `ExecuteWriteAsync<T>` helpers instead of manually constructing `WriteJob<int>` +
-  `_jobs.Writer.WriteAsync` + `job.Task`. Net reduction of ~800 lines. `new WriteJob` now only appears in the two
-  helper definitions in DuckDbStore.cs.
-- **TypedResults migration**: Migrated all 29 non-Mcp `*Endpoints.cs` files in `qyl.collector` from `Results.*` to
-  `TypedResults.*`. Added explicit `Task<IResult>` return type annotations to inline lambdas with mixed result types
-  to satisfy delegate inference. `TypedResults.Accepted((string?)null)` used where `Results.Accepted()` had no args.
-- **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from `src/qyl.loom/Identity/GlobalUsings.cs`.
-  Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
-  its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped per policy.
-
-### Fixed
-
-- **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
-  that produced zero matchers. Azure.AI.OpenAI's new pattern uses `OpenAI.Chat.ChatClient` via `GetChatClient()` and
-  is already covered by the OpenAI SDK entries.
-- **AgentCallSiteAnalyzer invariant undocumented**: Added XML doc comment documenting that `GenAiCallSiteAnalyzer`
-  handles RunAsync/RunStreamingAsync while `AgentCallSiteAnalyzer` handles InvokeAsync on the same
-  `Microsoft.Agents.AI` types (disjoint method sets, overlapping types).
-- **MeterAnalyzer CouldBeMeterClass undocumented**: Added remarks documenting why the predicate is kept despite being
-  largely redundant with `ForAttributeWithMetadataName` (public pipeline API stability).
-
-### Removed
-
-- **Dead dashboard pages**: Deleted 11 pages per architecture kill list — `BotPage`, `BotConversationDetailPage`,
-  `BotUserJourneyPage`, `CodeReviewPage`, `IssueTriagePage`, `IssueFixRunsPage`, `LoomDashboardPage`, `AgentsPage`,
-  `AgentRunDetailPage`, `InsightsOverviewPage`, `ResourcesPage`. Removed routes from `App.tsx`, nav items from
-  `Sidebar.tsx`, exports from `pages/index.ts`. AI nav section removed entirely.
-- **DomainContracts.g.cs**: Deleted unreferenced generated file and empty `Generated/` directory from
-  `qyl.instrumentation.generators`. The `Qyl.Contracts.Generated` namespace had zero consumers.
-- **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —
-  `McpApiKeyEndpoints.cs`, `McpLogEndpoints.cs`, `McpMetricEndpoints.cs`, `McpSessionEndpoints.cs`,
-  `McpTraceEndpoints.cs`, `McpQueryBuilder.cs`. None were registered in endpoint routing. Directory removed.
-- **qyl.agents project**: Deleted. `QylAgentBuilder`, `QylCopilotAdapter`, `CopilotAdapterFactory`,
-  `LlmProviderFactory`, `TrackModeRouter`, `ChunkingPipeline` — all shim layers over MAF native APIs
-  (`AddAIAgent()`, `AgentWorkflowBuilder`, `MapAGUI()`). `InstrumentedChatClient` and `InstrumentedAIFunction`
-  to be moved to `qyl.instrumentation` SDK.
-- **qyl.workflows project**: Deleted. `DeclarativeEngine`, `WorkflowParser`, `WorkflowEngine` — shim layers
-  over MAF native `AgentWorkflowBuilder` and `DeclarativeWorkflowBuilder`.
-- **Collector kill-list directories**: `Copilot/`, `ClaudeCode/`, `CodingAgent/`, `Workflow/` removed from
-  server per v2 architecture. Server has zero LLM dependencies.
-- **DuckDbStore.ClaudeCode.cs**: Orphaned storage partial (no surviving consumer).
-- **DuckDbExecutionStore.cs**: Implemented deleted `IExecutionStore` from qyl.workflows.
-- **MCP tools**: `CopilotTools`, `ClaudeCodeTools`, `InvestigateTools`, `HttpAgentProvider`,
-  `IAgentProvider`, `ObservabilitySystemPrompt` — called deleted collector endpoints.
-- **Dashboard**: Copilot panel/button/suggestions components, workflow pages, claude-code hooks,
-  LLM status hook, related settings sections.
-- **Browser extension scaffold**: Chrome extension with content script (AI text toolbar with undo toast), popup, service
-  worker, shared AI client config, and Vite build pipeline (`vite.extension.config.ts`).
-- **Itemized undo toast**: Browser extension undo toast shows per-change items with text previews and individual undo
-  buttons (`undoByIndex()` for selective reversal).
-- **Semconv comparison docs**: JS vs .NET OTel semantic convention attribute comparison (`eng/semconv/js vs net/`).
-
-### Changed
-
-- **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy
-  `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
-
-- **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method
-  name lookup instead of generic `CouldBeInvocation`, avoiding expensive `GetSymbolInfo` calls on non-matching nodes.
-- **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension,
-  `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses
-  `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
-- **Dead NuGet package removed**: `Microsoft.AspNetCore.Authentication.JwtBearer` — zero usage in collector (auth uses `IdentityModel` directly).
-- **Guard.NotNull consistency**: `SpanRingBuffer.PushRange` now uses `Guard.NotNull(spans)` instead of `ArgumentNullException.ThrowIfNull`.
-- **ParseNullableLong consolidated**: Duplicate definitions in `OtlpConverter` and `CodexTelemetryMapper` now delegate to shared `AttributeParsing.ParseNullableLong` in `Mapping/Mappers.cs`.
-- **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
-- **qyl documentation agents**: Added `qyl-diagram-agent.md` and `qyl-ecosystem-scout-SKILL.md` as
-  reusable prompts/assets for Mermaid architecture diagrams and 5-domain ecosystem scouting.
-- **Architecture docs corrected**: README and v2/spec index now describe the acyclic split of `qyl.web`,
-  `qyl.collector`, `qyl.agents`, `qyl.mcp`, `qyl.infrastructure`, and `qyl.core` instead of the old collector/loom
-  split.
-
-### Fixed
-
-- **AG-UI plan docs restored**: PR #89 accidentally overwrote AG-UI design/impl docs with Loom content; originals
-  restored from git history.
-- **Metrics doc cleaned**: Removed accidental Loom spec appendix from
-  `andrewlock-system-diagnostics-metrics-apis-parts-1-4.md`.
-- **Missing parameter validation** in identity endpoints.
-- **MCP tool consolidation** (`f7403d5`): removed deprecated `qyl.investigate`, `qyl.list_console_errors`, and
-  `qyl.summarize_session`; deleted `InvestigateTools.cs`, `IAgentProvider.cs`, `HttpAgentProvider.cs`,
-  `ObservabilitySystemPrompt.cs`; updated `ReplayTools`, `SummaryTools`, `UseQylSystemPrompt`, `ConsoleTools`, and
-  telemetry prompts to reflect local MCP-agent telemetry and OTLP flow.
-
-### Removed
-
-- **MCP tools referencing deleted collector endpoints**: Deleted `CopilotTools.cs`, `ClaudeCodeTools.cs`,
-  `InvestigateTools.cs`, `HttpAgentProvider.cs`, `IAgentProvider.cs`, `ObservabilitySystemPrompt.cs`; removed `Copilot`
-  and `ClaudeCode` skill kinds; cleaned up DI registrations, JSON contexts, and skill wiring in `Program.cs`,
-  `McpToolRegistry.cs`, `SkillRegistrationExtensions.cs`, `QylSkillKind.cs`; excluded `Clear.cs` (diff scratch file)
-  from compilation.
-- Stray `docs/plans/index.md` (unrelated Copilot Studio localization content).
-
-### Added
-
 - **Coding Agent Provider system**: Pluggable coding agent backends for autofix pipeline (Loom, Cursor, GitHub Copilot,
   Claude Code). Enum, DuckDB schema (`coding_agent_runs`, `Loom_settings` tables), REST endpoints (
   `/api/v1/fix-runs/{id}/coding-agents`, `/api/v1/Loom/settings`), React Query hooks, 3 UI components (
@@ -158,12 +75,37 @@
   endpoints, 6-step onboarding wizard, Copilot token bridge, `/health/ui` endpoint
 - ADR documentation (`docs/decisions/ADR-001` through `ADR-005`)
 - Embedding cluster background worker (`EmbeddingClusterWorker`)
-- Bot pages: `BotPage`, `BotConversationDetailPage`, `BotUserJourneyPage`
 - Analytics hook (`use-analytics`)
 - Span clusters DuckDB schema and store
 
 ### Changed
 
+- **WriteJob boilerplate consolidation**: Converted all 48 write methods across 13 DuckDbStore partial files to use the
+  existing `ExecuteWriteAsync` / `ExecuteWriteAsync<T>` helpers instead of manually constructing `WriteJob<int>` +
+  `_jobs.Writer.WriteAsync` + `job.Task`. Net reduction of ~800 lines. `new WriteJob` now only appears in the two
+  helper definitions in DuckDbStore.cs.
+- **TypedResults migration**: Migrated all 29 non-Mcp `*Endpoints.cs` files in `qyl.collector` from `Results.*` to
+  `TypedResults.*`. Added explicit `Task<IResult>` return type annotations to inline lambdas with mixed result types
+  to satisfy delegate inference. `TypedResults.Accepted((string?)null)` used where `Results.Accepted()` had no args.
+- **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from `src/qyl.loom/Identity/GlobalUsings.cs`.
+  Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
+  its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped per policy.
+- **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy
+  `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
+- **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method
+  name lookup instead of generic `CouldBeInvocation`, avoiding expensive `GetSymbolInfo` calls on non-matching nodes.
+- **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension,
+  `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses
+  `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
+- **Dead NuGet package removed**: `Microsoft.AspNetCore.Authentication.JwtBearer` — zero usage in collector (auth uses `IdentityModel` directly).
+- **Guard.NotNull consistency**: `SpanRingBuffer.PushRange` now uses `Guard.NotNull(spans)` instead of `ArgumentNullException.ThrowIfNull`.
+- **ParseNullableLong consolidated**: Duplicate definitions in `OtlpConverter` and `CodexTelemetryMapper` now delegate to shared `AttributeParsing.ParseNullableLong` in `Mapping/Mappers.cs`.
+- **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
+- **qyl documentation agents**: Added `qyl-diagram-agent.md` and `qyl-ecosystem-scout-SKILL.md` as
+  reusable prompts/assets for Mermaid architecture diagrams and 5-domain ecosystem scouting.
+- **Architecture docs corrected**: README and v2/spec index now describe the acyclic split of `qyl.web`,
+  `qyl.collector`, `qyl.agents`, `qyl.mcp`, `qyl.infrastructure`, and `qyl.core` instead of the old collector/loom
+  split.
 - **Microsoft.Agents.AI upgrade**: `Microsoft.Agents.AI.Abstractions` → `1.0.0-rc2`,
   `Microsoft.Agents.AI.GitHub.Copilot` → `1.0.0-preview.260225.1` (split version variable for independent cadence)
 - **Anthropic default model**: `claude-sonnet-4-20250514` → `claude-sonnet-4-6` in `LlmProviderFactory`
@@ -178,8 +120,69 @@
 - Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
 - Browser SDK `transport.ts` constructor accepts `sessionId` parameter
 
+### Fixed
+
+- **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
+  that produced zero matchers. Azure.AI.OpenAI's new pattern uses `OpenAI.Chat.ChatClient` via `GetChatClient()` and
+  is already covered by the OpenAI SDK entries.
+- **AgentCallSiteAnalyzer invariant undocumented**: Added XML doc comment documenting that `GenAiCallSiteAnalyzer`
+  handles RunAsync/RunStreamingAsync while `AgentCallSiteAnalyzer` handles InvokeAsync on the same
+  `Microsoft.Agents.AI` types (disjoint method sets, overlapping types).
+- **MeterAnalyzer CouldBeMeterClass undocumented**: Added remarks documenting why the predicate is kept despite being
+  largely redundant with `ForAttributeWithMetadataName` (public pipeline API stability).
+- **MCP safety annotations**: Applied `ReadOnly`, `Destructive`, `Idempotent`, `OpenWorld` annotations to all MCP tools
+  (required for Anthropic Connectors Directory). Corrected `Destructive=true` → `false` on 5 additive tools
+  (CreateProjectTool, CreateApiKeyTool, AnnotateSessionTool, AnnotateTraceTool, MarkTraceReviewedTool). Removed
+  unnecessary null suppression in `McpHostOptions.ResolvePublicMcpUrl`. Fixed nullability mismatch in
+  `RiderMcpProxy.CallToolAsync`. Made lambdas `static` in `TraceExplorerTools`.
+- **AG-UI plan docs restored**: PR #89 accidentally overwrote AG-UI design/impl docs with Loom content; originals
+  restored from git history.
+- **Metrics doc cleaned**: Removed accidental Loom spec appendix from
+  `andrewlock-system-diagnostics-metrics-apis-parts-1-4.md`.
+- **Missing parameter validation** in identity endpoints.
+- **MCP tool consolidation** (`f7403d5`): removed deprecated `qyl.investigate`, `qyl.list_console_errors`, and
+  `qyl.summarize_session`; deleted `InvestigateTools.cs`, `IAgentProvider.cs`, `HttpAgentProvider.cs`,
+  `ObservabilitySystemPrompt.cs`; updated `ReplayTools`, `SummaryTools`, `UseQylSystemPrompt`, `ConsoleTools`, and
+  telemetry prompts to reflect local MCP-agent telemetry and OTLP flow.
+
 ### Removed
 
+- **Dead dashboard pages**: Deleted 11 pages per architecture kill list — `BotPage`, `BotConversationDetailPage`,
+  `BotUserJourneyPage`, `CodeReviewPage`, `IssueTriagePage`, `IssueFixRunsPage`, `LoomDashboardPage`, `AgentsPage`,
+  `AgentRunDetailPage`, `InsightsOverviewPage`, `ResourcesPage`. Removed routes from `App.tsx`, nav items from
+  `Sidebar.tsx`, exports from `pages/index.ts`. AI nav section removed entirely.
+- **DomainContracts.g.cs**: Deleted unreferenced generated file and empty `Generated/` directory from
+  `qyl.instrumentation.generators`. The `Qyl.Contracts.Generated` namespace had zero consumers.
+- **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —
+  `McpApiKeyEndpoints.cs`, `McpLogEndpoints.cs`, `McpMetricEndpoints.cs`, `McpSessionEndpoints.cs`,
+  `McpTraceEndpoints.cs`, `McpQueryBuilder.cs`. None were registered in endpoint routing. Directory removed.
+- **qyl.agents project**: Deleted. `QylAgentBuilder`, `QylCopilotAdapter`, `CopilotAdapterFactory`,
+  `LlmProviderFactory`, `TrackModeRouter`, `ChunkingPipeline` — all shim layers over MAF native APIs
+  (`AddAIAgent()`, `AgentWorkflowBuilder`, `MapAGUI()`). `InstrumentedChatClient` and `InstrumentedAIFunction`
+  to be moved to `qyl.instrumentation` SDK.
+- **qyl.workflows project**: Deleted. `DeclarativeEngine`, `WorkflowParser`, `WorkflowEngine` — shim layers
+  over MAF native `AgentWorkflowBuilder` and `DeclarativeWorkflowBuilder`.
+- **Collector kill-list directories**: `Copilot/`, `ClaudeCode/`, `CodingAgent/`, `Workflow/` removed from
+  server per v2 architecture. Server has zero LLM dependencies.
+- **DuckDbStore.ClaudeCode.cs**: Orphaned storage partial (no surviving consumer).
+- **Dead MCP tools**: Deleted `BuildTools.cs`, `ConsoleTools.cs`, `AgentHandoffTools.cs` from `src/qyl.mcp/Tools/`.
+  Removed service registrations from `Program.cs`, tool entries from `McpToolRegistry.cs`, and skill wiring from
+  `SkillRegistrationExtensions.cs`. JSON serializer contexts (`BuildJsonContext`, `ConsoleJsonContext`) removed from
+  resolver chain.
+- **DuckDbExecutionStore.cs**: Implemented deleted `IExecutionStore` from qyl.workflows.
+- **MCP tools referencing deleted collector endpoints**: Deleted `CopilotTools.cs`, `ClaudeCodeTools.cs`,
+  `InvestigateTools.cs`, `HttpAgentProvider.cs`, `IAgentProvider.cs`, `ObservabilitySystemPrompt.cs`; removed `Copilot`
+  and `ClaudeCode` skill kinds; cleaned up DI registrations, JSON contexts, and skill wiring in `Program.cs`,
+  `McpToolRegistry.cs`, `SkillRegistrationExtensions.cs`, `QylSkillKind.cs`; excluded `Clear.cs` (diff scratch file)
+  from compilation.
+- **Dashboard**: Copilot panel/button/suggestions components, workflow pages, claude-code hooks,
+  LLM status hook, related settings sections.
+- **Browser extension scaffold**: Chrome extension with content script (AI text toolbar with undo toast), popup, service
+  worker, shared AI client config, and Vite build pipeline (`vite.extension.config.ts`).
+- **Itemized undo toast**: Browser extension undo toast shows per-change items with text previews and individual undo
+  buttons (`undoByIndex()` for selective reversal).
+- **Semconv comparison docs**: JS vs .NET OTel semantic convention attribute comparison (`eng/semconv/js vs net/`).
+- Stray `docs/plans/index.md` (unrelated Copilot Studio localization content).
 - `WorkflowEngine.GetExecutions()` and `GetExecution(string)` sync methods (backward-compat shims — only async variants
   remain)
 - `.codex/` skills directory (unused Codex agent definitions)
