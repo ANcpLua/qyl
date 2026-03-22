@@ -11,8 +11,19 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     failed: 'destructive',
 };
 
+function isSafeUrl(url: string | null | undefined): url is string {
+    if (!url) return false;
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    } catch {
+        return false;
+    }
+}
+
 export function CodingAgentResultCard({run}: { run: CodingAgentRun }) {
-    const actionUrl = run.pr_url ?? run.agent_url;
+    const rawUrl = run.pr_url ?? run.agent_url;
+    const actionUrl = isSafeUrl(rawUrl) ? rawUrl : null;
     const buttonText = run.pr_url ? 'Open PR' : getProviderButtonText(run.provider);
 
     return (
@@ -29,7 +40,7 @@ export function CodingAgentResultCard({run}: { run: CodingAgentRun }) {
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        {run.pr_url && (
+                        {isSafeUrl(run.pr_url) && (
                             <Button variant="outline" size="sm"
                                     render={<a href={run.pr_url} target="_blank" rel="noopener noreferrer"/>}>
                                 <GitPullRequest className="w-4 h-4 mr-1"/>
