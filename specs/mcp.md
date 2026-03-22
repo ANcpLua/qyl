@@ -5,7 +5,7 @@
 > Depends on: `api.md` (response contract), `00-architecture.md` (ownership boundaries)
 > Used by: `telemetry-intelligence.md` (intelligence tool surface)
 
-Model Context Protocol server exposing qyl telemetry to LLM workflows. 78 tools across 27 classes.
+Model Context Protocol server exposing qyl telemetry to LLM workflows. 118 tools across 49 classes.
 
 ---
 
@@ -223,15 +223,161 @@ Standardized `QylDataException` with error codes:
 
 ## 9. Definition of Done
 
-- [x] All tools have readOnlyHint and destructiveHint annotations (112 tools)
+- [x] All tools have readOnlyHint and destructiveHint annotations (118 tools, verified by grep)
 - [x] All tools declare inputSchema and outputSchema
-- [ ] All tools include toolVersion (SDK lacks Version property — blocked)
-- [ ] All list tools paginate with cursor (list_services, list_metrics, list_error_issues, list_triage lack cursor)
-- [ ] All responses under 25,000 tokens (no hard enforcement — implicit via page sizes only)
+- [ ] All tools include toolVersion (SDK lacks Version property — blocked, not implemented)
+- [ ] All list tools paginate with cursor (list_services, list_metrics, list_error_issues, list_triage lack cursor — not implemented, tracked as future work)
+- [ ] All responses under 25,000 tokens (no hard enforcement — implicit via page sizes only, not implemented)
 - [x] Facts and analysis structurally separated in responses (StructuredResponse envelope)
 - [x] Both deployment modes work: stdio, streamable HTTP
 - [x] Skills-based authorization restricts tools by level
-- [ ] Interactive apps render correctly in Claude Desktop
-- [ ] Entity IDs consistent across all tools for chaining
+- [ ] Interactive apps render correctly in Claude Desktop (not verified)
+- [ ] Entity IDs consistent across all tools for chaining (not audited)
 - [x] All tools use standardized error codes
-- [ ] Evidence/citation references included in analysis responses
+- [ ] Evidence/citation references included in analysis responses (not implemented)
+
+## 10. MCP Native Generator Migration (2026-03-22)
+
+### 10.1 Current -> target
+
+| Current | Target | Decision |
+|------|------|------|
+| `[McpServerToolType]` | `[McpServer]` | mechanical rename on every tool/resource container |
+| `[McpServerTool(...)]` | `[Tool(...)]` | preserve tool names exactly; only `ReadOnly` stays source-visible |
+| `[McpServerResourceType]` + `[McpServerResource(...)]` | `[McpServer]` + `[Resource("uri")]` | convert all resources to attribute-discoverable forms |
+| `app.MapMcp(path)` | `app.MapMcpServer<T>(path)` | generated dispatcher owns MCP surface |
+| hand-built schemas, manifests, tool spans | generated schemas, manifest, tool spans, `SKILL.md`, `llms.txt` | runtime keeps transport/auth only |
+
+Repo facts to preserve while migrating:
+
+- `Version.props` pins `ModelContextProtocolVersion` to `1.1.0`.
+- `src/qyl.mcp/Program.cs` owns `app.MapMcp(hostOptions.Path)`, manual `/mcp.json` and `/llms.txt`, JSON-RPC message spans, and manual tool-call spans.
+- `src/qyl.mcp/Skills/SkillRegistrationExtensions.cs` manually composes the server with `WithTools<>` and `WithResources<>`.
+- `src/qyl.mcp/Agents/McpToolRegistry.cs`, `src/qyl.mcp/Tools/FixTools.cs`, and `src/qyl.mcp/Tools/RcaTools.cs` reflect over `McpServerToolAttribute`.
+- `src/qyl.mcp/Apps/QueryStudio/QueryStudioResource.cs` is the one non-attribute resource today; it uses `McpServerResource.Create(...)`.
+- Current annotated surface is 48 tool classes plus 3 resource classes under `src/qyl.mcp/Tools/` and `src/qyl.mcp/Apps/`.
+
+### 10.2 Impacted files/modules
+
+- Versioning and package wiring:
+  - `Version.props`
+  - `Directory.Packages.props`
+  - `src/qyl.mcp/qyl.mcp.csproj`
+- Host/bootstrap:
+  - `src/qyl.mcp/Program.cs`
+  - `src/qyl.mcp/McpHostOptions.cs`
+- Skill and server composition:
+  - `src/qyl.mcp/Skills/SkillRegistrationExtensions.cs`
+  - `src/qyl.mcp/Apps/ErrorExplorer/ErrorExplorerRegistration.cs`
+  - `src/qyl.mcp/Apps/QueryStudio/QueryStudioRegistration.cs`
+  - `src/qyl.mcp/Apps/TraceExplorer/TraceExplorerRegistration.cs`
+  - new: `src/qyl.mcp/Servers/` for generator-visible server roots
+- Metadata consumers:
+  - `src/qyl.mcp/Agents/McpToolRegistry.cs`
+  - `src/qyl.mcp/Tools/FixTools.cs`
+  - `src/qyl.mcp/Tools/RcaTools.cs`
+  - `src/qyl.mcp/Auth/McpAdminToolFilter.cs`
+- Annotated tool/resource surface:
+  - `src/qyl.mcp/Tools/**/*.cs` carrying `[McpServerToolType]` / `[McpServerTool(...)]`
+  - `src/qyl.mcp/Apps/*/*Tools.cs`
+  - `src/qyl.mcp/Apps/*/*Resource.cs`
+- Packaged docs/artifacts:
+  - `src/qyl.mcp/README.md`
+  - `src/qyl.mcp/.mcp/server.json`
+- Cleanup debt:
+  - `src/qyl.mcp/Clear.cs`
+- New module:
+  - `src/qyl.mcp.generators/` for the qyl-native incremental generator and emitted catalog/dispatch/schema/artifact pipeline
+
+### 10.3 Migration sequence
+
+1. Add `src/qyl.mcp.generators/` and make it the single owner of MCP source generation.
+   Use an incremental generator, equatable models, and generator-time diagnostics only. Emit:
+   dispatch, JSON Schema, tool/resource catalogs, tool OTel wrappers, `SKILL.md`, and `llms.txt`.
+
+2. Upgrade the package surface before touching runtime code.
+   Bump `ModelContextProtocolVersion` in `Version.props` and wire the new generator into
+   `src/qyl.mcp/qyl.mcp.csproj`. Do not keep old and new MCP attribute models side by side.
+
+3. Convert the annotated source mechanically.
+   Replace `[McpServerToolType]` with `[McpServer]`.
+   Replace every `[McpServerTool(Name = "...", ...)]` with `[Tool("...")]`, adding
+   `[Tool(ReadOnly = ToolHint.True)]` where the current tool is read-only.
+   Preserve existing `[Description]` text verbatim for schema/doc generation.
+   Convert all resources to `[Resource("uri")]`; `QueryStudioResource.cs` must stop using
+   `McpServerResource.Create(...)` so the generator can see it.
+   Do not convert `Agents/*.cs` prompt strings to MCP prompts; they are internal LLM prompts, not MCP prompts.
+
+4. Replace manual composition with generated server roots.
+   Introduce server root markers under `src/qyl.mcp/Servers/` and have `Program.cs` map them with
+   `MapMcpServer<T>()`.
+   `SkillRegistrationExtensions.cs` should stop registering tools directly and instead select which generated
+   server roots are enabled for the current `QYL_SKILLS` value.
+   Delete the three `*Registration.cs` app wrappers; they become pure metadata, not runtime glue.
+
+5. Move metadata consumers off reflection.
+   `McpToolRegistry.cs`, `FixTools.cs`, and `RcaTools.cs` should consume a generated tool catalog instead of
+   `GetCustomAttribute<McpServerToolAttribute>()`.
+   Keep `McpAdminToolFilter.cs` name-based; it is policy, not discovery.
+
+6. Shrink `Program.cs` aggressively.
+   Keep transport selection, auth, health checks, collector HTTP clients, and JSON-RPC ingress/egress spans.
+   Delete manual tool-call span wrapping once the generator emits per-tool spans.
+   Delete `CreateManifest(...)` and `CreateLlmsText(...)`; generated artifacts should serve those endpoints.
+
+7. Delete the old path completely.
+   Remove `src/qyl.mcp/Clear.cs`, any remaining `WithTools<>` / `WithResources<>` calls, and any compatibility shim
+   that translates old attributes to new ones.
+
+### 10.4 Delete vs wrap vs generate
+
+- Delete:
+  - old MCP attributes and all registration code built around them
+  - `src/qyl.mcp/Apps/*/*Registration.cs`
+  - `Program.cs` helpers `CreateManifest(...)` and `CreateLlmsText(...)`
+  - `src/qyl.mcp/Clear.cs`
+- Wrap:
+  - existing tool methods and collector HTTP logic
+  - existing auth and transport split
+  - `McpAdminToolFilter` and `QYL_SKILLS` policy
+- Generate:
+  - dispatch and schema
+  - tool/resource/prompt catalogs
+  - per-tool OTel spans
+  - `SKILL.md`, `llms.txt`, and manifest payloads
+
+Opinionated rule: do not build an adapter layer for `McpServerTool*` or `McpServerResource*`. This is internal code.
+One rewrite is cheaper than carrying two metadata models forever.
+
+### 10.5 Compatibility stance
+
+- Break source compatibility immediately. Old attributes, `WithTools<>`, `WithResources<>`, and `MapMcp(...)` should disappear in one pass.
+- Preserve wire compatibility where clients care:
+  - keep tool names exactly as they are today
+  - keep resource URIs exactly as they are today
+  - keep `/mcp`, `/mcp.json`, `/llms.txt`, `/healthz`, stdio vs streamable HTTP, and auth behavior
+  - keep `QYL_SKILLS` gating and do not surface disabled tools in discovery
+- Do not manufacture `[Prompt("name")]` usage unless qyl exposes real MCP prompts. Internal agent prompts stay internal.
+
+### 10.6 Validation and tests
+
+- Compile-time:
+  - `dotnet build src/qyl.mcp/qyl.mcp.csproj`
+  - `dotnet build src/qyl.mcp.generators/qyl.mcp.generators.csproj`
+  - zero matches for `McpServerToolType`, `McpServerTool(`, `McpServerResourceType`, `McpServerResource(`, `MapMcp(`, `WithTools<`, and `WithResources<` under `src/qyl.mcp`
+- Generator correctness:
+  - snapshot tests for generated schema and manifests for representative surfaces:
+    `search_traces`, `qyl.generate_fix`, `qyl.app.trace_viewer`
+  - assert the generated catalog contains the current tool names and the three app resource URIs
+  - assert `QueryStudioResource` is now generator-discovered, not special-cased
+- Integration:
+  - stdio smoke test: list tools, call one read-only tool, call one mutating tool
+  - HTTP smoke test: `/mcp`, `/mcp.json`, `/llms.txt`, `/healthz`
+  - skill gating test: disabled skills do not appear in discovery
+  - admin filter test: blocked tool name still returns denied result
+- Observability:
+  - one tool-level span per tool call from generated code
+  - existing transport-level JSON-RPC spans still present
+- Packaging:
+  - generated `SKILL.md` and `llms.txt` land in build/package output and remain version-aligned with
+    `src/qyl.mcp/.mcp/server.json`

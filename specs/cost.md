@@ -169,6 +169,6 @@ Configurable spend threshold per service or model. When exceeded:
 - [x] Seed data loads on first boot (30 models, FrozenDictionary cache)
 - [x] Pre-aggregated cost view refreshes correctly (`cost_by_model_hourly`)
 - [x] All 7 API endpoints return paginated results
-- [ ] Budget alerts fire when threshold exceeded (endpoint exists, alert_firings not wired)
+- [ ] Budget alerts fire when threshold exceeded (endpoint exists, alert_firings not wired — not implemented, tracked as future work)
 - [x] Pricing override works without restarting the server (PUT + cache refresh)
-- [ ] Recomputation job updates historical costs when pricing changes
+- [ ] Recomputation job updates historical costs when pricing changes (not implemented, tracked as future work)

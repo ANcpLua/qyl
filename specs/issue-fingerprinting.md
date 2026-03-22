@@ -241,10 +241,161 @@ Same fingerprint = same bug class. Loom can:
 
 ---
 
-## 5. Known Gaps
+## 5. Mechanical Implementation Plan
 
-| Gap | Impact | Priority |
-|-----|--------|----------|
-| `code.filepath` not set on `[GenAi]`/`[Db]` spans | Code location only available for `[Traced]` methods | Medium — runtime API change needed |
-| No `fingerprint_version` column in `error_issues` | Cannot re-fingerprint old issues when algorithm changes | Medium — requires schema migration |
-| No configurable grouping rules | Users can't customize grouping behavior | Low — current algorithm covers common cases |
+This spec is only true once the collector has **one** issue engine. Today the repo still has a split brain:
+writer-side ingestion upserts legacy `errors`, while APIs and Loom-facing reads increasingly use `error_issues`.
+The right fix is not dual-write. Delete the old path and make `IssueService` the only writer and reader boundary.
+
+### 5.1 Impacted Files
+
+**Delete / collapse legacy engine**
+
+- `src/qyl.collector/Storage/DuckDbStore.cs` — remove `ErrorUpsertSql`, `GetErrorsAsync()`, `GetErrorByIdAsync()`, `UpdateErrorStatusAsync()`, legacy `errors` reads/writes
+- `src/qyl.collector/Storage/DuckDbStore.Issues.cs` — delete legacy `issue_events` DDL and all `errors`-table issue APIs
+- `src/qyl.collector/Storage/DuckDbStore.Regressions.cs` — rewrite off `issue_events`; current shape is legacy-only
+- `src/qyl.collector/Errors/ErrorEndpoints.cs` — delete `/api/v1/errors/*`
+- `src/qyl.collector/Errors/ErrorLifecycleService.cs` — delete parallel lifecycle state machine (`new/reopened` is not the canonical model)
+- `tests/qyl.collector.tests/Storage/DuckDbStoreRegressionTests.cs` — replace with `IssueService`-based regression tests
+
+**Implement / rewrite around `IssueService`**
+
+- `src/qyl.collector/Errors/IssueService.cs`
+- `src/qyl.collector/Errors/ErrorExtractor.cs`
+- `src/qyl.collector/Errors/ErrorEvent.cs`
+- `src/qyl.collector/Errors/ErrorFingerprinter.cs`
+- `src/qyl.collector/Autofix/RegressionDetectionService.cs`
+- `src/qyl.collector/Autofix/RegressionEndpoints.cs`
+- `src/qyl.collector/Autofix/TriagePipelineService.cs`
+- `src/qyl.collector/Autofix/IssueContextBuilder.cs`
+- `src/qyl.collector/Autofix/LoomInsightService.cs`
+- `src/qyl.collector/Autofix/LoomExplorerService.cs`
+- `src/qyl.collector/Autofix/AutofixAgentService.cs`
+- `src/qyl.collector/Intelligence/IntelligenceEndpoints.cs`
+- `src/qyl.collector/Storage/DuckDbSchema.g.cs`
+- `src/qyl.collector/Storage/Migrations/V2026021616__create_error_issues.sql`
+- new migration: add `fingerprint_version`, tighten uniqueness, and drop legacy tables after cutover
+
+**Likely follow-on cleanup if still compiled**
+
+- `src/qyl.loom/Identity/IssueService.cs`
+- `src/qyl.loom/Identity/IssueEndpoints.cs`
+- `src/qyl.loom/Identity/IssueAnalyticsEndpoints.cs`
+- `src/qyl.loom/RegressionDetectionService.cs`
+- `src/qyl.loom/RegressionEndpoints.cs`
+
+### 5.2 Deletions Vs Implementations
+
+**Delete**
+
+- Legacy table `errors`
+- Legacy table `issue_events`
+- Legacy `/api/v1/errors/*` surface
+- Legacy `IssueSummary` / `IssueEvent` read model sourced from `errors`
+- Parallel lifecycle semantics: `new`, `reopened`, and `wont_fix`
+
+**Implement**
+
+- `error_issues.fingerprint_version INTEGER NOT NULL`
+- unique key on `(project_id, fingerprint, fingerprint_version)`
+- single writer-side method on `IssueService`, e.g. `RecordOccurrenceAsync(projectId, ErrorOccurrence, ct)`
+- single lifecycle model: `unresolved | acknowledged | investigating | in_progress | resolved | ignored | regressed`
+- regression history derived from `error_issues` + `error_issue_events`, not a sidecar lifecycle table
+
+### 5.3 Writer-Side Ingestion Through `IssueService`
+
+The current split `UpsertIssueAsync()` + `LinkEventAsync()` is too weak. The writer path must become one transactional call.
+
+Patch sketch:
+
+```csharp
+public sealed record ErrorOccurrence
+{
+    public required string ProjectId { get; init; }
+    public required string ErrorType { get; init; }
+    public required string Message { get; init; }
+    public string? StackTrace { get; init; }
+    public required string Category { get; init; }
+    public required string Fingerprint { get; init; }
+    public required int FingerprintVersion { get; init; }
+    public required string ServiceName { get; init; }
+    public required string TraceId { get; init; }
+    public string? SpanId { get; init; }
+    public string? Environment { get; init; }
+    public string? ReleaseVersion { get; init; }
+    public string? UserId { get; init; }
+    public string? ContextJson { get; init; }
+    public string? TagsJson { get; init; }
+}
+```
+
+`DuckDbStore.WriteBatchInternalAsync()` should extract `ErrorOccurrence` values from committed spans and call exactly one `IssueService.RecordOccurrenceAsync(...)` per occurrence on the writer connection/transaction. That method must:
+
+1. Upsert `error_issues` by `(project_id, fingerprint, fingerprint_version)`.
+2. Update `last_seen_at`, `occurrence_count`, `last_release`, and `affected_users_count`.
+3. If the existing issue is `resolved`, flip it to `regressed`, increment `regression_count`, and clear `resolved_at`.
+4. Insert the occurrence row into `error_issue_events`.
+5. Mark the first regressing occurrence in `tags_json`/`context_json` so regression history remains queryable without `issue_events`.
+
+Anything less leaves split-brain behavior in place.
+
+### 5.4 Lifecycle / Status Unification
+
+- `IssueService.TransitionStatusAsync()` is the only status gate.
+- `ErrorLifecycleService` must be deleted, not adapted.
+- All readers that currently call `DuckDbStore.GetIssueByIdAsync()` or `GetIssuesAsync()` on the legacy `errors` model must move to `IssueService` projections backed by `error_issues`.
+- Triage, Autofix, Loom, and Intelligence must consume the same canonical status values. No internal translation layer.
+
+### 5.5 Regression + RCA Consumer Migration
+
+**Regression detection**
+
+- Rewrite `DuckDbStore.DetectRegressionsAsync()` out of `DuckDbStore.Issues.cs` or move the logic into `IssueService`.
+- Source of truth:
+  `error_issues.status = 'resolved'` + newest `error_issue_events.timestamp > resolved_at` for the same issue/fingerprint.
+- `RegressionEndpoints` and `DuckDbStore.Regressions.cs` must return regression-triggering `error_issue_events` rows, not `issue_events`.
+
+**RCA / downstream consumers**
+
+- `TriagePipelineService`, `IssueContextBuilder`, `LoomInsightService`, `LoomExplorerService`, `AutofixAgentService`, and `IntelligenceEndpoints` currently still read legacy issue projections through `DuckDbStore`.
+- Migrate them to `IssueService` / `ErrorIssueRow` + `ErrorIssueEventRow` so the RCA stack sees the same issue IDs, statuses, regression counts, and event payloads that ingestion writes.
+- If `qyl.loom` is still part of the build, mirror the same migration there or delete the duplicate issue surface entirely.
+
+### 5.6 Migration Sequence
+
+1. Add schema migration:
+   `fingerprint_version`, composite uniqueness, and any missing supporting indexes on `error_issues` / `error_issue_events`.
+2. Expand extractor payload:
+   replace the current thin `ErrorEvent` with an occurrence model that carries `span_id`, `stack_trace`, `environment`, `release_version`, and `fingerprint_version`.
+3. Cut writer path:
+   replace legacy `errors` upsert in `DuckDbStore.WriteBatchInternalAsync()` with transactional `IssueService.RecordOccurrenceAsync(...)`.
+4. Move all readers:
+   triage, regression, Loom, Autofix, Intelligence, search samples, and UI-facing endpoints must stop reading `errors` / `issue_events`.
+5. Delete legacy engine:
+   remove old tables, store methods, endpoints, and tests once no caller remains.
+
+Do not dual-write for long. One commit should introduce the new path; the next should delete the old one.
+
+### 5.7 Validation / Tests
+
+- `ErrorFingerprinterTests`
+  same service + same normalized stack = same fingerprint; different service = different fingerprint; version stamped on issue row
+- `IssueServiceTests`
+  new occurrence inserts one `error_issues` row + one `error_issue_events` row in one call
+- `IssueServiceTests`
+  resolved issue + new occurrence => `regressed`, `regression_count + 1`, `resolved_at = NULL`, regression marker present on triggering event
+- `WriterIngestionTests`
+  span batch with error spans writes spans first, then issue/event records through `IssueService`
+- `MigrationTests`
+  existing `error_issues` rows backfill `fingerprint_version = 2` and preserve IDs
+- `RegressionEndpointsTests`
+  regression history comes from `error_issue_events`, not `issue_events`
+- `RcaConsumerTests`
+  `IssueContextBuilder`, triage, and intelligence endpoints read the canonical issue/event tables
+
+### 5.8 Major Risks
+
+- `IssueService.UpsertIssueAsync()` is currently read-then-write with no DB-enforced uniqueness on `(project_id, fingerprint)`. That is a race today.
+- Regression history is currently impossible to preserve cleanly if `issue_events` is deleted without tagging the regressing occurrence row.
+- Consumer migration is broad; half-cutting this leaves ingestion writing one model and RCA reading another.
+- `affected_users_count` becomes wrong unless the writer path defines exact semantics. Prefer correctness: compute from `error_issue_events` existence, not a lossy string aggregate.

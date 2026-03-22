@@ -147,7 +147,7 @@ No sibling project references. `qyl.collector` may see `qyl.contracts` and instr
 
 **Responsibility:** Accept OTLP telemetry, store it, serve it, compute cost. See `collector.md` for implementation detail.
 
-**Hard constraint:** The server has no LLM dependencies. It does not call OpenAI, Anthropic, Copilot, or any AI provider. It receives telemetry and serves data. Period.
+**Hard constraint:** The server is the data plane. No LLM provider SDKs (OpenAI, Anthropic, etc.). References `Microsoft.Extensions.AI` abstractions (`IChatClient?`) for optional triage/autofix/review pipelines that work with heuristic fallbacks when no LLM is registered. Loom is the intelligence plane — an autonomous agent that enhances these pipelines with multi-step LLM reasoning when deployed alongside.
 
 ### 3.2 qyl dashboard
 
@@ -452,7 +452,7 @@ Then: "What failed in the last hour?" → Claude queries qyl, answers with evide
 | `qyl.contracts` | BCL only | — |
 | `qyl.sdk` | `qyl.contracts` | — |
 | `qyl.sdk.generators` | Roslyn APIs only | — |
-| `qyl` (server) | `qyl.contracts`, DuckDB, ASP.NET Core, OTel SDK | — |
+| `qyl` (server) | `qyl.contracts`, DuckDB, ASP.NET Core, OTel SDK, Microsoft.Extensions.AI (abstractions only) | — |
 | `qyl-ui` | — | `qyl` (HTTP) |
 | `qyl-mcp` | `qyl.contracts`, ModelContextProtocol SDK | `qyl` (HTTP) |
 | `qyl-loom` | `qyl.collector` (ProjectRef), `qyl.contracts` | Microsoft.Extensions.AI, Microsoft.Agents.AI |
@@ -466,7 +466,7 @@ Then: "What failed in the last hour?" → Claude queries qyl, answers with evide
 | `qyl` (server) | `qyl-loom` | One-way dependency: loom → qyl |
 | `qyl-mcp` | `qyl` (ProjectReference) | HTTP only — separate process |
 | `qyl.contracts` | any NuGet package | Shared types must be dependency-free |
-| `qyl` (server) | any LLM provider SDK | Server has zero LLM dependencies |
+| `qyl` (server) | any LLM provider SDK (OpenAI, Anthropic, etc.) | Server uses M.E.AI abstractions (`IChatClient?`) as optional deps. Provider SDKs are forbidden — those belong in Loom or external DI registration. |
 | `qyl.sdk` | `qyl` (server) | SDK is client-side |
 
 </forbidden-dependencies>
@@ -521,13 +521,13 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 - [x] Cost dashboard shows per-model, per-service, per-session aggregations
 - [x] Non-.NET app emitting OTel GenAI spans appears in the same dashboard
 - [x] MCP server answers "what failed in the last hour?" from qyl data
-- [x] Server has zero LLM provider dependencies
+- [x] Server has no required LLM dependencies (M.E.AI abstraction interfaces present; provider SDKs forbidden)
 - [x] Server process survives qyl-loom being offline
 
 ### 13.2 Architecture criteria
 
 - [x] Collector contains <= 15 domain directories (down from 30+)
-- [x] No code path in the server calls an LLM provider
+- [x] No code path in the server calls an LLM provider directly (services accept `IChatClient?` and self-disable when null)
 - [x] SDK contains exactly one `DelegatingChatClient` (`InstrumentedChatClient`)
 - [x] SDK contains zero middleware beyond instrumentation
 - [x] qyl-mcp communicates with server via HTTP only (no ProjectReference)
@@ -554,7 +554,7 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 | Cost as first-class feature | Pure server-side computation from existing data. No proxy needed. | Cost as middleware, cost as separate service |
 | Loom as standalone product | AI investigation has different dependencies, lifecycle, and deployment model than the observer. | Embedded agents in server (creates LLM dependency, resource contention) |
 | Delete qyl.agents + qyl.workflows | MAF provides agent construction natively. Shim layers deleted. OTel wrappers moved to SDK. | Keep wrappers (unnecessary indirection) |
-| Server has no LLM dependencies | Keeps the server focused. AI investigation belongs in Loom. | Embedded agent in server |
+| Server has no required LLM dependencies | References M.E.AI abstractions for optional `IChatClient?`/`IEmbeddingGenerator?` injection. Services self-disable when no implementation is registered. Provider SDKs forbidden. | Hard-delete all M.E.AI references (breaks optional triage/autofix pipeline), Embedded provider agent in server |
 | Keep `qyl.contracts` name | "contracts" is the standard .NET term for shared DTOs/types. | Rename to `qyl.protocol` (misleading) |
 | Publish `qyl.contracts` as NuGet | External consumers need shared types. Follows `M.E.AI.Abstractions` pattern. | Keep internal-only (blocks ecosystem) |
 | Ship bundled model pricing | Empty pricing table on first boot is dead UX. | Manual-only pricing |

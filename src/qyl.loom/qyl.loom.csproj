@@ -187,4 +187,8 @@
       <Visible>true</Visible>
     </Compile>
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="impl\seer\.DS_Store" />
+  </ItemGroup>
 </Project>

@@ -80,6 +80,17 @@
 
 ### Changed
 
+- **API contract ownership tightened**: Rewrote `specs/api.md` to own only cross-cutting HTTP invariants
+  (errors, pagination, timestamps, IDs, auth, serialization), removed the hand-maintained route inventory
+  approach from that spec, and documented runtime endpoint verification as the enforcement direction.
+- **Spec alignment sweep**: Reworked `specs/api.md`, `specs/contracts.md`, `specs/cost.md`, `specs/dashboard.md`,
+  `specs/issue-fingerprinting.md`, `specs/loom.md`, `specs/mcp.md`, `specs/00-architecture.md`, and the
+  `loom-standalone` / `maf-native-migration` / `no-helicone` / `no-proxy` ADRs into implementation-grade documents with
+  explicit migration sequences, validation hooks, and clearer current-state vs target-state boundaries.
+- **No Helicone ADR made mechanical**: Rewrote `specs/decisions/no-helicone.md` as an implementation-grade ADR. It now
+  defines the exact boundary between allowed deprecated OTel semconv normalization and forbidden
+  Helicone/OpenLLMetry compatibility, names the collector/spec/test files that must change, sets `llm.*` ingest
+  policy to raw overflow only, and specifies regression coverage for promotion, cost, and proxy/sidecar behavior.
 - **Fix generation RCA budget**: `qyl.generate_fix` Phase 1 now allows up to 16 tool calls instead of 8, with the
   runtime invocation limit and prompt text sharing the same source of truth.
 - **WriteJob boilerplate consolidation**: Converted all 48 write methods across 13 DuckDbStore partial files to use the

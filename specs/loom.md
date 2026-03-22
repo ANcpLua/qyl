@@ -26,19 +26,22 @@ AI-powered issue investigation and autofix. C# transpile of Sentry Seer. Standal
 
 ## 1. Overview
 
-`src/qyl.loom/` — standalone product. Also exists as its own project at `~/RiderProjects/qyl.loom/`.
+`src/qyl.loom/` — standalone product. Communicates with collector over HTTP.
 
-Dependencies:
-- `qyl.collector` (ProjectRef — data access)
-- `qyl.contracts` (shared types, including `Qyl.Contracts.Loom`)
-- `qyl.instrumentation` (OTel wiring)
-- Microsoft.Extensions.AI / Microsoft.Agents.AI (agent construction via MAF)
-
-Ownership boundaries: see `00-architecture.md` section 2.3.
-
-Reference architecture: `docs/reference/seer-knowledge-base.md` and `docs/loom-design.md`.
+Seer API surface mapping: `src/qyl.loom/impl/seer/`
 
 Agent construction uses MAF directly: `AIAgent`, `IChatClient`, `AddAIAgent()`. Shared types (`CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord`) live in `qyl.contracts/Loom/`.
+
+### 1.1 Collector vs Loom
+
+| | Collector | Loom |
+|---|---|---|
+| **Role** | Data plane — ingest, store, serve, compute | Intelligence plane — autonomous AI agent |
+| **Communication** | Serves REST API | Consumes collector REST API over HTTP |
+| **LLM** | Optional `IChatClient?` for heuristic+LLM triage/autofix. Self-disables without LLM. | Required. Multi-step reasoning, provider SDKs, agent orchestration. |
+| **Deployment** | Running (Railway) | Standalone process, separate deployment |
+
+Loom enhances collector — it doesn't replace it. Collector's pipelines work with heuristic fallbacks. Loom adds autonomous reasoning on top. Seer API surface mapping at `src/qyl.loom/impl/seer/`.
 
 ## 2. Pipeline
 

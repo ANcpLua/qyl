@@ -25,6 +25,9 @@ Single Docker image. Single process.
 
 </specs>
 
+Spec ownership note:
+- `specs/api.md` owns cross-cutting HTTP invariants only. Per-feature route inventories belong in the owning feature specs and should be verified from runtime endpoint metadata, not hand-maintained in `specs/api.md`.
+
 ```bash
 nuke          # build
 nuke test     # test

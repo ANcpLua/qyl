@@ -1,240 +1,144 @@
 # v2 Amendment: MAF Native Migration
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
+**Goal:** Make the migration mechanically true in code, tests, and docs. The old `qyl.agents` / `qyl.workflows` topology is gone. The remaining work is to make every surviving rule, README, and validation step describe the repo as it exists now.
 
-**Goal:** Delete `qyl.agents` and `qyl.workflows` projects, strip LLM dependencies from the collector, move OTel wrappers to SDK, clean up dashboard and MCP consumers.
+## Target State
 
-**Architecture:** qyl is an observability platform. MAF provides agent construction (`AddAIAgent()`), workflow orchestration (`DeclarativeWorkflowBuilder`), and transport (`MapAGUI()`). qyl's wrappers are shim layers. Delete them. Keep only what MAF doesn't provide: `InstrumentedChatClient` and `InstrumentedAIFunction` (OTel span decorators).
+- `qyl.agents` and `qyl.workflows` stay deleted.
+- The collector stays the data plane. It must not take a dependency on MAF runtime packages, AG-UI hosting, GitHub Copilot SDK, or provider SDKs.
+- `Microsoft.Extensions.AI` is allowed in the collector only as an **optional abstraction boundary** (`IChatClient`, `IEmbeddingGenerator`). No collector feature may require a concrete LLM provider to boot or function.
+- Loom owns agent construction, orchestration, and provider selection.
+- Docs, comments, and architecture tests enforce the same boundary instead of contradicting each other.
 
-**Verified facts** (3x deep-think, 2026-03-15):
-- `WorkflowExecution` and `WorkflowStatus` are defined in `qyl.contracts` — they survive.
-- `DuckDbStore.Workflows.cs` uses its own `WorkflowExecutionRecord` — no `qyl.workflows` dependency.
-- `CodingAgentRunRecord`, `LoomSettingsRecord`, `CodingAgentProvider` are defined in collector's `CodingAgent/CodingAgentProvider.cs` — used by Loom, must be relocated before deletion.
-- `ClaudeCodeSession` etc. are defined in collector's `ClaudeCode/ClaudeCodeEndpoints.cs` — no surviving consumer outside that file + `DuckDbStore.ClaudeCode.cs`. Delete both.
-- `IExecutionStore` is in `qyl.workflows` — only consumer is `DuckDbExecutionStore.cs`. Delete both.
-- 12 of 36 deleted endpoints have zero LLM dependencies (they're pure DuckDB queries). Loom already has its own copies of the CodingAgent and Workflow endpoints. ClaudeCode query endpoints are deliberately removed from the server (they can be re-added to Loom if needed).
+## Current State Snapshot
 
-**Tech Stack:** .NET 10, C# 14, Microsoft.Agents.AI rc3, xUnit v3 + MTP, NUKE build
+Already true:
 
----
+- `src/qyl.agents/` and `src/qyl.workflows/` are deleted.
+- [qyl.slnx](/Users/ancplua/qyl/qyl.slnx) no longer references those projects.
+- [src/qyl.loom/qyl.loom.csproj](/Users/ancplua/qyl/src/qyl.loom/qyl.loom.csproj) no longer references those projects.
+- [tests/qyl.collector.tests/qyl.collector.tests.csproj](/Users/ancplua/qyl/tests/qyl.collector.tests/qyl.collector.tests.csproj) is already clean.
+- [tests/qyl.collector.tests/ArchitectureTests.cs](/Users/ancplua/qyl/tests/qyl.collector.tests/ArchitectureTests.cs) already bans `Microsoft.Agents.AI*` and `GitHub.Copilot.SDK` from the collector assembly.
+- [specs/00-architecture.md](/Users/ancplua/qyl/specs/00-architecture.md) already captures the important nuance: collector may reference `Microsoft.Extensions.AI` abstractions, but not provider SDKs or required LLM functionality.
 
-## File Map
+Still false or drifting:
 
-### Files to delete
+- [README.md](/Users/ancplua/qyl/README.md) still advertises `qyl.agents` and the old topology.
+- [.claude/rules/collector.md](/Users/ancplua/qyl/.claude/rules/collector.md) says "zero LLM dependencies", which is too blunt now that the collector intentionally references `Microsoft.Extensions.AI`.
+- [.claude/rules/loom.md](/Users/ancplua/qyl/.claude/rules/loom.md) is mostly correct but still anchors the boundary in terms of deleted projects rather than the current package and ownership split.
+- This ADR still contains obsolete tasks, obsolete verification commands, and references to nonexistent files like `specs/04-agents.md` and `specs/09-workflows.md`.
 
-```
-src/qyl.agents/                                    # entire project (~2,200 lines)
-src/qyl.workflows/                                 # entire project (~500 lines)
-src/qyl.collector/Copilot/                          # 3 files — LLM-dependent (AG-UI, chat, tools)
-src/qyl.collector/ClaudeCode/                       # 2 files — orphaned (Loom can re-add if needed)
-src/qyl.collector/CodingAgent/                      # 3 files — Loom has its own copies
-src/qyl.collector/Workflow/                         # 4 files — Loom has its own copies
-src/qyl.collector/Storage/DuckDbStore.ClaudeCode.cs # storage for deleted ClaudeCode endpoints
-src/qyl.collector/Storage/DuckDbExecutionStore.cs   # implements deleted IExecutionStore
-```
+## Impacted Files
 
-### Files to create
+### Deletions
 
-```
-src/qyl.contracts/Loom/CodingAgentProvider.cs                        # relocated from collector
-src/qyl.instrumentation/Instrumentation/GenAi/InstrumentedChatClient.cs  # moved from qyl.agents
-src/qyl.instrumentation/Instrumentation/GenAi/InstrumentedAIFunction.cs  # moved from qyl.agents
-src/qyl.instrumentation/Instrumentation/GenAi/ChatClientExtensions.cs    # moved from qyl.agents
-```
+No remaining deletions should be planned here. The project and directory deletions are already done. Any step that still says `rm -rf src/qyl.agents/ src/qyl.workflows/` is historical noise and should be removed from the plan.
 
-### Files to modify
+### Spec / documentation cleanup
 
-```
-# Collector
-src/qyl.collector/Program.cs                        # remove all agent/workflow/copilot/claude-code registrations
-src/qyl.collector/qyl.collector.csproj               # remove ProjectRefs + PackageRefs
-src/qyl.collector/Storage/DuckDbStore.CodingAgent.cs # using → Qyl.Contracts.Loom
-src/qyl.collector/Autofix/AutofixOrchestrator.cs     # using → Qyl.Contracts.Loom
+- [specs/decisions/maf-native-migration.md](/Users/ancplua/qyl/specs/decisions/maf-native-migration.md)
+  Rewrite from checkbox history into a current implementation plan. Remove completed tasks, nonexistent file references, and invalid verification criteria.
+- [README.md](/Users/ancplua/qyl/README.md)
+  Remove the old component table entry for `qyl.agents`, redraw the architecture diagram, and update the project tree so the repo shape matches `src/`.
+- [.claude/rules/collector.md](/Users/ancplua/qyl/.claude/rules/collector.md)
+  Replace "zero LLM dependencies" with the real invariant: no MAF runtime, no AG-UI, no workflow engine, no provider SDKs, but optional `Microsoft.Extensions.AI` abstractions are allowed.
+- [.claude/rules/loom.md](/Users/ancplua/qyl/.claude/rules/loom.md)
+  Tighten the wording around Loom ownership: Loom owns agents/workflows/provider selection; collector may expose optional AI-shaped hooks but does not own orchestration.
 
-# Loom
-src/qyl.loom/qyl.loom.csproj                        # remove qyl.agents + qyl.workflows refs
-src/qyl.loom/Identity/GlobalUsings.cs                # line 36: Qyl.Collector.CodingAgent → Qyl.Contracts.Loom
+### Code / test changes
 
-# Instrumentation
-src/qyl.instrumentation/qyl.instrumentation.csproj   # add Microsoft.Extensions.AI PackageRef
-src/qyl.instrumentation/Instrumentation/QylServiceDefaultsExtensions.cs  # add MAF OTel source names
+- [tests/qyl.collector.tests/ArchitectureTests.cs](/Users/ancplua/qyl/tests/qyl.collector.tests/ArchitectureTests.cs)
+  Keep the collector ban focused on concrete framework and provider dependencies. Do not ban `Microsoft.Extensions.AI`.
+- [src/qyl.collector/qyl.collector.csproj](/Users/ancplua/qyl/src/qyl.collector/qyl.collector.csproj)
+  No planned edit if the package surface stays as-is. Only touch it if validation finds a banned provider or agent package reintroduced.
 
-# Solution
-qyl.slnx                                             # remove qyl.agents + qyl.workflows
+### Files explicitly **not** in scope for follow-up edits unless validation fails
 
-# MCP (consumer cleanup)
-src/qyl.mcp/Tools/CopilotTools.cs                   # delete or gut (endpoints gone)
-src/qyl.mcp/Tools/ClaudeCodeTools.cs                 # delete or gut (endpoints gone)
-src/qyl.mcp/Tools/InvestigateTools.cs                # remove HttpAgentProvider dependency
-src/qyl.mcp/Agents/HttpAgentProvider.cs              # delete (proxied to copilot/chat)
+- [qyl.slnx](/Users/ancplua/qyl/qyl.slnx)
+- [src/qyl.loom/qyl.loom.csproj](/Users/ancplua/qyl/src/qyl.loom/qyl.loom.csproj)
+- [tests/qyl.collector.tests/qyl.collector.tests.csproj](/Users/ancplua/qyl/tests/qyl.collector.tests/qyl.collector.tests.csproj)
+- [specs/00-architecture.md](/Users/ancplua/qyl/specs/00-architecture.md)
 
-# Dashboard (consumer cleanup)
-src/qyl.dashboard/src/hooks/use-copilot.ts           # delete
-src/qyl.dashboard/src/hooks/use-llm-status.ts        # delete
-src/qyl.dashboard/src/hooks/use-claude-code-hooks.ts # delete
-src/qyl.dashboard/src/hooks/use-workflows.ts         # delete
-src/qyl.dashboard/src/components/copilot/            # delete directory
-src/qyl.dashboard/src/pages/WorkflowRunsPage.tsx     # delete
-src/qyl.dashboard/src/pages/WorkflowRunDetailPage.tsx # delete (if exists)
-src/qyl.dashboard/src/App.tsx                        # remove deleted routes
-src/qyl.dashboard/src/components/layout/Sidebar.tsx  # remove deleted nav items
+These are already aligned with the migration and should not be churned casually.
 
-# Tests
-tests/qyl.collector.tests/ArchitectureTests.cs       # update
-tests/qyl.collector.tests/qyl.collector.tests.csproj  # remove qyl.agents ProjectRef
+## Patch Sketch
 
-# Docs
-specs/04-agents.md                                    # mark SUPERSEDED
-specs/09-workflows.md                                 # mark SUPERSEDED
-.claude/rules/loom.md                                 # update
-.claude/rules/collector.md                            # update
-CHANGELOG.md                                          # add migration entry
-```
+### 1. Collector boundary wording vs optional `Microsoft.Extensions.AI`
 
----
+Replace every variant of "collector has zero LLM dependencies" with this narrower rule:
 
-## Task 1: Fix OTel Source Name Gap
+> Collector may reference `Microsoft.Extensions.AI` abstractions as optional injection points. Collector may not reference MAF runtime packages, AG-UI hosting, workflow engines, GitHub Copilot SDK, or concrete LLM provider SDKs.
 
-**Files:** `src/qyl.instrumentation/Instrumentation/QylServiceDefaultsExtensions.cs`
+That wording is the only one consistent with the actual collector package surface in [src/qyl.collector/qyl.collector.csproj](/Users/ancplua/qyl/src/qyl.collector/qyl.collector.csproj) and the existing architectural note in [specs/00-architecture.md](/Users/ancplua/qyl/specs/00-architecture.md).
 
-- [ ] Add `"Experimental.Microsoft.Agents.AI"` to `SGenAiActivitySources` and `SGenAiMeterNames` arrays
-- [ ] `nuke` — build succeeds
-- [ ] Commit: `fix(instrumentation): add MAF experimental OTel source name`
+### 2. Obsolete verification steps and checklist drift
 
----
+Delete these classes of stale steps from the ADR:
 
-## Task 2: Relocate Shared Types + Move OTel Wrappers
+- Steps that re-delete already deleted directories or projects.
+- Steps that remove already-removed project references.
+- Steps that update files that do not exist in this repo (`specs/04-agents.md`, `specs/09-workflows.md`).
+- Verification that expects zero `Microsoft.Extensions.AI` presence in the collector.
+- Commit-by-task instructions. They are process noise, not architecture.
 
-### 2a: Relocate CodingAgent types to qyl.contracts
+Replace them with one short remaining-work sequence and one validation block.
 
-**Why:** `CodingAgentProvider`, `CodingAgentProviderNames`, `CodingAgentRunRecord`, `LoomSettingsRecord` are defined in `src/qyl.collector/CodingAgent/CodingAgentProvider.cs`. Loom uses them via `global using Qyl.Collector.CodingAgent;`. Collector's `DuckDbStore.CodingAgent.cs` and `AutofixOrchestrator.cs` also use them. Must relocate before deleting `CodingAgent/`.
+### 3. Stale README / docs / comments from removed topology
 
-- [ ] Create `src/qyl.contracts/Loom/CodingAgentProvider.cs` — copy all 4 types, change namespace to `Qyl.Contracts.Loom`
-- [ ] Update `src/qyl.collector/Storage/DuckDbStore.CodingAgent.cs` — change `using Qyl.Collector.CodingAgent;` to `using Qyl.Contracts.Loom;`
-- [ ] Update `src/qyl.collector/Autofix/AutofixOrchestrator.cs` — same using change
-- [ ] Update `src/qyl.loom/Identity/GlobalUsings.cs` line 36 — change `global using Qyl.Collector.CodingAgent;` to `global using Qyl.Contracts.Loom;`
-- [ ] `nuke` — build succeeds (both old and new type locations exist temporarily)
+The remaining topology drift is concentrated in documentation, not code:
 
-### 2b: Move InstrumentedChatClient + InstrumentedAIFunction to SDK
+- [README.md](/Users/ancplua/qyl/README.md): stale package table, stale architecture diagram, stale project tree.
+- [.claude/rules/collector.md](/Users/ancplua/qyl/.claude/rules/collector.md): stale absolute wording about "zero LLM dependencies".
+- [.claude/rules/loom.md](/Users/ancplua/qyl/.claude/rules/loom.md): acceptable direction, but should describe the current ownership boundary without leaning on deleted-project history.
+- [tests/qyl.collector.tests/ArchitectureTests.cs](/Users/ancplua/qyl/tests/qyl.collector.tests/ArchitectureTests.cs): XML summary should match the refined invariant, not the oversimplified slogan.
 
-- [ ] Copy `InstrumentedChatClient.cs` to `src/qyl.instrumentation/Instrumentation/GenAi/`. Namespace: `Qyl.Instrumentation.GenAi`. Replace `CopilotInstrumentation.ActivitySource` with `ActivitySources.GenAiSource`. Replace `CopilotMetrics` calls with `GenAiInstrumentation` equivalents (verify methods exist first).
-- [ ] Copy `InstrumentedAIFunction.cs` same way. Replace `CopilotInstrumentation.ActivitySource` with `ActivitySources.GenAiSource`.
-- [ ] Copy `ChatClientExtensions.cs` same way. Update type references.
-- [ ] Add `Microsoft.Extensions.AI` PackageReference to `qyl.instrumentation.csproj` if missing.
-- [ ] `nuke` — build succeeds
+### 4. Architecture test alignment for banned dependencies
 
-- [ ] Commit: `feat(instrumentation): relocate shared types and move OTel wrappers to SDK`
+The collector architecture test should enforce the real ban list:
 
----
+- Ban: `Microsoft.Agents.AI`
+- Ban: `Microsoft.Agents.AI.Hosting`
+- Ban: `Microsoft.Agents.AI.Hosting.AGUI`
+- Ban: `GitHub.Copilot.SDK`
+- Ban: concrete provider/client packages if introduced into collector, for example `Microsoft.Extensions.AI.OpenAI`, `OpenAI`, `Azure.AI.OpenAI`, `Anthropic`
+- Allow: `Microsoft.Extensions.AI`
 
-## Task 3: Purge Collector Directories + Storage Partials
+Patch direction:
 
-**Dependency order matters.** Types are already relocated (Task 2). Now delete the source directories and associated storage.
+- Keep the current NetArchTest assembly-level assertion.
+- Rename or reword the test and XML summary so it says "no agent framework or provider SDKs", not "no LLM dependencies".
+- Add a package-surface assertion if stricter enforcement is needed. NetArchTest only catches referenced assemblies, not an inert `PackageReference`.
 
-### 3a: Clean Program.cs
+## Migration Sequence
 
-- [ ] Remove `using` statements: `Qyl.Agents`, `Qyl.Agents.Agents`, `Qyl.Agents.Auth`, `Qyl.Workflows`, `Qyl.Workflows.Workflows`, `Qyl.Collector.Copilot`, `Qyl.Collector.ClaudeCode`, `Qyl.Collector.CodingAgent`, `Qyl.Collector.Workflow`
-- [ ] Remove registrations: `ClaudeCodeHooksService` (L146), `IExecutionStore`/`DuckDbExecutionStore` (L183-185), `ObservabilityTools.Create` (L187-189), `AddQylAgents`/`AddQylWorkflows`/`AddQylAgui`/`CopilotAuthOptions`/`AddQylAgentTelemetry` (L191-201), `WorkflowRunService` (L258)
-- [ ] Remove endpoint mappings: `MapCopilotEndpoints` (L395), AG-UI block (L397-400), `MapClaudeCodeEndpoints` (L402), `MapCodingAgentEndpoints` (L860), `MapLoomSettingsEndpoints` (L862), `MapWorkflowEndpoints`/`MapWorkflowRunEndpoints`/`MapWorkflowEventEndpoints` (L865-867)
+1. Freeze the boundary in docs first.
+   Update this ADR, then fix [README.md](/Users/ancplua/qyl/README.md), then fix the collector and loom rule docs. The repo needs one story before tightening tests.
 
-### 3b: Clean collector csproj
+2. Tighten the collector invariant in tests.
+   Update [tests/qyl.collector.tests/ArchitectureTests.cs](/Users/ancplua/qyl/tests/qyl.collector.tests/ArchitectureTests.cs) so the test bans framework/provider packages but explicitly permits `Microsoft.Extensions.AI`.
 
-- [ ] Remove `<ProjectReference>` to `qyl.agents` and `qyl.workflows`
-- [ ] Remove `<PackageReference>` for `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`
-- [ ] Verify whether `Microsoft.Extensions.AI` PackageRef can be removed (check remaining usages)
+3. Run targeted drift checks.
+   Search for `qyl.agents` and `qyl.workflows` across docs and comments. Search for "zero LLM dependencies" and replace it where it now means "no provider/framework deps".
 
-### 3c: Delete directories and orphaned storage
+4. Only then touch code or project files if validation finds a real violation.
+   The codebase already appears structurally migrated. Do not invent cleanup work where the repo is already correct.
 
-```bash
-rm -rf src/qyl.collector/Copilot/
-rm -rf src/qyl.collector/ClaudeCode/
-rm -rf src/qyl.collector/CodingAgent/
-rm -rf src/qyl.collector/Workflow/
-rm src/qyl.collector/Storage/DuckDbStore.ClaudeCode.cs
-rm src/qyl.collector/Storage/DuckDbExecutionStore.cs
-```
+## Validation
 
-**Keep:** `DuckDbStore.CodingAgent.cs` (uses relocated types from contracts), `DuckDbStore.Workflows.cs` (uses own `WorkflowExecutionRecord`, no qyl.workflows dep).
+- `rg -n "qyl\\.agents|qyl\\.workflows" README.md specs .claude src tests --glob '!**/bin/**' --glob '!**/obj/**' --glob '!src/qyl.mcp/Clear.cs'`
+  Expect only historical mentions in this ADR and the architecture spec's deleted-project notes.
+- `rg -n "zero LLM dependencies" README.md specs .claude src tests --glob '!**/bin/**' --glob '!**/obj/**'`
+  Expect no collector rule or test summary to overstate the ban.
+- `dotnet list src/qyl.collector/qyl.collector.csproj package --include-transitive`
+  Confirm collector has `Microsoft.Extensions.AI` but no `Microsoft.Agents.AI*`, `GitHub.Copilot.SDK`, or provider SDKs.
+- `nuke`
+  Clean build.
+- `nuke test`
+  Architecture tests pass with the refined invariant.
 
-- [ ] `nuke` — build succeeds
-- [ ] Commit: `refactor(collector): purge LLM-dependent and orphaned directories from server`
+## Major Risks
 
----
-
-## Task 4: Delete qyl.agents + qyl.workflows Projects
-
-- [ ] Remove from `qyl.slnx`: `<Project Path="src/qyl.agents/qyl.agents.csproj"/>` and `<Project Path="src/qyl.workflows/qyl.workflows.csproj"/>`
-- [ ] Remove from `src/qyl.loom/qyl.loom.csproj`: ProjectReferences to qyl.agents and qyl.workflows
-- [ ] Verify no remaining `using Qyl.Agents.*` or `using Qyl.Workflows.*` in Loom (grep)
-- [ ] `rm -rf src/qyl.agents/ src/qyl.workflows/`
-- [ ] `nuke` — build succeeds
-- [ ] Commit: `refactor: delete qyl.agents and qyl.workflows projects`
-
----
-
-## Task 5: Clean Up MCP + Dashboard Consumers
-
-### 5a: MCP tools + registrations
-
-- [ ] Delete `src/qyl.mcp/Agents/HttpAgentProvider.cs` and `src/qyl.mcp/Agents/IAgentProvider.cs`
-- [ ] Gut `src/qyl.mcp/Tools/CopilotTools.cs` — remove tools that call `/api/v1/copilot/*` (3 tools dead)
-- [ ] Gut `src/qyl.mcp/Tools/ClaudeCodeTools.cs` — remove tools that call `/api/v1/claude-code/*` (5 tools dead)
-- [ ] Update `src/qyl.mcp/Tools/InvestigateTools.cs` — remove `HttpAgentProvider`/`IAgentProvider` usage (1 tool dead)
-- [ ] Update `src/qyl.mcp/Agents/McpToolRegistry.cs` — remove `typeof(ClaudeCodeTools)` from `ToolTypes` array (L31)
-- [ ] Update `src/qyl.mcp/Skills/SkillRegistrationExtensions.cs` — remove `CopilotTools` (L117), `ClaudeCodeTools` (L123), `InvestigateTools` (L83) registrations
-- [ ] Update `src/qyl.mcp/Program.cs` — remove `CopilotTools` (L178), `ClaudeCodeTools` (L183), `HttpAgentProvider`/`IAgentProvider` (L203-211) registrations
-- [ ] Update `src/qyl.mcp/Clear.cs` — update `global using Qyl.Collector.CodingAgent` to `global using Qyl.Contracts.Loom` and fix any remaining references to deleted types
-
-### 5b: Dashboard hooks and pages
-
-- [ ] Delete hooks: `use-copilot.ts`, `use-llm-status.ts`, `use-claude-code-hooks.ts`
-- [ ] Delete `use-llm-config.ts` (only consumer after CopilotPanel deletion is SettingsPage LLM section, which is also being removed)
-- [ ] Delete components: `src/qyl.dashboard/src/components/copilot/` directory
-- [ ] Delete pages: `WorkflowRunsPage.tsx`, `WorkflowRunDetailPage.tsx`
-- [ ] Update `DashboardLayout.tsx` — remove `useCopilotStatus`, `CopilotButton`, `CopilotPanel` imports and rendering (**build-breaker if missed**)
-- [ ] Update `App.tsx` — remove routes for deleted pages
-- [ ] Update `Sidebar.tsx` — remove nav items for deleted pages
-- [ ] Update `pages/index.ts` — remove `WorkflowRunsPage`, `WorkflowRunDetailPage` exports
-- [ ] Update `SettingsPage.tsx` — remove LLM config section, Claude Code hooks section, Loom settings section
-- [ ] Update `IssueDetailPage.tsx` — remove or update coding agent results section
-- [ ] Update `use-coding-agents.ts` — remove `useCodingAgentRuns` (calls deleted `/api/v1/fix-runs/*/coding-agents`) and `useLoomSettings` (calls deleted `/api/v1/Loom/settings`), or update URLs to Loom endpoints
-- [ ] Update `hooks/index.ts` — remove deleted hook exports
-- [ ] `npm run build` in `src/qyl.dashboard/` — frontend compiles
-
-- [ ] Commit: `refactor: clean up MCP tools and dashboard for MAF migration`
-
----
-
-## Task 6: Update Architecture Tests
-
-- [ ] Delete `Agents_Should_Not_Depend_On_Loom_Or_Collector` test
-- [ ] Delete `Workflows_Should_Not_Depend_On_Loom_Or_Collector` test
-- [ ] Remove `"Qyl.Agents"` and `"Qyl.Workflows"` from contracts dependency list
-- [ ] Remove qyl.agents AND qyl.workflows ProjectReferences from test csproj
-- [ ] Add `Server_Should_Not_Depend_On_Agent_Framework` test (assert no dependency on `Microsoft.Agents.AI`, `Microsoft.Agents.AI.Hosting`, `GitHub.Copilot.SDK`)
-- [ ] `nuke test` — all tests pass
-- [ ] Commit: `test(architecture): replace agents/workflows tests with server-no-LLM invariant`
-
----
-
-## Task 7: Update Specs, Rules, CHANGELOG
-
-- [ ] `specs/04-agents.md` — mark SUPERSEDED, reference MAF native APIs. Only list APIs qyl actually uses: `AddAIAgent()`, `DeclarativeWorkflowBuilder`, `MapAGUI()`. Do NOT list `MapA2A()`, `HandoffsWorkflowBuilder`, `AgentWorkflowBuilder.BuildSequential()` as "replacements" — they are capabilities qyl has not wired.
-- [ ] `specs/09-workflows.md` — mark SUPERSEDED, reference MAF workflow APIs
-- [ ] `.claude/rules/loom.md` — replace "Loom uses AIAgent (via QylAgentBuilder)" with "Loom uses IChatClient + AIAgent from MAF directly". Update ownership boundary to remove agents/workflows from ProjectReference list.
-- [ ] `.claude/rules/collector.md` — replace AG-UI line with "Server has zero LLM dependencies"
-- [ ] `README.md` — update project table and directory tree to remove qyl.agents and qyl.workflows
-- [ ] `CHANGELOG.md` — add Removed entries under Unreleased
-- [ ] Commit: `docs: update specs and rules for MAF native migration`
-
----
-
-## Task 8: Final Verification
-
-- [ ] `nuke` — clean build, zero errors
-- [ ] `nuke test` — all tests pass
-- [ ] `qyl.slnx` has no references to qyl.agents or qyl.workflows
-- [ ] `src/qyl.agents/` and `src/qyl.workflows/` directories do not exist
-- [ ] `dotnet list src/qyl.collector/qyl.collector.csproj package --include-transitive | grep -i "Microsoft.Agents"` — zero output
-- [ ] Dashboard compiles and loads without console errors on startup
-- [ ] Commit fixups if needed
+- **Overcorrecting the collector rule.** If docs or tests ban `Microsoft.Extensions.AI`, they will directly contradict the current collector design.
+- **Undercorrecting the collector rule.** If the test only bans `Microsoft.Agents.AI*`, a provider package can slip into the collector without tripping architecture checks.
+- **Doc-only cleanup without validation.** README drift is obvious, but the more dangerous failures are hidden in rule docs and test slogans that engineers will cargo-cult later.
+- **Keeping historical checklist sludge.** An ADR that mixes completed work with pending work stops being trustworthy and invites bad follow-up edits.
