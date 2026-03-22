@@ -1,3 +1,4 @@
+using Qyl.Collector.Cost;
 using Qyl.Collector.Identity;
 using Qyl.Collector.Telemetry;
 
@@ -12,9 +13,10 @@ public static class CollectorInitializationExtensions
 
         var migrationRunner = app.Services.GetRequiredService<MigrationRunner>();
         var migrationDirectory = Path.Combine(app.Environment.ContentRootPath, "Storage", "Migrations");
-        const int collectorSchemaVersion = 20260214;
+        const int collectorSchemaVersion = 20260322;
         migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, collectorSchemaVersion, migrationDirectory);
 
+        await app.Services.GetRequiredService<ModelPricingService>().InitializeAsync().ConfigureAwait(false);
         await app.Services.GetRequiredService<GitHubService>().InitializeAsync().ConfigureAwait(false);
     }
 }

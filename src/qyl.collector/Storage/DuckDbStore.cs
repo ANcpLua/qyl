@@ -1512,6 +1512,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var artifactsCmd = con.CreateCommand();
         artifactsCmd.CommandText = DuckDbSchema.ArtifactsDdl;
         artifactsCmd.ExecuteNonQuery();
+
+        // Cost engine: model pricing tables + pre-aggregated view
+        using var costCmd = con.CreateCommand();
+        costCmd.CommandText = $"""
+                               {DuckDbSchema.ModelPricingDdl}
+                               {DuckDbSchema.ModelPricingTiersDdl}
+                               {DuckDbSchema.CostByModelHourlyViewDdl}
+                               """;
+        costCmd.ExecuteNonQuery();
     }
 
     private static string NormalizeGeneratedSchemaDdl(string ddl)

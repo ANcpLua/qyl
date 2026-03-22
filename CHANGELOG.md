@@ -4,6 +4,22 @@
 
 ### Added
 
+- **Cost engine**: DuckDB `model_pricing` + `model_pricing_tiers` tables via migration V20260322. Pre-aggregated
+  `cost_by_model_hourly` view. `ModelPricingService` seeds from `data/model-pricing.json` (30 models across OpenAI,
+  Anthropic, Google, Meta, Mistral, DeepSeek) on first boot. Server-side cost computation at ingestion time — both
+  gRPC and HTTP OTLP paths enrich spans with `gen_ai_cost_usd` from pricing lookup. SDK-reported costs are preserved.
+  REST API: `/api/v1/cost/by-session`, `/by-service`, `/by-model`, `/timeseries`, `/budget`, `PUT /pricing/{provider}/{model}`.
+- **CostPage**: New `/cost` route with ECharts timeseries (hourly cost by model), TanStack Table breakdown
+  (sort/filter/paginate by model), KPI cards (spend today, top model, budget status), and per-service cost summary.
+- **ServicesPage**: New `/services` route with sortable service table showing span counts, error counts, version,
+  health status (healthy/degraded based on recent errors).
+- **Telemetry Intelligence types**: TypeSpec definitions in `core/specs/intelligence/` (8 files) + C# types in
+  `src/qyl.contracts/Intelligence/` (7 types, 3 static registries). 10 diagnostic patterns, 6 causal rules,
+  4 investigation strategies — all seed data from spec §5. Compile-time collections, zero I/O.
+- **Pattern engine**: `IPatternEngine` + `PatternEngine` in `src/qyl.collector/Intelligence/`. Pure computation:
+  `Evaluate()` matches observed signals against diagnostic patterns via type-coerced comparison, `BuildCausalGraph()`
+  traverses causal rules to identify root causes, `SelectStrategy()` resolves investigation strategies by pattern ID
+  then category fallback. No I/O, no LLM, no DI — deterministic same-input-same-output.
 - **Telemetry Intelligence Model spec**: `specs/telemetry-intelligence.md` — canonical reasoning model over telemetry
   data. Defines diagnostic patterns, causal rules, and investigation strategies as TypeSpec → generated C# types.
   Completes the deterministic stack: emit → store → group → **reason** → investigate.
@@ -47,6 +63,10 @@
 
 ### Removed
 
+- **Dead dashboard pages**: Deleted 11 pages per architecture kill list — `BotPage`, `BotConversationDetailPage`,
+  `BotUserJourneyPage`, `CodeReviewPage`, `IssueTriagePage`, `IssueFixRunsPage`, `LoomDashboardPage`, `AgentsPage`,
+  `AgentRunDetailPage`, `InsightsOverviewPage`, `ResourcesPage`. Removed routes from `App.tsx`, nav items from
+  `Sidebar.tsx`, exports from `pages/index.ts`. AI nav section removed entirely.
 - **DomainContracts.g.cs**: Deleted unreferenced generated file and empty `Generated/` directory from
   `qyl.instrumentation.generators`. The `Qyl.Contracts.Generated` namespace had zero consumers.
 - **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —

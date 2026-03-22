@@ -116,4 +116,6 @@ namespace Qyl.Collector;
 // Artifact types
 [JsonSerializable(typeof(ArtifactCreateRequest))]
 [JsonSerializable(typeof(ArtifactResponse))]
+// Cost engine types
+[JsonSerializable(typeof(Cost.PricingOverrideRequest))]
 public partial class QylSerializerContext : JsonSerializerContext;

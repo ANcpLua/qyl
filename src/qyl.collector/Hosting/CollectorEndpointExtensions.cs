@@ -1,6 +1,7 @@
 using Qyl.Collector.AgentRuns;
 using Qyl.Collector.Analytics;
 using Qyl.Collector.Artifacts;
+using Qyl.Collector.Cost;
 using Qyl.Collector.Autofix;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Dashboards;
@@ -88,6 +89,7 @@ public static class CollectorEndpointExtensions
         app.MapAgentRunEndpoints();
         app.MapAgentInsightsEndpoints();
         app.MapArtifactEndpoints();
+        app.MapCostEndpoints();
         app.MapQueryEndpoints();
         app.MapLogSummaryEndpoints();
 
@@ -110,6 +112,7 @@ public static class CollectorEndpointExtensions
         DuckDbStore store,
         ITelemetrySseBroadcaster broadcaster,
         SpanRingBuffer ringBuffer,
+        ModelPricingService pricingService,
         CancellationToken ct)
     {
         try
@@ -141,7 +144,8 @@ public static class CollectorEndpointExtensions
 
             if (spans.Count is 0) return Results.Accepted();
 
-            var batch = new SpanBatch(spans).WithCodexTransformations();
+            var batch = pricingService.EnrichBatchWithCost(
+                new SpanBatch(spans).WithCodexTransformations());
             ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
             await store.EnqueueAsync(batch, ct);
 

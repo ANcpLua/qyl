@@ -1,4 +1,5 @@
 using Qyl.Collector.AgentRuns;
+using Qyl.Collector.Cost;
 using Qyl.Collector.SchemaControl;
 
 namespace Qyl.Collector.Hosting;
@@ -23,6 +24,8 @@ public static class CollectorStorageExtensions
         services.AddSingleton<SchemaExecutor>();
 
         services.ActivateSingleton<DuckDbStore>();
+
+        services.AddSingleton<ModelPricingService>();
 
         services.AddSingleton(sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(sp => new AnalyticsQueryService(sp.GetRequiredService<DuckDbStore>()));
