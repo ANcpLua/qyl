@@ -72,15 +72,15 @@ public sealed partial class LoomInsightService(
 
         var initialGuess = issue.ErrorType switch
         {
-            string t when t.ContainsIgnoreCase("NullReference") =>
+            { } t when t.ContainsIgnoreCase("NullReference") =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
-            string t when t.ContainsIgnoreCase("NetworkError") || t.ContainsIgnoreCase("HttpRequest") =>
+            { } t when t.ContainsIgnoreCase("NetworkError") || t.ContainsIgnoreCase("HttpRequest") =>
                 "A network request is failing — this may be a symptom of a backend exception or connectivity issue.",
-            string t when t.ContainsIgnoreCase("Timeout") =>
+            { } t when t.ContainsIgnoreCase("Timeout") =>
                 "An operation is timing out — check for slow queries, external service latency, or deadlocks.",
-            string t when t.ContainsIgnoreCase("ArgumentException") || t.ContainsIgnoreCase("InvalidOperation") =>
+            { } t when t.ContainsIgnoreCase("ArgumentException") || t.ContainsIgnoreCase("InvalidOperation") =>
                 "An invalid argument or state is being passed — check input validation and preconditions.",
-            string t when t.ContainsIgnoreCase("Unauthorized") || t.ContainsIgnoreCase("Forbidden") =>
+            { } t when t.ContainsIgnoreCase("Unauthorized") || t.ContainsIgnoreCase("Forbidden") =>
                 "An authentication or authorization check is failing — verify tokens, permissions, and middleware.",
             _ => $"A {issue.ErrorType} is being thrown — investigate the stack trace for the originating call site."
         };
