@@ -63,3 +63,15 @@ If your work isn't in the changelog, it didn't happen.
 Banned: `DateTime.Now`, `Newtonsoft.Json`, `object _lock`, `#pragma warning disable`, `[SuppressMessage]`, `<NoWarn>`, `ISourceGenerator`, `SyntaxFactory.NormalizeWhitespace()`, runtime reflection, `dynamic`, `.Result`, `.Wait()`
 
 </ground-truth>
+
+<maf-hosting-note>
+
+- `AddAIAgent(...)` returns `IHostedAgentBuilder`, not `IHostApplicationBuilder`.
+- Hosted agent durability uses `AgentSessionStore` / `InMemoryAgentSessionStore` configured via
+  `WithSessionStore(...)` / `WithInMemorySessionStore()`, not an `IAgentSessionStore` service contract.
+- `AIAgent` invocation uses `CreateSessionAsync`, `RunAsync`, and `RunStreamingAsync`; there is no
+  `GenerateResponseAsync` / `GenerateStreamingResponseAsync` API in the installed rc4/preview.260311.1 stack.
+- `WithInMemorySessionStore()` does not create implicit cross-agent shared memory. Loom handoff between
+  diagnostician/strategist/coder remains an explicit Loom-owned state model, not "same conversationId = same brain".
+
+</maf-hosting-note>

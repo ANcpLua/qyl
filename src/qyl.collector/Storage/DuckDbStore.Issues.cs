@@ -246,7 +246,7 @@ public sealed partial class DuckDbStore
                 candidates.Add((reader.GetString(0), reader.GetString(1)));
 
             if (candidates.Count == 0)
-                return (IReadOnlyList<string>)regressedIds;
+                return regressedIds;
 
             var fingerprints = candidates
                 .Select(static candidate => candidate.Fingerprint)

@@ -26,10 +26,10 @@ public static class LoomEndpoints
 
         // ── Stages 2-5: Interactive exploration (SSE streaming) ──────────────
         app.MapPost("/api/v1/loom/{issueId}/explore", static (
-            string issueId,
-            LoomExploreRequest? request,
-            LoomOrchestrator orchestrator,
-            CancellationToken ct) =>
+                string issueId,
+                LoomExploreRequest? request,
+                LoomOrchestrator orchestrator,
+                CancellationToken ct) =>
             TypedResults.ServerSentEvents(
                 StreamExploreAsync(orchestrator, issueId, request?.UserContext, ct),
                 null));

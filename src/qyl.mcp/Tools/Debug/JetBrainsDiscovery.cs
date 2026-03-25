@@ -96,8 +96,8 @@ internal sealed partial class JetBrainsDiscovery(
             return null;
 
         return new JetBrainsEndpoints(
-            BuiltInSseUrl: builtInPort is not null ? $"http://127.0.0.1:{builtInPort}/sse" : null,
-            DebuggerStreamableUrl: debuggerUrl);
+            builtInPort is not null ? $"http://127.0.0.1:{builtInPort}/sse" : null,
+            debuggerUrl);
     }
 
     private static string? FindLatestRiderLog()
@@ -132,9 +132,11 @@ internal sealed partial class JetBrainsDiscovery(
             return Path.Combine(home, ".cache", "JetBrains", "log");
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "JetBrains", "Logs");
+        }
 
         return null;
     }

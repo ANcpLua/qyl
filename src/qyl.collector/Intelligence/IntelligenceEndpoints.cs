@@ -91,9 +91,7 @@ internal static class IntelligenceEndpoints
             root_causes = graph.RootCauses,
             edges = graph.Edges.Select(static e => new
             {
-                cause = e.CausePatternId,
-                effect = e.EffectPatternId,
-                strength = e.Strength
+                cause = e.CausePatternId, effect = e.EffectPatternId, strength = e.Strength
             })
         }));
     }
@@ -120,9 +118,7 @@ internal static class IntelligenceEndpoints
             trigger_pattern = strategy.TriggerPattern,
             steps = strategy.Steps.Select(static s => new
             {
-                action = s.Action,
-                query = s.Query,
-                description = s.Description
+                action = s.Action, query = s.Query, description = s.Description
             })
         }));
     }
@@ -135,8 +131,7 @@ internal static class IntelligenceEndpoints
         string? service,
         CancellationToken ct)
     {
-        var strategy = InvestigationStrategies.All.FirstOrDefault(
-            s => s.Id.EqualsOrdinal(strategyId));
+        var strategy = InvestigationStrategies.All.FirstOrDefault(s => s.Id.EqualsOrdinal(strategyId));
 
         if (strategy is null || stepIndex < 0 || stepIndex >= strategy.Steps.Count)
             return TypedResults.NotFound();
@@ -163,9 +158,12 @@ internal static class IntelligenceEndpoints
             {
                 var row = new Dictionary<string, object?>(StringComparer.Ordinal);
                 for (var i = 0; i < reader.FieldCount; i++)
+                {
                     row[reader.GetName(i)] = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
                         ? null
                         : reader.GetValue(i);
+                }
+
                 rows.Add(row);
             }
         }
@@ -207,8 +205,10 @@ internal static class IntelligenceEndpoints
             AddSignalIfPresent(signals, "gen_ai_stop_reason", span.GenAiStopReason);
             AddSignalIfPresent(signals, "gen_ai_tool_name", span.GenAiToolName);
             AddSignalIfPresent(signals, "gen_ai_cost_usd", span.GenAiCostUsd?.ToString(CultureInfo.InvariantCulture));
-            AddSignalIfPresent(signals, "gen_ai_input_tokens", span.GenAiInputTokens?.ToString(CultureInfo.InvariantCulture));
-            AddSignalIfPresent(signals, "gen_ai_output_tokens", span.GenAiOutputTokens?.ToString(CultureInfo.InvariantCulture));
+            AddSignalIfPresent(signals, "gen_ai_input_tokens",
+                span.GenAiInputTokens?.ToString(CultureInfo.InvariantCulture));
+            AddSignalIfPresent(signals, "gen_ai_output_tokens",
+                span.GenAiOutputTokens?.ToString(CultureInfo.InvariantCulture));
             AddSignalIfPresent(signals, "span_name", span.Name);
             AddSignalIfPresent(signals, "duration_ns", span.DurationNs.ToString(CultureInfo.InvariantCulture));
 

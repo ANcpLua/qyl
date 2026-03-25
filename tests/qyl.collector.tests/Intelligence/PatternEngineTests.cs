@@ -17,10 +17,7 @@ public sealed class PatternEngineTests
     // ==========================================================================
 
     [Fact]
-    public void SeedPatterns_All_Contains10Patterns()
-    {
-        Assert.Equal(10, DiagnosticPatterns.All.Count);
-    }
+    public void SeedPatterns_All_Contains10Patterns() => Assert.Equal(10, DiagnosticPatterns.All.Count);
 
     [Fact]
     public void SeedPatterns_AllHaveUniqueIds()
@@ -30,10 +27,7 @@ public sealed class PatternEngineTests
     }
 
     [Fact]
-    public void SeedRules_All_Contains6Rules()
-    {
-        Assert.Equal(6, CausalRules.All.Count);
-    }
+    public void SeedRules_All_Contains6Rules() => Assert.Equal(6, CausalRules.All.Count);
 
     [Fact]
     public void SeedRules_ReferenceExistingPatterns()
@@ -48,10 +42,7 @@ public sealed class PatternEngineTests
     }
 
     [Fact]
-    public void SeedStrategies_All_Contains4Strategies()
-    {
-        Assert.Equal(4, InvestigationStrategies.All.Count);
-    }
+    public void SeedStrategies_All_Contains4Strategies() => Assert.Equal(4, InvestigationStrategies.All.Count);
 
     [Fact]
     public void SeedStrategies_AllHaveSteps()
@@ -74,23 +65,20 @@ public sealed class PatternEngineTests
         {
             Observed("status_code", "2"),
             Observed("gen_ai_provider_name", "openai"),
-            Observed("error_type", "rate_limit_exceeded"),
+            Observed("error_type", "rate_limit_exceeded")
         };
 
         var matches = engine.Evaluate(signals);
 
         var match = Assert.Single(matches, m => m.Pattern.Id == "genai_rate_limit");
-        Assert.Equal(0.9, match.Score, precision: 5);
+        Assert.Equal(0.9, match.Score, 5);
     }
 
     [Fact]
     public void Evaluate_GenAiTokenExhaustion_MatchesOnStopReasonLength()
     {
         var engine = CreateEngine();
-        var signals = new List<Signal>
-        {
-            Observed("gen_ai_stop_reason", "length"),
-        };
+        var signals = new List<Signal> { Observed("gen_ai_stop_reason", "length") };
 
         var matches = engine.Evaluate(signals);
 
@@ -101,10 +89,7 @@ public sealed class PatternEngineTests
     public void Evaluate_GenAiContentFilter_MatchesOnStopReasonContainingContentFilter()
     {
         var engine = CreateEngine();
-        var signals = new List<Signal>
-        {
-            Observed("gen_ai_stop_reason", "content_filter_triggered"),
-        };
+        var signals = new List<Signal> { Observed("gen_ai_stop_reason", "content_filter_triggered") };
 
         var matches = engine.Evaluate(signals);
 
@@ -119,7 +104,7 @@ public sealed class PatternEngineTests
         {
             Observed("exception_type", "TimeoutException"),
             Observed("db.system.name", "postgresql"),
-            Observed("duration_ns", "3000000000"),
+            Observed("duration_ns", "3000000000")
         };
 
         var matches = engine.Evaluate(signals);
@@ -135,7 +120,7 @@ public sealed class PatternEngineTests
         {
             Observed("db.system.name", "postgresql"),
             Observed("parent_span_id", "abc123"),
-            Observed("span_count_under_parent", "25"),
+            Observed("span_count_under_parent", "25")
         };
 
         var matches = engine.Evaluate(signals);
@@ -149,19 +134,20 @@ public sealed class PatternEngineTests
         // Seed pattern uses symbolic "baseline*3" — test with pre-resolved numeric threshold
         var resolvedPattern = new DiagnosticPattern
         {
-            Id = "http_5xx_cluster", Category = PatternCategory.Error,
+            Id = "http_5xx_cluster",
+            Category = PatternCategory.Error,
             Signals =
             [
                 new Signal { Attribute = "http.response.status_code", Operator = SignalOperator.Gte, Value = "500" },
-                new Signal { Attribute = "occurrence_rate", Operator = SignalOperator.Gt, Value = "9" },
+                new Signal { Attribute = "occurrence_rate", Operator = SignalOperator.Gt, Value = "9" }
             ],
-            Hypothesis = "Server error spike.", Confidence = 0.75,
+            Hypothesis = "Server error spike.",
+            Confidence = 0.75
         };
         var engine = new PatternEngine([resolvedPattern], CausalRules.All, InvestigationStrategies.All);
         var signals = new List<Signal>
         {
-            Observed("http.response.status_code", "503"),
-            Observed("occurrence_rate", "15"),
+            Observed("http.response.status_code", "503"), Observed("occurrence_rate", "15")
         };
 
         var matches = engine.Evaluate(signals);
@@ -175,19 +161,20 @@ public sealed class PatternEngineTests
         // Seed pattern uses symbolic "last_deployment_time" — test with resolved numeric timestamp
         var resolvedPattern = new DiagnosticPattern
         {
-            Id = "deployment_regression", Category = PatternCategory.Error,
+            Id = "deployment_regression",
+            Category = PatternCategory.Error,
             Signals =
             [
                 new Signal { Attribute = "error_type", Operator = SignalOperator.Exists },
-                new Signal { Attribute = "first_seen_at", Operator = SignalOperator.Gt, Value = "1711100000" },
+                new Signal { Attribute = "first_seen_at", Operator = SignalOperator.Gt, Value = "1711100000" }
             ],
-            Hypothesis = "New error class after deployment.", Confidence = 0.80,
+            Hypothesis = "New error class after deployment.",
+            Confidence = 0.80
         };
         var engine = new PatternEngine([resolvedPattern], CausalRules.All, InvestigationStrategies.All);
         var signals = new List<Signal>
         {
-            Observed("error_type", "NullReferenceException"),
-            Observed("first_seen_at", "1711108800"),
+            Observed("error_type", "NullReferenceException"), Observed("first_seen_at", "1711108800")
         };
 
         var matches = engine.Evaluate(signals);
@@ -202,7 +189,7 @@ public sealed class PatternEngineTests
         var signals = new List<Signal>
         {
             Observed("exception_type", "TaskCanceledException: The request was canceled due to Timeout"),
-            Observed("downstream_service_error", "true"),
+            Observed("downstream_service_error", "true")
         };
 
         var matches = engine.Evaluate(signals);
@@ -216,19 +203,23 @@ public sealed class PatternEngineTests
         // Seed pattern uses symbolic "p99_baseline" — test with resolved numeric value
         var resolvedPattern = new DiagnosticPattern
         {
-            Id = "memory_pressure_latency", Category = PatternCategory.Latency,
+            Id = "memory_pressure_latency",
+            Category = PatternCategory.Latency,
             Signals =
             [
-                new Signal { Attribute = "process.runtime.dotnet.gc.duration", Operator = SignalOperator.Gt, Value = "100" },
-                new Signal { Attribute = "avg_latency", Operator = SignalOperator.Gt, Value = "200" },
+                new Signal
+                {
+                    Attribute = "process.runtime.dotnet.gc.duration", Operator = SignalOperator.Gt, Value = "100"
+                },
+                new Signal { Attribute = "avg_latency", Operator = SignalOperator.Gt, Value = "200" }
             ],
-            Hypothesis = "GC pressure causing latency.", Confidence = 0.65,
+            Hypothesis = "GC pressure causing latency.",
+            Confidence = 0.65
         };
         var engine = new PatternEngine([resolvedPattern], CausalRules.All, InvestigationStrategies.All);
         var signals = new List<Signal>
         {
-            Observed("process.runtime.dotnet.gc.duration", "250"),
-            Observed("avg_latency", "500"),
+            Observed("process.runtime.dotnet.gc.duration", "250"), Observed("avg_latency", "500")
         };
 
         var matches = engine.Evaluate(signals);
@@ -242,18 +233,17 @@ public sealed class PatternEngineTests
         // Seed pattern uses symbolic "daily_average*3" — test with resolved numeric value
         var resolvedPattern = new DiagnosticPattern
         {
-            Id = "cost_spike", Category = PatternCategory.Cost,
+            Id = "cost_spike",
+            Category = PatternCategory.Cost,
             Signals =
             [
-                new Signal { Attribute = "gen_ai_cost_usd", Operator = SignalOperator.Gt, Value = "30.0" },
+                new Signal { Attribute = "gen_ai_cost_usd", Operator = SignalOperator.Gt, Value = "30.0" }
             ],
-            Hypothesis = "Abnormal cost increase.", Confidence = 0.75,
+            Hypothesis = "Abnormal cost increase.",
+            Confidence = 0.75
         };
         var engine = new PatternEngine([resolvedPattern], CausalRules.All, InvestigationStrategies.All);
-        var signals = new List<Signal>
-        {
-            Observed("gen_ai_cost_usd", "150.0"),
-        };
+        var signals = new List<Signal> { Observed("gen_ai_cost_usd", "150.0") };
 
         var matches = engine.Evaluate(signals);
 
@@ -268,11 +258,7 @@ public sealed class PatternEngineTests
     public void Evaluate_GenAiRateLimit_DoesNotMatch_WhenMissingProviderName()
     {
         var engine = CreateEngine();
-        var signals = new List<Signal>
-        {
-            Observed("status_code", "2"),
-            Observed("error_type", "rate_limit"),
-        };
+        var signals = new List<Signal> { Observed("status_code", "2"), Observed("error_type", "rate_limit") };
 
         var matches = engine.Evaluate(signals);
 
@@ -287,7 +273,7 @@ public sealed class PatternEngineTests
         {
             Observed("exception_type", "TimeoutException"),
             Observed("db.system.name", "postgresql"),
-            Observed("duration_ns", "1000000000"),
+            Observed("duration_ns", "1000000000")
         };
 
         var matches = engine.Evaluate(signals);
@@ -309,11 +295,7 @@ public sealed class PatternEngineTests
     public void Evaluate_UnrelatedSignals_ReturnsEmpty()
     {
         var engine = CreateEngine();
-        var signals = new List<Signal>
-        {
-            Observed("http.method", "GET"),
-            Observed("user_agent", "Mozilla/5.0"),
-        };
+        var signals = new List<Signal> { Observed("http.method", "GET"), Observed("user_agent", "Mozilla/5.0") };
 
         var matches = engine.Evaluate(signals);
 
@@ -335,7 +317,7 @@ public sealed class PatternEngineTests
             Observed("gen_ai_provider_name", "openai"),
             Observed("error_type", "rate_limit"),
             Observed("exception_type", "TaskCanceledException: Timeout occurred"),
-            Observed("downstream_service_error", "true"),
+            Observed("downstream_service_error", "true")
         };
 
         var matches = engine.Evaluate(signals);
@@ -362,7 +344,7 @@ public sealed class PatternEngineTests
         var matches = new List<PatternMatch>
         {
             new(deployPattern, deployPattern.Confidence, deployPattern.Signals),
-            new(httpPattern, httpPattern.Confidence, httpPattern.Signals),
+            new(httpPattern, httpPattern.Confidence, httpPattern.Signals)
         };
 
         var graph = engine.BuildCausalGraph(matches);
@@ -370,7 +352,7 @@ public sealed class PatternEngineTests
         var edge = Assert.Single(graph.Edges);
         Assert.Equal("deployment_regression", edge.CausePatternId);
         Assert.Equal("http_5xx_cluster", edge.EffectPatternId);
-        Assert.Equal(0.85, edge.Strength, precision: 5);
+        Assert.Equal(0.85, edge.Strength, 5);
     }
 
     [Fact]
@@ -383,7 +365,7 @@ public sealed class PatternEngineTests
         var matches = new List<PatternMatch>
         {
             new(deployPattern, deployPattern.Confidence, deployPattern.Signals),
-            new(httpPattern, httpPattern.Confidence, httpPattern.Signals),
+            new(httpPattern, httpPattern.Confidence, httpPattern.Signals)
         };
 
         var graph = engine.BuildCausalGraph(matches);
@@ -405,7 +387,7 @@ public sealed class PatternEngineTests
         {
             new(nPlusOne, nPlusOne.Confidence, nPlusOne.Signals),
             new(dbTimeout, dbTimeout.Confidence, dbTimeout.Signals),
-            new(http5xx, http5xx.Confidence, http5xx.Signals),
+            new(http5xx, http5xx.Confidence, http5xx.Signals)
         };
 
         var graph = engine.BuildCausalGraph(matches);
@@ -422,10 +404,7 @@ public sealed class PatternEngineTests
         var engine = CreateEngine();
         var pattern = DiagnosticPatterns.All.First(p => p.Id == "genai_content_filter");
 
-        var matches = new List<PatternMatch>
-        {
-            new(pattern, pattern.Confidence, pattern.Signals),
-        };
+        var matches = new List<PatternMatch> { new(pattern, pattern.Confidence, pattern.Signals) };
 
         var graph = engine.BuildCausalGraph(matches);
 

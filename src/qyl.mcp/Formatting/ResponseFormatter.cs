@@ -84,7 +84,6 @@ public static class ResponseFormatter
     /// </summary>
     public static string FormatStructured(StructuredResponse response) =>
         JsonSerializer.Serialize(response, StructuredResponseJsonContext.Default.StructuredResponse);
-
 }
 
 /// <summary>
@@ -93,8 +92,7 @@ public static class ResponseFormatter
 /// </summary>
 public sealed class StructuredResponse
 {
-    [JsonPropertyName("facts")]
-    public required object Facts { get; init; }
+    [JsonPropertyName("facts")] public required object Facts { get; init; }
 
     [JsonPropertyName("analysis")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -115,11 +113,9 @@ public sealed class StructuredResponse
 
 public sealed class SuggestedAction
 {
-    [JsonPropertyName("tool")]
-    public required string Tool { get; init; }
+    [JsonPropertyName("tool")] public required string Tool { get; init; }
 
-    [JsonPropertyName("description")]
-    public required string Description { get; init; }
+    [JsonPropertyName("description")] public required string Description { get; init; }
 
     [JsonPropertyName("parameters")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -128,17 +124,14 @@ public sealed class SuggestedAction
 
 public sealed class PaginationInfo
 {
-    [JsonPropertyName("cursor")]
-    public string? Cursor { get; init; }
+    [JsonPropertyName("cursor")] public string? Cursor { get; init; }
 
-    [JsonPropertyName("has_more")]
-    public bool HasMore { get; init; }
+    [JsonPropertyName("has_more")] public bool HasMore { get; init; }
 }
 
 public sealed class EvidenceInfo
 {
-    [JsonPropertyName("sources")]
-    public IReadOnlyList<string> Sources { get; init; } = [];
+    [JsonPropertyName("sources")] public IReadOnlyList<string> Sources { get; init; } = [];
 
     [JsonPropertyName("time_range")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -147,11 +140,9 @@ public sealed class EvidenceInfo
 
 public sealed class TimeRangeInfo
 {
-    [JsonPropertyName("from")]
-    public required string From { get; init; }
+    [JsonPropertyName("from")] public required string From { get; init; }
 
-    [JsonPropertyName("to")]
-    public required string To { get; init; }
+    [JsonPropertyName("to")] public required string To { get; init; }
 }
 
 [JsonSerializable(typeof(StructuredResponse))]

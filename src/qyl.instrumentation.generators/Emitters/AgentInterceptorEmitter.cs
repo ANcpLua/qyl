@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -73,15 +71,16 @@ internal static class AgentInterceptorEmitter
         sb.AppendLine($"public static {asyncMod}{returnType} {methodName}({parameters})");
         using (sb.BeginBlock())
         {
-            sb.AppendLine($"using var activity = ActivitySources.AgentSource.StartActivity(");
+            sb.AppendLine("using var activity = ActivitySources.AgentSource.StartActivity(");
             sb.AppendLine($"    \"{spanName}\",");
-            sb.AppendLine($"    global::System.Diagnostics.ActivityKind.Client);");
+            sb.AppendLine("    global::System.Diagnostics.ActivityKind.Client);");
             sb.AppendLine();
 
             using (sb.BeginIf("activity is not null"))
             {
                 sb.AppendLine($"activity.SetTag(GenAiAttributes.OperationName, {operationConst});");
-                sb.AppendLine("activity.SetTag(GenAiAttributes.ProviderName, GenAiAttributes.Providers.MicrosoftAgents);");
+                sb.AppendLine(
+                    "activity.SetTag(GenAiAttributes.ProviderName, GenAiAttributes.Providers.MicrosoftAgents);");
                 using (sb.BeginIf($"{agentNameLiteral} is not null"))
                 {
                     sb.AppendLine($"activity.SetTag(\"gen_ai.agent.name\", {agentNameLiteral});");
@@ -108,7 +107,8 @@ internal static class AgentInterceptorEmitter
             sb.AppendLine("catch (global::System.Exception ex)");
             using (sb.BeginBlock())
             {
-                sb.AppendLine("global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
+                sb.AppendLine(
+                    "global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
                 sb.AppendLine("throw;");
             }
         }
@@ -133,5 +133,4 @@ internal static class AgentInterceptorEmitter
             AgentCallKind.BuilderRegistration => "GenAiAttributes.Operations.CreateAgent",
             _ => "GenAiAttributes.Operations.InvokeAgent"
         };
-
 }

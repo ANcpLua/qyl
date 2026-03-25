@@ -1,5 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
-using ANcpLua.Roslyn.Utilities.Matching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -18,9 +16,9 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///     - <c>AIAgentBuilder</c> registration calls
 ///     - Methods decorated with <c>[AgentTraced]</c>
 ///     <para>
-///     Note: <see cref="GenAiCallSiteAnalyzer"/> handles RunAsync/RunStreamingAsync on these same
-///     Microsoft.Agents.AI types. This analyzer handles InvokeAsync for agent-specific instrumentation.
-///     The two analyzers target disjoint method sets on overlapping types.
+///         Note: <see cref="GenAiCallSiteAnalyzer" /> handles RunAsync/RunStreamingAsync on these same
+///         Microsoft.Agents.AI types. This analyzer handles InvokeAsync for agent-specific instrumentation.
+///         The two analyzers target disjoint method sets on overlapping types.
 ///     </para>
 /// </remarks>
 internal static class AgentCallSiteAnalyzer

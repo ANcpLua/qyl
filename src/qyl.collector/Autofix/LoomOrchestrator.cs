@@ -102,15 +102,12 @@ public sealed partial class LoomOrchestrator(
 
     private static StreamUpdate MakeError(string error) => new()
     {
-        Kind = StreamUpdateKind.Error,
-        Error = error,
-        Timestamp = TimeProvider.System.GetUtcNow()
+        Kind = StreamUpdateKind.Error, Error = error, Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     private static StreamUpdate MakeCompleted() => new()
     {
-        Kind = StreamUpdateKind.Completed,
-        Timestamp = TimeProvider.System.GetUtcNow()
+        Kind = StreamUpdateKind.Completed, Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     [LoggerMessage(Level = LogLevel.Information,
@@ -118,7 +115,8 @@ public sealed partial class LoomOrchestrator(
     private partial void LogExplorationStarted(string issueId, int eventCount);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Loom exploration completed for issue {IssueId}: {RcaSteps} RCA steps, {SolutionSteps} solution steps")]
+        Message =
+            "Loom exploration completed for issue {IssueId}: {RcaSteps} RCA steps, {SolutionSteps} solution steps")]
     private partial void LogExplorationCompleted(string issueId, int rcaSteps, int solutionSteps);
 }
 

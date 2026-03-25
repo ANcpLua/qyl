@@ -221,15 +221,6 @@ public sealed record CachedResource(
 public static class EmbeddedDashboardExtensions
 {
     /// <summary>
-    ///     Adds embedded dashboard middleware for single-binary deployment.
-    ///     Call this INSTEAD of UseStaticFiles/UseDefaultFiles when dashboard is embedded.
-    /// </summary>
-    public static IApplicationBuilder UseEmbeddedDashboard(
-        this IApplicationBuilder app,
-        string basePath = "") =>
-        app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
-
-    /// <summary>
     ///     Checks if the assembly contains embedded dashboard resources.
     ///     Used to decide between embedded and physical file serving at startup.
     /// </summary>
@@ -237,6 +228,15 @@ public static class EmbeddedDashboardExtensions
         typeof(EmbeddedDashboardMiddleware).Assembly
             .GetManifestResourceNames()
             .Any(static n => n.StartsWithOrdinal("Qyl.Collector.wwwroot."));
+
+    /// <summary>
+    ///     Adds embedded dashboard middleware for single-binary deployment.
+    ///     Call this INSTEAD of UseStaticFiles/UseDefaultFiles when dashboard is embedded.
+    /// </summary>
+    public static IApplicationBuilder UseEmbeddedDashboard(
+        this IApplicationBuilder app,
+        string basePath = "") =>
+        app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
 
     public static bool HasEmbeddedDashboard() => SCachedHasEmbeddedDashboard;
 }

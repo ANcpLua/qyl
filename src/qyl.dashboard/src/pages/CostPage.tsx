@@ -7,18 +7,13 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
-    useReactTable,
     type SortingState,
+    useReactTable,
 } from '@tanstack/react-table';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import {LineChart} from 'echarts/charts';
-import {
-    GridComponent,
-    TooltipComponent,
-    LegendComponent,
-    DataZoomComponent,
-} from 'echarts/components';
+import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent,} from 'echarts/components';
 import {CanvasRenderer} from 'echarts/renderers';
 import {
     ArrowDown,
@@ -119,11 +114,11 @@ function formatTokens(n: number): string {
 // ── KPI Cards ────────────────────────────────────────────────────────────────
 
 function KpiCard({
-    label,
-    value,
-    icon: Icon,
-    variant = 'default',
-}: {
+                     label,
+                     value,
+                     icon: Icon,
+                     variant = 'default',
+                 }: {
     label: string;
     value: string;
     icon: React.ElementType;
@@ -162,7 +157,7 @@ function KpiCard({
 
 // ── ECharts cost timeseries ──────────────────────────────────────────────────
 
-function CostTimeSeriesChart({data}: {data: CostTimeSeries[]}) {
+function CostTimeSeriesChart({data}: { data: CostTimeSeries[] }) {
     const chartRef = useRef<ReactEChartsCore>(null);
 
     const option = useMemo(() => {
@@ -280,7 +275,7 @@ const columns = [
     }),
 ];
 
-function CostBreakdownTable({data}: {data: CostByModel[]}) {
+function CostBreakdownTable({data}: { data: CostByModel[] }) {
     const [sorting, setSorting] = useState<SortingState>([{id: 'totalCost', desc: true}]);
     const [globalFilter, setGlobalFilter] = useState('');
 
@@ -319,41 +314,42 @@ function CostBreakdownTable({data}: {data: CostByModel[]}) {
             <div className="overflow-x-auto">
                 <table className="w-full text-[11px]">
                     <thead>
-                        {table.getHeaderGroups().map(headerGroup => (
-                            <tr key={headerGroup.id} className="border-b border-brutal-zinc/70">
-                                {headerGroup.headers.map(header => (
-                                    <th
-                                        key={header.id}
-                                        className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase cursor-pointer select-none hover:text-brutal-white"
-                                        onClick={header.column.getToggleSortingHandler()}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {flexRender(header.column.columnDef.header, header.getContext())}
-                                            {header.column.getIsSorted() === 'asc' && <ArrowUp className="w-3 h-3"/>}
-                                            {header.column.getIsSorted() === 'desc' && <ArrowDown className="w-3 h-3"/>}
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
+                    {table.getHeaderGroups().map(headerGroup => (
+                        <tr key={headerGroup.id} className="border-b border-brutal-zinc/70">
+                            {headerGroup.headers.map(header => (
+                                <th
+                                    key={header.id}
+                                    className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase cursor-pointer select-none hover:text-brutal-white"
+                                    onClick={header.column.getToggleSortingHandler()}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                        {header.column.getIsSorted() === 'asc' && <ArrowUp className="w-3 h-3"/>}
+                                        {header.column.getIsSorted() === 'desc' && <ArrowDown className="w-3 h-3"/>}
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
+                    ))}
                     </thead>
                     <tbody>
-                        {table.getRowModel().rows.map(row => (
-                            <tr key={row.id} className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
-                                {row.getVisibleCells().map(cell => (
-                                    <td key={cell.id} className="px-4 py-2 text-brutal-slate">
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                        {table.getRowModel().rows.length === 0 && (
-                            <tr>
-                                <td colSpan={columns.length} className="px-4 py-8 text-center text-brutal-zinc text-xs font-bold tracking-widest">
-                                    NO COST DATA YET
+                    {table.getRowModel().rows.map(row => (
+                        <tr key={row.id} className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
+                            {row.getVisibleCells().map(cell => (
+                                <td key={cell.id} className="px-4 py-2 text-brutal-slate">
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </td>
-                            </tr>
-                        )}
+                            ))}
+                        </tr>
+                    ))}
+                    {table.getRowModel().rows.length === 0 && (
+                        <tr>
+                            <td colSpan={columns.length}
+                                className="px-4 py-8 text-center text-brutal-zinc text-xs font-bold tracking-widest">
+                                NO COST DATA YET
+                            </td>
+                        </tr>
+                    )}
                     </tbody>
                 </table>
             </div>
@@ -409,7 +405,7 @@ export function CostPage() {
 
     const budgetVariant = budget?.status === 'exceeded' ? 'danger'
         : budget?.status === 'warning' ? 'warning'
-        : 'default';
+            : 'default';
 
     return (
         <div className="flex-1 p-6 space-y-6 overflow-auto">
@@ -460,11 +456,14 @@ export function CostPage() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                         {byService.map(s => (
-                            <div key={s.service} className="border border-brutal-zinc/50 bg-brutal-dark/50 px-3 py-2 space-y-1">
+                            <div key={s.service}
+                                 className="border border-brutal-zinc/50 bg-brutal-dark/50 px-3 py-2 space-y-1">
                                 <div className="text-[11px] font-semibold text-brutal-white truncate">{s.service}</div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] text-brutal-slate">{formatTokens(s.callCount)} calls</span>
-                                    <span className="text-[11px] font-bold text-signal-orange">{formatCost(s.totalCost)}</span>
+                                    <span
+                                        className="text-[10px] text-brutal-slate">{formatTokens(s.callCount)} calls</span>
+                                    <span
+                                        className="text-[11px] font-bold text-signal-orange">{formatCost(s.totalCost)}</span>
                                 </div>
                             </div>
                         ))}

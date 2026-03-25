@@ -74,8 +74,7 @@ public sealed partial class DuckDbStore
         string? trackMode = null,
         string? approvalStatus = null,
         int? evidenceCount = null,
-        CancellationToken ct = default)
-    {
+        CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
@@ -111,7 +110,6 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
-    }
 
     /// <summary>
     ///     Lists agent runs with optional filtering by agent name and status.

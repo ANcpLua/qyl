@@ -37,7 +37,7 @@ public static class GitHubWebhookEndpoints
     {
         // 1. Read raw request body
         byte[] payload;
-        using (MemoryStream ms = new())
+        await using (MemoryStream ms = new())
         {
             await request.Body.CopyToAsync(ms, ct).ConfigureAwait(false);
             payload = ms.ToArray();

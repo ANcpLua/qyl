@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -15,7 +13,11 @@ internal static class GenAiInterceptorEmitter
 {
     private static readonly HashSet<string> TokenUsageOperations = new(StringComparer.Ordinal)
     {
-        "chat", "embeddings", "invoke_agent", "text_completion", "generate_content"
+        "chat",
+        "embeddings",
+        "invoke_agent",
+        "text_completion",
+        "generate_content"
     };
 
     private static readonly HashSet<string> InputOnlyOperations = new(StringComparer.Ordinal)
@@ -67,7 +69,8 @@ internal static class GenAiInterceptorEmitter
         var originalMethod = invocation.MethodName;
 
         var argNames = GetPositionalNames(invocation.ParameterTypes.Length);
-        var parameters = EmitterHelpers.BuildParameterList(invocation.ContainingTypeName, invocation.ParameterTypes, argNames);
+        var parameters =
+            EmitterHelpers.BuildParameterList(invocation.ContainingTypeName, invocation.ParameterTypes, argNames);
         var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
         var modelArg = invocation.Model is not null ? $"\"{invocation.Model}\"" : "null";
@@ -106,7 +109,8 @@ internal static class GenAiInterceptorEmitter
         var originalMethod = invocation.MethodName;
 
         var argNames = GetPositionalNames(invocation.ParameterTypes.Length);
-        var parameters = EmitterHelpers.BuildParameterList(invocation.ContainingTypeName, invocation.ParameterTypes, argNames);
+        var parameters =
+            EmitterHelpers.BuildParameterList(invocation.ContainingTypeName, invocation.ParameterTypes, argNames);
         var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
         var modelArg = invocation.Model is not null ? $"\"{invocation.Model}\"" : "null";

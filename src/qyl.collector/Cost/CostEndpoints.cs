@@ -12,9 +12,10 @@ internal static class CostEndpoints
         group.MapGet("/by-service", static (DuckDbStore store, int? limit, int? hours, CancellationToken ct) =>
             AggregateAsync(store, "service_name", limit, hours, ct));
 
-        group.MapGet("/by-model", static (DuckDbStore store, int? limit, int? hours, string? provider, CancellationToken ct) =>
-            AggregateAsync(store, "gen_ai_provider_name, gen_ai_request_model", limit, hours, ct,
-                string.IsNullOrWhiteSpace(provider) ? null : $"AND gen_ai_provider_name = '{Esc(provider)}'"));
+        group.MapGet("/by-model",
+            static (DuckDbStore store, int? limit, int? hours, string? provider, CancellationToken ct) =>
+                AggregateAsync(store, "gen_ai_provider_name, gen_ai_request_model", limit, hours, ct,
+                    string.IsNullOrWhiteSpace(provider) ? null : $"AND gen_ai_provider_name = '{Esc(provider)}'"));
 
         group.MapGet("/timeseries", GetCostTimeseriesAsync);
         group.MapGet("/budget", GetBudgetAsync);
@@ -116,7 +117,9 @@ internal static class CostEndpoints
         DuckDbStore store, IConfiguration configuration, int? hours, CancellationToken ct)
     {
         var budgetUsd = double.TryParse(
-            configuration["QYL_BUDGET_USD"], CultureInfo.InvariantCulture, out var b) ? b : (double?)null;
+            configuration["QYL_BUDGET_USD"], CultureInfo.InvariantCulture, out var b)
+            ? b
+            : (double?)null;
 
         var period = hours ?? 720;
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
@@ -134,10 +137,12 @@ internal static class CostEndpoints
 
         return TypedResults.Ok(new
         {
-            budgetUsd, totalSpent = spent,
+            budgetUsd,
+            totalSpent = spent,
             remaining = budgetUsd.HasValue ? budgetUsd.Value - spent : (double?)null,
             percentUsed = budgetUsd is > 0 ? spent / budgetUsd.Value * 100 : (double?)null,
-            totalCalls = calls, periodHours = period
+            totalCalls = calls,
+            periodHours = period
         });
     }
 
@@ -153,7 +158,8 @@ internal static class CostEndpoints
         await store.ExecuteWriteAsync(async (con, wct) =>
         {
             await using var expire = con.CreateCommand();
-            expire.CommandText = "UPDATE model_pricing SET valid_to = $1 WHERE provider = $2 AND model = $3 AND valid_to IS NULL";
+            expire.CommandText =
+                "UPDATE model_pricing SET valid_to = $1 WHERE provider = $2 AND model = $3 AND valid_to IS NULL";
             expire.Parameters.Add(new DuckDBParameter { Value = now });
             expire.Parameters.Add(new DuckDBParameter { Value = provider });
             expire.Parameters.Add(new DuckDBParameter { Value = model });
@@ -177,7 +183,14 @@ internal static class CostEndpoints
         }, ct).ConfigureAwait(false);
 
         await pricingService.RefreshCacheAsync(ct).ConfigureAwait(false);
-        return TypedResults.Ok(new { provider, model, inputCost = request.InputCost, outputCost = request.OutputCost, validFrom = now });
+        return TypedResults.Ok(new
+        {
+            provider,
+            model,
+            inputCost = request.InputCost,
+            outputCost = request.OutputCost,
+            validFrom = now
+        });
     }
 
     private static string TimeFilter(int? hours) =>
@@ -194,14 +207,23 @@ internal static class CostEndpoints
         var upper = false;
         foreach (var c in snakeCol)
         {
-            if (c is '_') { upper = true; continue; }
+            if (c is '_')
+            {
+                upper = true;
+                continue;
+            }
+
             buf[j++] = upper ? char.ToUpperInvariant(c) : c;
             upper = false;
         }
+
         return new string(buf[..j]);
     }
 }
 
 public sealed record PricingOverrideRequest(
-    decimal InputCost, decimal OutputCost,
-    decimal? ReasoningCost = null, decimal? CacheReadCost = null, decimal? CacheWriteCost = null);
+    decimal InputCost,
+    decimal OutputCost,
+    decimal? ReasoningCost = null,
+    decimal? CacheReadCost = null,
+    decimal? CacheWriteCost = null);

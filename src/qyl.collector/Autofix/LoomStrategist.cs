@@ -24,7 +24,8 @@ public sealed partial class LoomStrategist(
 
         try
         {
-            var response = await llm.GetResponseAsync(BuildPrompt(session), cancellationToken: ct).ConfigureAwait(false);
+            var response = await llm.GetResponseAsync(BuildPrompt(session), cancellationToken: ct)
+                .ConfigureAwait(false);
             return LoomResponseParser.TryParseSolution(response.Text ?? "{}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

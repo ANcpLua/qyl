@@ -39,21 +39,22 @@ public static class CodingAgentProviderNames
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        var normalized = value.Trim().Replace("-", "_").Replace(" ", "_").ToLowerInvariant();
+        var normalized = value.Trim().Replace("-", "_", StringComparison.Ordinal)
+            .Replace(" ", "_", StringComparison.Ordinal).ToUpperInvariant();
         switch (normalized)
         {
-            case "loom":
+            case "LOOM":
                 provider = CodingAgentProvider.Loom;
                 return true;
-            case "cursor":
+            case "CURSOR":
                 provider = CodingAgentProvider.Cursor;
                 return true;
-            case "github_copilot":
-            case "githubcopilot":
+            case "GITHUB_COPILOT":
+            case "GITHUBCOPILOT":
                 provider = CodingAgentProvider.GithubCopilot;
                 return true;
-            case "claude_code":
-            case "claudecode":
+            case "CLAUDE_CODE":
+            case "CLAUDECODE":
                 provider = CodingAgentProvider.ClaudeCode;
                 return true;
             default:

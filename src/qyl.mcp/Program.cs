@@ -187,6 +187,7 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddSingleton<JetBrainsDiscovery>();
         services.AddSingleton<RiderMcpProxy>();
     }
+
     services.AddSingleton<ITelemetryStore>(static sp =>
         new HttpTelemetryStore(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpTelemetryStore)),

@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Reflection;
-using Qyl.Instrumentation.Internal;
 
 namespace Qyl.Instrumentation.Instrumentation;
 

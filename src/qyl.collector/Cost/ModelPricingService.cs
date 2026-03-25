@@ -6,8 +6,8 @@ namespace Qyl.Collector.Cost;
 /// </summary>
 public sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
 {
-    private FrozenDictionary<string, PricingEntry> _cache = FrozenDictionary<string, PricingEntry>.Empty;
     private readonly Lock _lock = new();
+    private FrozenDictionary<string, PricingEntry> _cache = FrozenDictionary<string, PricingEntry>.Empty;
 
     /// <summary>
     ///     Loads pricing from DuckDB into memory. If table is empty, seeds from
@@ -45,8 +45,8 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
                 return null;
         }
 
-        var cost = (inputTokens ?? 0) * ((double)pricing.InputCostPerMillion / 1_000_000.0)
-                   + (outputTokens ?? 0) * ((double)pricing.OutputCostPerMillion / 1_000_000.0);
+        var cost = ((inputTokens ?? 0) * ((double)pricing.InputCostPerMillion / 1_000_000.0))
+                   + ((outputTokens ?? 0) * ((double)pricing.OutputCostPerMillion / 1_000_000.0));
 
         return cost;
     }
@@ -96,8 +96,8 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
     {
         var entries = new Dictionary<string, PricingEntry>(StringComparer.OrdinalIgnoreCase);
 
-        using var lease = await store.GetReadConnectionAsync(ct);
-        using var cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT provider, model, input_cost, output_cost, reasoning_cost,
                                  cache_read_cost, cache_write_cost
@@ -106,17 +106,17 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
                           ORDER BY valid_from DESC
                           """;
 
-        using var reader = await cmd.ExecuteReaderAsync(ct);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
             var provider = reader.GetString(0);
             var model = reader.GetString(1);
             var entry = new PricingEntry(
-                InputCostPerMillion: reader.GetDecimal(2),
-                OutputCostPerMillion: reader.GetDecimal(3),
-                ReasoningCostPerMillion: await reader.IsDBNullAsync(4, ct) ? null : reader.GetDecimal(4),
-                CacheReadCostPerMillion: await reader.IsDBNullAsync(5, ct) ? null : reader.GetDecimal(5),
-                CacheWriteCostPerMillion: await reader.IsDBNullAsync(6, ct) ? null : reader.GetDecimal(6));
+                reader.GetDecimal(2),
+                reader.GetDecimal(3),
+                await reader.IsDBNullAsync(4, ct) ? null : reader.GetDecimal(4),
+                await reader.IsDBNullAsync(5, ct) ? null : reader.GetDecimal(5),
+                await reader.IsDBNullAsync(6, ct) ? null : reader.GetDecimal(6));
 
             var key = MakeCacheKey(provider, model);
             entries.TryAdd(key, entry);
@@ -132,8 +132,8 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
 
     private async Task<long> GetPricingCountAsync(CancellationToken ct)
     {
-        using var lease = await store.GetReadConnectionAsync(ct);
-        using var cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
         var result = await cmd.ExecuteScalarAsync(ct);
         return result switch
@@ -172,7 +172,7 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         {
             foreach (var entry in entries)
             {
-                using var cmd = con.CreateCommand();
+                await using var cmd = con.CreateCommand();
                 cmd.CommandText = """
                                   INSERT INTO model_pricing
                                       (provider, model, input_cost, output_cost, reasoning_cost,
@@ -225,26 +225,19 @@ public sealed record PricingEntry(
 /// <summary>Shape of entries in data/model-pricing.json.</summary>
 public sealed class SeedPricingEntry
 {
-    [JsonPropertyName("provider")]
-    public required string Provider { get; init; }
+    [JsonPropertyName("provider")] public required string Provider { get; init; }
 
-    [JsonPropertyName("model")]
-    public required string Model { get; init; }
+    [JsonPropertyName("model")] public required string Model { get; init; }
 
-    [JsonPropertyName("input_cost")]
-    public required decimal InputCost { get; init; }
+    [JsonPropertyName("input_cost")] public required decimal InputCost { get; init; }
 
-    [JsonPropertyName("output_cost")]
-    public required decimal OutputCost { get; init; }
+    [JsonPropertyName("output_cost")] public required decimal OutputCost { get; init; }
 
-    [JsonPropertyName("reasoning_cost")]
-    public decimal? ReasoningCost { get; init; }
+    [JsonPropertyName("reasoning_cost")] public decimal? ReasoningCost { get; init; }
 
-    [JsonPropertyName("cache_read_cost")]
-    public decimal? CacheReadCost { get; init; }
+    [JsonPropertyName("cache_read_cost")] public decimal? CacheReadCost { get; init; }
 
-    [JsonPropertyName("cache_write_cost")]
-    public decimal? CacheWriteCost { get; init; }
+    [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]

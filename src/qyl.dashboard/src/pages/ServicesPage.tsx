@@ -50,10 +50,13 @@ export function ServicesPage() {
 
     function toggleSort(field: SortField) {
         if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-        else { setSortField(field); setSortDir('desc'); }
+        else {
+            setSortField(field);
+            setSortDir('desc');
+        }
     }
 
-    function SortIcon({field}: {field: SortField}) {
+    function SortIcon({field}: { field: SortField }) {
         if (sortField !== field) return null;
         return sortDir === 'asc' ? <ArrowUp className="w-3 h-3"/> : <ArrowDown className="w-3 h-3"/>;
     }
@@ -66,71 +69,77 @@ export function ServicesPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-[11px]">
                         <thead>
-                            <tr className="border-b border-brutal-zinc/70">
-                                {([
-                                    ['serviceName', 'Service'],
-                                    ['spanCount', 'Spans'],
-                                    ['errorCount', 'Errors'],
-                                    ['lastSeen', 'Last Seen'],
-                                ] as [SortField, string][]).map(([field, label]) => (
-                                    <th
-                                        key={field}
-                                        className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase cursor-pointer select-none hover:text-brutal-white"
-                                        onClick={() => toggleSort(field)}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {label}
-                                            <SortIcon field={field}/>
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase">Version</th>
-                                <th className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase">Status</th>
-                            </tr>
+                        <tr className="border-b border-brutal-zinc/70">
+                            {([
+                                ['serviceName', 'Service'],
+                                ['spanCount', 'Spans'],
+                                ['errorCount', 'Errors'],
+                                ['lastSeen', 'Last Seen'],
+                            ] as [SortField, string][]).map(([field, label]) => (
+                                <th
+                                    key={field}
+                                    className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase cursor-pointer select-none hover:text-brutal-white"
+                                    onClick={() => toggleSort(field)}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        {label}
+                                        <SortIcon field={field}/>
+                                    </div>
+                                </th>
+                            ))}
+                            <th className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase">Version</th>
+                            <th className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase">Status</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {sorted?.map(svc => {
-                                const hasRecentError = svc.lastErrorAt && (Date.now() - new Date(svc.lastErrorAt).getTime()) < 3600_000;
-                                return (
-                                    <tr key={svc.serviceName} className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
-                                        <td className="px-4 py-2 font-semibold text-brutal-white">{svc.serviceName}</td>
-                                        <td className="px-4 py-2 text-brutal-slate">{svc.spanCount.toLocaleString()}</td>
-                                        <td className={cn('px-4 py-2', svc.errorCount > 0 ? 'text-red-400 font-semibold' : 'text-brutal-slate')}>
-                                            {svc.errorCount.toLocaleString()}
-                                        </td>
-                                        <td className="px-4 py-2 text-brutal-slate">{formatTime(svc.lastSeen)}</td>
-                                        <td className="px-4 py-2">
-                                            {svc.latestVersion ? (
-                                                <Badge variant="secondary" className="text-[10px] bg-brutal-zinc/30 border-brutal-zinc">
-                                                    {svc.latestVersion}
-                                                </Badge>
-                                            ) : '\u2014'}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            <Badge
-                                                variant="secondary"
-                                                className={cn(
-                                                    'text-[10px]',
-                                                    hasRecentError
-                                                        ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                                                        : 'bg-green-500/20 text-green-400 border-green-500/40',
-                                                )}
-                                            >
-                                                {hasRecentError ? 'DEGRADED' : 'HEALTHY'}
+                        {sorted?.map(svc => {
+                            const hasRecentError = svc.lastErrorAt && (Date.now() - new Date(svc.lastErrorAt).getTime()) < 3600_000;
+                            return (
+                                <tr key={svc.serviceName}
+                                    className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
+                                    <td className="px-4 py-2 font-semibold text-brutal-white">{svc.serviceName}</td>
+                                    <td className="px-4 py-2 text-brutal-slate">{svc.spanCount.toLocaleString()}</td>
+                                    <td className={cn('px-4 py-2', svc.errorCount > 0 ? 'text-red-400 font-semibold' : 'text-brutal-slate')}>
+                                        {svc.errorCount.toLocaleString()}
+                                    </td>
+                                    <td className="px-4 py-2 text-brutal-slate">{formatTime(svc.lastSeen)}</td>
+                                    <td className="px-4 py-2">
+                                        {svc.latestVersion ? (
+                                            <Badge variant="secondary"
+                                                   className="text-[10px] bg-brutal-zinc/30 border-brutal-zinc">
+                                                {svc.latestVersion}
                                             </Badge>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {!isLoading && (!sorted || sorted.length === 0) && (
-                                <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center">
-                                        <Globe className="w-8 h-8 mx-auto text-brutal-zinc mb-2"/>
-                                        <div className="text-brutal-slate text-xs font-bold tracking-widest">NO SERVICES DETECTED</div>
-                                        <div className="text-brutal-zinc text-[10px] mt-1">Services appear as telemetry arrives.</div>
+                                        ) : '\u2014'}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <Badge
+                                            variant="secondary"
+                                            className={cn(
+                                                'text-[10px]',
+                                                hasRecentError
+                                                    ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                                                    : 'bg-green-500/20 text-green-400 border-green-500/40',
+                                            )}
+                                        >
+                                            {hasRecentError ? 'DEGRADED' : 'HEALTHY'}
+                                        </Badge>
                                     </td>
                                 </tr>
-                            )}
+                            );
+                        })}
+                        {!isLoading && (!sorted || sorted.length === 0) && (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-12 text-center">
+                                    <Globe className="w-8 h-8 mx-auto text-brutal-zinc mb-2"/>
+                                    <div className="text-brutal-slate text-xs font-bold tracking-widest">NO SERVICES
+                                        DETECTED
+                                    </div>
+                                    <div className="text-brutal-zinc text-[10px] mt-1">Services appear as telemetry
+                                        arrives.
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
                         </tbody>
                     </table>
                 </div>

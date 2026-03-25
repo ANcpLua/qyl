@@ -18,8 +18,9 @@ Any work touching `src/qyl.dashboard/**` — pages, components, hooks, charts, t
 - ECharts — dense observability charts
 - Recharts — lightweight KPI cards only
 - React Bits — accent layer only:
-  - Allowed: onboarding, empty states, celebratory no-incident states, loading flourishes, non-critical KPI motion
-  - Banned surfaces: app shell, log explorer, trace explorer, mission-critical tables, investigation workflows, core navigation
+    - Allowed: onboarding, empty states, celebratory no-incident states, loading flourishes, non-critical KPI motion
+    - Banned surfaces: app shell, log explorer, trace explorer, mission-critical tables, investigation workflows, core
+      navigation
 
 ## Base UI authority
 

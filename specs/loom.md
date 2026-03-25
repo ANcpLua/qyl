@@ -32,7 +32,59 @@ Seer API surface mapping: `src/qyl.loom/impl/seer/`
 
 Agent construction uses MAF directly: `AIAgent`, `IChatClient`, `AddAIAgent()`. Shared types (`CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord`) live in `qyl.contracts/Loom/`.
 
-### 1.1 Collector vs Loom
+### 1.1 If you ask "what is Loom?"
+
+Loom is **qyl's Seer-equivalent product**.
+
+It is not "the AI dashboard", not "the MCP server", and not "just Autofix".
+Those are adjacent surfaces in the same overall product story, just like they are in Sentry:
+
+- **qyl.collector + qyl.dashboard + qyl.instrumentation** are the observability substrate
+- **qyl.mcp** is the agent-native access surface
+- **qyl.loom** is the intelligence plane that consumes that context to investigate, explain, review, and fix
+
+If you need the shortest possible definition:
+
+> **Sentry Seer** is the AI debugger on top of Sentry context.  
+> **qyl.loom** is the AI debugger on top of qyl context.
+
+### 1.2 Sentry 1:1 product mapping
+
+| Sentry surface | qyl surface | Mechanical owner | Notes |
+|---|---|---|---|
+| **Seer** | `src/qyl.loom/` | Loom | Standalone AI debugger / intelligence plane |
+| **AI and LLM Observability** | `qyl.collector` + `qyl.dashboard` + `qyl.instrumentation` | Collector / dashboard / instrumentation | Runs, tokens, model costs, tool usage, traces, logs |
+| **AI Agents Dashboard** | `AgentInsightsEndpoints` + dashboard agent views | Loom over collector data | Overview, Models, Tools, trace list, trace detail |
+| **MCP Dashboard** | `qyl.mcp` + collector-side MCP telemetry | MCP + collector | MCP traffic, client mix, tool/resource/prompt visibility |
+| **Autofix** | Loom 5-stage pipeline | Loom | Root cause → solution → diff → confidence |
+| **PR Creation** | `PrCreationService` + `POST /api/v1/loom/{issueId}/code-it-up` | Loom | Draft/open PR from generated fix |
+| **Coding Agents** | `CodingAgentProvider` (`Loom`, `Cursor`, `GithubCopilot`, `ClaudeCode`) | Loom | Delegate code generation or handoff externally |
+| **Code Review / Bug Prediction** | `CodeReviewService`, `CodeReviewEndpoints`, `qyl.trigger_code_review` | Loom + MCP | Pre-merge AI review surface |
+| **Interactive root-cause UI** | `GET /api/v1/loom/{issueId}/insight` + `POST /api/v1/loom/{issueId}/explore` (SSE) | Loom | Insight → exploration → code-it-up workflow |
+| **Issue fix state** | `fix_runs`, `autofix_steps`, `artifacts`, `agent_runs`, `tool_calls` | Collector storage + Loom runtime | Durable state and replay surface |
+
+### 1.3 What Loom is not
+
+Do not collapse Loom into one of these narrower readings:
+
+- **Not just Autofix** — Seer is not only Autofix, and Loom is not only fix generation
+- **Not the dashboard** — dashboards show context; Loom consumes context to reason
+- **Not the MCP server** — MCP is access plumbing, not the investigation product
+- **Not collector-owned** — the collector stores and serves facts; Loom owns AI runtime behavior
+
+The product cut should be read exactly like Sentry's:
+
+```text
+Telemetry substrate + debugging surfaces + AI debugger
+```
+
+For qyl that means:
+
+```text
+qyl.collector/qyl.dashboard/qyl.instrumentation + qyl.mcp + qyl.loom
+```
+
+### 1.4 Collector vs Loom
 
 | | Collector | Loom |
 |---|---|---|
@@ -42,6 +94,21 @@ Agent construction uses MAF directly: `AIAgent`, `IChatClient`, `AddAIAgent()`. 
 | **Deployment** | Running (Railway) | Standalone process, separate deployment |
 
 Loom enhances collector — it doesn't replace it. Collector's pipelines work with heuristic fallbacks. Loom adds autonomous reasoning on top. Seer API surface mapping at `src/qyl.loom/impl/seer/`.
+
+### 1.5 Official Seer evidence that drives this reading
+
+The official Sentry materials consistently describe one product stack, not one isolated feature:
+
+- **Seer docs** define Seer as the AI debugging agent and list **Autofix**, **PR Creation**, **Coding Agents**, and **Code Review** as first-class capabilities.
+- **Autofix docs** define a three-step flow: **Root Cause Analysis**, **Solution Identification**, and **Code Generation**, with optional PR creation and coding-agent delegation.
+- **AI Agents Dashboard docs** describe three tabs: **Overview**, **Models**, and **Tools**, plus abbreviated and full trace views with agent invocations, model interactions, tool calls, timing, handoffs, and errors.
+- **MCP Dashboard docs** describe MCP traffic, clients, transport distribution, and tool/resource/prompt usage and failure views as part of the same AI observability story.
+- **.NET AI instrumentation docs** show Sentry instrumenting `Microsoft.Extensions.AI` via `IChatClient.AddSentry()` and `AddSentryToolInstrumentation()`, which is the closest product analogue to qyl's AI/agent telemetry path.
+- The Seer GA post and user stories show the intended product behavior: root-causing issues from Sentry context, debugging across multiple repositories, drafting PRs, and delegating to external coding agents.
+
+The workshop transcripts and screenshots follow the same flow: overview traffic and duration, model/token views, tool-call inspection, full trace drill-down, database-call correlation, then alerting from the same context.
+
+I did not find a clearly indexed public archive of the February/March Seer workshop recordings from official search. Treat the official docs and GA blog as the canonical sources of truth.
 
 ## 2. Pipeline
 

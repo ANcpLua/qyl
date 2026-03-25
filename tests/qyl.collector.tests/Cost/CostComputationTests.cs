@@ -40,10 +40,10 @@ public sealed class CostComputationTests
     {
         await using var f = await CreateWithPricingAsync("openai", "gpt-4o", 2.50m, 10.00m);
 
-        var cost = f.Service.ComputeCost("openai", "gpt-4o", inputTokens: 1000, outputTokens: 500);
+        var cost = f.Service.ComputeCost("openai", "gpt-4o", 1000, 500);
 
         Assert.NotNull(cost);
-        Assert.Equal(0.0075, cost.Value, precision: 10);
+        Assert.Equal(0.0075, cost.Value, 10);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class CostComputationTests
     {
         await using var f = await CreateWithPricingAsync("openai", "gpt-4o", 2.50m, 10.00m);
 
-        var cost = f.Service.ComputeCost("openai", "gpt-4o", inputTokens: 0, outputTokens: 0);
+        var cost = f.Service.ComputeCost("openai", "gpt-4o", 0, 0);
 
         Assert.NotNull(cost);
         Assert.Equal(0.0, cost.Value);
@@ -94,7 +94,7 @@ public sealed class CostComputationTests
         var cost = f.Service.ComputeCost(provider, model, input, output);
 
         Assert.NotNull(cost);
-        Assert.Equal(expected, cost.Value, precision: 8);
+        Assert.Equal(expected, cost.Value, 8);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class CostComputationTests
         var result = f.Service.EnrichBatchWithCost(batch);
 
         Assert.NotNull(result.Spans[0].GenAiCostUsd);
-        Assert.Equal(0.0075, result.Spans[0].GenAiCostUsd!.Value, precision: 10);
+        Assert.Equal(0.0075, result.Spans[0].GenAiCostUsd!.Value, 10);
     }
 
     [Fact]
@@ -136,11 +136,11 @@ public sealed class CostComputationTests
             GenAiRequestModel = model,
             GenAiInputTokens = input,
             GenAiOutputTokens = output,
-            GenAiCostUsd = existingCost,
+            GenAiCostUsd = existingCost
         };
 }
 
-sealed class PricingFixture(DuckDbStore store, ModelPricingService service) : IAsyncDisposable
+internal sealed class PricingFixture(DuckDbStore store, ModelPricingService service) : IAsyncDisposable
 {
     public ModelPricingService Service => service;
     public ValueTask DisposeAsync() => store.DisposeAsync();

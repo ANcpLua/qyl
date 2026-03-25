@@ -6,9 +6,9 @@ the seer-knowledge-base.md to find undocumented features.
 """
 
 import json
+import pandas as pd
 import re
 from pathlib import Path
-import pandas as pd
 
 FOLDERS = [
     "/Users/ancplua/Downloads/seer/1",

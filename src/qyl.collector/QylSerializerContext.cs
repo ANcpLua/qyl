@@ -1,4 +1,5 @@
 using Qyl.Collector.Artifacts;
+using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
@@ -117,5 +118,5 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ArtifactCreateRequest))]
 [JsonSerializable(typeof(ArtifactResponse))]
 // Cost engine types
-[JsonSerializable(typeof(Cost.PricingOverrideRequest))]
+[JsonSerializable(typeof(PricingOverrideRequest))]
 public partial class QylSerializerContext : JsonSerializerContext;

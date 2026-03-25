@@ -1,41 +1,31 @@
-# MAF + qyl: Full Agent Observability Without Truncation
+# MAF: Lean Loom Subsystem Sample
 
-Demonstrates qyl replacing Application Insights + Aspire Dashboard + Grafana as the single observability backend for
-Microsoft Agent Framework agents.
+This sample replaces the old "large prompt truncation" demo with a cleaner proof:
 
-## The Problem
+- register bounded Loom agents with `AddAIAgent(...)`
+- attach hosted durability with `WithInMemorySessionStore()`
+- attach a real tool with `WithAITool(...)`
+- keep **Loom-owned handoff state explicit**
 
-- **[#4323](https://github.com/microsoft/agent-framework/discussions/4323)**: App Insights truncates
-  `gen_ai.input.messages` at 8KB. Long system prompts = user message gets cut off. Debugging impossible.
-- **[#4336](https://github.com/microsoft/agent-framework/discussions/4336)**: MAF's DevUI is local-only — no auth, no
-  scale, no production use.
+That last point is the important one. The sample does **not** pretend that one shared conversation ID gives multiple
+agents a magical shared memory. Diagnostician, Strategist, Coder, Reviewer, and Librarian are registered through
+Microsoft Agent Framework hosting extensions, but Loom still owns the cross-agent state transitions.
 
-## The Fix
+## What It Shows
 
-```csharp
-// ONE LINE — replaces App Insights + Aspire Dashboard + Grafana:
-builder.UseQyl();
-```
+- `loom.diagnostician` streams a production root-cause analysis
+- `loom.strategist` turns that into the minimal safe fix plan
+- `loom.coder` uses a registered `CreatePullRequest` tool
+- `loom.reviewer` reviews the generated patch summary
+- `loom.librarian` clusters the incident into a failure family
 
-qyl stores full messages in DuckDB VARCHAR with no size limit. The dashboard runs at `:5100` with SSE streaming,
-GenAI-specific views, and token cost tracking.
+Everything lives in one file: [Program.cs](./Program.cs).
 
 ## Run It
 
 ```bash
-# Terminal 1: start qyl collector
-dotnet run --project src/qyl.collector
-
-# Terminal 2: run this sample
 dotnet run --project samples/maf-agent-qyl
-
-# Open http://localhost:5100 — full conversation visible in trace detail
 ```
 
-## Verify Full Messages in DuckDB
-
-```sql
-SELECT length(json_extract(attributes_json, '$.gen_ai.input.messages'))
-FROM spans
-WHERE gen_ai_provider_name IS NOT NULL;
-```
+The sample is intentionally lean: no AG-UI host, no declarative workflow engine, no qyl collector dependency.
+It proves the hosting extension path first.

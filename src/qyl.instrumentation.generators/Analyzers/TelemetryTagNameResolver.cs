@@ -1,4 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 
 namespace Qyl.Instrumentation.Generators.Analyzers;
@@ -32,7 +31,8 @@ internal static class TelemetryTagNameResolver
         return !string.IsNullOrWhiteSpace(otel.Name) ? otel.Name! : fallbackName;
     }
 
-    public static bool ResolveSkipIfNull(ISymbol symbol, Compilation compilation, bool? explicitSkipIfNull, bool defaultValue = true)
+    public static bool ResolveSkipIfNull(ISymbol symbol, Compilation compilation, bool? explicitSkipIfNull,
+        bool defaultValue = true)
     {
         if (explicitSkipIfNull.HasValue)
             return explicitSkipIfNull.Value;
@@ -43,7 +43,8 @@ internal static class TelemetryTagNameResolver
 
     private static (string? Name, bool? SkipIfNull) ReadOtelOverride(ISymbol symbol, Compilation compilation)
     {
-        var attribute = AnalyzerHelpers.FindAttributeByName(symbol.GetAttributes(), compilation, OTelAttributeMetadataName);
+        var attribute =
+            AnalyzerHelpers.FindAttributeByName(symbol.GetAttributes(), compilation, OTelAttributeMetadataName);
         if (attribute is null)
             return default;
 

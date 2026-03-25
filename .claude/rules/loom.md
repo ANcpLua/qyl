@@ -22,6 +22,6 @@ paths:
 
 ## Non-Negotiable
 
-- **Do NOT decompose qyl.loom into collector.** It is a standalone product.
+- **Do NOT decompose qyl.loom into collector.** It is a standalone product.``
 - **Do NOT delete qyl.loom.** It is actively developed.
 - **Do NOT merge Loom services into collector services.** Keep the product boundary clean.

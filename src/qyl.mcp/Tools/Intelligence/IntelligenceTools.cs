@@ -16,7 +16,8 @@ public sealed class IntelligenceTools(HttpClient client)
         Name = "qyl.list_diagnostic_patterns",
         Title = "List Diagnostic Patterns",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("List all available diagnostic patterns from the static registry. Returns pattern IDs, categories, hypotheses, and required signals.")]
+    [Description(
+        "List all available diagnostic patterns from the static registry. Returns pattern IDs, categories, hypotheses, and required signals.")]
     public Task<string> ListDiagnosticPatternsAsync(
         [Description("Filter by category (genai, error, performance, infrastructure)")]
         string? category = null)
@@ -24,7 +25,7 @@ public sealed class IntelligenceTools(HttpClient client)
         IEnumerable<DiagnosticPattern> patterns = DiagnosticPatterns.All;
 
         if (category is not null
-            && Enum.TryParse<PatternCategory>(category, ignoreCase: true, out var cat))
+            && Enum.TryParse<PatternCategory>(category, true, out var cat))
         {
             patterns = patterns.Where(p => p.Category == cat);
         }
@@ -58,7 +59,8 @@ public sealed class IntelligenceTools(HttpClient client)
         Name = "qyl.evaluate_patterns",
         Title = "Evaluate Patterns",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("Given a trace or issue ID, extract signals from telemetry and evaluate all diagnostic patterns. Returns matched patterns with confidence scores.")]
+    [Description(
+        "Given a trace or issue ID, extract signals from telemetry and evaluate all diagnostic patterns. Returns matched patterns with confidence scores.")]
     public async Task<string> EvaluatePatternsAsync(
         [Description("Trace ID to evaluate")] string? traceId = null,
         [Description("Issue ID to evaluate")] string? issueId = null,
@@ -86,17 +88,13 @@ public sealed class IntelligenceTools(HttpClient client)
         var structured = new StructuredResponse
         {
             Facts = result!.Matches,
-            Evidence = new EvidenceInfo
-            {
-                Sources = [traceId ?? issueId!]
-            },
+            Evidence = new EvidenceInfo { Sources = [traceId ?? issueId!] },
             Actions = result.Matches.Count > 0
                 ?
                 [
                     new SuggestedAction
                     {
-                        Tool = "qyl.explain_causal_chain",
-                        Description = "Build causal graph from matched patterns"
+                        Tool = "qyl.explain_causal_chain", Description = "Build causal graph from matched patterns"
                     },
                     new SuggestedAction
                     {
@@ -114,7 +112,8 @@ public sealed class IntelligenceTools(HttpClient client)
         Name = "qyl.explain_causal_chain",
         Title = "Explain Causal Chain",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("Given matched pattern IDs, build a causal graph identifying root causes and causal relationships between patterns.")]
+    [Description(
+        "Given matched pattern IDs, build a causal graph identifying root causes and causal relationships between patterns.")]
     public async Task<string> ExplainCausalChainAsync(
         [Description("Comma-separated matched pattern IDs")]
         string patternIds,
@@ -131,13 +130,13 @@ public sealed class IntelligenceTools(HttpClient client)
 
         var structured = new StructuredResponse
         {
-            Facts = new
-            {
-                root_causes = result!.RootCauses,
-                edges = result.Edges
-            },
+            Facts = new { root_causes = result!.RootCauses, edges = result.Edges },
             Analysis = result.RootCauses.Count > 0
-                ? new { summary = $"Identified {result.RootCauses.Count} root cause(s): {string.Join(", ", result.RootCauses)}" }
+                ? new
+                {
+                    summary =
+                        $"Identified {result.RootCauses.Count} root cause(s): {string.Join(", ", result.RootCauses)}"
+                }
                 : null,
             Actions =
             [
@@ -171,10 +170,10 @@ public sealed class IntelligenceTools(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var strategy = await response.Content
-            .ReadFromJsonAsync<IntelligenceStrategyResponse>(
-                IntelligenceJsonContext.Default.IntelligenceStrategyResponse, ct)
-            .ConfigureAwait(false)
-            ?? throw new QylNotFoundException("Strategy");
+                           .ReadFromJsonAsync<IntelligenceStrategyResponse>(
+                               IntelligenceJsonContext.Default.IntelligenceStrategyResponse, ct)
+                           .ConfigureAwait(false)
+                       ?? throw new QylNotFoundException("Strategy");
 
         var structured = new StructuredResponse
         {
@@ -188,8 +187,7 @@ public sealed class IntelligenceTools(HttpClient client)
                         Description = "Execute the first investigation step",
                         Parameters = new Dictionary<string, string>
                         {
-                            ["strategyId"] = strategy.Id,
-                            ["stepIndex"] = "0"
+                            ["strategyId"] = strategy.Id, ["stepIndex"] = "0"
                         }
                     }
                 ]
@@ -203,7 +201,8 @@ public sealed class IntelligenceTools(HttpClient client)
         Name = "qyl.execute_investigation_step",
         Title = "Execute Investigation Step",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("Execute a single investigation strategy step (runs a DuckDB query against telemetry) and return structured results.")]
+    [Description(
+        "Execute a single investigation strategy step (runs a DuckDB query against telemetry) and return structured results.")]
     public async Task<string> ExecuteInvestigationStepAsync(
         [Description("Strategy ID")] string strategyId,
         [Description("Step index (0-based)")] int stepIndex,
@@ -213,7 +212,8 @@ public sealed class IntelligenceTools(HttpClient client)
         string? service = null,
         CancellationToken ct = default)
     {
-        var url = $"/api/v1/intelligence/execute-step?strategyId={Uri.EscapeDataString(strategyId)}&stepIndex={stepIndex}";
+        var url =
+            $"/api/v1/intelligence/execute-step?strategyId={Uri.EscapeDataString(strategyId)}&stepIndex={stepIndex}";
         if (traceId is not null)
             url += $"&traceId={Uri.EscapeDataString(traceId)}";
         if (service is not null)
@@ -234,10 +234,7 @@ public sealed class IntelligenceTools(HttpClient client)
         var structured = new StructuredResponse
         {
             Facts = result!.QueryResults,
-            Evidence = new EvidenceInfo
-            {
-                Sources = traceId is not null ? [traceId] : []
-            },
+            Evidence = new EvidenceInfo { Sources = traceId is not null ? [traceId] : [] },
             Actions = result.HasNextStep
                 ?
                 [
@@ -247,8 +244,7 @@ public sealed class IntelligenceTools(HttpClient client)
                         Description = "Execute the next step",
                         Parameters = new Dictionary<string, string>
                         {
-                            ["strategyId"] = strategyId,
-                            ["stepIndex"] = (stepIndex + 1).ToString()
+                            ["strategyId"] = strategyId, ["stepIndex"] = (stepIndex + 1).ToString()
                         }
                     }
                 ]
@@ -288,8 +284,7 @@ internal sealed record MatchedSignalDto(
 internal sealed record IntelligenceCausalResponse(
     [property: JsonPropertyName("root_causes")]
     IReadOnlyList<string> RootCauses,
-    [property: JsonPropertyName("edges")]
-    IReadOnlyList<CausalEdgeDto> Edges);
+    [property: JsonPropertyName("edges")] IReadOnlyList<CausalEdgeDto> Edges);
 
 internal sealed record CausalEdgeDto(
     [property: JsonPropertyName("cause")] string Cause,
@@ -301,8 +296,7 @@ internal sealed record IntelligenceStrategyResponse(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("trigger_pattern")]
     string TriggerPattern,
-    [property: JsonPropertyName("steps")]
-    IReadOnlyList<InvestigationStepDto> Steps);
+    [property: JsonPropertyName("steps")] IReadOnlyList<InvestigationStepDto> Steps);
 
 internal sealed record InvestigationStepDto(
     [property: JsonPropertyName("action")] string Action,

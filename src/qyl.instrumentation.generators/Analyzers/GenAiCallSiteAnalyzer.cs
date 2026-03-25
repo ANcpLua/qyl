@@ -1,5 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
-using ANcpLua.Roslyn.Utilities.Matching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -25,8 +23,9 @@ internal static class GenAiCallSiteAnalyzer
     ///     Each entry pairs an <see cref="InvocationMatcher" /> with the OTel operation metadata it represents.
     ///     Type matching uses symbol comparison (Phase 2) rather than string prefixes.
     /// </summary>
-    private static readonly (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)[] Matchers =
-        BuildMatchers();
+    private static readonly (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation,
+        bool IsAsync)[] Matchers =
+            BuildMatchers();
 
     private static readonly HashSet<string> CandidateMethodNames =
     [
@@ -55,7 +54,8 @@ internal static class GenAiCallSiteAnalyzer
         if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
-        if (!TryMatchGenAiMethod(invocation, context.SemanticModel.Compilation, out var provider, out var operation, out var isAsync))
+        if (!TryMatchGenAiMethod(invocation, context.SemanticModel.Compilation, out var provider, out var operation,
+                out var isAsync))
             return null;
 
         // Skip if already intercepted by another generator
@@ -138,7 +138,8 @@ internal static class GenAiCallSiteAnalyzer
     ///     This preserves the original matching semantics (StartsWith on fully-qualified type name)
     ///     while expressing each pattern declaratively via the <see cref="Invoke" /> DSL.
     /// </remarks>
-    private static (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)[] BuildMatchers()
+    private static (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool
+        IsAsync)[] BuildMatchers()
     {
         // Agent framework methods shared across multiple types
         var agentMethods = new (string MethodName, string Operation, bool IsAsync)[]
@@ -193,7 +194,9 @@ internal static class GenAiCallSiteAnalyzer
                 [("ChatAsync", "chat", true), ("EmbedAsync", "embeddings", true), ("RerankAsync", "rerank", true)])
         };
 
-        var result = new List<(string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)>();
+        var result =
+            new List<(string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool
+                IsAsync)>();
 
         foreach (var (typeMetadataName, methods) in patterns)
         {

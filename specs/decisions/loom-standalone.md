@@ -21,7 +21,7 @@ Mechanically true means:
 
 ## Rationale
 
-Loom is a C# transpile of Sentry Seer — a complete AI-powered issue investigation system. It has its own domain model (5-stage pipeline, PolicyGate, autofix, code review, regression detection, triage) that is larger than any single collector feature.
+Loom is a C# Microsoft Agents Framework super agent similar to Sentry Seer — a complete AI-powered issue investigation system. It has its own domain model (5-stage pipeline, PolicyGate, autofix, code review, regression detection, triage) that is larger than any single collector feature.
 
 Merging it into collector would:
 

@@ -32,18 +32,18 @@ public static partial class DuckDbSchema
                                                """;
 
     public const string CostByModelHourlyViewDdl = """
-                                                    CREATE OR REPLACE VIEW cost_by_model_hourly AS
-                                                    SELECT
-                                                        date_trunc('hour', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,
-                                                        service_name AS service,
-                                                        gen_ai_request_model AS model,
-                                                        gen_ai_provider_name AS provider,
-                                                        COUNT(*) AS call_count,
-                                                        SUM(gen_ai_input_tokens) AS total_input_tokens,
-                                                        SUM(gen_ai_output_tokens) AS total_output_tokens,
-                                                        SUM(gen_ai_cost_usd) AS total_cost
-                                                    FROM spans
-                                                    WHERE gen_ai_request_model IS NOT NULL
-                                                    GROUP BY ALL;
-                                                    """;
+                                                   CREATE OR REPLACE VIEW cost_by_model_hourly AS
+                                                   SELECT
+                                                       date_trunc('hour', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,
+                                                       service_name AS service,
+                                                       gen_ai_request_model AS model,
+                                                       gen_ai_provider_name AS provider,
+                                                       COUNT(*) AS call_count,
+                                                       SUM(gen_ai_input_tokens) AS total_input_tokens,
+                                                       SUM(gen_ai_output_tokens) AS total_output_tokens,
+                                                       SUM(gen_ai_cost_usd) AS total_cost
+                                                   FROM spans
+                                                   WHERE gen_ai_request_model IS NOT NULL
+                                                   GROUP BY ALL;
+                                                   """;
 }

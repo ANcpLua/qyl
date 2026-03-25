@@ -9,13 +9,10 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
     private readonly ConcurrentDictionary<string, LoomSessionState> _sessions = new(StringComparer.Ordinal);
 
     public LoomSessionState GetOrCreate(string issueId) =>
-        _sessions.GetOrAdd(issueId, static (key, now) => new LoomSessionState
-        {
-            SessionId = key,
-            IssueId = key,
-            CreatedAt = now,
-            UpdatedAt = now
-        }, timeProvider.GetUtcNow());
+        _sessions.GetOrAdd(issueId,
+            static (key, now) =>
+                new LoomSessionState { SessionId = key, IssueId = key, CreatedAt = now, UpdatedAt = now },
+            timeProvider.GetUtcNow());
 
     public LoomSessionState? Get(string sessionId) =>
         ((IReadOnlyDictionary<string, LoomSessionState>)_sessions).GetOrNull(sessionId);

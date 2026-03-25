@@ -106,19 +106,20 @@ public sealed class PatternEngine(
             SignalOperator.Eq => string.Equals(observedValue, expectedValue, StringComparison.Ordinal),
             SignalOperator.Neq => !string.Equals(observedValue, expectedValue, StringComparison.Ordinal),
             SignalOperator.Contains => observedValue is not null
-                                      && expectedValue is not null
-                                      && observedValue.ContainsIgnoreCase(expectedValue),
+                                       && expectedValue is not null
+                                       && observedValue.ContainsIgnoreCase(expectedValue),
             SignalOperator.Matches => observedValue is not null
-                                     && expectedValue is not null
-                                     && Regex.IsMatch(observedValue, expectedValue, RegexOptions.None, TimeSpan.FromSeconds(1)),
+                                      && expectedValue is not null
+                                      && Regex.IsMatch(observedValue, expectedValue, RegexOptions.None,
+                                          TimeSpan.FromSeconds(1)),
             SignalOperator.InSet => observedValue is not null
-                                   && expectedValue is not null
-                                   && expectedValue.Split(',').Contains(observedValue, StringComparer.Ordinal),
+                                    && expectedValue is not null
+                                    && expectedValue.Split(',').Contains(observedValue, StringComparer.Ordinal),
             SignalOperator.Gt => CompareNumeric(observedValue, expectedValue) > 0,
             SignalOperator.Gte => CompareNumeric(observedValue, expectedValue) >= 0,
             SignalOperator.Lt => CompareNumeric(observedValue, expectedValue) < 0,
             SignalOperator.Lte => CompareNumeric(observedValue, expectedValue) <= 0,
-            _ => false,
+            _ => false
         };
 
     private static int CompareNumeric(string? observed, string? expected)

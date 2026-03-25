@@ -29,15 +29,16 @@ internal static class InsightsEndpoints
             return TypedResults.Ok(new InsightsResponse(markdown, lastUpdated, tiers));
         });
 
-        app.MapGet("/api/v1/insights/{tier}", async Task<IResult> (string tier, DuckDbStore store, CancellationToken ct) =>
-        {
-            var rows = await store.GetAllInsightsAsync(ct).ConfigureAwait(false);
-            if (rows.FirstOrDefault(r => string.Equals(r.Tier, tier, StringComparison.OrdinalIgnoreCase)) is not
-                { } row)
-                return TypedResults.NotFound();
+        app.MapGet("/api/v1/insights/{tier}",
+            async Task<IResult> (string tier, DuckDbStore store, CancellationToken ct) =>
+            {
+                var rows = await store.GetAllInsightsAsync(ct).ConfigureAwait(false);
+                if (rows.FirstOrDefault(r => string.Equals(r.Tier, tier, StringComparison.OrdinalIgnoreCase)) is not
+                    { } row)
+                    return TypedResults.NotFound();
 
-            var status = new InsightTierStatus(row.Tier, row.ContentHash, row.MaterializedAt, row.DurationMs);
-            return TypedResults.Ok(new InsightsResponse(row.ContentMarkdown, row.MaterializedAt, [status]));
-        });
+                var status = new InsightTierStatus(row.Tier, row.ContentHash, row.MaterializedAt, row.DurationMs);
+                return TypedResults.Ok(new InsightsResponse(row.ContentMarkdown, row.MaterializedAt, [status]));
+            });
     }
 }

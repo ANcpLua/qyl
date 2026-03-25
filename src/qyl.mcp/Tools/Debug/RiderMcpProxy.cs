@@ -1,6 +1,6 @@
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Debug;
 
@@ -13,8 +13,10 @@ internal sealed partial class RiderMcpProxy(
     ILogger<RiderMcpProxy> logger) : IAsyncDisposable
 {
     private McpClient? _client;
-    private HttpClientTransport? _transport;
     private string? _connectedUrl;
+    private HttpClientTransport? _transport;
+
+    public async ValueTask DisposeAsync() => await DisposeClientAsync().ConfigureAwait(false);
 
     public async Task<CallToolResult> CallToolAsync(
         string toolName,
@@ -38,8 +40,8 @@ internal sealed partial class RiderMcpProxy(
     {
         var endpoints = discovery.GetEndpoints();
         var url = endpoints?.DebuggerStreamableUrl
-            ?? throw new InvalidOperationException(
-                "Rider debugger MCP not found. Is Rider running with the Debugger MCP plugin?");
+                  ?? throw new InvalidOperationException(
+                      "Rider debugger MCP not found. Is Rider running with the Debugger MCP plugin?");
 
         // Reconnect if URL changed (Rider restarted)
         if (_client is not null && _connectedUrl == url)
@@ -51,9 +53,7 @@ internal sealed partial class RiderMcpProxy(
 
         _transport = new HttpClientTransport(new HttpClientTransportOptions
         {
-            Endpoint = new Uri(url),
-            TransportMode = HttpTransportMode.StreamableHttp,
-            Name = "rider-debugger"
+            Endpoint = new Uri(url), TransportMode = HttpTransportMode.StreamableHttp, Name = "rider-debugger"
         });
 
         _client = await McpClient.CreateAsync(_transport, cancellationToken: ct).ConfigureAwait(false);
@@ -74,8 +74,6 @@ internal sealed partial class RiderMcpProxy(
         _transport = null;
         _connectedUrl = null;
     }
-
-    public async ValueTask DisposeAsync() => await DisposeClientAsync().ConfigureAwait(false);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to Rider debugger MCP at {Url}")]
     private partial void LogConnecting(string url);

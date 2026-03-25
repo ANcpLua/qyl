@@ -4,8 +4,6 @@
 // Owner: Qyl.Collector.Storage.Generators
 // =============================================================================
 
-using System.Collections.Immutable;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

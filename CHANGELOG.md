@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Removed
+
+- **Dead code cleanup (Hades audit)**: Deleted 8 files (~26,427 lines) confirmed unused by grep across entire repo.
+  `Clear.cs` (26K stale diff in qyl.mcp), `WorkspaceContext.cs` (orphaned, zero refs), `PolicyGate.cs` (empty stub),
+  `AnomalyTypes.cs` (empty), `AutofixArtifacts.cs` x2 and `AutofixConstants.cs` x2 (unused types in both collector and
+  loom), `UnixNano` struct from `CollectorTypes.cs` (never instantiated, raw ulong used everywhere).
+
+### Changed
+
+- **Solution file duplicate removed**: `qyl.slnx` no longer declares `eng/loom-requirements-registry.png` twice, which
+  fixes MSBuild solution parsing and unblocks `dotnet clean`.
+- **Loom identity clarified**: `specs/loom.md` now maps Loom 1:1 to Sentry's Seer product model. The spec now explicitly
+  distinguishes the observability substrate (`qyl.collector` / dashboard / instrumentation), the MCP access surface (
+  `qyl.mcp`), and Loom as the standalone Seer-equivalent intelligence plane with Autofix, PR creation, coding-agent
+  delegation, and code review.
+- **MAF hosting guidance corrected**: `AGENTS.md` now records the verified rc4/preview.260311.1 reality: `AddAIAgent()`
+  returns `IHostedAgentBuilder`, hosted durability uses `AgentSessionStore` via `WithSessionStore(...)` /
+  `WithInMemorySessionStore()`, `AIAgent` exposes `CreateSessionAsync` + `RunAsync` / `RunStreamingAsync`, and shared
+  `conversationId` does not create implicit cross-agent Loom memory.
+- **MAF Loom sample rewritten**: `samples/maf-agent-qyl` is now a lean one-file Loom subsystem showcase instead of the
+  old prompt-truncation demo. It registers bounded agents through `AddAIAgent(...)`, attaches durability with
+  `WithInMemorySessionStore()`, exercises `WithAITool(...)` for PR creation, and keeps Loom's cross-agent handoff state
+  explicit instead of treating shared conversation IDs as magical shared memory.
+
 ### Added
 
 - **Cost engine**: DuckDB `model_pricing` + `model_pricing_tiers` tables via migration V20260322. Pre-aggregated
@@ -80,7 +104,10 @@
 
 ### Changed
 
-- **Loom exploration facade**: Collector `/api/v1/loom/{issueId}/explore` now runs through `LoomOrchestrator`, which delegates root-cause investigation to `LoomDiagnostician` and solution planning to `LoomStrategist` via keyed DI. Added an in-memory `LoomSessionStore` so the strategist can reuse diagnostician output without rebuilding prompts manually.
+- **Loom exploration facade**: Collector `/api/v1/loom/{issueId}/explore` now runs through `LoomOrchestrator`, which
+  delegates root-cause investigation to `LoomDiagnostician` and solution planning to `LoomStrategist` via keyed DI.
+  Added an in-memory `LoomSessionStore` so the strategist can reuse diagnostician output without rebuilding prompts
+  manually.
 - **API contract ownership tightened**: Rewrote `specs/api.md` to own only cross-cutting HTTP invariants
   (errors, pagination, timestamps, IDs, auth, serialization), removed the hand-maintained route inventory
   approach from that spec, and documented runtime endpoint verification as the enforcement direction.
@@ -101,9 +128,11 @@
 - **TypedResults migration**: Migrated all 29 non-Mcp `*Endpoints.cs` files in `qyl.collector` from `Results.*` to
   `TypedResults.*`. Added explicit `Task<IResult>` return type annotations to inline lambdas with mixed result types
   to satisfy delegate inference. `TypedResults.Accepted((string?)null)` used where `Results.Accepted()` had no args.
-- **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from `src/qyl.loom/Identity/GlobalUsings.cs`.
+- **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from
+  `src/qyl.loom/Identity/GlobalUsings.cs`.
   Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
-  its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped per policy.
+  its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped
+  per policy.
 - **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy
   `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
 - **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method
@@ -111,9 +140,12 @@
 - **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension,
   `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses
   `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
-- **Dead NuGet package removed**: `Microsoft.AspNetCore.Authentication.JwtBearer` — zero usage in collector (auth uses `IdentityModel` directly).
-- **Guard.NotNull consistency**: `SpanRingBuffer.PushRange` now uses `Guard.NotNull(spans)` instead of `ArgumentNullException.ThrowIfNull`.
-- **ParseNullableLong consolidated**: Duplicate definitions in `OtlpConverter` and `CodexTelemetryMapper` now delegate to shared `AttributeParsing.ParseNullableLong` in `Mapping/Mappers.cs`.
+- **Dead NuGet package removed**: `Microsoft.AspNetCore.Authentication.JwtBearer` — zero usage in collector (auth uses
+  `IdentityModel` directly).
+- **Guard.NotNull consistency**: `SpanRingBuffer.PushRange` now uses `Guard.NotNull(spans)` instead of
+  `ArgumentNullException.ThrowIfNull`.
+- **ParseNullableLong consolidated**: Duplicate definitions in `OtlpConverter` and `CodexTelemetryMapper` now delegate
+  to shared `AttributeParsing.ParseNullableLong` in `Mapping/Mappers.cs`.
 - **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
 - **qyl documentation agents**: Added `qyl-diagram-agent.md` and `qyl-ecosystem-scout-SKILL.md` as
   reusable prompts/assets for Mermaid architecture diagrams and 5-domain ecosystem scouting.

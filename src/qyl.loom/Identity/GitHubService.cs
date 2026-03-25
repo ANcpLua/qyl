@@ -120,7 +120,7 @@ public sealed partial class GitHubService(
             .ReadFromJsonAsync(GitHubJsonContext.Default.GitHubRepoArray, ct)
             .ConfigureAwait(false);
 
-        return repos.OrEmpty();
+        return repos ?? [];
     }
 
     public async Task<GitHubUser?> GetUserAsync(CancellationToken ct = default)

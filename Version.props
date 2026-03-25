@@ -17,10 +17,10 @@
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
     <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
     <!-- Analyzers -->
-    <MicrosoftCodeAnalysisAnalyzersVersion>3.11.0</MicrosoftCodeAnalysisAnalyzersVersion>
+    <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.45.0</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaRoslynUtilitiesBaseVersion>1.45.0</ANcpLuaRoslynUtilitiesBaseVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.48.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesBaseVersion>1.48.0</ANcpLuaRoslynUtilitiesBaseVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsAbstractionsVersion>1.0.0-rc4</MicrosoftAgentsAbstractionsVersion>
     <MicrosoftAgentsCopilotVersion>1.0.0-preview.260311.1</MicrosoftAgentsCopilotVersion>

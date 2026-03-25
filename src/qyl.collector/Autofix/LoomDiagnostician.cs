@@ -29,7 +29,8 @@ public sealed class LoomDiagnostician(IChatClient? llm = null)
 
         try
         {
-            await foreach (var chunk in llm.GetStreamingResponseAsync(prompt, cancellationToken: ct).ConfigureAwait(false))
+            await foreach (var chunk in llm.GetStreamingResponseAsync(prompt, cancellationToken: ct)
+                               .ConfigureAwait(false))
             {
                 if (string.IsNullOrEmpty(chunk.Text))
                     continue;

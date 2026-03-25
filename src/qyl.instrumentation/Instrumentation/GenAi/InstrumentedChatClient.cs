@@ -74,7 +74,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
             var response = await base.GetResponseAsync(messages, options, cancellationToken)
                 .ConfigureAwait(false);
 
-            EnrichResponseAttributes(activity, response, startTime, model, provider);
+            EnrichResponseAttributes(activity, response, startTime, provider);
             return response;
         }
         catch (HttpRequestException ex)
@@ -120,7 +120,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
                 {
                     if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
                     {
-                        EnrichStreamingResponseAttributes(activity, responses, startTime, model, provider);
+                        EnrichStreamingResponseAttributes(activity, responses, startTime, provider);
                         activity?.SetStatus(ActivityStatusCode.Ok);
                         yield break;
                     }
@@ -175,22 +175,21 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         if (activity is null || options is null) return;
 
         if (options.Temperature is { } temperature)
-            activity.SetTag(GenAiAttributes.RequestTemperature, temperature);
+            activity.SetTag(GenAiAttributes.RequestTemperature, (double)temperature);
         if (options.MaxOutputTokens is { } maxTokens)
             activity.SetTag(GenAiAttributes.RequestMaxTokens, maxTokens);
         if (options.TopP is { } topP)
-            activity.SetTag(GenAiAttributes.RequestTopP, topP);
+            activity.SetTag(GenAiAttributes.RequestTopP, (double)topP);
         if (options.FrequencyPenalty is { } freqPenalty)
-            activity.SetTag(GenAiAttributes.RequestFrequencyPenalty, freqPenalty);
+            activity.SetTag(GenAiAttributes.RequestFrequencyPenalty, (double)freqPenalty);
         if (options.PresencePenalty is { } presencePenalty)
-            activity.SetTag(GenAiAttributes.RequestPresencePenalty, presencePenalty);
+            activity.SetTag(GenAiAttributes.RequestPresencePenalty, (double)presencePenalty);
     }
 
     private void EnrichResponseAttributes(
         Activity? activity,
         ChatResponse response,
         DateTimeOffset startTime,
-        string requestModel,
         string provider)
     {
         if (activity is null) return;
@@ -205,13 +204,13 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         {
             if (usage.InputTokenCount is { } inputTokens)
             {
-                activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+                activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
                 RecordTokenUsageMetric(inputTokens, provider, GenAiAttributes.TokenTypes.Input);
             }
 
             if (usage.OutputTokenCount is { } outputTokens)
             {
-                activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+                activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
                 RecordTokenUsageMetric(outputTokens, provider, GenAiAttributes.TokenTypes.Output);
             }
         }
@@ -226,7 +225,6 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         Activity? activity,
         List<ChatResponseUpdate> responses,
         DateTimeOffset startTime,
-        string requestModel,
         string provider)
     {
         if (activity is null) return;
@@ -262,13 +260,13 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
 
         if (inputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+            activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
             RecordTokenUsageMetric(inputTokens, provider, GenAiAttributes.TokenTypes.Input);
         }
 
         if (outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
             RecordTokenUsageMetric(outputTokens, provider, GenAiAttributes.TokenTypes.Output);
         }
 

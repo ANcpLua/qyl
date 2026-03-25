@@ -189,6 +189,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="impl\seer\.DS_Store" />
+    <Content Include="impl\seer\.DS_Store"/>
   </ItemGroup>
 </Project>

@@ -15,6 +15,7 @@ interface IInstrument : INukeBuild
 {
     const string JavaAgentVersion = "2.26.0";
     const string JavaAgentFileName = "opentelemetry-javaagent.jar";
+
     const string JavaAgentDownloadUrl =
         $"https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v{JavaAgentVersion}/{JavaAgentFileName}";
 
@@ -51,7 +52,7 @@ interface IInstrument : INukeBuild
                 Log.Information("Downloading OTel Java Agent v{Version}...", JavaAgentVersion);
                 ProcessTasks.StartProcess(
                         "curl", $"-L -o {agentPath} {JavaAgentDownloadUrl}",
-                        workingDirectory: targetDir)
+                        targetDir)
                     .AssertZeroExitCode();
                 Log.Information("Downloaded to {Path}", agentPath);
             }

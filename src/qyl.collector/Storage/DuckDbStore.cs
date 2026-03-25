@@ -1,4 +1,3 @@
-using Qyl.Contracts.Copilot;
 using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;

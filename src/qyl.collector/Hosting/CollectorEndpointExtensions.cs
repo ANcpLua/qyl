@@ -1,15 +1,15 @@
 using Qyl.Collector.AgentRuns;
 using Qyl.Collector.Analytics;
 using Qyl.Collector.Artifacts;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Autofix;
-using Qyl.Collector.Intelligence;
+using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Health;
 using Qyl.Collector.Identity;
 using Qyl.Collector.Insights;
+using Qyl.Collector.Intelligence;
 using Qyl.Collector.Meta;
 using Qyl.Collector.Observe;
 using Qyl.Collector.Provisioning;
@@ -542,7 +542,6 @@ public static class CollectorEndpointExtensions
         return context.Response.WriteAsync(
             "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
     }
-
 }
 
 internal static partial class OtlpLogsLog

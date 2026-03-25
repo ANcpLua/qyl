@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -121,7 +119,10 @@ internal static class TracedInterceptorEmitter
         sb.AppendLine(intercept);
 
         if (cs.IsAsyncEnumerable)
-            AppendAsyncEnumerableBody(sb, cs, index, typeParams, constraints, returnType, parameters, startActivity, call);
+        {
+            AppendAsyncEnumerableBody(sb, cs, index, typeParams, constraints, returnType, parameters, startActivity,
+                call);
+        }
         else if (cs.IsAsync)
             AppendAsyncBody(sb, cs, index, typeParams, constraints, returnType, parameters, startActivity, call);
         else
@@ -159,7 +160,8 @@ internal static class TracedInterceptorEmitter
             sb.AppendLine("catch (global::System.Exception ex)");
             using (sb.BeginBlock())
             {
-                sb.AppendLine("global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
+                sb.AppendLine(
+                    "global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
                 sb.AppendLine("throw;");
             }
         }
@@ -173,7 +175,8 @@ internal static class TracedInterceptorEmitter
         string startActivity, string call)
     {
         var hasReturn = !returnType.EndsWithOrdinal("Task") && !returnType.EndsWithOrdinal("ValueTask");
-        sb.AppendLine($"public static async {returnType} Intercept_Traced_{index}{typeParams}({parameters}){constraints}");
+        sb.AppendLine(
+            $"public static async {returnType} Intercept_Traced_{index}{typeParams}({parameters}){constraints}");
         using (sb.BeginBlock())
         {
             sb.AppendLine(startActivity);
@@ -198,7 +201,8 @@ internal static class TracedInterceptorEmitter
             sb.AppendLine("catch (global::System.Exception ex)");
             using (sb.BeginBlock())
             {
-                sb.AppendLine("global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
+                sb.AppendLine(
+                    "global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
                 sb.AppendLine("throw;");
             }
         }
@@ -228,7 +232,8 @@ internal static class TracedInterceptorEmitter
             sb.AppendLine("catch (global::System.Exception ex)");
             using (sb.BeginBlock())
             {
-                sb.AppendLine("global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
+                sb.AppendLine(
+                    "global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);");
                 sb.AppendLine("throw;");
             }
         }
@@ -251,8 +256,11 @@ internal static class TracedInterceptorEmitter
         {
             // code.* attributes
             if (cs.CodeFilePath is { Length: > 0 })
+            {
                 sb.AppendLine(
                     $"activity.SetTag(\"code.filepath\", {SymbolDisplay.FormatLiteral(cs.CodeFilePath, true)});");
+            }
+
             sb.AppendLine($"activity.SetTag(\"code.function.name\", \"{cs.MethodName}\");");
             if (cs.CodeNamespace is { Length: > 0 })
                 sb.AppendLine($"activity.SetTag(\"code.namespace\", \"{cs.CodeNamespace}\");");

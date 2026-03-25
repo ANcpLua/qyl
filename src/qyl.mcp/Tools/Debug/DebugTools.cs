@@ -17,7 +17,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Check Rider debugger MCP connection status and refresh endpoint discovery.")]
     public string GetStatus(
-        [Description("Force re-scan of Rider IDE log for endpoint changes")] bool refresh = false)
+        [Description("Force re-scan of Rider IDE log for endpoint changes")]
+        bool refresh = false)
     {
         if (refresh) discovery.Refresh();
         var endpoints = discovery.GetEndpoints();
@@ -49,15 +50,18 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Start a debug session using a run configuration name.")]
     public Task<string> StartDebugSessionAsync(
-        [Description("Run configuration name to debug")] string configurationName,
+        [Description("Run configuration name to debug")]
+        string configurationName,
         CancellationToken ct = default) =>
-        CallRiderToolAsync("start_debug_session", new() { ["configurationName"] = configurationName }, ct);
+        CallRiderToolAsync("start_debug_session",
+            new Dictionary<string, object> { ["configurationName"] = configurationName }, ct);
 
     [McpServerTool(Name = "qyl.debug.stop_session", Title = "Stop Debug Session",
         ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Stop a running debug session.")]
     public Task<string> StopDebugSessionAsync(
-        [Description("Debug session ID to stop (omit for active session)")] string? sessionId = null,
+        [Description("Debug session ID to stop (omit for active session)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("stop_debug_session", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -71,7 +75,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get detailed status of a debug session.")]
     public Task<string> GetDebugSessionStatusAsync(
-        [Description("Debug session ID (omit for active session)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active session)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_debug_session_status", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -91,8 +96,10 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> SetBreakpointAsync(
         [Description("Absolute file path")] string filePath,
         [Description("Line number (1-based)")] int lineNumber,
-        [Description("Optional condition expression")] string? condition = null,
-        [Description("Optional log message (logpoint)")] string? logExpression = null,
+        [Description("Optional condition expression")]
+        string? condition = null,
+        [Description("Optional log message (logpoint)")]
+        string? logExpression = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("set_breakpoint", BuildArgs(
             ("filePath", filePath), ("lineNumber", lineNumber),
@@ -104,7 +111,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> RemoveBreakpointAsync(
         [Description("Breakpoint ID")] string breakpointId,
         CancellationToken ct = default) =>
-        CallRiderToolAsync("remove_breakpoint", new() { ["breakpointId"] = breakpointId }, ct);
+        CallRiderToolAsync("remove_breakpoint", new Dictionary<string, object> { ["breakpointId"] = breakpointId }, ct);
 
     [McpServerTool(Name = "qyl.debug.list_breakpoints", Title = "List Breakpoints",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
@@ -118,7 +125,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Resume program execution from a breakpoint.")]
     public Task<string> ResumeAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("resume", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -126,7 +134,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Pause program execution.")]
     public Task<string> PauseAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("pause", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -134,7 +143,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Step over to the next line in the current function.")]
     public Task<string> StepOverAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_over", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -142,7 +152,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Step into the next function call.")]
     public Task<string> StepIntoAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_into", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -150,7 +161,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Step out of the current function.")]
     public Task<string> StepOutAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_out", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -160,7 +172,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> RunToLineAsync(
         [Description("Absolute file path")] string filePath,
         [Description("Target line number")] int lineNumber,
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("run_to_line", BuildArgs(
             ("filePath", filePath), ("lineNumber", lineNumber), ("sessionId", sessionId)), ct);
@@ -171,9 +184,12 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Evaluate an expression in the current debug context.")]
     public Task<string> EvaluateAsync(
-        [Description("Expression to evaluate")] string expression,
-        [Description("Stack frame index (0 = top)")] int? frameIndex = null,
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Expression to evaluate")]
+        string expression,
+        [Description("Stack frame index (0 = top)")]
+        int? frameIndex = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("evaluate", BuildArgs(
             ("expression", expression), ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
@@ -182,8 +198,10 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get local variables and their values in the current stack frame.")]
     public Task<string> GetVariablesAsync(
-        [Description("Stack frame index (0 = top)")] int? frameIndex = null,
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Stack frame index (0 = top)")]
+        int? frameIndex = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_variables", BuildArgs(
             ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
@@ -194,8 +212,10 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> SetVariableAsync(
         [Description("Variable name")] string variableName,
         [Description("New value expression")] string value,
-        [Description("Stack frame index (0 = top)")] int? frameIndex = null,
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Stack frame index (0 = top)")]
+        int? frameIndex = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("set_variable", BuildArgs(
             ("variableName", variableName), ("value", value),
@@ -207,7 +227,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get the current stack trace.")]
     public Task<string> GetStackTraceAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_stack_trace", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -215,7 +236,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("List all threads in the debugged process.")]
     public Task<string> ListThreadsAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("list_threads", BuildArgs(("sessionId", sessionId)), ct);
 
@@ -224,7 +246,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     [Description("Select a stack frame to inspect variables and evaluate expressions.")]
     public Task<string> SelectStackFrameAsync(
         [Description("Frame index to select")] int frameIndex,
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("select_stack_frame", BuildArgs(
             ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
@@ -235,7 +258,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get source code around the current execution point.")]
     public Task<string> GetSourceContextAsync(
-        [Description("Debug session ID (omit for active)")] string? sessionId = null,
+        [Description("Debug session ID (omit for active)")]
+        string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_source_context", BuildArgs(("sessionId", sessionId)), ct);
 

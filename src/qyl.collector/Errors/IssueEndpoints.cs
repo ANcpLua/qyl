@@ -65,7 +65,8 @@ public static class IssueEndpoints
                 }
                 catch (InvalidOperationException ex)
                 {
-                    return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["status"] = [ex.Message] });
+                    return TypedResults.ValidationProblem(
+                        new Dictionary<string, string[]> { ["status"] = [ex.Message] });
                 }
             })
             .WithName("TransitionIssueStatus")
