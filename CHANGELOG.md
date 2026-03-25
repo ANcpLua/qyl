@@ -4,10 +4,25 @@
 
 ### Removed
 
+- **Phosphor icons eliminated**: Replaced all `@phosphor-icons/react` usage with `lucide-react` across 25+ dashboard
+  files. Removed `@phosphor-icons/react` from package.json. Lucide is now the sole icon library.
+- **Loom import cleanup (Hades)**: Removed 21 unused PackageReferences and 1 unused ProjectReference (qyl.instrumentation)
+  from `qyl.loom.csproj`. Replaced `ContainsIgnoreCase`/`StartsWithIgnoreCase`/`StartsWithOrdinal` extension methods with
+  standard BCL `Contains`/`StartsWith` + `StringComparison`.
 - **Dead code cleanup (Hades audit)**: Deleted 8 files (~26,427 lines) confirmed unused by grep across entire repo.
   `Clear.cs` (26K stale diff in qyl.mcp), `WorkspaceContext.cs` (orphaned, zero refs), `PolicyGate.cs` (empty stub),
   `AnomalyTypes.cs` (empty), `AutofixArtifacts.cs` x2 and `AutofixConstants.cs` x2 (unused types in both collector and
   loom), `UnixNano` struct from `CollectorTypes.cs` (never instantiated, raw ulong used everywhere).
+
+### Fixed
+
+- **SEC-001 XSS fix**: Replaced `dangerouslySetInnerHTML` in `text-visualizer.tsx` with tokenized React element rendering.
+- **SEC-002 type safety**: Replaced `as unknown as SpanRecord` in `use-telemetry.ts` with proper typed construction.
+- **A11Y-001/002**: Added keyboard support (role, tabIndex, onKeyDown) to DashboardCard and PerformancePage service rows.
+- **A11Y-003**: Replaced all `outline-none` with `outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2`.
+- **UX-001**: Added React ErrorBoundary component wrapping routes in App.tsx.
+- **TASTE-002**: Replaced 60+ raw Tailwind colors with semantic tokens (signal-red, signal-green, etc.) across dashboard.
+- **TASTE-003**: Replaced hardcoded HSL/oklch chart colors with CSS variable theme tokens.
 
 ### Changed
 

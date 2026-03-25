@@ -67,7 +67,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         var result = await ValidateWithKeysAsync(token, keys).ConfigureAwait(false);
 
         // On stale signing key: force-refresh keys and retry once
-        if (!result.IsValid && result.Exception is SecurityTokenSignatureKeyNotFoundException)
+        if (result is { IsValid: false, Exception: SecurityTokenSignatureKeyNotFoundException })
         {
             LogKeysExpired();
             await _refreshLock.WaitAsync(ct).ConfigureAwait(false);

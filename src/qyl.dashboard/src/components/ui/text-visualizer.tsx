@@ -154,59 +154,98 @@ function JsonTreeNode({name, value, depth, isLast}: JsonTreeNodeProps) {
     );
 }
 
-// Syntax highlighting for formatted content
+// Token types for safe syntax highlighting
+type TokenType = "key" | "string" | "number" | "keyword" | "bracket" | "tag" | "attr-name" | "attr-value" | "text" | "plain";
+
+interface Token {
+    type: TokenType;
+    value: string;
+}
+
+function tokenizeJson(json: string): Token[] {
+    const tokens: Token[] = [];
+    const re = /("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b|\bnull\b)|([{}[\],:])|(\s+)|(.)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = re.exec(json)) !== null) {
+        const [, quoted, colon, num, keyword, bracket, ws, other] = match;
+        if (quoted) {
+            tokens.push({type: colon ? "key" : "string", value: quoted});
+            if (colon) tokens.push({type: "plain", value: colon});
+        } else if (num) {
+            tokens.push({type: "number", value: num});
+        } else if (keyword) {
+            tokens.push({type: "keyword", value: keyword});
+        } else if (bracket) {
+            tokens.push({type: "bracket", value: bracket});
+        } else if (ws) {
+            tokens.push({type: "plain", value: ws});
+        } else if (other) {
+            tokens.push({type: "plain", value: other});
+        }
+    }
+    return tokens;
+}
+
+function tokenizeXml(xml: string): Token[] {
+    const tokens: Token[] = [];
+    const re = /(<\/?[a-zA-Z][a-zA-Z0-9-_:]*)|(\s[a-zA-Z-_:]+)(?==)|("[^"]*"|'[^']*')|(\/>|>)|([^<]+)|(.)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = re.exec(xml)) !== null) {
+        const [full, tag, attrName, attrVal, close, text, other] = match;
+        if (tag) {
+            tokens.push({type: "tag", value: tag});
+        } else if (attrName) {
+            tokens.push({type: "attr-name", value: attrName});
+        } else if (attrVal) {
+            tokens.push({type: "attr-value", value: attrVal});
+        } else if (close) {
+            tokens.push({type: "tag", value: close});
+        } else if (text) {
+            tokens.push({type: "text", value: text});
+        } else if (other) {
+            tokens.push({type: "plain", value: full});
+        }
+    }
+    return tokens;
+}
+
+const tokenClassMap: Record<TokenType, string | null> = {
+    key: "text-brutal-white",
+    string: "text-signal-green",
+    number: "text-signal-cyan",
+    keyword: "text-signal-violet",
+    bracket: "text-brutal-zinc",
+    tag: "text-signal-cyan",
+    "attr-name": "text-signal-yellow",
+    "attr-value": "text-signal-green",
+    text: "text-brutal-white",
+    plain: null,
+};
+
+// Syntax highlighting for formatted content — renders React elements, no innerHTML
 function SyntaxHighlighter({content, type}: { content: string; type: ContentType }) {
-    const highlighted = useMemo(() => {
-        if (type === "json") {
-            return highlightJson(content);
-        }
-        if (type === "xml") {
-            return highlightXml(content);
-        }
-        return content;
+    const tokens = useMemo(() => {
+        if (type === "json") return tokenizeJson(content);
+        if (type === "xml") return tokenizeXml(content);
+        return null;
     }, [content, type]);
 
     return (
         <pre className="text-sm font-mono whitespace-pre-wrap overflow-x-auto">
-            {type === "json" || type === "xml" ? (
-                <code dangerouslySetInnerHTML={{__html: highlighted}}/>
-            ) : (
-                <code>{content}</code>
-            )}
+            <code>
+                {tokens
+                    ? tokens.map((tok, i) => {
+                        const cls = tokenClassMap[tok.type];
+                        return cls
+                            ? <span key={i} className={cls}>{tok.value}</span>
+                            : tok.value;
+                    })
+                    : content}
+            </code>
         </pre>
     );
-}
-
-function highlightJson(json: string): string {
-    return json
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        // Keys
-        .replace(/"([^"]+)":/g, '<span class="text-brutal-white">"$1"</span>:')
-        // String values
-        .replace(/: "([^"]*)"([,\n\r\s}])/g, ': <span class="text-signal-green">"$1"</span>$2')
-        // Numbers
-        .replace(/: (-?\d+\.?\d*)([,\n\r\s}])/g, ': <span class="text-signal-cyan">$1</span>$2')
-        // Booleans and null
-        .replace(/: (true|false|null)([,\n\r\s}])/g, ': <span class="text-signal-violet">$1</span>$2')
-        // Brackets
-        .replace(/([{}[\]])/g, '<span class="text-brutal-zinc">$1</span>');
-}
-
-function highlightXml(xml: string): string {
-    return xml
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        // Tags
-        .replace(/&lt;(\/?[a-zA-Z][a-zA-Z0-9-_:]*)/g, '&lt;<span class="text-signal-cyan">$1</span>')
-        // Attributes
-        .replace(/([a-zA-Z-_:]+)=(&quot;|")/g, '<span class="text-signal-yellow">$1</span>=<span class="text-signal-green">$2')
-        // Closing quote
-        .replace(/(&quot;|")(\s*\/?&gt;)/g, '$1</span>$2')
-        // Text content between tags
-        .replace(/&gt;([^<&]+)&lt;/g, '&gt;<span class="text-brutal-white">$1</span>&lt;');
 }
 
 // Main TextVisualizer component

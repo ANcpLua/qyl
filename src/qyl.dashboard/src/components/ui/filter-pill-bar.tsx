@@ -70,7 +70,7 @@ export function FilterPillBar({
                         if (e.key === 'Escape') setShowFields(false);
                     }}
                     placeholder={pills.length === 0 ? placeholder : 'Add filter…'}
-                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-brutal-white placeholder:text-brutal-slate"
+                    className="flex-1 min-w-[120px] bg-transparent border-none outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange text-sm text-brutal-white placeholder:text-brutal-slate"
                     aria-label="Add filter"
                 />
             </div>

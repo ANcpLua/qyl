@@ -19,16 +19,16 @@ const stepIcon: Record<PipelineStep['status'], React.ReactNode> = {
 };
 
 const circleStyles: Record<PipelineStep['status'], string> = {
-    completed: 'border-green-500 bg-green-500/20 text-green-400',
-    running: 'border-amber-500 bg-amber-500/20 text-amber-400',
-    failed: 'border-red-500 bg-red-500/20 text-red-400',
+    completed: 'border-signal-green bg-signal-green/20 text-signal-green',
+    running: 'border-signal-yellow bg-signal-yellow/20 text-signal-yellow',
+    failed: 'border-signal-red bg-signal-red/20 text-signal-red',
     pending: 'border-brutal-zinc bg-brutal-zinc/20 text-brutal-slate',
 };
 
 const connectorStyles: Record<PipelineStep['status'], string> = {
-    completed: 'bg-green-500/60',
-    running: 'bg-amber-500/40',
-    failed: 'bg-red-500/40',
+    completed: 'bg-signal-green/60',
+    running: 'bg-signal-yellow/40',
+    failed: 'bg-signal-red/40',
     pending: 'bg-brutal-zinc/40',
 };
 

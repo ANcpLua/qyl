@@ -44,27 +44,32 @@ interface RawSpanListResponse {
 }
 
 function rawToSpan(raw: RawSpanRow): SpanRecord {
-    const parseAttrs = (json?: string | null): { key: string; value: unknown }[] => {
+    type Attr = NonNullable<SpanRecord['attributes']>[number];
+    const parseAttrs = (json?: string | null): Attr[] => {
         if (!json) return [];
         try {
-            return Object.entries(JSON.parse(json)).map(([key, value]) => ({key, value}));
+            return Object.entries(JSON.parse(json)).map(([key, value]) => ({key, value: value as Attr['value']}));
         } catch {
             return [];
         }
     };
 
-    return {
+    const span: SpanRecord = {
         span_id: raw.span_id,
         trace_id: raw.trace_id,
         parent_span_id: raw.parent_span_id ?? undefined,
         name: raw.name,
-        kind: raw.kind,
+        kind: (raw.kind & 0x7) as SpanRecord['kind'],
         start_time_unix_nano: raw.start_time_unix_nano,
         end_time_unix_nano: raw.end_time_unix_nano,
-        status: {code: raw.status_code, message: raw.status_message ?? undefined},
+        status: {code: (raw.status_code & 0x3) as SpanRecord['status']['code'], message: raw.status_message ?? undefined},
         attributes: parseAttrs(raw.attributes_json),
-        resource: {attributes: parseAttrs(raw.resource_json)},
-    } as unknown as SpanRecord;
+        // Storage returns resource as JSON key-value pairs; TypeSpec type is flat typed object
+        resource: Object.fromEntries(
+            parseAttrs(raw.resource_json).map(a => [a.key, a.value]),
+        ) as unknown as SpanRecord['resource'],
+    };
+    return span;
 }
 
 // API response types (actual API shape)

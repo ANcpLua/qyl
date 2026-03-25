@@ -19,10 +19,10 @@ import type {ErrorRow} from '@/hooks/use-errors';
 import {useErrors, useErrorStats} from '@/hooks/use-errors';
 
 const statusStyles: Record<string, string> = {
-    new: 'bg-red-500/20 text-red-400 border-red-500/40',
-    acknowledged: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-    resolved: 'bg-green-500/20 text-green-400 border-green-500/40',
-    ignored: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/40',
+    new: 'bg-signal-red/20 text-signal-red border-signal-red/40',
+    acknowledged: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
+    resolved: 'bg-signal-green/20 text-signal-green border-signal-green/40',
+    ignored: 'bg-brutal-zinc/20 text-brutal-slate border-brutal-zinc/40',
 };
 
 function StatusBadge({status}: { status: string }) {
@@ -148,8 +148,8 @@ export function ErrorsOutagesPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Failed to load errors</p>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-signal-red"/>
+                        <p className="text-signal-red">Failed to load errors</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
                         </p>
@@ -166,13 +166,13 @@ export function ErrorsOutagesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldAlert className="w-4 h-4 text-red-400"/>
+                            <ShieldAlert className="w-4 h-4 text-signal-red"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">TOTAL ERRORS</span>
                         </div>
                         {statsLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-red-400">{totalErrors}</div>
+                            <div className="text-2xl font-bold mt-1 text-signal-red">{totalErrors}</div>
                         )}
                     </CardContent>
                 </Card>
@@ -182,11 +182,11 @@ export function ErrorsOutagesPage() {
                         <CardContent className="pt-4">
                             <div className="flex items-center gap-2">
                                 {cat.category.toLowerCase().includes('error') ? (
-                                    <ShieldX className="w-4 h-4 text-amber-400"/>
+                                    <ShieldX className="w-4 h-4 text-signal-yellow"/>
                                 ) : cat.category.toLowerCase().includes('exception') ? (
-                                    <AlertTriangle className="w-4 h-4 text-orange-400"/>
+                                    <AlertTriangle className="w-4 h-4 text-signal-orange"/>
                                 ) : (
-                                    <ShieldCheck className="w-4 h-4 text-blue-400"/>
+                                    <ShieldCheck className="w-4 h-4 text-signal-cyan"/>
                                 )}
                                 <span className="text-xs font-bold text-brutal-slate tracking-wider uppercase truncate">
                                     {cat.category}

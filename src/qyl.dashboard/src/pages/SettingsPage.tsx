@@ -4,17 +4,17 @@ import {useQuery} from '@tanstack/react-query';
 import {
     Brain,
     Database,
-    GearSix,
     Keyboard,
-    LinkBreak,
+    Loader2,
     Monitor,
     Moon,
-    PaintBrush,
-    Robot,
-    SpinnerGap,
+    Paintbrush,
+    Bot,
+    Settings,
     Sun,
-    Trash,
-} from '@phosphor-icons/react';
+    Trash2,
+    Unlink,
+} from 'lucide-react';
 import {useTheme} from '@/hooks/use-theme';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
@@ -153,7 +153,7 @@ function AiSettingsTab() {
                         </Button>
                         {isConfigured && (
                             <Button variant="outline" size="sm" onClick={handleClear}>
-                                <Trash className="w-4 h-4 mr-2"/>
+                                <Trash2 className="w-4 h-4 mr-2"/>
                                 Clear
                             </Button>
                         )}
@@ -217,11 +217,11 @@ export function SettingsPage() {
             <Tabs defaultValue="general" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-7">
                     <TabsTrigger value="general">
-                        <GearSix className="w-4 h-4 mr-2"/>
+                        <Settings className="w-4 h-4 mr-2"/>
                         General
                     </TabsTrigger>
                     <TabsTrigger value="ai">
-                        <Robot className="w-4 h-4 mr-2"/>
+                        <Bot className="w-4 h-4 mr-2"/>
                         AI
                     </TabsTrigger>
                     <TabsTrigger value="Loom">
@@ -229,7 +229,7 @@ export function SettingsPage() {
                         Loom
                     </TabsTrigger>
                     <TabsTrigger value="appearance">
-                        <PaintBrush className="w-4 h-4 mr-2"/>
+                        <Paintbrush className="w-4 h-4 mr-2"/>
                         Appearance
                     </TabsTrigger>
                     <TabsTrigger value="shortcuts">
@@ -388,7 +388,7 @@ export function SettingsPage() {
                         <CardContent className="space-y-4">
                             {ghLoading ? (
                                 <div className="flex items-center gap-2 text-muted-foreground">
-                                    <SpinnerGap className="w-4 h-4 animate-spin"/>
+                                    <Loader2 className="w-4 h-4 animate-spin"/>
                                     Checking connection...
                                 </div>
                             ) : ghStatus?.configured && ghStatus.user ? (
@@ -420,8 +420,8 @@ export function SettingsPage() {
                                             onClick={handleDisconnectGitHub}
                                             disabled={disconnecting}
                                         >
-                                            {disconnecting ? <SpinnerGap className="w-4 h-4 animate-spin mr-2"/> :
-                                                <LinkBreak className="w-4 h-4 mr-2"/>}
+                                            {disconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> :
+                                                <Unlink className="w-4 h-4 mr-2"/>}
                                             Disconnect
                                         </Button>
                                     )}

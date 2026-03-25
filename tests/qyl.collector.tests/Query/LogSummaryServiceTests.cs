@@ -145,8 +145,8 @@ public sealed class LogSummaryServiceTests
         Assert.Equal("svc.api", pattern.ServiceName);
         Assert.Contains("<N>", pattern.Template, StringComparison.Ordinal);
         Assert.NotEmpty(pattern.PatternId);
-        Assert.Contains(pattern.SeverityDistribution, static x => x.Severity == "error" && x.Count == 2);
-        Assert.Contains(pattern.SeverityDistribution, static x => x.Severity == "fatal" && x.Count == 1);
+        Assert.Contains(pattern.SeverityDistribution, static x => x is { Severity: "error", Count: 2 });
+        Assert.Contains(pattern.SeverityDistribution, static x => x is { Severity: "fatal", Count: 1 });
     }
 
     [Fact]

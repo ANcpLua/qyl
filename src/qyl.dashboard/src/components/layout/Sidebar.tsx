@@ -1,28 +1,28 @@
 import {NavLink, useLocation} from 'react-router-dom';
-import type {Icon as PhosphorIcon} from '@phosphor-icons/react';
+import type {LucideIcon} from 'lucide-react';
 import {
-    Broadcast,
+    Activity,
     Bug,
-    CaretLeft,
-    CaretRight,
-    ChatDots,
-    CurrencyDollar,
+    ChevronLeft,
+    ChevronRight,
+    CircleDollarSign,
     Database,
     FileText,
     Gauge,
-    GearSix,
     Globe,
-    Lightning,
-    MagnifyingGlass,
-    Pulse,
-    Sparkle,
-    SquaresFour,
-    Stack,
+    Layers,
+    LayoutGrid,
+    MessageSquare,
+    Radio,
+    Search,
+    Settings,
+    Sparkles,
     Terminal,
-    TreeStructure,
-    Warning,
-    WarningCircle,
-} from '@phosphor-icons/react';
+    TriangleAlert,
+    GitBranch,
+    AlertCircle,
+    Zap,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
@@ -30,34 +30,34 @@ import {useDashboards} from '@/hooks/use-dashboards';
 
 interface NavItem {
     to: string;
-    icon: PhosphorIcon;
+    icon: LucideIcon;
     label: string;
     shortcut: string;
 }
 
 const navItems: NavItem[] = [
-    {to: '/', icon: Pulse, label: 'DASHBOARD', shortcut: 'H'},
+    {to: '/', icon: Activity, label: 'DASHBOARD', shortcut: 'H'},
     {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
-    {to: '/errors', icon: WarningCircle, label: 'ERRORS', shortcut: 'E'},
-    {to: '/traces', icon: TreeStructure, label: 'TRACES', shortcut: 'T'},
-    {to: '/spans', icon: Stack, label: 'SPANS', shortcut: 'X'},
+    {to: '/errors', icon: AlertCircle, label: 'ERRORS', shortcut: 'E'},
+    {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
+    {to: '/spans', icon: Layers, label: 'SPANS', shortcut: 'X'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
-    {to: '/genai', icon: Sparkle, label: 'GENAI', shortcut: 'M'},
-    {to: '/cost', icon: CurrencyDollar, label: 'COST', shortcut: '$'},
+    {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
+    {to: '/cost', icon: CircleDollarSign, label: 'COST', shortcut: '$'},
     {to: '/services', icon: Globe, label: 'SERVICES', shortcut: 'V'},
     {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
-    {to: '/dashboards', icon: SquaresFour, label: 'DASHBOARDS', shortcut: 'D'},
-    {to: '/search', icon: MagnifyingGlass, label: 'SEARCH', shortcut: '/'},
-    {to: '/alerts', icon: Warning, label: 'ALERTS', shortcut: 'L'},
+    {to: '/dashboards', icon: LayoutGrid, label: 'DASHBOARDS', shortcut: 'D'},
+    {to: '/search', icon: Search, label: 'SEARCH', shortcut: '/'},
+    {to: '/alerts', icon: TriangleAlert, label: 'ALERTS', shortcut: 'L'},
 ];
 
-const dashboardIconMap: Record<string, PhosphorIcon> = {
-    'activity': Pulse,
+const dashboardIconMap: Record<string, LucideIcon> = {
+    'activity': Activity,
     'globe': Globe,
-    'brain': Lightning,
+    'brain': Zap,
     'database': Database,
-    'alert-triangle': Warning,
-    'message-square': ChatDots,
+    'alert-triangle': TriangleAlert,
+    'message-square': MessageSquare,
 };
 
 interface SidebarProps {
@@ -102,7 +102,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             ? 'border-signal-green bg-signal-green/10 text-signal-green'
                             : 'border-brutal-zinc/70 bg-brutal-dark/80 text-brutal-slate'
                     )}>
-                        <Broadcast className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
+                        <Radio className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
                         <span>{isLive ? 'STREAMING LIVE' : 'STREAM OFFLINE'}</span>
                         {isLive && <span className="animate-cursor-blink">_</span>}
                     </div>
@@ -162,7 +162,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             </div>
                         )}
                         {dashboards.map((db) => {
-                            const Icon = dashboardIconMap[db.icon] ?? Pulse;
+                            const Icon = dashboardIconMap[db.icon] ?? Activity;
                             const to = `/dashboards/${db.id}`;
                             const isActive = location.pathname === to;
 
@@ -219,7 +219,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                         : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                                 )}
                             >
-                                <GearSix className="w-4 h-4 flex-shrink-0"/>
+                                <Settings className="w-4 h-4 flex-shrink-0"/>
                                 {!collapsed && (
                                     <>
                                         <span className="flex-1">SETTINGS</span>
@@ -259,10 +259,10 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         onClick={() => onCollapsedChange(!collapsed)}
                     >
                         {collapsed ? (
-                            <CaretRight className="w-5 h-5"/>
+                            <ChevronRight className="w-5 h-5"/>
                         ) : (
                             <>
-                                <CaretLeft className="w-5 h-5"/>
+                                <ChevronLeft className="w-5 h-5"/>
                                 <span className="ml-3">COLLAPSE</span>
                             </>
                         )}

@@ -33,13 +33,13 @@ function getToolIcon(toolName?: string) {
 
 function StatusDot({status}: { status: string }) {
     if (status === 'running') {
-        return <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0"/>;
+        return <Loader2 className="w-3.5 h-3.5 text-signal-cyan animate-spin flex-shrink-0"/>;
     }
     if (status === 'completed') {
-        return <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0"/>;
+        return <CheckCircle2 className="w-3.5 h-3.5 text-signal-green flex-shrink-0"/>;
     }
     if (status === 'failed') {
-        return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0"/>;
+        return <XCircle className="w-3.5 h-3.5 text-signal-red flex-shrink-0"/>;
     }
     return <Clock className="w-3.5 h-3.5 text-brutal-slate flex-shrink-0"/>;
 }
@@ -117,9 +117,9 @@ function ToolCallNode({call, agentStartTime, agentDurationNs}: ToolCallNodeProps
                         className={cn(
                             'absolute top-0.5 h-3 rounded-sm',
                             call.status === 'failed'
-                                ? 'bg-red-500/60'
+                                ? 'bg-signal-red/60'
                                 : call.status === 'running'
-                                    ? 'bg-blue-500/60 animate-pulse'
+                                    ? 'bg-signal-cyan/60 animate-pulse'
                                     : 'bg-signal-orange/50',
                         )}
                         style={{
@@ -159,7 +159,7 @@ function ToolCallNode({call, agentStartTime, agentDurationNs}: ToolCallNodeProps
                     )}
                     {call.error_message && (
                         <div
-                            className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2 font-mono">
+                            className="text-sm text-signal-red bg-signal-red/10 border border-signal-red/30 rounded p-2 font-mono">
                             {call.error_message}
                         </div>
                     )}

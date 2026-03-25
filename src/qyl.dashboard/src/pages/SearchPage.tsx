@@ -17,20 +17,20 @@ const entityTypes = [
 ] as const;
 
 const entityStyles: Record<string, { color: string; icon: typeof Search }> = {
-    spans: {color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: Network},
-    logs: {color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: FileText},
-    errors: {color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle},
-    agent_runs: {color: 'bg-purple-500/20 text-purple-400 border-purple-500/40', icon: Bot},
-    workflows: {color: 'bg-amber-500/20 text-amber-400 border-amber-500/40', icon: Workflow},
+    spans: {color: 'bg-signal-cyan/20 text-signal-cyan border-signal-cyan/40', icon: Network},
+    logs: {color: 'bg-signal-green/20 text-signal-green border-signal-green/40', icon: FileText},
+    errors: {color: 'bg-signal-red/20 text-signal-red border-signal-red/40', icon: AlertCircle},
+    agent_runs: {color: 'bg-signal-violet/20 text-signal-violet border-signal-violet/40', icon: Bot},
+    workflows: {color: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40', icon: Workflow},
 };
 
 const pillStyles: Record<string, string> = {
     '': 'bg-brutal-zinc/40 text-brutal-white border-brutal-zinc',
-    spans: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-    logs: 'bg-green-500/20 text-green-400 border-green-500/40',
-    errors: 'bg-red-500/20 text-red-400 border-red-500/40',
-    agent_runs: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
-    workflows: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    spans: 'bg-signal-cyan/20 text-signal-cyan border-signal-cyan/40',
+    logs: 'bg-signal-green/20 text-signal-green border-signal-green/40',
+    errors: 'bg-signal-red/20 text-signal-red border-signal-red/40',
+    agent_runs: 'bg-signal-violet/20 text-signal-violet border-signal-violet/40',
+    workflows: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
 };
 
 function formatTimestamp(value?: string): string {
@@ -171,8 +171,8 @@ export function SearchPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Search failed</p>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-signal-red"/>
+                        <p className="text-signal-red">Search failed</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
                         </p>
@@ -193,7 +193,7 @@ export function SearchPage() {
                     placeholder="Search across all telemetry data…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full h-14 pl-12 pr-20 text-lg bg-slate-800 border-2 border-slate-700 rounded text-brutal-white placeholder:text-brutal-slate outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus:border-signal-orange transition-colors"
+                    className="w-full h-14 pl-12 pr-20 text-lg bg-brutal-dark border-2 border-brutal-zinc rounded text-brutal-white placeholder:text-brutal-slate outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus:border-signal-orange transition-colors"
                     aria-label="Search telemetry data"
                 />
                 <kbd className="absolute right-4 top-1/2 -translate-y-1/2 kbd text-xs text-brutal-slate">⌘K</kbd>

@@ -86,8 +86,16 @@ function DashboardCard({dashboard, onClick}: { dashboard: DashboardDefinition; o
     const Icon = dashboardIconMap[dashboard.icon] ?? LayoutDashboard;
     return (
         <Card
-            className="cursor-pointer transition-colors hover:border-brutal-zinc/70"
+            role="button"
+            tabIndex={0}
+            className="cursor-pointer transition-colors hover:border-brutal-zinc/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange"
             onClick={onClick}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
         >
             <CardContent className="pt-4 space-y-2">
                 <div className="flex items-center justify-between">

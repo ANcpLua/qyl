@@ -127,7 +127,7 @@ function JsonSchemaViewer({schema}: JsonSchemaViewerProps) {
                 onClick={copySchema}
             >
                 {copiedSchema ? (
-                    <Check className="w-3 h-3 text-green-500"/>
+                    <Check className="w-3 h-3 text-signal-green"/>
                 ) : (
                     <Copy className="w-3 h-3"/>
                 )}
@@ -261,7 +261,7 @@ export function ToolCallViewer({
                         ) : (
                             <ChevronRight className="w-4 h-4 text-muted-foreground"/>
                         )}
-                        <Code2 className="w-4 h-4 text-cyan-500"/>
+                        <Code2 className="w-4 h-4 text-signal-cyan"/>
                         <span className="text-sm font-medium">Arguments</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -274,7 +274,7 @@ export function ToolCallViewer({
                                 onClick={() => copyToClipboard(parsedArgs, setCopiedArgs)}
                             >
                                 {copiedArgs ? (
-                                    <Check className="w-3 h-3 text-green-500"/>
+                                    <Check className="w-3 h-3 text-signal-green"/>
                                 ) : (
                                     <Copy className="w-3 h-3"/>
                                 )}
@@ -299,7 +299,7 @@ export function ToolCallViewer({
                         ) : (
                             <ChevronRight className="w-4 h-4 text-muted-foreground"/>
                         )}
-                        <Check className="w-4 h-4 text-green-500"/>
+                        <Check className="w-4 h-4 text-signal-green"/>
                         <span className="text-sm font-medium">Result</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -312,7 +312,7 @@ export function ToolCallViewer({
                                 onClick={() => copyToClipboard(parsedResult, setCopiedResult)}
                             >
                                 {copiedResult ? (
-                                    <Check className="w-3 h-3 text-green-500"/>
+                                    <Check className="w-3 h-3 text-signal-green"/>
                                 ) : (
                                     <Copy className="w-3 h-3"/>
                                 )}

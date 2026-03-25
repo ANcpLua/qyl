@@ -156,9 +156,9 @@ public sealed partial class TriagePipelineService(
         else if (issue.EventCount >= 3) score += 0.1;
 
         // Known error types are more fixable
-        if (issue.ErrorType.ContainsIgnoreCase("NullReference") ||
-            issue.ErrorType.ContainsIgnoreCase("ArgumentException") ||
-            issue.ErrorType.ContainsIgnoreCase("InvalidOperation"))
+        if (issue.ErrorType.Contains("NullReference", StringComparison.OrdinalIgnoreCase) ||
+            issue.ErrorType.Contains("ArgumentException", StringComparison.OrdinalIgnoreCase) ||
+            issue.ErrorType.Contains("InvalidOperation", StringComparison.OrdinalIgnoreCase))
             score += 0.2;
 
         // Recent errors are more actionable

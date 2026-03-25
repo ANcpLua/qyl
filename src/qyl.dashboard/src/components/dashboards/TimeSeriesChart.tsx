@@ -6,6 +6,19 @@ interface TimeSeriesChartProps {
     data: TimeSeriesPoint[];
 }
 
+// Chart styling using CSS custom properties (oklch tokens from index.css)
+const CHART_STROKE = 'var(--color-signal-orange)';
+const GRID_STROKE = 'var(--color-brutal-dark)';
+const AXIS_TICK = {fill: 'var(--color-brutal-zinc)', fontSize: 10};
+const AXIS_LINE = {stroke: 'var(--color-brutal-dark)'};
+const TOOLTIP_STYLE: React.CSSProperties = {
+    backgroundColor: 'var(--color-brutal-black)',
+    border: '2px solid var(--color-brutal-dark)',
+    borderRadius: 0,
+    color: 'var(--color-brutal-white)',
+    fontSize: 12,
+};
+
 export function TimeSeriesChart({title, data}: TimeSeriesChartProps) {
     return (
         <div className="border-3 border-brutal-zinc bg-brutal-carbon p-4 space-y-3">
@@ -17,36 +30,28 @@ export function TimeSeriesChart({title, data}: TimeSeriesChartProps) {
                     <AreaChart data={data} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
                         <defs>
                             <linearGradient id="fillValue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(25, 100%, 50%)" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="hsl(25, 100%, 50%)" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="var(--color-signal-orange)" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="var(--color-signal-orange)" stopOpacity={0}/>
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(0, 0%, 20%)"/>
+                        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE}/>
                         <XAxis
                             dataKey="time"
-                            tick={{fill: 'hsl(0, 0%, 50%)', fontSize: 10}}
-                            axisLine={{stroke: 'hsl(0, 0%, 25%)'}}
+                            tick={AXIS_TICK}
+                            axisLine={AXIS_LINE}
                             tickLine={false}
                         />
                         <YAxis
-                            tick={{fill: 'hsl(0, 0%, 50%)', fontSize: 10}}
-                            axisLine={{stroke: 'hsl(0, 0%, 25%)'}}
+                            tick={AXIS_TICK}
+                            axisLine={AXIS_LINE}
                             tickLine={false}
                             width={50}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(0, 0%, 8%)',
-                                border: '2px solid hsl(0, 0%, 25%)',
-                                borderRadius: 0,
-                                color: 'hsl(0, 0%, 90%)',
-                                fontSize: 12,
-                            }}
-                        />
+                        <Tooltip contentStyle={TOOLTIP_STYLE}/>
                         <Area
                             type="monotone"
                             dataKey="value"
-                            stroke="hsl(25, 100%, 50%)"
+                            stroke={CHART_STROKE}
                             strokeWidth={2}
                             fill="url(#fillValue)"
                         />

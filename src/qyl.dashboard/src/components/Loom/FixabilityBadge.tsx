@@ -17,10 +17,10 @@ function resolveLevel(score?: number, automationLevel?: FixabilityBadgeProps['au
 }
 
 const levelStyles: Record<string, string> = {
-    auto: 'bg-green-500/20 text-green-400 border-green-500/40',
-    assisted: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    auto: 'bg-signal-green/20 text-signal-green border-signal-green/40',
+    assisted: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
     manual: 'bg-brutal-zinc/20 text-brutal-slate border-brutal-zinc/40',
-    skip: 'bg-red-500/20 text-red-400 border-red-500/40',
+    skip: 'bg-signal-red/20 text-signal-red border-signal-red/40',
 };
 
 const levelLabels: Record<string, string> = {

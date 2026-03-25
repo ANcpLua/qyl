@@ -1,8 +1,8 @@
 import {lazy, Suspense} from 'react';
 import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
-import {IconContext} from '@phosphor-icons/react';
 import {Toaster} from '@/components/ui/sonner';
+import {ErrorBoundary} from '@/components/ui/error-boundary';
 import {DashboardLayout} from '@/components/layout';
 
 const TracesPage = lazy(() => import('@/pages/TracesPage').then(m => ({default: m.TracesPage})));
@@ -49,36 +49,36 @@ function FirstVisitGate() {
 
 export default function App() {
     return (
-        <IconContext.Provider value={{weight: 'bold'}}>
-            <QueryClientProvider client={queryClient}>
-                <BrowserRouter>
-                    <Suspense>
-                        <Routes>
-                            <Route path="/index.html" element={<Navigate to="/" replace/>}/>
-                            <Route element={<DashboardLayout/>}>
-                                <Route path="/" element={<FirstVisitGate/>}/>
-                                <Route path="/traces" element={<TracesPage/>}/>
-                                <Route path="/logs" element={<LogsPage/>}/>
-                                <Route path="/genai" element={<GenAIPage/>}/>
-                                <Route path="/cost" element={<CostPage/>}/>
-                                <Route path="/services" element={<ServicesPage/>}/>
-                                <Route path="/dashboards" element={<DashboardPage/>}/>
-                                <Route path="/dashboards/:id" element={<DashboardPage/>}/>
-                                <Route path="/search" element={<SearchPage/>}/>
-                                <Route path="/settings" element={<SettingsPage/>}/>
-                                <Route path="/issues" element={<IssuesPage/>}/>
-                                <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                                <Route path="/onboarding" element={<OnboardingPage/>}/>
-                                <Route path="/alerts" element={<AlertsPage/>}/>
-                                <Route path="/performance" element={<PerformancePage/>}/>
-                                <Route path="/errors" element={<ErrorsOutagesPage/>}/>
-                                <Route path="/spans" element={<SpanExplorerPage/>}/>
-                            </Route>
-                        </Routes>
-                    </Suspense>
-                </BrowserRouter>
-                <Toaster richColors position="bottom-right"/>
-            </QueryClientProvider>
-        </IconContext.Provider>
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <ErrorBoundary>
+                <Suspense>
+                    <Routes>
+                        <Route path="/index.html" element={<Navigate to="/" replace/>}/>
+                        <Route element={<DashboardLayout/>}>
+                            <Route path="/" element={<FirstVisitGate/>}/>
+                            <Route path="/traces" element={<TracesPage/>}/>
+                            <Route path="/logs" element={<LogsPage/>}/>
+                            <Route path="/genai" element={<GenAIPage/>}/>
+                            <Route path="/cost" element={<CostPage/>}/>
+                            <Route path="/services" element={<ServicesPage/>}/>
+                            <Route path="/dashboards" element={<DashboardPage/>}/>
+                            <Route path="/dashboards/:id" element={<DashboardPage/>}/>
+                            <Route path="/search" element={<SearchPage/>}/>
+                            <Route path="/settings" element={<SettingsPage/>}/>
+                            <Route path="/issues" element={<IssuesPage/>}/>
+                            <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
+                            <Route path="/onboarding" element={<OnboardingPage/>}/>
+                            <Route path="/alerts" element={<AlertsPage/>}/>
+                            <Route path="/performance" element={<PerformancePage/>}/>
+                            <Route path="/errors" element={<ErrorsOutagesPage/>}/>
+                            <Route path="/spans" element={<SpanExplorerPage/>}/>
+                        </Route>
+                    </Routes>
+                </Suspense>
+                </ErrorBoundary>
+            </BrowserRouter>
+            <Toaster richColors position="bottom-right"/>
+        </QueryClientProvider>
     );
 }

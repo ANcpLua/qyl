@@ -72,15 +72,15 @@ public sealed partial class LoomInsightService(
 
         var initialGuess = issue.ErrorType switch
         {
-            { } t when t.ContainsIgnoreCase("NullReference") =>
+            { } t when t.Contains("NullReference", StringComparison.OrdinalIgnoreCase) =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
-            { } t when t.ContainsIgnoreCase("NetworkError") || t.ContainsIgnoreCase("HttpRequest") =>
+            { } t when t.Contains("NetworkError", StringComparison.OrdinalIgnoreCase) || t.Contains("HttpRequest", StringComparison.OrdinalIgnoreCase) =>
                 "A network request is failing — this may be a symptom of a backend exception or connectivity issue.",
-            { } t when t.ContainsIgnoreCase("Timeout") =>
+            { } t when t.Contains("Timeout", StringComparison.OrdinalIgnoreCase) =>
                 "An operation is timing out — check for slow queries, external service latency, or deadlocks.",
-            { } t when t.ContainsIgnoreCase("ArgumentException") || t.ContainsIgnoreCase("InvalidOperation") =>
+            { } t when t.Contains("ArgumentException", StringComparison.OrdinalIgnoreCase) || t.Contains("InvalidOperation", StringComparison.OrdinalIgnoreCase) =>
                 "An invalid argument or state is being passed — check input validation and preconditions.",
-            { } t when t.ContainsIgnoreCase("Unauthorized") || t.ContainsIgnoreCase("Forbidden") =>
+            { } t when t.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase) || t.Contains("Forbidden", StringComparison.OrdinalIgnoreCase) =>
                 "An authentication or authorization check is failing — verify tokens, permissions, and middleware.",
             _ => $"A {issue.ErrorType} is being thrown — investigate the stack trace for the originating call site."
         };
@@ -131,8 +131,8 @@ public sealed partial class LoomInsightService(
     {
         List<LoomResource> resources = [];
 
-        if (issue.ErrorType.ContainsIgnoreCase("NetworkError") ||
-            issue.ErrorType.ContainsIgnoreCase("Fetch"))
+        if (issue.ErrorType.Contains("NetworkError", StringComparison.OrdinalIgnoreCase) ||
+            issue.ErrorType.Contains("Fetch", StringComparison.OrdinalIgnoreCase))
         {
             resources.Add(new LoomResource(
                 "Failed to Fetch errors",
@@ -141,7 +141,7 @@ public sealed partial class LoomInsightService(
                 "Check backend response status codes and CORS configuration."));
         }
 
-        if (issue.ErrorType.ContainsIgnoreCase("NullReference"))
+        if (issue.ErrorType.Contains("NullReference", StringComparison.OrdinalIgnoreCase))
         {
             resources.Add(new LoomResource(
                 "NullReferenceException patterns",

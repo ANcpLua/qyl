@@ -316,7 +316,7 @@ internal static class OpenApiDiffer
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in pathsNode.Children)
-            if (key is YamlScalarNode keyScalar && keyScalar.Value is { } k &&
+            if (key is YamlScalarNode { Value: { } k } &&
                 value is YamlMappingNode v)
                 result[k] = v;
         return result;
@@ -334,7 +334,7 @@ internal static class OpenApiDiffer
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in schemasNode.Children)
-            if (key is YamlScalarNode keyScalar && keyScalar.Value is { } k &&
+            if (key is YamlScalarNode { Value: { } k } &&
                 value is YamlMappingNode v)
                 result[k] = v;
         return result;

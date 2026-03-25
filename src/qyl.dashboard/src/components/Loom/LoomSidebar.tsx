@@ -55,7 +55,7 @@ function AutofixSection({steps, issueId, runId}: { steps: AutofixStep[]; issueId
         <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-brutal-slate tracking-[0.2em]">AUTOFIX PIPELINE</span>
-                {isRunning && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400"/>}
+                {isRunning && <Loader2 className="w-3.5 h-3.5 animate-spin text-signal-yellow"/>}
             </div>
             <PipelineStatus steps={pipelineSteps}/>
             {summary && (

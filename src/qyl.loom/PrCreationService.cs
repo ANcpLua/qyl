@@ -71,7 +71,7 @@ public sealed partial class PrCreationService(
         {
             var result = await CommitFileAsync(repoFullName, file, branchName, run.RunId, ct)
                 .ConfigureAwait(false);
-            if (result.StartsWithIgnoreCase("error:"))
+            if (result.StartsWith("error:", StringComparison.OrdinalIgnoreCase))
                 patchErrors.Add(result);
             else
                 committedFiles.Add(file.Path);
@@ -213,7 +213,7 @@ public sealed partial class PrCreationService(
             foreach (var line in replacementLines)
             {
                 // Re-indent: apply leading whitespace unless the line already has it.
-                result.Add(line.Length > 0 && !line.StartsWithOrdinal(leadingWhitespace)
+                result.Add(line.Length > 0 && !line.StartsWith(leadingWhitespace, StringComparison.Ordinal)
                     ? leadingWhitespace + line.TrimStart()
                     : line);
             }

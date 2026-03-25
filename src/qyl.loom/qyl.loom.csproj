@@ -14,61 +14,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="ANcpLua.Roslyn.Utilities"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
-    <PackageReference Include="YamlDotNet"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Google.Protobuf"/>
-    <PackageReference Include="Grpc.AspNetCore"/>
-    <PackageReference Include="Grpc.Tools"/>
-    <PackageReference Include="OpenTelemetry.Api"/>
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
-    <PackageReference Include="System.IO.Hashing"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Telemetry"/>
-    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
-    <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.AsyncState"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
-    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\qyl.collector\qyl.collector.csproj"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
-    <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

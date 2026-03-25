@@ -1,316 +1,52 @@
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
+using Qyl.Contracts.Loom;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP tool that runs the Loom two-pass fix-generation pipeline:
-///     Phase 1 — focused RCA agent (up to 16 tool calls) identifies root cause.
-///     Phase 2 — single LLM call produces a structured <c>changes_json</c> patch.
-///     Results are stored in the collector via PATCH /api/v1/issues/{id}/fix-runs/{runId}.
+///     MCP tool that submits and tracks Loom fix jobs at the collector boundary.
+///     All generation work is executed in collector-side Loom workers.
 /// </summary>
 [McpServerToolType]
-internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceProvider services)
+internal sealed class FixTools(HttpClient http)
 {
-    private const double PolicyGateThreshold = 0.85;
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
-
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
-                 Run the Loom two-pass fix-generation pipeline for an error issue.
+                 Enqueue the Loom autofix job in the collector.
 
-                 Phase 1: Focused root cause analysis agent (up to 16 tool calls) investigates
-                          the error using spans, logs, and error events.
-                 Phase 2: Single LLM call generates a structured patch (changes_json)
-                          with file paths, hunks, and a PR-ready description.
+                 The fix run is created in the collector and processed asynchronously by
+                 Loom background workers. This tool does not execute RCA or patch generation.
 
-                 The fix run is created in the collector and the result stored there.
-
-                 Requires QYL_AGENT_API_KEY to be configured.
-
-                 Returns: Summary of the fix run including run_id and confidence score.
+                 Returns: Typed envelope containing created run details.
                  """)]
-    public async Task<string> GenerateFixAsync(
+    public async Task<LoomToolEnvelope<LoomFixRunDto>> GenerateFixAsync(
         [Description("The error issue ID to generate a fix for")]
         string issueId,
         [Description("Fix policy: auto_apply, require_review (default), dry_run")]
         string? policy = null,
-        [Description("Additional context: suspected cause, relevant file paths, recent changes")]
-        string? context = null,
         CancellationToken ct = default)
     {
-        if (_llm is null)
-        {
-            return "Fix generation requires an LLM provider. " +
-                   "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables.";
-        }
-
-        // Create a new fix run in the collector
         using var createResp = await http.PostAsJsonAsync(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs",
-            new { policy = policy ?? "require_review" },
+            new LoomFixRunCreateRequest(policy),
             ct).ConfigureAwait(false);
 
         if (createResp.StatusCode == HttpStatusCode.NotFound)
-            return $"Error issue '{issueId}' not found.";
+            return LoomToolEnvelope<LoomFixRunDto>.Fail($"Issue '{issueId}' not found.");
 
         if (!createResp.IsSuccessStatusCode)
-            return $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}";
+            return LoomToolEnvelope<LoomFixRunDto>.Fail(
+                $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}");
 
-        var run = await createResp.Content
-            .ReadFromJsonAsync(FixToolsJsonContext.Default.FixRunDto, ct)
-            .ConfigureAwait(false);
+        var run = await createResp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);
 
-        if (run is null)
-            return "Failed to parse fix run response from collector.";
-
-        var runId = run.RunId;
-
-        // Mark as running
-        await PatchFixRunAsync(issueId, runId, "running", null, null, null, ct).ConfigureAwait(false);
-
-        try
-        {
-            // ── Phase 1: RCA agent ──────────────────────────────────────────────
-            var rcaReport = await RunRcaAgentAsync(issueId, context, ct).ConfigureAwait(false);
-
-            // ── Phase 2: Fix generation (single call, no tools) ─────────────────
-            var fixGenInput = BuildFixGenInput(issueId, runId, rcaReport, context);
-
-            List<ChatMessage> fixMessages =
-            [
-                new(ChatRole.System, FixGenPrompt.FixGenSystem),
-                new(ChatRole.User, fixGenInput)
-            ];
-
-            var fixResponse = await _llm.GetResponseAsync(fixMessages, cancellationToken: ct)
-                .ConfigureAwait(false);
-
-            var rawJson = fixResponse.Text?.Trim() ?? "{}";
-
-            // Extract JSON if wrapped in markdown
-            var jsonStart = rawJson.IndexOf('{');
-            var jsonEnd = rawJson.LastIndexOf('}');
-            if (jsonStart >= 0 && jsonEnd > jsonStart)
-                rawJson = rawJson[jsonStart..(jsonEnd + 1)];
-
-            // Parse confidence from the generated JSON
-            var confidence = TryExtractConfidence(rawJson);
-
-            // Embed metadata into the changes_json
-            var changesJson = InjectMetadata(rawJson, issueId, runId);
-
-            // Determine next status based on policy
-            var nextStatus = DetermineStatus(policy, confidence);
-
-            var description =
-                $"Generated by qyl.generate_fix | confidence={confidence:F2} | {rcaReport.Split('\n')[0]}";
-
-            await PatchFixRunAsync(issueId, runId, nextStatus, description, confidence, changesJson, ct)
-                .ConfigureAwait(false);
-
-            return FormatResult(runId, issueId, confidence, nextStatus, changesJson);
-        }
-        catch (HttpRequestException ex)
-        {
-            // Collector unreachable or returned an error during agent tool calls or PATCH
-            await PatchFixRunAsync(issueId, runId, "failed", ex.Message, null, null, ct)
-                .ConfigureAwait(false);
-            return $"Fix generation failed (HTTP error) for run {runId}: {ex.Message}";
-        }
-        catch (InvalidOperationException ex)
-        {
-            // LLM provider configuration error or chat completion failure
-            await PatchFixRunAsync(issueId, runId, "failed", ex.Message, null, null, ct)
-                .ConfigureAwait(false);
-            return $"Fix generation failed (LLM error) for run {runId}: {ex.Message}";
-        }
-    }
-
-    // ── Private helpers ──────────────────────────────────────────────────────
-
-    private async Task<string> RunRcaAgentAsync(string issueId, string? context, CancellationToken ct)
-    {
-        var tools = DiscoverToolsFrom(
-            typeof(ErrorTools),
-            typeof(SpanQueryTools),
-            typeof(StructuredLogTools));
-
-        var agent = new ChatClientBuilder(_llm!)
-            .UseFunctionInvocation(configure: static invoker =>
-            {
-                invoker.MaximumIterationsPerRequest = FixPipelineSettings.RcaToolCallBudget;
-                invoker.AllowConcurrentInvocation = false;
-            })
-            .Build();
-
-        var userMessage =
-            $"Investigate error issue ID: {issueId}\n\nFocus on identifying the root cause and affected code location.";
-        if (context is not null)
-            userMessage += $"\n\nAdditional context: {context}";
-
-        List<ChatMessage> messages =
-        [
-            new(ChatRole.System, FixGenPrompt.RcaSystem),
-            new(ChatRole.User, userMessage)
-        ];
-
-        ChatOptions options = new() { Tools = [.. tools] };
-        var response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
-        return response.Text ?? "Root cause analysis produced no output.";
-    }
-
-    private async Task PatchFixRunAsync(
-        string issueId, string runId, string status,
-        string? description, double? confidence, string? changesJson,
-        CancellationToken ct) =>
-        await http.PatchAsJsonAsync(
-            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
-            new { status, description, confidence, changesJson },
-            ct).ConfigureAwait(false);
-
-    private static string BuildFixGenInput(string issueId, string runId, string rcaReport, string? context)
-    {
-        StringBuilder sb = new();
-        sb.AppendLine($"Issue ID: {issueId}");
-        sb.AppendLine($"Run ID: {runId}");
-        if (context is not null)
-        {
-            sb.AppendLine();
-            sb.AppendLine($"Additional context: {context}");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("Root Cause Analysis Report:");
-        sb.AppendLine(rcaReport);
-        return sb.ToString();
-    }
-
-    private static double TryExtractConfidence(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("confidence", out var el) &&
-                el.TryGetDouble(out var v))
-                return Math.Clamp(v, 0.0, 1.0);
-        }
-        catch (JsonException) { }
-
-        return 0.5;
-    }
-
-    private static string InjectMetadata(string json, string issueId, string runId)
-    {
-        try
-        {
-            // JsonNode preserves arrays and nested objects; Dictionary<string,object?> does not.
-            var node = JsonNode.Parse(json)
-                       ?? throw new JsonException("LLM returned JSON null literal.");
-
-            var obj = node.AsObject();
-            obj["issue_id"] = issueId;
-            obj["run_id"] = runId;
-            obj["generated_at"] = TimeProvider.System.GetUtcNow().ToString("O");
-            return obj.ToJsonString();
-        }
-        catch (JsonException)
-        {
-            // LLM returned malformed JSON — store minimal metadata only.
-            return JsonSerializer.Serialize(new
-            {
-                schema_version = "1",
-                issue_id = issueId,
-                run_id = runId,
-                generated_at = TimeProvider.System.GetUtcNow().ToString("O"),
-                parse_error = true,
-                files = Array.Empty<object>(),
-                confidence = 0.0
-            });
-        }
-    }
-
-    private static string DetermineStatus(string? policy, double confidence)
-    {
-        if (string.Equals(policy, "dry_run", StringComparison.OrdinalIgnoreCase))
-            return "review";
-        if (string.Equals(policy, "auto_apply", StringComparison.OrdinalIgnoreCase) &&
-            confidence >= PolicyGateThreshold)
-            return "applied";
-        return "review";
-    }
-
-    private static string FormatResult(string runId, string issueId, double confidence, string status,
-        string changesJson)
-    {
-        bool hasFiles;
-        try
-        {
-            using var doc = JsonDocument.Parse(changesJson);
-            hasFiles = doc.RootElement.TryGetProperty("files", out var files) &&
-                       files.GetArrayLength() > 0;
-        }
-        catch (JsonException)
-        {
-            hasFiles = false;
-        }
-
-        StringBuilder sb = new();
-        sb.AppendLine("## Fix Run Created");
-        sb.AppendLine($"- **Run ID:** {runId}");
-        sb.AppendLine($"- **Issue ID:** {issueId}");
-        sb.AppendLine($"- **Status:** {status}");
-        sb.AppendLine($"- **Confidence:** {confidence:P0}");
-        sb.AppendLine(
-            $"- **Has file patches:** {(hasFiles ? "yes" : "no — LLM could not identify specific code to change")}");
-        sb.AppendLine();
-        sb.AppendLine(
-            $"Use `qyl.export_for_agent` with issue ID `{issueId}` to get the full context block for a coding agent.");
-        if (status == "review")
-        {
-            sb.AppendLine(
-                $"Use `POST /api/v1/issues/{issueId}/fix-runs/{runId}/pr` to create a GitHub PR from this fix.");
-        }
-
-        return sb.ToString();
-    }
-
-    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
-    {
-        List<AIFunction> tools = [];
-        foreach (var type in toolTypes)
-        {
-            var instance = services.GetService(type);
-            if (instance is null) continue;
-            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr) continue;
-                var name = attr.Name ?? method.Name;
-                tools.Add(AIFunctionFactory.Create(method, instance,
-                    new AIFunctionFactoryOptions { Name = name }));
-            }
-        }
-
-        return tools;
+        return run is null
+            ? LoomToolEnvelope<LoomFixRunDto>.Fail("Failed to parse fix run response from collector.")
+            : LoomToolEnvelope<LoomFixRunDto>.Ok(run);
     }
 }
-
-/// <summary>JSON DTO for the fix run response from the collector.</summary>
-internal sealed record FixRunDto(
-    [property: JsonPropertyName("runId")] string RunId,
-    [property: JsonPropertyName("issueId")]
-    string IssueId,
-    [property: JsonPropertyName("status")] string Status);
-
-[JsonSerializable(typeof(FixRunDto))]
-internal sealed partial class FixToolsJsonContext : JsonSerializerContext;

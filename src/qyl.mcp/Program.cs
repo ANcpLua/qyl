@@ -22,8 +22,8 @@ using qyl.mcp.Tools;
 using qyl.mcp.Tools.Debug;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
+using LoomMcpJsonContext = Qyl.Contracts.Loom.LoomMcpJsonContext;
 using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
-using FixToolsJsonContext = qyl.mcp.Tools.FixToolsJsonContext;
 using GenAiJsonContext = qyl.mcp.Tools.GenAiJsonContext;
 using LogsJsonContext = qyl.mcp.Tools.LogsJsonContext;
 using ReplayJsonContext = qyl.mcp.Tools.ReplayJsonContext;
@@ -207,7 +207,7 @@ static JsonSerializerOptions ConfigureCommonServices(
     jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(FixToolsJsonContext.Default);
+    jsonOptions.TypeInfoResolverChain.Add(LoomMcpJsonContext.Default);
 
     return jsonOptions;
 }

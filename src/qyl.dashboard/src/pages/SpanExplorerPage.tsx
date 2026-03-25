@@ -30,10 +30,10 @@ const statusCodeLabels: Record<number, string> = {
 
 function StatusBadge({code}: { code: number }) {
     const style = code === 2
-        ? 'bg-red-500/20 text-red-400 border-red-500/40'
+        ? 'bg-signal-red/20 text-signal-red border-signal-red/40'
         : code === 1
-            ? 'bg-green-500/20 text-green-400 border-green-500/40'
-            : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/40';
+            ? 'bg-signal-green/20 text-signal-green border-signal-green/40'
+            : 'bg-brutal-zinc/20 text-brutal-slate border-brutal-zinc/40';
 
     return (
         <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wider', style)}>
@@ -72,7 +72,7 @@ function SpanRow({span, onClick}: { span: Span; onClick: () => void }) {
         <div
             className={cn(
                 'flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group',
-                isError && 'bg-red-500/5',
+                isError && 'bg-signal-red/5',
             )}
             role="button"
             tabIndex={0}
@@ -85,7 +85,7 @@ function SpanRow({span, onClick}: { span: Span; onClick: () => void }) {
             }}
         >
             <div className="flex-1 min-w-0">
-                <span className={cn('text-sm font-bold truncate block font-mono', isError && 'text-red-400')}>
+                <span className={cn('text-sm font-bold truncate block font-mono', isError && 'text-signal-red')}>
                     {span.name}
                 </span>
             </div>
@@ -172,8 +172,8 @@ export function SpanExplorerPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Failed to load spans</p>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-signal-red"/>
+                        <p className="text-signal-red">Failed to load spans</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
                         </p>

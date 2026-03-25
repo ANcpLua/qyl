@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {ArrowDown, ArrowUp, Globe} from '@phosphor-icons/react';
+import {ArrowDown, ArrowUp, Globe} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {fetchJson} from '@/lib/api';
 import {Badge} from '@/components/ui/badge';
@@ -99,7 +99,7 @@ export function ServicesPage() {
                                     className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
                                     <td className="px-4 py-2 font-semibold text-brutal-white">{svc.serviceName}</td>
                                     <td className="px-4 py-2 text-brutal-slate">{svc.spanCount.toLocaleString()}</td>
-                                    <td className={cn('px-4 py-2', svc.errorCount > 0 ? 'text-red-400 font-semibold' : 'text-brutal-slate')}>
+                                    <td className={cn('px-4 py-2', svc.errorCount > 0 ? 'text-signal-red font-semibold' : 'text-brutal-slate')}>
                                         {svc.errorCount.toLocaleString()}
                                     </td>
                                     <td className="px-4 py-2 text-brutal-slate">{formatTime(svc.lastSeen)}</td>
@@ -117,8 +117,8 @@ export function ServicesPage() {
                                             className={cn(
                                                 'text-[10px]',
                                                 hasRecentError
-                                                    ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                                                    : 'bg-green-500/20 text-green-400 border-green-500/40',
+                                                    ? 'bg-signal-red/20 text-signal-red border-signal-red/40'
+                                                    : 'bg-signal-green/20 text-signal-green border-signal-green/40',
                                             )}
                                         >
                                             {hasRecentError ? 'DEGRADED' : 'HEALTHY'}

@@ -10,11 +10,11 @@ import type {Issue} from '@/hooks/use-issues';
 import {useIssues} from '@/hooks/use-issues';
 
 const statusStyles: Record<string, string> = {
-    new: 'bg-red-500/20 text-red-400 border-red-500/40',
-    acknowledged: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-    resolved: 'bg-green-500/20 text-green-400 border-green-500/40',
-    regressed: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
-    reopened: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+    new: 'bg-signal-red/20 text-signal-red border-signal-red/40',
+    acknowledged: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
+    resolved: 'bg-signal-green/20 text-signal-green border-signal-green/40',
+    regressed: 'bg-signal-violet/20 text-signal-violet border-signal-violet/40',
+    reopened: 'bg-signal-orange/20 text-signal-orange border-signal-orange/40',
 };
 
 function StatusBadge({status}: { status: string }) {
@@ -67,11 +67,11 @@ function generateSparklineData(issueId: string, eventCount: number): number[] {
 }
 
 const sparklineStatusColor: Record<string, string> = {
-    new: 'bg-red-400',
-    acknowledged: 'bg-amber-400',
-    resolved: 'bg-green-400',
-    regressed: 'bg-purple-400',
-    reopened: 'bg-orange-400',
+    new: 'bg-signal-red',
+    acknowledged: 'bg-signal-yellow',
+    resolved: 'bg-signal-green',
+    regressed: 'bg-signal-violet',
+    reopened: 'bg-signal-orange',
 };
 
 function ActivitySparkline({issue}: { issue: Issue }) {
@@ -193,8 +193,8 @@ export function IssuesPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Failed to load issues</p>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-signal-red"/>
+                        <p className="text-signal-red">Failed to load issues</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
                         </p>
@@ -211,13 +211,13 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldAlert className="w-4 h-4 text-red-400"/>
+                            <ShieldAlert className="w-4 h-4 text-signal-red"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">NEW</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-red-400">{newCount}</div>
+                            <div className="text-2xl font-bold mt-1 text-signal-red">{newCount}</div>
                         )}
                     </CardContent>
                 </Card>
@@ -225,13 +225,13 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldQuestion className="w-4 h-4 text-amber-400"/>
+                            <ShieldQuestion className="w-4 h-4 text-signal-yellow"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">ACKNOWLEDGED</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-amber-400">{acknowledgedCount}</div>
+                            <div className="text-2xl font-bold mt-1 text-signal-yellow">{acknowledgedCount}</div>
                         )}
                     </CardContent>
                 </Card>
@@ -239,13 +239,13 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-green-400"/>
+                            <ShieldCheck className="w-4 h-4 text-signal-green"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">RESOLVED</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-green-400">{resolvedCount}</div>
+                            <div className="text-2xl font-bold mt-1 text-signal-green">{resolvedCount}</div>
                         )}
                     </CardContent>
                 </Card>

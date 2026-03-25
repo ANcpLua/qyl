@@ -141,7 +141,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 sb.AppendLine($"- {span.Name}{statusLabel} — {durationMs:F1}ms");
                 sb.AppendLine($"  Service: {span.ServiceName ?? "unknown"}, SpanID: {span.SpanId}{parentInfo}");
 
-                if (span.StatusCode == 2 && span.StatusMessage is not null)
+                if (span is { StatusCode: 2, StatusMessage: not null })
                     sb.AppendLine($"  Error: {span.StatusMessage}");
             }
 
@@ -219,7 +219,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                     sb.AppendLine($"- {span.Name}{statusLabel} — {durationMs:F1}ms");
                     if (span.ServiceName is not null)
                         sb.AppendLine($"  Service: {span.ServiceName}");
-                    if (span.StatusCode == 2 && span.StatusMessage is not null)
+                    if (span is { StatusCode: 2, StatusMessage: not null })
                         sb.AppendLine($"  Error: {span.StatusMessage}");
                 }
             }

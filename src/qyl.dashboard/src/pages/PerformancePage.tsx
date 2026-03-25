@@ -398,7 +398,9 @@ export function PerformancePage() {
                         sorted.map((svc) => (
                             <div
                                 key={`${svc.serviceNamespace ?? ''}-${svc.serviceName}`}
-                                className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 transition-colors"
+                                role="row"
+                                tabIndex={0}
+                                className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal-orange"
                             >
                                 <div className="flex-1 min-w-0">
                                     <span className="text-sm font-bold text-brutal-white truncate block">

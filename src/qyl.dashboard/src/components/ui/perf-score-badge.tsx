@@ -16,9 +16,9 @@ function resolveLevel(score: number | null | undefined): ScoreLevel {
 }
 
 const levelStyles: Record<ScoreLevel, string> = {
-    good: 'text-green-400',
-    meh: 'text-amber-400',
-    poor: 'text-red-400',
+    good: 'text-signal-green',
+    meh: 'text-signal-yellow',
+    poor: 'text-signal-red',
     unknown: 'text-brutal-slate',
 };
 

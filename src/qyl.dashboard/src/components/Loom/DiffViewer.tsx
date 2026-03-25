@@ -8,9 +8,9 @@ interface DiffViewerProps {
 }
 
 function classifyLine(line: string): string {
-    if (line.startsWith('@@')) return 'bg-cyan-500/10 text-cyan-400';
-    if (line.startsWith('+')) return 'bg-green-500/10 text-green-400';
-    if (line.startsWith('-')) return 'bg-red-500/10 text-red-400';
+    if (line.startsWith('@@')) return 'bg-signal-cyan/10 text-signal-cyan';
+    if (line.startsWith('+')) return 'bg-signal-green/10 text-signal-green';
+    if (line.startsWith('-')) return 'bg-signal-red/10 text-signal-red';
     return 'text-brutal-slate';
 }
 

@@ -16,16 +16,16 @@ import {LineChart} from 'echarts/charts';
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent,} from 'echarts/components';
 import {CanvasRenderer} from 'echarts/renderers';
 import {
+    Activity,
     ArrowDown,
     ArrowUp,
-    CaretLeft,
-    CaretRight,
-    CurrencyDollar,
-    Funnel,
-    Lightning,
-    Pulse,
-    Warning,
-} from '@phosphor-icons/react';
+    ChevronLeft,
+    ChevronRight,
+    CircleDollarSign,
+    Filter,
+    TriangleAlert,
+    Zap,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {fetchJson} from '@/lib/api';
 import {Card, CardContent} from '@/components/ui/card';
@@ -127,16 +127,16 @@ function KpiCard({
     return (
         <Card className={cn(
             'border-3',
-            variant === 'warning' && 'border-yellow-500/50',
-            variant === 'danger' && 'border-red-500/50',
+            variant === 'warning' && 'border-signal-yellow/50',
+            variant === 'danger' && 'border-signal-red/50',
         )}>
             <CardContent className="pt-4 pb-3 space-y-1">
                 <div className="flex items-center gap-1.5">
                     <Icon className={cn(
                         'w-3.5 h-3.5',
                         variant === 'default' && 'text-signal-orange',
-                        variant === 'warning' && 'text-yellow-400',
-                        variant === 'danger' && 'text-red-400',
+                        variant === 'warning' && 'text-signal-yellow',
+                        variant === 'danger' && 'text-signal-red',
                     )}/>
                     <span className="text-[10px] font-bold text-brutal-slate tracking-widest uppercase">
                         {label}
@@ -145,8 +145,8 @@ function KpiCard({
                 <div className={cn(
                     'text-xl font-bold tracking-wider',
                     variant === 'default' && 'text-brutal-white',
-                    variant === 'warning' && 'text-yellow-400',
-                    variant === 'danger' && 'text-red-400',
+                    variant === 'warning' && 'text-signal-yellow',
+                    variant === 'danger' && 'text-signal-red',
                 )}>
                     {value}
                 </div>
@@ -177,11 +177,11 @@ function CostTimeSeriesChart({data}: { data: CostTimeSeries[] }) {
                 lineStyle: {width: 2},
                 data: buckets.map(b => costMap.get(b) ?? 0),
                 color: [
-                    'hsl(25, 100%, 50%)',
-                    'hsl(200, 80%, 55%)',
-                    'hsl(140, 70%, 45%)',
-                    'hsl(280, 70%, 55%)',
-                    'hsl(50, 90%, 50%)',
+                    'var(--color-signal-orange)',
+                    'var(--color-signal-cyan)',
+                    'var(--color-signal-green)',
+                    'var(--color-signal-violet)',
+                    'var(--color-signal-yellow)',
                 ][i % 5],
             };
         });
@@ -191,14 +191,14 @@ function CostTimeSeriesChart({data}: { data: CostTimeSeries[] }) {
             grid: {left: 60, right: 16, top: 40, bottom: 60},
             tooltip: {
                 trigger: 'axis' as const,
-                backgroundColor: 'hsl(0, 0%, 8%)',
-                borderColor: 'hsl(0, 0%, 25%)',
-                textStyle: {color: 'hsl(0, 0%, 90%)', fontSize: 11},
+                backgroundColor: 'var(--color-brutal-black)',
+                borderColor: 'var(--color-brutal-dark)',
+                textStyle: {color: 'var(--color-brutal-white)', fontSize: 11},
                 valueFormatter: (v: number) => formatCost(v),
             },
             legend: {
                 top: 8,
-                textStyle: {color: 'hsl(0, 0%, 50%)', fontSize: 10},
+                textStyle: {color: 'var(--color-brutal-zinc)', fontSize: 10},
             },
             dataZoom: [{type: 'inside'}],
             xAxis: {
@@ -207,14 +207,14 @@ function CostTimeSeriesChart({data}: { data: CostTimeSeries[] }) {
                     const d = new Date(b);
                     return `${String(d.getHours()).padStart(2, '0')}:00`;
                 }),
-                axisLine: {lineStyle: {color: 'hsl(0, 0%, 25%)'}},
-                axisLabel: {color: 'hsl(0, 0%, 50%)', fontSize: 10},
+                axisLine: {lineStyle: {color: 'var(--color-brutal-dark)'}},
+                axisLabel: {color: 'var(--color-brutal-zinc)', fontSize: 10},
             },
             yAxis: {
                 type: 'value' as const,
-                axisLine: {lineStyle: {color: 'hsl(0, 0%, 25%)'}},
-                axisLabel: {color: 'hsl(0, 0%, 50%)', fontSize: 10, formatter: (v: number) => formatCost(v)},
-                splitLine: {lineStyle: {color: 'hsl(0, 0%, 18%)', type: 'dashed' as const}},
+                axisLine: {lineStyle: {color: 'var(--color-brutal-dark)'}},
+                axisLabel: {color: 'var(--color-brutal-zinc)', fontSize: 10, formatter: (v: number) => formatCost(v)},
+                splitLine: {lineStyle: {color: 'var(--color-brutal-dark)', type: 'dashed' as const}},
             },
             series,
         };
@@ -299,13 +299,13 @@ function CostBreakdownTable({data}: { data: CostByModel[] }) {
                     COST BY MODEL
                 </span>
                 <div className="flex items-center gap-2">
-                    <Funnel className="w-3.5 h-3.5 text-brutal-slate"/>
+                    <Filter className="w-3.5 h-3.5 text-brutal-slate"/>
                     <input
                         type="text"
                         placeholder="Filter..."
                         value={globalFilter}
                         onChange={e => setGlobalFilter(e.target.value)}
-                        className="bg-brutal-dark border border-brutal-zinc/70 px-2 py-1 text-[11px] text-brutal-white placeholder:text-brutal-zinc focus:border-signal-orange/50 focus:outline-none w-40"
+                        className="bg-brutal-dark border border-brutal-zinc/70 px-2 py-1 text-[11px] text-brutal-white placeholder:text-brutal-zinc focus:border-signal-orange/50 outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange w-40"
                         aria-label="Filter cost table"
                     />
                 </div>
@@ -366,7 +366,7 @@ function CostBreakdownTable({data}: { data: CostByModel[] }) {
                             className="p-1 text-brutal-slate hover:text-brutal-white disabled:opacity-30"
                             aria-label="Previous page"
                         >
-                            <CaretLeft className="w-4 h-4"/>
+                            <ChevronLeft className="w-4 h-4"/>
                         </button>
                         <button
                             onClick={() => table.nextPage()}
@@ -374,7 +374,7 @@ function CostBreakdownTable({data}: { data: CostByModel[] }) {
                             className="p-1 text-brutal-slate hover:text-brutal-white disabled:opacity-30"
                             aria-label="Next page"
                         >
-                            <CaretRight className="w-4 h-4"/>
+                            <ChevronRight className="w-4 h-4"/>
                         </button>
                     </div>
                 </div>
@@ -418,22 +418,22 @@ export function CostPage() {
                 <KpiCard
                     label="Spend Today"
                     value={isLoading ? '...' : formatCost(totalSpendToday)}
-                    icon={CurrencyDollar}
+                    icon={CircleDollarSign}
                 />
                 <KpiCard
                     label="Top Model"
                     value={isLoading ? '...' : (topModel?.model ?? 'N/A')}
-                    icon={Lightning}
+                    icon={Zap}
                 />
                 <KpiCard
                     label="Total Calls"
                     value={isLoading ? '...' : formatTokens(byModel?.reduce((s, m) => s + m.callCount, 0) ?? 0)}
-                    icon={Pulse}
+                    icon={Activity}
                 />
                 <KpiCard
                     label="Budget"
                     value={budget ? (budget.dailyBudget ? `${formatCost(budget.remaining ?? 0)} left` : 'No limit') : '...'}
-                    icon={Warning}
+                    icon={TriangleAlert}
                     variant={budgetVariant}
                 />
             </div>
@@ -475,7 +475,7 @@ export function CostPage() {
             {!isLoading && (!byModel || byModel.length === 0) && (
                 <div className="flex items-center justify-center h-48 border-3 border-brutal-zinc bg-brutal-carbon">
                     <div className="text-center space-y-2">
-                        <CurrencyDollar className="w-8 h-8 mx-auto text-brutal-zinc"/>
+                        <CircleDollarSign className="w-8 h-8 mx-auto text-brutal-zinc"/>
                         <div className="text-brutal-slate text-xs font-bold tracking-widest">
                             NO COST DATA YET
                         </div>

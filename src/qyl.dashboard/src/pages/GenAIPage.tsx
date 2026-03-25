@@ -81,23 +81,23 @@ async function fetchGenAiSpans(limit = 50): Promise<GenAiSpansResponse> {
 // ── Chart constants (matching AgentsPage style) ─────────────────────────────
 
 const CHART_COLORS = [
-    'oklch(0.60 0.25 300)', // signal-violet
-    'oklch(0.70 0.20 45)',  // signal-orange
-    'oklch(0.80 0.15 210)', // signal-cyan
-    'oklch(0.85 0.25 145)', // signal-green
-    'oklch(0.90 0.18 95)',  // signal-yellow
-    'oklch(0.65 0.25 25)',  // signal-red
+    'var(--color-signal-violet)',
+    'var(--color-signal-orange)',
+    'var(--color-signal-cyan)',
+    'var(--color-signal-green)',
+    'var(--color-signal-yellow)',
+    'var(--color-signal-red)',
 ];
 
-const CHART_GRID_STROKE = 'oklch(0.25 0 0)';
-const CHART_AXIS_TICK = {fill: 'oklch(0.55 0 0)', fontSize: 10};
-const CHART_AXIS_LINE = {stroke: 'oklch(0.30 0 0)'};
+const CHART_GRID_STROKE = 'var(--color-brutal-dark)';
+const CHART_AXIS_TICK = {fill: 'var(--color-brutal-zinc)', fontSize: 10};
+const CHART_AXIS_LINE = {stroke: 'var(--color-brutal-dark)'};
 
 const TOOLTIP_STYLE: React.CSSProperties = {
-    backgroundColor: 'oklch(0.18 0 0)',
-    border: '2px solid oklch(0.50 0 0)',
+    backgroundColor: 'var(--color-brutal-dark)',
+    border: '2px solid var(--color-brutal-zinc)',
     borderRadius: 0,
-    color: 'oklch(0.97 0 0)',
+    color: 'var(--color-brutal-white)',
     fontSize: 11,
     fontFamily: "'JetBrains Mono', monospace",
 };
@@ -317,9 +317,9 @@ function GenAiTokensChart({filter}: { filter: TimeFilter }) {
                         <Area
                             type="monotone"
                             dataKey="tokens"
-                            fill="oklch(0.80 0.15 210)"
+                            fill="var(--color-signal-cyan)"
                             fillOpacity={0.3}
-                            stroke="oklch(0.80 0.15 210)"
+                            stroke="var(--color-signal-cyan)"
                             strokeWidth={2}
                             name="tokens"
                         />

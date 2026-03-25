@@ -26,7 +26,7 @@ internal static class Program
     {
         var builder = Host.CreateApplicationBuilder();
 
-        builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<IChatClient, MockLoomChatClient>();
         builder.Services.AddSingleton<LoomRunStore>();
         builder.Services.AddSingleton<PullRequestToolService>();
@@ -119,7 +119,7 @@ internal sealed class LoomSubsystemDemo(
 {
     public async Task RunAsync(CancellationToken ct = default)
     {
-        const string issueId = "issue-checkout-fetch";
+        const string IssueId = "issue-checkout-fetch";
 
         LoomIssueContext context = new(
             """
@@ -152,8 +152,8 @@ internal sealed class LoomSubsystemDemo(
             true,
             ["ancplua/qyl-sample-checkout"]);
 
-        var run = runStore.GetOrCreate(issueId, context, controls);
-        run.Governance = governancePolicy.Evaluate(run.Context, run.Controls);
+        var run = runStore.GetOrCreate(IssueId, context, controls);
+        run.Governance = LoomGovernancePolicy.Evaluate(run.Context, run.Controls);
 
         WriteBanner("Loom / MAF hosted subsystem");
         Console.WriteLine($"Run: {run.RunId}");
@@ -468,32 +468,28 @@ internal sealed record LoomGovernanceDecision(
 
 internal sealed class LoomGovernancePolicy
 {
-    public LoomGovernanceDecision Evaluate(LoomIssueContext context, LoomControls controls)
+    public static LoomGovernanceDecision Evaluate(LoomIssueContext context, LoomControls controls)
     {
         var hasRuntimeContext =
             !string.IsNullOrWhiteSpace(context.IssueDetails) &&
             !string.IsNullOrWhiteSpace(context.TraceSummary) &&
             !string.IsNullOrWhiteSpace(context.Logs);
 
-        var allowInvestigate = hasRuntimeContext;
-        var allowCodeGeneration = allowInvestigate && controls.AllowCodeGeneration;
+        var allowCodeGeneration = hasRuntimeContext && controls.AllowCodeGeneration;
         var allowPullRequestCreation =
             allowCodeGeneration &&
-            controls.AllowPullRequestCreation &&
-            controls.AllowedRepositories.Count > 0;
+            controls is { AllowPullRequestCreation: true, AllowedRepositories.Count: > 0 };
 
         var allowExternalDelegation =
-            allowInvestigate &&
-            controls.AllowExternalDelegation &&
-            controls.RecordInputs &&
-            controls.RecordOutputs;
+            hasRuntimeContext &&
+            controls is { AllowExternalDelegation: true, RecordInputs: true, RecordOutputs: true };
 
         var reason = allowPullRequestCreation
             ? "Runtime context, output recording, and repository allow-list are present."
             : "At least one control gate is closed; Loom may analyze but cannot use every write surface.";
 
         return new LoomGovernanceDecision(
-            allowInvestigate,
+            hasRuntimeContext,
             allowCodeGeneration,
             allowPullRequestCreation,
             allowExternalDelegation,

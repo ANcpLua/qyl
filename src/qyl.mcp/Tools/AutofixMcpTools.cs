@@ -2,14 +2,14 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
+using Qyl.Contracts.Loom;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP tools for managing autofix fix runs: trigger, list, get details,
-///     view pipeline steps, approve, and reject.
+///     MCP tools for managing autofix fix runs:
+///     list, detail, steps, approve, and reject.
 /// </summary>
 [McpServerToolType]
 internal sealed class AutofixMcpTools(HttpClient http)
@@ -18,109 +18,141 @@ internal sealed class AutofixMcpTools(HttpClient http)
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
                  List fix runs for an error issue, ordered by most recent first.
-                 Returns run IDs, statuses, confidence scores, and timestamps.
+                 Returns run metadata as typed JSON for machine-readability.
                  """)]
-    public async Task<string> ListFixRunsAsync(
+    public async Task<LoomToolEnvelope<LoomFixRunList>> ListFixRunsAsync(
         [Description("The error issue ID")] string issueId,
         [Description("Maximum number of runs to return (default: 10)")]
         int? limit = null,
-        CancellationToken ct = default) =>
-        await CollectorHelper.ExecuteAsync(async () =>
-        {
-            var take = Math.Clamp(limit ?? 10, 1, 100);
-            using var resp = await http
-                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", ct)
-                .ConfigureAwait(false);
+        CancellationToken ct = default)
+    {
+        var take = Math.Clamp(limit ?? 10, 1, 100);
+        using var resp = await http.GetAsync(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", ct).ConfigureAwait(false);
 
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return $"Issue '{issueId}' not found.";
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            return LoomToolEnvelope<LoomFixRunList>.Fail($"Issue '{issueId}' not found.");
 
-            resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            return FormatFixRunList(json, issueId);
-        });
+        if (!resp.IsSuccessStatusCode)
+            return LoomToolEnvelope<LoomFixRunList>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Failed to list fix runs.",
+                ct).ConfigureAwait(false));
+
+        var payload = await resp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomFixRunList, ct).ConfigureAwait(false);
+
+        if (payload is null)
+            return LoomToolEnvelope<LoomFixRunList>.Fail("Failed to parse fix run list from collector.");
+
+        return LoomToolEnvelope<LoomFixRunList>.Ok(payload);
+    }
 
     [McpServerTool(Name = "qyl.get_fix_run", Title = "Get Fix Run Details",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
-                 Get full details of a specific fix run including the generated
-                 changes JSON, confidence score, and pipeline status.
+                 Get full details of a specific fix run.
+                 Includes status, policy, confidence score, and patch metadata.
                  """)]
-    public async Task<string> GetFixRunAsync(
+    public async Task<LoomToolEnvelope<LoomFixRunDto>> GetFixRunAsync(
         [Description("The error issue ID")] string issueId,
         [Description("The fix run ID")] string runId,
-        CancellationToken ct = default) =>
-        await CollectorHelper.ExecuteAsync(async () =>
-        {
-            using var resp = await http
-                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
-                .ConfigureAwait(false);
+        CancellationToken ct = default)
+    {
+        using var resp = await http.GetAsync(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
+            .ConfigureAwait(false);
 
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return $"Fix run '{runId}' not found for issue '{issueId}'.";
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            return LoomToolEnvelope<LoomFixRunDto>.Fail(
+                $"Fix run '{runId}' not found for issue '{issueId}'.");
 
-            resp.EnsureSuccessStatusCode();
-            return await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        });
+        if (!resp.IsSuccessStatusCode)
+            return LoomToolEnvelope<LoomFixRunDto>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Failed to load fix run details.",
+                ct).ConfigureAwait(false));
+
+        var payload = await resp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);
+
+        return payload is null
+            ? LoomToolEnvelope<LoomFixRunDto>.Fail("Failed to parse fix run details from collector.")
+            : LoomToolEnvelope<LoomFixRunDto>.Ok(payload);
+    }
 
     [McpServerTool(Name = "qyl.get_fix_run_steps", Title = "Get Fix Run Pipeline Steps",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
                  Get the individual pipeline steps for a fix run.
-                 Shows status, timing, and output for each step:
-                 gather_context → root_cause_analysis → solution_planning →
-                 diff_generation → confidence_scoring.
+                 Shows status, timing, and input/output metadata.
                  """)]
-    public async Task<string> GetFixRunStepsAsync(
+    public async Task<LoomToolEnvelope<LoomAutofixStepList>> GetFixRunStepsAsync(
         [Description("The error issue ID")] string issueId,
         [Description("The fix run ID")] string runId,
-        CancellationToken ct = default) =>
-        await CollectorHelper.ExecuteAsync(async () =>
-        {
-            using var resp = await http
-                .GetAsync(
-                    $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
-                .ConfigureAwait(false);
+        CancellationToken ct = default)
+    {
+        using var resp = await http.GetAsync(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
+            .ConfigureAwait(false);
 
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return $"Fix run '{runId}' not found for issue '{issueId}'.";
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            return LoomToolEnvelope<LoomAutofixStepList>.Fail(
+                $"Fix run '{runId}' not found for issue '{issueId}'.");
 
-            resp.EnsureSuccessStatusCode();
-            return await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        });
+        if (!resp.IsSuccessStatusCode)
+            return LoomToolEnvelope<LoomAutofixStepList>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Failed to load fix run steps.",
+                ct).ConfigureAwait(false));
+
+        var payload = await resp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomAutofixStepList, ct).ConfigureAwait(false);
+
+        return payload is null
+            ? LoomToolEnvelope<LoomAutofixStepList>.Fail("Failed to parse fix run steps from collector.")
+            : LoomToolEnvelope<LoomAutofixStepList>.Ok(payload);
+    }
 
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
         ReadOnly = false, Destructive = false, Idempotent = true)]
     [Description("""
                  Approve a fix run that is in 'review' status.
-                 This transitions the fix run to 'applied' status,
-                 allowing it to be used for PR creation or coding agent handoff.
+                 This transitions the fix run to 'applied' status.
                  """)]
-    public async Task<string> ApproveFixRunAsync(
+    public async Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> ApproveFixRunAsync(
         [Description("The error issue ID")] string issueId,
         [Description("The fix run ID to approve")]
         string runId,
-        CancellationToken ct = default) =>
-        await CollectorHelper.ExecuteAsync(async () =>
-        {
-            using var resp = await http
-                .PostAsync(
-                    $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
-                    null, ct)
-                .ConfigureAwait(false);
+        CancellationToken ct = default)
+    {
+        using var resp = await http.PostAsync(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
+            null, ct).ConfigureAwait(false);
 
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return $"Fix run '{runId}' not found for issue '{issueId}'.";
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(
+                $"Fix run '{runId}' not found for issue '{issueId}'.");
 
-            if (resp.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                return $"Cannot approve: {error}";
-            }
+        if (resp.StatusCode == HttpStatusCode.BadRequest)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Cannot approve fix run.",
+                ct).ConfigureAwait(false));
 
-            resp.EnsureSuccessStatusCode();
-            return $"Fix run '{runId}' approved and moved to 'applied' status.";
-        });
+        if (!resp.IsSuccessStatusCode)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Failed to approve fix run.",
+                ct).ConfigureAwait(false));
+
+        var transition = await resp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);
+
+        return transition is null
+            ? LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail("Failed to parse approval response from collector.")
+            : LoomToolEnvelope<LoomFixRunTransitionResponse>.Ok(transition);
+    }
 
     [McpServerTool(Name = "qyl.reject_fix_run", Title = "Reject Fix Run",
         ReadOnly = false, Destructive = false, Idempotent = true)]
@@ -128,57 +160,60 @@ internal sealed class AutofixMcpTools(HttpClient http)
                  Reject a fix run that is in 'review' status.
                  Optionally provide a reason for rejection.
                  """)]
-    public async Task<string> RejectFixRunAsync(
+    public async Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> RejectFixRunAsync(
         [Description("The error issue ID")] string issueId,
         [Description("The fix run ID to reject")]
         string runId,
         [Description("Optional reason for rejection")]
         string? reason = null,
-        CancellationToken ct = default) =>
-        await CollectorHelper.ExecuteAsync(async () =>
-        {
-            using var resp = await http.PostAsJsonAsync(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/reject",
-                new { reason },
-                ct).ConfigureAwait(false);
-
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-                return $"Fix run '{runId}' not found for issue '{issueId}'.";
-
-            if (resp.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                return $"Cannot reject: {error}";
-            }
-
-            resp.EnsureSuccessStatusCode();
-            return $"Fix run '{runId}' rejected.{(reason is not null ? $" Reason: {reason}" : "")}";
-        });
-
-    private static string FormatFixRunList(string json, string issueId)
+        CancellationToken ct = default)
     {
+        using var resp = await http.PostAsJsonAsync(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/reject",
+            new { reason },
+            ct).ConfigureAwait(false);
+
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(
+                $"Fix run '{runId}' not found for issue '{issueId}'.");
+
+        if (resp.StatusCode == HttpStatusCode.BadRequest)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Cannot reject fix run.",
+                ct).ConfigureAwait(false));
+
+        if (!resp.IsSuccessStatusCode)
+            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+                resp,
+                "Failed to reject fix run.",
+                ct).ConfigureAwait(false));
+
+        var transition = await resp.Content.ReadFromJsonAsync(
+            LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);
+
+        return transition is null
+            ? LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail("Failed to parse rejection response from collector.")
+            : LoomToolEnvelope<LoomFixRunTransitionResponse>.Ok(transition);
+    }
+
+    private static async Task<string> ReadCollectorErrorAsync(HttpResponseMessage resp, string fallback,
+        CancellationToken ct)
+    {
+        var errorBody = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(errorBody))
+            return fallback;
+
         try
         {
-            var root = JsonNode.Parse(json);
-            var items = root?["items"]?.AsArray();
-            if (items is null || items.Count == 0)
-                return $"No fix runs found for issue '{issueId}'.";
-
-            StringBuilder sb = new();
-            sb.AppendLine($"## Fix Runs for {issueId}");
-            sb.AppendLine();
-            foreach (var item in items)
-            {
-                if (item is null) continue;
-                sb.AppendLine(
-                    $"- **{item["runId"]}** | status={item["status"]} | confidence={item["confidenceScore"]} | created={item["createdAt"]}");
-            }
-
-            return sb.ToString();
+            using var doc = JsonDocument.Parse(errorBody);
+            if (doc.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
+                return error.GetString() ?? fallback;
         }
         catch (JsonException)
         {
-            return json;
         }
+
+        return errorBody.Trim();
     }
 }

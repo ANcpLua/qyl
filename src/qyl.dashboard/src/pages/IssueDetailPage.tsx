@@ -25,11 +25,11 @@ import {CodingAgentResultCard} from '@/components/coding-agents/CodingAgentResul
 import {LoomSidebar} from '@/components/Loom/LoomSidebar';
 
 const statusStyles: Record<string, string> = {
-    new: 'bg-red-500/20 text-red-400 border-red-500/40',
-    acknowledged: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-    resolved: 'bg-green-500/20 text-green-400 border-green-500/40',
-    regressed: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
-    reopened: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+    new: 'bg-signal-red/20 text-signal-red border-signal-red/40',
+    acknowledged: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
+    resolved: 'bg-signal-green/20 text-signal-green border-signal-green/40',
+    regressed: 'bg-signal-violet/20 text-signal-violet border-signal-violet/40',
+    reopened: 'bg-signal-orange/20 text-signal-orange border-signal-orange/40',
 };
 
 function StatusBadge({status}: { status: string }) {
@@ -146,8 +146,8 @@ export function IssueDetailPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Failed to load issue</p>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-signal-red"/>
+                        <p className="text-signal-red">Failed to load issue</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {issueError instanceof Error ? issueError.message : 'Unknown error'}
                         </p>
@@ -182,7 +182,7 @@ export function IssueDetailPage() {
                         </div>
                     ) : issue ? (
                         <div className="flex items-center gap-3 flex-1">
-                            <AlertCircle className="w-5 h-5 text-red-400"/>
+                            <AlertCircle className="w-5 h-5 text-signal-red"/>
                             <h1 className="text-lg font-bold text-brutal-white tracking-wide">
                                 {issue.error_type}
                             </h1>
@@ -217,7 +217,7 @@ export function IssueDetailPage() {
                             <Card>
                                 <CardContent className="pt-4">
                                     <div className="flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 text-red-400"/>
+                                        <AlertCircle className="w-4 h-4 text-signal-red"/>
                                         <span
                                             className="text-[10px] font-bold text-brutal-slate tracking-wider">EVENTS</span>
                                     </div>
