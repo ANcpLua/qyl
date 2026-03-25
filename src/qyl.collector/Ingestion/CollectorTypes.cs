@@ -1,26 +1,4 @@
-// =============================================================================
-// Qyl.Collector - Collector-specific types
-// Types used only by the collector that are not in the TypeSpec schema
-// =============================================================================
-
 namespace Qyl.Collector.Ingestion;
-
-/// <summary>
-///     Unix timestamp in nanoseconds since epoch.
-///     Matches OTel fixed64 timestamp format.
-/// </summary>
-public readonly record struct UnixNano(ulong Value)
-{
-    /// <summary>Empty/zero timestamp.</summary>
-    public static UnixNano Empty => default;
-
-    /// <summary>Check if this is an empty/zero timestamp.</summary>
-    public bool IsEmpty => Value is 0;
-
-    public static implicit operator ulong(UnixNano value) => value.Value;
-    public static implicit operator UnixNano(ulong value) => new(value);
-    public override string ToString() => Value.ToString();
-}
 
 /// <summary>
 ///     OTel semantic convention schema version.
