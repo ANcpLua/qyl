@@ -9,6 +9,10 @@
   `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`, `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
   `PATCH /api/v1/triage/{triageId}`, `GET /api/v1/issues/untriaged`, `GET /api/v1/deployments`.
   Registered in `CollectorEndpointExtensions.cs`.
+- **Standalone Loom executable**: `qyl.loom` is now `OutputType=Exe` with its own `Program.cs`
+  and `WebApplication` host. `CollectorClient` (typed `HttpClient`) replaces all direct `DuckDbStore`
+  usage. All services (autofix, triage, regression detection, MCP server) migrated to HTTP.
+  `ProjectReference` to `qyl.collector` removed; only `qyl.contracts` remains.
 
 ### Changed
 

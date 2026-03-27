@@ -25,6 +25,3 @@ internal static class TriagePrompts
                                             Error details:
                                             """;
 }
-
-// TriageResult record lives in qyl.collector/Autofix/TriagePrompts.cs
-// Imported via global using Qyl.Collector.Autofix in GlobalUsings.cs

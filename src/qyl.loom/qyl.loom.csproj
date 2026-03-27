@@ -1,7 +1,7 @@
 <Project Sdk="ANcpLua.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Qyl.Loom</RootNamespace>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -10,45 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Qyl.Collector.tests"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
-    <PackageReference Include="DuckDB.NET.Data.Full"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
     <PackageReference Include="Qyl.Agents.Abstractions"/>
     <PackageReference Include="Qyl.Agents"/>
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="ANcpLua.Roslyn.Utilities"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\qyl.collector\qyl.collector.csproj"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Autofix\AutofixAgentService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Autofix\AutofixOrchestrator.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Autofix\AutofixPrompts.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Agents\LoomGodAnalyzerServer.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Agents\LoomGodAnalyzerHostingExtensions.cs">
-      <Visible>true</Visible>
-    </Compile>
   </ItemGroup>
 </Project>
