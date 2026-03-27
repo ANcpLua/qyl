@@ -4,13 +4,11 @@ namespace Qyl.Loom;
 
 /// <summary>
 ///     Background service that autonomously picks up pending fix runs and executes
-///     the multi-step autofix pipeline: gather context → RCA → solution plan →
-///     diff generation → confidence scoring → policy gate routing.
-///     Runs in the collector for direct DuckDB access (no HTTP round-trips per tool call).
+///     the multi-step autofix pipeline: gather context -> RCA -> solution plan ->
+///     diff generation -> confidence scoring -> policy gate routing.
 /// </summary>
 public sealed partial class AutofixAgentService(
-    DuckDbStore store,
-    IssueService issueService,
+    CollectorClient collector,
     AutofixOrchestrator orchestrator,
     IConfiguration configuration,
     ILogger<AutofixAgentService> logger,
@@ -48,7 +46,7 @@ public sealed partial class AutofixAgentService(
 
     internal async Task ProcessPendingFixRunsAsync(CancellationToken ct)
     {
-        var pending = await store.GetPendingFixRunsAsync(5, ct)
+        var pending = await collector.GetPendingFixRunsAsync(5, ct)
             .ConfigureAwait(false);
 
         if (pending.Count == 0) return;
@@ -64,7 +62,8 @@ public sealed partial class AutofixAgentService(
     private async Task ProcessFixRunAsync(FixRunRecord run, CancellationToken ct)
     {
         // Mark as running
-        await orchestrator.UpdateFixRunStatusAsync(run.RunId, "running", ct: ct).ConfigureAwait(false);
+        await orchestrator.UpdateFixRunStatusAsync(run.IssueId, run.RunId, "running", ct: ct)
+            .ConfigureAwait(false);
 
         try
         {
@@ -72,31 +71,31 @@ public sealed partial class AutofixAgentService(
             var stepId1 = await CreateAndStartStepAsync(run.RunId, 1, "gather_context", ct)
                 .ConfigureAwait(false);
 
-            var issue = await store.GetIssueByIdAsync(run.IssueId, ct).ConfigureAwait(false);
+            var issue = await collector.GetIssueByIdAsync(run.IssueId, ct).ConfigureAwait(false);
             if (issue is null)
             {
-                await FailStepAsync(stepId1, "Issue not found", ct).ConfigureAwait(false);
-                await orchestrator.UpdateFixRunStatusAsync(run.RunId, "failed",
+                await FailStepAsync(run.RunId, stepId1, "Issue not found", ct).ConfigureAwait(false);
+                await orchestrator.UpdateFixRunStatusAsync(run.IssueId, run.RunId, "failed",
                     "Issue not found", ct: ct).ConfigureAwait(false);
                 return;
             }
 
             var contextJson = await GatherContextAsync(run.IssueId, issue, ct).ConfigureAwait(false);
-            await CompleteStepAsync(stepId1, contextJson, ct).ConfigureAwait(false);
+            await CompleteStepAsync(run.RunId, stepId1, contextJson, ct).ConfigureAwait(false);
 
             // ── Step 2: Root Cause Analysis ─────────────────────────────────
             var stepId2 = await CreateAndStartStepAsync(run.RunId, 2, "root_cause_analysis", ct)
                 .ConfigureAwait(false);
 
             var rcaReport = await RunRcaAsync(issue, contextJson, ct).ConfigureAwait(false);
-            await CompleteStepAsync(stepId2, rcaReport, ct).ConfigureAwait(false);
+            await CompleteStepAsync(run.RunId, stepId2, rcaReport, ct).ConfigureAwait(false);
 
             // ── Step 3: Solution Planning ───────────────────────────────────
             var stepId3 = await CreateAndStartStepAsync(run.RunId, 3, "solution_planning", ct)
                 .ConfigureAwait(false);
 
             var solutionPlan = await RunSolutionPlanAsync(rcaReport, ct).ConfigureAwait(false);
-            await CompleteStepAsync(stepId3, solutionPlan, ct).ConfigureAwait(false);
+            await CompleteStepAsync(run.RunId, stepId3, solutionPlan, ct).ConfigureAwait(false);
 
             // ── Step 4: Diff Generation ─────────────────────────────────────
             var stepId4 = await CreateAndStartStepAsync(run.RunId, 4, "diff_generation", ct)
@@ -104,7 +103,7 @@ public sealed partial class AutofixAgentService(
 
             var changesJson = await RunDiffGenerationAsync(rcaReport, solutionPlan, ct)
                 .ConfigureAwait(false);
-            await CompleteStepAsync(stepId4, changesJson, ct).ConfigureAwait(false);
+            await CompleteStepAsync(run.RunId, stepId4, changesJson, ct).ConfigureAwait(false);
 
             // ── Step 5: Confidence Scoring ──────────────────────────────────
             var stepId5 = await CreateAndStartStepAsync(run.RunId, 5, "confidence_scoring", ct)
@@ -112,8 +111,8 @@ public sealed partial class AutofixAgentService(
 
             var confidence = await RunConfidenceScoringAsync(rcaReport, changesJson, ct)
                 .ConfigureAwait(false);
-            await CompleteStepAsync(stepId5, JsonSerializer.Serialize(confidence,
-                AutofixAgentJsonContext.Default.ConfidenceResult), ct).ConfigureAwait(false);
+            await CompleteStepAsync(run.RunId, stepId5, JsonSerializer.Serialize(confidence,
+                AutofixJsonContext.Default.ConfidenceResult), ct).ConfigureAwait(false);
 
             // ── Policy Gate ─────────────────────────────────────────────────
             var policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var p)
@@ -126,7 +125,7 @@ public sealed partial class AutofixAgentService(
                 $"Autofix pipeline complete | confidence={confidence.Confidence:F2} | {confidence.Recommendation}";
 
             await orchestrator.UpdateFixRunStatusAsync(
-                    run.RunId, nextStatus, description, confidence.Confidence, changesJson, ct)
+                    run.IssueId, run.RunId, nextStatus, description, confidence.Confidence, changesJson, ct)
                 .ConfigureAwait(false);
 
             LogFixRunCompleted(run.RunId, nextStatus, confidence.Confidence);
@@ -135,7 +134,7 @@ public sealed partial class AutofixAgentService(
         {
             LogFixRunFailed(run.RunId, ex);
             await orchestrator.UpdateFixRunStatusAsync(
-                run.RunId, "failed", ex.Message, ct: ct).ConfigureAwait(false);
+                run.IssueId, run.RunId, "failed", ex.Message, ct: ct).ConfigureAwait(false);
         }
     }
 
@@ -154,16 +153,17 @@ public sealed partial class AutofixAgentService(
             Status = "running"
         };
 
-        await store.InsertAutofixStepAsync(step, ct).ConfigureAwait(false);
+        await collector.InsertAutofixStepAsync(step, ct).ConfigureAwait(false);
         LogStepStarted(runId, stepName, stepNumber);
         return stepId;
     }
 
-    private async Task CompleteStepAsync(string stepId, string outputJson, CancellationToken ct) =>
-        await store.UpdateAutofixStepAsync(stepId, "completed", outputJson, ct: ct).ConfigureAwait(false);
+    private async Task CompleteStepAsync(string runId, string stepId, string outputJson, CancellationToken ct) =>
+        await collector.UpdateAutofixStepAsync(runId, stepId, "completed", outputJson, ct: ct)
+            .ConfigureAwait(false);
 
-    private async Task FailStepAsync(string stepId, string error, CancellationToken ct) =>
-        await store.UpdateAutofixStepAsync(stepId, "failed", errorMessage: error, ct: ct)
+    private async Task FailStepAsync(string runId, string stepId, string error, CancellationToken ct) =>
+        await collector.UpdateAutofixStepAsync(runId, stepId, "failed", errorMessage: error, ct: ct)
             .ConfigureAwait(false);
 
     // ── LLM Pipeline Steps ─────────────────────────────────────────────────
@@ -171,8 +171,7 @@ public sealed partial class AutofixAgentService(
     private async Task<string> GatherContextAsync(
         string issueId, IssueSummary issue, CancellationToken ct)
     {
-        // Gather error events for stack traces via IssueService
-        var events = await issueService.GetEventsAsync(issueId, 5, ct)
+        var events = await collector.GetIssueEventsAsync(issueId, 5, ct)
             .ConfigureAwait(false);
 
         var context = new
@@ -272,7 +271,7 @@ public sealed partial class AutofixAgentService(
         var json = ExtractJson(response.Text ?? "{}");
         try
         {
-            return JsonSerializer.Deserialize(json, AutofixAgentJsonContext.Default.ConfidenceResult)
+            return JsonSerializer.Deserialize(json, AutofixJsonContext.Default.ConfidenceResult)
                    ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
         }
         catch (JsonException)
@@ -326,5 +325,3 @@ public sealed partial class AutofixAgentService(
         Message = "Fix run {RunId} failed")]
     private partial void LogFixRunFailed(string runId, Exception ex);
 }
-
-// ConfidenceResult, AutofixAgentJsonContext live in qyl.collector/Autofix/AutofixAgentService.cs

@@ -8,7 +8,7 @@ namespace Qyl.Loom;
 ///     summaries, and routes high-confidence issues to the autofix pipeline.
 /// </summary>
 public sealed partial class TriagePipelineService(
-    DuckDbStore store,
+    CollectorClient collector,
     AutofixOrchestrator orchestrator,
     IConfiguration configuration,
     ILogger<TriagePipelineService> logger,
@@ -51,21 +51,21 @@ public sealed partial class TriagePipelineService(
     /// </summary>
     internal async Task<TriageResult?> TriageSingleIssueAsync(string issueId, CancellationToken ct)
     {
-        var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null) return null;
 
         var result = llm is not null
             ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
             : ScoreWithHeuristic(issue);
 
-        await store.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
+        await collector.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
         LogIssueTriaged(issueId, result.FixabilityScore, result.AutomationLevel);
 
         if (result.FixabilityScore >= _autoThreshold)
         {
             var run = await orchestrator.CreateFixRunAsync(
-                issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
-            await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
+                issueId, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+            await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
             LogAutoRouted(issueId, run.RunId);
         }
 
@@ -74,29 +74,29 @@ public sealed partial class TriagePipelineService(
 
     internal async Task TriageUntriagedIssuesAsync(CancellationToken ct)
     {
-        var issueIds = await store.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);
+        var issueIds = await collector.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);
         if (issueIds.Count == 0) return;
 
         LogTriageBatchStart(issueIds.Count);
 
         foreach (var issueId in issueIds)
         {
-            var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+            var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null) continue;
 
             var result = llm is not null
                 ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
                 : ScoreWithHeuristic(issue);
 
-            await store.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
+            await collector.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
             LogIssueTriaged(issueId, result.FixabilityScore, result.AutomationLevel);
 
             // Route auto-fixable issues to the autofix pipeline
             if (result.FixabilityScore >= _autoThreshold)
             {
                 var run = await orchestrator.CreateFixRunAsync(
-                    issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
-                await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
+                    issueId, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+                await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
                 LogAutoRouted(issueId, run.RunId);
             }
         }
@@ -151,7 +151,7 @@ public sealed partial class TriagePipelineService(
         // Heuristic scoring based on error characteristics
         var score = 0.3; // Base score
 
-        // High occurrence count suggests reproducible → more fixable
+        // High occurrence count suggests reproducible -> more fixable
         if (issue.EventCount >= 10) score += 0.15;
         else if (issue.EventCount >= 3) score += 0.1;
 
@@ -206,7 +206,6 @@ public sealed partial class TriagePipelineService(
         }
     }
 
-    // LoggerMessage source-generated log methods
     [LoggerMessage(Level = LogLevel.Information, Message = "Triage pipeline disabled via QYL_TRIAGE_ENABLED=false")]
     private partial void LogTriageDisabled();
 
@@ -231,5 +230,3 @@ public sealed partial class TriagePipelineService(
         Message = "LLM scoring failed for issue {IssueId}, falling back to heuristic")]
     private partial void LogLlmScoringFailed(string issueId, Exception ex);
 }
-
-// LlmTriageResponse, TriageJsonContext live in qyl.collector/Autofix/TriagePipelineService.cs

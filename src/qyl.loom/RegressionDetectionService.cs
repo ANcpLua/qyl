@@ -6,7 +6,7 @@ namespace Qyl.Loom;
 ///     via <see cref="TriagePipelineService" /> when regressions are found.
 /// </summary>
 public sealed partial class RegressionDetectionService(
-    DuckDbStore store,
+    CollectorClient collector,
     TriagePipelineService triagePipeline,
     IConfiguration configuration,
     ILogger<RegressionDetectionService> logger)
@@ -45,7 +45,7 @@ public sealed partial class RegressionDetectionService(
 
     internal async Task CheckForRegressionsAsync(CancellationToken ct)
     {
-        var deployments = await store.GetDeploymentsAfterAsync(_lastChecked, ct)
+        var deployments = await collector.GetDeploymentsAfterAsync(_lastChecked, ct)
             .ConfigureAwait(false);
 
         if (deployments.Count == 0) return;
@@ -56,7 +56,7 @@ public sealed partial class RegressionDetectionService(
         {
             LogCheckingDeployment(deployment.ServiceName, deployment.ServiceVersion);
 
-            var regressedIds = await store.DetectRegressionsAsync(
+            var regressedIds = await collector.DetectRegressionsAsync(
                 deployment.ServiceName, deployment.ServiceVersion, ct).ConfigureAwait(false);
 
             foreach (var issueId in regressedIds)
@@ -78,8 +78,6 @@ public sealed partial class RegressionDetectionService(
 
         LogRegressionCheckComplete(deployments.Count, totalRegressions);
     }
-
-    // ── Log Methods ─────────────────────────────────────────────────────────
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Regression detection disabled via QYL_REGRESSION_DETECTION_ENABLED=false")]

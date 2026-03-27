@@ -15,8 +15,8 @@ paths:
 
 ## Ownership Boundaries
 
-- qyl.loom references collector, contracts, and instrumentation via ProjectReference. qyl.agents and qyl.workflows are
-  deleted.
+- qyl.loom is a standalone executable. References `qyl.contracts` only (compile). Talks to collector over HTTP via `CollectorClient`.
+- No ProjectReference to collector. No DuckDB dependency.
 - Collector must NOT reference qyl.loom — the dependency arrow goes one way only.
 - MCP tools for Loom live in `src/qyl.mcp/Tools/` and access Loom via collector HTTP endpoints.
 

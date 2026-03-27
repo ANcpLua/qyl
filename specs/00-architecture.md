@@ -108,6 +108,7 @@ docker run -p 5100:5100 -p 4317:4317 -p 4318:4318 ghcr.io/ancplua/qyl
 |----------|------|-----------|
 | `qyl.collector` | Composition root, API host, SSE, dashboard, OTLP ingest | `qyl.contracts`, DuckDB, ASP.NET Core, OTel SDK |
 | `qyl.mcp` | MCP tool surface | `qyl.contracts` (compile), `qyl.collector` (HTTP at runtime) |
+| `qyl.loom` | AI investigation, autofix, triage, regression | `qyl.contracts` (compile), `qyl.collector` (HTTP at runtime), M.E.AI |
 | `qyl.contracts` | Interfaces, DTOs, value objects | BCL only (zero packages) |
 | `qyl.instrumentation` | OTel SDK — Roslyn generators + runtime wiring | `qyl.contracts`, OTel SDK |
 
@@ -136,7 +137,7 @@ docker run -p 5100:5100 -p 4317:4317 -p 4318:4318 ghcr.io/ancplua/qyl
 </tier-2>
 
 <hard-rule>
-No sibling project references. `qyl.collector` may see `qyl.contracts` and instrumentation; `qyl.mcp` communicates via HTTP only. `qyl.loom` depends on collector via ProjectRef.
+No sibling project references. `qyl.collector` may see `qyl.contracts` and instrumentation; `qyl.mcp` communicates via HTTP only. `qyl.loom` communicates with collector via HTTP only (no ProjectReference). Loom depends on `qyl.contracts` at compile time and `qyl.collector` at runtime over HTTP.
 </hard-rule>
 
 ---
@@ -163,7 +164,6 @@ No sibling project references. `qyl.collector` may see `qyl.contracts` and instr
 | **Logs** | Structured log search and exploration |
 | **Cost** | Per-model, per-service, per-session cost. Trends. Budget alerts. |
 | **Services** | Service map, dependencies, health |
-| **Alerts** | Anomaly detection, threshold alerts |
 | **Settings** | Pricing table, retention, API keys |
 
 </dashboard-views>
@@ -176,6 +176,7 @@ No sibling project references. `qyl.collector` may see `qyl.contracts` and instr
 | Code review results | `qyl.loom` |
 | Fix runs | `qyl.loom` |
 | Issue triage | `qyl.loom` |
+| Alerts dashboard | Anomaly detection is a Loom capability (`AnomalyService`), not a dashboard view. Alerting is a separate product category. |
 | Copilot panel | Deleted |
 | Workflow runs | Deleted |
 | Bot conversation | Deleted |

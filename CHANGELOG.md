@@ -2,8 +2,37 @@
 
 ## Unreleased
 
+### Added
+
+- **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `src/qyl.collector/Autofix/`
+  exposes REST endpoints for standalone Loom background workers: `GET /api/v1/fix-runs` (pending query),
+  `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`, `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
+  `PATCH /api/v1/triage/{triageId}`, `GET /api/v1/issues/untriaged`, `GET /api/v1/deployments`.
+  Registered in `CollectorEndpointExtensions.cs`.
+- **Standalone Loom executable**: `qyl.loom` is now `OutputType=Exe` with its own `Program.cs`
+  and `WebApplication` host. `CollectorClient` (typed `HttpClient`) replaces all direct `DuckDbStore`
+  usage. All services (autofix, triage, regression detection, MCP server) migrated to HTTP.
+  `ProjectReference` to `qyl.collector` removed; only `qyl.contracts` remains.
+
+### Changed
+
+- **Shared Loom types moved to qyl.contracts**: Moved `FixPolicy`, `PolicyGate`, `FixRunRecord`,
+  `AutofixStepRecord`, `ConfidenceResult`, `TriageResult`, `LlmTriageResponse`, `IssueSummary`,
+  `IssueStatus`, and `IssueEvent` from `qyl.collector` to `Qyl.Contracts.Loom` namespace in
+  `src/qyl.contracts/Loom/`. This enables both collector and standalone Loom to share these types
+  without a ProjectReference dependency between them.
+
 ### Removed
 
+- **Dead weight purged from qyl.loom**: Deleted `Identity/`, `Workflow/`, `AgentRuns/`, `Analytics/`,
+  `impl/seer/`, `EmbeddingClusterWorker.cs`, `ProjectService.cs`, `PrCreationService.cs`,
+  `AutofixEndpoints.cs`, `TriageEndpoints.cs`, `RegressionEndpoints.cs`. Removed corresponding
+  `<Compile Update>` and `<Content Include>` entries from `qyl.loom.csproj`. These were dead weight:
+  collector already hosts all these endpoints, and the remaining services (autofix, triage pipeline,
+  regression detection, agents) are preserved for standalone Loom.
+- **Dead qyl.loom HTTP mirror cluster deleted**: Removed the unused `qyl.loom` endpoint/code-review/investigation surface
+  that duplicated live collector-owned Loom routes. Deleted `LoomEndpoints`, `LoomSettingsEndpoints`, the old coding-agent and
+  code-review endpoint files, the duplicate `LoomInsight`/explorer model stack, and their `qyl.loom.csproj` compile metadata.
 - **Phosphor icons eliminated**: Replaced all `@phosphor-icons/react` usage with `lucide-react` across 25+ dashboard
   files. Removed `@phosphor-icons/react` from package.json. Lucide is now the sole icon library.
 - **Loom import cleanup (Hades)**: Removed 21 unused PackageReferences and 1 unused ProjectReference (qyl.instrumentation)
@@ -16,6 +45,16 @@
 
 ### Fixed
 
+- **Generator build chain restored**: `qyl.instrumentation.generators` now imports
+  `ANcpLua.Roslyn.Utilities`, `ANcpLua.Roslyn.Utilities.Models`, and `ANcpLua.Roslyn.Utilities.Matching`
+  explicitly, `qyl.collector.storage.generators` imports `ANcpLua.Roslyn.Utilities`, and `SpanStorageRow`
+  is now `partial` so the generated DuckDB mapper methods bind again. This restores the full collector build chain.
+- **Collector Loom route ownership completed**: `qyl.collector` now maps coding-agent and org-scoped Loom settings
+  endpoints on the active host. `DuckDbStore` no longer hardcodes `'default'` when reading Loom settings, so
+  `/api/v1/loom/settings/{orgId}` now reflects the requested org instead of a fake singleton record.
+- **MCP code review route alignment**: `qyl.trigger_code_review` and `qyl.get_code_review` now split `owner/repo`
+  into the collector's `{owner}/{repo}` route shape instead of sending an escaped full name that could not match the
+  active endpoint surface.
 - **SEC-001 XSS fix**: Replaced `dangerouslySetInnerHTML` in `text-visualizer.tsx` with tokenized React element rendering.
 - **SEC-002 type safety**: Replaced `as unknown as SpanRecord` in `use-telemetry.ts` with proper typed construction.
 - **A11Y-001/002**: Added keyboard support (role, tabIndex, onKeyDown) to DashboardCard and PerformancePage service rows.
@@ -26,6 +65,10 @@
 
 ### Changed
 
+- **Dependency baseline updated**: .NET runtime packages `10.0.4` → `10.0.5`, `Microsoft.Extensions.AI*`
+  `10.4.0` → `10.4.1`, `OpenTelemetry.Instrumentation.AspNetCore` `1.15.0` → `1.15.1`,
+  `Microsoft.IdentityModel.JsonWebTokens` `8.16.0` → `8.17.0`, `ANcpLua.NET.Sdk*` `2.25.4` → `2.25.5`,
+  and the MSBuild-pinned `ANcpLua.Roslyn.Utilities*` versions `1.47.0` → `1.48.0`.
 - **Solution file duplicate removed**: `qyl.slnx` no longer declares `eng/loom-requirements-registry.png` twice, which
   fixes MSBuild solution parsing and unblocks `dotnet clean`.
 - **Loom identity clarified**: `specs/loom.md` now maps Loom 1:1 to Sentry's Seer product model. The spec now explicitly
@@ -43,6 +86,10 @@
 
 ### Added
 
+- **Qyl.Agents Loom migration slice**: `qyl.loom` now contains a `Qyl.Agents`-backed MCP server surface
+  (`LoomGodAnalyzerServer`) plus ASP.NET/stdin hosting helpers. The new slice exposes issue insight, fix-run launch,
+  PR review, and a reusable "god analyzer" prompt without reintroducing the dead HTTP mirror layer or depending on the
+  currently unstable upstream source generator path.
 - **Cost engine**: DuckDB `model_pricing` + `model_pricing_tiers` tables via migration V20260322. Pre-aggregated
   `cost_by_model_hourly` view. `ModelPricingService` seeds from `data/model-pricing.json` (30 models across OpenAI,
   Anthropic, Google, Meta, Mistral, DeepSeek) on first boot. Server-side cost computation at ingestion time — both

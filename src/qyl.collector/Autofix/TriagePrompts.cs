@@ -25,20 +25,3 @@ internal static class TriagePrompts
                                             Error details:
                                             """;
 }
-
-/// <summary>
-///     Storage record for a triage result. Maps to the triage_results DuckDB table.
-/// </summary>
-public sealed record TriageResult
-{
-    public required string TriageId { get; init; }
-    public required string IssueId { get; init; }
-    public required double FixabilityScore { get; init; }
-    public required string AutomationLevel { get; init; }
-    public string? AiSummary { get; init; }
-    public string? RootCauseHypothesis { get; init; }
-    public required string TriggeredBy { get; init; }
-    public string? FixRunId { get; init; }
-    public required string ScoringMethod { get; init; }
-    public DateTime? CreatedAt { get; init; }
-}

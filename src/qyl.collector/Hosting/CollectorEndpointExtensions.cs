@@ -86,6 +86,9 @@ public static class CollectorEndpointExtensions
         app.MapCodeReviewEndpoints();
         app.MapGitHubWebhookEndpoints();
         app.MapLoomEndpoints();
+        app.MapLoomSettingsEndpoints();
+        app.MapCodingAgentEndpoints();
+        app.MapLoomWorkerEndpoints();
         app.MapTriageEndpoints();
         app.MapAgentRunEndpoints();
         app.MapAgentInsightsEndpoints();

@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Autofix;
+namespace Qyl.Contracts.Loom;
 
 /// <summary>
 ///     Approval policy for autofix runs. Controls whether fixes are
@@ -37,21 +37,4 @@ public static class PolicyGate
             FixPolicy.DryRun => "review",
             _ => "review"
         };
-}
-
-/// <summary>
-///     Storage record for a fix run. Maps to the fix_runs DuckDB table.
-/// </summary>
-public sealed record FixRunRecord
-{
-    public required string RunId { get; init; }
-    public required string IssueId { get; init; }
-    public string? ExecutionId { get; init; }
-    public required string Status { get; init; }
-    public required string Policy { get; init; }
-    public string? FixDescription { get; init; }
-    public double? ConfidenceScore { get; init; }
-    public string? ChangesJson { get; init; }
-    public DateTime? CreatedAt { get; init; }
-    public DateTime? CompletedAt { get; init; }
 }
