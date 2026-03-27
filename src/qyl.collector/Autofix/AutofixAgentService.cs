@@ -113,7 +113,7 @@ public sealed partial class AutofixAgentService(
             var confidence = await RunConfidenceScoringAsync(rcaReport, changesJson, ct)
                 .ConfigureAwait(false);
             await CompleteStepAsync(stepId5, JsonSerializer.Serialize(confidence,
-                AutofixAgentJsonContext.Default.ConfidenceResult), ct).ConfigureAwait(false);
+                AutofixJsonContext.Default.ConfidenceResult), ct).ConfigureAwait(false);
 
             // ── Policy Gate ─────────────────────────────────────────────────
             var policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var p)
@@ -272,7 +272,7 @@ public sealed partial class AutofixAgentService(
         var json = ExtractJson(response.Text ?? "{}");
         try
         {
-            return JsonSerializer.Deserialize(json, AutofixAgentJsonContext.Default.ConfidenceResult)
+            return JsonSerializer.Deserialize(json, AutofixJsonContext.Default.ConfidenceResult)
                    ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
         }
         catch (JsonException)
@@ -326,18 +326,3 @@ public sealed partial class AutofixAgentService(
         Message = "Fix run {RunId} failed")]
     private partial void LogFixRunFailed(string runId, Exception ex);
 }
-
-/// <summary>LLM confidence scoring result.</summary>
-public sealed record ConfidenceResult
-{
-    [JsonPropertyName("confidence")] public double Confidence { get; init; }
-
-    [JsonPropertyName("reasoning")] public string? Reasoning { get; init; }
-
-    [JsonPropertyName("risks")] public string[]? Risks { get; init; }
-
-    [JsonPropertyName("recommendation")] public string? Recommendation { get; init; }
-}
-
-[JsonSerializable(typeof(ConfidenceResult))]
-public sealed partial class AutofixAgentJsonContext : JsonSerializerContext;

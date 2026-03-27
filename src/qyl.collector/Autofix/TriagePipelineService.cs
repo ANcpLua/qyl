@@ -231,19 +231,3 @@ public sealed partial class TriagePipelineService(
         Message = "LLM scoring failed for issue {IssueId}, falling back to heuristic")]
     private partial void LogLlmScoringFailed(string issueId, Exception ex);
 }
-
-/// <summary>JSON response shape from the LLM fixability scoring prompt.</summary>
-public sealed record LlmTriageResponse
-{
-    [JsonPropertyName("fixability_score")] public double FixabilityScore { get; init; }
-
-    [JsonPropertyName("automation_level")] public string? AutomationLevel { get; init; }
-
-    [JsonPropertyName("root_cause_hypothesis")]
-    public string? RootCauseHypothesis { get; init; }
-
-    [JsonPropertyName("summary")] public string? Summary { get; init; }
-}
-
-[JsonSerializable(typeof(LlmTriageResponse))]
-public sealed partial class TriageJsonContext : JsonSerializerContext;
