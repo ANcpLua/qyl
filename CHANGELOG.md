@@ -12,6 +12,12 @@
 
 ### Removed
 
+- **Dead weight purged from qyl.loom**: Deleted `Identity/`, `Workflow/`, `AgentRuns/`, `Analytics/`,
+  `impl/seer/`, `EmbeddingClusterWorker.cs`, `ProjectService.cs`, `PrCreationService.cs`,
+  `AutofixEndpoints.cs`, `TriageEndpoints.cs`, `RegressionEndpoints.cs`. Removed corresponding
+  `<Compile Update>` and `<Content Include>` entries from `qyl.loom.csproj`. These were dead weight:
+  collector already hosts all these endpoints, and the remaining services (autofix, triage pipeline,
+  regression detection, agents) are preserved for standalone Loom.
 - **Dead qyl.loom HTTP mirror cluster deleted**: Removed the unused `qyl.loom` endpoint/code-review/investigation surface
   that duplicated live collector-owned Loom routes. Deleted `LoomEndpoints`, `LoomSettingsEndpoints`, the old coding-agent and
   code-review endpoint files, the duplicate `LoomInsight`/explorer model stack, and their `qyl.loom.csproj` compile metadata.

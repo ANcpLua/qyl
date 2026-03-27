@@ -18,8 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
+    <PackageReference Include="Qyl.Agents.Abstractions"/>
+    <PackageReference Include="Qyl.Agents"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -28,88 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Workflow\WorkflowEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Workflow\WorkflowEventEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Workflow\WorkflowRunEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Workflow\WorkflowRunService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Workflow\WorkspaceService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\GitHubEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\GitHubService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\GitHubWebhookEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\GlobalUsings.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\HandshakeService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\IdentityEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\IssueAnalyticsEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\IssueEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Identity\IssueService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorCategorizer.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorEvent.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorExtractor.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorFingerprinter.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Errors\ErrorLifecycleService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="CodingAgent\CodingAgentEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="CodingAgent\CodeReviewEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="CodingAgent\CodeReviewPrompt.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="CodingAgent\CodeReviewService.cs">
-      <Visible>true</Visible>
-    </Compile>
     <Compile Update="Autofix\AutofixAgentService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Autofix\AutofixArtifacts.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Autofix\AutofixConstants.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="Autofix\AutofixEndpoints.cs">
       <Visible>true</Visible>
     </Compile>
     <Compile Update="Autofix\AutofixOrchestrator.cs">
@@ -118,33 +44,11 @@
     <Compile Update="Autofix\AutofixPrompts.cs">
       <Visible>true</Visible>
     </Compile>
-    <Compile Update="Analytics\AnomalyEndpoints.cs">
+    <Compile Update="Agents\LoomGodAnalyzerServer.cs">
       <Visible>true</Visible>
     </Compile>
-    <Compile Update="Analytics\AnomalyService.cs">
+    <Compile Update="Agents\LoomGodAnalyzerHostingExtensions.cs">
       <Visible>true</Visible>
     </Compile>
-    <Compile Update="Analytics\AnomalyTypes.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="AgentRuns\AgentHandoffEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="AgentRuns\AgentHandoffService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="AgentRuns\AgentInsightsEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="AgentRuns\AgentInsightsService.cs">
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Update="AgentRuns\AgentRunEndpoints.cs">
-      <Visible>true</Visible>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="impl\seer\.DS_Store"/>
   </ItemGroup>
 </Project>
