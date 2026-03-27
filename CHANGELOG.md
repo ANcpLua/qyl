@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `src/qyl.collector/Autofix/`
+  exposes REST endpoints for standalone Loom background workers: `GET /api/v1/fix-runs` (pending query),
+  `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`, `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
+  `PATCH /api/v1/triage/{triageId}`, `GET /api/v1/issues/untriaged`, `GET /api/v1/deployments`.
+  Registered in `CollectorEndpointExtensions.cs`.
+
 ### Changed
 
 - **Shared Loom types moved to qyl.contracts**: Moved `FixPolicy`, `PolicyGate`, `FixRunRecord`,
