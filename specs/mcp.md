@@ -121,6 +121,14 @@ Two modes:
 
 Both modes access the collector via HTTP. No embedded mode — MCP is always a separate process per `00-architecture.md` section 9 (forbidden dependencies).
 
+Railway production note from 2026-04-02: the `qyl-api` service variables UI currently shows
+`QYL_MCP_TRANSPORT=http` and `QYL_COLLECTOR_URL=http://localhost:5100`. That does **not** make `qyl-api`
+the MCP deployment. Remote MCP remains a separate service (`qyl-mcp`) and must be verified by its own
+public routes (`/`, `/mcp`, `/mcp.json`, `/healthz`) and Railway build config.
+
+Monorepo deployment rule: `qyl-mcp` must use the dedicated config file at `/src/qyl.mcp/railway.toml`.
+The repo-root `railway.toml` belongs to `qyl.collector`.
+
 `McpHostOptions` configures the deployment mode.
 
 ## 5. Response Format

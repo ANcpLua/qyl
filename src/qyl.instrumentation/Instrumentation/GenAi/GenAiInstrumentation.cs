@@ -42,23 +42,30 @@ public static class GenAiInstrumentation
         Guard.NotNull(client);
 
         // Don't double-wrap
-        if (client is OpenTelemetryChatClient)
+        if (client is ToolInstrumentingChatClient)
         {
             return client;
         }
 
-        var otelClient = new OpenTelemetryChatClient(
-            client,
-            sourceName: sourceName ?? GenAiConstants.SourceName);
-
-        // Configure sensitive data capture
-        if (enableSensitiveData.HasValue)
+        if (client is OpenTelemetryChatClient existingOpenTelemetryClient)
         {
-            otelClient.EnableSensitiveData = enableSensitiveData.Value;
-        }
-        // else: OpenTelemetryChatClient respects OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+            if (enableSensitiveData.HasValue)
+            {
+                existingOpenTelemetryClient.EnableSensitiveData = enableSensitiveData.Value;
+            }
 
-        return otelClient;
+            return new ToolInstrumentingChatClient(existingOpenTelemetryClient);
+        }
+
+        var builder = new ChatClientBuilder(client);
+
+        builder.UseQylTelemetry(
+            sourceName: sourceName ?? GenAiConstants.SourceName,
+            configure: enableSensitiveData.HasValue
+                ? openTelemetryChatClient => openTelemetryChatClient.EnableSensitiveData = enableSensitiveData.Value
+                : null);
+
+        return builder.Build();
     }
 
     /// <summary>
@@ -71,9 +78,11 @@ public static class GenAiInstrumentation
     {
         Guard.NotNull(builder);
 
-        return builder.UseOpenTelemetry(
+        builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,
             configure: configure);
+        builder.Use(static inner => new ToolInstrumentingChatClient(inner));
+        return builder;
     }
 
     /// <summary>

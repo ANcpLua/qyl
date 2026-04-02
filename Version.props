@@ -1,46 +1,30 @@
 <Project>
   <PropertyGroup Label="Package Versions">
-    <!-- .NET Shared Framework (ships with runtime) -->
-    <DotNetRuntimeVersion>10.0.4</DotNetRuntimeVersion>
-    <!-- Microsoft.Extensions.* (out-of-band NuGet packages) -->
+    <DotNetRuntimeVersion>10.0.5</DotNetRuntimeVersion>
     <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
-    <!-- OpenTelemetry -->
+    <MicrosoftExtensionsAiVersion>10.4.1</MicrosoftExtensionsAiVersion>
     <OpenTelemetryVersion>1.15.0</OpenTelemetryVersion>
-    <!-- DuckDB -->
+    <OpenTelemetryAspNetCoreInstrumentationVersion>1.15.1</OpenTelemetryAspNetCoreInstrumentationVersion>
     <DuckDBVersion>1.5.0</DuckDBVersion>
-    <!-- gRPC & Protobuf -->
     <GoogleProtobufVersion>3.34.0</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.78.0</GrpcToolsVersion>
-    <!-- Testing -->
     <XunitVersion>3.2.2</XunitVersion>
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
     <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
-    <!-- Analyzers -->
     <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
-    <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
+    <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
     <ANcpLuaRoslynUtilitiesVersion>1.48.0</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaRoslynUtilitiesBaseVersion>1.48.0</ANcpLuaRoslynUtilitiesBaseVersion>
-    <!-- Microsoft.Agents.AI -->
-    <MicrosoftAgentsAbstractionsVersion>1.0.0-rc4</MicrosoftAgentsAbstractionsVersion>
-    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260311.1</MicrosoftAgentsCopilotVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260311.1</MicrosoftAgentsHostingVersion>
-    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260311.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
-    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc4</MicrosoftAgentsWorkflowsDeclarativeVersion>
-    <!-- OpenAI SDK -->
     <OpenAIVersion>2.9.1</OpenAIVersion>
-    <!-- MCP -->
     <ModelContextProtocolVersion>1.1.0</ModelContextProtocolVersion>
-    <!-- Microsoft.IdentityModel (JWT/JWKS validation for Keycloak) -->
-    <MicrosoftIdentityModelVersion>8.16.0</MicrosoftIdentityModelVersion>
-    <!-- Build Tooling -->
+    <MicrosoftIdentityModelVersion>8.17.0</MicrosoftIdentityModelVersion>
+    <QylAgentsVersion>0.2.0</QylAgentsVersion>
     <NukeVersion>10.1.0</NukeVersion>
-    <!-- Architecture Tests -->
     <NetArchTestVersion>1.3.2</NetArchTestVersion>
-    <!-- Misc -->
     <YamlDotNetVersion>16.3.0</YamlDotNetVersion>
     <SpectreConsoleVersion>0.54.0</SpectreConsoleVersion>
-    <!-- PackageDownload -->
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>

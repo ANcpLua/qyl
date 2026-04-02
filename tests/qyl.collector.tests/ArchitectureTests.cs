@@ -8,7 +8,8 @@ namespace Qyl.Collector.Tests;
 
 /// <summary>
 ///     Enforces project dependency boundaries across the qyl platform.
-///     v2 architecture: server has zero LLM dependencies.
+///     v2 architecture: collector may depend on M.E.AI abstractions, but not
+///     MAF runtime packages, GitHub Copilot SDK, or concrete provider SDKs.
 /// </summary>
 public sealed class ArchitectureTests
 {

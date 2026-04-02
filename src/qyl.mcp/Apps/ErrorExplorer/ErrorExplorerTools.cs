@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
@@ -81,3 +82,10 @@ public sealed class ErrorExplorerTools(HttpClient client)
         };
     }
 }
+
+[JsonSerializable(typeof(CallToolResult))]
+[JsonSerializable(typeof(TextContentBlock))]
+[JsonSerializable(typeof(ResourceLinkBlock))]
+[JsonSerializable(typeof(JsonObject))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+internal sealed partial class ErrorExplorerJsonContext : JsonSerializerContext;

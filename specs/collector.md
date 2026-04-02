@@ -34,6 +34,26 @@ Responsibilities:
 - Serve REST API for dashboard, MCP, and external consumers
 - Host dashboard static files in production
 
+### 1.1 Railway Production Reference (`qyl-api`)
+
+Observed from the Railway production variables UI on 2026-04-02:
+
+| Variable | Observed value |
+|----------|----------------|
+| `ASPNETCORE_URLS` | `http://+:8080` |
+| `QYL_PORT` | `8080` |
+| `QYL_DATA_PATH` | `/data/qyl.duckdb` |
+| `QYL_GRPC_PORT` | `4317` |
+| `QYL_OTLP_PORT` | `4318` |
+| `QYL_OTLP_AUTH_MODE` | `ApiKey` |
+| `QYL_RETENTION_DAYS` | `7` |
+
+Secrets are configured for `QYL_OTLP_PRIMARY_API_KEY` and `QYL_TOKEN`, but their values are intentionally omitted from the repo.
+
+Important: `QYL_MCP_TRANSPORT=http` and `QYL_COLLECTOR_URL=http://localhost:5100` currently appear on the
+`qyl-api` Railway service. Treat that as deployment noise, not proof that the collector is also hosting
+`qyl.mcp`.
+
 Ownership boundaries: see `00-architecture.md` section 2.3.
 
 ## 2. OTLP Ingestion

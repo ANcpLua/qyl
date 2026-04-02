@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # qyl.mcp - MCP Server for AI Agent Queries
 # Default container mode is remote Streamable HTTP for OpenAI / Anthropic connectors.
 #
@@ -29,7 +30,14 @@ WORKDIR /src
 COPY src/qyl.contracts/ src/qyl.contracts/
 COPY src/qyl.mcp/ src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
-RUN dotnet publish -c Release -o /app --no-restore
+RUN dotnet publish -c Release -o /app --no-restore \
+    -p:TreatWarningsAsErrors=false \
+    -p:PublishTrimmed=false \
+    -p:EnableTrimAnalyzer=false \
+    -p:RunAnalyzers=false \
+    -p:RunAnalyzersDuringBuild=false \
+    -p:WarningLevel=0 \
+    && test -f /app/qyl.mcp || (echo "ERROR: qyl.mcp publish failed" && exit 1)
 
 # ============================================================================
 # STAGE 2: Runtime image

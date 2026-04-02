@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http.Resilience;
 using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 
@@ -6,14 +8,21 @@ namespace qyl.mcp;
 
 internal static class McpCollectorHttpClientExtensions
 {
+    public const string CollectorClientName = "qyl.collector";
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
 
-    public static IHttpClientBuilder AddCollectorToolClient<TClient>(
+    public static IHttpClientBuilder AddCollectorHttpClient(
         this IServiceCollection services,
         string collectorUrl,
         TimeSpan? timeout = null)
-        where TClient : class
     {
+        if (timeout is { } configuredTimeout && configuredTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be greater than zero.");
+        }
+
+        var effectiveTimeout = timeout ?? DefaultTimeout;
+
         ArgumentException.ThrowIfNullOrWhiteSpace(collectorUrl);
 
         if (!Uri.TryCreate(collectorUrl, UriKind.Absolute, out var baseAddress))
@@ -22,16 +31,42 @@ internal static class McpCollectorHttpClientExtensions
         }
 
         var httpClientBuilder = services
-            .AddHttpClient<TClient>(client =>
+            .AddHttpClient(CollectorClientName, client =>
             {
                 client.BaseAddress = baseAddress;
-                client.Timeout = timeout ?? DefaultTimeout;
             })
             .AddMcpAuthHandler()
             .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()))
             .AddExtendedHttpClientLogging();
 
-        httpClientBuilder.AddStandardResilienceHandler();
+        // Most MCP tools ask for a bare HttpClient. Make that default resolve to the
+        // collector-configured named client so tool constructors stay simple.
+        services.Replace(ServiceDescriptor.Transient<HttpClient>(
+            static sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient(CollectorClientName)));
+
+        httpClientBuilder
+            .AddStandardResilienceHandler()
+            .Configure(options =>
+            {
+                options.TotalRequestTimeout.Timeout = effectiveTimeout;
+
+                if (options.AttemptTimeout.Timeout >= effectiveTimeout)
+                {
+                    options.AttemptTimeout.Timeout = effectiveTimeout > TimeSpan.FromMilliseconds(1)
+                        ? effectiveTimeout - TimeSpan.FromMilliseconds(1)
+                        : TimeSpan.FromTicks(Math.Max(1, effectiveTimeout.Ticks / 2));
+                }
+            });
+
         return httpClientBuilder;
+    }
+
+    public static IServiceCollection AddCollectorToolClient<TClient>(
+        this IServiceCollection services)
+        where TClient : class
+    {
+        services.AddTransient<TClient>();
+
+        return services;
     }
 }

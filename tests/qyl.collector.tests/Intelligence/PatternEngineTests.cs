@@ -22,7 +22,7 @@ public sealed class PatternEngineTests
     [Fact]
     public void SeedPatterns_AllHaveUniqueIds()
     {
-        var ids = DiagnosticPatterns.All.Select(p => p.Id).ToList();
+        var ids = DiagnosticPatterns.All.Select(static p => p.Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
     }
 
@@ -32,7 +32,7 @@ public sealed class PatternEngineTests
     [Fact]
     public void SeedRules_ReferenceExistingPatterns()
     {
-        var patternIds = DiagnosticPatterns.All.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        var patternIds = DiagnosticPatterns.All.Select(static p => p.Id).ToHashSet(StringComparer.Ordinal);
 
         foreach (var rule in CausalRules.All)
         {
@@ -70,7 +70,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        var match = Assert.Single(matches, m => m.Pattern.Id == "genai_rate_limit");
+        var match = Assert.Single(matches, static m => m.Pattern.Id == "genai_rate_limit");
         Assert.Equal(0.9, match.Score, 5);
     }
 
@@ -82,7 +82,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "genai_token_exhaustion");
+        Assert.Single(matches, static m => m.Pattern.Id == "genai_token_exhaustion");
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "genai_content_filter");
+        Assert.Single(matches, static m => m.Pattern.Id == "genai_content_filter");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "db_timeout");
+        Assert.Single(matches, static m => m.Pattern.Id == "db_timeout");
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "db_n_plus_one");
+        Assert.Single(matches, static m => m.Pattern.Id == "db_n_plus_one");
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "http_5xx_cluster");
+        Assert.Single(matches, static m => m.Pattern.Id == "http_5xx_cluster");
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "deployment_regression");
+        Assert.Single(matches, static m => m.Pattern.Id == "deployment_regression");
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "cascading_timeout");
+        Assert.Single(matches, static m => m.Pattern.Id == "cascading_timeout");
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "memory_pressure_latency");
+        Assert.Single(matches, static m => m.Pattern.Id == "memory_pressure_latency");
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.Single(matches, m => m.Pattern.Id == "cost_spike");
+        Assert.Single(matches, static m => m.Pattern.Id == "cost_spike");
     }
 
     // ==========================================================================
@@ -262,7 +262,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.DoesNotContain(matches, m => m.Pattern.Id == "genai_rate_limit");
+        Assert.DoesNotContain(matches, static m => m.Pattern.Id == "genai_rate_limit");
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public sealed class PatternEngineTests
 
         var matches = engine.Evaluate(signals);
 
-        Assert.DoesNotContain(matches, m => m.Pattern.Id == "db_timeout");
+        Assert.DoesNotContain(matches, static m => m.Pattern.Id == "db_timeout");
     }
 
     [Fact]
@@ -338,8 +338,8 @@ public sealed class PatternEngineTests
     public void BuildCausalGraph_DeployRegressionAndHttp5xx_CreatesEdgeWithStrength085()
     {
         var engine = CreateEngine();
-        var deployPattern = DiagnosticPatterns.All.First(p => p.Id == "deployment_regression");
-        var httpPattern = DiagnosticPatterns.All.First(p => p.Id == "http_5xx_cluster");
+        var deployPattern = DiagnosticPatterns.All.First(static p => p.Id == "deployment_regression");
+        var httpPattern = DiagnosticPatterns.All.First(static p => p.Id == "http_5xx_cluster");
 
         var matches = new List<PatternMatch>
         {
@@ -359,8 +359,8 @@ public sealed class PatternEngineTests
     public void BuildCausalGraph_RootCause_IsPatternWithNoIncomingEdges()
     {
         var engine = CreateEngine();
-        var deployPattern = DiagnosticPatterns.All.First(p => p.Id == "deployment_regression");
-        var httpPattern = DiagnosticPatterns.All.First(p => p.Id == "http_5xx_cluster");
+        var deployPattern = DiagnosticPatterns.All.First(static p => p.Id == "deployment_regression");
+        var httpPattern = DiagnosticPatterns.All.First(static p => p.Id == "http_5xx_cluster");
 
         var matches = new List<PatternMatch>
         {
@@ -379,9 +379,9 @@ public sealed class PatternEngineTests
     {
         var engine = CreateEngine();
         // Chain: db_n_plus_one → db_timeout → http_5xx_cluster
-        var nPlusOne = DiagnosticPatterns.All.First(p => p.Id == "db_n_plus_one");
-        var dbTimeout = DiagnosticPatterns.All.First(p => p.Id == "db_timeout");
-        var http5xx = DiagnosticPatterns.All.First(p => p.Id == "http_5xx_cluster");
+        var nPlusOne = DiagnosticPatterns.All.First(static p => p.Id == "db_n_plus_one");
+        var dbTimeout = DiagnosticPatterns.All.First(static p => p.Id == "db_timeout");
+        var http5xx = DiagnosticPatterns.All.First(static p => p.Id == "http_5xx_cluster");
 
         var matches = new List<PatternMatch>
         {
@@ -402,7 +402,7 @@ public sealed class PatternEngineTests
     public void BuildCausalGraph_SingleMatch_HasNoEdgesAndIsRootCause()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "genai_content_filter");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "genai_content_filter");
 
         var matches = new List<PatternMatch> { new(pattern, pattern.Confidence, pattern.Signals) };
 
@@ -431,7 +431,7 @@ public sealed class PatternEngineTests
     public void SelectStrategy_ErrorCategory_ReturnsInvestigateErrorIssue()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "http_5xx_cluster");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "http_5xx_cluster");
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
 
         var strategy = engine.SelectStrategy(match);
@@ -444,7 +444,7 @@ public sealed class PatternEngineTests
     public void SelectStrategy_LatencyCategory_ReturnsInvestigateLatency()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "cascading_timeout");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "cascading_timeout");
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
 
         var strategy = engine.SelectStrategy(match);
@@ -457,7 +457,7 @@ public sealed class PatternEngineTests
     public void SelectStrategy_CostCategory_ReturnsInvestigateCost()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "cost_spike");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "cost_spike");
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
 
         var strategy = engine.SelectStrategy(match);
@@ -470,7 +470,7 @@ public sealed class PatternEngineTests
     public void SelectStrategy_GenAiCategory_ReturnsInvestigateGenAi()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "genai_rate_limit");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "genai_rate_limit");
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
 
         var strategy = engine.SelectStrategy(match);
@@ -483,7 +483,7 @@ public sealed class PatternEngineTests
     public void SelectStrategy_DataCategory_ReturnsNull_NoDataCategoryStrategy()
     {
         var engine = CreateEngine();
-        var pattern = DiagnosticPatterns.All.First(p => p.Id == "db_timeout");
+        var pattern = DiagnosticPatterns.All.First(static p => p.Id == "db_timeout");
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
 
         var strategy = engine.SelectStrategy(match);

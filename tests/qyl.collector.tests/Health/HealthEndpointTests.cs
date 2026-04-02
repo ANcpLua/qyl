@@ -84,12 +84,12 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
         var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
 
         Assert.True(response.Headers.TryGetValues("X-Content-Type-Options", out var xcto));
-        Assert.Equal("nosniff", xcto!.Single());
+        Assert.Equal("nosniff", xcto.Single());
 
         Assert.NotNull(response.Content.Headers.ContentType);
         var cacheControl = response.Headers.CacheControl;
         Assert.NotNull(cacheControl);
-        Assert.True(cacheControl!.NoStore);
+        Assert.True(cacheControl.NoStore);
     }
 
     [Fact(Skip = SkipReason)]
@@ -102,7 +102,7 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
             var response = await _client.GetAsync(endpoint, TestContext.Current.CancellationToken);
             var cacheControl = response.Headers.CacheControl;
             Assert.NotNull(cacheControl);
-            Assert.True(cacheControl!.NoStore, $"{endpoint} missing Cache-Control: no-store");
+            Assert.True(cacheControl.NoStore, $"{endpoint} missing Cache-Control: no-store");
         }
     }
 

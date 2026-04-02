@@ -14,6 +14,7 @@ using ModelContextProtocol.Authentication;
 using ModelContextProtocol.Protocol;
 using qyl.contracts.Attributes;
 using qyl.mcp;
+using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
@@ -132,51 +133,51 @@ static JsonSerializerOptions ConfigureCommonServices(
     services.AddSingleton(scope);
 
     var collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
+    services.AddCollectorHttpClient(collectorUrl);
 
     if (skills.IsEnabled(QylSkillKind.Inspect))
     {
-        services.AddCollectorToolClient<ReplayTools>(collectorUrl);
-        services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
-        services.AddCollectorToolClient<GenAiTools>(collectorUrl);
-        services.AddCollectorToolClient<ErrorTools>(collectorUrl);
-        services.AddCollectorToolClient<ServiceTools>(collectorUrl);
-        services.AddCollectorToolClient<SpanQueryTools>(collectorUrl);
+        services.AddCollectorToolClient<ReplayTools>();
+        services.AddCollectorToolClient<StructuredLogTools>();
+        services.AddCollectorToolClient<GenAiTools>();
+        services.AddCollectorToolClient<ErrorTools>();
+        services.AddCollectorToolClient<ServiceTools>();
+        services.AddCollectorToolClient<SpanQueryTools>();
     }
 
     if (skills.IsEnabled(QylSkillKind.Health))
     {
-        services.AddCollectorToolClient<StorageHealthTools>(collectorUrl);
+        services.AddCollectorToolClient<StorageHealthTools>();
     }
 
     if (skills.IsEnabled(QylSkillKind.Analytics))
     {
-        services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
+        services.AddCollectorToolClient<AnalyticsTools>();
     }
 
     if (skills.IsEnabled(QylSkillKind.Agent))
     {
-        services.AddCollectorToolClient<SummaryTools>(collectorUrl);
+        services.AddCollectorToolClient<SummaryTools>();
     }
 
     if (skills.IsEnabled(QylSkillKind.Anomaly))
     {
-        services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
+        services.AddCollectorToolClient<AnomalyTools>();
     }
 
     if (skills.IsEnabled(QylSkillKind.Loom))
     {
-        services.AddCollectorToolClient<TriageTools>(collectorUrl);
-        services.AddCollectorToolClient<ExportForAgentTools>(collectorUrl);
-        services.AddCollectorToolClient<FixTools>(collectorUrl);
-        services.AddCollectorToolClient<AutofixMcpTools>(collectorUrl);
-        services.AddCollectorToolClient<RegressionTools>(collectorUrl);
-        services.AddCollectorToolClient<GitHubMcpTools>(collectorUrl);
-        services.AddCollectorToolClient<AssistedQueryTools>(collectorUrl);
-        services.AddCollectorToolClient<TestGenerationTools>(collectorUrl);
+        services.AddCollectorToolClient<TriageTools>();
+        services.AddCollectorToolClient<ExportForAgentTools>();
+        services.AddCollectorToolClient<FixTools>();
+        services.AddCollectorToolClient<AutofixMcpTools>();
+        services.AddCollectorToolClient<RegressionTools>();
+        services.AddCollectorToolClient<GitHubMcpTools>();
+        services.AddCollectorToolClient<AssistedQueryTools>();
+        services.AddCollectorToolClient<TestGenerationTools>();
     }
 
-    services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
-    services.AddCollectorToolClient<ArtifactTools>(collectorUrl);
+    services.AddCollectorToolClient<ArtifactTools>();
     services.AddSingleton<RcaTools>();
 
     services.AddSingleton<McpToolRegistry>();
@@ -188,11 +189,7 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddSingleton<RiderMcpProxy>();
     }
 
-    services.AddSingleton<ITelemetryStore>(static sp =>
-        new HttpTelemetryStore(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpTelemetryStore)),
-            sp.GetRequiredService<TimeProvider>(),
-            sp.GetRequiredService<ILogger<HttpTelemetryStore>>()));
+    services.AddSingleton<ITelemetryStore, HttpTelemetryStore>();
 
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
@@ -208,6 +205,7 @@ static JsonSerializerOptions ConfigureCommonServices(
     jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(LoomMcpJsonContext.Default);
+    jsonOptions.TypeInfoResolverChain.Add(ErrorExplorerJsonContext.Default);
 
     return jsonOptions;
 }

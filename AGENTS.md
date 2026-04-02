@@ -34,6 +34,30 @@ nuke test     # test
 dotnet run --project src/qyl.collector   # run
 ```
 
+<railway-production-note>
+
+Observed on Railway production (`qyl-api`) from the live service variables UI on 2026-04-02:
+
+- `ASPNETCORE_URLS=http://+:8080`
+- `QYL_PORT=8080`
+- `QYL_DATA_PATH=/data/qyl.duckdb`
+- `QYL_GRPC_PORT=4317`
+- `QYL_OTLP_PORT=4318`
+- `QYL_OTLP_AUTH_MODE=ApiKey`
+- `QYL_RETENTION_DAYS=7`
+- Secret values exist for `QYL_OTLP_PRIMARY_API_KEY` and `QYL_TOKEN`; never commit them
+- `QYL_MCP_TRANSPORT=http` and `QYL_COLLECTOR_URL=http://localhost:5100` are currently present on
+  `qyl-api`, but that does **not** mean `qyl-api` is hosting `qyl.mcp`
+
+Operational truth:
+
+- Repo `railway.toml` deploys `src/qyl.collector/Dockerfile`
+- Remote MCP is a separate service (`qyl-mcp`) when deployed correctly
+- Do not infer live production topology from stray variables alone; verify the active Railway service,
+  build config, and public routes
+
+</railway-production-note>
+
 <changelog-protocol priority="highest">
 
 **CHANGELOG.md is the coordination layer. Multiple agents and humans work on this repo in parallel.**

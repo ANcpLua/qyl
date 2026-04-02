@@ -27,10 +27,11 @@ internal sealed class GitHubMcpTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
+            if (!TrySplitRepoFullName(repoFullName, out var owner, out var repo))
+                return $"Invalid repo full name '{repoFullName}'. Expected 'owner/repo'.";
+
             using var resp = await http
-                .PostAsync(
-                    $"/api/v1/code-review/{Uri.EscapeDataString(repoFullName)}/pulls/{prNumber}",
-                    null, ct)
+                .PostAsync(BuildCodeReviewPath(owner, repo, prNumber), null, ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
@@ -52,9 +53,11 @@ internal sealed class GitHubMcpTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
+            if (!TrySplitRepoFullName(repoFullName, out var owner, out var repo))
+                return $"Invalid repo full name '{repoFullName}'. Expected 'owner/repo'.";
+
             using var resp = await http
-                .GetAsync(
-                    $"/api/v1/code-review/{Uri.EscapeDataString(repoFullName)}/pulls/{prNumber}", ct)
+                .GetAsync(BuildCodeReviewPath(owner, repo, prNumber), ct)
                 .ConfigureAwait(false);
 
             if (resp.StatusCode == HttpStatusCode.NotFound)
@@ -94,6 +97,26 @@ internal sealed class GitHubMcpTools(HttpClient http)
             var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatEventList(json);
         });
+
+    private static string BuildCodeReviewPath(string owner, string repo, int prNumber) =>
+        $"/api/v1/code-review/{Uri.EscapeDataString(owner)}/{Uri.EscapeDataString(repo)}/pulls/{prNumber}";
+
+    private static bool TrySplitRepoFullName(string repoFullName, out string owner, out string repo)
+    {
+        owner = string.Empty;
+        repo = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(repoFullName))
+            return false;
+
+        var parts = repoFullName.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length is not 2)
+            return false;
+
+        owner = parts[0];
+        repo = parts[1];
+        return true;
+    }
 
     private static string FormatCodeReview(string json, string repoFullName, int prNumber)
     {

@@ -1,0 +1,127 @@
+using Qyl.Contracts.Loom;
+using Xunit;
+
+namespace Qyl.Collector.Tests.Autofix;
+
+public sealed class CodingAgentProviderTests
+{
+    // =========================================================================
+    // ToSlug
+    // =========================================================================
+
+    [Theory]
+    [InlineData(CodingAgentProvider.Loom, "Loom")]
+    [InlineData(CodingAgentProvider.Cursor, "cursor")]
+    [InlineData(CodingAgentProvider.GithubCopilot, "github_copilot")]
+    [InlineData(CodingAgentProvider.ClaudeCode, "claude_code")]
+    public void ToSlug_KnownProvider_ReturnsExpectedSlug(CodingAgentProvider provider, string expected)
+    {
+        var actual = CodingAgentProviderNames.ToSlug(provider);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void ToSlug_UnknownProvider_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            static () => CodingAgentProviderNames.ToSlug((CodingAgentProvider)999));
+    }
+
+    // =========================================================================
+    // NormalizeSlug — happy paths
+    // =========================================================================
+
+    [Theory]
+    [InlineData("Loom", "Loom")]
+    [InlineData("loom", "Loom")]
+    [InlineData("LOOM", "Loom")]
+    [InlineData("cursor", "cursor")]
+    [InlineData("Cursor", "cursor")]
+    [InlineData("CURSOR", "cursor")]
+    [InlineData("github_copilot", "github_copilot")]
+    [InlineData("GITHUB_COPILOT", "github_copilot")]
+    [InlineData("GithubCopilot", "github_copilot")]
+    [InlineData("github-copilot", "github_copilot")]
+    [InlineData("claude_code", "claude_code")]
+    [InlineData("CLAUDE_CODE", "claude_code")]
+    [InlineData("ClaudeCode", "claude_code")]
+    [InlineData("claude-code", "claude_code")]
+    public void NormalizeSlug_KnownValues_ReturnCanonicalSlug(string input, string expected)
+    {
+        var actual = CodingAgentProviderNames.NormalizeSlug(input);
+
+        Assert.Equal(expected, actual);
+    }
+
+    // =========================================================================
+    // NormalizeSlug — null / empty / unknown fallback
+    // =========================================================================
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("totally-unknown-provider")]
+    [InlineData("openai")]
+    public void NormalizeSlug_UnknownOrEmpty_FallsBackToLoom(string? input)
+    {
+        var actual = CodingAgentProviderNames.NormalizeSlug(input);
+
+        Assert.Equal("Loom", actual);
+    }
+
+    // =========================================================================
+    // Round-trip: ToSlug → NormalizeSlug
+    // =========================================================================
+
+    [Theory]
+    [InlineData(CodingAgentProvider.Loom)]
+    [InlineData(CodingAgentProvider.Cursor)]
+    [InlineData(CodingAgentProvider.GithubCopilot)]
+    [InlineData(CodingAgentProvider.ClaudeCode)]
+    public void RoundTrip_ToSlug_ThenNormalize_IsIdempotent(CodingAgentProvider provider)
+    {
+        var slug = CodingAgentProviderNames.ToSlug(provider);
+        var normalized = CodingAgentProviderNames.NormalizeSlug(slug);
+
+        Assert.Equal(slug, normalized);
+    }
+
+    // =========================================================================
+    // TryParse
+    // =========================================================================
+
+    [Theory]
+    [InlineData("Loom", CodingAgentProvider.Loom)]
+    [InlineData("cursor", CodingAgentProvider.Cursor)]
+    [InlineData("github_copilot", CodingAgentProvider.GithubCopilot)]
+    [InlineData("claude_code", CodingAgentProvider.ClaudeCode)]
+    public void TryParse_KnownSlug_ReturnsTrueWithCorrectProvider(string input, CodingAgentProvider expected)
+    {
+        var success = CodingAgentProviderNames.TryParse(input, out var provider);
+
+        Assert.True(success);
+        Assert.Equal(expected, provider);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("unknown-provider")]
+    public void TryParse_NullEmptyOrUnknown_ReturnsFalse(string? input)
+    {
+        var success = CodingAgentProviderNames.TryParse(input, out _);
+
+        Assert.False(success);
+    }
+
+    [Fact]
+    public void TryParse_NullInput_OutParamDefaultsToLoom()
+    {
+        CodingAgentProviderNames.TryParse(null, out var provider);
+
+        Assert.Equal(CodingAgentProvider.Loom, provider);
+    }
+}

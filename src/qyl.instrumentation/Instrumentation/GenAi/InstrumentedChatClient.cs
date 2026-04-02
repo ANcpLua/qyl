@@ -60,6 +60,8 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        options = ToolInstrumentingChatClient.PrepareOptions(options);
+
         var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
         var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
         var provider = meta?.ProviderName ?? "unknown";
@@ -97,6 +99,8 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        options = ToolInstrumentingChatClient.PrepareOptions(options);
+
         var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
         var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
         var provider = meta?.ProviderName ?? "unknown";

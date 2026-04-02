@@ -31,7 +31,7 @@ public sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 ///     Property order must match SELECT column order for MapFromReader.
 /// </remarks>
 [DuckDbTable("spans")]
-public sealed record SpanStorageRow
+public sealed partial record SpanStorageRow
 {
     // Identity (PRIMARY KEY is span_id in new schema)
     public required string SpanId { get; init; }

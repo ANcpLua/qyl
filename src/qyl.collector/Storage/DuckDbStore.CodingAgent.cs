@@ -117,7 +117,7 @@ public sealed partial class DuckDbStore
     // Loom Settings
     // =========================================================================
 
-    public async Task<LoomSettingsRecord> GetLoomSettingsAsync(CancellationToken ct = default)
+    public async Task<LoomSettingsRecord> GetLoomSettingsAsync(string orgId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
@@ -126,12 +126,21 @@ public sealed partial class DuckDbStore
         cmd.CommandText = """
                           SELECT id, default_coding_agent, default_coding_agent_integration_id,
                                  automation_tuning, updated_at
-                          FROM Loom_settings WHERE id = 'default'
+                          FROM Loom_settings WHERE id = $1
                           """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = orgId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return new LoomSettingsRecord { Id = "default" };
+        {
+            return new LoomSettingsRecord
+            {
+                Id = orgId,
+                DefaultCodingAgent = CodingAgentProviderNames.ToSlug(CodingAgentProvider.Loom),
+                AutomationTuning = "medium",
+                UpdatedAt = DateTime.UnixEpoch
+            };
+        }
 
         return new LoomSettingsRecord
         {

@@ -4,6 +4,10 @@
 
 ### Added
 
+- **MAF overlap audit report**: Added `docs/superpowers/plans/2026-04-02-maf-overlap-analysis.md`, a repo-grounded analysis of where qyl still uses self-implemented agent/orchestration/runtime code instead of Microsoft Agent Framework layers, with concrete keep/replace/delete recommendations.
+- **Dedicated qyl.mcp test project**: Added `tests/qyl.mcp.tests/` with focused HTTP-bound tests for
+  collector client registration and `HttpTelemetryStore`, plus `InternalsVisibleTo` wiring so MCP DI and
+  telemetry seams are covered directly without depending on collector tests.
 - **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `src/qyl.collector/Autofix/`
   exposes REST endpoints for standalone Loom background workers: `GET /api/v1/fix-runs` (pending query),
   `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`, `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
@@ -16,6 +20,17 @@
 
 ### Changed
 
+- **Collector architecture test wording aligned with reality**: `ArchitectureTests` no longer claims the server has "zero LLM dependencies"; it now states the actual boundary: `Microsoft.Extensions.AI` abstractions are allowed, while MAF runtime packages, GitHub Copilot SDK, and provider SDKs are not.
+- **Qyl chat instrumentation now auto-wraps tool calls**: `UseQylInstrumentation()` and `WithQylTelemetry()`
+  now wrap `ChatOptions.Tools` with `InstrumentedAIFunction` automatically, so `execute_tool` spans are emitted
+  without a separate manual `AddInstrumentedTools()` call whenever qyl is already instrumenting the chat client.
+- **Railway production notes documented**: `AGENTS.md`, `specs/collector.md`, and `specs/mcp.md` now
+  record the observed `qyl-api` Railway variables from production (`ASPNETCORE_URLS=http://+:8080`,
+  `QYL_PORT=8080`, `QYL_OTLP_AUTH_MODE=ApiKey`, `QYL_RETENTION_DAYS=7`, secrets omitted) and explicitly
+  note that `QYL_MCP_TRANSPORT` appearing on `qyl-api` does not mean the MCP server is deployed there.
+- **qyl.mcp gets its own Railway config**: Added `src/qyl.mcp/railway.toml` and updated `src/qyl.mcp/README.md`
+  plus `specs/mcp.md` to make the monorepo split explicit: repo-root `railway.toml` is collector-only,
+  while MCP must use `/src/qyl.mcp/railway.toml`.
 - **Shared Loom types moved to qyl.contracts**: Moved `FixPolicy`, `PolicyGate`, `FixRunRecord`,
   `AutofixStepRecord`, `ConfidenceResult`, `TriageResult`, `LlmTriageResponse`, `IssueSummary`,
   `IssueStatus`, and `IssueEvent` from `qyl.collector` to `Qyl.Contracts.Loom` namespace in
@@ -24,6 +39,7 @@
 
 ### Removed
 
+- **Unused central MAF package versions**: Deleted dead central package-management entries for `Microsoft.Agents.AI.Abstractions`, `Microsoft.Agents.AI.GitHub.Copilot`, `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, and `Microsoft.Agents.AI.Workflows.Declarative`. No project referenced them; only `Microsoft.Agents.AI.Hosting` remains live via the MAF sample.
 - **Dead weight purged from qyl.loom**: Deleted `Identity/`, `Workflow/`, `AgentRuns/`, `Analytics/`,
   `impl/seer/`, `EmbeddingClusterWorker.cs`, `ProjectService.cs`, `PrCreationService.cs`,
   `AutofixEndpoints.cs`, `TriageEndpoints.cs`, `RegressionEndpoints.cs`. Removed corresponding
@@ -45,6 +61,32 @@
 
 ### Fixed
 
+- **Railway Docker builds no longer depend on service-specific cache IDs**: `src/qyl.collector/Dockerfile`
+  and `src/qyl.mcp/Dockerfile` no longer use Railway cache mounts. This removes both the old
+  hardcoded-service-ID failure and the invalid generic-cache-mount failure when the repo is built from
+  different Railway services.
+- **qyl.mcp Railway publish path now matches collector deploy behavior**: `src/qyl.mcp/Dockerfile` now uses
+  generic NuGet cache mounts and disables warnings-as-errors/analyzer execution during container publish,
+  matching the existing collector deployment strategy so Railway can produce the MCP binary from the same repo.
+- **qyl.mcp startup crash fixed for nullable bool tool args**: `AnalyticsJsonContext` now includes
+  `bool?` metadata so MCP tool registration no longer throws `JsonTypeInfo metadata for type
+  System.Nullable<bool> was not provided` during `MapMcp(...)` startup.
+- **qyl.mcp startup crash fixed for app tool result metadata**: `ErrorExplorerJsonContext` now includes
+  `CallToolResult`, `TextContentBlock`, `ResourceLinkBlock`, and `JsonObject`, and `Program.cs` adds that
+  context to the MCP serializer resolver chain. This fixes the next `MapMcp(...)` startup failure caused by
+  the interactive Error Explorer app tool.
+- **qyl.mcp collector-backed tools now resolve a real collector base URL**: `McpCollectorHttpClientExtensions`
+  now registers a shared named collector client plus the default injectable `HttpClient`, and `Program.cs`
+  binds tool/service types to that shared client. This fixes runtime failures where MCP tools were constructed
+  with a bare `HttpClient` and crashed on relative `/health` or `/api/...` requests.
+- **qyl.mcp collector client DI compiles cleanly again**: `McpCollectorHttpClientExtensions` now replaces the
+  default injectable `HttpClient` with the collector-named client instead of calling an invalid `AddTransient(...)`
+  overload, `AddCollectorToolClient<T>()` now uses normal transient registration, and `ITelemetryStore` binds
+  directly to `HttpTelemetryStore` instead of constructing it from a nonexistent named client.
+- **qyl.mcp collector timeout now reaches the resilience pipeline**: `McpCollectorHttpClientExtensions`
+  now validates non-positive timeouts and maps `timeout` onto the standard resilience handler's total request
+  timeout while shrinking attempt timeout only when needed to keep Polly's option invariants valid. This makes
+  the collector client timeout parameter real instead of silently losing it behind `AddStandardResilienceHandler()`.
 - **Generator build chain restored**: `qyl.instrumentation.generators` now imports
   `ANcpLua.Roslyn.Utilities`, `ANcpLua.Roslyn.Utilities.Models`, and `ANcpLua.Roslyn.Utilities.Matching`
   explicitly, `qyl.collector.storage.generators` imports `ANcpLua.Roslyn.Utilities`, and `SpanStorageRow`

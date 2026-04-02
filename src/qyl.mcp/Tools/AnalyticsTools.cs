@@ -623,5 +623,6 @@ internal sealed record UserConversationDto(
 [JsonSerializable(typeof(SatisfactionDto))]
 [JsonSerializable(typeof(UserListDto))]
 [JsonSerializable(typeof(UserJourneyDto))]
+[JsonSerializable(typeof(bool?))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class AnalyticsJsonContext : JsonSerializerContext;

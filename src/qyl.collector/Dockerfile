@@ -10,10 +10,9 @@ FROM node:22-slim AS dashboard
 
 WORKDIR /dashboard
 
-# Copy package files and install dependencies with Railway cache mount
+# Copy package files and install dependencies
 COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
-RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-npm,target=/root/.npm \
-    npm ci --prefer-offline
+RUN npm ci --prefer-offline
 
 # Copy source and build
 COPY src/qyl.dashboard/ ./
@@ -39,10 +38,9 @@ COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
 COPY src/qyl.collector.storage.generators/*.csproj src/qyl.collector.storage.generators/
 
-# Restore dependencies with Railway NuGet cache mount
+# Restore dependencies
 WORKDIR /src/src/qyl.collector
-RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-nuget,target=/root/.nuget/packages \
-    dotnet restore
+RUN dotnet restore
 
 # Copy source files
 WORKDIR /src
@@ -52,10 +50,9 @@ COPY src/qyl.instrumentation/ src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
 COPY src/qyl.collector.storage.generators/ src/qyl.collector.storage.generators/
 
-# Publish with Railway NuGet cache mount
+# Publish
 WORKDIR /src/src/qyl.collector
-RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-nuget,target=/root/.nuget/packages \
-    dotnet publish -c Release -o /app --no-restore \
+RUN dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \
     -p:PublishTrimmed=false \

@@ -27,11 +27,12 @@ public sealed class InvestigationQueryValidationTests
         var explainQuery = $"EXPLAIN {testQuery}";
 
         await using var store = new DuckDbStore(":memory:");
-        using var lease = await store.GetReadConnectionAsync();
+        using var lease = await store.GetReadConnectionAsync(TestContext.Current.CancellationToken);
         using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = explainQuery;
 
-        var ex = await Record.ExceptionAsync(async () => await cmd.ExecuteNonQueryAsync());
+        var ex = await Record.ExceptionAsync(async () =>
+            await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
 
         Assert.True(ex is null,
             $"Strategy '{strategyId}' step '{action}' has invalid SQL:\n{query}\nError: {ex?.Message}");

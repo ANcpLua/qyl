@@ -30,6 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+    <Using Include="ANcpLua.Roslyn.Utilities.Models"/>
+    <Using Include="ANcpLua.Roslyn.Utilities.Matching"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Shipped.md"/>
     <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Unshipped.md"/>
   </ItemGroup>

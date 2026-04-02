@@ -57,9 +57,11 @@ public static class ChatClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.UseOpenTelemetry(
+        builder.UseOpenTelemetry(
             sourceName: GenAiConstants.SourceName,
             configure: configure);
+        builder.Use(static inner => new ToolInstrumentingChatClient(inner));
+        return builder;
     }
 
     /// <summary>
@@ -98,6 +100,10 @@ public static class ChatClientExtensions
     /// </summary>
     /// <param name="options">The <see cref="ChatOptions" /> whose tool list to instrument.</param>
     /// <returns>The same <paramref name="options" /> instance, mutated in place.</returns>
+    /// <remarks>
+    ///     qyl-instrumented chat clients call this automatically. Keep this helper for explicit
+    ///     one-off tool preparation when the chat client itself is not instrumented by qyl.
+    /// </remarks>
     public static ChatOptions AddInstrumentedTools(this ChatOptions options)
     {
         if (options.Tools is not { Count: > 0 })

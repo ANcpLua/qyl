@@ -42,6 +42,23 @@ Remote mode exposes:
 - `/llms.txt` — human/LLM-readable server summary
 - `/healthz` — container health endpoint
 
+### Railway monorepo deployment
+
+`qyl.mcp` is a separate Railway service from `qyl.collector`.
+
+Use the dedicated config-as-code file:
+
+```text
+/src/qyl.mcp/railway.toml
+```
+
+That file points Railway at:
+
+- `src/qyl.mcp/Dockerfile`
+- `/healthz`
+
+Do not reuse the repo-root `railway.toml` for the MCP service. The root file is for `qyl.collector`.
+
 ## Configuration
 
 | Variable                     | Default                 | Purpose                                                                         |

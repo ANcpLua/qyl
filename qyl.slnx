@@ -119,6 +119,7 @@
     <!-- Tests -->
     <Folder Name="/tests/">
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
+        <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj"/>
     </Folder>
 
 
