@@ -162,6 +162,23 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             AgentInterceptorEmitter.Emit, GeneratedFile.AgentInterceptors, "QSG006");
 
         // =====================================================================
+        // ICHATCLIENT INTERFACE-LEVEL INTERCEPTION PIPELINE
+        // Catches GetResponseAsync / GetStreamingResponseAsync on any type that
+        // implements IChatClient, regardless of which SDK is used.
+        // =====================================================================
+
+        // Discovery runs but emission is gated until GenAI SDK-specific interception
+        // is removed. Both pipelines claim overlapping call sites (CS9153) because
+        // SDK types like OpenAIChatClient implement IChatClient. Once the transitional
+        // GenAiCallSiteAnalyzer is deleted, uncomment the emitter registration below.
+        _ = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                ChatClientCallSiteAnalyzer.CouldBeChatClientInvocation,
+                ChatClientCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.ChatClientCallSitesDiscovered);
+
+        // =====================================================================
         // CAPABILITY MANIFEST PIPELINE
         // Emits [assembly: GeneratedCapabilityAttribute] for cross-assembly
         // discovery. Capabilities are always emitted (not gated by toggles)
@@ -728,6 +745,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Agent interception pipeline
         public const string AgentCallSitesDiscovered = nameof(AgentCallSitesDiscovered);
 
+        // IChatClient interface-level interception pipeline
+        public const string ChatClientCallSitesDiscovered = nameof(ChatClientCallSitesDiscovered);
+
         // Capability manifest pipeline
         public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);
 
@@ -751,6 +771,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string MeterImplementations = "MeterImplementations.g.cs";
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
         public const string AgentInterceptors = "AgentIntercepts.g.cs";
+        public const string ChatClientInterceptors = "ChatClientIntercepts.g.cs";
         public const string Capabilities = "QylCapabilities.g.cs";
     }
 

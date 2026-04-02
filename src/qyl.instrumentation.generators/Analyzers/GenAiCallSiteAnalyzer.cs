@@ -10,10 +10,23 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///     Analyzes syntax to find GenAI SDK method invocations to intercept.
 /// </summary>
 /// <remarks>
-///     Patterns cover OTel Semantic Conventions v1.40 operations:
-///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank.
-///     Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
+///     <para>
+///         Patterns cover OTel Semantic Conventions v1.40 operations:
+///         chat, embeddings, text_completion, image_generation, speech, transcription, rerank.
+///         Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
+///     </para>
+///     <para>
+///         <strong>Transitional:</strong> IChatClient interface interception (via
+///         <c>builder.Services.AddChatClient(...).UseQylInstrumentation()</c>) replaces
+///         SDK-specific call-site interception for all providers that implement
+///         <c>Microsoft.Extensions.AI.IChatClient</c>. This class is retained until
+///         the IChatClient interceptor path is fully validated in production.
+///         See <see cref="GenAiDirectSdkUsageDiagnosticAnalyzer" /> (QYL001) which now warns
+///         developers to migrate away from direct SDK usage.
+///     </para>
 /// </remarks>
+// Transitional: IChatClient interface interception replaces SDK-specific interception.
+// Keep until the IChatClient interceptor path is validated. See QYL001 diagnostic.
 internal static class GenAiCallSiteAnalyzer
 {
     private static readonly string[] ModelParameterNames = ["model", "modelId", "deploymentName"];

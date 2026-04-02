@@ -254,6 +254,30 @@ internal sealed record AgentCallSite(
 
 #endregion
 
+#region ChatClient Call Site Types
+
+/// <summary>
+///     A discovered IChatClient call site (GetResponseAsync / GetStreamingResponseAsync)
+///     ready for OTel instrumentation via ToolInstrumentingChatClient and GenAiInstrumentation.
+/// </summary>
+/// <remarks>
+///     Unlike <see cref="GenAiCallSite" /> which matches concrete SDK types, this model is emitted
+///     for any receiver whose static type implements <c>Microsoft.Extensions.AI.IChatClient</c>.
+///     That covers custom wrappers, DI-injected clients, and any future SDK not in the hardcoded list.
+/// </remarks>
+internal sealed record ChatClientCallSite(
+    string SortKey,
+    string ContainingTypeName,
+    string MethodName,
+    bool IsAsync,
+    bool IsStreaming,
+    string ReturnTypeName,
+    EquatableArray<string> ParameterTypes,
+    EquatableArray<string> ParameterNames,
+    InterceptableLocation Location);
+
+#endregion
+
 #region Traced Call Site Types
 
 /// <summary>
