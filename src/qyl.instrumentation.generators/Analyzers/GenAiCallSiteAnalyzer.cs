@@ -21,7 +21,18 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///         This analyzer feeds only the <c>CapabilityEmitter</c> for compile-time topology discovery
 ///         ([GeneratedCapabilityAttribute] for providers, models, operations).
 ///     </para>
+///     <para>
+///         <strong>Transitional:</strong> IChatClient interface interception (via
+///         <c>builder.Services.AddChatClient(...).UseQylInstrumentation()</c>) replaces
+///         SDK-specific call-site interception for all providers that implement
+///         <c>Microsoft.Extensions.AI.IChatClient</c>. This class is retained until
+///         the IChatClient interceptor path is fully validated in production.
+///         See <see cref="GenAiDirectSdkUsageDiagnosticAnalyzer" /> (QYL001) which warns
+///         developers to migrate away from direct SDK usage.
+///     </para>
 /// </remarks>
+// Transitional: IChatClient interface interception replaces SDK-specific interception.
+// Keep until the IChatClient interceptor path is validated. See QYL001 diagnostic.
 internal static class GenAiCallSiteAnalyzer
 {
     private static readonly string[] ModelParameterNames = ["model", "modelId", "deploymentName"];
