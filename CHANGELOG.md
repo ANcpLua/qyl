@@ -105,8 +105,6 @@
 - **TASTE-002**: Replaced 60+ raw Tailwind colors with semantic tokens (signal-red, signal-green, etc.) across dashboard.
 - **TASTE-003**: Replaced hardcoded HSL/oklch chart colors with CSS variable theme tokens.
 
-### Changed
-
 - **Dependency baseline updated**: .NET runtime packages `10.0.4` → `10.0.5`, `Microsoft.Extensions.AI*`
   `10.4.0` → `10.4.1`, `OpenTelemetry.Instrumentation.AspNetCore` `1.15.0` → `1.15.1`,
   `Microsoft.IdentityModel.JsonWebTokens` `8.16.0` → `8.17.0`, `ANcpLua.NET.Sdk*` `2.25.4` → `2.25.5`,
@@ -125,9 +123,6 @@
   old prompt-truncation demo. It registers bounded agents through `AddAIAgent(...)`, attaches durability with
   `WithInMemorySessionStore()`, exercises `WithAITool(...)` for PR creation, and keeps Loom's cross-agent handoff state
   explicit instead of treating shared conversation IDs as magical shared memory.
-
-### Added
-
 - **Qyl.Agents Loom migration slice**: `qyl.loom` now contains a `Qyl.Agents`-backed MCP server surface
   (`LoomGodAnalyzerServer`) plus ASP.NET/stdin hosting helpers. The new slice exposes issue insight, fix-run launch,
   PR review, and a reusable "god analyzer" prompt without reintroducing the dead HTTP mirror layer or depending on the
@@ -205,9 +200,6 @@
 - Embedding cluster background worker (`EmbeddingClusterWorker`)
 - Analytics hook (`use-analytics`)
 - Span clusters DuckDB schema and store
-
-### Changed
-
 - **Loom exploration facade**: Collector `/api/v1/loom/{issueId}/explore` now runs through `LoomOrchestrator`, which
   delegates root-cause investigation to `LoomDiagnostician` and solution planning to `LoomStrategist` via keyed DI.
   Added an in-memory `LoomSessionStore` so the strategist can reuse diagnostician output without rebuilding prompts
@@ -269,9 +261,6 @@
 - StartupBanner shows GitHub connect hint instead of login token
 - Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
 - Browser SDK `transport.ts` constructor accepts `sessionId` parameter
-
-### Fixed
-
 - **qyl.loom compile blocker**: Removed stale `Qyl.Collector.ConsoleBridge` global using from
   `src/qyl.loom/Identity/GlobalUsings.cs` after the MCP console bridge cleanup, restoring solution compile.
 - **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
@@ -296,9 +285,6 @@
   `qyl.summarize_session`; deleted `InvestigateTools.cs`, `IAgentProvider.cs`, `HttpAgentProvider.cs`,
   `ObservabilitySystemPrompt.cs`; updated `ReplayTools`, `SummaryTools`, `UseQylSystemPrompt`, `ConsoleTools`, and
   telemetry prompts to reflect local MCP-agent telemetry and OTLP flow.
-
-### Removed
-
 - **Dead dashboard pages**: Deleted 11 pages per architecture kill list — `BotPage`, `BotConversationDetailPage`,
   `BotUserJourneyPage`, `CodeReviewPage`, `IssueTriagePage`, `IssueFixRunsPage`, `LoomDashboardPage`, `AgentsPage`,
   `AgentRunDetailPage`, `InsightsOverviewPage`, `ResourcesPage`. Removed routes from `App.tsx`, nav items from
