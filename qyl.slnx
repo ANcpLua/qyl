@@ -12,7 +12,6 @@
         <File Path="Version.props" />
         <File Path="global.json" />
         <File Path="nuget.config" />
-        <File Path="railway.toml" />
         <File Path="README.md" />
         <File Path="TOOLS.md" />
     </Folder>
@@ -116,8 +115,6 @@
         <File Path="specs/telemetry-intelligence.md" />
     </Folder>
     <Folder Name="/specs/decisions/">
-        <File Path="specs/decisions/loom-standalone.md" />
-        <File Path="specs/decisions/maf-native-migration.md" />
         <File Path="specs/decisions/no-helicone.md" />
         <File Path="specs/decisions/no-proxy.md" />
     </Folder>
@@ -180,18 +177,10 @@
     <Folder Name="/site/">
         <File Path="site/index.html" />
     </Folder>
-    <Folder Name="/.claude/" />
 
     <!-- Claude config -->
-    <Folder Name="/.claude/qyl-workflows/">
-        <File Path=".claude/qyl-workflows/AGENTS.md" />
+    <Folder Name="/.claude/">
         <File Path=".claude/qyl-workflows/README.md" />
-        <File Path=".claude/qyl-workflows/qyl-code-review.md" />
-        <File Path=".claude/qyl-workflows/qyl-command.md" />
-        <File Path=".claude/qyl-workflows/qyl-fix-issues.md" />
-        <File Path=".claude/qyl-workflows/qyl-pr-code-review.md" />
-        <File Path=".claude/qyl-workflows/qyl-skill-tree.md" />
-        <File Path=".claude/qyl-workflows/qyl-workflow.md" />
     </Folder>
     <Folder Name="/.claude/rules/">
         <File Path=".claude/rules/base-ui-composition.md" />
