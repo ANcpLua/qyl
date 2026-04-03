@@ -198,11 +198,11 @@ Reviews incoming PRs and produces structured feedback with severity, location, a
 
 Compares distributions across time windows using statistical methods.
 
-### 6.1 Analytics
+### 6.1 Analytics (lives in collector, not Loom)
 
-`AnomalyService` + `AnomalyEndpoints` — anomaly detection.
-`DistributionComparer` — compares metric distributions.
-`StatisticalMath` — statistical primitives (z-scores, percentiles, etc.).
+`AnomalyService` + `AnomalyEndpoints` — anomaly detection (src/qyl.collector/Analytics/).
+`DistributionComparer` — compares metric distributions (src/qyl.collector/Analytics/).
+`StatisticalMath` — statistical primitives (src/qyl.collector/Analytics/).
 
 ## 7. Triage
 
