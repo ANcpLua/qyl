@@ -8,6 +8,9 @@
   contracts for V2 work, including run phases/statuses, capability descriptors, approval records,
   artifact/evidence records, validation/policy checkpoints, ledger events, and canonical
   `AutofixRunState`.
+- **qyl.codexversion repo scaffold**: Added `qyl.codexversion/` as a fresh nested TypeScript/Zod
+  orchestration prototype repo centered on `delegate-task`, `call-omo-agent`, background manager,
+  spawn limits, concurrency, prompt metadata, model requirements, and plugin-config control-plane behavior.
 - **Collector evidence substrate**: Added `src/qyl.collector/Intelligence/Evidence/` with structured
   issue/regression/deployment evidence records plus a deterministic evidence-pack builder that emits
   `AgentRunEvidencePack` payloads as ordered JSON facts instead of prose summaries.
