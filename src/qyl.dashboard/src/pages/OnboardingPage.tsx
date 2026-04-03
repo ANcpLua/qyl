@@ -1,968 +1,911 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {
-    ArrowLeft,
     ArrowRight,
-    Check,
+    Bot,
     CheckCircle2,
     Copy,
+    Database,
     ExternalLink,
-    Loader2,
-    Plug,
-    Rocket,
-    SkipForward,
+    GitBranch,
+    Radio,
+    Search,
+    Server,
+    ShieldCheck,
     Sparkles,
     Terminal,
-    Unlink,
+    type LucideIcon,
+    Workflow,
 } from 'lucide-react';
-import {cn} from '@/lib/utils';
-import {Card, CardContent} from '@/components/ui/card';
-import {Button} from '@/components/ui/button';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {Badge} from '@/components/ui/badge';
-import {resolveOnboardingConnection, useCollectorMeta} from '@/lib/onboarding';
+import {Link} from 'react-router-dom';
 import {toast} from 'sonner';
-
-function GitHubIcon({className}: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-             strokeLinejoin="round" className={className}>
-            <path
-                d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
-            <path d="M9 18c-4.51 2-5-2-7-2"/>
-        </svg>
-    );
-}
-
-const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
-const RADIX_ICON_STROKE = 1.75;
-
-function StepIndicator({current, steps}: { current: number; steps: readonly string[] }) {
-    return (
-        <div className="flex items-center justify-end gap-1.5 md:gap-2.5 flex-wrap">
-            {steps.map((label, i) => (
-                <div key={label} className="flex items-center gap-1.5 md:gap-2.5">
-                    <div
-                        className={cn(
-                            'w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border text-[11px] font-bold transition-colors',
-                            i < current
-                                ? 'bg-signal-green border-signal-green text-brutal-black shadow-[0_0_12px_rgba(56,189,113,0.28)]'
-                                : i === current
-                                    ? 'bg-signal-orange border-signal-orange text-brutal-black shadow-[0_0_14px_rgba(255,107,33,0.28)]'
-                                    : 'bg-brutal-dark/95 border-brutal-zinc/90 text-brutal-slate/90'
-                        )}
-                    >
-                        {i < current ? <Check className="w-4 h-4" strokeWidth={RADIX_ICON_STROKE}/> : i + 1}
-                    </div>
-                    {i < steps.length - 1 && (
-                        <div
-                            className={cn(
-                                'w-5 md:w-8 h-px',
-                                i < current ? 'bg-signal-green/90' : 'bg-brutal-zinc/85'
-                            )}
-                        />
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-}
-
-function CodeBlock({code, label}: { code: string; label?: string }) {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(code);
-            setCopied(true);
-            toast.success(`${label ?? 'Code'} copied to clipboard`);
-            setTimeout(() => setCopied(false), 1500);
-        } catch {
-            toast.error('Failed to copy to clipboard');
-        }
-    };
-
-    return (
-        <div className="relative group">
-            <pre
-                className="bg-brutal-carbon border-2 border-brutal-zinc p-4 text-sm font-mono text-brutal-white overflow-x-auto">
-                {code}
-            </pre>
-            <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7 min-h-11 min-w-11 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity text-brutal-slate hover:text-brutal-white"
-                onClick={handleCopy}
-                aria-label={copied ? 'Copied!' : `Copy ${label?.toLowerCase() ?? 'code'}`}
-            >
-                {copied ? <Check className="h-3.5 w-3.5 text-signal-green"/> : <Copy className="h-3.5 w-3.5"/>}
-            </Button>
-        </div>
-    );
-}
-
-function WelcomeStep() {
-    return (
-        <div className="space-y-6 text-center max-w-lg mx-auto">
-            <div
-                className="w-16 h-16 mx-auto bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
-                <Rocket className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
-            </div>
-            <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
-                GET STARTED WITH QYL
-            </h2>
-            <p className="text-brutal-slate text-sm leading-relaxed">
-                qyl is an AI observability platform that captures traces, logs, and metrics from your applications.
-                In a few steps you'll connect your first service and start seeing telemetry data flow in real-time.
-            </p>
-            <div className="grid grid-cols-3 gap-4 pt-4">
-                {[
-                    {icon: Terminal, label: 'TRACES', desc: 'Distributed tracing'},
-                    {icon: Sparkles, label: 'GENAI', desc: 'AI model telemetry'},
-                    {icon: Plug, label: 'OTLP', desc: 'OpenTelemetry native'},
-                ].map(({icon: Icon, label, desc}) => (
-                    <div key={label}
-                         className="border border-brutal-zinc/95 p-4 bg-gradient-to-b from-brutal-dark/95 to-brutal-carbon/88">
-                        <Icon className="w-6 h-6 text-signal-orange mx-auto mb-2" strokeWidth={RADIX_ICON_STROKE}/>
-                        <div className="text-xs font-bold text-brutal-white tracking-wider">{label}</div>
-                        <div className="text-[10px] text-brutal-slate mt-1">{desc}</div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
+import {Button} from '@/components/ui/button';
+import {resolveOnboardingConnection, useCollectorMeta} from '@/lib/onboarding';
+import {cn} from '@/lib/utils';
 
 type GitHubStatus = {
     configured: boolean;
-    user: { login: string; name: string; avatarUrl: string } | null;
-    authMethod: string
+    user: {
+        login: string;
+        name: string;
+        avatarUrl: string;
+    } | null;
+    authMethod: string;
 };
 
-function GitHubStep({onSkip}: { onSkip: () => void }) {
-    const [patToken, setPatToken] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [deviceCode, setDeviceCode] = useState<{
-        device_code: string; user_code: string; verification_uri: string; expires_in: number; interval: number
-    } | null>(null);
-    const [deviceStatus, setDeviceStatus] = useState<'idle' | 'polling' | 'expired'>('idle');
-    const [disconnecting, setDisconnecting] = useState(false);
+type ScopeGroup = {
+    title: string;
+    description: string;
+    level: 'inspect' | 'triage' | 'analyze';
+    icon: LucideIcon;
+};
 
-    const {data: ghStatus, isLoading, refetch} = useQuery({
-        queryKey: ['github-status'],
-        queryFn: async () => {
-            const res = await fetch('/api/v1/github/status');
-            if (!res.ok) return {configured: false, user: null, authMethod: 'none'};
-            return res.json() as Promise<GitHubStatus>;
-        },
-    });
+type LaunchStep = {
+    title: string;
+    description: string;
+};
 
-    const {data: deviceAvailable} = useQuery({
-        queryKey: ['github-device-available'],
-        queryFn: async () => {
-            const res = await fetch('/api/v1/github/device/available');
-            if (!res.ok) return {available: false};
-            return res.json() as Promise<{ available: boolean }>;
-        },
-    });
+const scopeGroups: ScopeGroup[] = [
+    {
+        title: 'Inspect traces and issues',
+        description: 'Search traces, grouped errors, spans, sessions, and live telemetry facts.',
+        level: 'inspect',
+        icon: Search,
+    },
+    {
+        title: 'Run Loom investigations',
+        description: 'Delegate RCA and fix suggestions without mixing analysis into raw evidence.',
+        level: 'analyze',
+        icon: Sparkles,
+    },
+    {
+        title: 'Control triage state',
+        description: 'Annotate and triage incidents after the facts are clear.',
+        level: 'triage',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Keep the collector separate',
+        description: 'qyl.mcp stays HTTP-only and separate from the collector data plane.',
+        level: 'inspect',
+        icon: Server,
+    },
+];
 
-    const handleSaveToken = async () => {
-        if (!patToken.trim()) return;
-        setSaving(true);
-        try {
-            const res = await fetch('/api/v1/github/token', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({token: patToken.trim()}),
-            });
-            if (res.ok) {
-                toast.success('GitHub token saved');
-                setPatToken('');
-                await refetch();
-            } else {
-                const data = await res.json().catch(() => null);
-                toast.error(data?.error ?? 'Invalid GitHub token');
-            }
-        } catch {
-            toast.error('Failed to connect to server');
-        } finally {
-            setSaving(false);
-        }
-    };
+const proofChecks = [
+    'OTLP HTTP ingest active',
+    'DuckDB query path ready',
+    'facts / analysis / actions separated',
+];
 
-    const handleStartDeviceFlow = async () => {
-        try {
-            const res = await fetch('/api/v1/github/device/start', {method: 'POST'});
-            if (!res.ok) {
-                toast.error('Failed to start device flow');
-                return;
-            }
-            const data = await res.json();
-            setDeviceCode(data);
-            setDeviceStatus('polling');
-        } catch {
-            toast.error('Failed to connect to server');
-        }
-    };
+const launchSteps: LaunchStep[] = [
+    {
+        title: 'Run qyl',
+        description: 'One Docker image exposes dashboard, REST, SSE, and OTLP ingestion.',
+    },
+    {
+        title: 'Aim your SDK',
+        description: 'Point any OpenTelemetry exporter at qyl over HTTP or gRPC.',
+    },
+    {
+        title: 'Inspect and automate',
+        description: 'Use the operator surface first, then add qyl.mcp and Loom when you want agents involved.',
+    },
+];
 
-    const handleDisconnect = async () => {
-        setDisconnecting(true);
-        try {
-            await fetch('/api/v1/github/token', {method: 'DELETE'});
-            toast.success('GitHub disconnected');
-            await refetch();
-        } catch {
-            toast.error('Failed to disconnect');
-        } finally {
-            setDisconnecting(false);
-        }
-    };
-
-    // Device flow polling
-    useEffect(() => {
-        if (deviceStatus !== 'polling' || !deviceCode) return;
-
-        const interval = setInterval(async () => {
-            try {
-                const res = await fetch(`/api/v1/github/device/poll?deviceCode=${encodeURIComponent(deviceCode.device_code)}`);
-                if (!res.ok) return;
-                const data = await res.json();
-
-                if (data.status === 'complete') {
-                    setDeviceStatus('idle');
-                    setDeviceCode(null);
-                    toast.success(`Connected as ${data.user?.login}`);
-                    await refetch();
-                } else if (data.status === 'expired' || data.status === 'denied') {
-                    setDeviceStatus('expired');
-                    toast.error(data.error ?? 'Device flow expired');
-                }
-            } catch {
-                // keep polling
-            }
-        }, (deviceCode.interval || 5) * 1000);
-
-        // Auto-expire
-        const timeout = setTimeout(() => {
-            setDeviceStatus('expired');
-        }, deviceCode.expires_in * 1000);
-
-        return () => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-        };
-    }, [deviceStatus, deviceCode, refetch]);
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-signal-orange"/>
-            </div>
-        );
+async function copyValue(value: string, label: string) {
+    try {
+        await navigator.clipboard.writeText(value);
+        toast.success(`${label} copied to clipboard`);
+    } catch {
+        toast.error(`Failed to copy ${label.toLowerCase()}`);
     }
+}
 
-    // Connected state
-    if (ghStatus?.configured && ghStatus.user) {
-        return (
-            <div className="space-y-6 max-w-lg mx-auto text-center">
-                <div
-                    className="w-16 h-16 mx-auto bg-signal-green flex items-center justify-center border-2 border-brutal-black overflow-hidden">
-                    {ghStatus.user.avatarUrl ? (
-                        <img src={ghStatus.user.avatarUrl} alt={ghStatus.user.login}
-                             className="w-full h-full object-cover"/>
-                    ) : (
-                        <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
-                    )}
-                </div>
-                <h2 className="text-xl font-bold text-brutal-white tracking-wider">GITHUB CONNECTED</h2>
-                <p className="text-signal-green font-bold tracking-wider">
-                    Connected as {ghStatus.user.login}
-                </p>
-                {ghStatus.user.name && (
-                    <p className="text-brutal-slate text-sm">{ghStatus.user.name}</p>
-                )}
-                <Badge variant="outline" className="text-brutal-slate">
-                    {ghStatus.authMethod === 'device_flow' ? 'Device Flow' : ghStatus.authMethod === 'pat' ? 'Personal Token' : ghStatus.authMethod === 'env' ? 'Environment Variable' : ghStatus.authMethod}
-                </Badge>
-                {ghStatus.authMethod !== 'env' && (
-                    <Button
-                        variant="outline"
-                        className="font-bold tracking-wider text-brutal-slate hover:text-signal-red hover:border-signal-red"
-                        onClick={handleDisconnect}
-                        disabled={disconnecting}
-                    >
-                        {disconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> :
-                            <Unlink className="w-4 h-4 mr-2"/>}
-                        DISCONNECT
-                    </Button>
-                )}
-            </div>
-        );
-    }
-
-    // Not connected — show auth tabs
+function Eyebrow({children}: { children: string }) {
     return (
-        <div className="space-y-6 max-w-xl mx-auto">
-            <div className="flex items-center gap-3">
-                <div
-                    className="w-12 h-12 bg-brutal-dark flex items-center justify-center border-2 border-brutal-zinc">
-                    <GitHubIcon className="w-6 h-6 text-brutal-white"/>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brutal-slate">
+            {children}
+        </div>
+    );
+}
+
+function SectionTitle({children}: { children: string }) {
+    return (
+        <h2 className="max-w-[12ch] text-4xl font-semibold tracking-[-0.04em] text-brutal-white sm:text-5xl">
+            {children}
+        </h2>
+    );
+}
+
+function QylWordmark() {
+    return (
+        <div className="flex items-center gap-4">
+            <div className="relative flex h-13 w-13 items-center justify-center rounded-full border border-signal-violet/40 bg-signal-violet/12 shadow-[0_0_40px_rgba(147,51,234,0.18)]">
+                <div className="absolute inset-1 rounded-full border border-signal-violet/20"/>
+                <Terminal className="h-6 w-6 text-signal-violet"/>
+            </div>
+            <div>
+                <div className="text-[13px] font-semibold uppercase tracking-[0.3em] text-brutal-slate">
+                    qyl
                 </div>
-                <div>
-                    <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONNECT GITHUB</h2>
-                    <p className="text-brutal-slate text-xs tracking-wider">OPTIONAL</p>
+                <div className="text-xl font-semibold tracking-[-0.03em] text-brutal-white sm:text-2xl">
+                    AI observability
                 </div>
             </div>
-            <p className="text-brutal-slate text-sm leading-relaxed">
-                Connecting GitHub enables repository discovery and Copilot integration.
-                OTLP ingestion works without authentication — this step is optional.
-            </p>
+        </div>
+    );
+}
 
-            <Tabs defaultValue={deviceAvailable?.available ? 'device' : 'pat'}>
-                <TabsList className={cn('grid w-full', deviceAvailable?.available ? 'grid-cols-3' : 'grid-cols-2')}>
-                    {deviceAvailable?.available && (
-                        <TabsTrigger value="device" className="text-xs font-bold tracking-wider">DEVICE
-                            FLOW</TabsTrigger>
-                    )}
-                    <TabsTrigger value="pat" className="text-xs font-bold tracking-wider">PERSONAL TOKEN</TabsTrigger>
-                    <TabsTrigger value="env" className="text-xs font-bold tracking-wider">ENV VARIABLE</TabsTrigger>
-                </TabsList>
-
-                {deviceAvailable?.available && (
-                    <TabsContent value="device" className="space-y-4 mt-4">
-                        <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
-                            {deviceStatus === 'idle' && !deviceCode && (
-                                <Button
-                                    className="w-full bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
-                                    onClick={handleStartDeviceFlow}
-                                >
-                                    <GitHubIcon className="w-4 h-4 mr-2"/>
-                                    START GITHUB LOGIN
-                                </Button>
-                            )}
-
-                            {deviceStatus === 'polling' && deviceCode && (
-                                <div className="space-y-4 text-center">
-                                    <p className="text-brutal-slate text-sm">
-                                        Enter this code on GitHub:
-                                    </p>
-                                    <div
-                                        className="text-3xl font-mono font-bold text-signal-orange tracking-[0.3em] py-4 bg-brutal-carbon border-2 border-signal-orange">
-                                        {deviceCode.user_code}
-                                    </div>
-                                    <a
-                                        href={deviceCode.verification_uri}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-signal-orange hover:underline text-sm font-bold"
-                                    >
-                                        Open GitHub <ExternalLink className="w-3.5 h-3.5"/>
-                                    </a>
-                                    <div className="flex items-center justify-center gap-2 text-brutal-slate text-xs">
-                                        <Loader2 className="w-4 h-4 animate-spin"/>
-                                        Waiting for authorization...
-                                    </div>
-                                </div>
-                            )}
-
-                            {deviceStatus === 'expired' && (
-                                <div className="space-y-4 text-center">
-                                    <p className="text-brutal-slate text-sm">Device code expired.</p>
-                                    <Button
-                                        variant="outline"
-                                        className="font-bold tracking-wider"
-                                        onClick={() => {
-                                            setDeviceStatus('idle');
-                                            setDeviceCode(null);
-                                        }}
-                                    >
-                                        TRY AGAIN
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
+function StatusRow({
+    label,
+    value,
+    active,
+}: {
+    label: string;
+    value: string;
+    active: boolean;
+}) {
+    return (
+        <div className="flex items-start justify-between gap-4 px-4 py-3 sm:px-5">
+            <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                    {label}
+                </div>
+                <div className="mt-1 text-sm text-brutal-white sm:text-[15px]">{value}</div>
+            </div>
+            <div
+                className={cn(
+                    'mt-1 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+                    active
+                        ? 'border-signal-violet/40 bg-signal-violet/12 text-signal-violet'
+                        : 'border-white/10 bg-white/5 text-brutal-slate'
                 )}
+            >
+                <Radio className={cn('h-3 w-3', active && 'animate-pulse-live')}/>
+                {active ? 'Live' : 'Pending'}
+            </div>
+        </div>
+    );
+}
 
-                <TabsContent value="pat" className="space-y-4 mt-4">
-                    <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
-                        <p className="text-[10px] text-brutal-slate">
-                            Generate a personal access token at{' '}
-                            <a
-                                href="https://github.com/settings/tokens"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-signal-orange hover:underline"
-                            >
-                                github.com/settings/tokens
-                            </a>
-                            {' '}with <span className="text-brutal-white font-mono">repo</span> scope.
-                        </p>
-                        <div className="flex gap-2">
-                            <label htmlFor="pat-token-input" className="sr-only">GitHub Personal Access Token</label>
-                            <input
-                                id="pat-token-input"
-                                type="password"
-                                value={patToken}
-                                onChange={(e) => setPatToken(e.target.value)}
-                                placeholder="ghp_..."
-                                aria-label="GitHub Personal Access Token"
-                                className="flex-1 bg-brutal-carbon border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2"
-                            />
-                            <Button
-                                className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
-                                onClick={handleSaveToken}
-                                disabled={!patToken.trim() || saving}
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : 'SAVE'}
-                            </Button>
+function ScopeRow({scope}: { scope: ScopeGroup }) {
+    const Icon = scope.icon;
+
+    return (
+        <div className="grid gap-3 px-5 py-5 sm:grid-cols-[auto_1fr_auto] sm:items-start">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-signal-violet">
+                <Icon className="h-5 w-5"/>
+            </div>
+            <div>
+                <div className="text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                    {scope.title}
+                </div>
+                <p className="mt-2 max-w-[48ch] text-sm leading-6 text-brutal-slate">
+                    {scope.description}
+                </p>
+            </div>
+            <div className="justify-self-start sm:justify-self-end">
+                <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-brutal-slate">
+                    {scope.level}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function HeroScene({
+    mcpSurface,
+    transportLabel,
+    githubLabel,
+}: {
+    mcpSurface: string;
+    transportLabel: string;
+    githubLabel: string;
+}) {
+    return (
+        <div
+            className="relative h-[360px] sm:h-[480px] lg:h-[620px]"
+            style={{animation: 'data-stream 720ms ease-out 120ms both'}}
+        >
+            <div className="absolute inset-0 rounded-[38px] bg-[radial-gradient(circle_at_32%_22%,rgba(126,34,206,0.18),transparent_30%),radial-gradient(circle_at_84%_24%,rgba(245,158,11,0.12),transparent_22%),radial-gradient(circle_at_58%_84%,rgba(34,211,238,0.12),transparent_26%)]"/>
+            <div className="absolute inset-x-[14%] inset-y-[10%] rounded-[999px] border border-signal-violet/12"/>
+            <div className="absolute inset-x-[8%] inset-y-[4%] rounded-[999px] border border-signal-violet/8"/>
+            <div
+                className="absolute right-[10%] top-[8%] h-38 w-38 rounded-full border border-signal-violet/20 blur-[1px]"
+                style={{animation: 'pulse-live 6s ease-in-out infinite'}}
+            />
+            <div className="absolute left-[6%] top-[26%] w-[58%] rounded-[28px] border border-white/10 bg-[#090d17]/88 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl scan-lines sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                            qyl.collector
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-brutal-white sm:text-base">
+                            Live ingest and query path
                         </div>
                     </div>
-                </TabsContent>
-
-                <TabsContent value="env" className="space-y-4 mt-4">
-                    <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
-                        <CodeBlock
-                            code="QYL_GITHUB_TOKEN=ghp_your_token_here"
-                            label="Environment variable"
+                    <div className="rounded-full border border-signal-cyan/30 bg-signal-cyan/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-signal-cyan">
+                        Side channel
+                    </div>
+                </div>
+                <div className="mt-5 space-y-3 font-mono text-[12px] text-brutal-slate sm:text-[13px]">
+                    <div className="flex items-center gap-3">
+                        <span className="text-signal-violet">$</span>
+                        <span className="text-brutal-white">POST /v1/traces</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-signal-violet">$</span>
+                        <span>{transportLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-signal-violet">$</span>
+                        <span>DuckDB store keeps spans, logs, metrics, issues, and cost</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-signal-violet">$</span>
+                        <span>SSE surfaces stream live facts without changing app control flow</span>
+                    </div>
+                </div>
+                <div className="mt-5 flex gap-2">
+                    {Array.from({length: 6}).map((_, index) => (
+                        <div
+                            key={index}
+                            className={cn(
+                                'h-1.5 flex-1 rounded-full',
+                                index < 5 ? 'bg-signal-violet/80' : 'bg-white/12'
+                            )}
                         />
-                        <p className="text-[10px] text-brutal-slate">
-                            Set this before starting the collector. Token persists across restarts.
-                        </p>
-                    </div>
-                </TabsContent>
-            </Tabs>
-
-            <Button
-                variant="outline"
-                className="w-full font-bold tracking-wider text-brutal-slate hover:text-brutal-white"
-                onClick={onSkip}
-            >
-                <SkipForward className="w-4 h-4 mr-2"/>
-                SKIP — I'LL SET UP GITHUB LATER
-            </Button>
-        </div>
-    );
-}
-
-function ConnectStep() {
-    const {data: meta} = useCollectorMeta();
-    const connection = resolveOnboardingConnection(meta, window.location);
-
-    return (
-        <div className="space-y-6 max-w-xl mx-auto">
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONFIGURE OTLP ENDPOINT</h2>
-
-            <div className="border-2 border-signal-green/30 bg-signal-green/5 p-4 space-y-2">
-                <div className="text-xs font-bold text-signal-green tracking-wider">ALREADY USING OPENTELEMETRY?</div>
-                <p className="text-brutal-slate text-sm">
-                    Set this env var and you're done. Works with any OTel SDK in any language.
-                </p>
-                <CodeBlock
-                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=${connection.otlpHttpEndpoint}`}
-                    label="OTLP Endpoint"
-                />
-                {connection.isLocal && (
-                    <p className="text-[10px] text-brutal-slate">
-                        Most SDKs default to gRPC. For HTTP, also set{' '}
-                        <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span>
-                    </p>
-                )}
-                {!connection.isLocal && (
-                    <p className="text-[10px] text-brutal-slate">
-                        Set <span
-                        className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span> for
-                        HTTP transport (recommended for cloud deployments).
-                    </p>
-                )}
-            </div>
-
-            {connection.isLocal ? (
-                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
-                    <div className="text-xs font-bold text-brutal-slate tracking-wider">PORTS</div>
-                    <div className="space-y-2 text-sm font-mono">
-                        <div className="flex justify-between">
-                            <span className="text-brutal-slate">Dashboard</span>
-                            <span className="text-brutal-white">{`http://localhost:${connection.dashboardPort}`}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-brutal-slate">OTLP HTTP</span>
-                            <span className="text-signal-green">{`http://localhost:${connection.otlpHttpPort}`}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-brutal-slate">OTLP gRPC</span>
-                            <span className={connection.grpcEnabled ? 'text-signal-green' : 'text-brutal-slate'}>
-                                {connection.grpcEnabled ? `http://localhost:${connection.grpcPort}` : 'disabled'}
-                            </span>
-                        </div>
-                    </div>
-                    {meta?.ports?.otlpHttp === 0 && (
-                        <p className="text-[10px] text-brutal-slate">
-                            Dedicated OTLP HTTP is disabled, so HTTP ingestion falls back to the dashboard listener on
-                            port{' '}
-                            <span className="text-brutal-white font-mono">{connection.dashboardPort}</span>.
-                        </p>
-                    )}
+                    ))}
                 </div>
-            ) : (
-                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
-                    <div className="text-xs font-bold text-brutal-slate tracking-wider">ENDPOINT</div>
-                    <code className="text-sm text-signal-green font-mono">{connection.otlpHttpEndpoint}</code>
-                    <p className="text-[10px] text-brutal-slate">
-                        All OTLP traffic routes through this URL. Use HTTP/protobuf protocol.
-                    </p>
+                <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-brutal-slate">
+                    Validation surface
                 </div>
-            )}
-
-            {connection.isLocal && connection.grpcEnabled && (
-                <p className="text-[10px] text-brutal-slate tracking-wider">
-                    For gRPC transport, use{' '}
-                    <span className="text-brutal-white font-mono">
-                        OTEL_EXPORTER_OTLP_ENDPOINT={connection.grpcEndpoint}
-                    </span>
-                </p>
-            )}
-
-            {connection.isLocal && !connection.grpcEnabled && (
-                <p className="text-[10px] text-brutal-slate tracking-wider">
-                    OTLP gRPC is disabled for this collector instance. Use the HTTP endpoint above.
-                </p>
-            )}
-        </div>
-    );
-}
-
-function SdkSetupStep() {
-    const [activeTab, setActiveTab] = useState<'.NET' | 'Python' | 'Go' | 'Node.js'>('.NET');
-    const {data: meta} = useCollectorMeta();
-    const connection = useMemo(
-        () => resolveOnboardingConnection(meta, window.location),
-        [meta],
-    );
-    const useGrpcExamples = connection.isLocal && connection.grpcEnabled;
-    const endpoint = connection.otlpHttpEndpoint;
-    const httpTraceUrl = connection.otlpHttpTraceUrl;
-    const httpHost = connection.isLocal ? `localhost:${connection.otlpHttpPort}` : window.location.host;
-
-    const snippets: Record<string, string> = {
-        '.NET': `// Web application
-var builder = WebApplication.CreateBuilder(args);
-builder.AddQylServiceDefaults();
-var app = builder.Build();
-app.MapQylEndpoints();
-app.Run();
-
-// --- OR ---
-
-// Worker / Console application
-var builder = Host.CreateApplicationBuilder(args);
-builder.AddQylServiceDefaults();
-var app = builder.Build();
-await app.RunAsync();`,
-
-        'Python': `# Option 1: Environment variable (recommended)
-# OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint}
-# python your_app.py
-
-# Option 2: Programmatic
-# pip install opentelemetry-sdk opentelemetry-exporter-otlp
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.${useGrpcExamples ? 'grpc' : 'http'}.trace_exporter import (
-    OTLPSpanExporter,
-)
-
-provider = TracerProvider()
-processor = BatchSpanProcessor(
-    OTLPSpanExporter(
-        endpoint="${useGrpcExamples ? connection.grpcEndpoint : httpTraceUrl}",${useGrpcExamples ? '\n        insecure=True,' : ''}
-    )
-)
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)`,
-
-        'Go': `// Option 1: Environment variable (recommended)
-// OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} go run .
-
-// Option 2: Programmatic
-// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${useGrpcExamples ? 'grpc' : 'http'}
-import (
-    "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${useGrpcExamples ? 'grpc' : 'http'}"
-    sdktrace "go.opentelemetry.io/otel/sdk/trace"
-)
-
-exp, _ := otlptrace${useGrpcExamples ? 'grpc' : 'http'}.New(ctx,
-    otlptrace${useGrpcExamples ? 'grpc' : 'http'}.WithEndpoint("${useGrpcExamples ? connection.grpcHost : httpHost}"),${useGrpcExamples ? '\n    otlptracegrpc.WithInsecure(),' : ''}
-)
-tp := sdktrace.NewTracerProvider(
-    sdktrace.WithBatcher(exp),
-)
-otel.SetTracerProvider(tp)`,
-
-        'Node.js': `// Option 1: Environment variable (recommended)
-// OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} node app.js
-
-// Option 2: Programmatic
-// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-${useGrpcExamples ? 'grpc' : 'proto'}
-const { NodeSDK } = require("@opentelemetry/sdk-node");
-const {
-  OTLPTraceExporter,
-} = require("@opentelemetry/exporter-trace-otlp-${useGrpcExamples ? 'grpc' : 'proto'}");
-
-const sdk = new NodeSDK({
-  traceExporter: new OTLPTraceExporter({
-    url: "${useGrpcExamples ? connection.grpcEndpoint : httpTraceUrl}",
-  }),
-});
-sdk.start();`,
-    };
-
-    const tabs = Object.keys(snippets) as Array<keyof typeof snippets>;
-
-    return (
-        <div className="space-y-6 max-w-xl mx-auto">
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">SDK SETUP</h2>
-
-            <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 space-y-2">
-                <div className="text-xs font-bold text-signal-orange tracking-wider">ALREADY USING OPENTELEMETRY?</div>
-                <p className="text-brutal-slate text-sm">
-                    Just set <span
-                    className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={endpoint}</span> and
-                    skip this step. The snippets below are for new projects.
-                </p>
-                {connection.isLocal && !connection.grpcEnabled && (
-                    <p className="text-[10px] text-brutal-slate">
-                        Local OTLP gRPC is disabled, so the programmatic examples below use HTTP/protobuf.
-                    </p>
-                )}
             </div>
 
-            <p className="text-brutal-slate text-sm">
-                Choose your language for instrumentation setup:
-            </p>
-            <div className="flex gap-1 border-b-2 border-brutal-zinc">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab}
-                        className={cn(
-                            'px-4 py-2 text-xs font-bold tracking-wider transition-colors border-b-2 -mb-[2px]',
-                            activeTab === tab
-                                ? 'text-signal-orange border-signal-orange'
-                                : 'text-brutal-slate border-transparent hover:text-brutal-white'
-                        )}
-                        onClick={() => setActiveTab(tab as typeof activeTab)}
-                    >
-                        {tab.toUpperCase()}
-                    </button>
-                ))}
-            </div>
-            <CodeBlock code={snippets[activeTab]} label={`${activeTab} snippet`}/>
-        </div>
-    );
-}
-
-function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
-    const [status, setStatus] = useState<'idle' | 'polling' | 'success' | 'timeout'>('idle');
-    const [elapsed, setElapsed] = useState(0);
-    const [attempts, setAttempts] = useState(0);
-    const {data: meta} = useCollectorMeta();
-    const connection = resolveOnboardingConnection(meta, window.location);
-
-    const startPolling = useCallback(() => {
-        setStatus('polling');
-        setElapsed(0);
-        setAttempts((a) => a + 1);
-    }, []);
-
-    useEffect(() => {
-        if (status === 'success') onVerified(true);
-    }, [status, onVerified]);
-
-    useEffect(() => {
-        if (status !== 'polling') return;
-
-        const timer = setInterval(() => {
-            setElapsed((prev) => {
-                if (prev >= 30) {
-                    setStatus('timeout');
-                    return prev;
-                }
-                return prev + 3;
-            });
-        }, 3000);
-
-        const poll = setInterval(async () => {
-            try {
-                const [tracesRes, logsRes] = await Promise.all([
-                    fetch('/api/v1/traces?limit=1').catch(() => null),
-                    fetch('/api/v1/logs?limit=1').catch(() => null),
-                ]);
-                const traces = tracesRes?.ok ? await tracesRes.json() : null;
-                const logs = logsRes?.ok ? await logsRes.json() : null;
-                if ((traces?.items?.length > 0 || traces?.total > 0) ||
-                    (logs?.items?.length > 0 || logs?.total > 0)) {
-                    setStatus('success');
-                }
-            } catch {
-                // keep polling
-            }
-        }, 3000);
-
-        return () => {
-            clearInterval(timer);
-            clearInterval(poll);
-        };
-    }, [status]);
-
-    return (
-        <div className="space-y-5 max-w-xl mx-auto text-center">
             <div
-                className={cn(
-                    'w-16 h-16 mx-auto flex items-center justify-center border-2 border-brutal-black transition-colors',
-                    status === 'success' ? 'bg-signal-green' :
-                        status === 'timeout' ? 'bg-brutal-dark border-signal-orange' :
-                            status === 'polling' ? 'bg-signal-orange' :
-                                'bg-brutal-dark border-brutal-zinc'
-                )}
+                className="absolute right-0 top-0 w-[62%] rounded-[32px] border border-white/10 bg-[#111127]/90 p-5 shadow-[0_30px_100px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-7"
+                style={{animation: 'data-stream 780ms ease-out 260ms both'}}
             >
-                {status === 'success' ? (
-                    <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
-                ) : status === 'polling' ? (
-                    <Loader2 className="w-8 h-8 text-brutal-black animate-spin"/>
-                ) : status === 'timeout' ? (
-                    <Unlink className="w-8 h-8 text-signal-orange"/>
-                ) : (
-                    <Plug className="w-8 h-8 text-brutal-slate"/>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-brutal-white tracking-wide">
-                    {status === 'success' ? 'DATA RECEIVED' :
-                        status === 'timeout' ? 'NO DATA YET' :
-                            status === 'polling' ? 'LISTENING FOR TELEMETRY' :
-                                'VERIFY CONNECTION'}
-                </h2>
-                <p className="text-brutal-slate text-sm leading-relaxed">
-                    {status === 'success'
-                        ? 'Telemetry is flowing into qyl. You are ready to proceed.'
-                        : status === 'timeout'
-                            ? 'No telemetry was received within 30 seconds.'
-                            : status === 'polling'
-                                ? `Checking for traces and logs... (${elapsed}s)`
-                                : 'Run your instrumented application, then verify telemetry flow.'}
-                </p>
-            </div>
-
-            {(status === 'polling' || status === 'timeout') && (
-                <div className="w-full bg-brutal-dark/70 border border-brutal-zinc h-2">
-                    <div
-                        className={cn(
-                            'h-full transition-[width] duration-500',
-                            status === 'timeout' ? 'bg-signal-orange/45' : 'bg-signal-orange'
-                        )}
-                        style={{width: `${Math.min((elapsed / 30) * 100, 100)}%`}}
-                    />
+                <div className="text-center">
+                    <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/12 text-signal-violet">
+                        <Workflow className="h-5 w-5"/>
+                    </div>
+                    <div className="text-2xl font-semibold tracking-[-0.03em] text-brutal-white">
+                        Your agent is requesting access to qyl
+                    </div>
                 </div>
-            )}
 
-            {status === 'success' && (
-                <div className="w-full bg-brutal-dark/70 border border-signal-green h-2">
-                    <div className="h-full bg-signal-green w-full"/>
+                <div className="mt-6 space-y-3">
+                    {scopeGroups.slice(0, 3).map((scope) => {
+                        const Icon = scope.icon;
+                        return (
+                            <div
+                                key={scope.title}
+                                className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-white/4 px-4 py-3"
+                            >
+                                <div className="mt-0.5 text-signal-violet">
+                                    <CheckCircle2 className="h-4 w-4"/>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-brutal-white">
+                                        <Icon className="h-4 w-4 text-signal-violet"/>
+                                        {scope.title}
+                                    </div>
+                                    <div className="mt-1 text-sm leading-6 text-brutal-slate">
+                                        {scope.description}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-            )}
 
-            {status === 'idle' && (
-                <Button
-                    className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
-                    onClick={startPolling}
-                >
-                    <Plug className="w-4 h-4 mr-2"/>
-                    CHECK FOR DATA
-                </Button>
-            )}
-
-            {status === 'timeout' && (
-                <div className="flex items-center justify-center gap-3">
-                    <Button
-                        className="bg-signal-orange hover:bg-signal-orange/80 text-brutal-black font-bold tracking-wider border-2 border-signal-orange"
-                        onClick={startPolling}
-                    >
-                        <Loader2 className="w-4 h-4 mr-2"/>
-                        TRY AGAIN
-                    </Button>
-                    {attempts > 1 && (
-                        <span className="text-[10px] text-brutal-slate">Attempt {attempts}</span>
-                    )}
-                </div>
-            )}
-
-            {status === 'timeout' && (
-                <div
-                    className="border border-signal-orange/35 bg-gradient-to-b from-signal-orange/10 to-signal-orange/2 p-4 text-left space-y-3">
-                    <div className="text-[10px] font-bold text-signal-orange tracking-wider">TROUBLESHOOTING</div>
-                    <ul className="text-xs text-brutal-slate space-y-2">
-                        <li className="flex items-start gap-2">
-                            <span className="text-signal-orange mt-0.5">1.</span>
-                            <span>Verify your app sets <span
-                                className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={connection.otlpHttpEndpoint}</span></span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-signal-orange mt-0.5">2.</span>
-                            <span>Confirm your app is running and producing telemetry</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-signal-orange mt-0.5">3.</span>
-                            <span>Check that no firewall or proxy blocks OTLP traffic to this host</span>
-                        </li>
-                    </ul>
-                </div>
-            )}
-
-            {status === 'idle' && (
-                <div className="border border-brutal-zinc p-4 bg-brutal-dark/85 text-left">
-                    <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">EXPECTED ENDPOINT</div>
-                    <code className="text-xs text-signal-green font-mono">{connection.otlpHttpEndpoint}</code>
-                    <p className="text-[10px] text-brutal-slate mt-2">
-                        qyl checks for incoming traces and logs every 3 seconds for up to 30 seconds.
+                <div className="mt-6 rounded-[24px] border border-amber-300/45 bg-amber-200/6 p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-100/80">
+                        Destination
+                    </div>
+                    <code className="mt-3 block overflow-x-auto rounded-[14px] bg-black/25 px-3 py-2 font-mono text-sm text-amber-50">
+                        {mcpSurface}
+                    </code>
+                    <p className="mt-3 text-sm leading-6 text-amber-50/80">
+                        qyl.mcp stays separate from qyl.collector. Facts flow through the collector; agent access is scoped through the MCP surface.
                     </p>
                 </div>
-            )}
-        </div>
-    );
-}
 
-function DoneStep({verified}: { verified: boolean }) {
-    const navigate = useNavigate();
-
-    const links = [
-        {to: '/traces', label: 'VIEW TRACES', desc: 'Explore distributed traces'},
-        {to: '/agents', label: 'VIEW AGENTS', desc: 'Monitor AI agent runs'},
-        {to: '/genai', label: 'VIEW GENAI', desc: 'GenAI model telemetry'},
-    ];
-
-    return (
-        <div className="space-y-6 max-w-lg mx-auto text-center">
-            <div
-                className={cn(
-                    'w-16 h-16 mx-auto flex items-center justify-center border-2 border-brutal-black',
-                    verified ? 'bg-signal-green' : 'bg-signal-orange'
-                )}>
-                {verified
-                    ? <CheckCircle2 className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
-                    : <Rocket className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
-                }
+                <div className="mt-6 flex items-center justify-between gap-4">
+                    <div className="text-sm text-brutal-slate">{githubLabel}</div>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            className="rounded-full border border-white/10 px-4 py-2 text-sm text-brutal-slate transition-colors hover:border-white/20 hover:text-brutal-white"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded-full bg-signal-violet px-5 py-2 text-sm font-semibold text-brutal-white transition-colors hover:bg-signal-violet/90"
+                        >
+                            Approve
+                        </button>
+                    </div>
+                </div>
             </div>
-            <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
-                {verified ? "YOU'RE ALL SET" : 'SETUP COMPLETE'}
-            </h2>
-            <p className="text-brutal-slate text-sm">
-                {verified
-                    ? 'qyl is now receiving telemetry from your application. Explore your data:'
-                    : 'Verification was skipped — send telemetry when ready. Explore qyl:'}
-            </p>
-            <div className="grid grid-cols-3 gap-4 pt-2">
-                {links.map(({to, label, desc}) => (
-                    <button
-                        key={to}
-                        onClick={() => navigate(to)}
-                        className="border-2 border-brutal-zinc p-4 bg-brutal-dark hover:border-signal-orange hover:bg-brutal-dark/50 transition-colors text-left"
-                    >
-                        <div className="text-xs font-bold text-brutal-white tracking-wider">{label}</div>
-                        <div className="text-[10px] text-brutal-slate mt-1">{desc}</div>
-                    </button>
-                ))}
+
+            <div
+                className="absolute bottom-0 right-[6%] w-[34%] rounded-[24px] border border-white/10 bg-[#0b1222]/88 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl"
+                style={{animation: 'data-stream 780ms ease-out 420ms both'}}
+            >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                    Proof
+                </div>
+                <div className="mt-4 space-y-3">
+                    {proofChecks.map((check) => (
+                        <div key={check} className="flex items-start gap-3 text-sm leading-6 text-brutal-white">
+                            <div className="mt-1 h-2.5 w-2.5 rounded-full bg-signal-cyan animate-pulse-live"/>
+                            <span>{check}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
 }
 
 export function OnboardingPage() {
-    const [currentStep, setCurrentStep] = useState(0);
-    const [verifyStatus, setVerifyStatus] = useState(false);
-    const isFirst = currentStep === 0;
-    const isLast = currentStep === STEPS.length - 1;
-    const stepName = STEPS[currentStep];
+    const {data: meta, isSuccess: hasCollectorMeta} = useCollectorMeta();
+    const [protocol, setProtocol] = useState<'http' | 'grpc'>('http');
+    const connection = resolveOnboardingConnection(meta, window.location);
 
-    const handleSkipGitHub = () => setCurrentStep((s) => s + 1);
+    const {data: githubStatus} = useQuery({
+        queryKey: ['github-status'],
+        queryFn: async () => {
+            const response = await fetch('/api/v1/github/status');
+            if (!response.ok) {
+                return {configured: false, user: null, authMethod: 'none'} satisfies GitHubStatus;
+            }
 
-    const isVerifyStep = stepName === 'Verify';
-    const canAdvance = !isVerifyStep || verifyStatus;
+            return response.json() as Promise<GitHubStatus>;
+        },
+        staleTime: 1000 * 60 * 5,
+    });
 
-    const renderStep = () => {
-        switch (stepName) {
-            case 'Welcome':
-                return <WelcomeStep/>;
-            case 'GitHub':
-                return <GitHubStep onSkip={handleSkipGitHub}/>;
-            case 'Connect':
-                return <ConnectStep/>;
-            case 'SDK Setup':
-                return <SdkSetupStep/>;
-            case 'Verify':
-                return <VerifyStep onVerified={setVerifyStatus}/>;
-            case 'Done':
-                return <DoneStep verified={verifyStatus}/>;
+    const selectedProtocol = protocol === 'grpc' && connection.grpcEnabled
+        ? {
+            label: 'OTLP / gRPC',
+            endpoint: connection.grpcEndpoint ?? `http://localhost:${connection.grpcPort}`,
+            note: 'Low-friction agent and service export when you want the standard OTLP gRPC channel.',
+            env: `OTEL_EXPORTER_OTLP_PROTOCOL=grpc\nOTEL_EXPORTER_OTLP_ENDPOINT=${connection.grpcEndpoint ?? `http://localhost:${connection.grpcPort}`}`,
         }
-    };
+        : {
+            label: 'OTLP / HTTP',
+            endpoint: connection.otlpHttpTraceUrl,
+            note: 'The simplest first-run path. Point your HTTP exporter directly at qyl and start sending traces.',
+            env: `OTEL_EXPORTER_OTLP_ENDPOINT=${connection.otlpHttpEndpoint}\nOTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${connection.otlpHttpTraceUrl}`,
+        };
+
+    const collectorStatus = hasCollectorMeta
+        ? `${window.location.origin} serving dashboard + OTLP`
+        : 'Using default ports until collector metadata responds';
+    const githubSummary = githubStatus?.configured
+        ? `Linked as ${githubStatus.user?.login ?? 'GitHub account'}`
+        : 'GitHub automation not linked yet';
+    const transportSummary = connection.grpcEnabled
+        ? `HTTP ${connection.otlpHttpPort} and gRPC ${connection.grpcPort}`
+        : `HTTP ${connection.otlpHttpPort} enabled`;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 p-4 pb-28 sm:p-6 sm:pb-28 md:p-8 md:pb-32">
-            {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 className="text-xs font-bold text-brutal-slate tracking-[0.3em] uppercase">ONBOARDING</h1>
-                    <div className="text-lg font-bold text-brutal-white tracking-wider mt-1">
-                        {stepName.toUpperCase()}
+        <div className="min-h-screen bg-brutal-black text-brutal-white">
+            <div className="relative isolate overflow-hidden bg-grid-overlay">
+                <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                        backgroundImage: [
+                            'radial-gradient(circle at 16% 10%, rgba(139, 92, 246, 0.18), transparent 30%)',
+                            'radial-gradient(circle at 84% 18%, rgba(245, 158, 11, 0.14), transparent 22%)',
+                            'radial-gradient(circle at 78% 74%, rgba(34, 211, 238, 0.10), transparent 24%)',
+                            'linear-gradient(180deg, rgba(5, 7, 16, 0.28) 0%, rgba(3, 5, 12, 0.92) 58%, rgba(2, 4, 10, 1) 100%)',
+                        ].join(','),
+                    }}
+                />
+
+                <header className="fixed inset-x-0 top-0 z-20">
+                    <div className="border-b border-white/6 bg-brutal-black/72 backdrop-blur-xl">
+                        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-6 py-4 lg:px-10 xl:px-16">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-signal-violet/35 bg-signal-violet/12 text-signal-violet">
+                                    <Terminal className="h-4 w-4"/>
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold tracking-[-0.02em] text-brutal-white">
+                                        qyl
+                                    </div>
+                                    <div className="text-[11px] uppercase tracking-[0.24em] text-brutal-slate">
+                                        observability
+                                    </div>
+                                </div>
+                            </div>
+
+                            <nav className="hidden items-center gap-7 text-sm text-brutal-slate lg:flex">
+                                <a href="#surface" className="transition-colors hover:text-brutal-white">Surface</a>
+                                <a href="#mcp" className="transition-colors hover:text-brutal-white">MCP</a>
+                                <a href="#otlp" className="transition-colors hover:text-brutal-white">OTLP</a>
+                                <a href="#launch" className="transition-colors hover:text-brutal-white">Launch</a>
+                            </nav>
+
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="h-10 rounded-full border-white/10 bg-white/0 px-4 text-brutal-white hover:bg-white/6"
+                                    render={<Link to="/settings"/>}
+                                >
+                                    Settings
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="h-10 rounded-full border-white/10 bg-white/0 px-4 text-brutal-white hover:bg-white/6"
+                                    render={
+                                        <a
+                                            href="https://github.com/ANcpLua/qyl"
+                                            rel="noreferrer"
+                                            target="_blank"
+                                        />
+                                    }
+                                >
+                                    GitHub
+                                    <ExternalLink className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <StepIndicator current={currentStep} steps={STEPS}/>
-            </div>
+                </header>
 
-            {/* Step content */}
-            <Card
-                className="border border-brutal-zinc/95 bg-gradient-to-b from-brutal-carbon/96 to-brutal-black/90 shadow-[0_24px_56px_-34px_rgba(0,0,0,0.92)]">
-                <CardContent className="py-9 px-5 sm:px-8 md:px-10">
-                    {renderStep()}
-                </CardContent>
-            </Card>
+                <main className="pt-[73px]">
+                    <section
+                        id="surface"
+                        className="relative flex min-h-[calc(100svh-73px)] items-center border-b border-white/6"
+                    >
+                        <div className="mx-auto grid w-full max-w-[1480px] gap-16 px-6 py-14 lg:grid-cols-[minmax(0,35rem)_1fr] lg:px-10 xl:px-16">
+                            <div
+                                className="max-w-[36rem]"
+                                style={{animation: 'data-stream 720ms ease-out both'}}
+                            >
+                                <Eyebrow>Operator launch surface</Eyebrow>
+                                <div className="mt-8">
+                                    <QylWordmark/>
+                                </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between">
-                <Button
-                    variant="outline"
-                    className="font-bold tracking-wider"
-                    onClick={() => setCurrentStep((s) => s - 1)}
-                    disabled={isFirst}
-                >
-                    <ArrowLeft className="w-4 h-4 mr-2"/>
-                    BACK
-                </Button>
-                <div className="flex gap-2">
-                    {isVerifyStep && !verifyStatus && (
-                        <Button
-                            variant="outline"
-                            className="font-bold tracking-wider text-brutal-slate hover:text-brutal-white"
-                            onClick={() => setCurrentStep((s) => s + 1)}
-                        >
-                            <SkipForward className="w-4 h-4 mr-2"/>
-                            SKIP
-                        </Button>
-                    )}
-                    {!isLast && (
-                        <Button
-                            className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
-                            onClick={() => setCurrentStep((s) => s + 1)}
-                            disabled={isVerifyStep && !canAdvance}
-                        >
-                            {currentStep === STEPS.length - 2 ? 'FINISH' : 'NEXT'}
-                            <ArrowRight className="w-4 h-4 ml-2"/>
-                        </Button>
-                    )}
-                </div>
+                                <h1 className="mt-8 max-w-[10ch] text-5xl font-semibold leading-[0.92] tracking-[-0.05em] text-brutal-white sm:text-6xl lg:text-7xl">
+                                    See what happened.
+                                    <span className="block text-signal-violet">See what it cost.</span>
+                                </h1>
+
+                                <p className="mt-6 max-w-[36rem] text-base leading-7 text-brutal-slate sm:text-lg">
+                                    OTLP-native observability for traces, logs, metrics, GenAI cost, and agent-native investigation.
+                                    qyl stays off your control path, stores telemetry in DuckDB, and gives operators a clean place to inspect facts before they automate anything.
+                                </p>
+
+                                <div className="mt-9 flex flex-wrap gap-3">
+                                    <Button
+                                        className="h-11 rounded-full bg-signal-violet px-6 text-brutal-white hover:bg-signal-violet/90"
+                                        render={<Link to="/traces"/>}
+                                    >
+                                        Open traces
+                                        <ArrowRight className="h-4 w-4"/>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-11 rounded-full border-white/10 bg-white/0 px-5 text-brutal-white hover:bg-white/6"
+                                        render={<Link to="/issues"/>}
+                                    >
+                                        Inspect issues
+                                    </Button>
+                                </div>
+
+                                <div className="mt-9 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl scan-lines">
+                                    <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                            Send telemetry
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center gap-2 text-sm text-brutal-slate transition-colors hover:text-brutal-white"
+                                            onClick={() => copyValue(selectedProtocol.env, selectedProtocol.label)}
+                                        >
+                                            <Copy className="h-4 w-4"/>
+                                            Copy env
+                                        </button>
+                                    </div>
+                                    <div className="border-t border-white/8 px-4 py-4 sm:px-5">
+                                        <code className="block overflow-x-auto font-mono text-sm text-brutal-white">
+                                            {selectedProtocol.env}
+                                        </code>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 backdrop-blur-xl">
+                                    <StatusRow
+                                        active={hasCollectorMeta}
+                                        label="Collector"
+                                        value={collectorStatus}
+                                    />
+                                    <div className="border-t border-white/8">
+                                        <StatusRow
+                                            active={connection.grpcEnabled}
+                                            label="Transport"
+                                            value={transportSummary}
+                                        />
+                                    </div>
+                                    <div className="border-t border-white/8">
+                                        <StatusRow
+                                            active={Boolean(githubStatus?.configured)}
+                                            label="GitHub"
+                                            value={githubSummary}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <HeroScene
+                                githubLabel={githubSummary}
+                                mcpSurface="qyl.mcp /mcp   streamable-http   separate-service"
+                                transportLabel={transportSummary}
+                            />
+                        </div>
+                    </section>
+
+                    <section id="mcp" className="border-b border-white/6">
+                        <div className="mx-auto max-w-[1480px] px-6 py-20 lg:px-10 xl:px-16">
+                            <div className="grid gap-14 lg:grid-cols-[minmax(0,26rem)_1fr]">
+                                <div className="lg:sticky lg:top-24 lg:self-start">
+                                    <Eyebrow>MCP surface</Eyebrow>
+                                    <div className="mt-5">
+                                        <SectionTitle>Give your agent scoped access to telemetry.</SectionTitle>
+                                    </div>
+                                    <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
+                                        qyl.mcp stays separate from the collector and exposes the telemetry surface over stdio or Streamable HTTP.
+                                        The contract keeps raw facts, AI analysis, and proposed actions explicitly separated so operators can trust what the agent is looking at.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                        {scopeGroups.map((scope, index) => (
+                                            <div
+                                                key={scope.title}
+                                                className={cn(index > 0 && 'border-t border-white/8')}
+                                            >
+                                                <ScopeRow scope={scope}/>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                Provenance contract
+                                            </div>
+                                            <div className="mt-6 grid gap-5 md:grid-cols-3">
+                                                <div className="border-l border-signal-cyan/30 pl-4">
+                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-cyan">
+                                                        Facts
+                                                    </div>
+                                                    <p className="mt-2 text-sm leading-6 text-brutal-slate">
+                                                        Traces, logs, metrics, costs, services, and issue records from qyl.collector.
+                                                    </p>
+                                                </div>
+                                                <div className="border-l border-signal-violet/30 pl-4">
+                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-violet">
+                                                        Analysis
+                                                    </div>
+                                                    <p className="mt-2 text-sm leading-6 text-brutal-slate">
+                                                        Loom reasoning and pattern evaluation layered on top without rewriting the evidence.
+                                                    </p>
+                                                </div>
+                                                <div className="border-l border-amber-300/35 pl-4">
+                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-100/90">
+                                                        Actions
+                                                    </div>
+                                                    <p className="mt-2 text-sm leading-6 text-brutal-slate">
+                                                        Triage updates, annotations, or follow-up steps kept separate from telemetry facts.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                Transport notes
+                                            </div>
+                                            <div className="mt-5 space-y-4 text-sm leading-6 text-brutal-white">
+                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                    <div className="font-semibold text-brutal-white">Local mode</div>
+                                                    <div className="mt-1 text-brutal-slate">stdio transport for local agent workflows.</div>
+                                                </div>
+                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                    <div className="font-semibold text-brutal-white">Remote mode</div>
+                                                    <div className="mt-1 text-brutal-slate">Streamable HTTP at <code className="font-mono text-brutal-white">/mcp</code>.</div>
+                                                </div>
+                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                    <div className="font-semibold text-brutal-white">Collector boundary</div>
+                                                    <div className="mt-1 text-brutal-slate">MCP stays HTTP-only; no project reference to the collector runtime.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="otlp" className="border-b border-white/6">
+                        <div className="mx-auto max-w-[1480px] px-6 py-20 lg:px-10 xl:px-16">
+                            <div className="grid gap-14 lg:grid-cols-[minmax(0,26rem)_1fr]">
+                                <div className="lg:sticky lg:top-24 lg:self-start">
+                                    <Eyebrow>OTLP ingest</Eyebrow>
+                                    <div className="mt-5">
+                                        <SectionTitle>Point any OpenTelemetry pipeline at qyl.</SectionTitle>
+                                    </div>
+                                    <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
+                                        qyl stays .NET-first without locking the rest of your stack to a custom SDK. Bring a standard OTel exporter, use the qyl line if you want a one-line .NET setup, and start collecting facts immediately.
+                                    </p>
+
+                                    <div className="mt-10 space-y-8">
+                                        {launchSteps.map((step, index) => (
+                                            <div key={step.title} className="flex gap-4">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-sm font-semibold text-signal-violet">
+                                                    {index + 1}
+                                                </div>
+                                                <div>
+                                                    <div className="text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                        {step.title}
+                                                    </div>
+                                                    <p className="mt-2 max-w-[32rem] text-sm leading-6 text-brutal-slate">
+                                                        {step.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                        <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+                                            <div>
+                                                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                    Transport selector
+                                                </div>
+                                                <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                    {selectedProtocol.label}
+                                                </div>
+                                            </div>
+                                            <div className="inline-flex rounded-full border border-white/10 bg-white/4 p-1">
+                                                <button
+                                                    type="button"
+                                                    className={cn(
+                                                        'rounded-full px-4 py-2 text-sm transition-colors',
+                                                        protocol === 'http'
+                                                            ? 'bg-signal-violet text-brutal-white'
+                                                            : 'text-brutal-slate hover:text-brutal-white'
+                                                    )}
+                                                    onClick={() => setProtocol('http')}
+                                                >
+                                                    HTTP
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={cn(
+                                                        'rounded-full px-4 py-2 text-sm transition-colors',
+                                                        protocol === 'grpc'
+                                                            ? 'bg-signal-violet text-brutal-white'
+                                                            : 'text-brutal-slate hover:text-brutal-white',
+                                                        !connection.grpcEnabled && 'cursor-not-allowed opacity-45'
+                                                    )}
+                                                    disabled={!connection.grpcEnabled}
+                                                    onClick={() => setProtocol('grpc')}
+                                                >
+                                                    gRPC
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-white/8 px-6 py-6">
+                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
+                                                <div className="overflow-hidden rounded-[22px] border border-white/10 bg-black/20">
+                                                    <div className="flex items-center justify-between gap-4 px-4 py-3">
+                                                        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                            Export target
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center gap-2 text-sm text-brutal-slate transition-colors hover:text-brutal-white"
+                                                            onClick={() => copyValue(selectedProtocol.env, selectedProtocol.label)}
+                                                        >
+                                                            <Copy className="h-4 w-4"/>
+                                                            Copy
+                                                        </button>
+                                                    </div>
+                                                    <div className="border-t border-white/8 px-4 py-4">
+                                                        <code className="block overflow-x-auto font-mono text-sm text-brutal-white">
+                                                            {selectedProtocol.env}
+                                                        </code>
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-[22px] border border-white/10 bg-white/4 p-4">
+                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                        Endpoint
+                                                    </div>
+                                                    <div className="mt-3 break-all font-mono text-sm text-brutal-white">
+                                                        {selectedProtocol.endpoint}
+                                                    </div>
+                                                    <p className="mt-4 text-sm leading-6 text-brutal-slate">
+                                                        {selectedProtocol.note}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
+                                            <div className="flex items-center justify-between gap-4 px-6 py-5">
+                                                <div>
+                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                        qyl .NET shortcut
+                                                    </div>
+                                                    <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                        One line for the qyl SDK
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-2 text-sm text-brutal-slate transition-colors hover:text-brutal-white"
+                                                    onClick={() => copyValue('builder.AddQyl();', 'Qyl SDK line')}
+                                                >
+                                                    <Copy className="h-4 w-4"/>
+                                                    Copy
+                                                </button>
+                                            </div>
+                                            <div className="border-t border-white/8 px-6 py-6">
+                                                <code className="block overflow-x-auto font-mono text-base text-brutal-white">
+                                                    builder.AddQyl();
+                                                </code>
+                                                <p className="mt-4 max-w-[56ch] text-sm leading-6 text-brutal-slate">
+                                                    qyl is .NET-first. The source generators emit compile-time interceptors, wire OTLP export, and keep runtime instrumentation clean.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                Live ports
+                                            </div>
+                                            <div className="mt-5 space-y-4">
+                                                <div className="flex items-center justify-between gap-4 text-sm">
+                                                    <span className="text-brutal-slate">Dashboard</span>
+                                                    <span className="font-mono text-brutal-white">{connection.dashboardPort}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-4 text-sm">
+                                                    <span className="text-brutal-slate">OTLP HTTP</span>
+                                                    <span className="font-mono text-brutal-white">{connection.otlpHttpPort}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-4 text-sm">
+                                                    <span className="text-brutal-slate">OTLP gRPC</span>
+                                                    <span className="font-mono text-brutal-white">
+                                                        {connection.grpcEnabled ? connection.grpcPort : 'disabled'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-4 text-sm">
+                                                    <span className="text-brutal-slate">Origin</span>
+                                                    <span className="font-mono text-brutal-white">{window.location.origin}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="launch">
+                        <div className="mx-auto max-w-[1480px] px-6 py-20 lg:px-10 xl:px-16">
+                            <div className="grid gap-14 lg:grid-cols-[minmax(0,30rem)_1fr]">
+                                <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8">
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0))]"/>
+                                    <div className="relative">
+                                        <Eyebrow>Launch qyl</Eyebrow>
+                                        <div className="mt-5">
+                                            <SectionTitle>One image to launch. One surface to inspect.</SectionTitle>
+                                        </div>
+                                        <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
+                                            Start with the collector and dashboard. Add qyl.mcp when you want natural-language telemetry access. Add Loom when you want multi-step AI investigation and autofix. The product layers stay separate, but the operator story stays coherent.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl scan-lines">
+                                        <div className="flex items-center justify-between gap-4 px-6 py-5">
+                                            <div>
+                                                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                    Launch command
+                                                </div>
+                                                <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                    Single image, single process
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-2 text-sm text-brutal-slate transition-colors hover:text-brutal-white"
+                                                onClick={() => copyValue('docker run -p 5100:5100 -p 4317:4317 -p 4318:4318 ghcr.io/ancplua/qyl', 'Launch command')}
+                                            >
+                                                <Copy className="h-4 w-4"/>
+                                                Copy
+                                            </button>
+                                        </div>
+                                        <div className="border-t border-white/8 px-6 py-6">
+                                            <code className="block overflow-x-auto font-mono text-sm text-brutal-white">
+                                                docker run -p 5100:5100 -p 4317:4317 -p 4318:4318 ghcr.io/ancplua/qyl
+                                            </code>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
+                                            <StatusRow
+                                                active={hasCollectorMeta}
+                                                label="Live origin"
+                                                value={window.location.origin}
+                                            />
+                                            <div className="border-t border-white/8">
+                                                <StatusRow
+                                                    active
+                                                    label="Product split"
+                                                    value="collector + dashboard first, mcp + loom layered after"
+                                                />
+                                            </div>
+                                            <div className="border-t border-white/8">
+                                                <StatusRow
+                                                    active={Boolean(githubStatus?.configured)}
+                                                    label="Automation"
+                                                    value={githubSummary}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            <Button
+                                                className="h-11 rounded-full bg-signal-violet px-6 text-brutal-white hover:bg-signal-violet/90"
+                                                render={<Link to="/traces"/>}
+                                            >
+                                                Open traces
+                                                <GitBranch className="h-4 w-4"/>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="h-11 rounded-full border-white/10 bg-white/0 px-6 text-brutal-white hover:bg-white/6"
+                                                render={<Link to="/services"/>}
+                                            >
+                                                Service map
+                                                <Database className="h-4 w-4"/>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="h-11 rounded-full border-white/10 bg-white/0 px-6 text-brutal-white hover:bg-white/6"
+                                                render={<Link to="/settings"/>}
+                                            >
+                                                Configure keys
+                                                <Bot className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
             </div>
         </div>
     );

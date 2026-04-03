@@ -93,7 +93,7 @@ internal static class DuckDbEmitter
     ///     Doubles any existing double quotes per SQL standard.
     /// </summary>
     private static string EscapeIdentifier(string identifier) =>
-        identifier.Contains('"') ? identifier.Replace("\"", "\"\"") : identifier;
+        identifier.Contains('"', StringComparison.Ordinal) ? identifier.Replace("\"", "\"\"") : identifier;
 
     private static void EmitAddParameters(StringBuilder sb, string typeName, IEnumerable<DuckDbColumnInfo> columns)
     {

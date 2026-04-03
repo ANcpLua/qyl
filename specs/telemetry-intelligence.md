@@ -3,7 +3,7 @@
 > Owner: contracts (types), loom (engine)
 > SSOT: YES (diagnostic patterns, causal rules, investigation strategies)
 > Depends on: `telemetry-data-model.md` (schema), `issue-fingerprinting.md` (error grouping), `contracts.md` (generated types)
-> Used by: `loom.md` (pattern engine), `mcp.md` (intelligence tools)
+> Used by: `src/qyl.loom/specs/loom.md` (pattern engine), `mcp.md` (intelligence tools)
 
 Canonical reasoning model over telemetry data. Schema-driven, generated, deterministic. The missing layer between storage and investigation.
 
@@ -525,7 +525,7 @@ instrumentation.md       → how telemetry is emitted
 telemetry-data-model.md  → how telemetry is stored (schema)
 issue-fingerprinting.md  → how errors are grouped (fingerprints)
 telemetry-intelligence.md → how telemetry is reasoned about (this spec)
-loom.md                  → how investigation is executed (agents)
+src/qyl.loom/specs/loom.md → how investigation is executed (agents)
 mcp.md                   → how intelligence is exposed (tools)
 ```
 

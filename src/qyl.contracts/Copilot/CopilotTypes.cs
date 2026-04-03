@@ -9,45 +9,6 @@ using System.Text.Json.Serialization;
 namespace Qyl.Contracts.Copilot;
 
 /// <summary>
-///     Trigger type for workflow execution.
-/// </summary>
-public enum WorkflowTrigger
-{
-    /// <summary>Manual trigger via API or UI.</summary>
-    Manual,
-
-    /// <summary>Scheduled trigger (cron-based).</summary>
-    Scheduled,
-
-    /// <summary>Event-driven trigger (e.g., error threshold).</summary>
-    Event,
-
-    /// <summary>Webhook trigger from external system.</summary>
-    Webhook
-}
-
-/// <summary>
-///     Workflow execution status.
-/// </summary>
-public enum WorkflowStatus
-{
-    /// <summary>Workflow is queued but not started.</summary>
-    Pending,
-
-    /// <summary>Workflow is currently executing.</summary>
-    Running,
-
-    /// <summary>Workflow completed successfully.</summary>
-    Completed,
-
-    /// <summary>Workflow failed with an error.</summary>
-    Failed,
-
-    /// <summary>Workflow was cancelled by user or system.</summary>
-    Cancelled
-}
-
-/// <summary>
 ///     Execution mode for unified tri-track routing.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<TrackMode>))]
@@ -109,75 +70,6 @@ public enum StreamUpdateKind
 
     /// <summary>Metadata update (tokens, timing).</summary>
     Metadata
-}
-
-/// <summary>
-///     Parsed workflow definition from .qyl/workflows/*.md files.
-/// </summary>
-public sealed record CopilotWorkflow
-{
-    /// <summary>Workflow name (from frontmatter or filename).</summary>
-    public required string Name { get; init; }
-
-    /// <summary>Human-readable description.</summary>
-    public string? Description { get; init; }
-
-    /// <summary>List of tool names this workflow can use.</summary>
-    public IEnumerable<string> Tools { get; init; } = [];
-
-    /// <summary>How this workflow is triggered.</summary>
-    public WorkflowTrigger Trigger { get; init; } = WorkflowTrigger.Manual;
-
-    /// <summary>The workflow instructions (markdown body).</summary>
-    public required string Instructions { get; init; }
-
-    /// <summary>File path where this workflow was loaded from.</summary>
-    public string? FilePath { get; init; }
-
-    /// <summary>Optional cron schedule for scheduled workflows.</summary>
-    public string? Schedule { get; init; }
-
-    /// <summary>Custom metadata from frontmatter.</summary>
-    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
-}
-
-/// <summary>
-///     Workflow execution state and result.
-/// </summary>
-public sealed record WorkflowExecution
-{
-    /// <summary>Unique execution ID (GUID).</summary>
-    public required string Id { get; init; }
-
-    /// <summary>Name of the workflow being executed.</summary>
-    public required string WorkflowName { get; init; }
-
-    /// <summary>Current execution status.</summary>
-    public WorkflowStatus Status { get; init; }
-
-    /// <summary>When execution started (UTC).</summary>
-    public DateTimeOffset StartedAt { get; init; }
-
-    /// <summary>When execution completed (UTC), if finished.</summary>
-    public DateTimeOffset? CompletedAt { get; init; }
-
-    /// <summary>Execution result text, if completed.</summary>
-    public string? Result { get; init; }
-
-    /// <summary>Error message, if failed.</summary>
-    public string? Error { get; init; }
-
-    /// <summary>Input parameters provided at execution time.</summary>
-    public IReadOnlyDictionary<string, string>? Parameters { get; init; }
-
-    /// <summary>Total input tokens consumed.</summary>
-    public long? InputTokens { get; init; }
-
-    /// <summary>Total output tokens generated.</summary>
-    public long? OutputTokens { get; init; }
-
-    /// <summary>Associated trace ID for observability.</summary>
-    public string? TraceId { get; init; }
 }
 
 /// <summary>

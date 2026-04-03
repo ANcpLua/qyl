@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
 using qyl.mcp.Tools;
+using Qyl.Generated;
 
 namespace qyl.mcp.Agents;
 
@@ -11,26 +12,12 @@ namespace qyl.mcp.Agents;
 ///     them as <see cref="AIFunction" /> for use by the embedded meta-agent (use_qyl).
 ///     Excludes tools that would cause recursion or LLM-in-LLM loops.
 /// </summary>
+/// <remarks>
+///     Tool types are discovered at compile time by the ToolManifestEmitter
+///     (source generator) via <see cref="QylToolManifest.ToolTypes" />.
+/// </remarks>
 internal sealed class McpToolRegistry(IServiceProvider services)
 {
-    /// <summary>
-    ///     Tool class types whose [McpServerTool] methods are exposed to the meta-agent.
-    ///     Excluded: UseQylTools (self — would cause recursion).
-    /// </summary>
-    private static readonly Type[] ToolTypes =
-    [
-        typeof(TelemetryTools),
-        typeof(ReplayTools),
-        typeof(StructuredLogTools),
-        typeof(GenAiTools),
-        typeof(StorageHealthTools),
-        typeof(SpanQueryTools),
-        typeof(AnalyticsTools),
-        typeof(ServiceTools),
-        typeof(ErrorTools),
-        typeof(AnomalyTools)
-    ];
-
     private IReadOnlyList<AIFunction>? _cachedTools;
 
     /// <summary>
@@ -43,8 +30,12 @@ internal sealed class McpToolRegistry(IServiceProvider services)
     {
         var tools = new List<AIFunction>();
 
-        foreach (var type in ToolTypes)
+        foreach (var type in QylToolManifest.ToolTypes)
         {
+            // Skip UseQylTools — it's the meta-agent itself; including it would cause recursion.
+            if (type == typeof(UseQylTools))
+                continue;
+
             var instance = services.GetRequiredService(type);
 
             foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))

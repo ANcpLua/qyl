@@ -16,7 +16,7 @@
 | [Telemetry Intelligence](./telemetry-intelligence.md) | **PARTIAL** | 9/11 | docs/intelligence-model.md, Loom pipeline integration |
 | [Telemetry Data Model](./telemetry-data-model.md) | **DONE** | Reference spec | — |
 | [Issue Fingerprinting](./issue-fingerprinting.md) | **DONE** | Reference spec | — |
-| [Loom](./loom.md) | **REFERENCE** | Standalone product | ~/RiderProjects/qyl.loom/ |
+| [Loom](../src/qyl.loom/specs/loom.md) | **REFERENCE** | Standalone product | `src/qyl.loom/` |
 | [API](./api.md) | **DONE** | Contract spec | — |
 
 ## Open Work Items

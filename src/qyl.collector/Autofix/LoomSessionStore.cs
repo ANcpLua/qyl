@@ -1,8 +1,11 @@
+using Qyl.Contracts.Agenting;
+
 namespace Qyl.Collector.Autofix;
 
 /// <summary>
-///     Keeps the active Loom exploration session in memory so the orchestrator
-///     can hand off context between the bounded sub-agents.
+///     Keeps active Loom exploration sessions and issues continuation tokens
+///     for multi-turn specialist execution. In-memory for now — persistence
+///     is the next step (DuckDB or event-sourced ledger).
 /// </summary>
 public sealed class LoomSessionStore(TimeProvider timeProvider)
 {
@@ -10,8 +13,14 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
 
     public LoomSessionState GetOrCreate(string issueId) =>
         _sessions.GetOrAdd(issueId,
-            static (key, now) =>
-                new LoomSessionState { SessionId = key, IssueId = key, CreatedAt = now, UpdatedAt = now },
+            static (key, now) => new LoomSessionState
+            {
+                SessionId = key,
+                IssueId = key,
+                CurrentPhase = AgentRunPhase.Intake,
+                CreatedAt = now,
+                UpdatedAt = now
+            },
             timeProvider.GetUtcNow());
 
     public LoomSessionState? Get(string sessionId) =>
@@ -22,6 +31,7 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
         var session = GetRequired(sessionId);
         session.UserContext = userContext;
         session.ContextBlock = contextBlock;
+        session.CurrentPhase = AgentRunPhase.Context;
         Touch(session);
     }
 
@@ -31,7 +41,14 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
             return;
 
         var session = GetRequired(sessionId);
-        session.Messages.Add(new LoomSessionMessage(LoomSessionMessageRole.User, content, timeProvider.GetUtcNow()));
+        session.Transcript.Add(new LoomSessionEntry
+        {
+            Role = LoomSpecialistRole.User,
+            Content = content,
+            TimestampUtc = timeProvider.GetUtcNow(),
+            Phase = session.CurrentPhase
+        });
+        session.TurnCount++;
         Touch(session);
     }
 
@@ -40,10 +57,15 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
         var session = GetRequired(sessionId);
         session.DiagnosticTranscript = diagnosticTranscript;
         session.RootCause = rootCause;
-        session.Messages.Add(new LoomSessionMessage(
-            LoomSessionMessageRole.Diagnostician,
-            diagnosticTranscript,
-            timeProvider.GetUtcNow()));
+        session.CurrentPhase = AgentRunPhase.Diagnose;
+        session.Transcript.Add(new LoomSessionEntry
+        {
+            Role = LoomSpecialistRole.Diagnostician,
+            Content = diagnosticTranscript,
+            TimestampUtc = timeProvider.GetUtcNow(),
+            Phase = AgentRunPhase.Diagnose
+        });
+        session.TurnCount++;
         Touch(session);
     }
 
@@ -51,12 +73,35 @@ public sealed class LoomSessionStore(TimeProvider timeProvider)
     {
         var session = GetRequired(sessionId);
         session.Solution = solution;
-        session.Messages.Add(new LoomSessionMessage(
-            LoomSessionMessageRole.Strategist,
-            JsonSerializer.Serialize(solution, LoomInsightJsonContext.Default.LoomSolution),
-            timeProvider.GetUtcNow()));
+        session.CurrentPhase = AgentRunPhase.Plan;
+        session.Transcript.Add(new LoomSessionEntry
+        {
+            Role = LoomSpecialistRole.Strategist,
+            Content = JsonSerializer.Serialize(solution, LoomInsightJsonContext.Default.LoomSolution),
+            TimestampUtc = timeProvider.GetUtcNow(),
+            Phase = AgentRunPhase.Plan
+        });
+        session.TurnCount++;
         Touch(session);
     }
+
+    /// <summary>
+    ///     Issues a continuation token from the current session state.
+    ///     Use this to resume a session across turns or process restarts.
+    /// </summary>
+    public LoomContinuationToken? IssueContinuation(string sessionId)
+    {
+        var session = Get(sessionId);
+        return session?.ToSnapshot().IssueContinuation(
+            session.LastSpecialist,
+            session.CurrentPhase);
+    }
+
+    /// <summary>
+    ///     Takes a snapshot of the session for persistence or handoff.
+    /// </summary>
+    public LoomSessionSnapshot? TakeSnapshot(string sessionId) =>
+        Get(sessionId)?.ToSnapshot();
 
     private LoomSessionState GetRequired(string sessionId) =>
         Get(sessionId) ?? throw new InvalidOperationException($"Loom session '{sessionId}' was not initialized.");
@@ -68,6 +113,8 @@ public sealed class LoomSessionState
 {
     public required string SessionId { get; init; }
     public required string IssueId { get; init; }
+    public AgentRunPhase CurrentPhase { get; set; }
+    public LoomSpecialistRole LastSpecialist { get; set; } = LoomSpecialistRole.Orchestrator;
     public string? UserContext { get; set; }
     public string? ContextBlock { get; set; }
     public string? DiagnosticTranscript { get; set; }
@@ -75,17 +122,26 @@ public sealed class LoomSessionState
     public LoomSolution? Solution { get; set; }
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; set; }
-    public List<LoomSessionMessage> Messages { get; } = [];
-}
+    public int TurnCount { get; set; }
+    public List<LoomSessionEntry> Transcript { get; } = [];
 
-public sealed record LoomSessionMessage(
-    LoomSessionMessageRole Role,
-    string Content,
-    DateTimeOffset Timestamp);
-
-public enum LoomSessionMessageRole
-{
-    User,
-    Diagnostician,
-    Strategist
+    internal LoomSessionSnapshot ToSnapshot() => new()
+    {
+        SessionId = SessionId,
+        IssueId = IssueId,
+        CurrentPhase = CurrentPhase,
+        CreatedAtUtc = CreatedAt,
+        UpdatedAtUtc = UpdatedAt,
+        UserContext = UserContext,
+        ContextBlock = ContextBlock,
+        DiagnosticTranscript = DiagnosticTranscript,
+        RootCauseJson = RootCause is not null
+            ? JsonSerializer.Serialize(RootCause, LoomInsightJsonContext.Default.LoomRootCause)
+            : null,
+        SolutionJson = Solution is not null
+            ? JsonSerializer.Serialize(Solution, LoomInsightJsonContext.Default.LoomSolution)
+            : null,
+        TurnCount = TurnCount,
+        Transcript = [.. Transcript]
+    };
 }

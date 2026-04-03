@@ -44,12 +44,25 @@ public static class CollectorMiddlewareExtensions
 
         app.UseQylTelemetry();
 
-        if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
-            app.UseEmbeddedDashboard();
-        else
+        // Physical files (Docker: wwwroot copied at container stage) take priority.
+        // Embedded resources (single-binary: EmbeddedResource in csproj) are the fallback.
+        var webRoot = app.Environment.WebRootPath;
+        if (string.IsNullOrEmpty(webRoot))
         {
+            var candidate = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+            if (Directory.Exists(candidate))
+                webRoot = candidate;
+        }
+
+        if (webRoot is { Length: > 0 } && File.Exists(Path.Combine(webRoot, "index.html")))
+        {
+            app.Environment.WebRootPath = webRoot;
             app.UseDefaultFiles();
             app.UseStaticFiles();
+        }
+        else if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
+        {
+            app.UseEmbeddedDashboard();
         }
 
         return app;

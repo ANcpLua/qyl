@@ -55,6 +55,7 @@ export default function App() {
                 <Suspense>
                     <Routes>
                         <Route path="/index.html" element={<Navigate to="/" replace/>}/>
+                        <Route path="/onboarding" element={<OnboardingPage/>}/>
                         <Route element={<DashboardLayout/>}>
                             <Route path="/" element={<FirstVisitGate/>}/>
                             <Route path="/traces" element={<TracesPage/>}/>
@@ -68,7 +69,6 @@ export default function App() {
                             <Route path="/settings" element={<SettingsPage/>}/>
                             <Route path="/issues" element={<IssuesPage/>}/>
                             <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                            <Route path="/onboarding" element={<OnboardingPage/>}/>
                             <Route path="/alerts" element={<AlertsPage/>}/>
                             <Route path="/performance" element={<PerformancePage/>}/>
                             <Route path="/errors" element={<ErrorsOutagesPage/>}/>

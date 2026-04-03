@@ -91,7 +91,9 @@ public static class ChatClientExtensions
         this IChatClient client,
         string? agentName = null,
         TimeProvider? timeProvider = null)
-        => new InstrumentedChatClient(client, agentName, timeProvider);
+        => client is InstrumentedChatClient
+            ? client
+            : new InstrumentedChatClient(client, agentName, timeProvider);
 
     /// <summary>
     ///     Wraps each <see cref="AIFunction" /> in <see cref="ChatOptions.Tools" /> with

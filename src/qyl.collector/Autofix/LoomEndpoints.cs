@@ -35,10 +35,11 @@ public static class LoomEndpoints
                 null));
 
         // ── Stage 5: "Code It Up" trigger ────────────────────────────────────
+        // Collector creates the fix run (data plane). Loom picks it up for
+        // orchestration (RCA, diff, confidence scoring) via its background service.
         app.MapPost("/api/v1/loom/{issueId}/code-it-up", static async Task<IResult> (
             string issueId,
             LoomCodeItUpRequest request,
-            AutofixOrchestrator orchestrator,
             PrCreationService prService,
             DuckDbStore store,
             CancellationToken ct) =>
@@ -47,8 +48,14 @@ public static class LoomEndpoints
             if (issue is null)
                 return TypedResults.NotFound(new { error = $"Issue '{issueId}' not found." });
 
-            var run = await orchestrator.CreateFixRunAsync(
-                issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+            var run = new FixRunRecord
+            {
+                RunId = Guid.NewGuid().ToString("N"),
+                IssueId = issueId,
+                Status = "pending",
+                Policy = FixPolicy.AutoApply.ToString()
+            };
+            await store.InsertFixRunAsync(run, ct).ConfigureAwait(false);
 
             string? prUrl = null;
             if (!string.IsNullOrWhiteSpace(request.Repo))

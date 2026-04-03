@@ -5,88 +5,61 @@ namespace Qyl.Instrumentation.Generators.Models;
 #region Provider Types
 
 /// <summary>
-///     Defines an instrumentation provider.
+///     Maps a GenAI provider's SDK type-name substring to its OTel provider ID.
+///     Used by <see cref="Analyzers.ProviderDetector" /> for compile-time capability discovery.
 /// </summary>
 internal sealed record ProviderDefinition(
     string ProviderId,
-    string TypeContains,
-    TokenUsageDefinition? TokenUsage);
+    string TypeContains);
 
 /// <summary>
-///     Defines how to extract token usage from a response.
-/// </summary>
-internal sealed record TokenUsageDefinition(
-    string InputProperty,
-    string OutputProperty);
-
-/// <summary>
-///     Registry of GenAI instrumentation providers.
+///     Registry of GenAI providers for compile-time capability discovery.
 /// </summary>
 /// <remarks>
-///     Provider definitions for compile-time detection in the source generator.
 ///     Provider IDs use OTel Semantic Conventions v1.40 gen_ai.provider.name values.
-///     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
+///     Order matters: more specific patterns must come before generic ones
+///     (Azure.AI.OpenAI before OpenAI).
 /// </remarks>
 internal static class ProviderRegistry
 {
-    // OTel SemConv v1.40 gen_ai.provider.name values (inline for source generator compatibility)
-    private const string OpenAi = "openai";
-    private const string AzureAiOpenai = "azure.ai.openai";
-    private const string AzureAiInference = "azure.ai.inference";
-    private const string Anthropic = "anthropic";
-    private const string AwsBedrock = "aws.bedrock";
-    private const string GcpGemini = "gcp.gemini";
-    private const string GcpVertexAi = "gcp.vertex_ai";
-    private const string Cohere = "cohere";
-    private const string MistralAi = "mistral_ai";
-    private const string Groq = "groq";
-    private const string Deepseek = "deepseek";
-    private const string Perplexity = "perplexity";
-    private const string XAi = "x_ai";
-    private const string MicrosoftAgents = "microsoft_agents";
-
-    /// <summary>
-    ///     All GenAI providers with known SDK type patterns.
-    /// </summary>
-    /// <remarks>
-    ///     Order matters: more specific patterns should come before generic ones.
-    ///     Azure.AI.OpenAI must be checked before OpenAI to avoid incorrect matching.
-    /// </remarks>
     public static readonly ImmutableArray<ProviderDefinition> GenAiProviders =
     [
         // Azure (must come before OpenAI due to type name overlap)
-        new(AzureAiOpenai, "Azure.AI.OpenAI", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
-        new(AzureAiInference, "Azure.AI.Inference", null),
+        new("azure.ai.openai", "Azure.AI.OpenAI"),
+        new("azure.ai.inference", "Azure.AI.Inference"),
 
-        // OpenAI ecosystem (OpenAI SDK v2.x uses InputTokenCount/OutputTokenCount)
-        new(OpenAi, "OpenAI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
+        // OpenAI
+        new("openai", "OpenAI"),
 
         // Anthropic
-        new(Anthropic, "Anthropic", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
+        new("anthropic", "Anthropic"),
 
         // AWS
-        new(AwsBedrock, "Bedrock", null),
+        new("aws.bedrock", "Bedrock"),
 
         // Google
-        new(GcpGemini, "GenerativeAI", null),
-        new(GcpVertexAi, "AIPlatform", null),
+        new("gcp.gemini", "GenerativeAI"),
+        new("gcp.vertex_ai", "AIPlatform"),
 
         // Other providers
-        new(Cohere, "Cohere", null),
-        new(MistralAi, "Mistral", null),
-        new(Groq, "Groq", new TokenUsageDefinition("Usage.PromptTokens", "Usage.CompletionTokens")),
-        new(Deepseek, "Deepseek", null),
-        new(Perplexity, "Perplexity", null),
-        new(XAi, "xAI", null),
+        new("cohere", "Cohere"),
+        new("mistral_ai", "Mistral"),
+        new("groq", "Groq"),
+        new("deepseek", "Deepseek"),
+        new("perplexity", "Perplexity"),
+        new("x_ai", "xAI"),
 
-        // Microsoft Agent Framework (AgentResponse.Usage is M.E.AI.UsageDetails)
-        // Matches all Microsoft.Agents.AI.* types (AIAgent, ChatClientAgent, DelegatingAIAgent)
-        new(MicrosoftAgents, "Agents.AI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
+        // Microsoft Agent Framework
+        new("microsoft_agents", "Agents.AI"),
 
-        // Custom providers (not in OTel semconv)
-        new("ollama", "Ollama", null),
-        new("together_ai", "Together", null),
-        new("replicate", "Replicate", null)
+        // Community providers
+        new("ollama", "Ollama"),
+        new("together_ai", "Together"),
+        new("replicate", "Replicate"),
+        new("meta", "Meta"),
+        new("huggingface", "HuggingFace"),
+        new("fireworks", "Fireworks"),
+        new("anyscale", "Anyscale")
     ];
 }
 
@@ -254,30 +227,6 @@ internal sealed record AgentCallSite(
 
 #endregion
 
-#region ChatClient Call Site Types
-
-/// <summary>
-///     A discovered IChatClient call site (GetResponseAsync / GetStreamingResponseAsync)
-///     ready for OTel instrumentation via ToolInstrumentingChatClient and GenAiInstrumentation.
-/// </summary>
-/// <remarks>
-///     Unlike <see cref="GenAiCallSite" /> which matches concrete SDK types, this model is emitted
-///     for any receiver whose static type implements <c>Microsoft.Extensions.AI.IChatClient</c>.
-///     That covers custom wrappers, DI-injected clients, and any future SDK not in the hardcoded list.
-/// </remarks>
-internal sealed record ChatClientCallSite(
-    string SortKey,
-    string ContainingTypeName,
-    string MethodName,
-    bool IsAsync,
-    bool IsStreaming,
-    string ReturnTypeName,
-    EquatableArray<string> ParameterTypes,
-    EquatableArray<string> ParameterNames,
-    InterceptableLocation Location);
-
-#endregion
-
 #region Traced Call Site Types
 
 /// <summary>
@@ -349,5 +298,16 @@ internal sealed record TracedReturnInfo(
 internal sealed record TypeParameterConstraint(
     string Name,
     string? Constraints);
+
+#endregion
+
+#region Tool Manifest Types
+
+/// <summary>
+///     A discovered [McpServerToolType]-decorated class for compile-time tool registration.
+/// </summary>
+internal sealed record ToolTypeEntry(
+    string SortKey,
+    string FullyQualifiedTypeName);
 
 #endregion

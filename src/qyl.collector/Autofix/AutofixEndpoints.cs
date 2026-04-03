@@ -1,7 +1,8 @@
 namespace Qyl.Collector.Autofix;
 
 /// <summary>
-///     REST endpoints for triggering and querying autofix runs against grouped issues.
+///     REST endpoints for fix runs. Collector stores fix run data —
+///     orchestration (RCA, diff generation, confidence scoring) is owned by qyl.loom.
 /// </summary>
 public static class AutofixEndpoints
 {
@@ -9,15 +10,22 @@ public static class AutofixEndpoints
     {
         app.MapPost("/api/v1/issues/{issueId}/fix-runs", static async Task<IResult> (
             string issueId, FixRunRequest request,
-            AutofixOrchestrator orchestrator, CancellationToken ct) =>
+            DuckDbStore store, CancellationToken ct) =>
         {
-            if (await orchestrator.Store.GetIssueByIdAsync(issueId, ct) is not { } issue)
+            if (await store.GetIssueByIdAsync(issueId, ct) is null)
                 return TypedResults.NotFound();
 
             if (!Enum.TryParse<FixPolicy>(request.Policy, true, out var policy))
                 policy = FixPolicy.RequireReview;
 
-            var run = await orchestrator.CreateFixRunAsync(issueId, issue, policy, ct);
+            var run = new FixRunRecord
+            {
+                RunId = Guid.NewGuid().ToString("N"),
+                IssueId = issueId,
+                Status = "pending",
+                Policy = policy.ToString()
+            };
+            await store.InsertFixRunAsync(run, ct);
             return TypedResults.Created($"/api/v1/issues/{issueId}/fix-runs/{run.RunId}", run);
         });
 
@@ -59,13 +67,13 @@ public static class AutofixEndpoints
         app.MapPatch("/api/v1/issues/{issueId}/fix-runs/{runId}", static async Task<IResult> (
             string issueId, string runId,
             FixRunPatchRequest request,
-            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+            DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
                 return TypedResults.NotFound();
 
-            await orchestrator.UpdateFixRunStatusAsync(
+            await store.UpdateFixRunAsync(
                 runId,
                 request.Status ?? run.Status,
                 request.Description,
@@ -75,8 +83,6 @@ public static class AutofixEndpoints
 
             return TypedResults.NoContent();
         });
-
-        // ── Steps ────────────────────────────────────────────────────────────
 
         app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}/steps", static async Task<IResult> (
             string issueId, string runId, DuckDbStore store, CancellationToken ct) =>
@@ -89,66 +95,46 @@ public static class AutofixEndpoints
             return TypedResults.Ok(new { items = steps, total = steps.Count });
         });
 
-        // ── Approve / Reject ─────────────────────────────────────────────────
-
         app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/approve", static async Task<IResult> (
             string issueId, string runId,
-            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+            DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
                 return TypedResults.NotFound();
 
             if (run.Status is not "review")
-            {
-                return TypedResults.BadRequest(new
-                {
-                    error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'."
-                });
-            }
+                return TypedResults.BadRequest(new { error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'." });
 
-            await orchestrator.UpdateFixRunStatusAsync(runId, "applied", ct: ct);
+            await store.UpdateFixRunAsync(runId, "applied", ct: ct);
             return TypedResults.Ok(new { status = "applied", runId });
         });
 
         app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/reject", static async Task<IResult> (
             string issueId, string runId,
             FixRunRejectRequest? request,
-            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+            DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
                 return TypedResults.NotFound();
 
             if (run.Status is not "review")
-            {
-                return TypedResults.BadRequest(new
-                {
-                    error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'."
-                });
-            }
+                return TypedResults.BadRequest(new { error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'." });
 
-            await orchestrator.UpdateFixRunStatusAsync(
-                runId, "rejected", request?.Reason, ct: ct);
+            await store.UpdateFixRunAsync(runId, "rejected", request?.Reason, ct: ct);
             return TypedResults.Ok(new { status = "rejected", runId });
         });
+
     }
 }
 
-/// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs.</summary>
 public sealed record FixRunRequest(string? Policy = null);
 
-/// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs/{runId}/pr.</summary>
-public sealed record PrCreationRequest(
-    string Repo,
-    string? BaseBranch = null);
+public sealed record PrCreationRequest(string Repo, string? BaseBranch = null);
 
-/// <summary>Request body for PATCH /api/v1/issues/{issueId}/fix-runs/{runId}.</summary>
 public sealed record FixRunPatchRequest(
-    string? Status = null,
-    string? Description = null,
-    double? Confidence = null,
-    string? ChangesJson = null);
+    string? Status = null, string? Description = null,
+    double? Confidence = null, string? ChangesJson = null);
 
-/// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs/{runId}/reject.</summary>
 public sealed record FixRunRejectRequest(string? Reason = null);

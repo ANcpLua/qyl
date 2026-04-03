@@ -519,12 +519,14 @@ public static class CollectorEndpointExtensions
             return Task.CompletedTask;
         }
 
+        // Embedded dashboard middleware handles its own SPA fallback
         if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
         {
             context.Response.StatusCode = 404;
             return Task.CompletedTask;
         }
 
+        // Physical files: SPA fallback — serve index.html for client-side routes
         var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
         var webRootPath = env.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRootPath))

@@ -96,7 +96,7 @@ public static class QylServiceDefaultsExtensions
     // Private Configuration Methods
     // =========================================================================
 
-    private static void ConfigureServiceProvider<TBuilder>(TBuilder builder, QylOptions options)
+    internal static void ConfigureServiceProvider<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {
         if (!options.ValidateOnBuild) return;
@@ -107,13 +107,13 @@ public static class QylServiceDefaultsExtensions
         }));
     }
 
-    private static void ConfigureKestrel(IServiceCollection services) =>
+    internal static void ConfigureKestrel(IServiceCollection services) =>
         services.Configure<KestrelServerOptions>(static options =>
         {
             options.AddServerHeader = false;
         });
 
-    private static void ConfigureJson(IServiceCollection services, QylOptions options)
+    internal static void ConfigureJson(IServiceCollection services, QylOptions options)
     {
         void Json(JsonSerializerOptions json)
         {
@@ -132,7 +132,7 @@ public static class QylServiceDefaultsExtensions
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
     }
 
-    private static void ConfigureOpenTelemetry<TBuilder>(TBuilder builder, QylOptions options)
+    internal static void ConfigureOpenTelemetry<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {
         var serviceName = builder.Environment.ApplicationName;
@@ -250,13 +250,13 @@ public static class QylServiceDefaultsExtensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
     }
 
-    private static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
+    internal static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder =>
         builder.Services.AddHealthChecks()
             .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"])
             .AddCheck("ready", static () => HealthCheckResult.Healthy(), ["ready"]);
 
-    private static void ConfigureHttpClients<TBuilder>(TBuilder builder)
+    internal static void ConfigureHttpClients<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddServiceDiscovery();

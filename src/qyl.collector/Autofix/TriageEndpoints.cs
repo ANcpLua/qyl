@@ -1,7 +1,8 @@
 namespace Qyl.Collector.Autofix;
 
 /// <summary>
-///     REST endpoints for querying and triggering triage assessments.
+///     REST endpoints for querying triage assessments.
+///     Triage execution is owned by qyl.loom — collector only stores/reads results.
 /// </summary>
 public static class TriageEndpoints
 {
@@ -30,18 +31,12 @@ public static class TriageEndpoints
             return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
         });
 
-        app.MapPost("/api/v1/issues/{issueId}/triage", static async Task<IResult> (
-            string issueId, TriagePipelineService pipeline,
-            DuckDbStore store, CancellationToken ct) =>
+        app.MapGet("/api/v1/issues/untriaged", static async (
+            int? limit, DuckDbStore store, CancellationToken ct) =>
         {
-            if (await store.GetIssueByIdAsync(issueId, ct) is null)
-                return TypedResults.NotFound();
-
-            // Triage only this specific issue (no side effects on other issues)
-            var result = await pipeline.TriageSingleIssueAsync(issueId, ct);
-            return result is null
-                ? TypedResults.Problem("Triage failed to produce a result")
-                : TypedResults.Created($"/api/v1/triage/{result.TriageId}", result);
+            var ids = await store.GetUntriagedIssueIdsAsync(
+                Math.Clamp(limit ?? 100, 1, 1000), ct);
+            return TypedResults.Ok(new { items = ids, total = ids.Count });
         });
     }
 }

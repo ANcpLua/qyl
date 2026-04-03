@@ -13,12 +13,6 @@ public static class CollectorFeatureExtensions
         this IServiceCollection services,
         IConfiguration config)
     {
-        // Loom triage + autofix
-        services.AddSingleton<TriagePipelineService>();
-        services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
-        services.AddSingleton<AutofixAgentService>();
-        services.AddHostedService(static sp => sp.GetRequiredService<AutofixAgentService>());
-
         // Identity + workspace
         services.AddSingleton<WorkspaceService>();
         services.AddSingleton<HandshakeService>();
@@ -43,10 +37,9 @@ public static class CollectorFeatureExtensions
         services.AddSingleton<AnomalyService>();
         services.AddSingleton<LogSummaryService>();
 
-        // Error issue engine + lifecycle + autofix
+        // Error issue engine + lifecycle
         services.AddSingleton<IssueService>();
         services.AddSingleton<ErrorLifecycleService>();
-        services.AddSingleton<AutofixOrchestrator>();
         services.AddSingleton<PrCreationService>();
         services.AddSingleton<AgentHandoffService>();
 

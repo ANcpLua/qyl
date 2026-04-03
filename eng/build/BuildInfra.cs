@@ -47,7 +47,7 @@ interface IDocker : IHazSourcePaths
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
-        ("qyl-dashboard", DashboardDirectory / "Dockerfile", FormatImageName("qyl-dashboard"))
+        ("qyl-loom", SourceDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom"))
     ];
 
     // ════════════════════════════════════════════════════════════════════════
@@ -79,8 +79,8 @@ interface IDocker : IHazSourcePaths
         .Description("Build qyl-collector Docker image")
         .Executes(() => BuildSingleImage(ImageSpecs[0]));
 
-    Target DockerBuildDashboard => d => d
-        .Description("Build qyl-dashboard Docker image")
+    Target DockerBuildLoom => d => d
+        .Description("Build qyl-loom Docker image")
         .Executes(() => BuildSingleImage(ImageSpecs[1]));
 
     Target DockerImagePush => d => d

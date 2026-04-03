@@ -6,12 +6,11 @@ description: Run qyl tests with correct MTP syntax via NUKE. Use when running ba
 # Run Tests
 
 Tests use xUnit v3 on Microsoft Testing Platform. Always run through NUKE.
-Use the default `nuke` entrypoint for the full backend suite instead of explicit `nuke Test`.
 
 ## Quick Commands
 
 ```bash
-# Run all tests
+# Run all tests (default target)
 nuke
 
 # Unit tests only
@@ -23,7 +22,7 @@ nuke IntegrationTests
 
 ## MTP Filter Syntax
 
-xUnit v3 uses query syntax, not the old VSTest `--filter` flag. Pass via NUKE parameter:
+xUnit v3 uses query syntax via `--filter-query`. Pass via NUKE parameter:
 
 ```bash
 # Filter by namespace pattern
@@ -53,17 +52,11 @@ nuke --IQylTest.TestFilter "/*/RpcTests/*" --IQylTest.StopOnFail --IQylTest.Live
 ## Wrong (never do this)
 
 ```bash
-# Wrong: explicit target is discouraged in this repo
-nuke Test
-
-# Wrong: VSTest filter syntax
+# Wrong: VSTest filter syntax (MTP uses --filter-query, not --filter)
 dotnet test --filter "FullyQualifiedName~CloneTests"
 
-# Wrong: raw MTP flags without NUKE
-dotnet test -- --filter-namespace "*.Unit.*" --report-trx
-
-# Wrong: missing -- separator
-dotnet test --filter-class "*RpcTests*"
+# Wrong: raw MTP flags without NUKE (missing --project, --report-trx, exit-code handling)
+dotnet test -- --filter-namespace "*.Unit.*"
 ```
 
 ## Frontend Tests

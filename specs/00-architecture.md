@@ -33,7 +33,7 @@ qyl **observes**. It does not **control**. It sits on the side channel. If qyl g
 | GenAI cost computation | First-class feature. See `cost.md`. |
 | Error grouping and issue tracking | Core function — aggregate errors into issues |
 | Service discovery | Derived from incoming telemetry |
-| AI investigation and autofix | Standalone product (`qyl.loom`). See `loom.md`. |
+| AI investigation and autofix | Standalone product (`qyl.loom`). See `src/qyl.loom/specs/loom.md`. |
 | MCP tool surface | Agent-native query interface. See `mcp.md`. |
 
 **Out of scope:**
@@ -293,17 +293,23 @@ MCP server for AI-native telemetry queries. Separate process. Communicates with 
 
 ### 4.2 qyl.loom
 
-AI investigation and automation layer. Standalone product.
+AI investigation and automation layer. Standalone product. Containerized microservice with its own Dockerfile (`src/qyl.loom/Dockerfile`).
 
 **Responsibility:** Given an error/anomaly, investigate root cause using AI agents with access to telemetry and artifacts.
 
 **Dependencies:**
-- `qyl.collector` (ProjectRef for data access)
-- `qyl.contracts` (shared types)
+- `qyl.contracts` (compile-time shared types)
+- `qyl.collector` (runtime HTTP via `CollectorClient`)
 - Microsoft.Extensions.AI / Microsoft.Agents.AI (for agent construction)
 
+**Deployment:**
+- Own Dockerfile at `src/qyl.loom/Dockerfile`
+- Runs as a Docker service alongside collector via root `docker-compose.yml`
+- Communicates with collector over HTTP only (no ProjectReference, no DuckDB)
+
 **Architecture rules:**
-- `qyl.loom` depends on `qyl.collector`, never vice versa
+- `qyl.loom` depends on `qyl.contracts` at compile time and `qyl.collector` at runtime over HTTP
+- No ProjectReference to collector. No DuckDB dependency.
 - All LLM provider dependencies live here, not in the collector
 - Shared types (`CodingAgentProvider`, `CodingAgentRunRecord`, etc.) live in `qyl.contracts/Loom/`
 
@@ -456,7 +462,7 @@ Then: "What failed in the last hour?" → Claude queries qyl, answers with evide
 | `qyl` (server) | `qyl.contracts`, DuckDB, ASP.NET Core, OTel SDK, Microsoft.Extensions.AI (abstractions only) | — |
 | `qyl-ui` | — | `qyl` (HTTP) |
 | `qyl-mcp` | `qyl.contracts`, ModelContextProtocol SDK | `qyl` (HTTP) |
-| `qyl-loom` | `qyl.collector` (ProjectRef), `qyl.contracts` | Microsoft.Extensions.AI, Microsoft.Agents.AI |
+| `qyl-loom` | `qyl.contracts` | `qyl` (HTTP via CollectorClient), Microsoft.Extensions.AI, Microsoft.Agents.AI |
 
 </dependency-matrix>
 

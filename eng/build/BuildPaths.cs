@@ -22,7 +22,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath DashboardDirectory => SourceDirectory / "qyl.dashboard";
     AbsolutePath ProtocolDirectory => SourceDirectory / "qyl.contracts";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
-    AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
+    AbsolutePath ComposeFile => RootDirectory / "docker-compose.yml";
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
     AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 }

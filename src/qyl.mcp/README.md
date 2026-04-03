@@ -38,9 +38,16 @@ qyl.mcp
 Remote mode exposes:
 
 - `/mcp` — Streamable HTTP MCP endpoint
+- `/mcp` — Session-aware stream endpoint is the same Streamable HTTP root (`POST` initialize/request, `GET` session stream)
 - `/mcp.json` — lightweight discovery metadata
 - `/llms.txt` — human/LLM-readable server summary
 - `/healthz` — container health endpoint
+
+`ModelContextProtocol` 1.2.0 behavior is now reflected here:
+
+- Legacy SSE endpoints (`/mcp/sse`, `/mcp/message`) are not exposed by default.
+- Existing clients should target `/mcp` for Streamable HTTP discovery and transport.
+- Legacy SSE compatibility must be handled through your client migration plan before this 1.2.0 transport default is adopted.
 
 ### Railway monorepo deployment
 

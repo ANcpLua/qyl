@@ -39,6 +39,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Landing\landing.html" LogicalName="qyl.mcp.Landing.landing.html"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="ModelContextProtocol"/>
     <PackageReference Include="ModelContextProtocol.AspNetCore"/>
@@ -55,6 +59,12 @@
   <!-- Reference protocol only - communicate with collector via HTTP -->
   <ItemGroup>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
+  </ItemGroup>
+
+  <!-- Source generator: compile-time tool manifest, telemetry interceptors -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

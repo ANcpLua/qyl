@@ -4,6 +4,37 @@
 
 ### Added
 
+- **Agenting contracts plane**: Added `src/qyl.contracts/Agenting/` with immutable run/governance
+  contracts for V2 work, including run phases/statuses, capability descriptors, approval records,
+  artifact/evidence records, validation/policy checkpoints, ledger events, and canonical
+  `AutofixRunState`.
+- **qyl.codexversion repo scaffold**: Added `qyl.codexversion/` as a fresh nested TypeScript/Zod
+  orchestration prototype repo centered on `delegate-task`, `call-omo-agent`, background manager,
+  spawn limits, concurrency, prompt metadata, model requirements, and plugin-config control-plane behavior.
+- **Collector evidence substrate**: Added `src/qyl.collector/Intelligence/Evidence/` with structured
+  issue/regression/deployment evidence records plus a deterministic evidence-pack builder that emits
+  `AgentRunEvidencePack` payloads as ordered JSON facts instead of prose summaries.
+- **Collector autofix V2 ledger substrate**: Added `src/qyl.collector/Autofix/V2/` with storage-agnostic
+  ledger contracts, immutable ledger records, and explicit run/artifact/approval/validation projections
+  for the governance boundary.
+- **Loom runtime tool bridge**: Added descriptor-driven `AIFunction` catalog helpers under
+  `src/qyl.instrumentation/Instrumentation/Loom/` so `LoomGeneratedRegistry.Tools` can be converted
+  directly into `Microsoft.Extensions.AI` tool instances and catalog lists without reflection-based
+  discovery.
+- **Loom compiler surface in instrumentation**: Added new Loom runtime declarations under
+  `src/qyl.instrumentation/Instrumentation/Loom/` (`LoomToolAttribute`, `LoomContractAttribute`,
+  `LoomStepAttribute`, `LoomWorkflowAttribute`, capability/policy attributes, descriptors, and schema writer)
+  plus a new incremental generator slice under `src/qyl.instrumentation.generators/Loom/` that follows the
+  `extractor -> immutable model -> emitter -> registry` pattern. This emits generated tool descriptors,
+  contract descriptors, step/workflow manifests, and a central `LoomGeneratedRegistry` without adding qyl host glue.
+- **Loom telemetry/policy manifest slice**: Extended the Loom generator with explicit telemetry, policy, and unified manifest registry output for tools/contracts/steps/workflows, including structured-output and budget extraction from Loom attributes.
+- **Loom runtime metadata parity**: Tightened the Loom generator/runtime boundary so full method signatures
+  remain descriptor-emitted, infrastructure-bound parameters stay out of model-visible schema, the registry
+  emits a capability manifest, and generated manifest output reuses runtime descriptor types instead of
+  re-declaring them.
+- **Loom Dockerfile**: `src/qyl.loom/Dockerfile` — standalone container for the Loom intelligence plane.
+- **Root docker-compose.yml**: Orchestrates `collector` and `loom` services for local dev with `QYL_OTLP_AUTH_MODE=Unsecured`.
+- **BitNet agent demo**: `samples/bitnet-agent-demo/` — 3-agent BitNet tracing demo with BitNet server and its own compose file.
 - **MAF overlap audit report**: Added `docs/superpowers/plans/2026-04-02-maf-overlap-analysis.md`, a repo-grounded analysis of where qyl still uses self-implemented agent/orchestration/runtime code instead of Microsoft Agent Framework layers, with concrete keep/replace/delete recommendations.
 - **Dedicated qyl.mcp test project**: Added `tests/qyl.mcp.tests/` with focused HTTP-bound tests for
   collector client registration and `HttpTelemetryStore`, plus `InternalsVisibleTo` wiring so MCP DI and
@@ -20,6 +51,25 @@
 
 ### Changed
 
+- **qyl onboarding launch surface rebuilt**: Moved `/onboarding` out of the dashboard shell and replaced the old step wizard with a full-bleed qyl landing page focused on OTLP ingest, MCP access, and launch actions. The new page keeps live collector/GitHub status, transport-specific copy snippets, and direct entry points into traces, issues, services, and settings.
+- **Instruction entrypoints unified**: Root `AGENTS.md` now symlinks to `.claude/AGENTS.md`, and root `CLAUDE.md` now symlinks to `AGENTS.md`, so the repo has one canonical instruction surface.
+
+- **Claude architecture pack reset**: Replaced the old `.claude/rules` and `qyl-workflows` instruction sprawl with a minimal seven-plane architecture pack covering data, serving, intelligence, agent/control, ledger/governance, UI/protocol, and compiler responsibilities.
+
+- **Loom spec docs moved under qyl.loom**: Moved the primary Loom spec from `specs/loom.md` to
+  `src/qyl.loom/specs/loom.md` and the reverse-engineered Loom design reference from `eng/build/loom.md`
+  to `src/qyl.loom/docs/reference/sentry-loom-design.md`. Updated repo references so Loom-owned docs now
+  live with the standalone Loom product instead of the repo-root specs/build folders.
+- **qyl.mcp MCP SDK baseline bumped to 1.2.0**: `ModelContextProtocolVersion` in
+  `Version.props` is now `1.2.0`, so `src/qyl.mcp` runs against the 1.2.0 SDK line.
+  Startup wiring and docs now document Streamable HTTP-first routing and legacy-SSE-by-default-off behavior
+  from MCP 1.2.0.
+- **qyl.mcp transport migration notes added**: `src/qyl.mcp/Program.cs` now documents that
+  MCP 1.2.0 maps Streamable HTTP on the configured path by default and does not expose legacy `/mcp/sse`
+  or `/mcp/message` endpoints.
+
+- **NUKE Docker targets updated**: `ImageSpecs` now targets `loom` instead of dashboard, `ComposeFile` points to root `docker-compose.yml`, `DockerBuildDashboard` renamed to `DockerBuildLoom`.
+- **Collector dashboard serves physical files first**: Fixed priority inversion bug where `CreateSlimBuilder` caused embedded resources to shadow physical wwwroot files. Physical files now take priority.
 - **Collector architecture test wording aligned with reality**: `ArchitectureTests` no longer claims the server has "zero LLM dependencies"; it now states the actual boundary: `Microsoft.Extensions.AI` abstractions are allowed, while MAF runtime packages, GitHub Copilot SDK, and provider SDKs are not.
 - **Qyl chat instrumentation now auto-wraps tool calls**: `UseQylInstrumentation()` and `WithQylTelemetry()`
   now wrap `ChatOptions.Tools` with `InstrumentedAIFunction` automatically, so `execute_tool` spans are emitted
@@ -39,6 +89,7 @@
 
 ### Removed
 
+- **Dead `impl/` and `CodingAgent/` dirs from loom**: Deleted 10 stale markdown docs from `src/qyl.loom/impl/` and already-deleted `CodingAgent/` directory references.
 - **Unused central MAF package versions**: Deleted dead central package-management entries for `Microsoft.Agents.AI.Abstractions`, `Microsoft.Agents.AI.GitHub.Copilot`, `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, and `Microsoft.Agents.AI.Workflows.Declarative`. No project referenced them; only `Microsoft.Agents.AI.Hosting` remains live via the MAF sample.
 - **Dead weight purged from qyl.loom**: Deleted `Identity/`, `Workflow/`, `AgentRuns/`, `Analytics/`,
   `impl/seer/`, `EmbeddingClusterWorker.cs`, `ProjectService.cs`, `PrCreationService.cs`,
@@ -61,6 +112,10 @@
 
 ### Fixed
 
+- **qyl.dashboard preview bundle crash fixed**: Simplified `vite.config.ts` manual chunking to keep only the heavy chart bundles isolated. This removes the brittle `react-vendor` / `tanstack` split that caused the built preview app to crash before React mounted.
+- **NuGet MCP server command fixed**: MCP config corrected `dnx` to `nuget-mcp-server`, removed duplicate `qyl-local` plugin entry.
+- **Collector healthcheck in Docker**: Added `curl` to collector Dockerfile and `ASPNETCORE_WEBROOT` env var for proper healthcheck and static file serving.
+- **Unsecured auth for local dev compose**: Both root `docker-compose.yml` and sample compose files set `QYL_OTLP_AUTH_MODE=Unsecured` so local OTLP ingest works without API keys.
 - **Railway Docker builds no longer depend on service-specific cache IDs**: `src/qyl.collector/Dockerfile`
   and `src/qyl.mcp/Dockerfile` no longer use Railway cache mounts. This removes both the old
   hardcoded-service-ID failure and the invalid generic-cache-mount failure when the repo is built from

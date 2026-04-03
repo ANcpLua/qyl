@@ -3,7 +3,7 @@
 > Owner: collector
 > SSOT: YES (error grouping algorithm, normalization rules, issue lifecycle)
 > Depends on: `telemetry-data-model.md` (error_issues schema)
-> Used by: `telemetry-intelligence.md` (pattern input), `loom.md` (investigation trigger)
+> Used by: `telemetry-intelligence.md` (pattern input), `src/qyl.loom/specs/loom.md` (investigation trigger)
 
 Deterministic error grouping algorithm. Groups multiple error occurrences into stable issues. Grouping is **service-scoped** — the same exception in different services produces different fingerprints.
 
