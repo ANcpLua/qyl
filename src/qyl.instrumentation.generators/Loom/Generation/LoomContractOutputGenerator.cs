@@ -23,7 +23,7 @@ internal static class LoomContractOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractDescriptor Descriptor { get; } = new(");
-        using (sb.BeginBlock(null))
+        sb.BeginBlock(null);
         {
             sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(contract.Name)},");
             sb.AppendLine($"{LoomGenerationHelpers.TypeOf(contract.FullyQualifiedTypeName)},");
@@ -59,6 +59,7 @@ internal static class LoomContractOutputGenerator
                 }
             }
         }
+        sb.EndBlock(null);
         sb.AppendLine(");");
         sb.AppendLine();
 

@@ -3,7 +3,7 @@
 > Owner: collector
 > SSOT: YES (DuckDB schema, promoted columns, table definitions)
 > Depends on: none
-> Used by: `collector.md`, `issue-fingerprinting.md`, `telemetry-intelligence.md`, `loom.md`, `mcp.md`, `cost.md`
+> Used by: `collector.md`, `issue-fingerprinting.md`, `telemetry-intelligence.md`, `src/qyl.loom/specs/loom.md`, `mcp.md`, `cost.md`
 
 Canonical schema for all telemetry stored in DuckDB. Source of truth for agents, MCP tools, and dashboard queries.
 

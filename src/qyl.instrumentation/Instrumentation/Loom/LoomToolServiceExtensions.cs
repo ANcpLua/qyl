@@ -10,7 +10,7 @@ public static class LoomToolServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddSingleton<IReadOnlyList<AIFunction>>(sp =>
+        services.TryAddSingleton<IReadOnlyList<AIFunction>>(static sp =>
             LoomToolFactoryBridge.CreateAIFunctions(LoomGeneratedRegistry.RuntimeMetadata, sp));
 
         return services;
@@ -20,7 +20,7 @@ public static class LoomToolServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddSingleton<IReadOnlyList<AIFunction>>(sp =>
+        services.TryAddSingleton<IReadOnlyList<AIFunction>>(static sp =>
             LoomToolFactoryBridge.CreateInstrumentedAIFunctions(LoomGeneratedRegistry.RuntimeMetadata, sp));
 
         return services;

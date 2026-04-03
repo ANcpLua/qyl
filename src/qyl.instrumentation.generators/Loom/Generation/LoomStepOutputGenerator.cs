@@ -22,13 +22,12 @@ internal static class LoomStepOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepDescriptor Descriptor { get; } = new(");
-        using (sb.BeginBlock(null))
-        {
-            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(step.Id)},");
-            sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){step.Phase},");
-            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(step.ExecutorTypeFullyQualified)},");
-            sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(step.Description)}");
-        }
+        sb.BeginBlock(null);
+        sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(step.Id)},");
+        sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){step.Phase},");
+        sb.AppendLine($"{LoomGenerationHelpers.TypeOf(step.ExecutorTypeFullyQualified)},");
+        sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(step.Description)}");
+        sb.EndBlock(null);
         sb.AppendLine(");");
 
         for (var i = 0; i < step.DeclarationChain.Length; i++)

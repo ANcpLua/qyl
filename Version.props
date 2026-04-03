@@ -14,11 +14,11 @@
     <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
     <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.48.0</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaRoslynUtilitiesBaseVersion>1.48.0</ANcpLuaRoslynUtilitiesBaseVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.51.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesBaseVersion>1.51.0</ANcpLuaRoslynUtilitiesBaseVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260311.1</MicrosoftAgentsHostingVersion>
     <OpenAIVersion>2.9.1</OpenAIVersion>
-    <ModelContextProtocolVersion>1.1.0</ModelContextProtocolVersion>
+    <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>
     <MicrosoftIdentityModelVersion>8.17.0</MicrosoftIdentityModelVersion>
     <QylAgentsVersion>0.2.0</QylAgentsVersion>
     <NukeVersion>10.1.0</NukeVersion>

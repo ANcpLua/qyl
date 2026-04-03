@@ -15,6 +15,7 @@ using ModelContextProtocol.Protocol;
 using qyl.contracts.Attributes;
 using qyl.mcp;
 using qyl.mcp.Apps.ErrorExplorer;
+using qyl.mcp.Landing;
 using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
@@ -105,13 +106,24 @@ static async Task RunHttpAsync(
         app.UseAuthorization();
     }
 
-    app.MapGet("/", (HttpRequest request) => Results.Json(CreateManifest(request, hostOptions)));
+    app.MapGet("/", (HttpRequest request) =>
+    {
+        var accept = request.Headers.Accept.ToString();
+        if (accept.ContainsIgnoreCase("text/html"))
+            return Results.Content(
+                LandingPage.GetHtml(hostOptions.ResolvePublicMcpUrl(request)),
+                "text/html; charset=utf-8");
+
+        return Results.Json(CreateManifest(request, hostOptions));
+    });
     app.MapGet("/mcp.json", (HttpRequest request) => Results.Json(CreateManifest(request, hostOptions)));
     app.MapGet("/llms.txt", (HttpRequest request) =>
         Results.Text(CreateLlmsText(request, hostOptions), "text/plain; charset=utf-8"));
     app.MapHealthChecks("/healthz", new HealthCheckOptions());
 
     var endpoint = app.MapMcp(hostOptions.Path);
+    // MCP 1.2.0 keeps Streamable HTTP as the default, so legacy SSE endpoints are not
+    // mapped by default. Clients should use POST/GET on the same path from `QYL_MCP_PATH`.
     if (hostOptions.RequiresAuthentication)
         endpoint.RequireAuthorization();
 
@@ -248,8 +260,8 @@ static void ConfigureHttpAuthentication(IServiceCollection services, McpHostOpti
                     context.ResourceMetadata = new ProtectedResourceMetadata
                     {
                         Resource = resourceUrl,
-                        AuthorizationServers = [authority],
-                        BearerMethodsSupported = ["header"],
+                        AuthorizationServers = GetAuthorizationServers(authority),
+                        BearerMethodsSupported = McpAuthMetadata.BearerMethodsSupported,
                         ResourceName = "qyl MCP",
                         ResourceDocumentation =
                             "https://github.com/ANcpLua/qyl/tree/main/src/qyl.mcp#readme"
@@ -431,6 +443,8 @@ static string CreateLlmsText(HttpRequest request, McpHostOptions hostOptions)
     return builder.ToString();
 }
 
+static string[] GetAuthorizationServers(string authority) => [authority];
+
 namespace qyl.mcp
 {
     file static class ServerVersion
@@ -447,5 +461,10 @@ namespace qyl.mcp
         public const string Method = "rpc.method";
         public const string JsonrpcVersion = "rpc.jsonrpc.version";
         public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+    }
+
+    file static class McpAuthMetadata
+    {
+        public static readonly string[] BearerMethodsSupported = ["header"];
     }
 }

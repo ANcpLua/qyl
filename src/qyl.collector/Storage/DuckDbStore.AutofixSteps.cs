@@ -31,6 +31,26 @@ public sealed partial class DuckDbStore
         }, ct).ConfigureAwait(false);
 
     /// <summary>
+    ///     Creates a new autofix step with auto-generated ID. Returns the created record.
+    /// </summary>
+    public async Task<AutofixStepRecord> CreateAutofixStepAsync(
+        string runId, string stepName, string? description = null, CancellationToken ct = default)
+    {
+        var existing = await GetAutofixStepsAsync(runId, ct).ConfigureAwait(false);
+        var step = new AutofixStepRecord
+        {
+            StepId = Guid.NewGuid().ToString("N"),
+            RunId = runId,
+            StepNumber = existing.Count + 1,
+            StepName = stepName,
+            Status = "pending",
+            InputJson = description
+        };
+        await InsertAutofixStepAsync(step, ct).ConfigureAwait(false);
+        return step;
+    }
+
+    /// <summary>
     ///     Updates an autofix step status and output.
     /// </summary>
     public async Task UpdateAutofixStepAsync(

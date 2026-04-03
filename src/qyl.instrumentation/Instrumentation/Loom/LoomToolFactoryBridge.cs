@@ -137,8 +137,8 @@ public static class LoomToolFactoryBridge
         {
             ExcludeFromSchema = true,
             BindParameter = binding.Type == typeof(IServiceProvider)
-                ? static (_, args) => args.Services!
-                : (pi, args) => args.Services?.GetService(pi.ParameterType)!
+                ? static (_, args) => args.Services
+                : static (pi, args) => args.Services?.GetService(pi.ParameterType)
         };
     }
 
@@ -163,9 +163,9 @@ public static class LoomToolFactoryBridge
             descriptor.Description,
             descriptor.UseOnlyWhen is not null ? $"Use only when {descriptor.UseOnlyWhen}." : null,
             descriptor.DoNotUseWhen is not null ? $"Do not use when {descriptor.DoNotUseWhen}." : null
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        }.Where(static s => !string.IsNullOrWhiteSpace(s)));
 
-    private static IReadOnlyDictionary<string, object?> BuildAdditionalProperties(
+    private static Dictionary<string, object?> BuildAdditionalProperties(
         LoomRuntimeMetadataDescriptor metadata) =>
         new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -175,7 +175,7 @@ public static class LoomToolFactoryBridge
             ["loom.phase"] = metadata.Phase.ToString(),
             ["loom.bridge"] = "factory",
 
-            ["loom.binding.parameters"] = metadata.ParameterBindings.Select(b => new Dictionary<string, object?>(StringComparer.Ordinal)
+            ["loom.binding.parameters"] = metadata.ParameterBindings.Select(static b => new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["name"] = b.Name,
                 ["type"] = b.Type.FullName ?? b.Type.Name,

@@ -31,10 +31,10 @@ internal sealed class AutofixMcpTools(HttpClient http)
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomFixRunList>.Fail($"Issue '{issueId}' not found.");
+            return LoomToolEnvelope.Fail<LoomFixRunList>($"Issue '{issueId}' not found.");
 
         if (!resp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomFixRunList>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunList>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to list fix runs.",
                 ct).ConfigureAwait(false));
@@ -43,9 +43,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
             LoomMcpJsonContext.Default.LoomFixRunList, ct).ConfigureAwait(false);
 
         if (payload is null)
-            return LoomToolEnvelope<LoomFixRunList>.Fail("Failed to parse fix run list from collector.");
+            return LoomToolEnvelope.Fail<LoomFixRunList>("Failed to parse fix run list from collector.");
 
-        return LoomToolEnvelope<LoomFixRunList>.Ok(payload);
+        return LoomToolEnvelope.Ok(payload);
     }
 
     [McpServerTool(Name = "qyl.get_fix_run", Title = "Get Fix Run Details",
@@ -64,11 +64,11 @@ internal sealed class AutofixMcpTools(HttpClient http)
             .ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomFixRunDto>.Fail(
+            return LoomToolEnvelope.Fail<LoomFixRunDto>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
 
         if (!resp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomFixRunDto>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunDto>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to load fix run details.",
                 ct).ConfigureAwait(false));
@@ -77,8 +77,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
             LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);
 
         return payload is null
-            ? LoomToolEnvelope<LoomFixRunDto>.Fail("Failed to parse fix run details from collector.")
-            : LoomToolEnvelope<LoomFixRunDto>.Ok(payload);
+            ? LoomToolEnvelope.Fail<LoomFixRunDto>("Failed to parse fix run details from collector.")
+            : LoomToolEnvelope.Ok(payload);
     }
 
     [McpServerTool(Name = "qyl.get_fix_run_steps", Title = "Get Fix Run Pipeline Steps",
@@ -97,11 +97,11 @@ internal sealed class AutofixMcpTools(HttpClient http)
             .ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomAutofixStepList>.Fail(
+            return LoomToolEnvelope.Fail<LoomAutofixStepList>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
 
         if (!resp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomAutofixStepList>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomAutofixStepList>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to load fix run steps.",
                 ct).ConfigureAwait(false));
@@ -110,8 +110,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
             LoomMcpJsonContext.Default.LoomAutofixStepList, ct).ConfigureAwait(false);
 
         return payload is null
-            ? LoomToolEnvelope<LoomAutofixStepList>.Fail("Failed to parse fix run steps from collector.")
-            : LoomToolEnvelope<LoomAutofixStepList>.Ok(payload);
+            ? LoomToolEnvelope.Fail<LoomAutofixStepList>("Failed to parse fix run steps from collector.")
+            : LoomToolEnvelope.Ok(payload);
     }
 
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
@@ -131,17 +131,17 @@ internal sealed class AutofixMcpTools(HttpClient http)
             null, ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
 
         if (resp.StatusCode == HttpStatusCode.BadRequest)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Cannot approve fix run.",
                 ct).ConfigureAwait(false));
 
         if (!resp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to approve fix run.",
                 ct).ConfigureAwait(false));
@@ -150,8 +150,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
             LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);
 
         return transition is null
-            ? LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail("Failed to parse approval response from collector.")
-            : LoomToolEnvelope<LoomFixRunTransitionResponse>.Ok(transition);
+            ? LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>("Failed to parse approval response from collector.")
+            : LoomToolEnvelope.Ok(transition);
     }
 
     [McpServerTool(Name = "qyl.reject_fix_run", Title = "Reject Fix Run",
@@ -174,17 +174,17 @@ internal sealed class AutofixMcpTools(HttpClient http)
             ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
 
         if (resp.StatusCode == HttpStatusCode.BadRequest)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Cannot reject fix run.",
                 ct).ConfigureAwait(false));
 
         if (!resp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail(await ReadCollectorErrorAsync(
+            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to reject fix run.",
                 ct).ConfigureAwait(false));
@@ -193,8 +193,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
             LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);
 
         return transition is null
-            ? LoomToolEnvelope<LoomFixRunTransitionResponse>.Fail("Failed to parse rejection response from collector.")
-            : LoomToolEnvelope<LoomFixRunTransitionResponse>.Ok(transition);
+            ? LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>("Failed to parse rejection response from collector.")
+            : LoomToolEnvelope.Ok(transition);
     }
 
     private static async Task<string> ReadCollectorErrorAsync(HttpResponseMessage resp, string fallback,

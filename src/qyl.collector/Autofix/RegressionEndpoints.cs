@@ -1,8 +1,8 @@
 namespace Qyl.Collector.Autofix;
 
 /// <summary>
-///     REST endpoints for manually triggering regression checks and
-///     querying regression events from the <c>issue_events</c> table.
+///     REST endpoints for regression detection data.
+///     Active regression scanning is owned by qyl.loom.
 /// </summary>
 public static class RegressionEndpoints
 {
@@ -10,14 +10,10 @@ public static class RegressionEndpoints
     {
         app.MapPost("/api/v1/regressions/check/{serviceName}", static async (
             string serviceName, string? version,
-            DuckDbStore store, TriagePipelineService triagePipeline,
-            CancellationToken ct) =>
+            DuckDbStore store, CancellationToken ct) =>
         {
             var regressedIssueIds = await store
                 .DetectRegressionsAsync(serviceName, version, ct).ConfigureAwait(false);
-
-            if (regressedIssueIds.Count > 0)
-                await triagePipeline.TriageUntriagedIssuesAsync(ct).ConfigureAwait(false);
 
             return TypedResults.Ok(new { regressedIssueIds, count = regressedIssueIds.Count });
         });
@@ -26,20 +22,14 @@ public static class RegressionEndpoints
             int? limit, DateTime? since,
             DuckDbStore store, CancellationToken ct) =>
         {
-            var clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
             var items = await store
-                .GetRegressionEventsAsync(clampedLimit, since, ct).ConfigureAwait(false);
+                .GetRegressionEventsAsync(Math.Clamp(limit ?? 50, 1, 1000), since, ct).ConfigureAwait(false);
 
             return TypedResults.Ok(new
             {
                 items = items.Select(static r => new
                 {
-                    eventId = r.EventId,
-                    issueId = r.IssueId,
-                    oldValue = r.OldValue,
-                    newValue = r.NewValue,
-                    reason = r.Reason,
-                    createdAt = r.CreatedAt
+                    r.EventId, r.IssueId, r.OldValue, r.NewValue, r.Reason, r.CreatedAt
                 }),
                 total = items.Count
             });
@@ -49,20 +39,14 @@ public static class RegressionEndpoints
             string issueId, int? limit,
             DuckDbStore store, CancellationToken ct) =>
         {
-            var clampedLimit = Math.Clamp(limit ?? 20, 1, 100);
             var items = await store
-                .GetIssueRegressionEventsAsync(issueId, clampedLimit, ct).ConfigureAwait(false);
+                .GetIssueRegressionEventsAsync(issueId, Math.Clamp(limit ?? 20, 1, 100), ct).ConfigureAwait(false);
 
             return TypedResults.Ok(new
             {
                 items = items.Select(static r => new
                 {
-                    eventId = r.EventId,
-                    issueId = r.IssueId,
-                    oldValue = r.OldValue,
-                    newValue = r.NewValue,
-                    reason = r.Reason,
-                    createdAt = r.CreatedAt
+                    r.EventId, r.IssueId, r.OldValue, r.NewValue, r.Reason, r.CreatedAt
                 }),
                 total = items.Count
             });

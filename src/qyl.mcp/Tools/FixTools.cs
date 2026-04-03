@@ -36,17 +36,17 @@ internal sealed class FixTools(HttpClient http)
             ct).ConfigureAwait(false);
 
         if (createResp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope<LoomFixRunDto>.Fail($"Issue '{issueId}' not found.");
+            return LoomToolEnvelope.Fail<LoomFixRunDto>($"Issue '{issueId}' not found.");
 
         if (!createResp.IsSuccessStatusCode)
-            return LoomToolEnvelope<LoomFixRunDto>.Fail(
+            return LoomToolEnvelope.Fail<LoomFixRunDto>(
                 $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}");
 
         var run = await createResp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);
 
         return run is null
-            ? LoomToolEnvelope<LoomFixRunDto>.Fail("Failed to parse fix run response from collector.")
-            : LoomToolEnvelope<LoomFixRunDto>.Ok(run);
+            ? LoomToolEnvelope.Fail<LoomFixRunDto>("Failed to parse fix run response from collector.")
+            : LoomToolEnvelope.Ok(run);
     }
 }

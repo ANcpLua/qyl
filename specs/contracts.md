@@ -3,7 +3,7 @@
 > Owner: contracts
 > SSOT: YES for shared serialized contracts; NO for feature-local runtime helpers
 > Depends on: `core/specs/**`, `eng/build/**`, `eng/semconv/**`
-> Used by: `collector.md`, `mcp.md`, `loom.md`, `instrumentation.md`, `telemetry-intelligence.md`
+> Used by: `collector.md`, `mcp.md`, `src/qyl.loom/specs/loom.md`, `instrumentation.md`, `telemetry-intelligence.md`
 
 Shared contracts must be mechanically derived, not hand-maintained. Today the spec overclaims: `src/qyl.contracts/` still mixes generated models with hand-written DTOs, feature seed data, stale names, and helper code. This document defines the cleanup plan that makes the contracts layer true in code instead of true on paper.
 

@@ -22,5 +22,8 @@ public enum PatternCategory
     GenAi,
 
     /// <summary>Database and storage patterns</summary>
-    Data
+    Data,
+
+    /// <summary>Agent behavioral failure modes (AgentRx taxonomy)</summary>
+    Agent
 }

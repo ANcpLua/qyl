@@ -67,6 +67,37 @@ public sealed partial class DuckDbStore
         }, ct).ConfigureAwait(false);
 
     /// <summary>
+    ///     Creates a new fix run with auto-generated ID. Returns the created record.
+    /// </summary>
+    public async Task<FixRunRecord> CreateFixRunAsync(
+        string issueId, FixPolicy policy, CancellationToken ct = default)
+    {
+        var record = new FixRunRecord
+        {
+            RunId = Guid.NewGuid().ToString("N"),
+            IssueId = issueId,
+            Status = "pending",
+            Policy = policy.ToString().ToLowerInvariant()
+        };
+        await InsertFixRunAsync(record, ct).ConfigureAwait(false);
+        return record;
+    }
+
+    /// <summary>
+    ///     Gets fix runs by status, ordered by creation time ascending.
+    /// </summary>
+    public Task<IReadOnlyList<FixRunRecord>> GetFixRunsByStatusAsync(
+        string status, int limit = 50, CancellationToken ct = default) =>
+        ReadManyAsync(
+            FixRunSelectSql + " WHERE status = $1 ORDER BY created_at ASC LIMIT $2",
+            cmd =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = status });
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapFixRun, ct);
+
+    /// <summary>
     ///     Gets a single fix run by run_id.
     /// </summary>
     public Task<FixRunRecord?> GetFixRunAsync(string runId, CancellationToken ct = default) =>

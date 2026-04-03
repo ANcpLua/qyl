@@ -1,7 +1,8 @@
 // =============================================================================
 // QYL v2.0 - Seed Diagnostic Patterns (v1)
 // =============================================================================
-// 10 initial diagnostic patterns. Source: specs/telemetry-intelligence.md §5.1
+// 19 initial diagnostic patterns (10 infra + 9 agent behavioral)
+// Source: specs/telemetry-intelligence.md §5.1 + Microsoft Research AgentRx (March 2026)
 // These compile to static registries in DiagnosticPatterns.g.cs.
 //
 // Signal attributes reference:
@@ -90,4 +91,82 @@ namespace Qyl.Intelligence.Seed;
 // Signals: gen_ai_cost_usd > daily_average * 3
 // Hypothesis: Abnormal cost increase. Identify the model, service, and session responsible.
 // Confidence: 0.75
+// ---------------------------------------------------------------------------
+
+// =============================================================================
+// Agent behavioral failure patterns (AgentRx taxonomy)
+// Source: Microsoft Research AgentRx, March 2026
+// 9 failure categories from Magentic-One and TAU-Retail benchmarks
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_intent_plan_misalignment
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.operation.name=invoke_agent, status_code=2
+// Hypothesis: Agent plan diverges from user intent. Review task decomposition.
+// Confidence: 0.70
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_misinterpret_tool_info
+// Category: agent
+// Signals: gen_ai.tool.name exists, gen_ai.tool.call.id exists, error_type contains tool
+// Hypothesis: Agent misinterpreted tool output or schema.
+// Confidence: 0.75
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_rai_policy_violation
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.stop_reason contains content_filter
+// Hypothesis: Agent triggered responsible AI policy violation.
+// Confidence: 0.95
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_plan_adherence_failure
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.operation.name=invoke_agent, gen_ai.usage.output_tokens>0, child_span_count>20
+// Hypothesis: Agent deviated from its own plan. Excessive tool calls suggest improvisation.
+// Confidence: 0.65
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_invent_new_info
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.operation.name=invoke_agent
+// Hypothesis: Agent fabricated information not in tool outputs. Cross-reference claims vs results.
+// Confidence: 0.60
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_invalid_invocation
+// Category: agent
+// Signals: gen_ai.tool.name exists, error_type contains invalid, gen_ai.agent.name exists
+// Hypothesis: Agent called tool with invalid arguments or nonexistent name.
+// Confidence: 0.85
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_hallucination_doubt
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.usage.output_tokens>500, gen_ai.tool.call.id not_exists
+// Hypothesis: Long response without tool grounding. High hallucination risk.
+// Confidence: 0.55
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_instruction_adherence_failure
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.operation.name=invoke_agent
+// Hypothesis: Agent ignored or contradicted system prompt constraints.
+// Confidence: 0.60
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pattern: agent_underspecified_intent
+// Category: agent
+// Signals: gen_ai.agent.name exists, gen_ai.operation.name=invoke_agent, gen_ai.usage.input_tokens<50
+// Hypothesis: Ambiguous request with insufficient context for reliable execution.
+// Confidence: 0.65
 // ---------------------------------------------------------------------------

@@ -12,11 +12,12 @@ Any work touching `src/qyl.dashboard/**` — pages, components, hooks, charts, t
 ## Stack contract
 
 - `@base-ui/react` — only primitive family. Never `@radix-ui/*`, `asChild`, `Slot`.
-- shadcn — source-owned shell and block layer (not the primitive system)
+- `shadcn` v4 CLI — code-gen tool for downloading Base UI component shells (source-owned, not a runtime dep)
 - Tailwind + CSS variables — styling baseline
 - TanStack Table + TanStack Virtual — dense data surfaces
 - ECharts — dense observability charts
 - Recharts — lightweight KPI cards only
+- lucide-react — icons
 - React Bits — accent layer only:
     - Allowed: onboarding, empty states, celebratory no-incident states, loading flourishes, non-critical KPI motion
     - Banned surfaces: app shell, log explorer, trace explorer, mission-critical tables, investigation workflows, core
@@ -48,7 +49,6 @@ Any work touching `src/qyl.dashboard/**` — pages, components, hooks, charts, t
 Load for implementation details:
 
 - `./rules/base-ui-composition.md`
-- `./rules/shadcn-foundation.md`
 - `./rules/styling-and-theming.md`
 - `./rules/tables-and-virtualization.md`
 - `./rules/charts.md`

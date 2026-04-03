@@ -1,4 +1,3 @@
-using System.Globalization;
 using Qyl.Collector.Analytics;
 using DistributionComparer = Qyl.Collector.Analytics.DistributionComparer;
 using StatisticalMath = Qyl.Collector.Analytics.StatisticalMath;
@@ -108,8 +107,8 @@ public static class SemanticDiffService
         ArgumentNullException.ThrowIfNull(comparison);
         ArgumentNullException.ThrowIfNull(context);
 
-        if (totalBaseline < 0) throw new ArgumentOutOfRangeException(nameof(totalBaseline));
-        if (totalComparison < 0) throw new ArgumentOutOfRangeException(nameof(totalComparison));
+        ArgumentOutOfRangeException.ThrowIfNegative(totalBaseline);
+        ArgumentOutOfRangeException.ThrowIfNegative(totalComparison);
         if (limit <= 0) return [];
 
         options ??= SemanticDiffOptions.Default;
@@ -317,15 +316,15 @@ public static class SemanticDiffService
         max - min <= 1e-12 ? (v > 0 ? 1.0 : 0.0) : Clamp01((v - min) / (max - min));
 
     private static bool IsLocalizedDimension(string key) =>
-        key.Contains("route", StringComparison.OrdinalIgnoreCase) || key.Contains("endpoint", StringComparison.OrdinalIgnoreCase) ||
-        key.Contains("service", StringComparison.OrdinalIgnoreCase) || key.Contains("version", StringComparison.OrdinalIgnoreCase) ||
-        key.Contains("exception", StringComparison.OrdinalIgnoreCase);
+        key.ContainsIgnoreCase("route") || key.ContainsIgnoreCase("endpoint") ||
+        key.ContainsIgnoreCase("service") || key.ContainsIgnoreCase("version") ||
+        key.ContainsIgnoreCase("exception");
 
     private static bool IsKnownActionablePattern(string key, string value) =>
-        (key.Contains("exception", StringComparison.OrdinalIgnoreCase) || key.Contains("error", StringComparison.OrdinalIgnoreCase)) &&
-        (value.Contains("NullReference", StringComparison.OrdinalIgnoreCase) || value.Contains("ArgumentException", StringComparison.OrdinalIgnoreCase) ||
-         value.Contains("InvalidOperation", StringComparison.OrdinalIgnoreCase) || value.Contains("Timeout", StringComparison.OrdinalIgnoreCase) ||
-         value.Contains("Failed to fetch", StringComparison.OrdinalIgnoreCase));
+        (key.ContainsIgnoreCase("exception") || key.ContainsIgnoreCase("error")) &&
+        (value.ContainsIgnoreCase("NullReference") || value.ContainsIgnoreCase("ArgumentException") ||
+         value.ContainsIgnoreCase("InvalidOperation") || value.ContainsIgnoreCase("Timeout") ||
+         value.ContainsIgnoreCase("Failed to fetch"));
 
     private static string DisplayValue(string value) => string.IsNullOrEmpty(value) ? "(missing)" : value;
 

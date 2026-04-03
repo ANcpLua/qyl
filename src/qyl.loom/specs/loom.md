@@ -2,8 +2,8 @@
 
 > Owner: loom
 > SSOT: YES (AI investigation pipeline, autofix, triage, code review, regression detection)
-> Depends on: `telemetry-intelligence.md` (pattern engine), `telemetry-data-model.md` (schema), `issue-fingerprinting.md` (error grouping)
-> Used by: `mcp.md` (analysis tool delegation)
+> Depends on: `specs/telemetry-intelligence.md` (pattern engine), `specs/telemetry-data-model.md` (schema), `specs/issue-fingerprinting.md` (error grouping)
+> Used by: `specs/mcp.md` (analysis tool delegation)
 
 AI-powered issue investigation and autofix. C# transpile of Sentry Seer. Standalone product.
 
@@ -26,9 +26,9 @@ AI-powered issue investigation and autofix. C# transpile of Sentry Seer. Standal
 
 ## 1. Overview
 
-`src/qyl.loom/` — standalone product. Communicates with collector over HTTP.
+`src/qyl.loom/` — standalone product. Communicates with collector over HTTP via `CollectorClient`.
 
-Seer API surface mapping: `src/qyl.loom/impl/seer/`
+**Deployment:** Own Dockerfile at `src/qyl.loom/Dockerfile`. Runs as a Docker service alongside collector via root `docker-compose.yml`. No ProjectReference to collector, no DuckDB dependency.
 
 Agent construction uses MAF directly: `AIAgent`, `IChatClient`, `AddAIAgent()`. Shared types (`CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord`) live in `qyl.contracts/Loom/`.
 
@@ -93,7 +93,7 @@ qyl.collector/qyl.dashboard/qyl.instrumentation + qyl.mcp + qyl.loom
 | **LLM** | Optional `IChatClient?` for heuristic+LLM triage/autofix. Self-disables without LLM. | Required. Multi-step reasoning, provider SDKs, agent orchestration. |
 | **Deployment** | Running (Railway) | Standalone process, separate deployment |
 
-Loom enhances collector — it doesn't replace it. Collector's pipelines work with heuristic fallbacks. Loom adds autonomous reasoning on top. Seer API surface mapping at `src/qyl.loom/impl/seer/`.
+Loom enhances collector — it doesn't replace it. Collector's pipelines work with heuristic fallbacks. Loom adds autonomous reasoning on top.
 
 ### 1.5 Official Seer evidence that drives this reading
 
@@ -219,7 +219,7 @@ Classifies incoming issues by severity, assigns to teams, and determines if auto
 
 ## 9. Constraints
 
-Ownership boundaries: see `00-architecture.md` section 2.3.
+Ownership boundaries: see `specs/00-architecture.md` section 2.3.
 
 - Agent construction uses MAF directly (`AIAgent`, `IChatClient`, `AddAIAgent()`).
 - Each pipeline stage persisted independently for resumability.

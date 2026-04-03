@@ -3,7 +3,7 @@
 > Owner: instrumentation
 > SSOT: YES (Roslyn generators, runtime wiring, code context emission)
 > Depends on: `contracts.md` (shared types)
-> Used by: `telemetry-data-model.md` (populated columns), `issue-fingerprinting.md` (code location), `loom.md` (autofix input)
+> Used by: `telemetry-data-model.md` (populated columns), `issue-fingerprinting.md` (code location), `src/qyl.loom/specs/loom.md` (autofix input)
 
 Compile-time OTel instrumentation via Roslyn source generators. Zero runtime reflection.
 

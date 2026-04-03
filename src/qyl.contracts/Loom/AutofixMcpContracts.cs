@@ -70,9 +70,15 @@ public sealed record LoomToolEnvelope<T>
     [JsonPropertyName("success")] public required bool Success { get; init; }
     [JsonPropertyName("data")] [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public T? Data { get; init; }
     [JsonPropertyName("error")] [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Error { get; init; }
+}
 
-    public static LoomToolEnvelope<T> Ok(T data) => new() { Success = true, Data = data };
-    public static LoomToolEnvelope<T> Fail(string error) => new() { Success = false, Error = error };
+/// <summary>
+///     Factory methods for <see cref="LoomToolEnvelope{T}" /> that avoid CA1000 (static members on generic types).
+/// </summary>
+public static class LoomToolEnvelope
+{
+    public static LoomToolEnvelope<T> Ok<T>(T data) => new() { Success = true, Data = data };
+    public static LoomToolEnvelope<T> Fail<T>(string error) => new() { Success = false, Error = error };
 }
 
 [JsonSourceGenerationOptions(

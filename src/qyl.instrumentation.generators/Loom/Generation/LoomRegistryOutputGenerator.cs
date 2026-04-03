@@ -135,20 +135,19 @@ internal static class LoomRegistryOutputGenerator
                     .ToArray();
 
                 sb.AppendLine("new(");
-                using (sb.BeginBlock(null))
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(group.Key)},");
-                    sb.AppendLine(
-                        $"new string[] {{ {string.Join(", ", toolNames.Select(LoomGenerationHelpers.StringLiteral))} }},");
-                    sb.AppendLine(anyRequiresApproval ? "true," : "false,");
+                sb.BeginBlock(null);
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(group.Key)},");
+                sb.AppendLine(
+                    $"new string[] {{ {string.Join(", ", toolNames.Select(LoomGenerationHelpers.StringLiteral))} }},");
+                sb.AppendLine(anyRequiresApproval ? "true," : "false,");
 
-                    if (sideEffects.Length is 0)
-                        sb.AppendLine(
-                            "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
-                    else
-                        sb.AppendLine(
-                            $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", sideEffects.Select(static effect => $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect}"))} }}");
-                }
+                if (sideEffects.Length is 0)
+                    sb.AppendLine(
+                        "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
+                else
+                    sb.AppendLine(
+                        $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", sideEffects.Select(static effect => $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect}"))} }}");
+                sb.EndBlock(null);
                 sb.AppendLine("),");
             }
         }

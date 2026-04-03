@@ -242,8 +242,10 @@ internal sealed class LoomToolAIFunction : AIFunction
         LoomToolAIFunctionOptions options,
         IServiceProvider? services)
     {
-        _descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(descriptor);
+        ArgumentNullException.ThrowIfNull(options);
+        _descriptor = descriptor;
+        _options = options;
         _services = services;
         _bindingSurface = descriptor.GetBindingSurface(options);
         _jsonSchema = BuildJsonSchema(_bindingSurface);
@@ -350,7 +352,7 @@ internal sealed class LoomToolAIFunction : AIFunction
 
         return binding.IsVisibleToModel
             ? ReadArgument(arguments, binding.Parameter)
-            : ReadArgumentOrDefault(arguments, binding.Parameter);
+            : ReadArgumentOrDefault(binding.Parameter);
     }
 
     private object? ReadArgument(AIFunctionArguments arguments, LoomToolParameterDescriptor parameter)
@@ -358,10 +360,10 @@ internal sealed class LoomToolAIFunction : AIFunction
         if (arguments.TryGetValue(parameter.Name, out var value))
             return ConvertArgument(value, parameter.Type);
 
-        return ReadArgumentOrDefault(arguments, parameter);
+        return ReadArgumentOrDefault(parameter);
     }
 
-    private object? ReadArgumentOrDefault(AIFunctionArguments arguments, LoomToolParameterDescriptor parameter)
+    private object? ReadArgumentOrDefault(LoomToolParameterDescriptor parameter)
     {
         if (parameter.HasDefaultValue && parameter.DefaultValueLiteral is not null)
             return ConvertLiteral(parameter.DefaultValueLiteral, parameter.Type);
@@ -371,7 +373,7 @@ internal sealed class LoomToolAIFunction : AIFunction
 
         throw new ArgumentException(
             $"Missing required argument '{parameter.Name}' for Loom tool '{Name}'.",
-            nameof(arguments));
+            nameof(parameter));
     }
 
     private object? ConvertArgument(object? value, Type type)
@@ -459,7 +461,7 @@ internal sealed class LoomToolAIFunction : AIFunction
         return document.RootElement.Clone();
     }
 
-    private static IReadOnlyDictionary<string, object?> BuildAdditionalProperties(
+    private static Dictionary<string, object?> BuildAdditionalProperties(
         LoomToolDescriptor descriptor,
         LoomToolBindingSurface bindingSurface,
         LoomToolAIFunctionOptions options)

@@ -3,7 +3,7 @@
 > Owner: collector
 > SSOT: YES (OTLP ingestion, DuckDB storage, SSE streaming, REST API)
 > Depends on: `api.md` (response contract), `telemetry-data-model.md` (schema), `cost.md` (cost computation)
-> Used by: `mcp.md`, `loom.md`, `dashboard.md`
+> Used by: `mcp.md`, `src/qyl.loom/specs/loom.md`, `dashboard.md`
 
 The collector is the core process. It ingests OTLP telemetry, stores it in DuckDB, streams updates via SSE, and serves the REST API.
 

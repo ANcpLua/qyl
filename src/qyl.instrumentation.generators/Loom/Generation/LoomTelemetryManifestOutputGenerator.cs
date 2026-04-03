@@ -17,8 +17,6 @@ internal static class LoomTelemetryManifestOutputGenerator
         sb.AppendLine("namespace Qyl.Instrumentation.Instrumentation.Loom;");
         sb.AppendLine();
 
-        EmitLoomManifestEntry(sb);
-
         sb.AppendLine("public static partial class LoomGeneratedRegistry");
         using (sb.BeginBlock())
         {
@@ -26,7 +24,6 @@ internal static class LoomTelemetryManifestOutputGenerator
             AppendResultsProperty(sb, tools);
             AppendTelemetryProperty(sb, tools);
             AppendPolicyProperty(sb, tools);
-            AppendCapabilitiesProperty(sb, tools);
             AppendManifestProperty(sb, tools, contracts, steps, workflows);
             AppendInterceptorManifestProperty(sb, tools, steps, workflows);
         }
@@ -177,53 +174,6 @@ internal static class LoomTelemetryManifestOutputGenerator
         sb.AppendLine();
     }
 
-    private static void AppendCapabilitiesProperty(IndentedStringBuilder sb, EquatableArray<LoomToolModel> tools)
-    {
-        var capabilityGroups = tools
-            .SelectMany(static tool => tool.RequiredCapabilities.Select(capability => (Capability: capability, Tool: tool)))
-            .GroupBy(static entry => entry.Capability, StringComparer.Ordinal)
-            .OrderBy(static group => group.Key, StringComparer.Ordinal)
-            .ToArray();
-
-        if (capabilityGroups.Length is 0)
-        {
-            AppendPropertyHeader(sb, "Capabilities",
-                "global::Qyl.Instrumentation.Instrumentation.Loom.LoomCapabilityDescriptor", 0);
-            return;
-        }
-
-        AppendPropertyHeader(sb, "Capabilities",
-            "global::Qyl.Instrumentation.Instrumentation.Loom.LoomCapabilityDescriptor", capabilityGroups.Length);
-        using (sb.BeginBlock())
-        {
-            foreach (var group in capabilityGroups)
-            {
-                var toolNames = group
-                    .Select(static entry => entry.Tool.Name)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static name => name, StringComparer.Ordinal)
-                    .ToArray();
-                var sideEffects = group
-                    .Select(static entry => entry.Tool.SideEffect)
-                    .Distinct()
-                    .OrderBy(static effect => effect)
-                    .ToArray();
-
-                sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(group.Key)},");
-                    AppendStringListWithTrailingComma(sb, toolNames.ToEquatableArray());
-                    sb.AppendLine(group.Any(static entry => entry.Tool.RequiresApproval) ? "true," : "false,");
-                    AppendSideEffectList(sb, sideEffects);
-                }
-                sb.AppendLine("),");
-            }
-        }
-        sb.AppendLine(";");
-        sb.AppendLine();
-    }
-
     private static void AppendManifestProperty(
         IndentedStringBuilder sb,
         EquatableArray<LoomToolModel> tools,
@@ -296,15 +246,14 @@ internal static class LoomTelemetryManifestOutputGenerator
         {
             sb.AppendLine(
                 "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomInterceptorManifest InterceptorManifest => new(");
-            using (sb.BeginBlock())
-            {
-                sb.AppendLine(
-                    "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolInterceptorDescriptor>(),");
-                sb.AppendLine(
-                    "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepInterceptorDescriptor>(),");
-                sb.AppendLine(
-                    "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowInterceptorDescriptor>()");
-            }
+            sb.BeginBlock(null);
+            sb.AppendLine(
+                "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolInterceptorDescriptor>(),");
+            sb.AppendLine(
+                "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepInterceptorDescriptor>(),");
+            sb.AppendLine(
+                "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowInterceptorDescriptor>()");
+            sb.EndBlock(null);
             sb.AppendLine(");");
             sb.AppendLine();
             return;
@@ -312,12 +261,11 @@ internal static class LoomTelemetryManifestOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomInterceptorManifest InterceptorManifest => new(");
-        using (sb.BeginBlock())
-        {
-            AppendToolInterceptorArray(sb, tools);
-            AppendStepInterceptorArray(sb, steps);
-            AppendWorkflowInterceptorArray(sb, workflows);
-        }
+        sb.BeginBlock(null);
+        AppendToolInterceptorArray(sb, tools);
+        AppendStepInterceptorArray(sb, steps);
+        AppendWorkflowInterceptorArray(sb, workflows);
+        sb.EndBlock(null);
         sb.AppendLine(");");
         sb.AppendLine();
     }
@@ -458,19 +406,6 @@ internal static class LoomTelemetryManifestOutputGenerator
 
         sb.AppendLine(
             $"new string[] {{ {string.Join(", ", values.Select(LoomGenerationHelpers.StringLiteral))} }},");
-    }
-
-    private static void AppendSideEffectList(IndentedStringBuilder sb, IEnumerable<int> sideEffects)
-    {
-        var values = sideEffects.ToArray();
-        if (values.Length is 0)
-        {
-            sb.AppendLine("global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
-            return;
-        }
-
-        sb.AppendLine(
-            $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", values.Select(static value => $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){value}"))} }}");
     }
 
     private static string GetTypeExpression(string? fullyQualifiedType)

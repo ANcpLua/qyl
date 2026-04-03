@@ -3,7 +3,7 @@
 > Owner: collector
 > SSOT: YES for cross-cutting HTTP invariants; NO for per-feature route inventory
 > Depends on: nothing
-> Used by: `collector.md`, `cost.md`, `dashboard.md`, `issue-fingerprinting.md`, `loom.md`, `mcp.md`
+> Used by: `collector.md`, `cost.md`, `dashboard.md`, `issue-fingerprinting.md`, `src/qyl.loom/specs/loom.md`, `mcp.md`
 
 This spec owns the rules that must stay consistent across the REST surface:
 

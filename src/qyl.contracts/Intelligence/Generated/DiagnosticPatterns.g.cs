@@ -3,7 +3,7 @@
 // =============================================================================
 //     Source:    core/specs/intelligence/seed/patterns.tsp
 //     Spec:     specs/telemetry-intelligence.md §5.1
-//     Patterns: 10 v1 seed diagnostic patterns
+//     Patterns: 19 v1 seed diagnostic patterns (10 infra + 9 agent behavioral)
 // =============================================================================
 
 namespace Qyl.Contracts.Intelligence;
@@ -154,6 +154,126 @@ public static class DiagnosticPatterns
             ],
             Hypothesis = "Abnormal cost increase. Identify the model, service, and session responsible.",
             Confidence = 0.75,
+        },
+
+        // -----------------------------------------------------------------
+        // Agent behavioral patterns (AgentRx taxonomy)
+        // Source: Microsoft Research AgentRx, March 2026
+        // -----------------------------------------------------------------
+        new DiagnosticPattern
+        {
+            Id = "agent_intent_plan_misalignment",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.operation.name", Operator = SignalOperator.Eq, Value = "invoke_agent" },
+                new Signal { Attribute = "status_code", Operator = SignalOperator.Eq, Value = "2" },
+            ],
+            Hypothesis = "Agent produced a plan that diverges from the user's actual intent. Review the task decomposition against the original request.",
+            Confidence = 0.70,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_misinterpret_tool_info",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.tool.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.tool.call.id", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "error_type", Operator = SignalOperator.Contains, Value = "tool" },
+            ],
+            Hypothesis = "Agent misinterpreted tool output or schema. Check tool response parsing and whether the agent used the result correctly.",
+            Confidence = 0.75,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_rai_policy_violation",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.stop_reason", Operator = SignalOperator.Contains, Value = "content_filter" },
+            ],
+            Hypothesis = "Agent triggered a responsible AI policy violation. Review the generated content and prompt chain for policy-prohibited material.",
+            Confidence = 0.95,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_plan_adherence_failure",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.operation.name", Operator = SignalOperator.Eq, Value = "invoke_agent" },
+                new Signal { Attribute = "gen_ai.usage.output_tokens", Operator = SignalOperator.Gt, Value = "0" },
+                new Signal { Attribute = "child_span_count", Operator = SignalOperator.Gt, Value = "20" },
+            ],
+            Hypothesis = "Agent deviated from its own plan mid-execution. Excessive tool calls suggest the agent lost track of its strategy and started improvising.",
+            Confidence = 0.65,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_invent_new_info",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.operation.name", Operator = SignalOperator.Eq, Value = "invoke_agent" },
+            ],
+            Hypothesis = "Agent fabricated information not present in tool outputs or context. Cross-reference agent claims against actual tool call results in the trace.",
+            Confidence = 0.60,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_invalid_invocation",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.tool.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "error_type", Operator = SignalOperator.Contains, Value = "invalid" },
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+            ],
+            Hypothesis = "Agent called a tool with invalid arguments or nonexistent tool name. Check tool schema alignment and parameter validation.",
+            Confidence = 0.85,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_hallucination_doubt",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.usage.output_tokens", Operator = SignalOperator.Gt, Value = "500" },
+                new Signal { Attribute = "gen_ai.tool.call.id", Operator = SignalOperator.NotExists },
+            ],
+            Hypothesis = "Agent produced a long response without grounding in tool calls. High risk of hallucinated content. Verify claims against available data sources.",
+            Confidence = 0.55,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_instruction_adherence_failure",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.operation.name", Operator = SignalOperator.Eq, Value = "invoke_agent" },
+            ],
+            Hypothesis = "Agent ignored or contradicted explicit instructions in its system prompt. Compare agent behavior against the system prompt constraints.",
+            Confidence = 0.60,
+        },
+        new DiagnosticPattern
+        {
+            Id = "agent_underspecified_intent",
+            Category = PatternCategory.Agent,
+            Signals =
+            [
+                new Signal { Attribute = "gen_ai.agent.name", Operator = SignalOperator.Exists },
+                new Signal { Attribute = "gen_ai.operation.name", Operator = SignalOperator.Eq, Value = "invoke_agent" },
+                new Signal { Attribute = "gen_ai.usage.input_tokens", Operator = SignalOperator.Lt, Value = "50" },
+            ],
+            Hypothesis = "Agent received an ambiguous or underspecified request. The short input suggests insufficient context for reliable execution. Consider adding clarification step.",
+            Confidence = 0.65,
         },
     ];
 }

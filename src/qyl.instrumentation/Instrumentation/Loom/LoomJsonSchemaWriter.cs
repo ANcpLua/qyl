@@ -42,8 +42,8 @@ public static class LoomJsonSchemaWriter
             {
                 ["type"] = "object",
                 ["properties"] = descriptor.Parameters.ToDictionary(
-                    parameter => parameter.Name,
-                    parameter => CreateSchemaNode(
+                    static parameter => parameter.Name,
+                    static parameter => CreateSchemaNode(
                         parameter.Type,
                         parameter.IsNullable,
                         parameter.Description,
@@ -111,7 +111,7 @@ public static class LoomJsonSchemaWriter
         return JsonSerializer.Serialize(root, JsonOptions);
     }
 
-    private static object CreateSchemaNode(
+    private static Dictionary<string, object?> CreateSchemaNode(
         Type type,
         bool isNullable,
         string? description,

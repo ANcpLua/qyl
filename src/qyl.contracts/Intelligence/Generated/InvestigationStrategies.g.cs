@@ -3,7 +3,7 @@
 // =============================================================================
 //     Source:    core/specs/intelligence/seed/strategies.tsp
 //     Spec:     specs/telemetry-intelligence.md §5.3
-//     Strategies: 4 v1 seed investigation strategies
+//     Strategies: 5 v1 seed investigation strategies (4 infra + 1 agent behavioral)
 // =============================================================================
 
 namespace Qyl.Contracts.Intelligence;
@@ -190,6 +190,54 @@ public static class InvestigationStrategies
                     Action = "suggest_mitigation",
                     Query = "pattern_specific_recommendation",
                     Description = "Rate limit: add backoff. Token limit: truncation. Content filter: prompt review.",
+                },
+            ],
+        },
+        // -----------------------------------------------------------------
+        // investigate_agent_failure — 6 steps
+        // Triggered by any agent category pattern (AgentRx taxonomy)
+        // -----------------------------------------------------------------
+        new InvestigationStrategy
+        {
+            Id = "investigate_agent_failure",
+            TriggerPattern = "category:agent",
+            Steps =
+            [
+                new InvestigationStep
+                {
+                    Action = "get_agent_trace",
+                    Query = "SELECT * FROM spans WHERE trace_id = ? AND gen_ai_agent_name IS NOT NULL ORDER BY start_time_unix_nano",
+                    Description = "Reconstruct the full agent execution trajectory",
+                },
+                new InvestigationStep
+                {
+                    Action = "get_tool_calls",
+                    Query = "SELECT * FROM spans WHERE trace_id = ? AND gen_ai_tool_name IS NOT NULL ORDER BY start_time_unix_nano",
+                    Description = "Extract all tool invocations — inputs, outputs, errors",
+                },
+                new InvestigationStep
+                {
+                    Action = "classify_failure_mode",
+                    Query = "pattern_specific_classification",
+                    Description = "Classify into AgentRx taxonomy: intent misalignment, tool misinterpretation, hallucination, policy violation, plan adherence, invalid invocation, instruction failure, underspecified intent",
+                },
+                new InvestigationStep
+                {
+                    Action = "trace_decision_points",
+                    Query = "SELECT * FROM spans WHERE trace_id = ? AND (gen_ai_operation_name = 'invoke_agent' OR gen_ai_tool_name IS NOT NULL) ORDER BY start_time_unix_nano",
+                    Description = "Identify where the agent made key decisions and which ones diverged from expected behavior",
+                },
+                new InvestigationStep
+                {
+                    Action = "check_invariants",
+                    Query = "pattern_specific_invariant_check",
+                    Description = "Verify correctness invariants: did tool outputs get used? Did the agent stay within scope? Did claims match evidence?",
+                },
+                new InvestigationStep
+                {
+                    Action = "suggest_remediation",
+                    Query = "pattern_specific_recommendation",
+                    Description = "Intent misalignment: refine system prompt. Tool misuse: improve schema/examples. Hallucination: add grounding step. Policy: content filter. Plan drift: add checkpoints.",
                 },
             ],
         },

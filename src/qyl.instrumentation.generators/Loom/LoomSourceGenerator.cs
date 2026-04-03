@@ -59,10 +59,18 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
             "Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowAttribute",
             static (node, _) => node is TypeDeclarationSyntax);
 
-        context.RegisterSourceOutput(tools.Combine(contracts).Combine(steps).Combine(workflows),
+        var hasLoomTypes = context.CompilationProvider.Select(
+            static (compilation, _) =>
+                compilation.GetTypeByMetadataName("Qyl.Instrumentation.Instrumentation.Loom.LoomToolDescriptor") is not null);
+
+        context.RegisterSourceOutput(
+            tools.Combine(contracts).Combine(steps).Combine(workflows).Combine(hasLoomTypes),
             static (spc, input) =>
             {
-                var (((tools, contracts), steps), workflows) = input;
+                var ((((tools, contracts), steps), workflows), hasLoomTypes) = input;
+
+                if (!hasLoomTypes)
+                    return;
 
                 foreach (var group in tools.GroupBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal))
                 {

@@ -40,19 +40,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered);
 
-        // =====================================================================
-        // GENAI SDK INTERCEPTION PIPELINE
-        // Discovers GenAI SDK calls and wraps them with OTel telemetry.
-        // =====================================================================
-
-        var genAiRuntimeAvailable = context.CompilationProvider
-            .Select(IsGenAiRuntimeReferenced)
-            .WithTrackingName(PipelineStage.GenAiRuntimeCheck);
-
         // MSBuild property toggles (default: true when absent)
         var toggles = context.AnalyzerConfigOptionsProvider
             .Select(static (options, _) => new PipelineToggles(
-                IsPipelineEnabled(options, "QylGenAi"),
                 IsPipelineEnabled(options, "QylDatabase"),
                 IsPipelineEnabled(options, "QylAgent"),
                 IsPipelineEnabled(options, "QylTraced"),
@@ -60,8 +50,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WithTrackingName(PipelineStage.ToggleCheck);
 
         // Per-pipeline enabled flags: runtime check AND MSBuild toggle
-        var genAiEnabled = genAiRuntimeAvailable.Combine(toggles)
-            .Select(static (pair, _) => pair.Left && pair.Right.GenAi);
         var dbEnabled = qylRuntimeAvailable.Combine(toggles)
             .Select(static (pair, _) => pair.Left && pair.Right.Database);
         var meterEnabled = qylRuntimeAvailable.Combine(toggles)
@@ -141,9 +129,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // INDIVIDUAL EMITTER PIPELINES
         // =====================================================================
 
-        RegisterCollectedEmitterPipeline(context,
-            genAiCallSites, genAiEnabled,
-            GenAiInterceptorEmitter.Emit, GeneratedFile.GenAiInterceptors, "QSG001");
+        // GenAi SDK interception removed: InstrumentedChatClient (runtime DelegatingChatClient)
+        // handles all IChatClient instrumentation with provider/model/token enrichment.
+        // GenAiCallSiteAnalyzer is retained for compile-time capability discovery only.
 
         RegisterCollectedEmitterPipeline(context,
             dbCallSites, dbEnabled,
@@ -161,22 +149,34 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             agentCallSites, agentEnabled,
             AgentInterceptorEmitter.Emit, GeneratedFile.AgentInterceptors, "QSG006");
 
+        // GenAi call sites feed the capability manifest pipeline below (providers, models, operations)
+        // but no longer generate interceptor code — InstrumentedChatClient handles runtime instrumentation.
+
         // =====================================================================
-        // ICHATCLIENT INTERFACE-LEVEL INTERCEPTION PIPELINE
-        // Catches GetResponseAsync / GetStreamingResponseAsync on any type that
-        // implements IChatClient, regardless of which SDK is used.
+        // TOOL MANIFEST PIPELINE
+        // Discovers [McpServerToolType] classes and emits a compile-time
+        // Type[] array, replacing the hardcoded list in McpToolRegistry.
+        // Not gated by toggles or runtime check — if the MCP SDK attribute
+        // isn't referenced, ForAttributeWithMetadataName finds nothing.
         // =====================================================================
 
-        // Discovery runs but emission is gated until GenAI SDK-specific interception
-        // is removed. Both pipelines claim overlapping call sites (CS9153) because
-        // SDK types like OpenAIChatClient implement IChatClient. Once the transitional
-        // GenAiCallSiteAnalyzer is deleted, uncomment the emitter registration below.
-        _ = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                ChatClientCallSiteAnalyzer.CouldBeChatClientInvocation,
-                ChatClientCallSiteAnalyzer.ExtractCallSite)
+        var toolTypeEntries = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                ToolManifestAnalyzer.McpServerToolTypeMetadataName,
+                ToolManifestAnalyzer.CouldBeToolTypeClass,
+                ToolManifestAnalyzer.ExtractToolType)
             .WhereNotNull()
-            .WithTrackingName(PipelineStage.ChatClientCallSitesDiscovered);
+            .WithTrackingName(PipelineStage.ToolTypesDiscovered);
+
+        context.RegisterSourceOutput(
+            toolTypeEntries.CollectAsEquatableArray(),
+            static (spc, toolTypes) =>
+            {
+                if (toolTypes.IsDefaultOrEmpty) return;
+                var source = ToolManifestEmitter.Emit(toolTypes.AsImmutableArray());
+                if (!string.IsNullOrEmpty(source))
+                    spc.AddSource(GeneratedFile.ToolManifest, SourceText.From(source, Encoding.UTF8));
+            });
 
         // =====================================================================
         // CAPABILITY MANIFEST PIPELINE
@@ -240,13 +240,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     /// </summary>
     private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _) =>
         compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
-
-    /// <summary>
-    ///     Checks if the GenAI instrumentation runtime is referenced.
-    ///     GenAI interception can work independently of full service defaults.
-    /// </summary>
-    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _) =>
-        compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
 
     /// <summary>
     ///     Reads an MSBuild toggle property. Returns true if absent or "true".
@@ -689,7 +682,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Qyl runtime types that enable codegen
         public const string QylServiceDefaults = "Qyl.Instrumentation.QylServiceDefaults";
-        public const string GenAiInstrumentation = "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
         public const string GeneratedActivitySourceAttribute = "Qyl.Instrumentation.GeneratedActivitySourceAttribute";
         public const string GeneratedMeterAttribute = "Qyl.Instrumentation.GeneratedMeterAttribute";
         public const string GeneratedCapabilityAttribute = "Qyl.Instrumentation.GeneratedCapabilityAttribute";
@@ -725,7 +717,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     {
         // Runtime availability checks
         public const string QylRuntimeCheck = nameof(QylRuntimeCheck);
-        public const string GenAiRuntimeCheck = nameof(GenAiRuntimeCheck);
 
         // Builder interception pipeline
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
@@ -745,8 +736,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Agent interception pipeline
         public const string AgentCallSitesDiscovered = nameof(AgentCallSitesDiscovered);
 
-        // IChatClient interface-level interception pipeline
-        public const string ChatClientCallSitesDiscovered = nameof(ChatClientCallSitesDiscovered);
+        // Tool manifest pipeline
+        public const string ToolTypesDiscovered = nameof(ToolTypesDiscovered);
 
         // Capability manifest pipeline
         public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);
@@ -766,20 +757,18 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static class GeneratedFile
     {
         public const string BuilderInterceptors = "Intercepts.g.cs";
-        public const string GenAiInterceptors = "GenAiIntercepts.g.cs";
         public const string DbInterceptors = "DbIntercepts.g.cs";
         public const string MeterImplementations = "MeterImplementations.g.cs";
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
         public const string AgentInterceptors = "AgentIntercepts.g.cs";
-        public const string ChatClientInterceptors = "ChatClientIntercepts.g.cs";
         public const string Capabilities = "QylCapabilities.g.cs";
+        public const string ToolManifest = "QylToolManifest.g.cs";
     }
 
     /// <summary>
     ///     MSBuild property toggles for each generator pipeline.
     /// </summary>
     private sealed record PipelineToggles(
-        bool GenAi,
         bool Database,
         bool Agent,
         bool Traced,

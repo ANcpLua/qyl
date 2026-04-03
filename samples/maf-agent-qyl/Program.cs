@@ -114,7 +114,6 @@ internal static class Program
 internal sealed class LoomSubsystemDemo(
     IServiceProvider services,
     LoomRunStore runStore,
-    LoomGovernancePolicy governancePolicy,
     TimeProvider timeProvider)
 {
     public async Task RunAsync(CancellationToken ct = default)

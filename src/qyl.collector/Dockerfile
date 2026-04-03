@@ -72,9 +72,10 @@ LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
 LABEL org.opencontainers.image.source="https://github.com/ANcpLua/qyl"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Create non-root user and writable app directory (Debian syntax)
-# IMPORTANT: Create /app with qyl ownership BEFORE WORKDIR so qyl can write files (DuckDB)
-RUN groupadd --system qyl && useradd --system --gid qyl qyl && \
+# curl for container healthchecks; non-root user with writable dirs
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system qyl && useradd --system --gid qyl qyl && \
     mkdir -p /app /data && chown -R qyl:qyl /app /data
 
 WORKDIR /app
@@ -95,7 +96,11 @@ EXPOSE 5100 4317 4318
 ENV QYL_GRPC_PORT=4317 \
     QYL_OTLP_PORT=4318 \
     QYL_DATA_PATH=/data/qyl.duckdb \
+    ASPNETCORE_WEBROOT=/app/wwwroot \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_gcServer=1
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+    CMD curl -sf http://localhost:5100/health || exit 1
 
 ENTRYPOINT ["dotnet", "qyl.collector.dll"]
