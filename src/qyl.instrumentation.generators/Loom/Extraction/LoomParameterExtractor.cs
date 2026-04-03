@@ -6,6 +6,9 @@ namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 internal static class LoomParameterExtractor
 {
     private const string DescriptionAttributeFullName = "System.ComponentModel.DescriptionAttribute";
+    private const string CancellationTokenTypeName = "global::System.Threading.CancellationToken";
+    private const string ServiceProviderTypeName = "global::System.IServiceProvider";
+    private const string AIFunctionArgumentsTypeName = "global::Microsoft.Extensions.AI.AIFunctionArguments";
 
     public static EquatableArray<LoomParameterModel> Extract(
         ImmutableArray<IParameterSymbol> parameters,
@@ -17,17 +20,23 @@ internal static class LoomParameterExtractor
         for (var i = 0; i < parameters.Length; i++)
         {
             var parameter = parameters[i];
+            var typeFullyQualified = parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var isCancellationToken = typeFullyQualified == CancellationTokenTypeName;
+            var isServiceProvider = typeFullyQualified == ServiceProviderTypeName;
+            var isAIFunctionArguments = typeFullyQualified == AIFunctionArgumentsTypeName;
+            var isInfrastructureBound = isCancellationToken || isServiceProvider || isAIFunctionArguments;
             builder[i] = new LoomParameterModel(
                 parameter.Name,
-                parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                typeFullyQualified,
                 IsNullable(parameter.Type),
                 parameter.HasExplicitDefaultValue,
                 parameter.HasExplicitDefaultValue
                     ? LoomLiteralFormatter.GetDefaultValueLiteral(parameter, cancellationToken)
                     : null,
                 GetDescription(parameter),
-                parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ==
-                "global::System.Threading.CancellationToken",
+                isCancellationToken,
+                !isInfrastructureBound,
+                isInfrastructureBound,
                 GetEnumValues(parameter.Type));
         }
 

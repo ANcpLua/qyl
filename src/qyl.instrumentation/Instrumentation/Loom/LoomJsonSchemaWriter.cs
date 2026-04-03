@@ -4,12 +4,12 @@ namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static class LoomJsonSchemaWriter
 {
-    public static string WriteToolContract(LoomToolDescriptor descriptor)
+    public static string WriteToolParametersSchema(IEnumerable<LoomToolParameterDescriptor> parameters)
     {
         var properties = new Dictionary<string, object?>(StringComparer.Ordinal);
         var required = new List<string>();
 
-        foreach (var parameter in descriptor.Parameters)
+        foreach (var parameter in parameters)
         {
             properties[parameter.Name] = CreateSchemaNode(
                 parameter.Type,
@@ -21,6 +21,19 @@ public static class LoomJsonSchemaWriter
                 required.Add(parameter.Name);
         }
 
+        var root = new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["properties"] = properties,
+            ["required"] = required,
+            ["additionalProperties"] = false
+        };
+
+        return JsonSerializer.Serialize(root, JsonOptions);
+    }
+
+    public static string WriteToolContract(LoomToolDescriptor descriptor)
+    {
         var function = new Dictionary<string, object?>
         {
             ["name"] = descriptor.Name,
@@ -28,8 +41,18 @@ public static class LoomJsonSchemaWriter
             ["parameters"] = new Dictionary<string, object?>
             {
                 ["type"] = "object",
-                ["properties"] = properties,
-                ["required"] = required,
+                ["properties"] = descriptor.Parameters.ToDictionary(
+                    parameter => parameter.Name,
+                    parameter => CreateSchemaNode(
+                        parameter.Type,
+                        parameter.IsNullable,
+                        parameter.Description,
+                        parameter.EnumValues),
+                    StringComparer.Ordinal),
+                ["required"] = descriptor.Parameters
+                    .Where(static parameter => !parameter.IsNullable && !parameter.HasDefaultValue)
+                    .Select(static parameter => parameter.Name)
+                    .ToArray(),
                 ["additionalProperties"] = false
             }
         };
@@ -68,6 +91,22 @@ public static class LoomJsonSchemaWriter
             ["required"] = required,
             ["additionalProperties"] = false
         };
+
+        return JsonSerializer.Serialize(root, JsonOptions);
+    }
+
+    public static string WriteTypeSchema(Type type)
+    {
+        var nullableUnderlyingType = Nullable.GetUnderlyingType(type);
+        var actualType = nullableUnderlyingType ?? type;
+        var root = new Dictionary<string, object?>
+        {
+            ["title"] = actualType.Name,
+            ["type"] = CreateTypeNode(type)
+        };
+
+        if (nullableUnderlyingType is not null)
+            root["nullable"] = true;
 
         return JsonSerializer.Serialize(root, JsonOptions);
     }
@@ -113,6 +152,98 @@ public static class LoomJsonSchemaWriter
             node["nullable"] = true;
 
         return node;
+    }
+
+    private static object CreateTypeNode(Type type)
+    {
+        var actualType = Nullable.GetUnderlyingType(type) ?? type;
+
+        if (actualType.IsEnum)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "string",
+                ["enum"] = Enum.GetNames(actualType)
+            };
+        }
+
+        if (actualType == typeof(string))
+            return "string";
+
+        if (actualType == typeof(bool))
+            return "boolean";
+
+        if (actualType == typeof(byte) ||
+            actualType == typeof(sbyte) ||
+            actualType == typeof(short) ||
+            actualType == typeof(ushort) ||
+            actualType == typeof(int) ||
+            actualType == typeof(uint) ||
+            actualType == typeof(long) ||
+            actualType == typeof(ulong))
+            return "integer";
+
+        if (actualType == typeof(float) ||
+            actualType == typeof(double) ||
+            actualType == typeof(decimal))
+            return "number";
+
+        if (actualType == typeof(Guid) ||
+            actualType == typeof(DateTime) ||
+            actualType == typeof(DateTimeOffset) ||
+            actualType == typeof(TimeSpan) ||
+            actualType == typeof(Uri))
+            return "string";
+
+        if (actualType.IsArray)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "array",
+                ["items"] = CreateTypeNode(actualType.GetElementType() ?? typeof(object))
+            };
+        }
+
+        if (TryGetEnumerableElementType(actualType, out var elementType))
+        {
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "array",
+                ["items"] = CreateTypeNode(elementType)
+            };
+        }
+
+        return "object";
+    }
+
+    private static bool TryGetEnumerableElementType(Type type, out Type elementType)
+    {
+        if (type == typeof(string))
+        {
+            elementType = typeof(char);
+            return false;
+        }
+
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+        {
+            elementType = type.GetGenericArguments()[0];
+            return true;
+        }
+
+        var enumerable = type.GetInterfaces()
+            .Append(type)
+            .FirstOrDefault(static candidate =>
+                candidate.IsGenericType &&
+                candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+        if (enumerable is not null)
+        {
+            elementType = enumerable.GetGenericArguments()[0];
+            return true;
+        }
+
+        elementType = typeof(object);
+        return false;
     }
 
     private static string BuildToolDescription(LoomToolDescriptor descriptor)

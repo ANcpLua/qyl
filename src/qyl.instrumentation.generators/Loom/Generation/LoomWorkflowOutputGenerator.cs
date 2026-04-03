@@ -22,7 +22,7 @@ internal static class LoomWorkflowOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowDescriptor Descriptor { get; } = new(");
-        using (sb.Indent())
+        using (sb.BeginBlock(null))
         {
             sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(workflow.Id)},");
             sb.AppendLine($"{LoomGenerationHelpers.TypeOf(workflow.RunStateTypeFullyQualified)},");

@@ -6,7 +6,7 @@ namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 
 internal static class LoomContractExtractor
 {
-    public static LoomContractModel? Extract(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    public static LoomContractModel? Extract(GeneratorAttributeSyntaxContext context, CancellationToken _)
     {
         if (context.TargetSymbol is not INamedTypeSymbol type ||
             context.TargetNode is not TypeDeclarationSyntax declaration)

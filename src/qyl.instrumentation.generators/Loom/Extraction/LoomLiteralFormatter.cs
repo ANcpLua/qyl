@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Qyl.Instrumentation.Generators.Loom.Extraction;
@@ -51,6 +52,11 @@ internal static class LoomLiteralFormatter
                 SpecialType.System_UInt32 => Convert.ToUInt32(value, CultureInfo.InvariantCulture),
                 SpecialType.System_Int64 => Convert.ToInt64(value, CultureInfo.InvariantCulture),
                 SpecialType.System_UInt64 => Convert.ToUInt64(value, CultureInfo.InvariantCulture),
+                SpecialType.System_IntPtr => Convert.ToInt64(value, CultureInfo.InvariantCulture),
+                SpecialType.System_UIntPtr => Convert.ToUInt64(value, CultureInfo.InvariantCulture),
+                SpecialType.System_Single => Convert.ToSingle(value, CultureInfo.InvariantCulture),
+                SpecialType.System_Double => Convert.ToDouble(value, CultureInfo.InvariantCulture),
+                SpecialType.System_Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
                 _ => null
             };
         }

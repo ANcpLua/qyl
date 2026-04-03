@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Loom.Models;
 
 namespace Qyl.Instrumentation.Generators.Loom.Generation;

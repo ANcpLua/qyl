@@ -15,12 +15,21 @@ internal readonly record struct LoomParameterModel(
     string? DefaultValueLiteral,
     string? Description,
     bool IsCancellationToken,
+    bool IsSchemaVisible,
+    bool IsInfrastructureBound,
     EquatableArray<string> EnumValues);
 
 internal readonly record struct LoomToolBudgetModel(
     int MaxAttempts,
     int MaxToolCalls,
     int MaxTokens);
+
+internal readonly record struct LoomToolResultModel(
+    string? OutputTypeFullyQualified,
+    string? StructuredOutputTypeFullyQualified,
+    string? ResultSchemaHint,
+    bool HasStructuredOutput,
+    bool IsSchemaVisible);
 
 internal readonly record struct LoomToolModel(
     string Name,
@@ -36,6 +45,7 @@ internal readonly record struct LoomToolModel(
     bool ReturnsValue,
     string? OutputTypeFullyQualified,
     string? StructuredOutputTypeFullyQualified,
+    LoomToolResultModel Result,
     LoomToolBudgetModel Budget,
     EquatableArray<LoomParameterModel> Parameters,
     EquatableArray<string> RequiredCapabilities,

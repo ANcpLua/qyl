@@ -1,3 +1,4 @@
+using System.Text;
 using Qyl.Instrumentation.Generators.Loom.Models;
 
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
@@ -22,7 +23,7 @@ internal static class LoomContractOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractDescriptor Descriptor { get; } = new(");
-        using (sb.Indent())
+        using (sb.BeginBlock(null))
         {
             sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(contract.Name)},");
             sb.AppendLine($"{LoomGenerationHelpers.TypeOf(contract.FullyQualifiedTypeName)},");
@@ -59,10 +60,141 @@ internal static class LoomContractOutputGenerator
             }
         }
         sb.AppendLine(");");
+        sb.AppendLine();
+
+        AppendJsonSchemaProperty(sb, contract);
 
         for (var i = 0; i < contract.DeclarationChain.Length; i++)
             sb.EndBlock();
 
         return sb.ToString();
     }
+
+    private static void AppendJsonSchemaProperty(IndentedStringBuilder sb, LoomContractModel contract)
+    {
+        var schema = BuildJsonSchema(contract);
+        sb.AppendLine("public static string JsonSchema { get; } = @\"" + EscapeVerbatimString(schema) + "\";");
+    }
+
+    private static string BuildJsonSchema(LoomContractModel contract)
+    {
+        var json = new StringBuilder();
+        json.Append("{\"type\":\"object\"");
+        json.Append(",\"title\":\"");
+        json.Append(EscapeJsonString(contract.Name));
+        json.Append('"');
+
+        json.Append(",\"properties\":{");
+        var firstProperty = true;
+        foreach (var property in contract.Properties)
+        {
+            if (!firstProperty)
+                json.Append(',');
+            firstProperty = false;
+
+            json.Append('"');
+            json.Append(EscapeJsonString(property.Name));
+            json.Append("\":");
+            AppendPropertySchema(json, property);
+        }
+        json.Append('}');
+
+        json.Append(",\"required\":[");
+        var firstRequired = true;
+        foreach (var property in contract.Properties)
+        {
+            if (!property.IsRequired)
+                continue;
+
+            if (!firstRequired)
+                json.Append(',');
+            firstRequired = false;
+
+            json.Append('"');
+            json.Append(EscapeJsonString(property.Name));
+            json.Append('"');
+        }
+        json.Append(']');
+
+        json.Append(",\"additionalProperties\":false}");
+        return json.ToString();
+    }
+
+    private static void AppendPropertySchema(StringBuilder json, LoomContractPropertyModel property)
+    {
+        json.Append('{');
+
+        if (!property.EnumValues.IsEmpty)
+        {
+            json.Append("\"type\":\"string\",\"enum\":[");
+            var firstEnum = true;
+            foreach (var value in property.EnumValues)
+            {
+                if (!firstEnum)
+                    json.Append(',');
+                firstEnum = false;
+
+                json.Append('"');
+                json.Append(EscapeJsonString(value));
+                json.Append('"');
+            }
+            json.Append(']');
+        }
+        else
+        {
+            json.Append("\"type\":\"");
+            json.Append(MapTypeToJsonSchemaType(property.TypeFullyQualified));
+            json.Append('"');
+        }
+
+        if (property.IsNullable)
+            json.Append(",\"nullable\":true");
+
+        json.Append('}');
+    }
+
+    private static string MapTypeToJsonSchemaType(string typeFullyQualified)
+    {
+        // Strip nullable wrapper (global::System.Nullable<T>) to get the underlying type
+        var type = StripNullableWrapper(typeFullyQualified);
+
+        return type switch
+        {
+            "global::System.String" or "string" => "string",
+            "global::System.Boolean" or "bool" => "boolean",
+            "global::System.Byte" or "byte"
+                or "global::System.SByte" or "sbyte"
+                or "global::System.Int16" or "short"
+                or "global::System.UInt16" or "ushort"
+                or "global::System.Int32" or "int"
+                or "global::System.UInt32" or "uint"
+                or "global::System.Int64" or "long"
+                or "global::System.UInt64" or "ulong" => "integer",
+            "global::System.Single" or "float"
+                or "global::System.Double" or "double"
+                or "global::System.Decimal" or "decimal" => "number",
+            _ => "object"
+        };
+    }
+
+    private static string StripNullableWrapper(string typeFullyQualified)
+    {
+        const string nullablePrefix = "global::System.Nullable<";
+        if (typeFullyQualified.StartsWithOrdinal(nullablePrefix) &&
+            typeFullyQualified.EndsWithOrdinal(">"))
+            return typeFullyQualified.Substring(nullablePrefix.Length, typeFullyQualified.Length - nullablePrefix.Length - 1);
+
+        return typeFullyQualified;
+    }
+
+    private static string EscapeJsonString(string value)
+        => value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t");
+
+    private static string EscapeVerbatimString(string value)
+        => value.Replace("\"", "\"\"");
 }

@@ -29,6 +29,14 @@ internal static class LoomRegistryOutputGenerator
 
             AppendRegistry(
                 sb,
+                "RuntimeMetadata",
+                "global::Qyl.Instrumentation.Instrumentation.Loom.LoomRuntimeMetadataDescriptor",
+                tools.IsEmpty
+                    ? []
+                    : [.. tools.Select(static tool => $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}RuntimeMetadata")]);
+
+            AppendRegistry(
+                sb,
                 "Contracts",
                 "global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractDescriptor",
                 contracts.IsEmpty
@@ -50,6 +58,10 @@ internal static class LoomRegistryOutputGenerator
                 workflows.IsEmpty
                     ? []
                     : [.. workflows.Select(static workflow => $"{workflow.WorkflowTypeFullyQualified}.Descriptor")]);
+
+            AppendCapabilityManifest(sb, tools);
+
+            AppendContractSchemasRegistry(sb, contracts);
         }
 
         return sb.ToString();
@@ -74,6 +86,94 @@ internal static class LoomRegistryOutputGenerator
         {
             foreach (var value in values)
                 sb.AppendLine(value + ",");
+        }
+        sb.AppendLine(";");
+        sb.AppendLine();
+    }
+
+    private static void AppendCapabilityManifest(
+        IndentedStringBuilder sb,
+        EquatableArray<LoomToolModel> tools)
+    {
+        const string elementType = "global::Qyl.Instrumentation.Instrumentation.Loom.LoomCapabilityDescriptor";
+
+        var toolsWithCapabilities = tools
+            .Where(static tool => !tool.RequiredCapabilities.IsEmpty)
+            .ToArray();
+
+        if (toolsWithCapabilities.Length is 0)
+        {
+            sb.AppendLine(
+                $"public static global::System.Collections.Generic.IReadOnlyList<{elementType}> Capabilities => global::System.Array.Empty<{elementType}>();");
+            sb.AppendLine();
+            return;
+        }
+
+        var capabilityGroups = toolsWithCapabilities
+            .SelectMany(static tool => tool.RequiredCapabilities.Select(capability => (capability, tool)))
+            .GroupBy(static pair => pair.capability, StringComparer.Ordinal)
+            .OrderBy(static group => group.Key, StringComparer.Ordinal)
+            .ToArray();
+
+        sb.AppendLine(
+            $"public static global::System.Collections.Generic.IReadOnlyList<{elementType}> Capabilities => new {elementType}[]");
+        using (sb.BeginBlock())
+        {
+            foreach (var group in capabilityGroups)
+            {
+                var groupTools = group
+                    .Select(static pair => pair.tool)
+                    .OrderBy(static tool => tool.Name, StringComparer.Ordinal)
+                    .ToArray();
+
+                var toolNames = groupTools.Select(static tool => tool.Name).ToArray();
+                var anyRequiresApproval = groupTools.Any(static tool => tool.RequiresApproval);
+                var sideEffects = groupTools
+                    .Select(static tool => tool.SideEffect)
+                    .Distinct()
+                    .OrderBy(static effect => effect)
+                    .ToArray();
+
+                sb.AppendLine("new(");
+                using (sb.BeginBlock(null))
+                {
+                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(group.Key)},");
+                    sb.AppendLine(
+                        $"new string[] {{ {string.Join(", ", toolNames.Select(LoomGenerationHelpers.StringLiteral))} }},");
+                    sb.AppendLine(anyRequiresApproval ? "true," : "false,");
+
+                    if (sideEffects.Length is 0)
+                        sb.AppendLine(
+                            "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
+                    else
+                        sb.AppendLine(
+                            $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", sideEffects.Select(static effect => $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect}"))} }}");
+                }
+                sb.AppendLine("),");
+            }
+        }
+        sb.AppendLine(";");
+        sb.AppendLine();
+    }
+
+    private static void AppendContractSchemasRegistry(
+        IndentedStringBuilder sb,
+        EquatableArray<LoomContractModel> contracts)
+    {
+        if (contracts.IsEmpty)
+        {
+            sb.AppendLine(
+                "public static global::System.Collections.Generic.IReadOnlyDictionary<string, string> ContractSchemas => new global::System.Collections.Generic.Dictionary<string, string>();");
+            sb.AppendLine();
+            return;
+        }
+
+        sb.AppendLine(
+            "public static global::System.Collections.Generic.IReadOnlyDictionary<string, string> ContractSchemas => new global::System.Collections.Generic.Dictionary<string, string>");
+        using (sb.BeginBlock())
+        {
+            foreach (var contract in contracts.OrderBy(static c => c.Name, StringComparer.Ordinal))
+                sb.AppendLine($"[{LoomGenerationHelpers.StringLiteral(contract.Name)}] = {contract.FullyQualifiedTypeName}.JsonSchema,");
         }
         sb.AppendLine(";");
         sb.AppendLine();

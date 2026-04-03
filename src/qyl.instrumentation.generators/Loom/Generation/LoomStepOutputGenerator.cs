@@ -22,7 +22,7 @@ internal static class LoomStepOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepDescriptor Descriptor { get; } = new(");
-        using (sb.Indent())
+        using (sb.BeginBlock(null))
         {
             sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(step.Id)},");
             sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){step.Phase},");

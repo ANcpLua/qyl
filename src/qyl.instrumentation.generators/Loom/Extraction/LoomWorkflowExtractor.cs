@@ -8,7 +8,7 @@ internal static class LoomWorkflowExtractor
 {
     public static LoomWorkflowModel? Extract(
         GeneratorAttributeSyntaxContext context,
-        CancellationToken cancellationToken)
+        CancellationToken _)
     {
         if (context.TargetSymbol is not INamedTypeSymbol type ||
             context.TargetNode is not TypeDeclarationSyntax declaration)

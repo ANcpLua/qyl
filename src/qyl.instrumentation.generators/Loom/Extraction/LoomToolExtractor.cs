@@ -6,12 +6,6 @@ namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 
 internal static class LoomToolExtractor
 {
-    private const string LoomBudgetAttributeName = "LoomBudgetAttribute";
-    private const string StructuredOutputAttributeName = "EmitsStructuredOutputAttribute";
-    private const string RequiresCapabilityAttributeName = "RequiresCapabilityAttribute";
-    private const string RequiresApprovalAttributeName = "RequiresApprovalAttribute";
-    private const string ToolSideEffectAttributeName = "ToolSideEffectAttribute";
-
     public static LoomToolModel? Extract(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
         if (context.TargetSymbol is not IMethodSymbol method ||
@@ -29,12 +23,19 @@ internal static class LoomToolExtractor
         var doNotUseWhen = GetNamedString(attribute, "DoNotUseWhen");
         var phase = GetNamedInt(attribute, "Phase");
 
-        var structuredOutputType = GetStructuredOutputType(method, containingType);
-        var budget = GetBudget(method, containingType);
-        var requiredCapabilities = GetRequiredCapabilities(method, containingType);
-        var requiresApproval = HasAttribute(method, containingType, RequiresApprovalAttributeName);
-        var sideEffect = GetSideEffect(method, containingType);
+        var structuredOutputType = LoomPolicyExtractor.ExtractStructuredOutputType(method, method.ContainingType);
+        var budget = LoomPolicyExtractor.ExtractBudget(method, method.ContainingType);
+        var requiredCapabilities = LoomPolicyExtractor.ExtractCapabilities(method, method.ContainingType);
+        var requiresApproval = LoomPolicyExtractor.ExtractRequiresApproval(method, method.ContainingType);
+        var sideEffect = LoomPolicyExtractor.ExtractSideEffect(method, method.ContainingType);
+        var parameters = LoomParameterExtractor.Extract(method.Parameters, cancellationToken);
         var outputType = GetOutputType(method);
+        var result = new LoomToolResultModel(
+            outputType,
+            structuredOutputType,
+            structuredOutputType ?? outputType,
+            structuredOutputType is not null,
+            outputType is not null || structuredOutputType is not null);
 
         return new LoomToolModel(
             name!,
@@ -50,83 +51,13 @@ internal static class LoomToolExtractor
             outputType is not null,
             outputType,
             structuredOutputType,
+            result,
             budget,
+            parameters,
             requiredCapabilities,
             requiresApproval,
             sideEffect);
     }
-
-    private static LoomToolBudgetModel GetBudget(IMethodSymbol method, INamedTypeSymbol containingType)
-    {
-        if (TryGetBudget(method, out var budget))
-            return budget;
-
-        if (TryGetBudget(containingType, out budget))
-            return budget;
-
-        return new LoomToolBudgetModel(1, 8, 16000);
-    }
-
-    private static bool TryGetBudget(ISymbol symbol, out LoomToolBudgetModel budget)
-    {
-        var attribute = GetAttribute(symbol, LoomBudgetAttributeName);
-        if (attribute is null)
-        {
-            budget = default;
-            return false;
-        }
-
-        budget = new LoomToolBudgetModel(
-            GetNamedInt(attribute, "MaxAttempts", 1),
-            GetNamedInt(attribute, "MaxToolCalls", 8),
-            GetNamedInt(attribute, "MaxTokens", 16000));
-        return true;
-    }
-
-    private static string? GetStructuredOutputType(IMethodSymbol method, INamedTypeSymbol containingType)
-    {
-        var attribute = GetAttribute(method, StructuredOutputAttributeName) ?? GetAttribute(containingType, StructuredOutputAttributeName);
-        if (attribute is null)
-            return null;
-
-        return attribute.ConstructorArguments.FirstOrDefault().Value is ITypeSymbol typeSymbol
-            ? typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-            : null;
-    }
-
-    private static EquatableArray<string> GetRequiredCapabilities(IMethodSymbol method, INamedTypeSymbol containingType)
-    {
-        var capabilities = new List<string>();
-        AppendCapabilities(capabilities, method);
-        AppendCapabilities(capabilities, containingType);
-        return capabilities.Count is 0 ? default : capabilities.ToArray().ToEquatableArray();
-    }
-
-    private static void AppendCapabilities(List<string> capabilities, ISymbol symbol)
-    {
-        foreach (var attribute in symbol.GetAttributes())
-        {
-            if (!string.Equals(attribute.AttributeClass?.Name, RequiresCapabilityAttributeName, StringComparison.Ordinal))
-                continue;
-
-            var capability = attribute.ConstructorArguments.FirstOrDefault().Value as string;
-            if (!string.IsNullOrWhiteSpace(capability))
-                capabilities.Add(capability!);
-        }
-    }
-
-    private static bool HasAttribute(IMethodSymbol method, INamedTypeSymbol containingType, string attributeName)
-        => GetAttribute(method, attributeName) is not null || GetAttribute(containingType, attributeName) is not null;
-
-    private static int GetSideEffect(IMethodSymbol method, INamedTypeSymbol containingType)
-    {
-        var attribute = GetAttribute(method, ToolSideEffectAttributeName) ?? GetAttribute(containingType, ToolSideEffectAttributeName);
-        return attribute?.ConstructorArguments.FirstOrDefault().Value as int? ?? 0;
-    }
-
-    private static AttributeData? GetAttribute(ISymbol symbol, string attributeName)
-        => symbol.GetAttributes().FirstOrDefault(attribute =>
-            string.Equals(attribute.AttributeClass?.Name, attributeName, StringComparison.Ordinal));
 
     private static bool IsAwaitable(ITypeSymbol typeSymbol)
     {

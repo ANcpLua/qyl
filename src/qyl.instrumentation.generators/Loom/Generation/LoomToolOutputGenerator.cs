@@ -27,7 +27,7 @@ internal static class LoomToolOutputGenerator
         {
             sb.AppendLine(
                 $"public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolDescriptor {tool.MethodName}Descriptor {{ get; }} = new(");
-            using (sb.Indent())
+            using (sb.BeginBlock(null))
             {
                 sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
                 sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Description)},");
@@ -52,6 +52,23 @@ internal static class LoomToolOutputGenerator
             }
             sb.AppendLine(");");
             sb.AppendLine();
+
+            sb.AppendLine(
+                $"public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomRuntimeMetadataDescriptor {tool.MethodName}RuntimeMetadata {{ get; }} = new(");
+            using (sb.BeginBlock(null))
+            {
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+                sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+
+                AppendRuntimeParameterBindingArray(sb, tool.Parameters);
+                AppendRuntimeResultDescriptor(sb, tool);
+                AppendRuntimeTelemetryDescriptor(sb, tool);
+                AppendRuntimePolicyDescriptor(sb, tool);
+            }
+            sb.AppendLine(");");
+            sb.AppendLine();
         }
 
         for (var i = 0; i < declarationChain.Length; i++)
@@ -64,8 +81,7 @@ internal static class LoomToolOutputGenerator
         IndentedStringBuilder sb,
         EquatableArray<LoomParameterModel> parameters)
     {
-        var visibleParameters = parameters.Where(static parameter => !parameter.IsCancellationToken).ToArray();
-        if (visibleParameters.Length is 0)
+        if (parameters.Length is 0)
         {
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolParameterDescriptor>(),");
@@ -76,7 +92,7 @@ internal static class LoomToolOutputGenerator
             "new global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolParameterDescriptor[]");
         using (sb.BeginBlock())
         {
-            foreach (var parameter in visibleParameters)
+            foreach (var parameter in parameters)
             {
                 sb.AppendLine("new(");
                 using (sb.BeginBlock())
@@ -99,6 +115,104 @@ internal static class LoomToolOutputGenerator
         sb.AppendLine(",");
     }
 
+    private static void AppendRuntimeParameterBindingArray(
+        IndentedStringBuilder sb,
+        EquatableArray<LoomParameterModel> parameters)
+    {
+        if (parameters.Length is 0)
+        {
+            sb.AppendLine(
+                "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomParameterBindingDescriptor>(),");
+            return;
+        }
+
+        sb.AppendLine(
+            "new global::Qyl.Instrumentation.Instrumentation.Loom.LoomParameterBindingDescriptor[]");
+        using (sb.BeginBlock())
+        {
+            foreach (var parameter in parameters)
+            {
+                sb.AppendLine("new(");
+                using (sb.BeginBlock())
+                {
+                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(parameter.Name)},");
+                    sb.AppendLine($"{LoomGenerationHelpers.TypeOf(parameter.TypeFullyQualified)},");
+                    sb.AppendLine(parameter.IsNullable ? "true," : "false,");
+                    sb.AppendLine(parameter.HasDefaultValue ? "true," : "false,");
+                    sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.DefaultValueLiteral)},");
+                    sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.Description)},");
+                    sb.AppendLine(parameter.IsSchemaVisible ? "true," : "false,");
+                    sb.AppendLine(parameter.IsInfrastructureBound ? "true," : "false,");
+                    if (parameter.EnumValues.IsEmpty)
+                        sb.AppendLine("global::System.Array.Empty<string>()");
+                    else
+                        sb.AppendLine(
+                            $"new string[] {{ {string.Join(", ", parameter.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}");
+                }
+                sb.AppendLine("),");
+            }
+        }
+        sb.AppendLine(",");
+    }
+
+    private static void AppendRuntimeResultDescriptor(IndentedStringBuilder sb, LoomToolModel tool)
+    {
+        sb.AppendLine("new global::Qyl.Instrumentation.Instrumentation.Loom.LoomResultDescriptor(");
+        using (sb.BeginBlock())
+        {
+            sb.AppendLine(GetOutputTypeExpression(tool.OutputTypeFullyQualified) + ",");
+            sb.AppendLine(GetOutputTypeExpression(tool.StructuredOutputTypeFullyQualified) + ",");
+            sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(tool.Result.ResultSchemaHint)},");
+            sb.AppendLine(tool.Result.HasStructuredOutput ? "true," : "false,");
+            sb.AppendLine(tool.Result.IsSchemaVisible ? "true" : "false");
+        }
+        sb.AppendLine("),");
+    }
+
+    private static void AppendRuntimeTelemetryDescriptor(IndentedStringBuilder sb, LoomToolModel tool)
+    {
+        sb.AppendLine("new global::Qyl.Instrumentation.Instrumentation.Loom.LoomTelemetryDescriptor(");
+        using (sb.BeginBlock())
+        {
+            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
+            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
+            sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+            sb.AppendLine(tool.IsAwaitable ? "true," : "false,");
+            sb.AppendLine(tool.ReturnsValue ? "true," : "false,");
+            sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
+            if (tool.RequiredCapabilities.IsEmpty)
+                sb.AppendLine("global::System.Array.Empty<string>()");
+            else
+                sb.AppendLine(
+                    $"new string[] {{ {string.Join(", ", tool.RequiredCapabilities.Select(LoomGenerationHelpers.StringLiteral))} }}");
+        }
+        sb.AppendLine("),");
+    }
+
+    private static void AppendRuntimePolicyDescriptor(IndentedStringBuilder sb, LoomToolModel tool)
+    {
+        sb.AppendLine("new global::Qyl.Instrumentation.Instrumentation.Loom.LoomPolicyDescriptor(");
+        using (sb.BeginBlock())
+        {
+            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
+            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
+            sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+            sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
+            sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
+            sb.AppendLine($"{tool.Budget.MaxAttempts},");
+            sb.AppendLine($"{tool.Budget.MaxToolCalls},");
+            sb.AppendLine($"{tool.Budget.MaxTokens},");
+            if (tool.RequiredCapabilities.IsEmpty)
+                sb.AppendLine("global::System.Array.Empty<string>()");
+            else
+                sb.AppendLine(
+                    $"new string[] {{ {string.Join(", ", tool.RequiredCapabilities.Select(LoomGenerationHelpers.StringLiteral))} }}");
+        }
+        sb.AppendLine("),");
+    }
+
     private static string GetOutputTypeExpression(string? fullyQualifiedType)
         => fullyQualifiedType is null ? "null" : LoomGenerationHelpers.TypeOf(fullyQualifiedType);
 
@@ -108,19 +222,9 @@ internal static class LoomToolOutputGenerator
             ? $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}"
             : $"(({tool.ContainingTypeFullyQualified})services.GetService({LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)})!).{tool.MethodName}";
 
-        var arguments = new List<string>();
-        var exposedIndex = 0;
-        foreach (var parameter in tool.Parameters)
-        {
-            if (parameter.IsCancellationToken)
-            {
-                arguments.Add("cancellationToken");
-                continue;
-            }
-
-            arguments.Add($"({parameter.TypeFullyQualified})args[{exposedIndex}]!");
-            exposedIndex++;
-        }
+        var arguments = tool.Parameters
+            .Select((parameter, index) => $"({parameter.TypeFullyQualified})args[{index}]!")
+            .ToArray();
 
         var invocation = $"{callTarget}({string.Join(", ", arguments)})";
 

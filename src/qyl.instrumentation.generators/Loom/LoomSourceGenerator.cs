@@ -43,6 +43,22 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .CollectAsEquatableArray();
 
+        RegisterPartialValidation(context,
+            "Qyl.Instrumentation.Instrumentation.Loom.LoomToolAttribute",
+            static (node, _) => node is MethodDeclarationSyntax);
+
+        RegisterPartialValidation(context,
+            "Qyl.Instrumentation.Instrumentation.Loom.LoomContractAttribute",
+            static (node, _) => node is TypeDeclarationSyntax);
+
+        RegisterPartialValidation(context,
+            "Qyl.Instrumentation.Instrumentation.Loom.LoomStepAttribute",
+            static (node, _) => node is TypeDeclarationSyntax);
+
+        RegisterPartialValidation(context,
+            "Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowAttribute",
+            static (node, _) => node is TypeDeclarationSyntax);
+
         context.RegisterSourceOutput(tools.Combine(contracts).Combine(steps).Combine(workflows),
             static (spc, input) =>
             {
@@ -95,5 +111,27 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
                     "Qyl.Instrumentation.Instrumentation.Loom.LoomGeneratedRegistry.TelemetryManifest.g.cs",
                     SourceText.From(telemetryManifest, Encoding.UTF8));
             });
+    }
+
+    private static void RegisterPartialValidation(
+        IncrementalGeneratorInitializationContext context,
+        string fullyQualifiedMetadataName,
+        Func<SyntaxNode, CancellationToken, bool> predicate)
+    {
+        var validationFlows = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                fullyQualifiedMetadataName,
+                predicate,
+                static (syntaxContext, cancellationToken) =>
+                {
+                    var declaration = syntaxContext.TargetNode as TypeDeclarationSyntax
+                                     ?? syntaxContext.TargetNode.Parent as TypeDeclarationSyntax;
+
+                    return declaration is not null
+                        ? LoomDeclarationChainExtractor.ExtractWithDiagnostics(declaration, cancellationToken)
+                        : default;
+                });
+
+        context.RegisterSourceOutput(validationFlows, static (spc, flow) => flow.Report(spc));
     }
 }
