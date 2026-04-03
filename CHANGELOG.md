@@ -34,6 +34,8 @@
 
 ### Changed
 
+- **Claude architecture pack reset**: Replaced the old `.claude/rules` and `qyl-workflows` instruction sprawl with a minimal seven-plane architecture pack covering data, serving, intelligence, agent/control, ledger/governance, UI/protocol, and compiler responsibilities.
+
 - **Loom spec docs moved under qyl.loom**: Moved the primary Loom spec from `specs/loom.md` to
   `src/qyl.loom/specs/loom.md` and the reverse-engineered Loom design reference from `eng/build/loom.md`
   to `src/qyl.loom/docs/reference/sentry-loom-design.md`. Updated repo references so Loom-owned docs now
