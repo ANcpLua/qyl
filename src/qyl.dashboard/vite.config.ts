@@ -13,11 +13,19 @@ export default defineConfig({
     build: {
         rollupOptions: {
             output: {
-                manualChunks: {
-                    'echarts': ['echarts', 'echarts-for-react'],
-                    'recharts': ['recharts'],
-                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                    'tanstack': ['@tanstack/react-query', '@tanstack/react-table', '@tanstack/react-virtual'],
+                manualChunks(id) {
+                    if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('node_modules/@tanstack/')) {
+                        return 'tanstack';
+                    }
+                    if (id.includes('node_modules/echarts')) {
+                        return 'echarts';
+                    }
+                    if (id.includes('node_modules/recharts')) {
+                        return 'recharts';
+                    }
                 },
             },
         },
