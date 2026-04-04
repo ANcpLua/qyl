@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Net;
+using AwesomeAssertions;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
@@ -50,12 +50,12 @@ public sealed class InstrumentedChatClientTests
             new ChatOptions { ModelId = "gpt-4o" },
             TestContext.Current.CancellationToken);
 
-        Assert.Single(captured);
+        captured.Should().ContainSingle();
         var activity = captured[0];
 
-        Assert.Equal(GenAiAttributes.Operations.Chat, activity.GetTagItem(GenAiAttributes.OperationName));
-        Assert.Equal("gpt-4o", activity.GetTagItem(GenAiAttributes.RequestModel));
-        Assert.Equal(GenAiAttributes.OutputTypes.Text, activity.GetTagItem(GenAiAttributes.OutputType));
+        activity.GetTagItem(GenAiAttributes.OperationName).Should().Be(GenAiAttributes.Operations.Chat);
+        activity.GetTagItem(GenAiAttributes.RequestModel).Should().Be("gpt-4o");
+        activity.GetTagItem(GenAiAttributes.OutputType).Should().Be(GenAiAttributes.OutputTypes.Text);
     }
 
     [Fact]
@@ -71,11 +71,11 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "hello")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Single(captured);
+        captured.Should().ContainSingle();
         var activity = captured[0];
 
-        Assert.Equal("unknown", activity.GetTagItem(GenAiAttributes.RequestModel));
-        Assert.Equal("unknown", activity.GetTagItem(GenAiAttributes.ProviderName));
+        activity.GetTagItem(GenAiAttributes.RequestModel).Should().Be("unknown");
+        activity.GetTagItem(GenAiAttributes.ProviderName).Should().Be("unknown");
     }
 
     // -- response model and finish reason -------------------------------------
@@ -99,13 +99,13 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "go")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Equal("gpt-4o-2024-11", activity.GetTagItem(GenAiAttributes.ResponseModel));
+        activity.GetTagItem(GenAiAttributes.ResponseModel).Should().Be("gpt-4o-2024-11");
 
         var finishReasons = activity.GetTagItem(GenAiAttributes.ResponseFinishReasons) as string[];
-        Assert.NotNull(finishReasons);
-        Assert.Equal("stop", finishReasons[0]);
+        finishReasons.Should().NotBeNull();
+        finishReasons![0].Should().Be("stop");
     }
 
     // -- token usage ----------------------------------------------------------
@@ -132,10 +132,10 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "prompt")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Equal(100, activity.GetTagItem(GenAiAttributes.UsageInputTokens));
-        Assert.Equal(42, activity.GetTagItem(GenAiAttributes.UsageOutputTokens));
+        activity.GetTagItem(GenAiAttributes.UsageInputTokens).Should().Be(100);
+        activity.GetTagItem(GenAiAttributes.UsageOutputTokens).Should().Be(42);
     }
 
     [Fact]
@@ -154,10 +154,10 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "prompt")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Null(activity.GetTagItem(GenAiAttributes.UsageInputTokens));
-        Assert.Null(activity.GetTagItem(GenAiAttributes.UsageOutputTokens));
+        activity.GetTagItem(GenAiAttributes.UsageInputTokens).Should().BeNull();
+        activity.GetTagItem(GenAiAttributes.UsageOutputTokens).Should().BeNull();
     }
 
     // -- error handling -------------------------------------------------------
@@ -172,15 +172,15 @@ public sealed class InstrumentedChatClientTests
             new HttpRequestException("connection refused", null, HttpStatusCode.ServiceUnavailable));
         var client = BuildClient(inner);
 
-        await Assert.ThrowsAsync<HttpRequestException>(
-            async () => await client.GetResponseAsync(
-                [new ChatMessage(ChatRole.User, "call")],
-                cancellationToken: TestContext.Current.CancellationToken));
+        var act = async () => await client.GetResponseAsync(
+            [new ChatMessage(ChatRole.User, "call")],
+            cancellationToken: TestContext.Current.CancellationToken);
+        await act.Should().ThrowAsync<HttpRequestException>();
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Equal(ActivityStatusCode.Error, activity.Status);
-        Assert.Equal("503", activity.GetTagItem(GenAiAttributes.ErrorType));
+        activity.Status.Should().Be(ActivityStatusCode.Error);
+        activity.GetTagItem(GenAiAttributes.ErrorType).Should().Be("503");
     }
 
     // -- agent name -----------------------------------------------------------
@@ -198,9 +198,9 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "hi")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Equal("MyAgent", activity.GetTagItem("gen_ai.agent.name"));
+        activity.GetTagItem("gen_ai.agent.name").Should().Be("MyAgent");
     }
 
     [Fact]
@@ -216,9 +216,9 @@ public sealed class InstrumentedChatClientTests
             [new ChatMessage(ChatRole.User, "hi")],
             cancellationToken: TestContext.Current.CancellationToken);
 
-        var activity = Assert.Single(captured);
+        var activity = captured.Should().ContainSingle().Which;
 
-        Assert.Null(activity.GetTagItem("gen_ai.agent.name"));
+        activity.GetTagItem("gen_ai.agent.name").Should().BeNull();
     }
 }
 

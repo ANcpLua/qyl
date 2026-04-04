@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
@@ -17,9 +17,9 @@ public sealed class ChatClientToolInstrumentationTests
         var options = CreateOptions();
         await client.GetResponseAsync(CreateMessages(), options, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(inner.LastOptions);
-        var capturedTool = Assert.Single(inner.LastOptions.Tools!);
-        Assert.IsType<InstrumentedAIFunction>(capturedTool);
+        inner.LastOptions.Should().NotBeNull();
+        var capturedTool = inner.LastOptions!.Tools!.Should().ContainSingle().Which;
+        capturedTool.Should().BeOfType<InstrumentedAIFunction>();
     }
 
     [Fact]
@@ -31,9 +31,9 @@ public sealed class ChatClientToolInstrumentationTests
         var options = CreateOptions();
         await client.GetResponseAsync(CreateMessages(), options, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(inner.LastOptions);
-        var capturedTool = Assert.Single(inner.LastOptions.Tools!);
-        Assert.IsType<InstrumentedAIFunction>(capturedTool);
+        inner.LastOptions.Should().NotBeNull();
+        var capturedTool = inner.LastOptions!.Tools!.Should().ContainSingle().Which;
+        capturedTool.Should().BeOfType<InstrumentedAIFunction>();
     }
 
     [Fact]
@@ -45,9 +45,9 @@ public sealed class ChatClientToolInstrumentationTests
         var options = CreateOptions();
         await client.GetResponseAsync(CreateMessages(), options, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(inner.LastOptions);
-        var capturedTool = Assert.Single(inner.LastOptions.Tools!);
-        Assert.IsType<InstrumentedAIFunction>(capturedTool);
+        inner.LastOptions.Should().NotBeNull();
+        var capturedTool = inner.LastOptions!.Tools!.Should().ContainSingle().Which;
+        capturedTool.Should().BeOfType<InstrumentedAIFunction>();
     }
 
     private static List<ChatMessage> CreateMessages() =>

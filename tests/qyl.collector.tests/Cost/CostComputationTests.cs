@@ -1,8 +1,8 @@
+using AwesomeAssertions;
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
 using Qyl.Collector.Cost;
 using Qyl.Collector.Storage;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Cost;
 
@@ -42,8 +42,8 @@ public sealed class CostComputationTests
 
         var cost = f.Service.ComputeCost("openai", "gpt-4o", 1000, 500);
 
-        Assert.NotNull(cost);
-        Assert.Equal(0.0075, cost.Value, 10);
+        cost.Should().NotBeNull();
+        cost!.Value.Should().Be(0.0075);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class CostComputationTests
     {
         await using var f = await CreateWithPricingAsync("openai", "gpt-4o", 2.50m, 10.00m);
 
-        Assert.Null(f.Service.ComputeCost("openai", "unknown-model", 1000, 500));
+        f.Service.ComputeCost("openai", "unknown-model", 1000, 500).Should().BeNull();
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class CostComputationTests
     {
         await using var f = await CreateWithPricingAsync("openai", "gpt-4o", 2.50m, 10.00m);
 
-        Assert.Null(f.Service.ComputeCost(null, "gpt-4o", 1000, 500));
+        f.Service.ComputeCost(null, "gpt-4o", 1000, 500).Should().BeNull();
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class CostComputationTests
     {
         await using var f = await CreateWithPricingAsync("openai", "gpt-4o", 2.50m, 10.00m);
 
-        Assert.Null(f.Service.ComputeCost("openai", "gpt-4o", null, null));
+        f.Service.ComputeCost("openai", "gpt-4o", null, null).Should().BeNull();
     }
 
     [Fact]
@@ -77,8 +77,8 @@ public sealed class CostComputationTests
 
         var cost = f.Service.ComputeCost("openai", "gpt-4o", 0, 0);
 
-        Assert.NotNull(cost);
-        Assert.Equal(0.0, cost.Value);
+        cost.Should().NotBeNull();
+        cost!.Value.Should().Be(0.0);
     }
 
     [Theory]
@@ -93,8 +93,8 @@ public sealed class CostComputationTests
 
         var cost = f.Service.ComputeCost(provider, model, input, output);
 
-        Assert.NotNull(cost);
-        Assert.Equal(expected, cost.Value, 8);
+        cost.Should().NotBeNull();
+        cost!.Value.Should().BeApproximately(expected, 1e-8);
     }
 
     [Fact]
@@ -105,8 +105,8 @@ public sealed class CostComputationTests
 
         var result = f.Service.EnrichBatchWithCost(batch);
 
-        Assert.NotNull(result.Spans[0].GenAiCostUsd);
-        Assert.Equal(0.0075, result.Spans[0].GenAiCostUsd!.Value, 10);
+        result.Spans[0].GenAiCostUsd.Should().NotBeNull();
+        result.Spans[0].GenAiCostUsd!.Value.Should().Be(0.0075);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class CostComputationTests
 
         var result = f.Service.EnrichBatchWithCost(batch);
 
-        Assert.Equal(0.05, result.Spans[0].GenAiCostUsd);
+        result.Spans[0].GenAiCostUsd.Should().Be(0.05);
     }
 
     private static SpanStorageRow CreateSpan(

@@ -1,9 +1,9 @@
 using System.Diagnostics;
+using AwesomeAssertions;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
@@ -46,7 +46,7 @@ public sealed class InstrumentedAIFunctionTests
 
         await instrumented.InvokeAsync([], TestContext.Current.CancellationToken);
 
-        Assert.True(invoked);
+        invoked.Should().BeTrue();
     }
 
     // -- span creation --------------------------------------------------------
@@ -65,15 +65,11 @@ public sealed class InstrumentedAIFunctionTests
 
         await instrumented.InvokeAsync([], TestContext.Current.CancellationToken);
 
-        Assert.Single(captured);
+        captured.Should().ContainSingle();
         var activity = captured[0];
-        Assert.Equal(
-            $"{GenAiAttributes.Operations.ExecuteTool} greet_tool",
-            activity.DisplayName);
-        Assert.Equal(
-            GenAiAttributes.Operations.ExecuteTool,
-            activity.GetTagItem(GenAiAttributes.OperationName));
-        Assert.Equal("greet_tool", activity.GetTagItem(GenAiAttributes.ToolName));
+        activity.DisplayName.Should().Be($"{GenAiAttributes.Operations.ExecuteTool} greet_tool");
+        activity.GetTagItem(GenAiAttributes.OperationName).Should().Be(GenAiAttributes.Operations.ExecuteTool);
+        activity.GetTagItem(GenAiAttributes.ToolName).Should().Be("greet_tool");
     }
 
     // -- idempotent wrapping --------------------------------------------------
@@ -87,9 +83,9 @@ public sealed class InstrumentedAIFunctionTests
         var options = new ChatOptions { Tools = [wrapped] };
         options.AddInstrumentedTools();
 
-        Assert.Single(options.Tools!);
+        options.Tools!.Should().ContainSingle();
         // The exact same instance must be returned — no outer InstrumentedAIFunction
-        Assert.Same(wrapped, options.Tools![0]);
+        options.Tools![0].Should().BeSameAs(wrapped);
     }
 
     // -- AddInstrumentedTools extension ---------------------------------------
@@ -109,8 +105,8 @@ public sealed class InstrumentedAIFunctionTests
 
         options.AddInstrumentedTools();
 
-        Assert.Equal(3, options.Tools!.Count);
-        Assert.All(options.Tools, t => Assert.IsType<InstrumentedAIFunction>(t));
+        options.Tools!.Count.Should().Be(3);
+        options.Tools.Should().AllSatisfy(t => t.Should().BeOfType<InstrumentedAIFunction>());
     }
 
     // -- error span status ----------------------------------------------------
@@ -127,10 +123,10 @@ public sealed class InstrumentedAIFunctionTests
 
         var instrumented = new InstrumentedAIFunction(inner);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await instrumented.InvokeAsync([], TestContext.Current.CancellationToken));
+        var act = async () => await instrumented.InvokeAsync([], TestContext.Current.CancellationToken);
+        await act.Should().ThrowAsync<InvalidOperationException>();
 
-        Assert.Single(captured);
-        Assert.Equal(ActivityStatusCode.Error, captured[0].Status);
+        captured.Should().ContainSingle();
+        captured[0].Status.Should().Be(ActivityStatusCode.Error);
     }
 }

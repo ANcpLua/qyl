@@ -1,7 +1,7 @@
+using AwesomeAssertions;
 using Qyl.Collector.Realtime;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Primitives;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Realtime;
 
@@ -19,15 +19,15 @@ public sealed class LiveLogDeduplicatorTests
             CreateLog("svc.api", "error", "connection failed", t0.AddSeconds(1), 2)
         ]);
 
-        Assert.Single(emitted);
-        Assert.False(emitted[0].IsDuplicateSummary);
-        Assert.Equal(1, emitted[0].RepeatCount);
+        emitted.Should().ContainSingle();
+        emitted[0].IsDuplicateSummary.Should().BeFalse();
+        emitted[0].RepeatCount.Should().Be(1);
 
         var flushed = deduplicator.FlushExpired(t0.AddSeconds(7).UtcDateTime);
-        Assert.Single(flushed);
-        Assert.True(flushed[0].IsDuplicateSummary);
-        Assert.Equal(1, flushed[0].RepeatCount);
-        Assert.Equal("connection failed", flushed[0].Log.Body);
+        flushed.Should().ContainSingle();
+        flushed[0].IsDuplicateSummary.Should().BeTrue();
+        flushed[0].RepeatCount.Should().Be(1);
+        flushed[0].Log.Body.Should().Be("connection failed");
     }
 
     [Fact]
@@ -43,14 +43,14 @@ public sealed class LiveLogDeduplicatorTests
             CreateLog("svc.api", "warn", "A", t0.AddSeconds(2), 3)
         ]);
 
-        Assert.Equal(2, emitted.Count);
-        Assert.Equal(["A", "B"], emitted.Select(static x => x.Log.Body ?? string.Empty).ToArray());
+        emitted.Count.Should().Be(2);
+        emitted.Select(static x => x.Log.Body ?? string.Empty).ToArray().Should().BeEquivalentTo(["A", "B"]);
 
         var flushed = deduplicator.FlushExpired(t0.AddSeconds(10).UtcDateTime);
-        Assert.Single(flushed);
-        Assert.True(flushed[0].IsDuplicateSummary);
-        Assert.Equal("A", flushed[0].Log.Body);
-        Assert.Equal(1, flushed[0].RepeatCount);
+        flushed.Should().ContainSingle();
+        flushed[0].IsDuplicateSummary.Should().BeTrue();
+        flushed[0].Log.Body.Should().Be("A");
+        flushed[0].RepeatCount.Should().Be(1);
     }
 
     [Fact]
@@ -67,12 +67,12 @@ public sealed class LiveLogDeduplicatorTests
             CreateLog("svc.api", "info", "steady noise", t0.AddSeconds(3), 4)
         ]);
 
-        Assert.Equal(3, emitted.Count);
+        emitted.Count.Should().Be(3);
 
-        Assert.False(emitted[0].IsDuplicateSummary);
-        Assert.True(emitted[1].IsDuplicateSummary);
-        Assert.Equal(2, emitted[1].RepeatCount);
-        Assert.False(emitted[2].IsDuplicateSummary);
+        emitted[0].IsDuplicateSummary.Should().BeFalse();
+        emitted[1].IsDuplicateSummary.Should().BeTrue();
+        emitted[1].RepeatCount.Should().Be(2);
+        emitted[2].IsDuplicateSummary.Should().BeFalse();
     }
 
     private static LogStorageRow CreateLog(

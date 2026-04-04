@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using DuckDB.NET.Data;
 using Qyl.Collector.Storage;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Storage;
 
@@ -28,7 +28,7 @@ public sealed class DuckDbStoreRegressionTests
         // With one-row-per-fingerprint and upsert semantics, regression detection
         // requires separate 'resolved' and 'new' rows — which the unique index
         // prevents. The batched query path is still exercised and must not throw.
-        Assert.Empty(regressedIds);
+        regressedIds.Should().BeEmpty();
         Console.WriteLine($"DetectRegressionsAsync for {count} candidates took: {sw.ElapsedMilliseconds}ms");
     }
 

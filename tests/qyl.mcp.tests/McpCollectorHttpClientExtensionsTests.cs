@@ -7,10 +7,10 @@ public sealed class McpCollectorHttpClientExtensionsTests
     {
         ServiceCollection services = [];
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            services.AddCollectorHttpClient("collector-without-scheme"));
+        var act = () => services.AddCollectorHttpClient("collector-without-scheme");
 
-        Assert.Equal("Invalid QYL_COLLECTOR_URL 'collector-without-scheme'.", exception.Message);
+        var exception = act.Should().Throw<InvalidOperationException>().Which;
+        exception.Message.Should().Be("Invalid QYL_COLLECTOR_URL 'collector-without-scheme'.");
     }
 
     [Fact]
@@ -18,10 +18,10 @@ public sealed class McpCollectorHttpClientExtensionsTests
     {
         ServiceCollection services = [];
 
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            services.AddCollectorHttpClient(TestCollectorEndpoint.Url, TimeSpan.Zero));
+        var act = () => services.AddCollectorHttpClient(TestCollectorEndpoint.Url, TimeSpan.Zero);
 
-        Assert.Equal("timeout", exception.ParamName);
+        var exception = act.Should().Throw<ArgumentOutOfRangeException>().Which;
+        exception.ParamName.Should().Be("timeout");
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class McpCollectorHttpClientExtensionsTests
 
         using var client = provider.GetRequiredService<HttpClient>();
 
-        Assert.Equal(new Uri(TestCollectorEndpoint.Path("/root")), client.BaseAddress);
+        client.BaseAddress.Should().Be(new Uri(TestCollectorEndpoint.Path("/root")));
     }
 
     [Fact]
@@ -56,10 +56,10 @@ public sealed class McpCollectorHttpClientExtensionsTests
 
         using var client = provider.GetRequiredService<HttpClient>();
 
-        var exception = await Assert.ThrowsAsync<Polly.Timeout.TimeoutRejectedException>(async () =>
-            await client.GetAsync("/api/v1/sessions", TestContext.Current.CancellationToken));
+        var act = async () => await client.GetAsync("/api/v1/sessions", TestContext.Current.CancellationToken);
 
-        Assert.Contains("00:00:00.0500000", exception.Message, StringComparison.Ordinal);
+        var exception = (await act.Should().ThrowAsync<Polly.Timeout.TimeoutRejectedException>()).Which;
+        exception.Message.Should().Contain("00:00:00.0500000");
     }
 
     [Fact]
@@ -80,12 +80,11 @@ public sealed class McpCollectorHttpClientExtensionsTests
         using var client = provider.GetRequiredService<HttpClient>();
         using var response = await client.GetAsync("/api/v1/sessions?limit=5", TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("test-token", handler.LastApiKey);
-        Assert.Null(handler.LastAuthorization);
-        Assert.Equal(
-            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=5&service=planner&sessionId=session-7",
-            handler.LastRequestUri);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        handler.LastApiKey.Should().Be("test-token");
+        handler.LastAuthorization.Should().BeNull();
+        handler.LastRequestUri.Should().Be(
+            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=5&service=planner&sessionId=session-7");
     }
 
     [Fact]
@@ -121,10 +120,9 @@ public sealed class McpCollectorHttpClientExtensionsTests
 
         var result = await tool.ListSessionsAsync(limit: 5, serviceName: "planner");
 
-        Assert.Contains("session-1", result, StringComparison.Ordinal);
-        Assert.Equal(
-            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=5&serviceName=planner",
-            handler.LastRequestUri);
+        result.Should().Contain("session-1");
+        handler.LastRequestUri.Should().Be(
+            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=5&serviceName=planner");
     }
 
     [Fact]
@@ -158,9 +156,9 @@ public sealed class McpCollectorHttpClientExtensionsTests
 
         var run = await store.GetRunAsync("run-1");
 
-        Assert.NotNull(run);
-        Assert.Equal("run-1", run.RunId);
-        Assert.Equal(TestCollectorEndpoint.Path("/api/v1/sessions/run-1"), handler.LastRequestUri);
+        run.Should().NotBeNull();
+        run!.RunId.Should().Be("run-1");
+        handler.LastRequestUri.Should().Be(TestCollectorEndpoint.Path("/api/v1/sessions/run-1"));
     }
 
     private static HttpResponseMessage JsonResponse(string json) =>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using AwesomeAssertions;
 using NetArchTest.Rules;
 using Qyl.Contracts.Primitives;
 using Xunit;
@@ -25,7 +26,7 @@ public sealed class ArchitectureTests
                 "GitHub.Copilot.SDK")
             .GetResult();
 
-        Assert.True(result.IsSuccessful, FormatFailure(result));
+        result.IsSuccessful.Should().BeTrue(FormatFailure(result));
     }
 
     [Fact]
@@ -40,7 +41,7 @@ public sealed class ArchitectureTests
                 "Qyl.Mcp")
             .GetResult();
 
-        Assert.True(result.IsSuccessful, FormatFailure(result));
+        result.IsSuccessful.Should().BeTrue(FormatFailure(result));
     }
 
     [Fact]
@@ -58,7 +59,7 @@ public sealed class ArchitectureTests
             .HaveDependencyOn("Qyl.Collector")
             .GetResult();
 
-        Assert.True(result.IsSuccessful, FormatFailure(result));
+        result.IsSuccessful.Should().BeTrue(FormatFailure(result));
     }
 
     private static string FormatFailure(TestResult result)

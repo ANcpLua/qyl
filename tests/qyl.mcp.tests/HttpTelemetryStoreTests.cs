@@ -28,18 +28,18 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var run = await store.GetRunAsync("run-42");
 
-        Assert.NotNull(run);
-        Assert.Equal("run-42", run.RunId);
-        Assert.Equal("planner", run.AgentName);
-        Assert.Equal("openai", run.Provider);
-        Assert.Equal("gpt-4o", run.Model);
-        Assert.Equal(120, run.InputTokens);
-        Assert.Equal(30, run.OutputTokens);
-        Assert.False(run.Success);
-        Assert.Equal("Error", run.ErrorType);
-        Assert.Equal("1 error(s)", run.ErrorMessage);
-        Assert.Equal(TimeSpan.FromSeconds(3), run.Duration);
-        Assert.Equal(TestCollectorEndpoint.Path("/api/v1/sessions/run-42"), handler.LastRequestUri);
+        run.Should().NotBeNull();
+        run!.RunId.Should().Be("run-42");
+        run.AgentName.Should().Be("planner");
+        run.Provider.Should().Be("openai");
+        run.Model.Should().Be("gpt-4o");
+        run.InputTokens.Should().Be(120);
+        run.OutputTokens.Should().Be(30);
+        run.Success.Should().BeFalse();
+        run.ErrorType.Should().Be("Error");
+        run.ErrorMessage.Should().Be("1 error(s)");
+        run.Duration.Should().Be(TimeSpan.FromSeconds(3));
+        handler.LastRequestUri.Should().Be(TestCollectorEndpoint.Path("/api/v1/sessions/run-42"));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var run = await store.GetRunAsync("missing-run");
 
-        Assert.Null(run);
+        run.Should().BeNull();
     }
 
     [Fact]
@@ -117,11 +117,10 @@ public sealed class HttpTelemetryStoreTests
             errorType: "Error",
             since: new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc));
 
-        var run = Assert.Single(results);
-        Assert.Equal("keep", run.RunId);
-        Assert.Equal(
-            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=100&provider=openai",
-            handler.LastRequestUri);
+        var run = results.Should().ContainSingle().Which;
+        run.RunId.Should().Be("keep");
+        handler.LastRequestUri.Should().Be(
+            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=100&provider=openai");
     }
 
     [Fact]
@@ -139,7 +138,7 @@ public sealed class HttpTelemetryStoreTests
             errorType: "Error",
             since: null);
 
-        Assert.Empty(results);
+        results.Should().BeEmpty();
     }
 
     [Fact]
@@ -202,11 +201,11 @@ public sealed class HttpTelemetryStoreTests
             until: new DateTime(2026, 4, 2, 23, 59, 59, DateTimeKind.Utc),
             groupBy: "model");
 
-        var summary = Assert.Single(summaries);
-        Assert.Equal("gpt-4o", summary.GroupKey);
-        Assert.Equal(16, summary.TotalInputTokens);
-        Assert.Equal(6, summary.TotalOutputTokens);
-        Assert.Equal(2, summary.RunCount);
+        var summary = summaries.Should().ContainSingle().Which;
+        summary.GroupKey.Should().Be("gpt-4o");
+        summary.TotalInputTokens.Should().Be(16);
+        summary.TotalOutputTokens.Should().Be(6);
+        summary.RunCount.Should().Be(2);
     }
 
     [Fact]
@@ -253,9 +252,9 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var summaries = await store.GetTokenUsageAsync(since: null, until: null, groupBy: "service");
 
-        Assert.Equal(2, summaries.Length);
-        Assert.Contains(summaries, static summary => summary.GroupKey == "planner" && summary.RunCount == 1);
-        Assert.Contains(summaries, static summary => summary.GroupKey == "coder" && summary.RunCount == 1);
+        summaries.Length.Should().Be(2);
+        summaries.Should().Contain(static summary => summary.GroupKey == "planner" && summary.RunCount == 1);
+        summaries.Should().Contain(static summary => summary.GroupKey == "coder" && summary.RunCount == 1);
     }
 
     [Fact]
@@ -275,7 +274,7 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var summaries = await store.GetTokenUsageAsync(since: null, until: null, groupBy: "model");
 
-        Assert.Empty(summaries);
+        summaries.Should().BeEmpty();
     }
 
     [Fact]
@@ -322,12 +321,11 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var errors = await store.ListErrorsAsync(limit: 10, agentName: "planner");
 
-        var error = Assert.Single(errors);
-        Assert.Equal("error-run", error.RunId);
-        Assert.Equal("Error", error.ErrorType);
-        Assert.Equal(
-            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=10&serviceName=planner",
-            handler.LastRequestUri);
+        var error = errors.Should().ContainSingle().Which;
+        error.RunId.Should().Be("error-run");
+        error.ErrorType.Should().Be("Error");
+        handler.LastRequestUri.Should().Be(
+            $"{TestCollectorEndpoint.Path("/api/v1/sessions")}?limit=10&serviceName=planner");
     }
 
     [Fact]
@@ -341,7 +339,7 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(handler);
         var errors = await store.ListErrorsAsync(limit: 10, agentName: "planner");
 
-        Assert.Empty(errors);
+        errors.Should().BeEmpty();
     }
 
     [Fact]
@@ -403,14 +401,14 @@ public sealed class HttpTelemetryStoreTests
             new FixedTimeProvider(new DateTimeOffset(2026, 4, 2, 11, 0, 0, TimeSpan.Zero)));
         var stats = await store.GetLatencyStatsAsync("planner", hours: 2);
 
-        Assert.Equal("planner", stats.AgentName);
-        Assert.Equal(20, stats.P50Ms);
-        Assert.Equal(30, stats.P95Ms);
-        Assert.Equal(30, stats.P99Ms);
-        Assert.Equal(20, stats.AvgMs);
-        Assert.Equal(10, stats.MinMs);
-        Assert.Equal(30, stats.MaxMs);
-        Assert.Equal(3, stats.SampleCount);
+        stats.AgentName.Should().Be("planner");
+        stats.P50Ms.Should().Be(20);
+        stats.P95Ms.Should().Be(30);
+        stats.P99Ms.Should().Be(30);
+        stats.AvgMs.Should().Be(20);
+        stats.MinMs.Should().Be(10);
+        stats.MaxMs.Should().Be(30);
+        stats.SampleCount.Should().Be(3);
     }
 
     [Fact]
@@ -446,14 +444,14 @@ public sealed class HttpTelemetryStoreTests
             new FixedTimeProvider(new DateTimeOffset(2026, 4, 2, 11, 0, 0, TimeSpan.Zero)));
         var stats = await store.GetLatencyStatsAsync("planner", hours: 2);
 
-        Assert.Equal("planner", stats.AgentName);
-        Assert.Equal(0, stats.P50Ms);
-        Assert.Equal(0, stats.P95Ms);
-        Assert.Equal(0, stats.P99Ms);
-        Assert.Equal(0, stats.AvgMs);
-        Assert.Equal(0, stats.MinMs);
-        Assert.Equal(0, stats.MaxMs);
-        Assert.Equal(0, stats.SampleCount);
+        stats.AgentName.Should().Be("planner");
+        stats.P50Ms.Should().Be(0);
+        stats.P95Ms.Should().Be(0);
+        stats.P99Ms.Should().Be(0);
+        stats.AvgMs.Should().Be(0);
+        stats.MinMs.Should().Be(0);
+        stats.MaxMs.Should().Be(0);
+        stats.SampleCount.Should().Be(0);
     }
 
     private static HttpTelemetryStore CreateStore(

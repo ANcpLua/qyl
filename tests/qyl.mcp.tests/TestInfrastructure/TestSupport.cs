@@ -8,8 +8,7 @@ internal static class TestCollectorEndpoint
 
     public static string Path(string relativePath)
     {
-        var builder = new UriBuilder(BaseAddress);
-        builder.Path = relativePath;
+        var builder = new UriBuilder(BaseAddress) { Path = relativePath };
         return builder.Uri.ToString();
     }
 }
@@ -73,7 +72,7 @@ internal static class TestServiceCollectionFactory
 
         services.AddLogging();
         services.AddRedaction();
-        services.AddSingleton<TimeProvider>(TimeProvider.System);
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton(ScopeFactory.Create(serviceName, sessionId));
         services.AddMcpAuth(configuration);
 

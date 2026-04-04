@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Loom;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Autofix;
 
@@ -17,9 +17,9 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
 
         var settings = await _store.GetLoomSettingsAsync("default", ct);
 
-        Assert.Equal("default", settings.Id);
-        Assert.Equal("Loom", settings.DefaultCodingAgent);
-        Assert.Equal("medium", settings.AutomationTuning);
+        settings.Id.Should().Be("default");
+        settings.DefaultCodingAgent.Should().Be("Loom");
+        settings.AutomationTuning.Should().Be("medium");
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
         await _store.UpsertLoomSettingsAsync(input, ct);
         var result = await _store.GetLoomSettingsAsync("default", ct);
 
-        Assert.Equal("cursor", result.DefaultCodingAgent);
-        Assert.Equal("aggressive", result.AutomationTuning);
+        result.DefaultCodingAgent.Should().Be("cursor");
+        result.AutomationTuning.Should().Be("aggressive");
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
         await _store.UpsertLoomSettingsAsync(input, ct);
         var result = await _store.GetLoomSettingsAsync("default", ct);
 
-        Assert.Equal("github_copilot", result.DefaultCodingAgent);
+        result.DefaultCodingAgent.Should().Be("github_copilot");
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
 
         var result = await _store.GetLoomSettingsAsync("default", ct);
 
-        Assert.Equal("claude_code", result.DefaultCodingAgent);
-        Assert.Equal("high", result.AutomationTuning);
+        result.DefaultCodingAgent.Should().Be("claude_code");
+        result.AutomationTuning.Should().Be("high");
     }
 }

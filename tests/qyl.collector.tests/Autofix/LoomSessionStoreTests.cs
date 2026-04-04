@@ -1,5 +1,6 @@
+using AwesomeAssertions;
 using Qyl.Collector.Autofix;
-using Xunit;
+using Qyl.Contracts.Agenting;
 
 namespace Qyl.Collector.Tests.Autofix;
 
@@ -13,9 +14,9 @@ public sealed class LoomSessionStoreTests
         var first = sut.GetOrCreate("issue-1");
         var second = sut.GetOrCreate("issue-1");
 
-        Assert.Same(first, second);
-        Assert.Equal("issue-1", first.SessionId);
-        Assert.Equal("issue-1", first.IssueId);
+        second.Should().BeSameAs(first);
+        first.SessionId.Should().Be("issue-1");
+        first.IssueId.Should().Be("issue-1");
     }
 
     [Fact]
@@ -35,10 +36,10 @@ public sealed class LoomSessionStoreTests
 
         sut.SaveDiagnosis(session.SessionId, "diagnostic transcript", rootCause);
 
-        Assert.Equal("diagnostic transcript", session.DiagnosticTranscript);
-        Assert.Same(rootCause, session.RootCause);
-        Assert.Single(session.Messages);
-        Assert.Equal(LoomSessionMessageRole.Diagnostician, session.Messages[0].Role);
+        session.DiagnosticTranscript.Should().Be("diagnostic transcript");
+        session.RootCause.Should().BeSameAs(rootCause);
+        session.Transcript.Should().ContainSingle();
+        session.Transcript[0].Role.Should().Be(LoomSpecialistRole.Diagnostician);
     }
 
     [Fact]
@@ -58,8 +59,8 @@ public sealed class LoomSessionStoreTests
 
         sut.SaveSolution(session.SessionId, solution);
 
-        Assert.Same(solution, session.Solution);
-        Assert.Single(session.Messages);
-        Assert.Equal(LoomSessionMessageRole.Strategist, session.Messages[0].Role);
+        session.Solution.Should().BeSameAs(solution);
+        session.Transcript.Should().ContainSingle();
+        session.Transcript[0].Role.Should().Be(LoomSpecialistRole.Strategist);
     }
 }

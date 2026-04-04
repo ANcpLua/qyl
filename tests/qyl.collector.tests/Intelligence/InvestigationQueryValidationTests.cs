@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Intelligence;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Intelligence;
 
@@ -34,8 +34,7 @@ public sealed class InvestigationQueryValidationTests
         var ex = await Record.ExceptionAsync(async () =>
             await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
 
-        Assert.True(ex is null,
-            $"Strategy '{strategyId}' step '{action}' has invalid SQL:\n{query}\nError: {ex?.Message}");
+        ex.Should().BeNull($"Strategy '{strategyId}' step '{action}' has invalid SQL:\n{query}");
     }
 
     public static TheoryData<string, string, string> AllSqlQueries()

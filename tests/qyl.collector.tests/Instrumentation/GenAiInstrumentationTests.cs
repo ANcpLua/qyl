@@ -1,9 +1,9 @@
 using System.Diagnostics;
+using AwesomeAssertions;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
@@ -33,10 +33,10 @@ public sealed class GenAiInstrumentationTests
             "openai", "chat", "gpt-4o",
             static () => Task.FromResult("result"));
 
-        var activity = Assert.Single(captured);
-        Assert.Equal("openai", activity.GetTagItem(GenAiAttributes.ProviderName));
-        Assert.Equal("chat", activity.GetTagItem(GenAiAttributes.OperationName));
-        Assert.Equal("gpt-4o", activity.GetTagItem(GenAiAttributes.RequestModel));
+        var activity = captured.Should().ContainSingle().Which;
+        activity.GetTagItem(GenAiAttributes.ProviderName).Should().Be("openai");
+        activity.GetTagItem(GenAiAttributes.OperationName).Should().Be("chat");
+        activity.GetTagItem(GenAiAttributes.RequestModel).Should().Be("gpt-4o");
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public sealed class GenAiInstrumentationTests
             static () => Task.FromResult(new TokenUsage(50, 25)),
             static r => r);
 
-        var activity = Assert.Single(captured);
-        Assert.Equal(50, activity.GetTagItem(GenAiAttributes.UsageInputTokens));
-        Assert.Equal(25, activity.GetTagItem(GenAiAttributes.UsageOutputTokens));
+        var activity = captured.Should().ContainSingle().Which;
+        activity.GetTagItem(GenAiAttributes.UsageInputTokens).Should().Be(50);
+        activity.GetTagItem(GenAiAttributes.UsageOutputTokens).Should().Be(25);
     }
 
     [Fact]
@@ -61,14 +61,14 @@ public sealed class GenAiInstrumentationTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await GenAiInstrumentation.ExecuteAsync<string>(
-                "openai", "chat", "gpt-4o",
-                static () => throw new InvalidOperationException("fail")));
+        var act = async () => await GenAiInstrumentation.ExecuteAsync<string>(
+            "openai", "chat", "gpt-4o",
+            static () => throw new InvalidOperationException("fail"));
+        await act.Should().ThrowAsync<InvalidOperationException>();
 
-        var activity = Assert.Single(captured);
-        Assert.Equal(ActivityStatusCode.Error, activity.Status);
-        Assert.Equal("InvalidOperationException", activity.GetTagItem(GenAiAttributes.ErrorType));
+        var activity = captured.Should().ContainSingle().Which;
+        activity.Status.Should().Be(ActivityStatusCode.Error);
+        activity.GetTagItem(GenAiAttributes.ErrorType).Should().Be("InvalidOperationException");
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class GenAiInstrumentationTests
         var result = otel.WithQylTelemetry();
 
         // OTel client gets wrapped with tool instrumentation on top
-        Assert.IsType<ToolInstrumentingChatClient>(result);
+        result.Should().BeOfType<ToolInstrumentingChatClient>();
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class GenAiInstrumentationTests
 
         var result = toolClient.WithQylTelemetry();
 
-        Assert.Same(toolClient, result);
+        result.Should().BeSameAs(toolClient);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class GenAiInstrumentationTests
         var result = inner.WithQylTelemetry();
 
         // Pipeline: inner → OpenTelemetry → ToolInstrumenting
-        Assert.NotSame(inner, result);
+        result.Should().NotBeSameAs(inner);
     }
 }
 

@@ -28,5 +28,6 @@
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
+    <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
   </PropertyGroup>
 </Project>

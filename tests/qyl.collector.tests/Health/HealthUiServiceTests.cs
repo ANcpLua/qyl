@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using Qyl.Collector.Health;
 using Qyl.Models;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Health;
 
@@ -24,7 +24,7 @@ public sealed class HealthUiServiceTests
 
         var result = HealthUiService.DetermineOverallStatus(components);
 
-        Assert.Equal(HealthStatus.Unhealthy, result);
+        result.Should().Be(HealthStatus.Unhealthy);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class HealthUiServiceTests
 
         var result = HealthUiService.DetermineOverallStatus(components);
 
-        Assert.Equal(HealthStatus.Degraded, result);
+        result.Should().Be(HealthStatus.Degraded);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class HealthUiServiceTests
 
         var result = HealthUiService.DetermineOverallStatus(components);
 
-        Assert.Equal(HealthStatus.Healthy, result);
+        result.Should().Be(HealthStatus.Healthy);
     }
 
     [Fact]
@@ -69,6 +69,6 @@ public sealed class HealthUiServiceTests
 
         var result = HealthUiService.DetermineOverallStatus(components);
 
-        Assert.Equal(HealthStatus.Unhealthy, result);
+        result.Should().Be(HealthStatus.Unhealthy);
     }
 }

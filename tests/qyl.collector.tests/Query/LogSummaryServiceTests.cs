@@ -1,7 +1,7 @@
+using AwesomeAssertions;
 using Qyl.Collector.Query;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Primitives;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Query;
 
@@ -31,17 +31,17 @@ public sealed class LogSummaryServiceTests
             null,
             ct);
 
-        Assert.Equal("5m", summary.Window);
-        Assert.Equal(4, summary.TotalCount);
-        Assert.Equal(2, summary.ErrorCount);
-        Assert.Equal(1, summary.WarningCount);
-        Assert.NotEmpty(summary.Cursor);
-        Assert.Contains("logged 4 entries", summary.Summary, StringComparison.OrdinalIgnoreCase);
+        summary.Window.Should().Be("5m");
+        summary.TotalCount.Should().Be(4);
+        summary.ErrorCount.Should().Be(2);
+        summary.WarningCount.Should().Be(1);
+        summary.Cursor.Should().NotBeEmpty();
+        summary.Summary.Should().ContainEquivalentOf("logged 4 entries");
 
-        var topIssue = Assert.Single(summary.TopIssues);
-        Assert.True(topIssue.Resolved);
-        Assert.Equal(2, topIssue.Count);
-        Assert.Contains("<N>", topIssue.Pattern, StringComparison.Ordinal);
+        var topIssue = summary.TopIssues.Should().ContainSingle().Which;
+        topIssue.Resolved.Should().BeTrue();
+        topIssue.Count.Should().Be(2);
+        topIssue.Pattern.Should().Contain("<N>");
     }
 
     [Fact]
@@ -78,10 +78,10 @@ public sealed class LogSummaryServiceTests
             null,
             ct);
 
-        Assert.Equal(1, delta.TotalCount);
-        Assert.Equal(1, delta.ErrorCount);
-        Assert.Equal(0, delta.WarningCount);
-        Assert.Single(delta.TopIssues);
+        delta.TotalCount.Should().Be(1);
+        delta.ErrorCount.Should().Be(1);
+        delta.WarningCount.Should().Be(0);
+        delta.TopIssues.Should().ContainSingle();
     }
 
     [Fact]
@@ -107,11 +107,11 @@ public sealed class LogSummaryServiceTests
 
         var result = await waitTask;
 
-        Assert.True(result.Matched);
-        Assert.NotNull(result.Log);
-        Assert.Contains("ready", result.Log!.Body, StringComparison.OrdinalIgnoreCase);
-        Assert.True(result.WaitedMs >= 0);
-        Assert.True(result.PollCount > 0);
+        result.Matched.Should().BeTrue();
+        result.Log.Should().NotBeNull();
+        result.Log!.Body.Should().ContainEquivalentOf("ready");
+        result.WaitedMs.Should().BeGreaterThanOrEqualTo(0);
+        result.PollCount.Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -140,13 +140,13 @@ public sealed class LogSummaryServiceTests
             null,
             ct);
 
-        var pattern = Assert.Single(patterns);
-        Assert.Equal(3, pattern.Count);
-        Assert.Equal("svc.api", pattern.ServiceName);
-        Assert.Contains("<N>", pattern.Template, StringComparison.Ordinal);
-        Assert.NotEmpty(pattern.PatternId);
-        Assert.Contains(pattern.SeverityDistribution, static x => x is { Severity: "error", Count: 2 });
-        Assert.Contains(pattern.SeverityDistribution, static x => x is { Severity: "fatal", Count: 1 });
+        var pattern = patterns.Should().ContainSingle().Which;
+        pattern.Count.Should().Be(3);
+        pattern.ServiceName.Should().Be("svc.api");
+        pattern.Template.Should().Contain("<N>");
+        pattern.PatternId.Should().NotBeEmpty();
+        pattern.SeverityDistribution.Should().Contain(static x => x is { Severity: "error", Count: 2 });
+        pattern.SeverityDistribution.Should().Contain(static x => x is { Severity: "fatal", Count: 1 });
     }
 
     [Fact]
@@ -176,9 +176,9 @@ public sealed class LogSummaryServiceTests
             null,
             ct);
 
-        var pattern = Assert.Single(patterns);
-        Assert.Equal(1, pattern.Count);
-        Assert.True(pattern.FirstSeen >= now.AddMinutes(-5).UtcDateTime);
+        var pattern = patterns.Should().ContainSingle().Which;
+        pattern.Count.Should().Be(1);
+        pattern.FirstSeen.Should().BeOnOrAfter(now.AddMinutes(-5).UtcDateTime);
     }
 
     [Fact]
@@ -209,17 +209,17 @@ public sealed class LogSummaryServiceTests
 
         var bySeverity =
             stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
-        Assert.Equal("5m", stats.Window);
-        Assert.Equal(5, stats.TotalCount);
-        Assert.Equal(1, bySeverity["trace"]);
-        Assert.Equal(0, bySeverity["debug"]);
-        Assert.Equal(1, bySeverity["info"]);
-        Assert.Equal(1, bySeverity["warn"]);
-        Assert.Equal(1, bySeverity["error"]);
-        Assert.Equal(1, bySeverity["fatal"]);
-        Assert.NotNull(stats.OldestTimestamp);
-        Assert.NotNull(stats.NewestTimestamp);
-        Assert.True(stats.NewestTimestamp >= stats.OldestTimestamp);
+        stats.Window.Should().Be("5m");
+        stats.TotalCount.Should().Be(5);
+        bySeverity["trace"].Should().Be(1);
+        bySeverity["debug"].Should().Be(0);
+        bySeverity["info"].Should().Be(1);
+        bySeverity["warn"].Should().Be(1);
+        bySeverity["error"].Should().Be(1);
+        bySeverity["fatal"].Should().Be(1);
+        stats.OldestTimestamp.Should().NotBeNull();
+        stats.NewestTimestamp.Should().NotBeNull();
+        stats.NewestTimestamp.Should().BeOnOrAfter(stats.OldestTimestamp!.Value);
     }
 
     [Fact]
@@ -249,10 +249,10 @@ public sealed class LogSummaryServiceTests
 
         var bySeverity =
             stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
-        Assert.Equal("custom", stats.Window);
-        Assert.Equal(1, stats.TotalCount);
-        Assert.Equal(1, bySeverity["error"]);
-        Assert.Equal(0, bySeverity["fatal"]);
+        stats.Window.Should().Be("custom");
+        stats.TotalCount.Should().Be(1);
+        bySeverity["error"].Should().Be(1);
+        bySeverity["fatal"].Should().Be(0);
     }
 
     private static LogStorageRow CreateLog(

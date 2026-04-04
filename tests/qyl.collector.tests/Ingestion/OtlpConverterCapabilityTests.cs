@@ -1,7 +1,7 @@
 using System.Text.Json;
+using AwesomeAssertions;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Ingestion;
 
@@ -17,18 +17,16 @@ public sealed class OtlpConverterCapabilityTests
             ["qyl.capability.genai.models"] = """["gpt-4o-mini"]"""
         };
 
-        var instance = Assert.IsType<ServiceInstanceRecord>(
-            OtlpConverter.ExtractServiceInstance(resourceAttributes, null, 42));
-        var metadataJson = Assert.IsType<string>(instance.MetadataJson);
+        var instance = OtlpConverter.ExtractServiceInstance(resourceAttributes, null, 42)
+            .Should().BeOfType<ServiceInstanceRecord>().Which;
+        var metadataJson = instance.MetadataJson.Should().BeOfType<string>().Which;
 
         using var metadata = JsonDocument.Parse(metadataJson);
 
-        Assert.Equal(
-            ["planner", "executor"],
-            ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.agents")));
-        Assert.Equal(
-            ["gpt-4o-mini"],
-            ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.genai.models")));
+        ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.agents"))
+            .Should().BeEquivalentTo(["planner", "executor"]);
+        ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.genai.models"))
+            .Should().BeEquivalentTo(["gpt-4o-mini"]);
     }
 
     [Fact]
@@ -68,14 +66,13 @@ public sealed class OtlpConverterCapabilityTests
 
         var instances = OtlpConverter.ExtractServiceInstancesFromJson(request);
 
-        var instance = Assert.Single(instances);
-        Assert.Equal("planner", instance.ServiceName);
-        var metadataJson = Assert.IsType<string>(instance.MetadataJson);
+        var instance = instances.Should().ContainSingle().Which;
+        instance.ServiceName.Should().Be("planner");
+        var metadataJson = instance.MetadataJson.Should().BeOfType<string>().Which;
 
         using var metadata = JsonDocument.Parse(metadataJson);
-        Assert.Equal(
-            ["planner"],
-            ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.agents")));
+        ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.agents"))
+            .Should().BeEquivalentTo(["planner"]);
     }
 
     private static string[] ReadStringArray(JsonElement element)

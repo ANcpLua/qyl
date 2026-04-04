@@ -2,6 +2,7 @@ global using System.Net;
 global using System.Net.Http.Headers;
 global using System.Text;
 global using System.Text.Json;
+global using AwesomeAssertions;
 global using Microsoft.Extensions.Compliance.Redaction;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;

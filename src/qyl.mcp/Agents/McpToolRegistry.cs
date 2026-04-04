@@ -36,7 +36,10 @@ internal sealed class McpToolRegistry(IServiceProvider services)
             if (type == typeof(UseQylTools))
                 continue;
 
-            var instance = services.GetRequiredService(type);
+            // Skill gating may not register all manifest types — degrade to enabled subset.
+            var instance = services.GetService(type);
+            if (instance is null)
+                continue;
 
             foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {

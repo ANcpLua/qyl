@@ -1,5 +1,5 @@
+using AwesomeAssertions;
 using Qyl.Contracts.Loom;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Autofix;
 
@@ -18,14 +18,14 @@ public sealed class CodingAgentProviderTests
     {
         var actual = CodingAgentProviderNames.ToSlug(provider);
 
-        Assert.Equal(expected, actual);
+        actual.Should().Be(expected);
     }
 
     [Fact]
     public void ToSlug_UnknownProvider_Throws()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(
-            static () => CodingAgentProviderNames.ToSlug((CodingAgentProvider)999));
+        var act = static () => CodingAgentProviderNames.ToSlug((CodingAgentProvider)999);
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     // =========================================================================
@@ -51,7 +51,7 @@ public sealed class CodingAgentProviderTests
     {
         var actual = CodingAgentProviderNames.NormalizeSlug(input);
 
-        Assert.Equal(expected, actual);
+        actual.Should().Be(expected);
     }
 
     // =========================================================================
@@ -68,7 +68,7 @@ public sealed class CodingAgentProviderTests
     {
         var actual = CodingAgentProviderNames.NormalizeSlug(input);
 
-        Assert.Equal("Loom", actual);
+        actual.Should().Be("Loom");
     }
 
     // =========================================================================
@@ -85,7 +85,7 @@ public sealed class CodingAgentProviderTests
         var slug = CodingAgentProviderNames.ToSlug(provider);
         var normalized = CodingAgentProviderNames.NormalizeSlug(slug);
 
-        Assert.Equal(slug, normalized);
+        normalized.Should().Be(slug);
     }
 
     // =========================================================================
@@ -101,8 +101,8 @@ public sealed class CodingAgentProviderTests
     {
         var success = CodingAgentProviderNames.TryParse(input, out var provider);
 
-        Assert.True(success);
-        Assert.Equal(expected, provider);
+        success.Should().BeTrue();
+        provider.Should().Be(expected);
     }
 
     [Theory]
@@ -114,7 +114,7 @@ public sealed class CodingAgentProviderTests
     {
         var success = CodingAgentProviderNames.TryParse(input, out _);
 
-        Assert.False(success);
+        success.Should().BeFalse();
     }
 
     [Fact]
@@ -122,6 +122,6 @@ public sealed class CodingAgentProviderTests
     {
         CodingAgentProviderNames.TryParse(null, out var provider);
 
-        Assert.Equal(CodingAgentProvider.Loom, provider);
+        provider.Should().Be(CodingAgentProvider.Loom);
     }
 }

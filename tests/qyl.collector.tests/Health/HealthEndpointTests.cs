@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Qyl.Collector.Health;
 using Qyl.Models;
@@ -26,10 +27,10 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await DeserializeAsync<HealthResponse>(response);
-        Assert.Equal(HealthStatus.Healthy, body.Status);
+        body.Status.Should().Be(HealthStatus.Healthy);
     }
 
     [Fact(Skip = SkipReason)]
@@ -37,14 +38,12 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         var response = await _client.GetAsync("/health", TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await DeserializeAsync<HealthResponse>(response);
-        Assert.True(
-            body.Status is HealthStatus.Healthy or HealthStatus.Degraded,
-            $"Expected Healthy or Degraded, got {body.Status}");
-        Assert.NotEqual(default, body.Version);
-        Assert.True(body.UptimeSeconds >= 0);
+        body.Status.Should().BeOneOf(HealthStatus.Healthy, HealthStatus.Degraded);
+        body.Version.Should().NotBe(default);
+        body.UptimeSeconds.Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact(Skip = SkipReason)]
@@ -52,12 +51,10 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         var response = await _client.GetAsync("/ready", TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await DeserializeAsync<HealthResponse>(response);
-        Assert.True(
-            body.Status is HealthStatus.Healthy or HealthStatus.Degraded,
-            $"Expected Healthy or Degraded, got {body.Status}");
+        body.Status.Should().BeOneOf(HealthStatus.Healthy, HealthStatus.Degraded);
     }
 
     [Fact(Skip = SkipReason)]
@@ -65,17 +62,16 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         var response = await _client.GetAsync("/health/ui", TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await DeserializeAsync<HealthUiResponse>(response);
-        Assert.True(body.Components.Count >= 3,
-            $"Expected >= 3 components, got {body.Components.Count}");
+        body.Components.Count.Should().BeGreaterThanOrEqualTo(3);
 
         var names = body.Components.Select(static c => c.Name).ToList();
-        Assert.Contains("duckdb", names);
-        Assert.Contains("disk", names);
-        Assert.Contains("memory", names);
-        Assert.NotEmpty(body.CheckedAt);
+        names.Should().Contain("duckdb");
+        names.Should().Contain("disk");
+        names.Should().Contain("memory");
+        body.CheckedAt.Should().NotBeEmpty();
     }
 
     [Fact(Skip = SkipReason)]
@@ -83,13 +79,13 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
 
-        Assert.True(response.Headers.TryGetValues("X-Content-Type-Options", out var xcto));
-        Assert.Equal("nosniff", xcto.Single());
+        response.Headers.TryGetValues("X-Content-Type-Options", out var xcto).Should().BeTrue();
+        xcto!.Single().Should().Be("nosniff");
 
-        Assert.NotNull(response.Content.Headers.ContentType);
+        response.Content.Headers.ContentType.Should().NotBeNull();
         var cacheControl = response.Headers.CacheControl;
-        Assert.NotNull(cacheControl);
-        Assert.True(cacheControl.NoStore);
+        cacheControl.Should().NotBeNull();
+        cacheControl!.NoStore.Should().BeTrue();
     }
 
     [Fact(Skip = SkipReason)]
@@ -101,8 +97,8 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
         {
             var response = await _client.GetAsync(endpoint, TestContext.Current.CancellationToken);
             var cacheControl = response.Headers.CacheControl;
-            Assert.NotNull(cacheControl);
-            Assert.True(cacheControl.NoStore, $"{endpoint} missing Cache-Control: no-store");
+            cacheControl.Should().NotBeNull();
+            cacheControl!.NoStore.Should().BeTrue($"{endpoint} missing Cache-Control: no-store");
         }
     }
 

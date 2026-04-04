@@ -1,7 +1,7 @@
+using AwesomeAssertions;
 using DuckDB.NET.Data;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Loom;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Autofix;
 
@@ -47,10 +47,10 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
         await _store.InsertCodingAgentRunAsync(Record("agent-001", "fix-001", "cursor"), ct);
         var result = await _store.GetCodingAgentRunAsync("agent-001", ct);
 
-        Assert.NotNull(result);
-        Assert.Equal("fix-001", result.FixRunId);
-        Assert.Equal("cursor", result.Provider);
-        Assert.Equal("pending", result.Status);
+        result.Should().NotBeNull();
+        result!.FixRunId.Should().Be("fix-001");
+        result.Provider.Should().Be("cursor");
+        result.Status.Should().Be("pending");
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
     {
         var ct = TestContext.Current.CancellationToken;
 
-        Assert.Null(await _store.GetCodingAgentRunAsync("does-not-exist", ct));
+        (await _store.GetCodingAgentRunAsync("does-not-exist", ct)).Should().BeNull();
     }
 
     [Fact]
@@ -72,8 +72,8 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
 
         var runs = await _store.GetCodingAgentRunsForFixRunAsync("fix-a", 50, ct);
 
-        Assert.Single(runs);
-        Assert.Equal("fix-a", runs[0].FixRunId);
+        runs.Should().ContainSingle();
+        runs[0].FixRunId.Should().Be("fix-a");
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
 
         var runs = await _store.GetCodingAgentRunsForFixRunAsync("fix-limit", 2, ct);
 
-        Assert.Equal(2, runs.Count);
+        runs.Count.Should().Be(2);
     }
 
     [Fact]
@@ -104,11 +104,11 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
 
         var updated = await _store.GetCodingAgentRunAsync("agent-upd", ct);
 
-        Assert.NotNull(updated);
-        Assert.Equal("completed", updated.Status);
-        Assert.Equal("https://github.com/acme/repo/pull/42", updated.PrUrl);
-        Assert.Equal("https://cursor.sh/agents/xyz", updated.AgentUrl);
-        Assert.NotNull(updated.CompletedAt);
+        updated.Should().NotBeNull();
+        updated!.Status.Should().Be("completed");
+        updated.PrUrl.Should().Be("https://github.com/acme/repo/pull/42");
+        updated.AgentUrl.Should().Be("https://cursor.sh/agents/xyz");
+        updated.CompletedAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
 
         var updated = await _store.GetCodingAgentRunAsync("agent-pend", ct);
 
-        Assert.NotNull(updated);
-        Assert.Null(updated.CompletedAt);
+        updated.Should().NotBeNull();
+        updated!.CompletedAt.Should().BeNull();
     }
 }
