@@ -50,12 +50,13 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
                    "Use the individual query tools (search_spans, list_errors, get_genai_stats) instead.";
         }
 
-        var tools = registry.GetTools();
+        var investigation = InvestigationGuard.FromEnvironment();
+        var guardedTools = registry.GetTools().Select(tool => (AITool)new GuardedAIFunction(tool, investigation)).ToList();
 
         var client = new ChatClientBuilder(_agentClient)
             .UseFunctionInvocation(configure: invoker =>
             {
-                invoker.MaximumIterationsPerRequest = 10;
+                invoker.MaximumIterationsPerRequest = 50;
                 invoker.AllowConcurrentInvocation = false;
             })
             .Build();
@@ -69,16 +70,37 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
             new(ChatRole.System, UseQylSystemPrompt.Prompt), new(ChatRole.User, userMessage)
         };
 
-        var options = new ChatOptions { Tools = [.. tools] };
+        var options = new ChatOptions { Tools = guardedTools };
 
         try
         {
             var response = await client.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
             return response.Text ?? "Agent completed with no output. Try rephrasing your question.";
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return investigation.BuildDiagnosticSummary();
+        }
         catch (HttpRequestException ex)
         {
             return $"Error connecting to LLM provider: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    ///     Wraps an <see cref="AIFunction" /> to track every invocation through
+    ///     the <see cref="InvestigationGuard" />, enforcing the global tool-call budget.
+    /// </summary>
+    private sealed class GuardedAIFunction(AIFunction inner, InvestigationGuard guard) : DelegatingAIFunction(inner)
+    {
+        protected override async ValueTask<object?> InvokeCoreAsync(
+            AIFunctionArguments arguments,
+            CancellationToken cancellationToken)
+        {
+            guard.RecordCall(Name);
+            var result = await base.InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
+            guard.AddPartialResult(Name, result?.ToString() ?? string.Empty);
+            return result;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -387,6 +388,16 @@ static void ConfigureMcpServer(
                     var result = await next(request, cancellationToken);
                     if (result.IsError is true)
                         activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
+
+                    var totalChars = result.Content?
+                        .OfType<TextContentBlock>()
+                        .Sum(c => c.Text?.Length ?? 0) ?? 0;
+
+                    if (totalChars > 10_000)
+                    {
+                        result.Meta ??= new JsonObject();
+                        result.Meta["anthropic/maxResultSizeChars"] = totalChars;
+                    }
 
                     return result;
                 }

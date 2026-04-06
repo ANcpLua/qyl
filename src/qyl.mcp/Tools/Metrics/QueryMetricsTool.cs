@@ -39,7 +39,7 @@ public sealed class QueryMetricsTool(HttpClient client)
         if (queryParts.Count > 0)
             url += "?" + string.Join("&", queryParts);
 
-        var series = await client.GetFromJsonAsync<TimeSeriesDto>(url, ct).ConfigureAwait(false);
+        var series = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.TimeSeriesDto, ct).ConfigureAwait(false);
 
         if (series is null or { Points.Count: 0 })
             return $"No data points found for metric `{name}`.";

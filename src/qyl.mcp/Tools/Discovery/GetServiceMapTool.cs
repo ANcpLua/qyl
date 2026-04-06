@@ -20,7 +20,7 @@ public sealed class GetServiceMapTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var map = await client.GetFromJsonAsync<ServiceMapDto>(url, ct).ConfigureAwait(false);
+        var map = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ServiceMapDto, ct).ConfigureAwait(false);
 
         if (map is null or { Nodes.Count: 0 })
             return "No service map data available yet. Service maps are built from trace data.";

@@ -30,10 +30,13 @@ public sealed class CreateProjectTool(HttpClient client)
 
         var result = await response.Content.ReadFromJsonAsync<ProjectInfoDto>(ct).ConfigureAwait(false);
 
+        if (result is null)
+            return "Failed to parse project response.";
+
         return ResponseFormatter.FormatDetail(
             "Project Created",
             [
-                ("Name", result!.Name),
+                ("Name", result.Name),
                 ("Slug", $"`{result.Slug}`"),
                 ("Description", result.Description),
                 ("Retention Days", result.RetentionDays?.ToString())

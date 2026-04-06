@@ -13,7 +13,7 @@ public sealed class SuggestFixTool(HttpClient client)
     [McpServerTool(
         Name = "suggest_fix",
         Title = "Suggest Fix",
-        ReadOnly = false,
+        ReadOnly = true,
         Destructive = false,
         OpenWorld = true)]
     [Description("Suggest fixes for errors in a trace. Analyzes error spans and proposes remediation steps.")]

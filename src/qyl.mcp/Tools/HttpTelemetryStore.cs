@@ -139,8 +139,10 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             var since = time.GetUtcNow().AddHours(-hours).DateTime;
             var durations = (response?.Items ?? [])
                 .Where(s => ParseTime(s.StartTime) >= since)
-                .Select(s => (double)s.SpanCount)
-                .OrderBy(x => x)
+                .Select(s => (start: ParseTime(s.StartTime), end: ParseTime(s.EndTime)))
+                .Where(static t => t.start.HasValue && t.end.HasValue)
+                .Select(static t => (t.end!.Value - t.start!.Value).TotalMilliseconds)
+                .OrderBy(static x => x)
                 .ToList();
 
             return durations.Count is 0

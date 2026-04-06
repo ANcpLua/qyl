@@ -13,7 +13,7 @@ public sealed class AnalyzeSessionTool(HttpClient client)
     [McpServerTool(
         Name = "analyze_session",
         Title = "Analyze Session",
-        ReadOnly = false,
+        ReadOnly = true,
         Destructive = false,
         OpenWorld = true)]
     [Description("Analyze a session. Returns structured analysis of span count, status, service, and trace breakdown.")]

@@ -34,8 +34,11 @@ public sealed class SearchSessionsTool(HttpClient client)
 
         var result = await client.GetFromJsonAsync<PagedResult<SessionSummaryDto>>(url, ct).ConfigureAwait(false);
 
+        if (result is null)
+            return "No sessions found matching the query.";
+
         return ResponseFormatter.FormatPagedList(
-            result!,
+            result,
             "Sessions",
             s => $"- `{s.SessionId}` | **{s.Status}** | {s.ServiceName} | {s.SpanCount} spans | {s.CreatedAt}",
             "search_sessions",

@@ -34,7 +34,15 @@ internal static class CollectorHelper
             };
             return $"{errorPrefix ?? category}: {ex.Message}";
         }
-        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException or null)
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            return $"{errorPrefix ?? "Request timed out"}: The collector did not respond in time.";
+        }
+        catch (TaskCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (TaskCanceledException)
         {
             return $"{errorPrefix ?? "Request timed out"}: The collector did not respond in time.";
         }

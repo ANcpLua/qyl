@@ -12,6 +12,7 @@ internal sealed partial class RiderMcpProxy(
     JetBrainsDiscovery discovery,
     ILogger<RiderMcpProxy> logger) : IAsyncDisposable
 {
+    private readonly SemaphoreSlim _connectGate = new(1, 1);
     private McpClient? _client;
     private string? _connectedUrl;
     private HttpClientTransport? _transport;
@@ -43,36 +44,63 @@ internal sealed partial class RiderMcpProxy(
                   ?? throw new InvalidOperationException(
                       "Rider debugger MCP not found. Is Rider running with the Debugger MCP plugin?");
 
-        // Reconnect if URL changed (Rider restarted)
+        // Fast path: already connected to this URL (volatile read via Interlocked not needed —
+        // the semaphore provides the memory barrier for writers, and a stale read here
+        // just falls through to the serialized slow path)
         if (_client is not null && _connectedUrl == url)
             return _client;
 
-        await DisposeClientAsync().ConfigureAwait(false);
-
-        LogConnecting(url);
-
-        _transport = new HttpClientTransport(new HttpClientTransportOptions
+        // Slow path: serialize connect/reconnect so only one caller initializes
+        await _connectGate.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            Endpoint = new Uri(url), TransportMode = HttpTransportMode.StreamableHttp, Name = "rider-debugger"
-        });
+            // Double-check after acquiring the gate
+            if (_client is not null && _connectedUrl == url)
+                return _client;
 
-        _client = await McpClient.CreateAsync(_transport, cancellationToken: ct).ConfigureAwait(false);
-        _connectedUrl = url;
+            await DisposeClientAsync().ConfigureAwait(false);
 
-        LogConnected(_client.ServerInfo?.Name ?? "unknown");
+            LogConnecting(url);
 
-        return _client;
+            var transport = new HttpClientTransport(new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(url), TransportMode = HttpTransportMode.StreamableHttp, Name = "rider-debugger"
+            });
+
+            var client = await McpClient.CreateAsync(transport, cancellationToken: ct).ConfigureAwait(false);
+
+            _transport = transport;
+            _client = client;
+            _connectedUrl = url;
+
+            LogConnected(client.ServerInfo?.Name ?? "unknown");
+
+            return client;
+        }
+        finally
+        {
+            _connectGate.Release();
+        }
     }
 
     private async Task DisposeClientAsync()
     {
-        if (_client is not null)
-            await _client.DisposeAsync().ConfigureAwait(false);
-        if (_transport is not null)
-            await _transport.DisposeAsync().ConfigureAwait(false);
+        var client = _client;
+        var transport = _transport;
         _client = null;
         _transport = null;
         _connectedUrl = null;
+
+        try
+        {
+            if (client is not null)
+                await client.DisposeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            if (transport is not null)
+                await transport.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to Rider debugger MCP at {Url}")]

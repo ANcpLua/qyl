@@ -27,7 +27,7 @@ public sealed class GetTraceDetailsTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var spans = await response.Content
-            .ReadFromJsonAsync<IReadOnlyList<SpanDetailDto>>(ct).ConfigureAwait(false);
+            .ReadFromJsonAsync(CollectorDtoJsonContext.Default.ListSpanDetailDto, ct).ConfigureAwait(false);
 
         if (spans is null or { Count: 0 })
             throw new QylNotFoundException("Trace");

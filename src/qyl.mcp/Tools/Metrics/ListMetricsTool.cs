@@ -25,7 +25,7 @@ public sealed class ListMetricsTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var metrics = await client.GetFromJsonAsync<IReadOnlyList<MetricInfoDto>>(url, ct).ConfigureAwait(false);
+        var metrics = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ListMetricInfoDto, ct).ConfigureAwait(false);
 
         if (metrics is not { Count: > 0 })
             return "No metrics found. Metrics are auto-discovered from incoming OTLP data.";

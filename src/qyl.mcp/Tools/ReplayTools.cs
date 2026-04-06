@@ -11,7 +11,7 @@ namespace qyl.mcp.Tools;
 ///     Fetches data from qyl.collector via HTTP.
 /// </summary>
 [McpServerToolType]
-public sealed class ReplayTools(HttpClient client)
+internal sealed class ReplayTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

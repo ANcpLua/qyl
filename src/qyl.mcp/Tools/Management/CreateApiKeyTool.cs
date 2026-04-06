@@ -26,10 +26,13 @@ public sealed class CreateApiKeyTool(HttpClient client)
 
         var result = await response.Content.ReadFromJsonAsync<ApiKeyResponseDto>(ct).ConfigureAwait(false);
 
+        if (result is null)
+            return "Failed to parse API key response.";
+
         return ResponseFormatter.FormatDetail(
             "API Key Created",
             [
-                ("Name", result!.Name),
+                ("Name", result.Name),
                 ("Prefix", $"`{result.Prefix}`"),
                 ("Key", $"`{result.Key}` (save this — it won't be shown again)")
             ]);

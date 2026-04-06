@@ -19,17 +19,18 @@ internal sealed class TriageTools(HttpClient http)
                  """)]
     public async Task<string> GetTriageAsync(
         [Description("The error issue ID")] string issueId,
-        CancellationToken ct = default)
-    {
-        using var response = await http
-            .GetAsync($"/api/v1/issues/{issueId}/triage", ct).ConfigureAwait(false);
+        CancellationToken ct = default) =>
+        await CollectorHelper.ExecuteAsync(async () =>
+        {
+            using var response = await http
+                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", ct).ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return $"No triage result found for issue {issueId}. Use qyl.trigger_triage to assess it.";
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return $"No triage result found for issue {issueId}. Use qyl.trigger_triage to assess it.";
 
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-    }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        });
 
     [McpServerTool(Name = "qyl.list_triage", Title = "List Triage Results",
         ReadOnly = true, Destructive = false, Idempotent = true)]
@@ -42,18 +43,19 @@ internal sealed class TriageTools(HttpClient http)
         string? automationLevel = null,
         [Description("Max results (default 20)")]
         int limit = 20,
-        CancellationToken ct = default)
-    {
-        var url = $"/api/v1/triage?limit={Math.Clamp(limit, 1, 100)}";
-        if (automationLevel is not null)
-            url += $"&automationLevel={automationLevel}";
+        CancellationToken ct = default) =>
+        await CollectorHelper.ExecuteAsync(async () =>
+        {
+            var url = $"/api/v1/triage?limit={Math.Clamp(limit, 1, 100)}";
+            if (automationLevel is not null)
+                url += $"&automationLevel={automationLevel}";
 
-        using var response = await http
-            .GetAsync(url, ct).ConfigureAwait(false);
+            using var response = await http
+                .GetAsync(url, ct).ConfigureAwait(false);
 
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-    }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        });
 
     [McpServerTool(Name = "qyl.trigger_triage", Title = "Trigger Triage",
         ReadOnly = false, Destructive = false, Idempotent = false)]
@@ -65,15 +67,16 @@ internal sealed class TriageTools(HttpClient http)
     public async Task<string> TriggerTriageAsync(
         [Description("The error issue ID to triage")]
         string issueId,
-        CancellationToken ct = default)
-    {
-        using var response = await http
-            .PostAsync($"/api/v1/issues/{issueId}/triage", null, ct).ConfigureAwait(false);
+        CancellationToken ct = default) =>
+        await CollectorHelper.ExecuteAsync(async () =>
+        {
+            using var response = await http
+                .PostAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", null, ct).ConfigureAwait(false);
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return $"Issue {issueId} not found.";
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return $"Issue {issueId} not found.";
 
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-    }
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        });
 }

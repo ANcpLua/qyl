@@ -10,7 +10,7 @@ namespace qyl.mcp.Tools;
 ///     Provides z-score based anomaly detection, baseline statistics, and period comparison.
 /// </summary>
 [McpServerToolType]
-public sealed class AnomalyTools(HttpClient client)
+internal sealed class AnomalyTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

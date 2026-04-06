@@ -29,7 +29,7 @@ public sealed class GetSessionTool(HttpClient client)
             throw new QylNotFoundException("Session");
 
         response.EnsureSuccessStatusCode();
-        var session = await response.Content.ReadFromJsonAsync<SessionDetailDto>(ct).ConfigureAwait(false);
+        var session = await response.Content.ReadFromJsonAsync(CollectorDtoJsonContext.Default.SessionDetailDto, ct).ConfigureAwait(false);
 
         return ResponseFormatter.FormatDetail(
             $"Session `{session!.SessionId}`",

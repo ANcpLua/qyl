@@ -43,7 +43,7 @@ public static class ResponseFormatter
 
         if (result.Cursor is not null)
         {
-            var remaining = result.TotalCount - result.Items.Count;
+            var remaining = Math.Max(0, result.TotalCount - result.Items.Count);
             sb.AppendLine(CultureInfo.InvariantCulture,
                 $"- {remaining} more results available — pass `cursor: '{result.Cursor}'` for next page");
         }

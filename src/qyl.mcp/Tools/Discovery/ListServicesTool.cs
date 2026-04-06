@@ -20,7 +20,7 @@ public sealed class ListServicesTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var services = await client.GetFromJsonAsync<IReadOnlyList<ServiceInfoDto>>(url, ct).ConfigureAwait(false);
+        var services = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ListServiceInfoDto, ct).ConfigureAwait(false);
 
         if (services is null or { Count: 0 })
             return "No services detected yet. Services are auto-discovered from incoming telemetry.";

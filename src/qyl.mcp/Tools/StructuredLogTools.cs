@@ -11,7 +11,7 @@ namespace qyl.mcp.Tools;
 ///     These are OpenTelemetry log records (not frontend console.log).
 /// </summary>
 [McpServerToolType]
-public sealed class StructuredLogTools(HttpClient client)
+internal sealed class StructuredLogTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.list_structured_logs", Title = "List Structured Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -192,7 +192,7 @@ public sealed class StructuredLogTools(HttpClient client)
 
         return CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/logs?search={Uri.EscapeDataString(query)}&limit={limit}";
+            var url = $"/api/v1/logs?search={Uri.EscapeDataString(query)}&limit={limit}&hours={hours}";
             if (minSeverity.HasValue)
                 url += $"&minSeverity={minSeverity.Value}";
 

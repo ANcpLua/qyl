@@ -10,7 +10,7 @@ namespace qyl.mcp.Tools;
 ///     Provides fingerprinted error groups, event details, similarity search, and timeline analysis.
 /// </summary>
 [McpServerToolType]
-public sealed class ErrorTools(HttpClient client)
+internal sealed class ErrorTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

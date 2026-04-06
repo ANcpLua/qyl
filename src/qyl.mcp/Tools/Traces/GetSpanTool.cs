@@ -27,7 +27,7 @@ public sealed class GetSpanTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var span = await response.Content
-            .ReadFromJsonAsync<SpanDetailDto>(ct).ConfigureAwait(false);
+            .ReadFromJsonAsync(CollectorDtoJsonContext.Default.SpanDetailDto, ct).ConfigureAwait(false);
 
         if (span is null)
             throw new QylNotFoundException("Span");

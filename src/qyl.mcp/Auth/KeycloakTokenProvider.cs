@@ -74,6 +74,17 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     // so the resilience handler on the named HttpClient can retry and circuit-break.
     private async ValueTask<string?> FetchTokenAsync(CancellationToken ct)
     {
+        // Re-check inside the lock: another thread may have already refreshed the token
+        // between the outer validity check and this call (proper double-checked locking).
+        using (_lock.EnterScope())
+        {
+            if (_cachedToken is not null &&
+                _time.GetUtcNow() < _tokenExpiry.AddSeconds(-60))
+            {
+                return _cachedToken;
+            }
+        }
+
         var authority = _options.KeycloakAuthority!.TrimEnd('/');
         var tokenEndpoint = $"{authority}/protocol/openid-connect/token";
 

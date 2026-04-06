@@ -31,7 +31,7 @@ public sealed class SearchTracesTool(HttpClient client)
         if (cursor is not null)
             url += $"&cursor={Uri.EscapeDataString(cursor)}";
 
-        var result = await client.GetFromJsonAsync<PagedResult<TraceSummaryDto>>(url, ct).ConfigureAwait(false);
+        var result = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.PagedResultTraceSummaryDto, ct).ConfigureAwait(false);
 
         return result is null
             ? "No traces found matching the query."

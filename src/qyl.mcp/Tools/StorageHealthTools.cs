@@ -80,8 +80,8 @@ public sealed class StorageHealthTools(HttpClient client)
         var readyTask = client.GetAsync("/ready");
         var healthTask = client.GetStringAsync("/health");
 
-        var alive = await aliveTask.ConfigureAwait(false);
-        var ready = await readyTask.ConfigureAwait(false);
+        using var alive = await aliveTask.ConfigureAwait(false);
+        using var ready = await readyTask.ConfigureAwait(false);
         var healthJson = await healthTask.ConfigureAwait(false);
 
         var sb = new StringBuilder();

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
+using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 
@@ -30,11 +31,14 @@ internal static class McpCollectorHttpClientExtensions
             throw new InvalidOperationException($"Invalid QYL_COLLECTOR_URL '{collectorUrl}'.");
         }
 
+        services.TryAddSingleton<CollectorConcurrencyLimiter>();
+
         var httpClientBuilder = services
             .AddHttpClient(CollectorClientName, client =>
             {
                 client.BaseAddress = baseAddress;
             })
+            .AddHttpMessageHandler<CollectorConcurrencyLimiter>()
             .AddMcpAuthHandler()
             .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()))
             .AddExtendedHttpClientLogging();

@@ -1,6 +1,18 @@
 using System.Text.Json.Serialization;
+using Qyl.Contracts.Models;
 
 namespace qyl.mcp.Formatting;
+
+[JsonSerializable(typeof(ServiceMapDto))]
+[JsonSerializable(typeof(PagedResult<ProjectInfoDto>))]
+[JsonSerializable(typeof(List<ServiceInfoDto>))]
+[JsonSerializable(typeof(List<MetricInfoDto>))]
+[JsonSerializable(typeof(TimeSeriesDto))]
+[JsonSerializable(typeof(SessionDetailDto))]
+[JsonSerializable(typeof(SpanDetailDto))]
+[JsonSerializable(typeof(List<SpanDetailDto>))]
+[JsonSerializable(typeof(PagedResult<TraceSummaryDto>))]
+internal sealed partial class CollectorDtoJsonContext : JsonSerializerContext;
 
 internal sealed record TraceSummaryDto(
     [property: JsonPropertyName("trace_id")]

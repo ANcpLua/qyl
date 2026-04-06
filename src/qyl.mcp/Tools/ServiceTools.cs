@@ -6,7 +6,7 @@ using ModelContextProtocol.Server;
 namespace qyl.mcp.Tools;
 
 [McpServerToolType]
-public sealed class ServiceTools(HttpClient client)
+internal sealed class ServiceTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -21,8 +21,8 @@ public sealed class ServiceTools(HttpClient client)
         CollectorHelper.ExecuteAsync(async () =>
         {
             var query = $"?limit={limit}";
-            if (type is not null) query += $"&type={type}";
-            if (status is not null) query += $"&status={status}";
+            if (type is not null) query += $"&type={Uri.EscapeDataString(type)}";
+            if (status is not null) query += $"&status={Uri.EscapeDataString(status)}";
 
             var response = await client.GetFromJsonAsync<ServicesMcpResponse>(
                 $"/api/v1/services{query}",
