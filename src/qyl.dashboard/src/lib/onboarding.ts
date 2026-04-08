@@ -3,6 +3,14 @@ import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
 export interface CollectorMeta {
+    version?: string | null;
+    build?: {
+        commit?: string | null;
+        informationalVersion?: string | null;
+        dashboardBuildId?: string | null;
+        dashboardEntryAsset?: string | null;
+        dashboardBuiltAtUtc?: string | null;
+    } | null;
     ports?: {
         http?: number | null;
         grpc?: number | null;

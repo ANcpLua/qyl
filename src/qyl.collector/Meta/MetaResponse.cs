@@ -23,6 +23,9 @@ public sealed record MetaBuild
 {
     public string? Commit { get; init; }
     public string? InformationalVersion { get; init; }
+    public string? DashboardBuildId { get; init; }
+    public string? DashboardEntryAsset { get; init; }
+    public string? DashboardBuiltAtUtc { get; init; }
 }
 
 /// <summary>
