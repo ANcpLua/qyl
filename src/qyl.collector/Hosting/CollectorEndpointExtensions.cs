@@ -464,10 +464,14 @@ public static class CollectorEndpointExtensions
     // Meta
     // =========================================================================
 
-    private static IResult GetMeta(CollectorPortOptions ports, OtlpApiKeyOptions apiKeyOptions)
+    private static IResult GetMeta(
+        CollectorPortOptions ports,
+        OtlpApiKeyOptions apiKeyOptions,
+        IWebHostEnvironment env)
     {
         var version = BuildVersion.InformationalVersion;
         var hasEmbeddedDashboard = EmbeddedDashboardExtensions.HasEmbeddedDashboard();
+        var dashboardBuild = DashboardBuildDescriptorReader.TryRead(env);
 
         return Results.Ok(new MetaResponse
         {
@@ -477,7 +481,10 @@ public static class CollectorEndpointExtensions
                 new MetaBuild
                 {
                     InformationalVersion = version,
-                    Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null
+                    Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null,
+                    DashboardBuildId = dashboardBuild?.BuildId,
+                    DashboardEntryAsset = dashboardBuild?.EntryAsset,
+                    DashboardBuiltAtUtc = dashboardBuild?.BuiltAtUtc
                 },
             Capabilities = new MetaCapabilities
             {

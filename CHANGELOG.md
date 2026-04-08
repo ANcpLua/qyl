@@ -112,6 +112,8 @@
 
 ### Fixed
 
+- **qyl.dashboard deploy drift notice**: Dashboard production builds now emit an explicit `dashboard-build.json` descriptor. The collector reads that descriptor from physical or embedded assets instead of scraping `index.html`, and the dashboard compares the running build ID against `/api/v1/meta` before stale route chunks fail.
+- **qyl.dashboard stale chunk recovery**: `ErrorBoundary` now recognizes recoverable lazy-chunk load failures, reloads the tab once per failing chunk signature within a short session window, and shows a reload action instead of a dead-end retry when the same stale asset error persists.
 - **qyl.dashboard preview bundle crash fixed**: Simplified `vite.config.ts` manual chunking to keep only the heavy chart bundles isolated. This removes the brittle `react-vendor` / `tanstack` split that caused the built preview app to crash before React mounted.
 - **NuGet MCP server command fixed**: MCP config corrected `dnx` to `nuget-mcp-server`, removed duplicate `qyl-local` plugin entry.
 - **Collector healthcheck in Docker**: Added `curl` to collector Dockerfile and `ASPNETCORE_WEBROOT` env var for proper healthcheck and static file serving.
