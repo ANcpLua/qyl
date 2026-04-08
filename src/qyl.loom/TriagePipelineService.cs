@@ -64,7 +64,7 @@ public sealed partial class TriagePipelineService(
         if (result.FixabilityScore >= _autoThreshold)
         {
             var run = await orchestrator.CreateFixRunAsync(
-                issueId, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+                issueId, FixPolicy.AutoApply, ct: ct).ConfigureAwait(false);
             await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
             LogAutoRouted(issueId, run.RunId);
         }
@@ -95,7 +95,7 @@ public sealed partial class TriagePipelineService(
             if (result.FixabilityScore >= _autoThreshold)
             {
                 var run = await orchestrator.CreateFixRunAsync(
-                    issueId, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+                    issueId, FixPolicy.AutoApply, ct: ct).ConfigureAwait(false);
                 await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
                 LogAutoRouted(issueId, run.RunId);
             }

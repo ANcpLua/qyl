@@ -10,9 +10,12 @@ public sealed partial class AutofixOrchestrator(CollectorClient collector, ILogg
     ///     Creates a new fix run linked to the specified issue via the collector API.
     /// </summary>
     public async Task<FixRunRecord> CreateFixRunAsync(
-        string issueId, FixPolicy policy, CancellationToken ct = default)
+        string issueId, FixPolicy policy,
+        string? instruction = null, string? stoppingPoint = null,
+        CancellationToken ct = default)
     {
-        var record = await collector.CreateFixRunAsync(issueId, policy, ct).ConfigureAwait(false);
+        var record = await collector.CreateFixRunAsync(issueId, policy, instruction, stoppingPoint, ct)
+            .ConfigureAwait(false);
         LogFixRunCreated(record.RunId, issueId, policy);
         return record;
     }

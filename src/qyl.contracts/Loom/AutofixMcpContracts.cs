@@ -6,7 +6,9 @@ namespace Qyl.Contracts.Loom;
 ///     Request body for creating a new Loom autofix run.
 /// </summary>
 public sealed record LoomFixRunCreateRequest(
-    [property: JsonPropertyName("policy")] string? Policy = null);
+    [property: JsonPropertyName("policy")] string? Policy = null,
+    [property: JsonPropertyName("instruction")] string? Instruction = null,
+    [property: JsonPropertyName("stoppingPoint")] string? StoppingPoint = null);
 
 /// <summary>Payload of a Collector autofix run object.</summary>
 public sealed record LoomFixRunDto
@@ -19,6 +21,8 @@ public sealed record LoomFixRunDto
     [JsonPropertyName("fixDescription")] public string? FixDescription { get; init; }
     [JsonPropertyName("confidenceScore")] public double? ConfidenceScore { get; init; }
     [JsonPropertyName("changesJson")] public string? ChangesJson { get; init; }
+    [JsonPropertyName("instruction")] public string? Instruction { get; init; }
+    [JsonPropertyName("stoppingPoint")] public string? StoppingPoint { get; init; }
     [JsonPropertyName("createdAt")] public DateTime? CreatedAt { get; init; }
     [JsonPropertyName("completedAt")] public DateTime? CompletedAt { get; init; }
 }

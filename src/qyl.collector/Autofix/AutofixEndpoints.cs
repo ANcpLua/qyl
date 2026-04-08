@@ -23,7 +23,9 @@ public static class AutofixEndpoints
                 RunId = Guid.NewGuid().ToString("N"),
                 IssueId = issueId,
                 Status = "pending",
-                Policy = policy.ToString()
+                Policy = policy.ToString(),
+                Instruction = request.Instruction,
+                StoppingPoint = request.StoppingPoint
             };
             await store.InsertFixRunAsync(run, ct);
             return TypedResults.Created($"/api/v1/issues/{issueId}/fix-runs/{run.RunId}", run);
@@ -129,7 +131,10 @@ public static class AutofixEndpoints
     }
 }
 
-public sealed record FixRunRequest(string? Policy = null);
+public sealed record FixRunRequest(
+    string? Policy = null,
+    string? Instruction = null,
+    string? StoppingPoint = null);
 
 public sealed record PrCreationRequest(string Repo, string? BaseBranch = null);
 

@@ -1,5 +1,3 @@
-using Qyl.Collector.Autofix;
-
 namespace Qyl.Collector.Storage;
 
 /// <summary>
@@ -11,6 +9,7 @@ public sealed partial class DuckDbStore
     private const string FixRunSelectSql = """
                                            SELECT run_id, issue_id, execution_id, status, policy,
                                                   fix_description, confidence_score, changes_json,
+                                                  instruction, stopping_point,
                                                   created_at, completed_at
                                            FROM fix_runs
                                            """;
@@ -25,8 +24,9 @@ public sealed partial class DuckDbStore
             cmd.CommandText = """
                               INSERT INTO fix_runs
                                   (run_id, issue_id, execution_id, status, policy,
-                                   fix_description, confidence_score, changes_json)
-                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                   fix_description, confidence_score, changes_json,
+                                   instruction, stopping_point)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                               ON CONFLICT (run_id) DO NOTHING
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.RunId });
@@ -37,6 +37,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.FixDescription ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ConfidenceScore ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ChangesJson ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = record.Instruction ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = record.StoppingPoint ?? (object)DBNull.Value });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -131,7 +133,9 @@ public sealed partial class DuckDbStore
             FixDescription = reader.Col(5).AsString,
             ConfidenceScore = reader.Col(6).AsDouble,
             ChangesJson = reader.Col(7).AsString,
-            CreatedAt = reader.Col(8).AsDateTime,
-            CompletedAt = reader.Col(9).AsDateTime
+            Instruction = reader.Col(8).AsString,
+            StoppingPoint = reader.Col(9).AsString,
+            CreatedAt = reader.Col(10).AsDateTime,
+            CompletedAt = reader.Col(11).AsDateTime
         };
 }

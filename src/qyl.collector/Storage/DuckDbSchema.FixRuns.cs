@@ -12,11 +12,15 @@ public static partial class DuckDbSchema
                                                fix_description VARCHAR,
                                                confidence_score DOUBLE,
                                                changes_json VARCHAR,
+                                               instruction VARCHAR,
+                                               stopping_point VARCHAR,
                                                created_at TIMESTAMP DEFAULT now(),
                                                completed_at TIMESTAMP
                                            );
                                            CREATE INDEX IF NOT EXISTS idx_fix_runs_issue ON fix_runs(issue_id);
                                            CREATE INDEX IF NOT EXISTS idx_fix_runs_status ON fix_runs(status);
                                            CREATE INDEX IF NOT EXISTS idx_fix_runs_created ON fix_runs(created_at DESC);
+                                           ALTER TABLE fix_runs ADD COLUMN IF NOT EXISTS instruction VARCHAR;
+                                           ALTER TABLE fix_runs ADD COLUMN IF NOT EXISTS stopping_point VARCHAR;
                                            """;
 }

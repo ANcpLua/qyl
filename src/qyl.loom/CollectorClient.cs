@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using Qyl.Contracts.Loom;
 
 namespace Qyl.Loom;
 
@@ -86,9 +85,12 @@ public sealed class CollectorClient(HttpClient http)
     }
 
     public async Task<FixRunRecord> CreateFixRunAsync(
-        string issueId, FixPolicy policy, CancellationToken ct = default)
+        string issueId, FixPolicy policy,
+        string? instruction = null, string? stoppingPoint = null,
+        CancellationToken ct = default)
     {
-        var request = new FixRunCreateRequest(policy.ToString().ToLowerInvariant());
+        var request = new FixRunCreateRequest(
+            policy.ToString().ToLowerInvariant(), instruction, stoppingPoint);
         var response = await http
             .PostAsJsonAsync(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs",
@@ -222,39 +224,20 @@ public sealed class CollectorClient(HttpClient http)
         return envelope?.RegressedIssueIds ?? [];
     }
 
-    // ── Loom Insight ──────────────────────────────────────────────────────────
+    // ── Issues (list) ────────────────────────────────────────────────────────
 
-    public async Task<LoomInsightDto?> GetInsightAsync(string issueId, CancellationToken ct = default)
+    public async Task<List<IssueSummary>> GetRecentIssuesAsync(int limit = 10, CancellationToken ct = default)
     {
         var response = await http
-            .GetAsync($"/api/v1/loom/{Uri.EscapeDataString(issueId)}/insight", ct)
-            .ConfigureAwait(false);
-
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
-            return null;
-
-        response.EnsureSuccessStatusCode();
-        return await response.Content
-            .ReadFromJsonAsync(CollectorClientJsonContext.Default.LoomInsightDto, ct)
-            .ConfigureAwait(false);
-    }
-
-    // ── Code Review ───────────────────────────────────────────────────────────
-
-    public async Task<CodeReviewDto> TriggerCodeReviewAsync(
-        string owner, string repo, int prNumber, CancellationToken ct = default)
-    {
-        var response = await http
-            .PostAsync(
-                $"/api/v1/code-review/{Uri.EscapeDataString(owner)}/{Uri.EscapeDataString(repo)}/pulls/{prNumber}",
-                null, ct)
+            .GetAsync($"/api/v1/issues?limit={limit}", ct)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
-        return await response.Content
-            .ReadFromJsonAsync(CollectorClientJsonContext.Default.CodeReviewDto, ct)
-            .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Collector returned null code review.");
+        var envelope = await response.Content
+            .ReadFromJsonAsync(CollectorClientJsonContext.Default.IssueListResponse, ct)
+            .ConfigureAwait(false);
+
+        return envelope?.Items ?? [];
     }
 }
 
@@ -281,7 +264,8 @@ public sealed record IssueEventDto
 
 public sealed record FixRunListResponse(List<FixRunRecord> Items, int Total);
 
-public sealed record FixRunCreateRequest(string? Policy);
+public sealed record FixRunCreateRequest(
+    string? Policy, string? Instruction = null, string? StoppingPoint = null);
 
 public sealed record FixRunPatchRequest(
     string? Status = null,
@@ -308,29 +292,7 @@ public sealed record DeploymentDto
 
 public sealed record RegressionCheckResponse(List<string> RegressedIssueIds, int Count);
 
-public sealed record LoomInsightDto
-{
-    [JsonPropertyName("issueId")] public required string IssueId { get; init; }
-    [JsonPropertyName("whatHappened")] public required string WhatHappened { get; init; }
-    [JsonPropertyName("initialGuess")] public required string InitialGuess { get; init; }
-    [JsonPropertyName("inTheTrace")] public string? InTheTrace { get; init; }
-}
-
-public sealed record CodeReviewDto
-{
-    [JsonPropertyName("repoFullName")] public required string RepoFullName { get; init; }
-    [JsonPropertyName("prNumber")] public required int PrNumber { get; init; }
-    [JsonPropertyName("comments")] public required IReadOnlyList<CodeReviewCommentDto> Comments { get; init; }
-    [JsonPropertyName("reviewed")] public required bool Reviewed { get; init; }
-}
-
-public sealed record CodeReviewCommentDto
-{
-    [JsonPropertyName("file")] public required string File { get; init; }
-    [JsonPropertyName("line")] public required int Line { get; init; }
-    [JsonPropertyName("severity")] public required string Severity { get; init; }
-    [JsonPropertyName("body")] public required string Body { get; init; }
-}
+public sealed record IssueListResponse(List<IssueSummary> Items, int Total);
 
 // ── Source-generated JSON context ────────────────────────────────────────────
 
@@ -352,8 +314,6 @@ public sealed record CodeReviewCommentDto
 [JsonSerializable(typeof(DeploymentListResponse))]
 [JsonSerializable(typeof(DeploymentDto))]
 [JsonSerializable(typeof(RegressionCheckResponse))]
-[JsonSerializable(typeof(LoomInsightDto))]
-[JsonSerializable(typeof(CodeReviewDto))]
-[JsonSerializable(typeof(CodeReviewCommentDto))]
+[JsonSerializable(typeof(IssueListResponse))]
 [JsonSerializable(typeof(ConfidenceResult))]
 internal sealed partial class CollectorClientJsonContext : JsonSerializerContext;

@@ -15,6 +15,20 @@ public sealed record FixRunRecord
     public string? FixDescription { get; init; }
     public double? ConfidenceScore { get; init; }
     public string? ChangesJson { get; init; }
+
+    /// <summary>
+    ///     Optional user-provided hint injected into the RCA prompt.
+    ///     Inspired by Sentry Seer's <c>instruction</c> parameter.
+    /// </summary>
+    public string? Instruction { get; init; }
+
+    /// <summary>
+    ///     Controls how far the pipeline runs: <c>root_cause</c>, <c>solution</c>,
+    ///     <c>code_changes</c>, or <c>null</c> for the full pipeline.
+    ///     Inspired by Sentry Seer's <c>stopping_point</c> parameter.
+    /// </summary>
+    public string? StoppingPoint { get; init; }
+
     public DateTime? CreatedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
 }

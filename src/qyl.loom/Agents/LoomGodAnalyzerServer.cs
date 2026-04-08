@@ -1,4 +1,6 @@
 using Qyl.Agents;
+using Qyl.Loom.CodeReview;
+using Qyl.Loom.Exploration;
 
 namespace Qyl.Loom.Agents;
 
@@ -7,7 +9,9 @@ namespace Qyl.Loom.Agents;
     Version = "0.1.0")]
 public sealed partial class LoomGodAnalyzerServer(
     CollectorClient collector,
-    AutofixOrchestrator autofixOrchestrator) : IMcpServer
+    AutofixOrchestrator autofixOrchestrator,
+    ExplorationInsightService insightService,
+    CodeReviewService codeReviewService) : IMcpServer
 {
     private const string ServerName = "loom-god-analyzer";
     private const string ServerDescription = "Seer-grade Loom analyzer surface backed by qyl collector services.";
@@ -148,8 +152,8 @@ public sealed partial class LoomGodAnalyzerServer(
 
     [Tool("loom_get_issue_insight",
         Description = "Generate pre-investigation Loom insight for an issue id.")]
-    public Task<LoomInsightDto?> GetIssueInsightAsync(string issueId, CancellationToken ct = default) =>
-        collector.GetInsightAsync(issueId, ct);
+    public async Task<ExplorationInsight?> GetIssueInsightAsync(string issueId, CancellationToken ct = default) =>
+        await insightService.GenerateInsightAsync(issueId, ct).ConfigureAwait(false);
 
     [Tool("loom_start_fix_run",
         Description = "Create an autofix run for an issue using the selected policy.")]
@@ -163,24 +167,17 @@ public sealed partial class LoomGodAnalyzerServer(
             return null;
 
         return await autofixOrchestrator
-            .CreateFixRunAsync(issueId, ParseFixPolicy(policy), ct)
+            .CreateFixRunAsync(issueId, ParseFixPolicy(policy), ct: ct)
             .ConfigureAwait(false);
     }
 
     [Tool("loom_review_pull_request",
         Description = "Run Loom code review against a GitHub owner/repo pull request.")]
-    public async Task<CodeReviewDto> ReviewPullRequestAsync(
+    public async Task<CodeReviewResult> ReviewPullRequestAsync(
         string repoFullName,
         int prNumber,
-        CancellationToken ct = default)
-    {
-        var parts = repoFullName.Split('/', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException($"repoFullName must be 'owner/repo', got '{repoFullName}'.");
-
-        return await collector.TriggerCodeReviewAsync(parts[0], parts[1], prNumber, ct)
-            .ConfigureAwait(false);
-    }
+        CancellationToken ct = default) =>
+        await codeReviewService.ReviewPullRequestAsync(repoFullName, prNumber, ct).ConfigureAwait(false);
 
     [Prompt("loom_god_analyzer",
         Description = "Reusable system prompt for the Loom god-analyzer workflow.")]
@@ -216,7 +213,7 @@ public sealed partial class LoomGodAnalyzerServer(
         var toolArgs = JsonSerializer.Deserialize(arguments, LoomGodAnalyzerJsonContext.Default.LoomGetIssueInsightArgs)
                        ?? throw new InvalidOperationException("Tool arguments are required.");
         var insight = await GetIssueInsightAsync(toolArgs.IssueId, ct).ConfigureAwait(false);
-        return JsonSerializer.Serialize(insight, LoomGodAnalyzerJsonContext.Default.LoomInsightDto);
+        return JsonSerializer.Serialize(insight, LoomGodAnalyzerJsonContext.Default.ExplorationInsight);
     }
 
     private async Task<string> DispatchFixRunAsync(JsonElement arguments, CancellationToken ct)
@@ -232,7 +229,7 @@ public sealed partial class LoomGodAnalyzerServer(
         var toolArgs = JsonSerializer.Deserialize(arguments, LoomGodAnalyzerJsonContext.Default.LoomReviewPullRequestArgs)
                        ?? throw new InvalidOperationException("Tool arguments are required.");
         var review = await ReviewPullRequestAsync(toolArgs.RepoFullName, toolArgs.PrNumber, ct).ConfigureAwait(false);
-        return JsonSerializer.Serialize(review, LoomGodAnalyzerJsonContext.Default.CodeReviewDto);
+        return JsonSerializer.Serialize(review, LoomGodAnalyzerJsonContext.Default.CodeReviewResult);
     }
 
     private static FixPolicy ParseFixPolicy(string? policy)
@@ -264,7 +261,7 @@ internal sealed record LoomGodAnalyzerPromptArgs(string IssueId, string? Operato
 [JsonSerializable(typeof(LoomStartFixRunArgs))]
 [JsonSerializable(typeof(LoomReviewPullRequestArgs))]
 [JsonSerializable(typeof(LoomGodAnalyzerPromptArgs))]
-[JsonSerializable(typeof(LoomInsightDto))]
+[JsonSerializable(typeof(ExplorationInsight))]
 [JsonSerializable(typeof(FixRunRecord))]
-[JsonSerializable(typeof(CodeReviewDto))]
+[JsonSerializable(typeof(CodeReviewResult))]
 internal partial class LoomGodAnalyzerJsonContext : JsonSerializerContext;

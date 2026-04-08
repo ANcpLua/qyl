@@ -87,8 +87,15 @@ public sealed partial class AutofixAgentService(
             var stepId2 = await CreateAndStartStepAsync(run.RunId, 2, "root_cause_analysis", ct)
                 .ConfigureAwait(false);
 
-            var rcaReport = await RunRcaAsync(issue, contextJson, ct).ConfigureAwait(false);
+            var rcaReport = await RunRcaAsync(issue, contextJson, run.Instruction, ct).ConfigureAwait(false);
             await CompleteStepAsync(run.RunId, stepId2, rcaReport, ct).ConfigureAwait(false);
+
+            if (run.StoppingPoint is "root_cause")
+            {
+                await CompleteRunEarlyAsync(run, "Stopped at root_cause per stopping_point", ct)
+                    .ConfigureAwait(false);
+                return;
+            }
 
             // ── Step 3: Solution Planning ───────────────────────────────────
             var stepId3 = await CreateAndStartStepAsync(run.RunId, 3, "solution_planning", ct)
@@ -97,6 +104,13 @@ public sealed partial class AutofixAgentService(
             var solutionPlan = await RunSolutionPlanAsync(rcaReport, ct).ConfigureAwait(false);
             await CompleteStepAsync(run.RunId, stepId3, solutionPlan, ct).ConfigureAwait(false);
 
+            if (run.StoppingPoint is "solution")
+            {
+                await CompleteRunEarlyAsync(run, "Stopped at solution per stopping_point", ct)
+                    .ConfigureAwait(false);
+                return;
+            }
+
             // ── Step 4: Diff Generation ─────────────────────────────────────
             var stepId4 = await CreateAndStartStepAsync(run.RunId, 4, "diff_generation", ct)
                 .ConfigureAwait(false);
@@ -104,6 +118,13 @@ public sealed partial class AutofixAgentService(
             var changesJson = await RunDiffGenerationAsync(rcaReport, solutionPlan, ct)
                 .ConfigureAwait(false);
             await CompleteStepAsync(run.RunId, stepId4, changesJson, ct).ConfigureAwait(false);
+
+            if (run.StoppingPoint is "code_changes")
+            {
+                await CompleteRunEarlyAsync(run, "Stopped at code_changes per stopping_point",
+                    ct, changesJson: changesJson).ConfigureAwait(false);
+                return;
+            }
 
             // ── Step 5: Confidence Scoring ──────────────────────────────────
             var stepId5 = await CreateAndStartStepAsync(run.RunId, 5, "confidence_scoring", ct)
@@ -136,6 +157,16 @@ public sealed partial class AutofixAgentService(
             await orchestrator.UpdateFixRunStatusAsync(
                 run.IssueId, run.RunId, "failed", ex.Message, ct: ct).ConfigureAwait(false);
         }
+    }
+
+    private async Task CompleteRunEarlyAsync(
+        FixRunRecord run, string description, CancellationToken ct, string? changesJson = null)
+    {
+        await orchestrator.UpdateFixRunStatusAsync(
+            run.IssueId, run.RunId, "review", description, changesJson: changesJson, ct: ct)
+            .ConfigureAwait(false);
+
+        LogFixRunStoppedEarly(run.RunId, run.StoppingPoint!);
     }
 
     // ── Step Helpers ────────────────────────────────────────────────────────
@@ -195,8 +226,13 @@ public sealed partial class AutofixAgentService(
         return JsonSerializer.Serialize(context);
     }
 
-    private async Task<string> RunRcaAsync(IssueSummary issue, string contextJson, CancellationToken ct)
+    private async Task<string> RunRcaAsync(
+        IssueSummary issue, string contextJson, string? instruction, CancellationToken ct)
     {
+        var instructionBlock = instruction is not null
+            ? $"\n\nAdditional context from the requester:\n{instruction}"
+            : "";
+
         var userMessage = $"""
                            Investigate this error:
                            Type: {issue.ErrorType}
@@ -204,7 +240,7 @@ public sealed partial class AutofixAgentService(
                            Occurrences: {issue.EventCount}
 
                            Full context:
-                           {contextJson}
+                           {contextJson}{instructionBlock}
                            """;
 
         var response = await llm!.GetResponseAsync(
@@ -324,4 +360,8 @@ public sealed partial class AutofixAgentService(
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Fix run {RunId} failed")]
     private partial void LogFixRunFailed(string runId, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Fix run {RunId} stopped early at {StoppingPoint}")]
+    private partial void LogFixRunStoppedEarly(string runId, string stoppingPoint);
 }
