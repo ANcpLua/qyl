@@ -11,6 +11,13 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ArtifactTools(HttpClient client)
 {
+    /// <summary>Stores an artifact (code patch, report, or investigation notes) in qyl.</summary>
+    /// <param name="content">The artifact content.</param>
+    /// <param name="contentType">MIME type of the content.</param>
+    /// <param name="title">Human-readable title for the artifact.</param>
+    /// <param name="source">Origin identifier (e.g. "autofix", "rca").</param>
+    /// <param name="ttlSeconds">Auto-expire after this many seconds; 0 means never.</param>
+    /// <returns>The artifact ID and short URL for sharing.</returns>
     [McpServerTool(
         Name = "qyl.store_artifact",
         Title = "Store Artifact",
@@ -53,13 +60,10 @@ public sealed class ArtifactTools(HttpClient client)
             var result = await response.Content.ReadFromJsonAsync(
                 ArtifactToolsJsonContext.Default.ArtifactStoreResponse).ConfigureAwait(false);
 
-            if (result is null)
-                return "Failed to parse artifact store response.";
-
             var sb = new StringBuilder();
             sb.AppendLine("# Artifact Stored");
             sb.AppendLine();
-            sb.AppendLine($"- **ID:** `{result.Id}`");
+            sb.AppendLine($"- **ID:** `{result!.Id}`");
             sb.AppendLine($"- **URL:** `/a/{result.Id}`");
             sb.AppendLine($"- **Type:** {result.ContentType}");
             if (result.Title is not null)
@@ -70,6 +74,9 @@ public sealed class ArtifactTools(HttpClient client)
             return sb.ToString();
         }, "Failed to store artifact");
 
+    /// <summary>Retrieves a stored artifact by its ID.</summary>
+    /// <param name="id">The artifact ID to retrieve.</param>
+    /// <returns>The artifact content and metadata.</returns>
     [McpServerTool(
         Name = "qyl.get_artifact",
         Title = "Get Artifact",
@@ -93,11 +100,8 @@ public sealed class ArtifactTools(HttpClient client)
                 $"/api/v1/artifacts/{Uri.EscapeDataString(id)}",
                 ArtifactToolsJsonContext.Default.ArtifactStoreResponse).ConfigureAwait(false);
 
-            if (result is null)
-                return "Artifact not found or response could not be parsed.";
-
             var sb = new StringBuilder();
-            if (result.Title is not null)
+            if (result!.Title is not null)
                 sb.AppendLine($"# {result.Title}");
             else
                 sb.AppendLine($"# Artifact {result.Id}");

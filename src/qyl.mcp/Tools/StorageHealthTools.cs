@@ -12,6 +12,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class StorageHealthTools(HttpClient client)
 {
+    /// <summary>Retrieves storage statistics for the qyl collector including span/log counts and database size.</summary>
+    /// <returns>A storage statistics summary from the health endpoint.</returns>
     [McpServerTool(Name = "qyl.get_storage_stats", Title = "Get Storage Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -59,6 +61,8 @@ public sealed class StorageHealthTools(HttpClient client)
         return sb.ToString();
     });
 
+    /// <summary>Checks the health status of all qyl collector components.</summary>
+    /// <returns>Health status of DuckDB, ingestion pipeline, and SSE streaming.</returns>
     [McpServerTool(Name = "qyl.health_check", Title = "Health Check",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -80,8 +84,8 @@ public sealed class StorageHealthTools(HttpClient client)
         var readyTask = client.GetAsync("/ready");
         var healthTask = client.GetStringAsync("/health");
 
-        using var alive = await aliveTask.ConfigureAwait(false);
-        using var ready = await readyTask.ConfigureAwait(false);
+        var alive = await aliveTask.ConfigureAwait(false);
+        var ready = await readyTask.ConfigureAwait(false);
         var healthJson = await healthTask.ConfigureAwait(false);
 
         var sb = new StringBuilder();
@@ -98,6 +102,8 @@ public sealed class StorageHealthTools(HttpClient client)
         return sb.ToString();
     }, "Health check failed - qyl collector may be down");
 
+    /// <summary>Retrieves pre-computed system context (topology, performance, known issues) from the insights materializer.</summary>
+    /// <returns>Markdown system context with topology, performance profile, and alerts.</returns>
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

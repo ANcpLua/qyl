@@ -102,7 +102,6 @@ function BuildUpdateBanner() {
                 checkForBuildUpdate();
             }
         }, BUILD_VERSION_CHECK_INTERVAL_MS);
-
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -127,6 +126,7 @@ function BuildUpdateBanner() {
             </div>
             <p className="mt-2 text-sm leading-6 text-brutal-slate">
                 Reload before opening more routes so the page picks up the latest build descriptor and avoids stale lazy-chunk imports.
+                Reload before opening more routes so the page picks up the latest build descriptor and entry bundle before stale lazy-chunk imports fail.
             </p>
             {serverBuildLabel && (
                 <div className="mt-3 text-[11px] font-mono uppercase tracking-[0.18em] text-brutal-slate">

@@ -13,6 +13,9 @@ namespace qyl.mcp.Auth;
 /// </summary>
 public sealed partial class KeycloakTokenProvider : IDisposable
 {
+    /// <summary>
+    ///     Named HTTP client identifier used for DI registration.
+    /// </summary>
     public const string HttpClientName = "KeycloakTokenProvider";
     private readonly HttpClient _httpClient;
     private readonly Lock _lock = new();
@@ -25,6 +28,13 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     private string? _cachedToken;
     private DateTimeOffset _tokenExpiry = DateTimeOffset.MinValue;
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="KeycloakTokenProvider" /> class.
+    /// </summary>
+    /// <param name="options">Authentication options containing Keycloak configuration.</param>
+    /// <param name="httpClient">HTTP client for communicating with the Keycloak token endpoint.</param>
+    /// <param name="time">Time provider for token expiry calculations.</param>
+    /// <param name="logger">Logger for token lifecycle events.</param>
     public KeycloakTokenProvider(
         IOptions<McpAuthOptions> options,
         HttpClient httpClient,
@@ -37,6 +47,9 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         _logger = logger;
     }
 
+    /// <summary>
+    ///     Disposes the underlying HTTP client.
+    /// </summary>
     public void Dispose() => _httpClient.Dispose();
 
     /// <summary>
@@ -74,17 +87,6 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     // so the resilience handler on the named HttpClient can retry and circuit-break.
     private async ValueTask<string?> FetchTokenAsync(CancellationToken ct)
     {
-        // Re-check inside the lock: another thread may have already refreshed the token
-        // between the outer validity check and this call (proper double-checked locking).
-        using (_lock.EnterScope())
-        {
-            if (_cachedToken is not null &&
-                _time.GetUtcNow() < _tokenExpiry.AddSeconds(-60))
-            {
-                return _cachedToken;
-            }
-        }
-
         var authority = _options.KeycloakAuthority!.TrimEnd('/');
         var tokenEndpoint = $"{authority}/protocol/openid-connect/token";
 

@@ -3181,6 +3181,67 @@ public static class OtelStatusDescriptionAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for pprof.location.*
+/// </summary>
+public static class PprofLocationAttributes
+{
+    /// <summary>pprof.location.is_folded</summary>
+    public const string IsFolded = "pprof.location.is_folded";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for pprof.mapping.*
+/// </summary>
+public static class PprofMappingAttributes
+{
+    /// <summary>pprof.mapping.has_filenames</summary>
+    public const string HasFilenames = "pprof.mapping.has_filenames";
+
+    /// <summary>pprof.mapping.has_functions</summary>
+    public const string HasFunctions = "pprof.mapping.has_functions";
+
+    /// <summary>pprof.mapping.has_inline_frames</summary>
+    public const string HasInlineFrames = "pprof.mapping.has_inline_frames";
+
+    /// <summary>pprof.mapping.has_line_numbers</summary>
+    public const string HasLineNumbers = "pprof.mapping.has_line_numbers";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for pprof.profile.*
+/// </summary>
+public static class PprofProfileAttributes
+{
+    /// <summary>pprof.profile.comment</summary>
+    public const string Comment = "pprof.profile.comment";
+
+    /// <summary>pprof.profile.doc_url</summary>
+    public const string DocUrl = "pprof.profile.doc_url";
+
+    /// <summary>pprof.profile.drop_frames</summary>
+    public const string DropFrames = "pprof.profile.drop_frames";
+
+    /// <summary>pprof.profile.keep_frames</summary>
+    public const string KeepFrames = "pprof.profile.keep_frames";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for pprof.scope.*
+/// </summary>
+public static class PprofScopeAttributes
+{
+    /// <summary>pprof.scope.default_sample_type</summary>
+    public const string DefaultSampleType = "pprof.scope.default_sample_type";
+
+    /// <summary>pprof.scope.sample_type_order</summary>
+    public const string SampleTypeOrder = "pprof.scope.sample_type_order";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for process.args_count.*
 /// </summary>
 public static class ProcessArgsCountAttributes
@@ -3460,6 +3521,16 @@ public static class ProcessWorkingDirectoryAttributes
 {
     /// <summary>process.working_directory</summary>
     public const string Working_directory = "process.working_directory";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for profile.frame.*
+/// </summary>
+public static class ProfileFrameAttributes
+{
+    /// <summary>profile.frame.type</summary>
+    public const string Type = "profile.frame.type";
 
 }
 
@@ -6673,8 +6744,41 @@ public static class ProcessStateValues
 /// </summary>
 public static class ProfileFrameTypeValues
 {
+    /// <summary>beam</summary>
+    public const string Beam = "beam";
+
+    /// <summary>cpython</summary>
+    public const string Cpython = "cpython";
+
     /// <summary>dotnet</summary>
     public const string Dotnet = "dotnet";
+
+    /// <summary>go</summary>
+    public const string Go = "go";
+
+    /// <summary>jvm</summary>
+    public const string Jvm = "jvm";
+
+    /// <summary>kernel</summary>
+    public const string Kernel = "kernel";
+
+    /// <summary>native</summary>
+    public const string Native = "native";
+
+    /// <summary>perl</summary>
+    public const string Perl = "perl";
+
+    /// <summary>php</summary>
+    public const string Php = "php";
+
+    /// <summary>ruby</summary>
+    public const string Ruby = "ruby";
+
+    /// <summary>rust</summary>
+    public const string Rust = "rust";
+
+    /// <summary>v8js</summary>
+    public const string V8js = "v8js";
 
 }
 

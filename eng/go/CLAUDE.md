@@ -1,5 +1,7 @@
 # eng/go — OTel Go Instrumentation
 
+> **Status: stub.** Go SDK codegen (like `eng/semconv/` for TypeSpec) is deferred until qyl reaches beta / 1.0. During alpha the focus is the C# platform. This file documents manual Go instrumentation for now.
+
 Instruments Go apps to send OTLP telemetry to qyl.
 Go has no auto-instrumentation agent. Instrumentation is explicit via SDK + contrib libraries.
 

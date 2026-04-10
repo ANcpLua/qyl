@@ -1141,6 +1141,32 @@ namespace Keys {
     alias statusDescription = "otel.status_description";
   }
 
+  /** pprof.* attribute keys */
+  namespace Pprof {
+    /** "pprof.location.is_folded" */
+    alias locationIsFolded = "pprof.location.is_folded";
+    /** "pprof.mapping.has_filenames" */
+    alias mappingHasFilenames = "pprof.mapping.has_filenames";
+    /** "pprof.mapping.has_functions" */
+    alias mappingHasFunctions = "pprof.mapping.has_functions";
+    /** "pprof.mapping.has_inline_frames" */
+    alias mappingHasInlineFrames = "pprof.mapping.has_inline_frames";
+    /** "pprof.mapping.has_line_numbers" */
+    alias mappingHasLineNumbers = "pprof.mapping.has_line_numbers";
+    /** "pprof.profile.comment" */
+    alias profileComment = "pprof.profile.comment";
+    /** "pprof.profile.doc_url" */
+    alias profileDocUrl = "pprof.profile.doc_url";
+    /** "pprof.profile.drop_frames" */
+    alias profileDropFrames = "pprof.profile.drop_frames";
+    /** "pprof.profile.keep_frames" */
+    alias profileKeepFrames = "pprof.profile.keep_frames";
+    /** "pprof.scope.default_sample_type" */
+    alias scopeDefaultSampleType = "pprof.scope.default_sample_type";
+    /** "pprof.scope.sample_type_order" */
+    alias scopeSampleTypeOrder = "pprof.scope.sample_type_order";
+  }
+
   /** process.* attribute keys */
   namespace Process {
     /** "process.args_count" */
@@ -1215,6 +1241,12 @@ namespace Keys {
     alias vpid = "process.vpid";
     /** "process.working_directory" */
     alias workingDirectory = "process.working_directory";
+  }
+
+  /** profile.* attribute keys */
+  namespace Profile {
+    /** "profile.frame.type" */
+    alias frameType = "profile.frame.type";
   }
 
   /** rpc.* attribute keys */
@@ -3169,8 +3201,30 @@ union ProcessStateValue {
 
 /** Known values for profile.frame.type */
 union ProfileFrameTypeValue {
+  /** "beam" */
+  beam: "beam",
+  /** "cpython" */
+  cpython: "cpython",
   /** "dotnet" */
   dotnet: "dotnet",
+  /** "go" */
+  go: "go",
+  /** "jvm" */
+  jvm: "jvm",
+  /** "kernel" */
+  kernel: "kernel",
+  /** "native" */
+  native: "native",
+  /** "perl" */
+  perl: "perl",
+  /** "php" */
+  php: "php",
+  /** "ruby" */
+  ruby: "ruby",
+  /** "rust" */
+  rust: "rust",
+  /** "v8js" */
+  v8js: "v8js",
   /** Allow unknown/custom values */
   string,
 }
@@ -5916,6 +5970,58 @@ model OtelAttributes {
 }
 
 // ============================================================================
+// pprof.* Attributes Model
+// ============================================================================
+
+/** Semantic convention attributes for pprof.* */
+model PprofAttributes {
+  /** pprof.location.is_folded */
+  @encodedName("application/json", "pprof.location.is_folded")
+  locationIsFolded?: string;
+
+  /** pprof.mapping.has_filenames */
+  @encodedName("application/json", "pprof.mapping.has_filenames")
+  mappingHasFilenames?: string;
+
+  /** pprof.mapping.has_functions */
+  @encodedName("application/json", "pprof.mapping.has_functions")
+  mappingHasFunctions?: string;
+
+  /** pprof.mapping.has_inline_frames */
+  @encodedName("application/json", "pprof.mapping.has_inline_frames")
+  mappingHasInlineFrames?: string;
+
+  /** pprof.mapping.has_line_numbers */
+  @encodedName("application/json", "pprof.mapping.has_line_numbers")
+  mappingHasLineNumbers?: string;
+
+  /** pprof.profile.comment */
+  @encodedName("application/json", "pprof.profile.comment")
+  profileComment?: string;
+
+  /** pprof.profile.doc_url */
+  @encodedName("application/json", "pprof.profile.doc_url")
+  profileDocUrl?: string;
+
+  /** pprof.profile.drop_frames */
+  @encodedName("application/json", "pprof.profile.drop_frames")
+  profileDropFrames?: string;
+
+  /** pprof.profile.keep_frames */
+  @encodedName("application/json", "pprof.profile.keep_frames")
+  profileKeepFrames?: string;
+
+  /** pprof.scope.default_sample_type */
+  @encodedName("application/json", "pprof.scope.default_sample_type")
+  scopeDefaultSampleType?: string;
+
+  /** pprof.scope.sample_type_order */
+  @encodedName("application/json", "pprof.scope.sample_type_order")
+  scopeSampleTypeOrder?: string;
+
+}
+
+// ============================================================================
 // process.* Attributes Model
 // ============================================================================
 
@@ -6064,6 +6170,18 @@ model ProcessAttributes {
   /** process.working_directory */
   @encodedName("application/json", "process.working_directory")
   workingDirectory?: string;
+
+}
+
+// ============================================================================
+// profile.* Attributes Model
+// ============================================================================
+
+/** Semantic convention attributes for profile.* */
+model ProfileAttributes {
+  /** profile.frame.type */
+  @encodedName("application/json", "profile.frame.type")
+  frameType?: ProfileFrameTypeValue;
 
 }
 

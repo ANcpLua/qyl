@@ -11,8 +11,12 @@ namespace qyl.mcp.Tools;
 ///     Provides AI-focused analytics beyond generic span queries.
 /// </summary>
 [McpServerToolType]
-internal sealed class GenAiTools(HttpClient client)
+public sealed class GenAiTools(HttpClient client)
 {
+    /// <summary>Retrieves aggregate GenAI usage statistics: requests, tokens, and costs.</summary>
+    /// <param name="sessionId">Optional session ID filter.</param>
+    /// <param name="hours">Time window in hours.</param>
+    /// <returns>Request count, input/output tokens, total cost, and error count.</returns>
     [McpServerTool(Name = "qyl.get_genai_stats", Title = "Get GenAI Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -61,6 +65,13 @@ internal sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
+    /// <summary>Lists GenAI spans (individual LLM calls) with optional filtering.</summary>
+    /// <param name="provider">Filter by provider name (e.g. 'anthropic', 'openai').</param>
+    /// <param name="model">Filter by model name with partial matching.</param>
+    /// <param name="status">Filter by status: 'ok' or 'error'.</param>
+    /// <param name="sessionId">Filter by session ID.</param>
+    /// <param name="limit">Maximum number of spans to return.</param>
+    /// <returns>A list of GenAI spans with provider, model, tokens, cost, and status.</returns>
     [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -139,6 +150,100 @@ internal sealed class GenAiTools(HttpClient client)
 
             return sb.ToString();
         });
+
+    /// <summary>Retrieves usage breakdown by AI model with request counts, tokens, and costs.</summary>
+    /// <param name="hours">Time window in hours.</param>
+    /// <returns>A table of models ranked by cost with request counts and token usage.</returns>
+    // TODO: Endpoint /api/v1/genai/models missing in collector — see docs/mcp-tool-audit.md
+    [McpServerTool(Name = "qyl.list_models", Title = "List Models",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [Description("""
+                 Get usage breakdown by AI model.
+
+                 Shows which models are being used and their costs.
+                 Useful for understanding model selection and optimizing costs.
+
+                 Returns: List of models with request counts, tokens, and costs
+                 """)]
+    public Task<string> ListModelsAsync(
+        [Description("Time window in hours (default: 24)")]
+        int hours = 24) =>
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var response = await client.GetFromJsonAsync<ModelUsageResponse>(
+                $"/api/v1/genai/models?hours={hours}",
+                GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
+
+            if (response?.Models is null || response.Models.Count is 0)
+                return "No model usage data available.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"# Model Usage (last {hours} hours)");
+            sb.AppendLine();
+            sb.AppendLine("| Model | Requests | Input Tokens | Output Tokens | Cost |");
+            sb.AppendLine("|-------|----------|--------------|---------------|------|");
+
+            foreach (var model in response.Models.OrderByDescending(static m => m.TotalCostUsd))
+            {
+                sb.AppendLine(
+                    $"| {model.ModelName} | {model.RequestCount:N0} | {model.TotalInputTokens:N0} | {model.TotalOutputTokens:N0} | ${model.TotalCostUsd:F4} |");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine($"**Total Cost:** ${response.Models.Sum(static m => m.TotalCostUsd):F4}");
+
+            return sb.ToString();
+        });
+
+    /// <summary>Retrieves token usage over time as a time series for trend analysis.</summary>
+    /// <param name="hours">Time window in hours.</param>
+    /// <param name="interval">Aggregation interval: 'hour' or 'day'.</param>
+    /// <returns>Time series of token usage with costs per interval.</returns>
+    // TODO: Endpoint /api/v1/genai/usage/timeseries missing in collector — see docs/mcp-tool-audit.md
+    [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [Description("""
+                 Get token usage over time for trend analysis.
+
+                 Shows how token consumption varies by hour/day.
+                 Useful for identifying usage patterns and spikes.
+
+                 Parameters:
+                 - hours: Time window (default: 24)
+                 - interval: 'hour' or 'day' (default: hour)
+
+                 Returns: Time series of token usage with costs
+                 """)]
+    public Task<string> GetTokenTimeseriesAsync(
+        [Description("Time window in hours (default: 24)")]
+        int hours = 24,
+        [Description("Aggregation interval: 'hour' or 'day'")]
+        string interval = "hour") =>
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
+                $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
+                GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
+
+            if (response?.Data is null || response.Data.Count is 0)
+                return "No usage data available for the specified time range.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"# Token Usage Timeseries (last {hours} hours, by {interval})");
+            sb.AppendLine();
+            sb.AppendLine("| Time | Input | Output | Cost |");
+            sb.AppendLine("|------|-------|--------|------|");
+
+            foreach (var point in response.Data)
+            {
+                var time = DateTimeOffset.FromUnixTimeMilliseconds(point.TimestampMs);
+                var timeStr = interval == "day" ? time.ToString("MM-dd") : time.ToString("HH:mm");
+                sb.AppendLine(
+                    $"| {timeStr} | {point.InputTokens:N0} | {point.OutputTokens:N0} | ${point.CostUsd:F4} |");
+            }
+
+            return sb.ToString();
+        });
 }
 
 #region DTOs
@@ -186,9 +291,41 @@ internal sealed record GenAiSpanDto(
     [property: JsonPropertyName("gen_ai_cost_usd")]
     double? GenAiCostUsd);
 
+internal sealed record ModelUsageResponse(
+    [property: JsonPropertyName("models")] List<ModelUsageDto>? Models);
+
+internal sealed record ModelUsageDto(
+    [property: JsonPropertyName("model_name")]
+    string ModelName,
+    [property: JsonPropertyName("provider")]
+    string? Provider,
+    [property: JsonPropertyName("request_count")]
+    int RequestCount,
+    [property: JsonPropertyName("total_input_tokens")]
+    long TotalInputTokens,
+    [property: JsonPropertyName("total_output_tokens")]
+    long TotalOutputTokens,
+    [property: JsonPropertyName("total_cost_usd")]
+    double TotalCostUsd);
+
+internal sealed record TokenTimeseriesResponse(
+    [property: JsonPropertyName("data")] List<TokenTimeseriesPoint>? Data);
+
+internal sealed record TokenTimeseriesPoint(
+    [property: JsonPropertyName("timestamp_ms")]
+    long TimestampMs,
+    [property: JsonPropertyName("input_tokens")]
+    long InputTokens,
+    [property: JsonPropertyName("output_tokens")]
+    long OutputTokens,
+    [property: JsonPropertyName("cost_usd")]
+    double CostUsd);
+
 #endregion
 
 [JsonSerializable(typeof(GenAiStatsDto))]
 [JsonSerializable(typeof(GenAiSpansResponse))]
+[JsonSerializable(typeof(ModelUsageResponse))]
+[JsonSerializable(typeof(TokenTimeseriesResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 internal sealed partial class GenAiJsonContext : JsonSerializerContext;

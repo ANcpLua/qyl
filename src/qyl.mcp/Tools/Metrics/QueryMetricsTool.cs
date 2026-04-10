@@ -5,6 +5,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
+/// <summary>
+/// Queries time-series data for a specific metric with optional filtering and time range.
+/// </summary>
+/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 public sealed class QueryMetricsTool(HttpClient client)
 {
@@ -15,6 +19,16 @@ public sealed class QueryMetricsTool(HttpClient client)
         Destructive = false,
         OpenWorld = true)]
     [Description("Query time-series data for a specific metric with optional filtering and time range.")]
+    /// <summary>
+    /// Queries time-series data points for a named metric with optional filters and time bounds.
+    /// </summary>
+    /// <param name="name">Metric name to query (e.g. 'http.server.request.duration').</param>
+    /// <param name="filter">Optional filter expression (e.g. 'service=api-gateway').</param>
+    /// <param name="from">Optional start time in ISO 8601 format.</param>
+    /// <param name="to">Optional end time in ISO 8601 format.</param>
+    /// <param name="interval">Optional aggregation interval (e.g. '5m', '1h', '1d').</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted markdown table of timestamped metric values.</returns>
     public async Task<string> QueryMetrics(
         [Description("Metric name (e.g. 'http.server.request.duration')")]
         string name,
@@ -39,7 +53,7 @@ public sealed class QueryMetricsTool(HttpClient client)
         if (queryParts.Count > 0)
             url += "?" + string.Join("&", queryParts);
 
-        var series = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.TimeSeriesDto, ct).ConfigureAwait(false);
+        var series = await client.GetFromJsonAsync<TimeSeriesDto>(url, ct).ConfigureAwait(false);
 
         if (series is null or { Points.Count: 0 })
             return $"No data points found for metric `{name}`.";

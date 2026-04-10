@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
 using qyl.mcp.Agents;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools;
 
@@ -51,12 +52,15 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
         }
 
         var investigation = InvestigationGuard.FromEnvironment();
-        var guardedTools = registry.GetTools().Select(tool => (AITool)new GuardedAIFunction(tool, investigation)).ToList();
+
+        var guardedTools = registry.GetTools()
+            .Select(tool => (AITool)new GuardedAIFunction(tool, investigation))
+            .ToList();
 
         var client = new ChatClientBuilder(_agentClient)
             .UseFunctionInvocation(configure: invoker =>
             {
-                invoker.MaximumIterationsPerRequest = 50;
+                invoker.MaximumIterationsPerRequest = 10;
                 invoker.AllowConcurrentInvocation = false;
             })
             .Build();
@@ -70,37 +74,25 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
             new(ChatRole.System, UseQylSystemPrompt.Prompt), new(ChatRole.User, userMessage)
         };
 
-        var options = new ChatOptions { Tools = guardedTools };
+        var options = new ChatOptions { Tools = [.. guardedTools] };
 
         try
         {
             var response = await client.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
-            return response.Text ?? "Agent completed with no output. Try rephrasing your question.";
+            var output = response.Text ?? "Agent completed with no output. Try rephrasing your question.";
+
+            output += ResponseFormatter.FormatToolCallTrace(
+                investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);
+
+            return output;
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (investigation.TotalCalls >= investigation.MaxToolCalls)
         {
             return investigation.BuildDiagnosticSummary();
         }
         catch (HttpRequestException ex)
         {
             return $"Error connecting to LLM provider: {ex.Message}";
-        }
-    }
-
-    /// <summary>
-    ///     Wraps an <see cref="AIFunction" /> to track every invocation through
-    ///     the <see cref="InvestigationGuard" />, enforcing the global tool-call budget.
-    /// </summary>
-    private sealed class GuardedAIFunction(AIFunction inner, InvestigationGuard guard) : DelegatingAIFunction(inner)
-    {
-        protected override async ValueTask<object?> InvokeCoreAsync(
-            AIFunctionArguments arguments,
-            CancellationToken cancellationToken)
-        {
-            guard.RecordCall(Name);
-            var result = await base.InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
-            guard.AddPartialResult(Name, result?.ToString() ?? string.Empty);
-            return result;
         }
     }
 }

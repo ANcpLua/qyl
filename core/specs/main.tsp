@@ -5,7 +5,7 @@
 //
 // Structure:
 //   - Common: types, errors, pagination
-//   - OTel Core: enums, span, logs, metrics, resource, storage
+//   - OTel Core: enums, span, logs, metrics, profiles, resource, storage
 //   - Generated: semconv.g.tsp (OTel 1.40 attribute keys from NPM)
 //   - Domains: qyl-specific models (stats, entities, etc.)
 //   - API: REST routes, SSE streaming
@@ -45,6 +45,7 @@ import "./otel/resource.tsp";
 import "./otel/span.tsp";
 import "./otel/logs.tsp";
 import "./otel/metrics.tsp";
+import "./otel/profiles.tsp";
 import "./otel/storage.tsp";
 
 // =============================================================================

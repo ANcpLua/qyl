@@ -7,6 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
+/// <summary>
+/// Adds an annotation with optional tags to a trace for triage purposes.
+/// </summary>
+/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 public sealed class AnnotateTraceTool(HttpClient client)
 {
@@ -17,6 +21,14 @@ public sealed class AnnotateTraceTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Add an annotation with optional tags to a trace for triage purposes.")]
+    /// <summary>
+    /// Posts an annotation note with optional tags to the specified trace.
+    /// </summary>
+    /// <param name="traceId">The trace ID to annotate.</param>
+    /// <param name="note">The annotation text.</param>
+    /// <param name="tags">Optional tags for categorization.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A success confirmation message.</returns>
     public async Task<string> AnnotateTrace(
         [Description("Trace ID to annotate")] string traceId,
         [Description("Annotation note")] string note,

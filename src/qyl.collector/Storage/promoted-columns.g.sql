@@ -6,8 +6,7 @@
 -- Include in CREATE TABLE statements as needed
 
 -- artifact.attestation attributes
-artifact_attestation_filename
-VARCHAR,
+artifact_attestation_filename VARCHAR,
 artifact_attestation_hash VARCHAR,
 artifact_attestation_id VARCHAR,
 
@@ -981,6 +980,25 @@ otel_status_code VARCHAR,
 -- otel.status_description attributes
 otel_status_description VARCHAR,
 
+-- pprof.location attributes
+pprof_location_is_folded VARCHAR,
+
+-- pprof.mapping attributes
+pprof_mapping_has_filenames VARCHAR,
+pprof_mapping_has_functions VARCHAR,
+pprof_mapping_has_inline_frames VARCHAR,
+pprof_mapping_has_line_numbers VARCHAR,
+
+-- pprof.profile attributes
+pprof_profile_comment VARCHAR,
+pprof_profile_doc_url VARCHAR,
+pprof_profile_drop_frames VARCHAR,
+pprof_profile_keep_frames VARCHAR,
+
+-- pprof.scope attributes
+pprof_scope_default_sample_type VARCHAR,
+pprof_scope_sample_type_order VARCHAR,
+
 -- process.args_count attributes
 process_args_count BIGINT,
 
@@ -1066,6 +1084,9 @@ process_vpid VARCHAR,
 
 -- process.working_directory attributes
 process_working_directory VARCHAR,
+
+-- profile.frame attributes
+profile_frame_type VARCHAR,
 
 -- rpc.connect_rpc attributes
 rpc_connect_rpc_error_code VARCHAR,

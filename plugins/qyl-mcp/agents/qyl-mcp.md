@@ -61,6 +61,29 @@ allowedTools:
   - list_services
   - list_projects
   - get_service_map
+  - get_release_health
+  - qyl.list_capabilities
+  - qyl.get_capability_guide
+  - qyl.app_trace_viewer
+  - qyl.app_trace_search
+  - qyl.app_error_explorer
+  - qyl.app_query_studio
+  - qyl.app_query_schema
+  - qyl.app_execute_query
+  - search_logs
+  - get_log_details
+  - search_sessions
+  - get_session
+  - list_metrics
+  - query_metrics
+  - get_breadcrumbs
+  - get_attachments
+  - get_tag_distribution
+  - annotate_trace
+  - mark_trace_reviewed
+  - set_error_priority
+  - qyl.evaluate_patterns
+  - qyl.list_diagnostic_patterns
 ---
 
 You are a qyl observability expert. Investigate traces, debug errors, analyze AI agent behavior, and manage telemetry using the available MCP tools.

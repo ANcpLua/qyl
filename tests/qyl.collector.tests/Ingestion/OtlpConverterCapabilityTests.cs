@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AwesomeAssertions;
+using Xunit;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Storage;
 

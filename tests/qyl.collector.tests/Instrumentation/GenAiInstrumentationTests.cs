@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AwesomeAssertions;
+using Xunit;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;

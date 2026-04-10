@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Xunit;
 using Qyl.Collector.Intelligence;
 using Qyl.Contracts.Intelligence;
 

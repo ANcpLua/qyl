@@ -1,10 +1,10 @@
 using System.ComponentModel;
-using System.Reflection;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
 using qyl.mcp.Agents;
+using qyl.mcp.Formatting;
+using Qyl.Generated;
 
 namespace qyl.mcp.Tools;
 
@@ -50,12 +50,16 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                    "Use the individual error and anomaly tools instead.";
         }
 
+        var investigation = InvestigationGuard.FromEnvironment(50);
+
         // Build curated tool set -- only data-retrieval tools, not LLM tools
-        var tools = DiscoverToolsFrom(
-            typeof(ErrorTools),
-            typeof(AnomalyTools),
-            typeof(SpanQueryTools),
-            typeof(StructuredLogTools));
+        var guardedTools = DiscoverToolsFrom(
+                typeof(ErrorTools),
+                typeof(AnomalyTools),
+                typeof(SpanQueryTools),
+                typeof(StructuredLogTools))
+            .Select(tool => (AITool)new GuardedAIFunction(tool, investigation))
+            .ToList();
 
         var agent = new ChatClientBuilder(_llm)
             .UseFunctionInvocation(configure: static invoker =>
@@ -75,12 +79,21 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
             new(ChatRole.User, userMessage)
         ];
 
-        ChatOptions options = new() { Tools = [.. tools] };
+        ChatOptions options = new() { Tools = [.. guardedTools] };
 
         try
         {
             var response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
-            return response.Text ?? "RCA completed with no output.";
+            var output = response.Text ?? "RCA completed with no output.";
+
+            output += ResponseFormatter.FormatToolCallTrace(
+                investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);
+
+            return output;
+        }
+        catch (OperationCanceledException) when (investigation.TotalCalls >= investigation.MaxToolCalls)
+        {
+            return investigation.BuildDiagnosticSummary();
         }
         catch (HttpRequestException ex)
         {
@@ -90,20 +103,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 
     private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
     {
-        List<AIFunction> tools = [];
-        foreach (var type in toolTypes)
-        {
-            var instance = services.GetRequiredService(type);
-            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr)
-                    continue;
-                var name = attr.Name ?? method.Name;
-                tools.Add(AIFunctionFactory.Create(method, instance,
-                    new AIFunctionFactoryOptions { Name = name }));
-            }
-        }
-
-        return tools;
+        var allowed = new HashSet<Type>(toolTypes);
+        return QylToolManifest.CreateTools(services, allowed.Contains);
     }
 }

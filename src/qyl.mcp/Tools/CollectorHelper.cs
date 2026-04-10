@@ -1,5 +1,4 @@
-using System.Net;
-using System.Net.Sockets;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools;
 
@@ -10,9 +9,19 @@ internal static class CollectorHelper
 {
     /// <summary>
     ///     Executes an async HTTP operation and returns a categorized error message on failure.
+    ///     Defaults to <see cref="McpTransportMode.Stdio"/> detail level.
+    /// </summary>
+    public static Task<string> ExecuteAsync(
+        Func<Task<string>> operation,
+        string? errorPrefix = null) =>
+        ExecuteAsync(operation, McpTransportMode.Stdio, errorPrefix);
+
+    /// <summary>
+    ///     Executes an async HTTP operation and returns a transport-aware error message on failure.
     /// </summary>
     public static async Task<string> ExecuteAsync(
         Func<Task<string>> operation,
+        McpTransportMode transport,
         string? errorPrefix = null)
     {
         try
@@ -21,30 +30,17 @@ internal static class CollectorHelper
         }
         catch (HttpRequestException ex)
         {
-            var category = ex.StatusCode switch
-            {
-                HttpStatusCode.NotFound => "Not found",
-                HttpStatusCode.BadRequest => "Invalid request",
-                HttpStatusCode.Unauthorized => "Authentication required",
-                HttpStatusCode.Forbidden => "Access denied",
-                >= HttpStatusCode.InternalServerError => "Collector server error",
-                _ when ex.InnerException is SocketException => "Connection refused — is qyl collector running?",
-                _ when ex.InnerException is TaskCanceledException => "Request timed out",
-                _ => "Connection error"
-            };
-            return $"{errorPrefix ?? category}: {ex.Message}";
+            return FormatWithPrefix(ex, transport, errorPrefix);
         }
-        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException or null)
         {
-            return $"{errorPrefix ?? "Request timed out"}: The collector did not respond in time.";
+            return FormatWithPrefix(ex, transport, errorPrefix);
         }
-        catch (TaskCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (TaskCanceledException)
-        {
-            return $"{errorPrefix ?? "Request timed out"}: The collector did not respond in time.";
-        }
+    }
+
+    private static string FormatWithPrefix(Exception ex, McpTransportMode transport, string? errorPrefix)
+    {
+        var formatted = ErrorFormatter.FormatForLlm(ex, transport);
+        return errorPrefix is not null ? $"{errorPrefix}: {formatted}" : formatted;
     }
 }

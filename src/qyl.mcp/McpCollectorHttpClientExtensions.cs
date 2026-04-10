@@ -31,7 +31,7 @@ internal static class McpCollectorHttpClientExtensions
             throw new InvalidOperationException($"Invalid QYL_COLLECTOR_URL '{collectorUrl}'.");
         }
 
-        services.TryAddSingleton<CollectorConcurrencyLimiter>();
+        services.AddTransient<CollectorConcurrencyLimiter>();
 
         var httpClientBuilder = services
             .AddHttpClient(CollectorClientName, client =>

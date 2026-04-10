@@ -29,7 +29,7 @@ internal sealed class TraceExplorerResource
             return reader.ReadToEnd();
         }
 
-        var assemblyDir = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)) ?? ".";
+        var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
         var filePath = Path.Combine(assemblyDir, "Apps", "TraceExplorer", "trace-viewer.html");
 
         return File.Exists(filePath)

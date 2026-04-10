@@ -1,0 +1,17 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="AwesomeAssertions"/>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Qyl.Agents.Generator\Qyl.Agents.Generator.csproj"/>
+    <ProjectReference Include="..\..\src\Qyl.Agents.Abstractions\Qyl.Agents.Abstractions.csproj"/>
+  </ItemGroup>
+</Project>

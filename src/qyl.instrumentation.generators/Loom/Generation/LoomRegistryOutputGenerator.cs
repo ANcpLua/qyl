@@ -135,7 +135,6 @@ internal static class LoomRegistryOutputGenerator
                     .ToArray();
 
                 sb.AppendLine("new(");
-                sb.BeginBlock(null);
                 sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(group.Key)},");
                 sb.AppendLine(
                     $"new string[] {{ {string.Join(", ", toolNames.Select(LoomGenerationHelpers.StringLiteral))} }},");
@@ -145,9 +144,12 @@ internal static class LoomRegistryOutputGenerator
                     sb.AppendLine(
                         "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
                 else
+                {
+                    var effectLiterals = sideEffects.Select(effect =>
+                        $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
                     sb.AppendLine(
-                        $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", sideEffects.Select(static effect => $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect}"))} }}");
-                sb.EndBlock(null);
+                        $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", effectLiterals)} }}");
+                }
                 sb.AppendLine("),");
             }
         }

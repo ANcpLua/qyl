@@ -24,6 +24,9 @@ public sealed class SkillConfiguration
             ? _enabled.Contains(skill)
             : _all || _enabled.Contains(skill);
 
+    /// <summary>
+    ///     Reads the QYL_SKILLS environment variable and returns the parsed configuration.
+    /// </summary>
     public static SkillConfiguration FromEnvironment()
     {
         var raw = Environment.GetEnvironmentVariable("QYL_SKILLS");

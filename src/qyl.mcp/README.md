@@ -116,3 +116,82 @@ The exact exposed tool set is controlled by `QYL_SKILLS`.
 
 - [qyl repository](https://github.com/ANcpLua/qyl)
 - [MCP specification](https://modelcontextprotocol.io)
+
+## Capability discovery and HTTP metadata
+
+The server now exposes two low-cost discovery tools so MCP hosts and operators can understand the available qyl surface area before invoking broad investigation flows.
+
+### `qyl.list_capabilities`
+
+Use `qyl.list_capabilities` to enumerate the capability families currently enabled by `QYL_SKILLS`.
+
+The tool returns:
+- server name and version
+- enabled skill families
+- capability ids, titles, summaries, and tags
+- optional primary tool names when `includeTools=true`
+
+Supported filters:
+- `skill`: narrow to one skill family such as `inspect`, `agent`, `loom`, `apps`, or `debug`
+- `tag`: narrow to one domain such as `traces`, `errors`, `logs`, `metrics`, `genai`, or `debugger`
+- `includeTools`: include the primary tool names behind each capability
+
+This is the recommended entrypoint when a host needs to decide whether to stay in direct tool mode or escalate to `qyl.use_qyl`.
+
+### `qyl.get_capability_guide`
+
+Use `qyl.get_capability_guide` with a capability id returned by `qyl.list_capabilities`.
+
+The guide returns qyl-specific operating context for that capability, including:
+- primary identifiers to carry through the workflow
+- recommended starting tools
+- recommended follow-up tools
+- scoping hints
+- telemetry evidence hints
+- related capabilities
+- enabled tool references with title, skill family, and mutability flags
+
+This is intended to be the deterministic replacement for hard-coded client-side capability lore.
+
+## HTTP transport metadata endpoints
+
+When the server runs in HTTP mode, it exposes the MCP endpoint plus two metadata documents for hosts, operators, and LLM-oriented clients.
+
+### `/mcp.json`
+
+`/mcp.json` returns a JSON manifest describing the live HTTP server surface.
+
+The manifest includes:
+- server name and version
+- resolved MCP endpoint URL
+- transport type
+- auth mode
+- summary text
+- enabled tool-family labels
+- capability count and capability summaries
+- enabled tool count
+
+This endpoint is intended for programmatic discovery and host bootstrapping.
+
+### `/llms.txt`
+
+`/llms.txt` returns a plain-text summary of the live HTTP server for LLM-facing clients.
+
+The document includes:
+- server summary
+- resolved MCP endpoint URL
+- auth mode
+- enabled tool count
+- enabled capability count
+- discovery tool names
+- a compact list of enabled capabilities
+
+This endpoint is intended to give clients a fast human-readable and model-readable overview of the server without requiring a full MCP session.
+
+## Default endpoint behavior
+
+When qyl runs in HTTP mode, the MCP endpoint defaults to `/mcp` unless `QYL_MCP_PATH` overrides it. The companion metadata endpoints remain available at:
+- `/mcp.json`
+- `/llms.txt`
+
+The root path `/` serves the landing page, and `/healthz` remains available for health checks.

@@ -15,6 +15,7 @@ import "../common/pagination.tsp";
 import "../otel/span.tsp";
 import "../otel/logs.tsp";
 import "../otel/metrics.tsp";
+import "../otel/profiles.tsp";
 import "../models/session.tsp";
 import "../models/log.tsp";
 import "../models/error.tsp";
@@ -40,6 +41,7 @@ using Qyl.Common.Pagination;
 using Qyl.OTel.Traces;
 using Qyl.OTel.Logs;
 using Qyl.OTel.Enums;
+using Qyl.OTel.Profiles;
 using Qyl.Storage;
 using Qyl.Domains.Observe.Session;
 using Qyl.Domains.Observe.Log;
@@ -375,6 +377,45 @@ model MetricDataPoint {
 
   @doc("Value")
   value: float64;
+}
+
+// =============================================================================
+// Profiles API (v1development, Development stability)
+// =============================================================================
+
+@route("/api/v1/profiles")
+@tag("Profiles")
+interface ProfilesApi {
+  @doc("List profiles with filtering")
+  @get
+  list(
+    @query @doc("Session ID filter") sessionId?: SessionId,
+    @query @doc("Trace ID filter") traceId?: TraceId,
+    @query @doc("Service name filter") serviceName?: string,
+    @query @doc("Sample type filter (e.g., cpu, alloc_objects, wall)") sampleType?: string,
+    @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
+  ): ProfileRecord[] | ValidationError | InternalServerError;
+
+  @doc("Get a specific profile by ID")
+  @get
+  @route("/{profileId}")
+  get(@path profileId: string): ProfileRecord | NotFoundError | InternalServerError;
+
+  @doc("Get profiles for a trace")
+  @get
+  @route("/by-trace/{traceId}")
+  getByTrace(
+    @path traceId: TraceId,
+    @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
+  ): ProfileRecord[] | InternalServerError;
+
+  @doc("Get profiles for a span")
+  @get
+  @route("/by-span/{spanId}")
+  getBySpan(
+    @path spanId: SpanId,
+    @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
+  ): ProfileRecord[] | InternalServerError;
 }
 
 // =============================================================================

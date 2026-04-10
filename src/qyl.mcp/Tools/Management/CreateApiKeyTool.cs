@@ -5,9 +5,19 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
+/// <summary>
+/// MCP tool that creates a new API key for programmatic access.
+/// </summary>
+/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 public sealed class CreateApiKeyTool(HttpClient client)
 {
+    /// <summary>
+    /// Creates a new API key and returns its name, prefix, and full key value.
+    /// </summary>
+    /// <param name="name">Human-readable name for the API key (e.g. 'ci-pipeline', 'dev-local').</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted markdown string containing the created key details.</returns>
     [McpServerTool(
         Name = "create_api_key",
         Title = "Create API Key",
@@ -26,13 +36,10 @@ public sealed class CreateApiKeyTool(HttpClient client)
 
         var result = await response.Content.ReadFromJsonAsync<ApiKeyResponseDto>(ct).ConfigureAwait(false);
 
-        if (result is null)
-            return "Failed to parse API key response.";
-
         return ResponseFormatter.FormatDetail(
             "API Key Created",
             [
-                ("Name", result.Name),
+                ("Name", result!.Name),
                 ("Prefix", $"`{result.Prefix}`"),
                 ("Key", $"`{result.Key}` (save this — it won't be shown again)")
             ]);

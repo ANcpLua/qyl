@@ -212,10 +212,9 @@ internal sealed class QueryStudioTools(HttpClient client)
         row.TryGetValue(key, out var val)
             ? val switch
             {
-                null => null,
                 string s => s,
                 JsonElement { ValueKind: JsonValueKind.String } el => el.GetString(),
-                _ => val.ToString()
+                _ => val?.ToString()
             }
             : null;
 }

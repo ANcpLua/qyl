@@ -6,9 +6,20 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
+/// <summary>
+/// MCP tool that lists available projects with pagination support.
+/// </summary>
+/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 public sealed class ListProjectsTool(HttpClient client)
 {
+    /// <summary>
+    /// Lists available projects, returning slugs that can scope other tools.
+    /// </summary>
+    /// <param name="cursor">Cursor for pagination.</param>
+    /// <param name="limit">Maximum results per page (1-100, default 25).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted paginated list of projects.</returns>
     [McpServerTool(Name = "list_projects", Title = "List Projects",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List available projects. Use project slugs to scope other tools to a specific project.")]
@@ -24,7 +35,7 @@ public sealed class ListProjectsTool(HttpClient client)
         if (cursor is not null)
             url += $"&cursor={Uri.EscapeDataString(cursor)}";
 
-        var result = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.PagedResultProjectInfoDto, ct).ConfigureAwait(false);
+        var result = await client.GetFromJsonAsync<PagedResult<ProjectInfoDto>>(url, ct).ConfigureAwait(false);
 
         return result is null
             ? "No projects found."

@@ -22,7 +22,6 @@ internal static class LoomWorkflowOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowDescriptor Descriptor { get; } = new(");
-        sb.BeginBlock(null);
         sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(workflow.Id)},");
         sb.AppendLine($"{LoomGenerationHelpers.TypeOf(workflow.RunStateTypeFullyQualified)},");
         if (workflow.StepIds.IsEmpty)
@@ -32,7 +31,6 @@ internal static class LoomWorkflowOutputGenerator
                 $"new string[] {{ {string.Join(", ", workflow.StepIds.Select(LoomGenerationHelpers.StringLiteral))} }},");
 
         sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(workflow.Description)}");
-        sb.EndBlock(null);
         sb.AppendLine(");");
 
         for (var i = 0; i < workflow.DeclarationChain.Length; i++)

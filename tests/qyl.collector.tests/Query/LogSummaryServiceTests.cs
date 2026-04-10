@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Xunit;
 using Qyl.Collector.Query;
 using Qyl.Collector.Storage;
 using Qyl.Contracts.Primitives;
@@ -145,8 +146,8 @@ public sealed class LogSummaryServiceTests
         pattern.ServiceName.Should().Be("svc.api");
         pattern.Template.Should().Contain("<N>");
         pattern.PatternId.Should().NotBeEmpty();
-        pattern.SeverityDistribution.Should().Contain(static x => x is { Severity: "error", Count: 2 });
-        pattern.SeverityDistribution.Should().Contain(static x => x is { Severity: "fatal", Count: 1 });
+        pattern.SeverityDistribution.Should().Contain(static x => x.Severity == "error" && x.Count == 2);
+        pattern.SeverityDistribution.Should().Contain(static x => x.Severity == "fatal" && x.Count == 1);
     }
 
     [Fact]

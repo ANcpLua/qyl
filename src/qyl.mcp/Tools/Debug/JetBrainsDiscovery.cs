@@ -14,7 +14,6 @@ internal sealed partial class JetBrainsDiscovery(
 {
     private static readonly TimeSpan ScanCooldown = TimeSpan.FromSeconds(30);
 
-    private readonly Lock _lock = new();
     private JetBrainsEndpoints? _cached;
     private DateTimeOffset _lastScan;
 
@@ -23,29 +22,22 @@ internal sealed partial class JetBrainsDiscovery(
     /// </summary>
     public JetBrainsEndpoints? GetEndpoints()
     {
-        lock (_lock)
-        {
-            if (_cached is not null && timeProvider.GetUtcNow() - _lastScan < ScanCooldown)
-                return _cached;
-
-            if (_cached is null && _lastScan != default && timeProvider.GetUtcNow() - _lastScan < ScanCooldown)
-                return null;
-
-            var endpoints = ScanLog();
-            _lastScan = timeProvider.GetUtcNow();
-
-            if (endpoints is not null)
-            {
-                _cached = endpoints;
-                LogDiscovered(endpoints.BuiltInSseUrl, endpoints.DebuggerStreamableUrl);
-            }
-            else
-            {
-                LogNotFound();
-            }
-
+        if (_cached is not null && timeProvider.GetUtcNow() - _lastScan < ScanCooldown)
             return _cached;
+
+        var endpoints = ScanLog();
+        if (endpoints is not null)
+        {
+            _cached = endpoints;
+            _lastScan = timeProvider.GetUtcNow();
+            LogDiscovered(endpoints.BuiltInSseUrl, endpoints.DebuggerStreamableUrl);
         }
+        else
+        {
+            LogNotFound();
+        }
+
+        return _cached;
     }
 
     /// <summary>
@@ -53,20 +45,10 @@ internal sealed partial class JetBrainsDiscovery(
     /// </summary>
     public JetBrainsEndpoints? Refresh()
     {
-        lock (_lock)
-        {
-            _cached = null;
-            _lastScan = default;
-        }
-
+        _cached = null;
+        _lastScan = default;
         return GetEndpoints();
     }
-
-    /// <summary>
-    ///     Maximum bytes to read from the tail of the log file.
-    ///     256 KB covers several thousand lines — more than enough for recent session entries.
-    /// </summary>
-    private const int TailBytes = 256 * 1024;
 
     private JetBrainsEndpoints? ScanLog()
     {
@@ -77,44 +59,37 @@ internal sealed partial class JetBrainsDiscovery(
             return null;
         }
 
-        string? builtInPort = null;
-        string? debuggerUrl = null;
-
+        string[] lines;
         try
         {
             using var fs = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-
-            // Seek to the tail of the file so we only read recent entries
-            if (fs.Length > TailBytes)
-                fs.Seek(-TailBytes, SeekOrigin.End);
-
             using var reader = new StreamReader(fs);
-
-            // If we seeked mid-file, discard the first partial line
-            if (fs.Position > 0)
-                reader.ReadLine();
-
-            // Scan forward so later entries win (latest Rider session)
-            while (reader.ReadLine() is { } line)
-            {
-                if (line.Contains("built-in server started, port"))
-                {
-                    var match = BuiltInPortRegex().Match(line);
-                    if (match.Success)
-                        builtInPort = match.Groups[1].Value;
-                }
-                else if (line.Contains("MCP Server available at:"))
-                {
-                    var match = DebuggerUrlRegex().Match(line);
-                    if (match.Success)
-                        debuggerUrl = match.Groups[1].Value;
-                }
-            }
+            lines = reader.ReadToEnd().Split('\n');
         }
         catch (IOException ex)
         {
             LogReadFailed(ex);
             return null;
+        }
+
+        string? builtInPort = null;
+        string? debuggerUrl = null;
+
+        // Scan forward so later entries win (latest Rider session)
+        foreach (var line in lines)
+        {
+            if (line.Contains("built-in server started, port"))
+            {
+                var match = BuiltInPortRegex().Match(line);
+                if (match.Success)
+                    builtInPort = match.Groups[1].Value;
+            }
+            else if (line.Contains("MCP Server available at:"))
+            {
+                var match = DebuggerUrlRegex().Match(line);
+                if (match.Success)
+                    debuggerUrl = match.Groups[1].Value;
+            }
         }
 
         if (builtInPort is null && debuggerUrl is null)

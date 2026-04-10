@@ -43,15 +43,6 @@ public static class CollectorFeatureExtensions
         services.AddSingleton<PrCreationService>();
         services.AddSingleton<AgentHandoffService>();
 
-        // Loom code review + debugging
-        services.AddSingleton<CodeReviewService>();
-        services.AddSingleton<LoomInsightService>();
-        services.AddSingleton<IssueContextBuilder>();
-        services.AddSingleton<LoomSessionStore>();
-        services.AddSingleton<LoomOrchestrator>();
-        services.AddKeyedSingleton<LoomDiagnostician>(LoomAgentKeys.Diagnostician);
-        services.AddKeyedSingleton<LoomStrategist>(LoomAgentKeys.Strategist);
-
         // Search
         services.AddSingleton<SearchService>();
 

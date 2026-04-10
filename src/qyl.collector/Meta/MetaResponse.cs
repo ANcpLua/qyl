@@ -36,6 +36,7 @@ public sealed record MetaCapabilities
     public bool Tracing { get; init; }
     public bool Grpc { get; init; }
     public bool GenAi { get; init; }
+    public bool Profiles { get; init; }
     public bool Copilot { get; init; }
     public bool EmbeddedDashboard { get; init; }
 }

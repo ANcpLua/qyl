@@ -335,3 +335,58 @@ enum EventDomain {
   @doc("Log events")
   log: "log",
 }
+
+// =============================================================================
+// Profile Enumerations (v1development, Development stability)
+// =============================================================================
+
+@doc("Original payload format for profile data")
+enum OriginalPayloadFormat {
+  @doc("Google pprof format (original_payload SHOULD NOT be populated — lossless mapping)")
+  pprof: "pprof",
+
+  @doc("Java Flight Recorder")
+  jfr: "jfr",
+
+  @doc("Linux perf.data format")
+  linuxPerf: "linux_perf",
+}
+
+@doc("Profile frame type — interpreter or compiler of a single frame")
+enum ProfileFrameType {
+  @doc("Erlang (BEAM VM)")
+  beam: "beam",
+
+  @doc("Python (CPython)")
+  cpython: "cpython",
+
+  @doc(".NET")
+  dotnet: "dotnet",
+
+  @doc("Go")
+  go: "go",
+
+  @doc("JVM")
+  jvm: "jvm",
+
+  @doc("OS Kernel")
+  kernel: "kernel",
+
+  @doc("C, C++, Go, Rust (use more precise value if possible)")
+  native: "native",
+
+  @doc("Perl")
+  perl: "perl",
+
+  @doc("PHP")
+  php: "php",
+
+  @doc("Ruby")
+  ruby: "ruby",
+
+  @doc("Rust")
+  rust: "rust",
+
+  @doc("V8 JavaScript engine")
+  v8js: "v8js",
+}

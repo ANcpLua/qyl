@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools;
 public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger)
     : ITelemetryStore
 {
+    /// <inheritdoc />
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
     {
         try
@@ -28,6 +29,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask<AgentRun[]> SearchRunsAsync(
         string? provider, string? model, string? errorType, DateTime? since)
     {
@@ -57,6 +59,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy)
     {
         try
@@ -95,6 +98,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask<AgentError[]> ListErrorsAsync(int limit, string? agentName)
     {
         try
@@ -125,6 +129,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours)
     {
         try
@@ -139,10 +144,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             var since = time.GetUtcNow().AddHours(-hours).DateTime;
             var durations = (response?.Items ?? [])
                 .Where(s => ParseTime(s.StartTime) >= since)
-                .Select(s => (start: ParseTime(s.StartTime), end: ParseTime(s.EndTime)))
-                .Where(static t => t.start.HasValue && t.end.HasValue)
-                .Select(static t => (t.end!.Value - t.start!.Value).TotalMilliseconds)
-                .OrderBy(static x => x)
+                .Select(s => (double)s.SpanCount)
+                .OrderBy(x => x)
                 .ToList();
 
             return durations.Count is 0

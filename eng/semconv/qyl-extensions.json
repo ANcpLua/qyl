@@ -192,6 +192,59 @@
           }
         }
       }
+    },
+    {
+      "className": "McpAttributes",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/McpAttributes.g.cs",
+      "description": "OTel {version} MCP (Model Context Protocol) semantic convention attribute keys.\nStatus: Experimental\nhttps://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/mcp.md",
+      "metadata": {
+        "SchemaUrl": "https://opentelemetry.io/schemas/{version}",
+        "SourceName": "qyl.mcp"
+      },
+      "upstreamPrefix": "mcp",
+      "attributes": [
+        "mcp.method.name",
+        "mcp.protocol.version",
+        "mcp.session.id",
+        "mcp.server.name"
+      ],
+      "crossCutting": {
+        "JsonrpcRequestId": "jsonrpc.request.id",
+        "JsonrpcProtocolVersion": "jsonrpc.protocol.version",
+        "RpcSystem": "rpc.system",
+        "RpcMethod": "rpc.method",
+        "ErrorType": "error.type",
+        "ServerAddress": "server.address",
+        "ServerPort": "server.port"
+      },
+      "enums": {
+        "Methods": {
+          "summary": "Well-known MCP method name values.",
+          "values": {
+            "ToolsCall": "tools/call",
+            "ToolsList": "tools/list",
+            "PromptsGet": "prompts/get",
+            "PromptsList": "prompts/list",
+            "ResourcesRead": "resources/read",
+            "ResourcesList": "resources/list",
+            "Initialize": "initialize",
+            "Ping": "ping"
+          }
+        },
+        "Systems": {
+          "summary": "Well-known RPC system values.",
+          "values": {
+            "JsonRpc": "jsonrpc"
+          }
+        },
+        "JsonrpcVersions": {
+          "summary": "Well-known JSON-RPC protocol version values.",
+          "values": {
+            "V2": "2.0"
+          }
+        }
+      }
     }
   ]
 }

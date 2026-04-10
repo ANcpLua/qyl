@@ -17,6 +17,12 @@ public sealed class ErrorExplorerTools(HttpClient client)
 {
     private const string AppUri = "ui://qyl/error-explorer";
 
+    /// <summary>
+    ///     Returns error groups as Markdown text and signals the interactive Error Explorer UI resource.
+    /// </summary>
+    /// <param name="status">Filter by issue status: unresolved, resolved, or ignored.</param>
+    /// <param name="service">Filter by originating service name.</param>
+    /// <param name="limit">Maximum number of error groups to return.</param>
     [McpServerTool(Name = "qyl.app.error_explorer", Title = "Error Explorer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2390700+00:00
+//     Generated: 2026-04-09T04:24:58.5995540+00:00
 //     Enumeration types for Qyl.Domains.Observe.Error
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate

@@ -1,5 +1,7 @@
 # eng/java — OTel Java Agent Integration
 
+> **Status: stub.** Java SDK codegen (like `eng/semconv/` for TypeSpec) is deferred until qyl reaches beta / 1.0. During alpha the focus is the C# platform. This file documents manual Java instrumentation for now.
+
 Instruments Java apps to send OTLP telemetry to qyl. Zero code changes required.
 
 ## How it works

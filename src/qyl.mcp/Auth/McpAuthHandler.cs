@@ -14,6 +14,12 @@ public sealed partial class McpAuthHandler : DelegatingHandler
     private readonly ILogger<McpAuthHandler> _logger;
     private readonly McpAuthOptions _options;
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="McpAuthHandler" /> class.
+    /// </summary>
+    /// <param name="options">Authentication options controlling the auth strategy.</param>
+    /// <param name="keycloak">Token provider for Keycloak JWT acquisition.</param>
+    /// <param name="logger">Logger for auth strategy selection events.</param>
     public McpAuthHandler(
         IOptions<McpAuthOptions> options,
         KeycloakTokenProvider keycloak,

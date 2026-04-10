@@ -11,8 +11,12 @@ namespace qyl.mcp.Tools;
 ///     Fetches data from qyl.collector via HTTP.
 /// </summary>
 [McpServerToolType]
-internal sealed class ReplayTools(HttpClient client)
+public sealed class ReplayTools(HttpClient client)
 {
+    /// <summary>Lists AI sessions captured by qyl for replay or analysis.</summary>
+    /// <param name="limit">Maximum number of sessions to return.</param>
+    /// <param name="serviceName">Optional filter by service/application name.</param>
+    /// <returns>Session IDs with span counts, error counts, token usage, and costs.</returns>
     [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -70,6 +74,9 @@ internal sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching sessions");
 
+    /// <summary>Retrieves a human-readable transcript of an AI session with timing and cost details.</summary>
+    /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
+    /// <returns>A formatted transcript with timing, tokens, costs, and errors.</returns>
     [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -149,6 +156,9 @@ internal sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching session");
 
+    /// <summary>Retrieves the complete span tree for a distributed trace.</summary>
+    /// <param name="traceId">The trace ID hex string.</param>
+    /// <returns>Span hierarchy with timing, status, and GenAI attributes.</returns>
     [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -200,6 +210,9 @@ internal sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching trace");
 
+    /// <summary>Analyzes all errors in a session with error messages, providers, and context.</summary>
+    /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
+    /// <returns>Error details grouped by span with full context.</returns>
     [McpServerTool(Name = "qyl.analyze_session_errors", Title = "Analyze Session Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

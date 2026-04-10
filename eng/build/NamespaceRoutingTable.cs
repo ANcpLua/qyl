@@ -31,8 +31,12 @@ public static class NamespaceRoutingTable
         new("Qyl.OTel.Traces.", "Qyl.OTel.Traces", "OTelTraces"),
         new("Qyl.OTel.Logs.", "Qyl.OTel.Logs", "OTelLogs"),
         new("Qyl.OTel.Metrics.", "Qyl.OTel.Metrics", "OTelMetrics"),
+        new("Qyl.OTel.Profiles.", "Qyl.OTel.Profiles", "OTelProfiles"),
         new("Qyl.OTel.Resource.", "Qyl.OTel.Resource", "OTelResource"),
         new("Qyl.OTel.", "Qyl.OTel", "OTel"),
+
+        // ── Storage (DuckDB record types from storage.tsp) ──────────────────
+        new("Qyl.Storage.", "Qyl.Storage", "Storage"),
 
         // ── Domains → AI ────────────────────────────────────────────────────
         new("Qyl.Domains.AI.Code.", "Qyl.Domains.AI.Code", "DomainsAICode"),

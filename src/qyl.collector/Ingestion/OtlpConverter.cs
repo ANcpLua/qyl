@@ -639,6 +639,201 @@ public static class OtlpConverter
 
     #endregion
 
+    #region Profiles Conversion
+
+    /// <summary>
+    ///     Converts HTTP OTLP JSON profiles request to normalized storage rows.
+    ///     Dereferences all string table indices into resolved strings.
+    ///     Used by: CollectorEndpointExtensions (POST /v1/profiles)
+    /// </summary>
+    public static List<ProfileConversionResult> ConvertProfilesToNormalizedRows(OtlpExportProfilesServiceRequest otlp)
+    {
+        var results = new List<ProfileConversionResult>();
+
+        foreach (var resourceProfiles in otlp.ResourceProfiles ?? [])
+        {
+            var serviceName = resourceProfiles.Resource?.Attributes?
+                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
+                              ?? "unknown";
+
+            var resourceJson = SerializeAttributes(resourceProfiles.Resource?.Attributes);
+            var schemaUrl = resourceProfiles.SchemaUrl;
+
+            foreach (var scopeProfiles in resourceProfiles.ScopeProfiles ?? [])
+            {
+                var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeProfiles.SchemaUrl)
+                    ? scopeProfiles.SchemaUrl
+                    : schemaUrl;
+
+                foreach (var profile in scopeProfiles.Profiles ?? [])
+                {
+                    results.Add(CreateNormalizedProfile(profile, serviceName, resourceJson, effectiveSchemaUrl));
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private static ProfileConversionResult CreateNormalizedProfile(
+        OtlpProfile profile,
+        string serviceName,
+        string? resourceJson,
+        string? schemaUrl)
+    {
+        var profileId = profile.ProfileId ?? Guid.NewGuid().ToString("N")[..16];
+        var strings = profile.StringTable ?? [];
+
+        string? Resolve(int? index) =>
+            index is { } i && i >= 0 && i < strings.Count ? strings[i] : null;
+
+        var sessionId = profile.Attributes?
+            .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;
+
+        var profileFrameType = profile.Attributes?
+            .FirstOrDefault(static a => a.Key == "profile.frame.type")?.Value?.StringValue;
+
+        // Cross-signal correlation from first Link
+        string? traceId = null;
+        string? spanId = null;
+        if (profile.LinkTable is { Count: > 0 })
+        {
+            traceId = profile.LinkTable[0].TraceId;
+            spanId = profile.LinkTable[0].SpanId;
+        }
+
+        // Resolve sample type/unit
+        var sampleType = Resolve(profile.SampleType?.TypeStrindex);
+        var sampleUnit = Resolve(profile.SampleType?.UnitStrindex);
+
+        // Header row
+        var header = new ProfileStorageRow
+        {
+            ProfileId = profileId,
+            TraceId = traceId,
+            SpanId = spanId,
+            SessionId = sessionId,
+            TimeUnixNano = profile.TimeUnixNano,
+            DurationNano = profile.DurationNano,
+            SampleCount = profile.Samples?.Count ?? 0,
+            SampleType = sampleType,
+            SampleUnit = sampleUnit,
+            OriginalPayloadFormat = profile.OriginalPayloadFormat,
+            ServiceName = serviceName,
+            ProfileFrameType = profileFrameType,
+            AttributesJson = SerializeAttributes(profile.Attributes),
+            ResourceJson = resourceJson,
+            ProfileDataJson = JsonSerializer.Serialize(profile, QylSerializerContext.Default.OtlpProfile),
+            SchemaUrl = schemaUrl
+        };
+
+        // Functions — dereference all string table indices
+        var functions = new List<ProfileFunctionRow>();
+        foreach (var (f, i) in (profile.FunctionTable ?? []).Select(static (f, i) => (f, i)))
+        {
+            functions.Add(new ProfileFunctionRow
+            {
+                ProfileId = profileId,
+                Ordinal = i,
+                Name = Resolve(f.NameStrindex),
+                SystemName = Resolve(f.SystemNameStrindex),
+                Filename = Resolve(f.FilenameStrindex),
+                StartLine = f.StartLine
+            });
+        }
+
+        // Locations — dereference lines with function ordinals preserved for joins
+        var locations = new List<ProfileLocationRow>();
+        foreach (var (loc, i) in (profile.LocationTable ?? []).Select(static (l, i) => (l, i)))
+        {
+            string? linesJson = null;
+            if (loc.Lines is { Count: > 0 })
+            {
+                linesJson = JsonSerializer.Serialize(
+                    loc.Lines.Select(static line => new
+                    {
+                        functionOrdinal = line.FunctionIndex,
+                        line = line.Line,
+                        column = line.Column
+                    }));
+            }
+
+            locations.Add(new ProfileLocationRow
+            {
+                ProfileId = profileId,
+                Ordinal = i,
+                MappingOrdinal = loc.MappingIndex,
+                Address = loc.Address,
+                LinesJson = linesJson
+            });
+        }
+
+        // Mappings — dereference filename
+        var mappings = new List<ProfileMappingRow>();
+        foreach (var (m, i) in (profile.MappingTable ?? []).Select(static (m, i) => (m, i)))
+        {
+            mappings.Add(new ProfileMappingRow
+            {
+                ProfileId = profileId,
+                Ordinal = i,
+                Filename = Resolve(m.FilenameStrindex),
+                MemoryStart = m.MemoryStart,
+                MemoryLimit = m.MemoryLimit,
+                FileOffset = m.FileOffset
+            });
+        }
+
+        // Samples — resolve link references, serialize values/timestamps as JSON
+        var samples = new List<ProfileSampleRow>();
+        foreach (var (s, i) in (profile.Samples ?? []).Select(static (s, i) => (s, i)))
+        {
+            string? linkTraceId = null;
+            string? linkSpanId = null;
+            if (s.LinkIndex is { } li && profile.LinkTable is not null && li >= 0 && li < profile.LinkTable.Count)
+            {
+                linkTraceId = profile.LinkTable[li].TraceId;
+                linkSpanId = profile.LinkTable[li].SpanId;
+            }
+
+            samples.Add(new ProfileSampleRow
+            {
+                ProfileId = profileId,
+                Ordinal = i,
+                StackOrdinal = s.StackIndex,
+                LinkTraceId = linkTraceId,
+                LinkSpanId = linkSpanId,
+                ValuesJson = s.Values is { Count: > 0 } ? JsonSerializer.Serialize(s.Values) : null,
+                TimestampsJson = s.TimestampsUnixNano is { Count: > 0 } ? JsonSerializer.Serialize(s.TimestampsUnixNano) : null
+            });
+        }
+
+        // Stacks — serialize location ordinals as JSON array
+        var stacks = new List<ProfileStackRow>();
+        foreach (var (st, i) in (profile.StackTable ?? []).Select(static (st, i) => (st, i)))
+        {
+            stacks.Add(new ProfileStackRow
+            {
+                ProfileId = profileId,
+                Ordinal = i,
+                LocationOrdinalsJson = st.LocationIndices is { Count: > 0 }
+                    ? JsonSerializer.Serialize(st.LocationIndices)
+                    : null
+            });
+        }
+
+        return new ProfileConversionResult
+        {
+            Profile = header,
+            Functions = functions,
+            Locations = locations,
+            Mappings = mappings,
+            Samples = samples,
+            Stacks = stacks
+        };
+    }
+
+    #endregion
+
     #region Proto Log Conversion
 
     /// <summary>

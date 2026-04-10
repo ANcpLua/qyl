@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Xunit;
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
 using Qyl.Collector.Cost;

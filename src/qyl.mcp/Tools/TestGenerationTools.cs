@@ -43,7 +43,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
 
             // Fetch error details
             using var issueResp = await http
-                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
+                .GetAsync($"/api/v1/errors/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
 
             if (issueResp.StatusCode == HttpStatusCode.NotFound)

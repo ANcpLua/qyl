@@ -10,28 +10,35 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for querying spans.
 /// </summary>
 [McpServerToolType]
-internal sealed class SpanQueryTools(HttpClient client)
+public sealed class SpanQueryTools(HttpClient client)
 {
+    /// <summary>Searches spans with flexible filtering by session, service, operation, and status.</summary>
+    /// <param name="sessionId">Filter by session ID.</param>
+    /// <param name="serviceName">Filter by service name.</param>
+    /// <param name="operation">Filter by operation name with partial matching.</param>
+    /// <param name="status">Filter by status: 'ok' or 'error'.</param>
+    /// <param name="hours">Time window in hours.</param>
+    /// <param name="limit">Maximum number of spans to return.</param>
+    /// <returns>A list of matching spans with timing and attributes.</returns>
     [McpServerTool(Name = "qyl.search_spans", Title = "Search Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Search spans with flexible filtering.
 
-                 Queries session-scoped spans when a session ID is provided,
-                 otherwise queries GenAI spans. For non-GenAI span searches
-                 without a session ID, use list_genai_spans or trace-based tools.
+                 This is the general-purpose span query tool. For GenAI-specific
+                 queries, use list_genai_spans instead.
 
                  Supports filtering by:
-                 - Session ID (scopes to that session's spans)
-                 - Service name (client-side filter)
-                 - Operation name (partial match, client-side filter)
+                 - Session ID
+                 - Service name
+                 - Operation name (partial match)
                  - Status (ok/error)
                  - Time range
 
                  Example queries:
-                 - Session spans: search_spans(session_id="abc123")
                  - Errors only: search_spans(status="error")
                  - By service: search_spans(service_name="api-gateway")
+                 - By operation: search_spans(operation="HTTP GET")
 
                  Returns: List of matching spans with timing and attributes
                  """)]

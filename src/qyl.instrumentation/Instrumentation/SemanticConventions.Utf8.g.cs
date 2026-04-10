@@ -3183,6 +3183,67 @@ public static class OtelStatusDescriptionUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for pprof.location.* (zero-allocation parsing)
+/// </summary>
+public static class PprofLocationUtf8
+{
+    /// <summary>pprof.location.is_folded</summary>
+    public static ReadOnlySpan<byte> IsFolded => "pprof.location.is_folded"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for pprof.mapping.* (zero-allocation parsing)
+/// </summary>
+public static class PprofMappingUtf8
+{
+    /// <summary>pprof.mapping.has_filenames</summary>
+    public static ReadOnlySpan<byte> HasFilenames => "pprof.mapping.has_filenames"u8;
+
+    /// <summary>pprof.mapping.has_functions</summary>
+    public static ReadOnlySpan<byte> HasFunctions => "pprof.mapping.has_functions"u8;
+
+    /// <summary>pprof.mapping.has_inline_frames</summary>
+    public static ReadOnlySpan<byte> HasInlineFrames => "pprof.mapping.has_inline_frames"u8;
+
+    /// <summary>pprof.mapping.has_line_numbers</summary>
+    public static ReadOnlySpan<byte> HasLineNumbers => "pprof.mapping.has_line_numbers"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for pprof.profile.* (zero-allocation parsing)
+/// </summary>
+public static class PprofProfileUtf8
+{
+    /// <summary>pprof.profile.comment</summary>
+    public static ReadOnlySpan<byte> Comment => "pprof.profile.comment"u8;
+
+    /// <summary>pprof.profile.doc_url</summary>
+    public static ReadOnlySpan<byte> DocUrl => "pprof.profile.doc_url"u8;
+
+    /// <summary>pprof.profile.drop_frames</summary>
+    public static ReadOnlySpan<byte> DropFrames => "pprof.profile.drop_frames"u8;
+
+    /// <summary>pprof.profile.keep_frames</summary>
+    public static ReadOnlySpan<byte> KeepFrames => "pprof.profile.keep_frames"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for pprof.scope.* (zero-allocation parsing)
+/// </summary>
+public static class PprofScopeUtf8
+{
+    /// <summary>pprof.scope.default_sample_type</summary>
+    public static ReadOnlySpan<byte> DefaultSampleType => "pprof.scope.default_sample_type"u8;
+
+    /// <summary>pprof.scope.sample_type_order</summary>
+    public static ReadOnlySpan<byte> SampleTypeOrder => "pprof.scope.sample_type_order"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for process.args_count.* (zero-allocation parsing)
 /// </summary>
 public static class ProcessArgsCountUtf8
@@ -3462,6 +3523,16 @@ public static class ProcessWorkingDirectoryUtf8
 {
     /// <summary>process.working_directory</summary>
     public static ReadOnlySpan<byte> Working_directory => "process.working_directory"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for profile.frame.* (zero-allocation parsing)
+/// </summary>
+public static class ProfileFrameUtf8
+{
+    /// <summary>profile.frame.type</summary>
+    public static ReadOnlySpan<byte> Type => "profile.frame.type"u8;
 
 }
 
@@ -6675,8 +6746,41 @@ public static class ProcessStateUtf8Values
 /// </summary>
 public static class ProfileFrameTypeUtf8Values
 {
+    /// <summary>beam</summary>
+    public static ReadOnlySpan<byte> Beam => "beam"u8;
+
+    /// <summary>cpython</summary>
+    public static ReadOnlySpan<byte> Cpython => "cpython"u8;
+
     /// <summary>dotnet</summary>
     public static ReadOnlySpan<byte> Dotnet => "dotnet"u8;
+
+    /// <summary>go</summary>
+    public static ReadOnlySpan<byte> Go => "go"u8;
+
+    /// <summary>jvm</summary>
+    public static ReadOnlySpan<byte> Jvm => "jvm"u8;
+
+    /// <summary>kernel</summary>
+    public static ReadOnlySpan<byte> Kernel => "kernel"u8;
+
+    /// <summary>native</summary>
+    public static ReadOnlySpan<byte> Native => "native"u8;
+
+    /// <summary>perl</summary>
+    public static ReadOnlySpan<byte> Perl => "perl"u8;
+
+    /// <summary>php</summary>
+    public static ReadOnlySpan<byte> Php => "php"u8;
+
+    /// <summary>ruby</summary>
+    public static ReadOnlySpan<byte> Ruby => "ruby"u8;
+
+    /// <summary>rust</summary>
+    public static ReadOnlySpan<byte> Rust => "rust"u8;
+
+    /// <summary>v8js</summary>
+    public static ReadOnlySpan<byte> V8js => "v8js"u8;
 
 }
 

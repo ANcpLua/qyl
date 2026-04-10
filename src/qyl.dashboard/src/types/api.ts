@@ -554,6 +554,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List profiles with filtering */
+        get: operations["ProfilesApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/by-span/{spanId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get profiles for a span */
+        get: operations["ProfilesApi_getBySpan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/by-trace/{traceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get profiles for a trace */
+        get: operations["ProfilesApi_getByTrace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a specific profile by ID */
+        get: operations["ProfilesApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -1134,9 +1202,7 @@ export interface paths {
         trace?: never;
     };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
     schemas: {
         /** @enum {string} */
@@ -3571,6 +3637,55 @@ export interface components {
             /** @description Whether trace contains errors */
             has_error: boolean;
         };
+        /** @description OpenTelemetry profile record for storage and query */
+        "Qyl.Storage.ProfileRecord": {
+            /** @description Unique profile identifier */
+            profileId: string;
+            /** @description Correlated trace ID (from Link table) */
+            traceId?: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Correlated span ID (from Link table) */
+            spanId?: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Session identifier for grouping related profiles */
+            sessionId?: components["schemas"]["Qyl.Common.SessionId"];
+            /**
+             * Format: int64
+             * @description Profile start timestamp in nanoseconds since epoch
+             */
+            timeUnixNano: number;
+            /**
+             * Format: int64
+             * @description Profile duration in nanoseconds
+             */
+            durationNano: number;
+            /**
+             * Format: int32
+             * @description Number of samples in this profile
+             */
+            sampleCount: number;
+            /** @description Sample type (e.g., cpu, alloc_objects, wall) */
+            sampleType?: string;
+            /** @description Sample unit (e.g., nanoseconds, bytes, count) */
+            sampleUnit?: string;
+            /** @description Original payload format */
+            originalPayloadFormat?: string;
+            /** @description Service name from resource attributes */
+            serviceName?: string;
+            /** @description Profile frame type (dotnet, jvm, cpython, etc.) */
+            profileFrameType?: string;
+            /** @description Profile attributes as JSON */
+            attributesJson?: string;
+            /** @description Resource attributes as JSON */
+            resourceJson?: string;
+            /** @description Full profile structure as JSON blob (denormalized for single-query access) */
+            profileDataJson?: string;
+            /** @description OTel semantic convention schema URL */
+            schemaUrl?: string;
+            /**
+             * Format: date-time
+             * @description Row creation timestamp
+             */
+            createdAt?: string;
+        };
         /** @description OpenTelemetry span record for storage and query */
         "Qyl.Storage.SpanRecord": {
             /** @description Unique span identifier */
@@ -3898,9 +4013,7 @@ export interface components {
     headers: never;
     pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
 export interface operations {
     AlertsApi_listFirings: {
         parameters: {
@@ -5933,6 +6046,187 @@ export interface operations {
             };
         };
     };
+    ProfilesApi_list: {
+        parameters: {
+            query?: {
+                /** @description Session ID filter */
+                sessionId?: components["schemas"]["Qyl.Common.SessionId"];
+                /** @description Trace ID filter */
+                traceId?: components["schemas"]["Qyl.Common.TraceId"];
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Sample type filter (e.g., cpu, alloc_objects, wall) */
+                sampleType?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Storage.ProfileRecord"][];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ProfilesApi_getBySpan: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                spanId: components["schemas"]["Qyl.Common.SpanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Storage.ProfileRecord"][];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ProfilesApi_getByTrace: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                traceId: components["schemas"]["Qyl.Common.TraceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Storage.ProfileRecord"][];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ProfilesApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Storage.ProfileRecord"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
     SearchApi_search: {
         parameters: {
             query?: never;
@@ -7561,7 +7855,6 @@ export interface operations {
         };
     };
 }
-
 type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
 };

@@ -5,6 +5,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
+/// <summary>
+/// Lists all available metrics, optionally filtered by project, showing name, type, unit, and description.
+/// </summary>
+/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 public sealed class ListMetricsTool(HttpClient client)
 {
@@ -16,6 +20,12 @@ public sealed class ListMetricsTool(HttpClient client)
         OpenWorld = true)]
     [Description(
         "List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
+    /// <summary>
+    /// Retrieves the list of available metrics, optionally filtered by project slug.
+    /// </summary>
+    /// <param name="projectSlug">Optional project slug to filter metrics.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted markdown table of metric names, types, units, and descriptions.</returns>
     public async Task<string> ListMetrics(
         [Description("Filter to a specific project slug")]
         string? projectSlug = null,
@@ -25,7 +35,7 @@ public sealed class ListMetricsTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var metrics = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ListMetricInfoDto, ct).ConfigureAwait(false);
+        var metrics = await client.GetFromJsonAsync<IReadOnlyList<MetricInfoDto>>(url, ct).ConfigureAwait(false);
 
         if (metrics is not { Count: > 0 })
             return "No metrics found. Metrics are auto-discovered from incoming OTLP data.";

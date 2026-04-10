@@ -5,9 +5,19 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
+/// <summary>
+/// MCP tool that lists detected services with instance counts and last-seen timestamps.
+/// </summary>
+/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 public sealed class ListServicesTool(HttpClient client)
 {
+    /// <summary>
+    /// Lists detected services with instance count and last-seen timestamp, optionally filtered by project.
+    /// </summary>
+    /// <param name="projectSlug">Optional project slug filter.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted markdown table of detected services.</returns>
     [McpServerTool(Name = "list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List detected services with instance count and last-seen timestamp. Optionally filter by project.")]
@@ -20,7 +30,7 @@ public sealed class ListServicesTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var services = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ListServiceInfoDto, ct).ConfigureAwait(false);
+        var services = await client.GetFromJsonAsync<IReadOnlyList<ServiceInfoDto>>(url, ct).ConfigureAwait(false);
 
         if (services is null or { Count: 0 })
             return "No services detected yet. Services are auto-discovered from incoming telemetry.";

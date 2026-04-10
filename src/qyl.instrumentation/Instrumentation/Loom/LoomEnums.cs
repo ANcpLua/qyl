@@ -10,6 +10,25 @@ public enum LoomPhase
     Close
 }
 
+public enum SignalType
+{
+    Errors,
+    Latency,
+    Throughput,
+    Availability,
+    CostUsd,
+    TokenUsage
+}
+
+public enum RunStatus
+{
+    Pending,
+    Running,
+    WaitingApproval,
+    Completed,
+    Failed
+}
+
 public enum ToolSideEffect
 {
     None,

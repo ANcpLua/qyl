@@ -1,52 +1,58 @@
 <Solution>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         PLATFORM — the 8 real projects
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- PROJECTS -->
 
     <Folder Name="/src/platform/">
         <Project Path="src/qyl.collector/qyl.collector.csproj" />
         <Project Path="src/qyl.contracts/qyl.contracts.csproj" />
     </Folder>
-
     <Folder Name="/src/loom/">
         <Project Path="src/qyl.loom/qyl.loom.csproj" />
     </Folder>
-
     <Folder Name="/src/sdk/">
         <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj" />
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
         <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
     </Folder>
+    <Folder Name="/src/mcp/">
+        <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
+        <Project Path="src/qyl.mcp.generators/qyl.mcp.generators.csproj" />
+    </Folder>
+    <Folder Name="/src/agents/">
+        <Project Path="src/Qyl.Agents/Qyl.Agents.csproj" />
+        <Project Path="src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj" />
+        <Project Path="src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj" />
+    </Folder>
     <Folder Name="/src/" />
-
-    <!-- qyl.mcp is now a standalone repo: https://github.com/ANcpLua/qyl.mcp -->
-    <Folder Name="/src/ai/" />
-
     <Folder Name="/src/dashboard/">
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
     </Folder>
+    <Folder Name="/samples/">
+        <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
+    </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         TESTS
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- TESTS -->
 
     <Folder Name="/tests/">
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
-        <!-- qyl.mcp tests moved to standalone repo -->
+        <Project Path="tests/qyl.mcp.generators.tests/qyl.mcp.generators.tests.csproj" />
+        <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj" />
+        <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj" />
+    </Folder>
+    <Folder Name="/docs/done/">
+        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension copy.md.md" />
+        <File Path="docs\example.md" />
+    </Folder>
+    <Folder Name="/docs/WIP /">
+        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension copy.md.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         BUILD — NUKE + MSBuild + semconv codegen
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- BUILD -->
 
     <Folder Name="/eng/">
         <Project Path="eng/build/build.csproj" />
-        <File Path="eng/build.cmd" />
-        <File Path="eng/build.ps1" />
         <File Path="eng/build.sh" />
         <File Path="eng/compose.yaml" />
-        <File Path="eng/config/parameters.json" />
     </Folder>
     <Folder Name="/eng/MSBuild/">
         <File Path="eng/MSBuild/Shared.props" />
@@ -60,48 +66,15 @@
         <File Path="eng/semconv/qyl-extensions.json" />
         <File Path="eng/semconv/package.json" />
         <File Path="eng/semconv/tsconfig.json" />
-        <File Path="eng/semconv/CHANGELOG.md" />
-    </Folder>
-    <Folder Name="/eng/go/">
-        <File Path="eng/go/CLAUDE.md" />
-    </Folder>
-    <Folder Name="/eng/java/">
-        <File Path="eng/java/CLAUDE.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         SPECS — architecture, ADRs, Loom spec
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <Folder Name="/specs/">
-        <File Path="specs/00-architecture.md" />
-        <File Path="specs/SUMMARY.md" />
-        <File Path="specs/api.md" />
-        <File Path="specs/collector.md" />
-        <File Path="specs/contracts.md" />
-        <File Path="specs/cost.md" />
-        <File Path="specs/dashboard.md" />
-        <File Path="specs/instrumentation.md" />
-        <File Path="specs/issue-fingerprinting.md" />
-        <File Path="specs/mcp.md" />
-        <File Path="specs/telemetry-data-model.md" />
-        <File Path="specs/telemetry-intelligence.md" />
-    </Folder>
-    <Folder Name="/specs/loom/">
-        <File Path="src/qyl.loom/specs/loom.md" />
-        <File Path="src/qyl.loom/docs/reference/sentry-loom-design.md" />
-    </Folder>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         TYPESPEC — models, otel, intelligence, api
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- TYPESPEC -->
 
     <Folder Name="/core/">
         <File Path="core/openapi/openapi.yaml" />
         <File Path="core/specs/main.tsp" />
         <File Path="core/specs/tspconfig.yaml" />
         <File Path="core/specs/package.json" />
-        <File Path="core/specs/VERSIONING.md" />
         <File Path="core/specs/generated/semconv.g.tsp" />
     </Folder>
     <Folder Name="/core/specs/" />
@@ -157,35 +130,23 @@
         <File Path="core/specs/otel/enums.tsp" />
         <File Path="core/specs/otel/logs.tsp" />
         <File Path="core/specs/otel/metrics.tsp" />
+        <File Path="core/specs/otel/profiles.tsp" />
         <File Path="core/specs/otel/resource.tsp" />
         <File Path="core/specs/otel/span.tsp" />
         <File Path="core/specs/otel/storage.tsp" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         SAMPLES
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <Folder Name="/samples/">
-        <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
-    </Folder>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         DOCKER
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- DOCKER -->
 
     <Folder Name="/docker/">
         <File Path="src/qyl.collector/Dockerfile" />
         <File Path="src/qyl.loom/Dockerfile" />
-        <!-- qyl.mcp Dockerfile moved to standalone repo -->
         <File Path="src/qyl.dashboard/Dockerfile" />
-        <File Path="src/qyl.collector/docker-compose.yml" />
+        <File Path="eng/compose.yaml" />
     </Folder>
     <Folder Name="/plugins/" />
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         PLUGINS — distributable skill packs for AI agents
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- PLUGINS -->
 
     <Folder Name="/plugins/qyl-for-ai/">
         <File Path="plugins/qyl-for-ai/mcp.json" />
@@ -200,70 +161,37 @@
         <File Path="plugins/qyl-mcp/agents/qyl-mcp.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         CODEXVERSION — oh-my-openagent TS port (reference architecture)
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- SPECS -->
 
-    <Folder Name="/qyl.codexversion/">
-        <File Path="qyl.codexversion/AGENTS.md" />
-        <File Path="qyl.codexversion/HEART_OF_REPO_INDEX.md" />
-        <File Path="qyl.codexversion/package.json" />
-        <File Path="qyl.codexversion/tsconfig.json" />
-        <File Path="qyl.codexversion/src/index.ts" />
-        <File Path="qyl.codexversion/src/plugin-config.ts" />
-        <File Path="qyl.codexversion/src/shared/model-requirements.ts" />
-        <File Path="qyl.codexversion/src/core/contracts.ts" />
-        <File Path="qyl.codexversion/src/tools/delegate-task/tools.ts" />
-        <File Path="qyl.codexversion/src/tools/call-omo-agent/tools.ts" />
-        <File Path="qyl.codexversion/src/tools/call-omo-agent/background-executor.ts" />
-        <File Path="qyl.codexversion/src/features/background-agent/manager.ts" />
-        <File Path="qyl.codexversion/src/features/background-agent/concurrency.ts" />
-        <File Path="qyl.codexversion/src/features/background-agent/subagent-spawn-limits.ts" />
-        <File Path="qyl.codexversion\src\agents\AGENTS.md" />
-        <File Path="qyl.codexversion\src\agents\prompt-metadata.ts" />
-        <File Path="qyl.codexversion\src\agents\registry.ts" />
-        <File Path="qyl.codexversion\src\config\schema\agent-overrides.ts" />
-        <File Path="qyl.codexversion\src\config\schema\background-task.ts" />
-        <File Path="qyl.codexversion\src\config\schema\oh-my-openagent-config.ts" />
+    <Folder Name="/specs/">
+        <File Path="specs/00-architecture.md" />
+        <File Path="specs/SUMMARY.md" />
+        <File Path="specs/api.md" />
+        <File Path="specs/collector.md" />
+        <File Path="specs/contracts.md" />
+        <File Path="specs/cost.md" />
+        <File Path="specs/dashboard.md" />
+        <File Path="specs/instrumentation.md" />
+        <File Path="specs/issue-fingerprinting.md" />
+        <File Path="specs/mcp.md" />
+        <File Path="specs/telemetry-data-model.md" />
+        <File Path="specs/telemetry-intelligence.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         CLAUDE — rules, skills, planes, workflows
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- DOCS -->
 
-    <Folder Name="/.claude/rules/">
-        <File Path=".claude/rules/base-ui-composition.md" />
-        <File Path=".claude/rules/charts.md" />
-        <File Path=".claude/rules/collector.md" />
-        <File Path=".claude/rules/loom.md" />
-        <File Path=".claude/rules/mcp-server.md" />
-        <File Path=".claude/rules/performance-and-density.md" />
-        <File Path=".claude/rules/styling-and-theming.md" />
-        <File Path=".claude/rules/tables-and-virtualization.md" />
-        <File Path=".claude/rules/testing.md" />
-    </Folder>
-    <Folder Name="/.claude/skills/">
-        <File Path=".claude/skills/frontend/SKILL.md" />
-        <File Path=".claude/skills/nuke-build/SKILL.md" />
-        <File Path=".claude/skills/run-tests/SKILL.md" />
-    </Folder>
-    <Folder Name="/.claude/" />
-    <Folder Name="/.claude/planes/">
-        <File Path=".claude/planes/compiler-plane.md" />
-        <File Path=".claude/planes/data-plane.md" />
-        <File Path=".claude/planes/intelligence-plane.md" />
-        <File Path=".claude/planes/agent-control-plane.md" />
-        <File Path=".claude/planes/ledger-governance-plane.md" />
-        <File Path=".claude/planes/serving-plane.md" />
-        <File Path=".claude/planes/ui-protocol-plane.md" />
-    </Folder>
-    <Folder Name="/.claude/workflows/">
-        <File Path=".claude/qyl-workflows/README.md" />
+    <Folder Name="/docs/">
+        <File Path="docs\2026 mcp sdk roadmap.md" />
+        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension.md.md" />
+        <File Path="docs\convergence-plan.md" />
+        <File Path="docs\MCP sse 1.2.0.md" />
+        <File Path="docs\netagents.md" />
+        <File Path="docs\plans\2026-04-07-generated-metadata-capability-guides-and-host-split.md" />
+        <File Path="docs\seer-competitive-intel-v7.md" />
+        <File Path="docs\specs\2026-04-08-result-cap-coaching-design.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         CI/CD
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- CI/CD -->
 
     <Folder Name="/.github/">
         <File Path=".github/dependabot.yml" />
@@ -275,9 +203,7 @@
         <File Path=".github/workflows/release.yml" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         ROOT CONFIG
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- CONFIG -->
 
     <Folder Name="/config/">
         <File Path=".dockerignore" />
@@ -291,25 +217,12 @@
         <File Path="global.json" />
         <File Path="nuget.config" />
         <File Path="README.md" />
-        <File Path="TOOLS.md" />
     </Folder>
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         SITE
-         ═══════════════════════════════════════════════════════════════ -->
+    <!-- SITE -->
 
     <Folder Name="/site/">
         <File Path="site/index.html" />
-    </Folder>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         DOCS — superpowers plans + design specs
-         ═══════════════════════════════════════════════════════════════ -->
-
-    <Folder Name="/docs/">
-        <File Path="docs/superpowers/plans/2026-04-02-maf-overlap-analysis.md" />
-        <File Path="docs/superpowers/plans/2026-04-03-chatkit-csharp-port.md" />
-        <File Path="docs/superpowers/specs/2026-04-03-qyl-audit-design.md" />
     </Folder>
 
 </Solution>

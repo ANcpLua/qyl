@@ -9,9 +9,15 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Intelligence;
 
+/// <summary>
+///     MCP tools for diagnostic pattern evaluation, causal chain analysis, and investigation strategies.
+/// </summary>
 [McpServerToolType]
 public sealed class IntelligenceTools(HttpClient client)
 {
+    /// <summary>Lists all available diagnostic patterns from the static registry.</summary>
+    /// <param name="category">Optional category filter (genai, error, performance, infrastructure).</param>
+    /// <returns>Pattern IDs, categories, hypotheses, and required signal counts.</returns>
     [McpServerTool(
         Name = "qyl.list_diagnostic_patterns",
         Title = "List Diagnostic Patterns",
@@ -55,6 +61,11 @@ public sealed class IntelligenceTools(HttpClient client)
         return Task.FromResult(ResponseFormatter.FormatStructured(response));
     }
 
+    /// <summary>Extracts signals from telemetry and evaluates all diagnostic patterns against a trace or issue.</summary>
+    /// <param name="traceId">Trace ID to evaluate.</param>
+    /// <param name="issueId">Issue ID to evaluate.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Matched patterns with confidence scores and suggested next actions.</returns>
     [McpServerTool(
         Name = "qyl.evaluate_patterns",
         Title = "Evaluate Patterns",
@@ -108,6 +119,10 @@ public sealed class IntelligenceTools(HttpClient client)
         return ResponseFormatter.FormatStructured(structured);
     }
 
+    /// <summary>Builds a causal graph identifying root causes and relationships between matched patterns.</summary>
+    /// <param name="patternIds">Comma-separated matched pattern IDs.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Root causes, causal edges, and suggested investigation actions.</returns>
     [McpServerTool(
         Name = "qyl.explain_causal_chain",
         Title = "Explain Causal Chain",
@@ -151,6 +166,10 @@ public sealed class IntelligenceTools(HttpClient client)
         return ResponseFormatter.FormatStructured(structured);
     }
 
+    /// <summary>Returns the recommended investigation strategy with ordered steps for a pattern.</summary>
+    /// <param name="patternId">Pattern ID to investigate.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Investigation strategy with executable steps.</returns>
     [McpServerTool(
         Name = "qyl.suggest_investigation",
         Title = "Suggest Investigation",
@@ -197,6 +216,13 @@ public sealed class IntelligenceTools(HttpClient client)
         return ResponseFormatter.FormatStructured(structured);
     }
 
+    /// <summary>Executes a single investigation strategy step by running a DuckDB query against telemetry.</summary>
+    /// <param name="strategyId">Strategy ID containing the step.</param>
+    /// <param name="stepIndex">Zero-based index of the step to execute.</param>
+    /// <param name="traceId">Optional trace ID for query context.</param>
+    /// <param name="service">Optional service name for query context.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Query results and a pointer to the next step if available.</returns>
     [McpServerTool(
         Name = "qyl.execute_investigation_step",
         Title = "Execute Investigation Step",

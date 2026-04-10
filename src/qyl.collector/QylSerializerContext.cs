@@ -50,6 +50,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(OtlpKeyValue))]
 [JsonSerializable(typeof(OtlpAnyValue))]
 [JsonSerializable(typeof(OtlpExportLogsServiceRequest))]
+// Profile OTLP types (for ProfileDataJson blob serialization)
+[JsonSerializable(typeof(OtlpProfile))]
 [JsonSerializable(typeof(OtlpResourceLogs))]
 [JsonSerializable(typeof(OtlpScopeLogs))]
 [JsonSerializable(typeof(OtlpLogRecord))]

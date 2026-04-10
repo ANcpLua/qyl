@@ -54,7 +54,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         string configurationName,
         CancellationToken ct = default) =>
         CallRiderToolAsync("start_debug_session",
-            new Dictionary<string, object?> { ["configurationName"] = configurationName }, ct);
+            new Dictionary<string, object> { ["configurationName"] = configurationName }, ct);
 
     [McpServerTool(Name = "qyl.debug.stop_session", Title = "Stop Debug Session",
         ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
@@ -111,7 +111,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> RemoveBreakpointAsync(
         [Description("Breakpoint ID")] string breakpointId,
         CancellationToken ct = default) =>
-        CallRiderToolAsync("remove_breakpoint", new Dictionary<string, object?> { ["breakpointId"] = breakpointId }, ct);
+        CallRiderToolAsync("remove_breakpoint", new Dictionary<string, object> { ["breakpointId"] = breakpointId }, ct);
 
     [McpServerTool(Name = "qyl.debug.list_breakpoints", Title = "List Breakpoints",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
@@ -267,7 +267,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     private async Task<string> CallRiderToolAsync(
         string riderToolName,
-        Dictionary<string, object?>? arguments,
+        Dictionary<string, object>? arguments,
         CancellationToken ct) =>
         await ProxyAsync(async () =>
         {
@@ -302,9 +302,9 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         return sb.Length > 0 ? sb.ToString() : "No text output from debugger.";
     }
 
-    private static Dictionary<string, object?>? BuildArgs(params (string key, object? value)[] pairs)
+    private static Dictionary<string, object>? BuildArgs(params (string key, object? value)[] pairs)
     {
-        Dictionary<string, object?>? args = null;
+        Dictionary<string, object>? args = null;
         foreach (var (key, value) in pairs)
         {
             if (value is not null)

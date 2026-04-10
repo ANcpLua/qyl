@@ -5,9 +5,19 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
+/// <summary>
+/// MCP tool that retrieves the service dependency map showing nodes and edges between services.
+/// </summary>
+/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 public sealed class GetServiceMapTool(HttpClient client)
 {
+    /// <summary>
+    /// Retrieves the service dependency map with service nodes and inter-service call edges.
+    /// </summary>
+    /// <param name="projectSlug">Optional project slug filter.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted markdown string containing the service map topology.</returns>
     [McpServerTool(Name = "get_service_map", Title = "Get Service Map",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Get the service dependency map showing nodes (services) and edges (calls between services).")]
@@ -20,7 +30,7 @@ public sealed class GetServiceMapTool(HttpClient client)
         if (projectSlug is not null)
             url += $"?project={Uri.EscapeDataString(projectSlug)}";
 
-        var map = await client.GetFromJsonAsync(url, CollectorDtoJsonContext.Default.ServiceMapDto, ct).ConfigureAwait(false);
+        var map = await client.GetFromJsonAsync<ServiceMapDto>(url, ct).ConfigureAwait(false);
 
         if (map is null or { Nodes.Count: 0 })
             return "No service map data available yet. Service maps are built from trace data.";

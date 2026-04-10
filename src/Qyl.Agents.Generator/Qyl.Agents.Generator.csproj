@@ -1,0 +1,43 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Qyl.Agents.Generator</RootNamespace>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Description>Source generator that transforms [Tool]-annotated methods into MCP-callable tools with OTel instrumentation.</Description>
+    <PackageTags>qyl;agents;mcp;source-generator;opentelemetry</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System"/>
+    <Using Include="System.Collections.Generic"/>
+    <Using Include="System.Linq"/>
+    <Using Include="System.Threading"/>
+    <Using Include="System.Collections.Immutable"/>
+    <Using Include="System.Globalization"/>
+    <Using Include="Microsoft.CodeAnalysis"/>
+    <Using Include="Microsoft.CodeAnalysis.CSharp"/>
+    <Using Include="Microsoft.CodeAnalysis.CSharp.Syntax"/>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+    <Using Include="ANcpLua.Roslyn.Utilities.Models"/>
+    <Using Include="ANcpLua.Roslyn.Utilities.Contexts"/>
+  </ItemGroup>
+
+  <!-- Place analyzer DLL in correct nupkg path (required when IncludeBuildOutput=false) -->
+  <ItemGroup>
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Qyl.Agents.Abstractions\Qyl.Agents.Abstractions.csproj"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+</Project>

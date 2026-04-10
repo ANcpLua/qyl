@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4259710+00:00
+//     Generated: 2026-04-09T04:24:58.6007060+00:00
 //     Models for Qyl.Domains
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate

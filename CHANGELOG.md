@@ -4,6 +4,11 @@
 
 ### Added
 
+- **MCP collector concurrency limiter**: Added `CollectorConcurrencyLimiter` delegating handler
+  that throttles concurrent HTTP requests to the collector via `SemaphoreSlim` (default 5,
+  configurable via `QYL_COLLECTOR_MAX_CONCURRENT`). Prevents autonomous agents from saturating
+  DuckDB's single-writer path. Queued requests time out after 30s and proceed to avoid deadlock.
+
 - **Agenting contracts plane**: Added `src/qyl.contracts/Agenting/` with immutable run/governance
   contracts for V2 work, including run phases/statuses, capability descriptors, approval records,
   artifact/evidence records, validation/policy checkpoints, ledger events, and canonical

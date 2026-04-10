@@ -10,8 +10,14 @@ namespace qyl.mcp.Tools;
 ///     Provides fingerprinted error groups, event details, similarity search, and timeline analysis.
 /// </summary>
 [McpServerToolType]
-internal sealed class ErrorTools(HttpClient client)
+public sealed class ErrorTools(HttpClient client)
 {
+    /// <summary>Lists fingerprinted error groups (issues) with optional filtering.</summary>
+    /// <param name="status">Filter by issue status (e.g. 'unresolved', 'resolved').</param>
+    /// <param name="priority">Filter by priority level (e.g. 'critical', 'high').</param>
+    /// <param name="level">Filter by error level (e.g. 'error', 'warning', 'fatal').</param>
+    /// <param name="limit">Maximum number of issues to return.</param>
+    /// <returns>A table of error issues with status, priority, and occurrence counts.</returns>
     [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -70,6 +76,11 @@ internal sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
+    /// <summary>Retrieves detailed information about a specific error issue, optionally with recent events.</summary>
+    /// <param name="issueId">The issue ID to retrieve.</param>
+    /// <param name="includeEvents">Whether to include recent events with stack traces.</param>
+    /// <param name="eventLimit">Maximum number of events to return.</param>
+    /// <returns>Detailed issue metadata and optional recent event list.</returns>
     [McpServerTool(Name = "qyl.get_error_issue", Title = "Get Error Issue",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -164,6 +175,10 @@ internal sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
+    /// <summary>Finds errors similar to a given span using vector embedding clusters.</summary>
+    /// <param name="spanId">The span ID to find similar errors for.</param>
+    /// <param name="limit">Maximum number of similar spans to return.</param>
+    /// <returns>A list of similar spans with cluster labels and similarity scores.</returns>
     [McpServerTool(Name = "qyl.find_similar_errors", Title = "Find Similar Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -205,6 +220,11 @@ internal sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
+    /// <summary>Retrieves error occurrence frequency over time for trend analysis.</summary>
+    /// <param name="issueId">The issue ID to get timeline for.</param>
+    /// <param name="hours">Time window in hours.</param>
+    /// <param name="bucketMinutes">Bucket size in minutes for time aggregation.</param>
+    /// <returns>Time-bucketed occurrence counts with an ASCII sparkline.</returns>
     [McpServerTool(Name = "qyl.get_error_timeline", Title = "Get Error Timeline",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

@@ -30,6 +30,7 @@ public static class CollectorEndpointExtensions
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
+        otlp.MapPost("/profiles", IngestOtlpProfilesAsync);
 
         // REST API route group (/api/v1)
         var api = app.MapGroup("/api/v1");
@@ -49,6 +50,11 @@ public static class CollectorEndpointExtensions
         // Logs
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/logs/live", StreamLogsLiveAsync);
+
+        // Profiles
+        api.MapGet("/profiles", GetProfilesAsync);
+        api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
+        api.MapGet("/traces/{traceId}/profiles", GetTraceProfilesAsync);
 
         // GenAI
         api.MapGet("/genai/stats", GetGenAiStatsAsync);
@@ -83,9 +89,7 @@ public static class CollectorEndpointExtensions
         app.MapAutofixEndpoints();
         app.MapRegressionEndpoints();
         app.MapAgentHandoffEndpoints();
-        app.MapCodeReviewEndpoints();
         app.MapGitHubWebhookEndpoints();
-        app.MapLoomEndpoints();
         app.MapLoomSettingsEndpoints();
         app.MapCodingAgentEndpoints();
         app.MapLoomWorkerEndpoints();
@@ -357,6 +361,76 @@ public static class CollectorEndpointExtensions
     }
 
     // =========================================================================
+    // Profiles (OTel Profiles v1development)
+    // =========================================================================
+
+    private static async Task<IResult> IngestOtlpProfilesAsync(
+        HttpContext context,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        try
+        {
+            var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportProfilesServiceRequest>(ct);
+
+            if (otlpData?.ResourceProfiles is null)
+                return Results.BadRequest(new ErrorResponse("Invalid OTLP profiles format"));
+
+            var results = OtlpConverter.ConvertProfilesToNormalizedRows(otlpData);
+
+            if (results.Count is 0) return Results.Accepted();
+
+            await store.InsertProfilesAsync(results, ct);
+            return Results.Accepted();
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpProfilesEndpoint");
+            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
+            return Results.BadRequest(new ErrorResponse("OTLP profiles parse error", ex.Message));
+        }
+    }
+
+    private static async Task<IResult> GetProfilesAsync(
+        DuckDbStore store,
+        string? session,
+        string? trace,
+        string? service,
+        string? sampleType,
+        int? limit,
+        CancellationToken ct)
+    {
+        var profiles = await store.GetProfilesAsync(
+            sessionId: session,
+            traceId: trace,
+            serviceName: service,
+            sampleType: sampleType,
+            limit: limit ?? 100,
+            ct: ct);
+
+        return Results.Ok(new { profiles, total = profiles.Count });
+    }
+
+    private static async Task<IResult> GetProfileByIdAsync(
+        string profileId,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        var detail = await store.GetProfileDetailAsync(profileId, ct);
+        return detail is not null ? Results.Ok(detail) : Results.NotFound();
+    }
+
+    private static async Task<IResult> GetTraceProfilesAsync(
+        string traceId,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
+        return Results.Ok(new { profiles, total = profiles.Count });
+    }
+
+    // =========================================================================
     // GenAI
     // =========================================================================
 
@@ -434,17 +508,18 @@ public static class CollectorEndpointExtensions
             {
                 "spans" or "traces" => await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
                 "logs" => await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
+                "profiles" => await store.ClearAllProfilesAsync(ct).ConfigureAwait(false),
                 "sessions" => await store.ClearAllSessionsAsync(ct).ConfigureAwait(false),
                 _ => throw new ArgumentException($"Unknown telemetry type: {type}")
             };
-            return TypedResults.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, type));
+            return TypedResults.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, 0, type));
         }
 
         var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
         ringBuffer.Clear();
 
         return TypedResults.Ok(new ClearTelemetryResponse(
-            result.SpansDeleted, result.LogsDeleted, result.SessionsDeleted, 0, "all"));
+            result.SpansDeleted, result.LogsDeleted, result.ProfilesDeleted, result.SessionsDeleted, 0, "all"));
 
         static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
         {
@@ -491,6 +566,7 @@ public static class CollectorEndpointExtensions
                 Tracing = true,
                 Grpc = true,
                 GenAi = true,
+                Profiles = true,
                 Copilot = false,
                 EmbeddedDashboard = hasEmbeddedDashboard
             },
@@ -559,5 +635,11 @@ public static class CollectorEndpointExtensions
 internal static partial class OtlpLogsLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception ex);
+}
+
+internal static partial class OtlpProfilesLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP profiles payload")]
     public static partial void FailedToProcessPayload(ILogger logger, Exception ex);
 }

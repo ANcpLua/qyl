@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-10T22:25:09.0099020+00:00
+//     Generated: 2026-04-09T04:24:58.6012430+00:00
 //     Models for Qyl.Streaming
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate

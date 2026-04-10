@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
+    <Using Include="System.Diagnostics"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -34,7 +35,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include=".mcp\server.json" Pack="true" PackagePath="/.mcp/"/>
     <None Include="README.md" Pack="true" PackagePath="/"/>
   </ItemGroup>
 
@@ -44,6 +44,8 @@
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <!-- Qyl.Contracts is now a ProjectReference in the monorepo -->
+    <!-- <PackageReference Include="Qyl.Contracts"/> -->
     <PackageReference Include="ModelContextProtocol"/>
     <PackageReference Include="ModelContextProtocol.AspNetCore"/>
     <PackageReference Include="OpenTelemetry.Api"/>
@@ -56,15 +58,11 @@
     <PackageReference Include="OpenAI"/>
   </ItemGroup>
 
-  <!-- Reference protocol only - communicate with collector via HTTP -->
+  <!-- Source generator: compile-time tool manifest -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
-  </ItemGroup>
-
-  <!-- Source generator: compile-time tool manifest, telemetry interceptors -->
-  <ItemGroup>
-    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
+    <ProjectReference Include="..\qyl.mcp.generators\qyl.mcp.generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
   </ItemGroup>
 
 </Project>

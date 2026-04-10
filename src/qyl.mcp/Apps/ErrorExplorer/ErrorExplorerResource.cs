@@ -10,6 +10,9 @@ namespace qyl.mcp.Apps.ErrorExplorer;
 [McpServerResourceType]
 public sealed class ErrorExplorerResource
 {
+    /// <summary>
+    ///     Returns the Error Explorer HTML content as an MCP resource.
+    /// </summary>
     [McpServerResource(
         UriTemplate = "ui://qyl/error-explorer",
         Name = "error-explorer",

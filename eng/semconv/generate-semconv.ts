@@ -97,6 +97,8 @@ const CONFIG = {
         "user", "enduser", "geo", "client", "server", "service", "telemetry",
         // Observe
         "browser", "session", "exception", "error", "log", "feature_flag", "otel", "test",
+        // Profiling (v1development, Development stability)
+        "profile", "pprof",
         // Ops
         "cicd", "deployment",
         // Vendor AI
@@ -948,6 +950,10 @@ function prefixToClassName(prefix: string): string {
 function attrToCSharpPropName(attr: string, prefix: string): string {
     // gen_ai.request.model with prefix gen_ai -> RequestModel
     // gen_ai.system with prefix gen_ai.system -> Value (fallback for exact match)
+    if (!attr || !prefix) {
+        // Fallback: PascalCase the full attribute name
+        return (attr ?? "Unknown").split(/[._]/).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join("");
+    }
     if (attr === prefix || attr.length <= prefix.length) {
         // Extract last segment as the property name
         const parts = attr.split(".");

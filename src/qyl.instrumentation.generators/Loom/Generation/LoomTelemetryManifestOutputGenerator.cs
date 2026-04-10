@@ -50,18 +50,17 @@ internal static class LoomTelemetryManifestOutputGenerator
                 foreach (var parameter in tool.Parameters)
                 {
                     sb.AppendLine("new(");
-                    using (sb.BeginBlock())
-                    {
-                        sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"{tool.Name}.{parameter.Name}")},");
-                        sb.AppendLine($"{LoomGenerationHelpers.TypeOf(parameter.TypeFullyQualified)},");
-                        sb.AppendLine(parameter.IsNullable ? "true," : "false,");
-                        sb.AppendLine(parameter.HasDefaultValue ? "true," : "false,");
-                        sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.DefaultValueLiteral)},");
-                        sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.Description)},");
-                        sb.AppendLine(parameter.IsSchemaVisible ? "true," : "false,");
-                        sb.AppendLine(parameter.IsInfrastructureBound ? "true," : "false,");
-                        AppendStringList(sb, parameter.EnumValues);
-                    }
+
+                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"{tool.Name}.{parameter.Name}")},");
+                    sb.AppendLine($"{LoomGenerationHelpers.TypeOf(parameter.TypeFullyQualified)},");
+                    sb.AppendLine(parameter.IsNullable ? "true," : "false,");
+                    sb.AppendLine(parameter.HasDefaultValue ? "true," : "false,");
+                    sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.DefaultValueLiteral)},");
+                    sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(parameter.Description)},");
+                    sb.AppendLine(parameter.IsSchemaVisible ? "true," : "false,");
+                    sb.AppendLine(parameter.IsInfrastructureBound ? "true," : "false,");
+                    AppendStringList(sb, parameter.EnumValues);
+
                     sb.AppendLine("),");
                 }
             }
@@ -87,14 +86,13 @@ internal static class LoomTelemetryManifestOutputGenerator
                                      .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine(GetTypeExpression(tool.OutputTypeFullyQualified) + ",");
-                    sb.AppendLine(GetTypeExpression(tool.StructuredOutputTypeFullyQualified) + ",");
-                    sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(tool.Result.ResultSchemaHint)},");
-                    sb.AppendLine(tool.Result.HasStructuredOutput ? "true," : "false,");
-                    sb.AppendLine(tool.Result.IsSchemaVisible ? "true," : "false,");
-                }
+
+                sb.AppendLine(GetTypeExpression(tool.OutputTypeFullyQualified) + ",");
+                sb.AppendLine(GetTypeExpression(tool.StructuredOutputTypeFullyQualified) + ",");
+                sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(tool.Result.ResultSchemaHint)},");
+                sb.AppendLine(tool.Result.HasStructuredOutput ? "true," : "false,");
+                sb.AppendLine(tool.Result.IsSchemaVisible ? "true" : "false");
+
                 sb.AppendLine("),");
             }
         }
@@ -119,17 +117,16 @@ internal static class LoomTelemetryManifestOutputGenerator
                                      .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
-                    sb.AppendLine(tool.IsAwaitable ? "true," : "false,");
-                    sb.AppendLine(tool.ReturnsValue ? "true," : "false,");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
-                    AppendStringList(sb, tool.RequiredCapabilities);
-                }
+
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+                sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+                sb.AppendLine(tool.IsAwaitable ? "true," : "false,");
+                sb.AppendLine(tool.ReturnsValue ? "true," : "false,");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
+                AppendStringList(sb, tool.RequiredCapabilities);
+
                 sb.AppendLine("),");
             }
         }
@@ -154,19 +151,18 @@ internal static class LoomTelemetryManifestOutputGenerator
                                      .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
-                    sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
-                    sb.AppendLine($"{tool.Budget.MaxAttempts},");
-                    sb.AppendLine($"{tool.Budget.MaxToolCalls},");
-                    sb.AppendLine($"{tool.Budget.MaxTokens},");
-                    AppendStringList(sb, tool.RequiredCapabilities);
-                }
+
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+                sb.AppendLine($"{LoomGenerationHelpers.TypeOf(tool.ContainingTypeFullyQualified)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.MethodName)},");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+                sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
+                sb.AppendLine($"{tool.Budget.MaxAttempts},");
+                sb.AppendLine($"{tool.Budget.MaxToolCalls},");
+                sb.AppendLine($"{tool.Budget.MaxTokens},");
+                AppendStringList(sb, tool.RequiredCapabilities);
+
                 sb.AppendLine("),");
             }
         }
@@ -222,17 +218,16 @@ internal static class LoomTelemetryManifestOutputGenerator
         string? description)
     {
         sb.AppendLine("new(");
-        using (sb.BeginBlock())
-        {
-            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(kind)},");
-            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(name)},");
-            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(fullyQualifiedType)},");
-            sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(memberName)},");
-            sb.AppendLine(phase is null
-                ? "null,"
-                : $"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){phase.Value},");
-            sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(description)}");
-        }
+
+        sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(kind)},");
+        sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(name)},");
+        sb.AppendLine($"{LoomGenerationHelpers.TypeOf(fullyQualifiedType)},");
+        sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(memberName)},");
+        sb.AppendLine(phase is null
+            ? "null,"
+            : $"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){phase.Value},");
+        sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(description)}");
+
         sb.AppendLine("),");
     }
 
@@ -246,14 +241,14 @@ internal static class LoomTelemetryManifestOutputGenerator
         {
             sb.AppendLine(
                 "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomInterceptorManifest InterceptorManifest => new(");
-            sb.BeginBlock(null);
+    
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolInterceptorDescriptor>(),");
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepInterceptorDescriptor>(),");
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowInterceptorDescriptor>()");
-            sb.EndBlock(null);
+    
             sb.AppendLine(");");
             sb.AppendLine();
             return;
@@ -261,11 +256,11 @@ internal static class LoomTelemetryManifestOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomInterceptorManifest InterceptorManifest => new(");
-        sb.BeginBlock(null);
+
         AppendToolInterceptorArray(sb, tools);
         AppendStepInterceptorArray(sb, steps);
         AppendWorkflowInterceptorArray(sb, workflows);
-        sb.EndBlock(null);
+
         sb.AppendLine(");");
         sb.AppendLine();
     }
@@ -289,15 +284,14 @@ internal static class LoomTelemetryManifestOutputGenerator
                                      .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"execute_tool {tool.Name}")},");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
-                    AppendStringListWithTrailingComma(sb, tool.RequiredCapabilities);
-                    sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect}");
-                }
+
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(tool.Name)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"execute_tool {tool.Name}")},");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){tool.Phase},");
+                AppendStringListWithTrailingComma(sb, tool.RequiredCapabilities);
+                sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect}");
+
                 sb.AppendLine("),");
             }
         }
@@ -322,13 +316,12 @@ internal static class LoomTelemetryManifestOutputGenerator
             foreach (var step in steps.OrderBy(static step => step.Id, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(step.Id)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"executor.process {step.Id}")},");
-                    sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){step.Phase},");
-                    sb.AppendLine($"{LoomGenerationHelpers.TypeOf(step.ExecutorTypeFullyQualified)}");
-                }
+
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(step.Id)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"executor.process {step.Id}")},");
+                sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.LoomPhase){step.Phase},");
+                sb.AppendLine($"{LoomGenerationHelpers.TypeOf(step.ExecutorTypeFullyQualified)}");
+
                 sb.AppendLine("),");
             }
         }
@@ -353,12 +346,11 @@ internal static class LoomTelemetryManifestOutputGenerator
             foreach (var workflow in workflows.OrderBy(static workflow => workflow.Id, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
-                using (sb.BeginBlock())
-                {
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(workflow.Id)},");
-                    sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"workflow.run {workflow.Id}")},");
-                    AppendStringList(sb, workflow.StepIds);
-                }
+
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(workflow.Id)},");
+                sb.AppendLine($"{LoomGenerationHelpers.StringLiteral($"workflow.run {workflow.Id}")},");
+                AppendStringList(sb, workflow.StepIds);
+
                 sb.AppendLine("),");
             }
         }

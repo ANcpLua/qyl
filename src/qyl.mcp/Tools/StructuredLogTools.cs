@@ -11,8 +11,16 @@ namespace qyl.mcp.Tools;
 ///     These are OpenTelemetry log records (not frontend console.log).
 /// </summary>
 [McpServerToolType]
-internal sealed class StructuredLogTools(HttpClient client)
+public sealed class StructuredLogTools(HttpClient client)
 {
+    /// <summary>Lists OTLP structured log records with optional filtering by session, trace, severity, or text.</summary>
+    /// <param name="sessionId">Filter by session ID.</param>
+    /// <param name="traceId">Filter by trace ID to correlate with distributed traces.</param>
+    /// <param name="level">Filter by severity level name (e.g. 'error', 'warn').</param>
+    /// <param name="minSeverity">Minimum severity number (1=Trace through 21=Fatal).</param>
+    /// <param name="search">Text to search in log body and attributes.</param>
+    /// <param name="limit">Maximum number of logs to return.</param>
+    /// <returns>Formatted list of structured logs with timestamps, severity, and attributes.</returns>
     [McpServerTool(Name = "qyl.list_structured_logs", Title = "List Structured Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -105,6 +113,9 @@ internal sealed class StructuredLogTools(HttpClient client)
             return sb.ToString();
         });
 
+    /// <summary>Retrieves all structured logs associated with a distributed trace, grouped by span.</summary>
+    /// <param name="traceId">The trace ID to get logs for.</param>
+    /// <returns>Logs ordered by timestamp and grouped by span ID.</returns>
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -163,6 +174,12 @@ internal sealed class StructuredLogTools(HttpClient client)
         });
     }
 
+    /// <summary>Searches structured logs by text pattern in body and attributes.</summary>
+    /// <param name="query">Text to search for in logs.</param>
+    /// <param name="minSeverity">Minimum severity number filter.</param>
+    /// <param name="hours">Time window in hours.</param>
+    /// <param name="limit">Maximum number of results to return.</param>
+    /// <returns>Matching logs with service name, trace ID, and context.</returns>
     [McpServerTool(Name = "qyl.search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -192,7 +209,7 @@ internal sealed class StructuredLogTools(HttpClient client)
 
         return CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/logs?search={Uri.EscapeDataString(query)}&limit={limit}&hours={hours}";
+            var url = $"/api/v1/logs?search={Uri.EscapeDataString(query)}&limit={limit}";
             if (minSeverity.HasValue)
                 url += $"&minSeverity={minSeverity.Value}";
 

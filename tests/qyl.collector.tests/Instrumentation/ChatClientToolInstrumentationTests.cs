@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Xunit;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 

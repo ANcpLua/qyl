@@ -26,6 +26,9 @@ public static class ActivitySources
     /// <summary>Agent operations source name.</summary>
     public const string Agent = "qyl.agent";
 
+    /// <summary>MCP protocol operations source name.</summary>
+    public const string Mcp = "qyl.mcp";
+
     /// <summary>Assembly containing the instrumentation.</summary>
     internal static readonly Assembly Assembly = typeof(ActivitySources).Assembly;
 
@@ -37,6 +40,7 @@ public static class ActivitySources
 
     private static ActivitySource? s_db;
     private static ActivitySource? s_agent;
+    private static ActivitySource? s_mcp;
 
     // Lazy-initialized Meter instances
     private static Meter? s_genAiMeter;
@@ -50,6 +54,9 @@ public static class ActivitySources
 
     /// <summary>ActivitySource for agent instrumentation.</summary>
     public static ActivitySource AgentSource => s_agent ??= new ActivitySource(Agent, Version);
+
+    /// <summary>ActivitySource for MCP protocol instrumentation.</summary>
+    public static ActivitySource McpSource => s_mcp ??= new ActivitySource(Mcp, Version);
 
     /// <summary>Meter for GenAI metrics.</summary>
     public static Meter GenAiMeter => s_genAiMeter ??= new Meter(GenAi, Version);

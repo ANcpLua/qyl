@@ -1,6 +1,7 @@
 # qyl.codexversion
 
-`qyl.codexversion` is a TypeScript-first prototype of an orchestration engine for running structured automation work across agents and plugins.
+`qyl.codexversion` is a TypeScript-first prototype of an orchestration engine 
+for running structured automation work across agents and plugins.
 
 The project is intentionally lightweight and schema-driven:
 

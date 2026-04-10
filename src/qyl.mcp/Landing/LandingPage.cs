@@ -2,10 +2,13 @@ namespace qyl.mcp.Landing;
 
 internal static class LandingPage
 {
-    private static readonly Lazy<string> CachedHtml = new(ReadEmbeddedHtml);
+    private static string? _cachedHtml;
 
-    public static string GetHtml(string mcpUrl) =>
-        CachedHtml.Value.Replace("{{MCP_URL}}", mcpUrl, StringComparison.Ordinal);
+    public static string GetHtml(string mcpUrl)
+    {
+        _cachedHtml ??= ReadEmbeddedHtml();
+        return _cachedHtml.Replace("{{MCP_URL}}", mcpUrl, StringComparison.Ordinal);
+    }
 
     private static string ReadEmbeddedHtml()
     {

@@ -18,6 +18,7 @@ public sealed class QylScope
     /// <summary>Narrow all queries to a specific session ID.</summary>
     public string? SessionId { get; }
 
+    /// <summary>Gets whether at least one scope dimension is set.</summary>
     public bool HasScope => ServiceName is not null || SessionId is not null;
 
     /// <summary>Reads QYL_SERVICE and QYL_SESSION from the process environment.</summary>

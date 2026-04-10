@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import {AlertCircle, ChevronDown, ChevronRight, Filter, Network, X} from 'lucide-react';
+import {AlertCircle, ChevronDown, ChevronRight, ExternalLink, Filter, Network, X} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
@@ -308,6 +308,19 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     )}
                 </div>
             </div>
+
+            {/* Investigate in Claude Code */}
+            <div>
+                <a
+                    href={`claude-cli://open?q=${encodeURIComponent(`analyze trace ${span.trace_id} span ${span.span_id}\n\nspan name: ${span.name}\nservice: ${getServiceName(span)}\nstatus: ${getStatusLabel(span.status.code)}\nduration: ${formatDuration(nsToMs(getDurationNs(span)))}`)}`}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                    <ExternalLink className="w-4 h-4"/>
+                    Investigate in Claude Code
+                </a>
+            </div>
+
+            <Separator/>
 
             {/* GenAI specific */}
             {genai.system && (

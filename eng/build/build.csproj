@@ -10,6 +10,7 @@
     <NukeRootDirectory>..</NukeRootDirectory>
     <NukeScriptDirectory>..</NukeScriptDirectory>
     <NukeTelemetryVersion>1</NukeTelemetryVersion>
+    <NukeExcludeConfig>True</NukeExcludeConfig>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

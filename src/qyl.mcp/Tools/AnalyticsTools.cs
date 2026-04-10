@@ -13,6 +13,15 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class AnalyticsTools(HttpClient client)
 {
+    /// <summary>Lists AI conversations captured by qyl, grouped by conversation ID.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', 'quarterly', or 'YYYY-MM'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <param name="page">Page number for pagination.</param>
+    /// <param name="pageSize">Results per page.</param>
+    /// <param name="hasErrors">When set, filters to conversations with or without errors.</param>
+    /// <param name="userId">Filters conversations by user ID.</param>
+    /// <param name="model">Filters conversations by model name.</param>
+    /// <returns>A formatted paginated list of conversations with metadata.</returns>
     [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -81,6 +90,9 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching conversations");
 
+    /// <summary>Retrieves the full timeline of a single AI conversation.</summary>
+    /// <param name="conversationId">The conversation ID obtained from <c>list_conversations</c>.</param>
+    /// <returns>A formatted conversation timeline with turns, tokens, and errors.</returns>
     [McpServerTool(Name = "qyl.get_conversation", Title = "Get Conversation",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -137,6 +149,10 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching conversation");
 
+    /// <summary>Identifies topics where the AI assistant fails to help users.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <returns>A list of coverage gaps with findings and recommendations.</returns>
     [McpServerTool(Name = "qyl.get_coverage_gaps", Title = "Get Coverage Gaps",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -194,6 +210,11 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching coverage gaps");
 
+    /// <summary>Identifies the most common topics users ask about via topic clustering.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <param name="minConversations">Minimum conversations required to form a cluster.</param>
+    /// <returns>Topic clusters ranked by conversation count.</returns>
     [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -244,6 +265,10 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching top questions");
 
+    /// <summary>Shows which knowledge sources are most cited by the AI.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <returns>Sources ranked by citation frequency.</returns>
     [McpServerTool(Name = "qyl.get_source_analytics", Title = "Get Source Analytics",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -287,6 +312,10 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching source analytics");
 
+    /// <summary>Tracks user satisfaction with AI answers via upvote/downvote feedback.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <returns>Satisfaction rate, feedback counts, and breakdowns by model and topic.</returns>
     [McpServerTool(Name = "qyl.get_satisfaction", Title = "Get Satisfaction",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -345,6 +374,12 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching satisfaction data");
 
+    /// <summary>Lists users who have interacted with the AI assistant.</summary>
+    /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
+    /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
+    /// <param name="page">Page number for pagination.</param>
+    /// <param name="pageSize">Results per page.</param>
+    /// <returns>A paginated list of users with activity summaries.</returns>
     [McpServerTool(Name = "qyl.list_users", Title = "List Users",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -393,6 +428,9 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching users");
 
+    /// <summary>Retrieves an individual user's conversation history and journey statistics.</summary>
+    /// <param name="userId">The user ID obtained from <c>list_users</c>.</param>
+    /// <returns>User journey with conversation history, tokens, and retention data.</returns>
     [McpServerTool(Name = "qyl.get_user_journey", Title = "Get User Journey",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

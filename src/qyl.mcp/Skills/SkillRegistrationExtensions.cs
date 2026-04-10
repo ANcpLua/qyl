@@ -5,8 +5,10 @@ using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Tools;
 using qyl.mcp.Tools.Analysis;
+using qyl.mcp.Tools.Auth;
 using qyl.mcp.Tools.Debug;
 using qyl.mcp.Tools.Discovery;
+using qyl.mcp.Tools.Errors;
 using qyl.mcp.Tools.Intelligence;
 using qyl.mcp.Tools.Logs;
 using qyl.mcp.Tools.Management;
@@ -65,7 +67,28 @@ internal static class SkillRegistrationExtensions
                 .WithTools<AnnotateTraceTool>()
                 .WithTools<MarkTraceReviewedTool>()
                 .WithTools<AnnotateSessionTool>()
-                .WithTools<UpdateSessionStatusTool>();
+                .WithTools<UpdateSessionStatusTool>()
+                // Identity
+                .WithTools<WhoamiTool>()
+                // Error inspection
+                .WithTools<GetBreadcrumbsTool>()
+                .WithTools<GetAttachmentsTool>()
+                .WithTools<GetTagDistributionTool>()
+                // Trace inspection
+                .WithTools<GetProfileTool>()
+                // Discovery
+                .WithTools<GetReleaseHealthTool>()
+                // Triage (error write ops)
+                .WithTools<SetErrorPriorityTool>()
+                .WithTools<MergeErrorsTool>()
+                .WithTools<LinkErrorsTool>()
+                .WithTools<SnoozeErrorTool>()
+                // Team management
+                .WithTools<CreateTeamTool>()
+                .WithTools<ListTeamsTool>()
+                // DSN management
+                .WithTools<CreateDsnTool>()
+                .WithTools<ListDsnsTool>();
         }
 
         // Health: storage stats, health check, system context

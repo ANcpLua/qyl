@@ -6,9 +6,22 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Logs;
 
+/// <summary>
+/// MCP tool that searches structured logs by query with pagination support.
+/// </summary>
+/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 public sealed class SearchLogsTool(HttpClient client)
 {
+    /// <summary>
+    /// Searches structured logs matching a query, returning a paginated list of log entries.
+    /// </summary>
+    /// <param name="query">The search query string.</param>
+    /// <param name="projectSlug">Optional project slug filter.</param>
+    /// <param name="cursor">Cursor for pagination.</param>
+    /// <param name="limit">Maximum results per page (1-100, default 25).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted paginated list of matching log entries.</returns>
     [McpServerTool(Name = "search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]

@@ -7,6 +7,7 @@ tags:
   - name: Traces
   - name: Logs
   - name: Metrics
+  - name: Profiles
   - name: Sessions
   - name: Errors
   - name: Deployments
@@ -426,7 +427,7 @@ paths:
     post:
       operationId: ConfiguratorApi_createJob
       description: Create a generation job
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -600,7 +601,7 @@ paths:
     post:
       operationId: ConfiguratorApi_createProfile
       description: Create generation profile
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -746,7 +747,7 @@ paths:
     post:
       operationId: ConfiguratorApi_saveSelections
       description: Save generation selections
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -921,7 +922,7 @@ paths:
     post:
       operationId: DeploymentsApi_create
       description: Record new deployment
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -2077,7 +2078,7 @@ paths:
     post:
       operationId: LogsApi_aggregate
       description: Aggregate logs
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -2195,7 +2196,7 @@ paths:
     post:
       operationId: LogsApi_search
       description: Search logs with complex query
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -2404,7 +2405,7 @@ paths:
     post:
       operationId: MetricsApi_query
       description: Query metric data points
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -2511,7 +2512,7 @@ paths:
     post:
       operationId: OnboardingApi_startHandshake
       description: Start a new handshake session
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -2690,11 +2691,251 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HandshakeVerifyRequest'
+  /api/v1/profiles:
+    get:
+      operationId: ProfilesApi_list
+      description: List profiles with filtering
+      parameters:
+        - name: sessionId
+          in: query
+          required: false
+          description: Session ID filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.SessionId'
+          explode: false
+        - name: traceId
+          in: query
+          required: false
+          description: Trace ID filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+          explode: false
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: sampleType
+          in: query
+          required: false
+          description: Sample type filter (e.g., cpu, alloc_objects, wall)
+          schema:
+            type: string
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Qyl.Storage.ProfileRecord'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Profiles
+  /api/v1/profiles/by-span/{spanId}:
+    get:
+      operationId: ProfilesApi_getBySpan
+      description: Get profiles for a span
+      parameters:
+        - name: spanId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.SpanId'
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Qyl.Storage.ProfileRecord'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Profiles
+  /api/v1/profiles/by-trace/{traceId}:
+    get:
+      operationId: ProfilesApi_getByTrace
+      description: Get profiles for a trace
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Qyl.Storage.ProfileRecord'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Profiles
+  /api/v1/profiles/{profileId}:
+    get:
+      operationId: ProfilesApi_get
+      description: Get a specific profile by ID
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Storage.ProfileRecord'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Profiles
   /api/v1/search:
     post:
       operationId: SearchApi_search
       description: Unified search across all entity types
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -3699,7 +3940,7 @@ paths:
     post:
       operationId: TracesApi_search
       description: Search traces
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4399,7 +4640,7 @@ paths:
     get:
       operationId: WorkspacesApi_getCurrent
       description: Get current workspace envelope
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4447,7 +4688,7 @@ paths:
     post:
       operationId: WorkspacesApi_heartbeat
       description: Register workspace heartbeat
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4562,7 +4803,7 @@ paths:
     post:
       operationId: WorkspacesApi_createProject
       description: Create a new project
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4724,7 +4965,7 @@ paths:
     get:
       operationId: health_check
       description: Health check endpoint
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4738,7 +4979,7 @@ paths:
     get:
       operationId: health_liveness
       description: Liveness probe
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -4750,7 +4991,7 @@ paths:
     get:
       operationId: health_readiness
       description: Readiness probe
-      parameters: [ ]
+      parameters: []
       responses:
         '200':
           description: The request has succeeded.
@@ -8824,6 +9065,107 @@ components:
           type: boolean
           description: Whether trace contains errors
       description: Complete trace containing all related spans
+    Qyl.Storage.ProfileRecord:
+      type: object
+      required:
+        - profileId
+        - timeUnixNano
+        - durationNano
+        - sampleCount
+      properties:
+        profileId:
+          type: string
+          description: Unique profile identifier
+          x-duckdb-primary-key: true
+          x-duckdb-column: profile_id
+        traceId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Correlated trace ID (from Link table)
+          x-duckdb-index: idx_profiles_trace_id
+          x-duckdb-column: trace_id
+        spanId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Correlated span ID (from Link table)
+          x-duckdb-column: span_id
+        sessionId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SessionId'
+          description: Session identifier for grouping related profiles
+          x-duckdb-index: idx_profiles_session_id
+          x-duckdb-column: session_id
+        timeUnixNano:
+          type: integer
+          format: int64
+          description: Profile start timestamp in nanoseconds since epoch
+          x-duckdb-index: idx_profiles_time
+          x-duckdb-column: time_unix_nano
+        durationNano:
+          type: integer
+          format: int64
+          description: Profile duration in nanoseconds
+          x-duckdb-column: duration_nano
+        sampleCount:
+          type: integer
+          format: int32
+          description: Number of samples in this profile
+          x-duckdb-column: sample_count
+        sampleType:
+          type: string
+          description: Sample type (e.g., cpu, alloc_objects, wall)
+          x-promoted: true
+          x-duckdb-index: idx_profiles_sample_type
+          x-duckdb-column: sample_type
+        sampleUnit:
+          type: string
+          description: Sample unit (e.g., nanoseconds, bytes, count)
+          x-duckdb-column: sample_unit
+        originalPayloadFormat:
+          type: string
+          description: Original payload format
+          x-duckdb-column: original_payload_format
+        serviceName:
+          type: string
+          description: Service name from resource attributes
+          x-promoted: true
+          x-duckdb-index: idx_profiles_service
+          x-duckdb-column: service_name
+        profileFrameType:
+          type: string
+          description: Profile frame type (dotnet, jvm, cpython, etc.)
+          x-promoted: true
+          x-duckdb-column: profile_frame_type
+        attributesJson:
+          type: string
+          description: Profile attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: attributes_json
+        resourceJson:
+          type: string
+          description: Resource attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: resource_json
+        profileDataJson:
+          type: string
+          description: Full profile structure as JSON blob (denormalized for single-query access)
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: profile_data_json
+        schemaUrl:
+          type: string
+          description: OTel semantic convention schema URL
+          x-duckdb-type: VARCHAR(256)
+          x-duckdb-column: schema_url
+        createdAt:
+          type: string
+          format: date-time
+          description: Row creation timestamp
+          x-internal: true
+          x-duckdb-type: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          x-duckdb-column: created_at
+      description: OpenTelemetry profile record for storage and query
+      x-csharp-type: ProfileStorageRow
+      x-duckdb-table: profiles
     Qyl.Storage.SpanRecord:
       type: object
       required:
@@ -9361,7 +9703,7 @@ components:
 servers:
   - url: https://api.staging.qyl.dev
     description: QYL Staging API
-    variables: { }
+    variables: {}
   - url: https://api.qyl.dev
     description: QYL Production API
-    variables: { }
+    variables: {}

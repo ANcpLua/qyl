@@ -6,6 +6,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
+/// <summary>
+/// Searches debugging sessions by query, returning a paginated list with status, service, and span count.
+/// </summary>
+/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 public sealed class SearchSessionsTool(HttpClient client)
 {
@@ -17,6 +21,14 @@ public sealed class SearchSessionsTool(HttpClient client)
         OpenWorld = true)]
     [Description(
         "Search debugging sessions by query. Returns paginated list of sessions with status, service, and span count.")]
+    /// <summary>
+    /// Searches debugging sessions matching the given query with paginated results.
+    /// </summary>
+    /// <param name="query">Search query (e.g. 'failed payments', 'service:api-gateway').</param>
+    /// <param name="cursor">Optional pagination cursor from previous results.</param>
+    /// <param name="limit">Maximum results per page (1-100, default 25).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A formatted paginated list of matching sessions.</returns>
     public async Task<string> SearchSessions(
         [Description("Search query (e.g. 'failed payments', 'service:api-gateway')")]
         string query,
@@ -34,11 +46,8 @@ public sealed class SearchSessionsTool(HttpClient client)
 
         var result = await client.GetFromJsonAsync<PagedResult<SessionSummaryDto>>(url, ct).ConfigureAwait(false);
 
-        if (result is null)
-            return "No sessions found matching the query.";
-
         return ResponseFormatter.FormatPagedList(
-            result,
+            result!,
             "Sessions",
             s => $"- `{s.SessionId}` | **{s.Status}** | {s.ServiceName} | {s.SpanCount} spans | {s.CreatedAt}",
             "search_sessions",

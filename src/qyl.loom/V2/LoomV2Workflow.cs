@@ -1,9 +1,13 @@
+using Qyl.Instrumentation.Instrumentation.Loom;
+
 namespace Qyl.Loom.V2;
 
 [LoomWorkflow(
     "loom.v2.full_cycle",
+    typeof(LoomV2RunState),
+    "loom.v2.detect", "loom.v2.plan", "loom.v2.fix", "loom.v2.verify", "loom.v2.report", "loom.v2.close",
     Description = "Fresh workflow per run: detect -> plan -> fix -> verify -> report -> close.")]
-public static class LoomV2WorkflowFactory
+public static partial class LoomV2WorkflowFactory
 {
     public static LoomV2WorkflowRun Create(LoomV2RunContext context) => new(context);
 }

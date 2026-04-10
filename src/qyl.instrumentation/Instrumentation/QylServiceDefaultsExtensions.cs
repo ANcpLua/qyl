@@ -233,10 +233,11 @@ public static class QylServiceDefaultsExtensions
                     foreach (var source in SGenAiActivitySources)
                         tracing.AddSource(source);
 
-                    // Db + traced + agent instrumentation
+                    // Db + traced + agent + MCP instrumentation
                     tracing.AddSource(ActivitySources.Db);
                     tracing.AddSource(ActivitySources.Traced);
                     tracing.AddSource(ActivitySources.Agent);
+                    tracing.AddSource(ActivitySources.Mcp);
 
                     // Custom sources from options
                     foreach (var source in options.AdditionalActivitySources)

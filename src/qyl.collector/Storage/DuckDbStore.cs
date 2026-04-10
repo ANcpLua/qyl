@@ -117,6 +117,12 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Private Methods - Multi-Row Insert SQL Builders (with caching)
     // ==========================================================================
 
+    /// <summary>
+    ///     Maximum profiles per multi-row INSERT statement.
+    ///     Generator produces ProfileStorageRow.ColumnCount; 50 * ColumnCount stays under DuckDB parameter limit.
+    /// </summary>
+    private const int MaxProfilesPerBatch = 50;
+
     // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
     private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
     private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
@@ -604,6 +610,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
 
+    public Task<int> ClearAllProfilesAsync(CancellationToken ct = default) => ClearTableAsync("profiles", ct);
+
     public Task<int> ClearAllSessionsAsync(CancellationToken ct = default) => ClearTableAsync("session_entities", ct);
 
     private async Task<int> ClearTableAsync(string tableName, CancellationToken ct) =>
@@ -623,7 +631,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             // Use transaction for atomic clear
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
-            int spansDeleted, logsDeleted, sessionsDeleted;
+            int spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted;
 
             await using (var cmd = con.CreateCommand())
             {
@@ -642,13 +650,27 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             await using (var cmd = con.CreateCommand())
             {
                 cmd.Transaction = tx;
+                cmd.CommandText = """
+                                  DELETE FROM profile_functions;
+                                  DELETE FROM profile_locations;
+                                  DELETE FROM profile_mappings;
+                                  DELETE FROM profile_samples;
+                                  DELETE FROM profile_stacks;
+                                  DELETE FROM profiles;
+                                  """;
+                profilesDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
                 cmd.CommandText = "DELETE FROM session_entities";
                 sessionsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             await tx.CommitAsync(token).ConfigureAwait(false);
 
-            return new ClearTelemetryResult(spansDeleted, logsDeleted, sessionsDeleted);
+            return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted);
         }, ct).ConfigureAwait(false);
 
     // ==========================================================================
@@ -828,6 +850,200 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             logs.Add(MapLog(reader));
 
         return logs;
+    }
+
+    // ==========================================================================
+    // Profile Operations (OTel Profiles v1development)
+    // ==========================================================================
+
+    public async Task InsertProfilesAsync(IReadOnlyList<ProfileConversionResult> results, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (results.Count is 0)
+            return;
+
+        await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        // Insert header rows — uses generated AddParameters / ColumnList / ColumnCount from [DuckDbTable("profiles")]
+        var headers = results.Select(static r => r.Profile).ToList();
+        await InsertRowsBatchedAsync(tx, ProfileStorageRow.TableName, ProfileStorageRow.ColumnList, ProfileStorageRow.ColumnCount, headers, ProfileStorageRow.AddParameters, MaxProfilesPerBatch, ct);
+
+        // Insert child rows — collect across all profiles, insert per table
+        await InsertRowsBatchedAsync(tx, "profile_functions", "profile_id, ordinal, name, system_name, filename, start_line", 6,
+            results.SelectMany(static r => r.Functions).ToList(),
+            static (cmd, f) =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.ProfileId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.Ordinal });
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.Name ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.SystemName ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.Filename ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = f.StartLine ?? (object)DBNull.Value });
+            }, 200, ct);
+
+        await InsertRowsBatchedAsync(tx, "profile_locations", "profile_id, ordinal, mapping_ordinal, address, lines_json", 5,
+            results.SelectMany(static r => r.Locations).ToList(),
+            static (cmd, l) =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = l.ProfileId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = l.Ordinal });
+                cmd.Parameters.Add(new DuckDBParameter { Value = l.MappingOrdinal ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = l.Address is { } a ? (decimal)a : DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = l.LinesJson ?? (object)DBNull.Value });
+            }, 200, ct);
+
+        await InsertRowsBatchedAsync(tx, "profile_mappings", "profile_id, ordinal, filename, memory_start, memory_limit, file_offset", 6,
+            results.SelectMany(static r => r.Mappings).ToList(),
+            static (cmd, m) =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.ProfileId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.Ordinal });
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.Filename ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.MemoryStart is { } ms ? (decimal)ms : DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.MemoryLimit is { } ml ? (decimal)ml : DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = m.FileOffset is { } fo ? (decimal)fo : DBNull.Value });
+            }, 200, ct);
+
+        await InsertRowsBatchedAsync(tx, "profile_samples", "profile_id, ordinal, stack_ordinal, link_trace_id, link_span_id, values_json, timestamps_json", 7,
+            results.SelectMany(static r => r.Samples).ToList(),
+            static (cmd, s) =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.ProfileId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.Ordinal });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.StackOrdinal ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.LinkTraceId ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.LinkSpanId ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.ValuesJson ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = s.TimestampsJson ?? (object)DBNull.Value });
+            }, 200, ct);
+
+        await InsertRowsBatchedAsync(tx, "profile_stacks", "profile_id, ordinal, location_ordinals_json", 3,
+            results.SelectMany(static r => r.Stacks).ToList(),
+            static (cmd, st) =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = st.ProfileId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = st.Ordinal });
+                cmd.Parameters.Add(new DuckDBParameter { Value = st.LocationOrdinalsJson ?? (object)DBNull.Value });
+            }, 200, ct);
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task InsertRowsBatchedAsync<T>(
+        DbTransaction tx, string table, string columns, int colCount,
+        IReadOnlyList<T> rows, Action<DuckDBCommand, T> addParams, int maxBatch, CancellationToken ct)
+    {
+        if (rows.Count is 0) return;
+        var offset = 0;
+        while (offset < rows.Count)
+        {
+            var chunk = Math.Min(maxBatch, rows.Count - offset);
+            await using var cmd = Connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = BuildMultiRowInsertSql(table, columns, colCount, chunk);
+            for (var i = 0; i < chunk; i++) addParams(cmd, rows[offset + i]);
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            offset += chunk;
+        }
+    }
+
+    public async Task<IReadOnlyList<ProfileStorageRow>> GetProfilesAsync(
+        string? sessionId = null,
+        string? traceId = null,
+        string? spanId = null,
+        string? serviceName = null,
+        string? sampleType = null,
+        int limit = 100,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var profiles = new List<ProfileStorageRow>();
+        var qb = new QueryBuilder();
+
+        if (!string.IsNullOrEmpty(sessionId))
+            qb.Add("session_id = $N", sessionId);
+        if (!string.IsNullOrEmpty(traceId))
+            qb.Add("trace_id = $N", traceId);
+        if (!string.IsNullOrEmpty(spanId))
+            qb.Add("span_id = $N", spanId);
+        if (!string.IsNullOrEmpty(serviceName))
+            qb.Add("service_name = $N", serviceName);
+        if (!string.IsNullOrEmpty(sampleType))
+            qb.Add("sample_type = $N", sampleType);
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"""
+                           SELECT profile_id, trace_id, span_id, session_id,
+                                  time_unix_nano, duration_nano, sample_count,
+                                  sample_type, sample_unit, original_payload_format,
+                                  service_name, profile_frame_type,
+                                  attributes_json, resource_json,
+                                  schema_url, created_at
+                           FROM profiles
+                           {qb.WhereClause}
+                           ORDER BY time_unix_nano DESC
+                           LIMIT {qb.NextParam}
+                           """;
+
+        qb.ApplyTo(cmd);
+        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 500) });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            profiles.Add(MapProfile(reader));
+        }
+
+        return profiles;
+    }
+
+    public async Task<ProfileDetail?> GetProfileDetailAsync(string profileId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        // Header
+        ProfileStorageRow? header = null;
+        await using (var cmd = lease.Connection.CreateCommand())
+        {
+            cmd.CommandText = "SELECT profile_id, trace_id, span_id, session_id, time_unix_nano, duration_nano, sample_count, sample_type, sample_unit, original_payload_format, service_name, profile_frame_type, attributes_json, resource_json, schema_url, created_at FROM profiles WHERE profile_id = $1 LIMIT 1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
+            await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            if (await r.ReadAsync(ct).ConfigureAwait(false)) header = MapProfile(r);
+        }
+
+        if (header is null) return null;
+
+        // Child tables — all keyed by profile_id
+        var functions = await ReadChildRows(lease.Connection, profileId, "SELECT profile_id, ordinal, name, system_name, filename, start_line FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
+            static r => new ProfileFunctionRow { ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), Name = r.Col(2).AsString, SystemName = r.Col(3).AsString, Filename = r.Col(4).AsString, StartLine = r.IsDBNull(5) ? null : r.GetInt64(5) }, ct);
+
+        var locations = await ReadChildRows(lease.Connection, profileId, "SELECT profile_id, ordinal, mapping_ordinal, address, lines_json FROM profile_locations WHERE profile_id = $1 ORDER BY ordinal",
+            static r => new ProfileLocationRow { ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), MappingOrdinal = r.IsDBNull(2) ? null : r.Col(2).GetInt32(0), Address = r.IsDBNull(3) ? null : r.Col(3).GetUInt64(0), LinesJson = r.Col(4).AsString }, ct);
+
+        var mappings = await ReadChildRows(lease.Connection, profileId, "SELECT profile_id, ordinal, filename, memory_start, memory_limit, file_offset FROM profile_mappings WHERE profile_id = $1 ORDER BY ordinal",
+            static r => new ProfileMappingRow { ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), Filename = r.Col(2).AsString, MemoryStart = r.IsDBNull(3) ? null : r.Col(3).GetUInt64(0), MemoryLimit = r.IsDBNull(4) ? null : r.Col(4).GetUInt64(0), FileOffset = r.IsDBNull(5) ? null : r.Col(5).GetUInt64(0) }, ct);
+
+        var samples = await ReadChildRows(lease.Connection, profileId, "SELECT profile_id, ordinal, stack_ordinal, link_trace_id, link_span_id, values_json, timestamps_json FROM profile_samples WHERE profile_id = $1 ORDER BY ordinal",
+            static r => new ProfileSampleRow { ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), StackOrdinal = r.IsDBNull(2) ? null : r.Col(2).GetInt32(0), LinkTraceId = r.Col(3).AsString, LinkSpanId = r.Col(4).AsString, ValuesJson = r.Col(5).AsString, TimestampsJson = r.Col(6).AsString }, ct);
+
+        var stacks = await ReadChildRows(lease.Connection, profileId, "SELECT profile_id, ordinal, location_ordinals_json FROM profile_stacks WHERE profile_id = $1 ORDER BY ordinal",
+            static r => new ProfileStackRow { ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), LocationOrdinalsJson = r.Col(2).AsString }, ct);
+
+        return new ProfileDetail { Profile = header, Functions = functions, Locations = locations, Mappings = mappings, Samples = samples, Stacks = stacks };
+    }
+
+    private static async Task<IReadOnlyList<T>> ReadChildRows<T>(DuckDBConnection connection, string profileId, string sql, Func<DbDataReader, T> mapper, CancellationToken ct)
+    {
+        var rows = new List<T>();
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
+        await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await r.ReadAsync(ct).ConfigureAwait(false)) rows.Add(mapper(r));
+        return rows;
     }
 
     private static void AddErrorUpsertParameters(DuckDBCommand cmd, ErrorEvent error, string errorId, DateTime now)
@@ -1236,6 +1452,27 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     /// <summary>
+    ///     Builds a multi-row INSERT SQL statement for any table.
+    /// </summary>
+    private static string BuildMultiRowInsertSql(string table, string columns, int colCount, int rowCount)
+    {
+        var sb = new StringBuilder(256);
+        sb.Append("INSERT INTO ").Append(table).Append(" (").Append(columns).Append(") VALUES ");
+        for (var i = 0; i < rowCount; i++)
+        {
+            if (i > 0) sb.Append(", ");
+            sb.Append('(');
+            for (var c = 0; c < colCount; c++)
+            {
+                if (c > 0) sb.Append(", ");
+                sb.Append('$').Append(i * colCount + c + 1);
+            }
+            sb.Append(')');
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
     ///     Adds span parameters to command in column order.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1395,6 +1632,19 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var manualLogsCmd = con.CreateCommand();
         manualLogsCmd.CommandText = DuckDbSchema.ManualLogsDdl;
         manualLogsCmd.ExecuteNonQuery();
+
+        // OTel Profiles (v1development) — normalized: 6 tables
+        using var profilesCmd = con.CreateCommand();
+        profilesCmd.CommandText = $"""
+                                   {DuckDbSchema.ProfilesDdl}
+                                   {DuckDbSchema.ProfileFunctionsDdl}
+                                   {DuckDbSchema.ProfileLocationsDdl}
+                                   {DuckDbSchema.ProfileMappingsDdl}
+                                   {DuckDbSchema.ProfileSamplesDdl}
+                                   {DuckDbSchema.ProfileStacksDdl}
+                                   {DuckDbSchema.ProfilesIndexesDdl}
+                                   """;
+        profilesCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = NormalizeGeneratedSchemaDdl(DuckDbSchema.GetSchemaDdl());
@@ -1584,6 +1834,28 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             SourceColumn = reader.Col(14).AsInt32,
             SourceMethod = reader.Col(15).AsString,
             CreatedAt = reader.Col(16).AsDateTimeOffset
+        };
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ProfileStorageRow MapProfile(DbDataReader reader) =>
+        new()
+        {
+            ProfileId = reader.GetString(0),
+            TraceId = reader.Col(1).AsString,
+            SpanId = reader.Col(2).AsString,
+            SessionId = reader.Col(3).AsString,
+            TimeUnixNano = reader.Col(4).GetUInt64(0),
+            DurationNano = reader.Col(5).GetUInt64(0),
+            SampleCount = reader.Col(6).GetInt32(0),
+            SampleType = reader.Col(7).AsString,
+            SampleUnit = reader.Col(8).AsString,
+            OriginalPayloadFormat = reader.Col(9).AsString,
+            ServiceName = reader.Col(10).AsString,
+            ProfileFrameType = reader.Col(11).AsString,
+            AttributesJson = reader.Col(12).AsString,
+            ResourceJson = reader.Col(13).AsString,
+            SchemaUrl = reader.Col(14).AsString,
+            CreatedAt = reader.Col(15).AsDateTimeOffset
         };
 
     private static void ValidateDuckDbSqlPath(string fullPath)
@@ -1811,9 +2083,10 @@ public sealed record InsightRow(
 /// </summary>
 /// <param name="SpansDeleted">Number of spans deleted.</param>
 /// <param name="LogsDeleted">Number of logs deleted.</param>
+/// <param name="ProfilesDeleted">Number of profiles deleted.</param>
 /// <param name="SessionsDeleted">Number of sessions deleted.</param>
-public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int SessionsDeleted)
+public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted, int SessionsDeleted)
 {
     /// <summary>Total number of records deleted across all tables.</summary>
-    public int TotalDeleted => SpansDeleted + LogsDeleted + SessionsDeleted;
+    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted + SessionsDeleted;
 }

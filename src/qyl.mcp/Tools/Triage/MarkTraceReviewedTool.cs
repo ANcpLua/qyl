@@ -6,6 +6,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
+/// <summary>
+/// Marks a trace as reviewed during triage.
+/// </summary>
+/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 public sealed class MarkTraceReviewedTool(HttpClient client)
 {
@@ -16,6 +20,12 @@ public sealed class MarkTraceReviewedTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Mark a trace as reviewed during triage.")]
+    /// <summary>
+    /// Posts a reviewed marker to the specified trace for triage tracking.
+    /// </summary>
+    /// <param name="traceId">The trace ID to mark as reviewed.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A success confirmation message.</returns>
     public async Task<string> MarkTraceReviewed(
         [Description("Trace ID to mark as reviewed")]
         string traceId,

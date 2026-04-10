@@ -15,8 +15,17 @@ public sealed partial class ExplorationInsightService(
     ILogger<ExplorationInsightService> logger,
     IChatClient? llm = null)
 {
+    private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+
     public async Task<ExplorationInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
+        if (_cache.TryGetValue(issueId, out var cached) && cached.ExpiresAt > TimeProvider.System.GetUtcNow())
+        {
+            LogCacheHit(issueId);
+            return cached.Insight;
+        }
+
         var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null)
         {
@@ -28,10 +37,12 @@ public sealed partial class ExplorationInsightService(
 
         LogGeneratingInsight(issueId, events.Count);
 
-        if (llm is not null)
-            return await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false);
+        var insight = llm is not null
+            ? await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false)
+            : GenerateHeuristic(issueId, issue, events);
 
-        return GenerateHeuristic(issueId, issue, events);
+        _cache[issueId] = new CachedInsight(insight, TimeProvider.System.GetUtcNow() + CacheTtl);
+        return insight;
     }
 
     private async Task<ExplorationInsight> GenerateWithLlmAsync(
@@ -139,4 +150,9 @@ public sealed partial class ExplorationInsightService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "LLM insight failed for {IssueId}, using heuristic")]
     private partial void LogLlmInsightFailed(string issueId, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Cache hit for insight {IssueId}")]
+    private partial void LogCacheHit(string issueId);
+
+    private sealed record CachedInsight(ExplorationInsight Insight, DateTimeOffset ExpiresAt);
 }

@@ -23,43 +23,30 @@ internal static class LoomContractOutputGenerator
 
         sb.AppendLine(
             "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractDescriptor Descriptor { get; } = new(");
-        sb.BeginBlock(null);
-        {
-            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(contract.Name)},");
-            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(contract.FullyQualifiedTypeName)},");
+        sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(contract.Name)},");
+        sb.AppendLine($"{LoomGenerationHelpers.TypeOf(contract.FullyQualifiedTypeName)},");
 
-            if (contract.Properties.IsEmpty)
+        if (contract.Properties.IsEmpty)
+        {
+            sb.AppendLine(
+                "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractPropertyDescriptor>()");
+        }
+        else
+        {
+            sb.AppendLine(
+                "new global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractPropertyDescriptor[]");
+            using (sb.BeginBlock())
             {
-                sb.AppendLine(
-                    "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractPropertyDescriptor>()");
-            }
-            else
-            {
-                sb.AppendLine(
-                    "new global::Qyl.Instrumentation.Instrumentation.Loom.LoomContractPropertyDescriptor[]");
-                using (sb.BeginBlock())
+                foreach (var property in contract.Properties)
                 {
-                    foreach (var property in contract.Properties)
-                    {
-                        sb.AppendLine("new(");
-                        using (sb.BeginBlock())
-                        {
-                            sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(property.Name)},");
-                            sb.AppendLine($"{LoomGenerationHelpers.TypeOf(property.TypeFullyQualified)},");
-                            sb.AppendLine(property.IsNullable ? "true," : "false,");
-                            sb.AppendLine(property.IsRequired ? "true," : "false,");
-                            if (property.EnumValues.IsEmpty)
-                                sb.AppendLine("global::System.Array.Empty<string>()");
-                            else
-                                sb.AppendLine(
-                                    $"new string[] {{ {string.Join(", ", property.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}");
-                        }
-                        sb.AppendLine("),");
-                    }
+                    var enumValues = property.EnumValues.IsEmpty
+                        ? "global::System.Array.Empty<string>()"
+                        : $"new string[] {{ {string.Join(", ", property.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}";
+
+                    sb.AppendLine($"new({LoomGenerationHelpers.StringLiteral(property.Name)}, {LoomGenerationHelpers.TypeOf(property.TypeFullyQualified)}, {(property.IsNullable ? "true" : "false")}, {(property.IsRequired ? "true" : "false")}, {enumValues}),");
                 }
             }
         }
-        sb.EndBlock(null);
         sb.AppendLine(");");
         sb.AppendLine();
 

@@ -6,7 +6,12 @@ namespace Qyl.Loom.CompilerDemo;
 [LoomStep("loom.demo.detect", Phase = LoomPhase.Detect, Description = "Detect regression and localize evidence.")]
 internal sealed partial class LoomDemoDetectExecutor() : Executor("loom.demo.detect")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoAnalyzeRegressionInput, LoomDemoRegressionAnalysis>(HandleAsync);
+        return protocol;
+    }
+
     private ValueTask<LoomDemoRegressionAnalysis> HandleAsync(
         LoomDemoAnalyzeRegressionInput input,
         IWorkflowContext context)
@@ -16,7 +21,12 @@ internal sealed partial class LoomDemoDetectExecutor() : Executor("loom.demo.det
 [LoomStep("loom.demo.plan", Phase = LoomPhase.Plan, Description = "Produce RCA and a bounded fix plan.")]
 internal sealed partial class LoomDemoPlanExecutor() : Executor("loom.demo.plan")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoRegressionAnalysis, LoomDemoFixPlan>(HandleAsync);
+        return protocol;
+    }
+
     private ValueTask<LoomDemoFixPlan> HandleAsync(
         LoomDemoRegressionAnalysis analysis,
         IWorkflowContext context)
@@ -30,7 +40,12 @@ internal sealed partial class LoomDemoPlanExecutor() : Executor("loom.demo.plan"
 [LoomStep("loom.demo.fix", Phase = LoomPhase.Fix, Description = "Generate a candidate patch proposal.")]
 internal sealed partial class LoomDemoFixExecutor() : Executor("loom.demo.fix")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoFixPlan, LoomDemoPatchProposal>(HandleAsync);
+        return protocol;
+    }
+
     private ValueTask<LoomDemoPatchProposal> HandleAsync(
         LoomDemoFixPlan plan,
         IWorkflowContext context)
@@ -44,7 +59,12 @@ internal sealed partial class LoomDemoFixExecutor() : Executor("loom.demo.fix")
 [LoomStep("loom.demo.verify", Phase = LoomPhase.Verify, Description = "Verify patch safety and effect.")]
 internal sealed partial class LoomDemoVerifyExecutor() : Executor("loom.demo.verify")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoPatchProposal, LoomDemoVerificationResult>(HandleAsync);
+        return protocol;
+    }
+
     private ValueTask<LoomDemoVerificationResult> HandleAsync(
         LoomDemoPatchProposal patch,
         IWorkflowContext context)
@@ -54,7 +74,12 @@ internal sealed partial class LoomDemoVerifyExecutor() : Executor("loom.demo.ver
 [LoomStep("loom.demo.report", Phase = LoomPhase.Report, Description = "Project artifacts into an operator-grade report.")]
 internal sealed partial class LoomDemoReportExecutor() : Executor("loom.demo.report")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoVerificationResult, LoomDemoInvestigationReport>(HandleAsync);
+        return protocol;
+    }
+
     private ValueTask<LoomDemoInvestigationReport> HandleAsync(
         LoomDemoVerificationResult verification,
         IWorkflowContext context)
@@ -68,7 +93,12 @@ internal sealed partial class LoomDemoReportExecutor() : Executor("loom.demo.rep
 [LoomStep("loom.demo.close", Phase = LoomPhase.Close, Description = "Close issue via explicit approval boundary.")]
 internal sealed partial class LoomDemoCloseExecutor() : Executor("loom.demo.close")
 {
-    [MessageHandler]
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)
+    {
+        protocol.RouteBuilder.AddHandler<LoomDemoClosureDecision>(HandleAsync);
+        return protocol;
+    }
+
     private async ValueTask HandleAsync(
         LoomDemoClosureDecision decision,
         IWorkflowContext context)

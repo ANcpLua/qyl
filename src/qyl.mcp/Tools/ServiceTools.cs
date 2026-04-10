@@ -5,9 +5,17 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
+/// <summary>
+///     MCP tools for listing services auto-discovered from incoming OTLP telemetry.
+/// </summary>
 [McpServerToolType]
-internal sealed class ServiceTools(HttpClient client)
+public sealed class ServiceTools(HttpClient client)
 {
+    /// <summary>Lists all detected services with type, status, instance count, and telemetry stats.</summary>
+    /// <param name="type">Filter by service type (e.g. 'ai_agent', 'llm_provider', 'mcp_server').</param>
+    /// <param name="status">Filter by status: 'active' or 'inactive'.</param>
+    /// <param name="limit">Maximum number of services to return.</param>
+    /// <returns>A table of services with instance counts, span totals, and error rates.</returns>
     [McpServerTool(Name = "qyl.list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List all detected services with type, status, instance count, and aggregated telemetry stats")]
@@ -21,8 +29,8 @@ internal sealed class ServiceTools(HttpClient client)
         CollectorHelper.ExecuteAsync(async () =>
         {
             var query = $"?limit={limit}";
-            if (type is not null) query += $"&type={Uri.EscapeDataString(type)}";
-            if (status is not null) query += $"&status={Uri.EscapeDataString(status)}";
+            if (type is not null) query += $"&type={type}";
+            if (status is not null) query += $"&status={status}";
 
             var response = await client.GetFromJsonAsync<ServicesMcpResponse>(
                 $"/api/v1/services{query}",
