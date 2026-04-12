@@ -53,6 +53,11 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                    "Use the individual error and anomaly tools instead.";
         }
 
+        var lineageResult = InvestigationLineage.TryEnter();
+        if (!lineageResult.IsAllowed)
+            return lineageResult.RefusalReason!;
+
+        var lineage = lineageResult.Lineage!;
         var investigation = InvestigationGuard.FromEnvironment(50);
 
         // Build curated tool set -- only data-retrieval tools, not LLM tools
@@ -91,6 +96,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 
             output += ResponseFormatter.FormatToolCallTrace(
                 investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);
+            output += $"\n[Lineage: {lineage.FormatLineageSummary()}]";
 
             return output;
         }
@@ -101,6 +107,10 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
         catch (HttpRequestException ex)
         {
             return $"Error during root cause analysis: {ex.Message}";
+        }
+        finally
+        {
+            lineage.Complete();
         }
     }
 

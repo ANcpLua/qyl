@@ -54,6 +54,11 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
                    "Use the individual query tools (search_spans, list_errors, get_genai_stats) instead.";
         }
 
+        var lineageResult = InvestigationLineage.TryEnter();
+        if (!lineageResult.IsAllowed)
+            return lineageResult.RefusalReason!;
+
+        var lineage = lineageResult.Lineage!;
         var investigation = InvestigationGuard.FromEnvironment();
 
         var guardedTools = QylToolManifest
@@ -87,6 +92,7 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
 
             output += ResponseFormatter.FormatToolCallTrace(
                 investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);
+            output += $"\n[Lineage: {lineage.FormatLineageSummary()}]";
 
             return output;
         }
@@ -97,6 +103,10 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
         catch (HttpRequestException ex)
         {
             return $"Error connecting to LLM provider: {ex.Message}";
+        }
+        finally
+        {
+            lineage.Complete();
         }
     }
 }
