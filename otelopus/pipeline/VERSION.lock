@@ -1,0 +1,56 @@
+# otelopus version lock — pin these to get deterministic, idempotent output
+# If any version changes, ALL generated files must be regenerated.
+#
+# To update: change the version here, run `nuke Generate`, commit the diff.
+# To verify: `nuke Generate` on a clean checkout must produce zero diff.
+
+[upstream]
+opentelemetry-specification = "1.55.0"
+opentelemetry-proto         = "1.10.0"
+semantic-conventions        = "1.40.0"
+
+[upstream.commits]
+# Pin to exact commits for reproducibility.
+# Tags can be force-pushed; commits cannot.
+opentelemetry-proto    = "aca8735"
+semantic-conventions   = "682f2d61"
+
+[npm]
+# The npm package is the actual input to Stage 1.
+# This MUST match the semantic-conventions version above.
+@opentelemetry/semantic-conventions = "1.40.0"
+
+[tools]
+# Generator toolchain versions. Different versions = different output.
+typespec-compiler   = ""   # TODO: pin from package.json
+protoc              = ""   # TODO: pin or remove if not used
+openapi-typescript  = ""   # TODO: pin from package.json
+nuke                = ""   # TODO: pin from global.json or dotnet-tools.json
+
+[dotnet]
+# The OTel .NET SDK version qyl links against.
+# Determines which ActivitySource/Meter APIs are available.
+OpenTelemetry                       = ""  # TODO: from Directory.Packages.props
+OpenTelemetry.Extensions.Hosting    = ""  # TODO: from Directory.Packages.props
+System.Diagnostics.DiagnosticSource = ""  # TODO: from Directory.Packages.props
+
+[checksums]
+# SHA-256 of each upstream file in otelopus/proto/ and otelopus/semconv/.
+# If a checksum doesn't match, the file was modified outside the pipeline.
+# Populate by running: sha256sum otelopus/proto/* otelopus/semconv/*
+proto/common.proto          = "620560f3ad4c45d606f8a9c455f2b98089f0d511c5859c3eadd3ee630ae0d4d8"
+proto/resource.proto        = "e0a7cdc0ffcfeffaa2606e8611839735ebffaa2d6acdf33e9356f2c48ae692d3"
+proto/trace.proto           = "c3fb1385c90b8bc08a2a462e28b5d0c422c7b524a839f75f75e3cd9f64f36956"
+proto/metrics.proto         = "d0a53dda45ad100edbf25675f5b339ce8bf689bdc51816f8cf19b0d51464e1a4"
+proto/logs.proto            = "6b2e1eba0c01ae2da47927c63eabfaf3f151ee7ad846f2cdf3b2b71fb61004fe"
+proto/trace_service.proto   = "03c8cc4e3e101087d884392d6eda32152ad5cd696e6344f50deaa59804a75c7a"
+proto/metrics_service.proto = "2bb3c6adee5f7609c8a32c5e4b1ec57057320015e298e9cf136699a42abc24d7"
+proto/logs_service.proto    = "0252687fc8f59d139ced709d383e83678e9bd4957bdbe76077242f1c32363fa5"
+semconv/gen-ai.registry.yaml = "27f181be7388591d448cb57ebbe847f37844687b8c00ee9758cf7821ad6092a5"
+semconv/gen-ai.spans.yaml    = "cd1e7a69c0afb3341f0c04cb64b66bd532d80f980cc78d0b1755711ac542c040"
+semconv/gen-ai.metrics.yaml  = "5a9eddb930002110ef6f0c735036faf8220ce07d2641f5b17c07799712743822"
+semconv/db.registry.yaml     = "aea21c24780d0ad69854aadbf977bad6bc074f0f0c9276708ae790bc750462a7"
+semconv/db.spans.yaml        = "e7179b9789d0787389a9dbadcc5da6af02e970d4de18b2c43d7c560f936a2008"
+semconv/db.metrics.yaml      = "94c921cc4a86ddc5cc3c5ae4a066f79a0c138a20c793026fca0ecb1200b660da"
+semconv/http.registry.yaml   = "8d44e243c6f18bb21dea653fdbf2e34b40750cafc0604d894e914c637c0a8c5d"
+semconv/error.registry.yaml  = "2821f855ea3bc28bb6851dd4e11e51956878d991e1c7c9c781cd0fb5a2eeaa68"
