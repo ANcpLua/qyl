@@ -1,0 +1,250 @@
+{
+  "$comment": "Contracts facade definitions — merged upstream OTel semconv + qyl extensions. Used by generateProtocolFacades() in generate-semconv.ts",
+  "facades": [
+    {
+      "className": "GenAiAttributes",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/GenAiAttributes.g.cs",
+      "description": "OTel {version} GenAI semantic convention attribute keys.\nStatus: Development\nhttps://opentelemetry.io/docs/specs/semconv/gen-ai/",
+      "upstreamPrefix": "gen_ai",
+      "metadata": {
+        "SchemaUrl": "https://opentelemetry.io/schemas/{version}",
+        "SourceName": "OpenTelemetry.Instrumentation.GenAI"
+      },
+      "attributes": [
+        "gen_ai.provider.name",
+        "gen_ai.operation.name",
+        "gen_ai.request.model",
+        "gen_ai.request.temperature",
+        "gen_ai.request.max_tokens",
+        "gen_ai.request.top_p",
+        "gen_ai.request.top_k",
+        "gen_ai.request.stop_sequences",
+        "gen_ai.request.frequency_penalty",
+        "gen_ai.request.presence_penalty",
+        "gen_ai.request.choice.count",
+        "gen_ai.request.seed",
+        "gen_ai.request.encoding_formats",
+        "gen_ai.response.model",
+        "gen_ai.response.finish_reasons",
+        "gen_ai.response.id",
+        "gen_ai.usage.input_tokens",
+        "gen_ai.usage.output_tokens",
+        "gen_ai.usage.cache_read.input_tokens",
+        "gen_ai.usage.cache_creation.input_tokens",
+        "gen_ai.token.type",
+        "gen_ai.tool.name",
+        "gen_ai.tool.call.id",
+        "gen_ai.tool.description",
+        "gen_ai.tool.type",
+        "gen_ai.tool.call.arguments",
+        "gen_ai.tool.call.result",
+        "gen_ai.tool.definitions",
+        "gen_ai.input.messages",
+        "gen_ai.output.messages",
+        "gen_ai.output.type",
+        "gen_ai.system_instructions",
+        "gen_ai.agent.version",
+        "gen_ai.conversation.id",
+        "gen_ai.prompt.name",
+        "gen_ai.embeddings.dimension.count",
+        "gen_ai.evaluation.name",
+        "gen_ai.evaluation.score.value",
+        "gen_ai.evaluation.score.label",
+        "gen_ai.evaluation.explanation",
+        "gen_ai.data_source.id"
+      ],
+      "crossCutting": {
+        "UserId": "user.id",
+        "SessionId": "session.id",
+        "ErrorType": "error.type",
+        "ExceptionType": "exception.type",
+        "ExceptionMessage": "exception.message",
+        "ExceptionStacktrace": "exception.stacktrace",
+        "ServerAddress": "server.address",
+        "ServerPort": "server.port",
+        "ClientAddress": "client.address",
+        "ClientPort": "client.port"
+      },
+      "enums": {
+        "Operations": {
+          "summary": "Well-known operation name values.",
+          "upstream": "GEN_AI_OPERATION_NAME",
+          "extensions": {
+            "ImageGeneration": "image_generation",
+            "AudioTranscription": "audio_transcription",
+            "TextToSpeech": "text_to_speech",
+            "Rerank": "rerank"
+          }
+        },
+        "Providers": {
+          "summary": "Well-known provider name values.",
+          "upstream": "GEN_AI_PROVIDER_NAME",
+          "extensions": {
+            "GitHubCopilot": "github_copilot",
+            "MicrosoftAgents": "microsoft_agents",
+            "Meta": "meta",
+            "HuggingFace": "hugging_face",
+            "Replicate": "replicate",
+            "TogetherAi": "together_ai",
+            "Fireworks": "fireworks",
+            "Anyscale": "anyscale",
+            "Ollama": "ollama",
+            "Local": "local",
+            "Custom": "custom"
+          }
+        },
+        "TokenTypes": {
+          "summary": "Well-known token type values.",
+          "values": {
+            "Input": "input",
+            "Output": "output"
+          }
+        },
+        "OutputTypes": {
+          "summary": "Well-known output type values.",
+          "upstream": "GEN_AI_OUTPUT_TYPE"
+        },
+        "ToolTypes": {
+          "summary": "Well-known tool type values.",
+          "values": {
+            "Function": "function",
+            "Extension": "extension",
+            "Datastore": "datastore"
+          }
+        }
+      },
+      "customClasses": {
+        "Metrics": {
+          "summary": "GenAI metrics names.",
+          "values": {
+            "ClientTokenUsage": "gen_ai.client.token.usage",
+            "ClientOperationDuration": "gen_ai.client.operation.duration",
+            "ServerRequestDuration": "gen_ai.server.request.duration",
+            "ServerTimePerOutputToken": "gen_ai.server.time_per_output_token",
+            "ServerTimeToFirstToken": "gen_ai.server.time_to_first_token"
+          }
+        },
+        "Events": {
+          "summary": "GenAI event names.",
+          "values": {
+            "ClientInferenceOperationDetails": "gen_ai.client.inference.operation.details",
+            "EvaluationResult": "gen_ai.evaluation.result"
+          }
+        }
+      }
+    },
+    {
+      "className": "DbAttributes",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/DbAttributes.g.cs",
+      "description": "OTel {version} Database semantic convention attribute keys.\nStatus: Stable\nhttps://opentelemetry.io/docs/specs/semconv/database/",
+      "upstreamPrefix": "db",
+      "attributes": [
+        "db.system.name",
+        "db.operation.name",
+        "db.query.text",
+        "db.query.summary",
+        "db.namespace",
+        "db.collection.name",
+        "db.response.status_code",
+        "db.response.returned_rows",
+        "db.client.connection.pool.name",
+        "db.client.connection.state",
+        "db.operation.batch.size",
+        "db.stored_procedure.name"
+      ],
+      "propertyOverrides": {
+        "db.client.connection.pool.name": "ConnectionPoolName",
+        "db.client.connection.state": "ConnectionState"
+      },
+      "enums": {
+        "Systems": {
+          "summary": "Well-known database system name values.",
+          "values": {
+            "DuckDb": "duckdb",
+            "PostgreSql": "postgresql",
+            "MsSql": "mssql",
+            "Sqlite": "sqlite",
+            "MySql": "mysql",
+            "MariaDb": "mariadb",
+            "Oracle": "oracle",
+            "Firebird": "firebird",
+            "Redis": "redis",
+            "MongoDb": "mongodb",
+            "Elasticsearch": "elasticsearch",
+            "CosmosDb": "cosmosdb",
+            "Cassandra": "cassandra"
+          }
+        },
+        "Operations": {
+          "summary": "Well-known database operation name values.",
+          "values": {
+            "Select": "SELECT",
+            "Insert": "INSERT",
+            "Update": "UPDATE",
+            "Delete": "DELETE",
+            "Create": "CREATE",
+            "Drop": "DROP",
+            "ExecuteReader": "ExecuteReader",
+            "ExecuteNonQuery": "ExecuteNonQuery",
+            "ExecuteScalar": "ExecuteScalar"
+          }
+        }
+      }
+    },
+    {
+      "className": "McpAttributes",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/McpAttributes.g.cs",
+      "description": "OTel {version} MCP (Model Context Protocol) semantic convention attribute keys.\nStatus: Experimental\nhttps://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/mcp.md",
+      "metadata": {
+        "SchemaUrl": "https://opentelemetry.io/schemas/{version}",
+        "SourceName": "qyl.mcp"
+      },
+      "upstreamPrefix": "mcp",
+      "attributes": [
+        "mcp.method.name",
+        "mcp.protocol.version",
+        "mcp.session.id",
+        "mcp.server.name"
+      ],
+      "crossCutting": {
+        "JsonrpcRequestId": "jsonrpc.request.id",
+        "JsonrpcProtocolVersion": "jsonrpc.protocol.version",
+        "RpcSystem": "rpc.system",
+        "RpcMethod": "rpc.method",
+        "ErrorType": "error.type",
+        "ServerAddress": "server.address",
+        "ServerPort": "server.port"
+      },
+      "enums": {
+        "Methods": {
+          "summary": "Well-known MCP method name values.",
+          "values": {
+            "ToolsCall": "tools/call",
+            "ToolsList": "tools/list",
+            "PromptsGet": "prompts/get",
+            "PromptsList": "prompts/list",
+            "ResourcesRead": "resources/read",
+            "ResourcesList": "resources/list",
+            "Initialize": "initialize",
+            "Ping": "ping"
+          }
+        },
+        "Systems": {
+          "summary": "Well-known RPC system values.",
+          "values": {
+            "JsonRpc": "jsonrpc"
+          }
+        },
+        "JsonrpcVersions": {
+          "summary": "Well-known JSON-RPC protocol version values.",
+          "values": {
+            "V2": "2.0"
+          }
+        }
+      }
+    }
+  ]
+}
