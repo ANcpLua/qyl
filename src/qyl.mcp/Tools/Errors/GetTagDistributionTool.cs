@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Errors;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetTagDistributionTool(HttpClient client)
 {
     /// <summary>
@@ -23,6 +24,7 @@ public sealed class GetTagDistributionTool(HttpClient client)
     /// <param name="tagKey">The tag key to inspect (e.g. "browser", "environment", "url", "os").</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown table with value, count, percentage, and bar chart columns.</returns>
+    [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_tag_distribution", Title = "Get Tag Distribution",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("""

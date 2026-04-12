@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools;
 ///     an LLM to generate a regression test that would catch the error.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class TestGenerationTools(HttpClient http, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);

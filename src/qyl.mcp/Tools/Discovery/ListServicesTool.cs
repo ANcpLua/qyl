@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ListServicesTool(HttpClient client)
 {
     /// <summary>
@@ -18,6 +19,7 @@ public sealed class ListServicesTool(HttpClient client)
     /// <param name="projectSlug">Optional project slug filter.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown table of detected services.</returns>
+    [QylCapability("service_discovery", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List detected services with instance count and last-seen timestamp. Optionally filter by project.")]

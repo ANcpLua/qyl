@@ -13,10 +13,12 @@ namespace qyl.mcp.Apps.TraceExplorer;
 ///     Returns trace/span data for interactive visualization in the <c>ui://qyl/trace-viewer</c> resource.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Apps)]
 internal sealed class TraceExplorerTools(HttpClient client)
 {
     private const string ResourceUri = "ui://qyl/trace-viewer";
 
+    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.app.trace_viewer", Title = "Trace Viewer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -85,6 +87,7 @@ internal sealed class TraceExplorerTools(HttpClient client)
             return sb.ToString();
         });
 
+    [QylCapability("mcp_apps", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.app.trace_search", Title = "Trace Search",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

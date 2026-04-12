@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools;
 ///     Provides z-score based anomaly detection, baseline statistics, and period comparison.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Anomaly)]
 public sealed class AnomalyTools(HttpClient client)
 {
     /// <summary>Detects anomalous metric spikes or drops using z-score analysis.</summary>
@@ -18,6 +19,8 @@ public sealed class AnomalyTools(HttpClient client)
     /// <param name="sensitivity">Z-score threshold for anomaly detection.</param>
     /// <param name="service">Optional service name filter.</param>
     /// <returns>Baseline statistics and a list of anomalous time buckets with z-scores.</returns>
+    [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
+    [QylCapability("anomaly_detection", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -94,6 +97,8 @@ public sealed class AnomalyTools(HttpClient client)
     /// <param name="hours">Time window in hours.</param>
     /// <param name="service">Optional service name filter.</param>
     /// <returns>Statistical summary with mean, standard deviation, and percentiles.</returns>
+    [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
+    [QylCapability("anomaly_detection", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.get_metric_baseline", Title = "Get Metric Baseline",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -153,6 +158,7 @@ public sealed class AnomalyTools(HttpClient client)
     /// <param name="period2End">End of the second period in ISO 8601 format.</param>
     /// <param name="service">Optional service name filter.</param>
     /// <returns>Side-by-side comparison with delta and percentage change.</returns>
+    [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.compare_periods", Title = "Compare Periods",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

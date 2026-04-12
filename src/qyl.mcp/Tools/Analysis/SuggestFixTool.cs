@@ -12,6 +12,7 @@ namespace qyl.mcp.Tools.Analysis;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Agent)]
 public sealed class SuggestFixTool(HttpClient client)
 {
     /// <summary>

@@ -10,8 +10,10 @@ namespace qyl.mcp.Tools;
 ///     These wrap the ITelemetryStore interface for observability queries.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 internal sealed class TelemetryTools(ITelemetryStore store)
 {
+    [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_agent_runs", Title = "Search Agent Runs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -46,6 +48,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                 : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRunArray);
         });
 
+    [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_agent_run", Title = "Get Agent Run",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -71,6 +74,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                 : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRun);
         });
 
+    [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

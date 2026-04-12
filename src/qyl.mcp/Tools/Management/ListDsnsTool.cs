@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools.Management;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ListDsnsTool(HttpClient client)
 {
     /// <summary>

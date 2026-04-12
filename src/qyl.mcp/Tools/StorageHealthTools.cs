@@ -10,10 +10,12 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for system health and storage status.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Health)]
 public sealed class StorageHealthTools(HttpClient client)
 {
     /// <summary>Retrieves storage statistics for the qyl collector including span/log counts and database size.</summary>
     /// <returns>A storage statistics summary from the health endpoint.</returns>
+    [QylCapability("health_and_storage", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_storage_stats", Title = "Get Storage Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -63,6 +65,7 @@ public sealed class StorageHealthTools(HttpClient client)
 
     /// <summary>Checks the health status of all qyl collector components.</summary>
     /// <returns>Health status of DuckDB, ingestion pipeline, and SSE streaming.</returns>
+    [QylCapability("health_and_storage", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.health_check", Title = "Health Check",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -104,6 +107,7 @@ public sealed class StorageHealthTools(HttpClient client)
 
     /// <summary>Retrieves pre-computed system context (topology, performance, known issues) from the insights materializer.</summary>
     /// <returns>Markdown system context with topology, performance profile, and alerts.</returns>
+    [QylCapability("health_and_storage", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

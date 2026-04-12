@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using Microsoft.Extensions.AI;
 
 namespace qyl.mcp.Agents;
 
@@ -78,6 +79,30 @@ internal sealed class InvestigationGuard(int maxToolCalls)
             : result;
 
         _partialResults.Enqueue($"[{toolName}] {trimmed}");
+    }
+
+    /// <summary>
+    ///     Wraps an <see cref="AIFunction" /> so every invocation is recorded against this guard.
+    ///     String results are captured as partial results for the cap-reached summary.
+    /// </summary>
+    public AIFunction Wrap(AIFunction inner) => new Guarded(inner, this);
+
+    private sealed class Guarded(AIFunction inner, InvestigationGuard guard) : AIFunction
+    {
+        public override string Name => inner.Name;
+        public override string Description => inner.Description;
+        public override System.Text.Json.JsonElement JsonSchema => inner.JsonSchema;
+
+        protected override async ValueTask<object?> InvokeCoreAsync(
+            AIFunctionArguments arguments,
+            CancellationToken cancellationToken)
+        {
+            guard.RecordCall(inner.Name);
+            var result = await inner.InvokeAsync(arguments, cancellationToken).ConfigureAwait(false);
+            if (result is string text)
+                guard.AddPartialResult(inner.Name, text);
+            return result;
+        }
     }
 
     /// <summary>

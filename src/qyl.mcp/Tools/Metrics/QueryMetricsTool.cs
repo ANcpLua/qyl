@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools.Metrics;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class QueryMetricsTool(HttpClient client)
 {
     [McpServerTool(

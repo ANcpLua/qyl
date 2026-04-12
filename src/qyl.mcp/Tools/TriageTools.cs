@@ -9,8 +9,10 @@ namespace qyl.mcp.Tools;
 ///     Communicates with qyl.collector via HTTP REST API.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class TriageTools(HttpClient http)
 {
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.get_triage", Title = "Get Triage Result",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""

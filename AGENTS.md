@@ -1,5 +1,18 @@
 # AGENTS.md
 
+## Execution style
+
+- Source code is truth. Read .cs files before docs, plans, or summaries from previous sessions.
+  Previous agents' plans may be wrong — the code is always current.
+- Token abundance: 1M window, rarely past 250k. Don't compress, don't skip reads.
+- Never ask for confirmation — EXCEPT: delete, stash, revert.
+  For those: commit+push first so remote is the safety net, then ask.
+- Bulk operations (perl/sed over many files): build the specific project immediately
+  after the script to catch problems before continuing. If the script broke files,
+  fix them before doing more work — don't stack more changes on top.
+- Build verification: `dotnet build src/<project>/<project>.csproj`, not the full
+  solution or nuke. Other projects have WIP test failures that aren't your problem.
+
 qyl is organized into seven planes. Prefer changing one plane at a time and keep dependencies one-way.
 
 Read the plane doc that matches the files you touch:
@@ -27,11 +40,9 @@ Dashboard deep links:
 Merged repos (2026-04-10):
 - `qyl.mcp` (77 MCP tools) and `qyl.mcp.generators` (interim tool manifest generator) merged from standalone repo.
 - `Qyl.Agents`, `Qyl.Agents.Abstractions`, `Qyl.Agents.Generator` merged from netagents repo.
-- `qyl.mcp.generators` is an interim generator. `Qyl.Agents.Generator` is the full generator (dispatch, schemas, OTel, JSON contexts). See `docs/plans/2026-04-10-complete-cp2-cp3-post-merge.md` for the convergence plan.
+- `qyl.mcp.generators` emits `QylToolManifest` with ToolDescriptors (skill-aware), Capabilities, RegisterTools, RegisterServices, CreateTools. `Qyl.Agents.Generator` is the full generator (dispatch, schemas, OTel, JSON contexts) — convergence target.
 
 Known debt — architectural:
-- **Triple roster:** ~60 tool classes are manually listed in 3 places that drift: `SkillRegistrationExtensions.WithSkillTools()`, `QylSkillCatalog.SkillMap`, and DI registration in `QylMcpServiceCollectionExtensions`. The generator already knows all tool types at compile time. Fix: CP2 in `docs/plans/2026-04-10-complete-cp2-cp3-post-merge.md`.
-- **Capability references unvalidated:** `QylCapabilityCatalog` hardcodes tool names as strings with no check against the generated manifest. Fix: CP3 test in same plan doc.
 - `collector/Autofix/` still contains embedded Loom intelligence (LoomOrchestrator, LoomDiagnostician, LoomStrategist, LoomPrompts, etc.) that should live in `qyl.loom/` only. The collector should expose data-plane endpoints, not own LLM orchestration.
 - `collector/AgentRuns/` is correct — pure read-only DuckDB queries for agent run observability.
 - `LoomToolEnvelope<T>` — use `LoomToolEnvelope.Ok(data)` and `LoomToolEnvelope.Fail<T>(error)` (non-generic companion class), NOT `LoomToolEnvelope<T>.Ok/Fail`.

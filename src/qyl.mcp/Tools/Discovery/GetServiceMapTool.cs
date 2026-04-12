@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetServiceMapTool(HttpClient client)
 {
     /// <summary>
@@ -18,6 +19,7 @@ public sealed class GetServiceMapTool(HttpClient client)
     /// <param name="projectSlug">Optional project slug filter.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown string containing the service map topology.</returns>
+    [QylCapability("service_discovery", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_service_map", Title = "Get Service Map",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Get the service dependency map showing nodes (services) and edges (calls between services).")]

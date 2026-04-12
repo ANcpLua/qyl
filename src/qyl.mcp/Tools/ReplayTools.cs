@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools;
 ///     Fetches data from qyl.collector via HTTP.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ReplayTools(HttpClient client)
 {
     /// <summary>Lists AI sessions captured by qyl for replay or analysis.</summary>
@@ -77,6 +78,7 @@ public sealed class ReplayTools(HttpClient client)
     /// <summary>Retrieves a human-readable transcript of an AI session with timing and cost details.</summary>
     /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
     /// <returns>A formatted transcript with timing, tokens, costs, and errors.</returns>
+    [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -159,6 +161,7 @@ public sealed class ReplayTools(HttpClient client)
     /// <summary>Retrieves the complete span tree for a distributed trace.</summary>
     /// <param name="traceId">The trace ID hex string.</param>
     /// <returns>Span hierarchy with timing, status, and GenAI attributes.</returns>
+    [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -213,6 +216,7 @@ public sealed class ReplayTools(HttpClient client)
     /// <summary>Analyzes all errors in a session with error messages, providers, and context.</summary>
     /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
     /// <returns>Error details grouped by span with full context.</returns>
+    [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.analyze_session_errors", Title = "Analyze Session Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

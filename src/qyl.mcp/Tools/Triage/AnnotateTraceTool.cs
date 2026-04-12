@@ -12,6 +12,7 @@ namespace qyl.mcp.Tools.Triage;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class AnnotateTraceTool(HttpClient client)
 {
     [McpServerTool(

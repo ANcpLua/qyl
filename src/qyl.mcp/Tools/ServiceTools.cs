@@ -9,6 +9,7 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for listing services auto-discovered from incoming OTLP telemetry.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ServiceTools(HttpClient client)
 {
     /// <summary>Lists all detected services with type, status, instance count, and telemetry stats.</summary>

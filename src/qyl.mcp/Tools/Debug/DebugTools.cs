@@ -9,10 +9,12 @@ namespace qyl.mcp.Tools.Debug;
 ///     Stable contracts — backend will migrate from Rider proxy to native .NET debugging.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Debug)]
 internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discovery)
 {
     // -- Connection -------------------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.debug.status", Title = "Debug Connection Status",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Check Rider debugger MCP connection status and refresh endpoint discovery.")]
@@ -46,6 +48,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Sessions ---------------------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.debug.start_session", Title = "Start Debug Session",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Start a debug session using a run configuration name.")]
@@ -82,6 +85,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Run Configurations -----------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.debug.list_run_configs", Title = "List Run Configurations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("List available run/debug configurations in the project.")]
@@ -90,6 +94,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Breakpoints ------------------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.set_breakpoint", Title = "Set Breakpoint",
         ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Set a breakpoint at a file and line number.")]
@@ -180,6 +185,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Inspection -------------------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.evaluate", Title = "Evaluate Expression",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Evaluate an expression in the current debug context.")]
@@ -194,6 +200,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
         CallRiderToolAsync("evaluate", BuildArgs(
             ("expression", expression), ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
 
+    [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.get_variables", Title = "Get Variables",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get local variables and their values in the current stack frame.")]
@@ -223,6 +230,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Stack ------------------------------------------------------------
 
+    [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.get_stack_trace", Title = "Get Stack Trace",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get the current stack trace.")]

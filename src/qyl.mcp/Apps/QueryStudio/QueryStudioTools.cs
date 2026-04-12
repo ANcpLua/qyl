@@ -13,8 +13,10 @@ namespace qyl.mcp.Apps.QueryStudio;
 ///     All data access goes through the collector's <c>/api/v1/query</c> endpoint.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Apps)]
 internal sealed class QueryStudioTools(HttpClient client)
 {
+    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.app.query_studio", Title = "Query Studio",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -44,6 +46,7 @@ internal sealed class QueryStudioTools(HttpClient client)
             return JsonSerializer.Serialize(result, QueryStudioJsonContext.Default.QueryStudioOpenResult);
         });
 
+    [QylCapability("mcp_apps", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.app.execute_query", Title = "Execute Query",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -117,6 +120,7 @@ internal sealed class QueryStudioTools(HttpClient client)
             return JsonSerializer.Serialize(result, QueryStudioJsonContext.Default.QueryStudioQueryResult);
         });
 
+    [QylCapability("mcp_apps", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.app.query_schema", Title = "Query Schema",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools;
 ///     All generation work is executed in collector-side Loom workers.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class FixTools(HttpClient http)
 {
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",

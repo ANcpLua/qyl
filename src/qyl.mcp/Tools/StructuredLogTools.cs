@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools;
 ///     These are OpenTelemetry log records (not frontend console.log).
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class StructuredLogTools(HttpClient client)
 {
     /// <summary>Lists OTLP structured log records with optional filtering by session, trace, severity, or text.</summary>
@@ -116,6 +117,8 @@ public sealed class StructuredLogTools(HttpClient client)
     /// <summary>Retrieves all structured logs associated with a distributed trace, grouped by span.</summary>
     /// <param name="traceId">The trace ID to get logs for.</param>
     /// <returns>Logs ordered by timestamp and grouped by span ID.</returns>
+    [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
+    [QylCapability("log_investigation", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -180,6 +183,7 @@ public sealed class StructuredLogTools(HttpClient client)
     /// <param name="hours">Time window in hours.</param>
     /// <param name="limit">Maximum number of results to return.</param>
     /// <returns>Matching logs with service name, trace ID, and context.</returns>
+    [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

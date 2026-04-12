@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools.Triage;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SetErrorPriorityTool(HttpClient client)
 {
     private static readonly HashSet<string> ValidPriorities = ["P0", "P1", "P2", "P3", "P4"];

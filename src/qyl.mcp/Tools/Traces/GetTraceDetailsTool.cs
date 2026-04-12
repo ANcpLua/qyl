@@ -12,8 +12,11 @@ namespace qyl.mcp.Tools.Traces;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetTraceDetailsTool(HttpClient client)
 {
+    [QylCapability("trace_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_trace_details", Title = "Get Trace Details",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full span tree for a trace. Returns all spans with timing, status, and attributes.")]

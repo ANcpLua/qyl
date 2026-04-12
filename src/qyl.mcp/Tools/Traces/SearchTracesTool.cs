@@ -11,8 +11,11 @@ namespace qyl.mcp.Tools.Traces;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SearchTracesTool(HttpClient client)
 {
+    [QylCapability("trace_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "search_traces", Title = "Search Traces",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(

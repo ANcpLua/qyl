@@ -11,8 +11,10 @@ namespace qyl.mcp.Tools;
 ///     get review results, and list webhook events.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class GitHubMcpTools(HttpClient http)
 {
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.trigger_code_review", Title = "Trigger Code Review",
         ReadOnly = false, Destructive = false, Idempotent = true)]
     [Description("""

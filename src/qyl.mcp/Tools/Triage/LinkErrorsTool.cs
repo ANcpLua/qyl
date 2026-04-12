@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Triage;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class LinkErrorsTool(HttpClient client)
 {
     [McpServerTool(

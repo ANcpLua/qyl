@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools;
 ///     source analytics, user satisfaction tracking, and user journey analysis.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Analytics)]
 public sealed class AnalyticsTools(HttpClient client)
 {
     /// <summary>Lists AI conversations captured by qyl, grouped by conversation ID.</summary>
@@ -22,6 +23,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="userId">Filters conversations by user ID.</param>
     /// <param name="model">Filters conversations by model name.</param>
     /// <returns>A formatted paginated list of conversations with metadata.</returns>
+    [QylCapability("analytics", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -93,6 +95,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <summary>Retrieves the full timeline of a single AI conversation.</summary>
     /// <param name="conversationId">The conversation ID obtained from <c>list_conversations</c>.</param>
     /// <returns>A formatted conversation timeline with turns, tokens, and errors.</returns>
+    [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_conversation", Title = "Get Conversation",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -153,6 +156,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="period">Period filter: 'weekly', 'monthly', or 'quarterly'.</param>
     /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
     /// <returns>A list of coverage gaps with findings and recommendations.</returns>
+    [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_coverage_gaps", Title = "Get Coverage Gaps",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -215,6 +219,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
     /// <param name="minConversations">Minimum conversations required to form a cluster.</param>
     /// <returns>Topic clusters ranked by conversation count.</returns>
+    [QylCapability("analytics", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -431,6 +436,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <summary>Retrieves an individual user's conversation history and journey statistics.</summary>
     /// <param name="userId">The user ID obtained from <c>list_users</c>.</param>
     /// <returns>User journey with conversation history, tokens, and retention data.</returns>
+    [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_user_journey", Title = "Get User Journey",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

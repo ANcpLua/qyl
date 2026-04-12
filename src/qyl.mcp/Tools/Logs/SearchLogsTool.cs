@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools.Logs;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SearchLogsTool(HttpClient client)
 {
     /// <summary>
@@ -22,6 +23,7 @@ public sealed class SearchLogsTool(HttpClient client)
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of matching log entries.</returns>
+    [QylCapability("log_investigation", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]

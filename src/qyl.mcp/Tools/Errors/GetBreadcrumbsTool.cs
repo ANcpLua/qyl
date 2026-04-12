@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools.Errors;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetBreadcrumbsTool(HttpClient client)
 {
     /// <summary>
@@ -22,6 +23,7 @@ public sealed class GetBreadcrumbsTool(HttpClient client)
     /// <param name="eventId">Optional specific event ID within the issue; uses the latest event if omitted.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown list of breadcrumb entries in reverse chronological order.</returns>
+    [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_breadcrumbs", Title = "Get Event Breadcrumbs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get the breadcrumb trail for an error event — user actions, HTTP requests, console messages, and navigation events leading up to the error.")]

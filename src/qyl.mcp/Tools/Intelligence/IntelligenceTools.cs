@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools.Intelligence;
 ///     MCP tools for diagnostic pattern evaluation, causal chain analysis, and investigation strategies.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class IntelligenceTools(HttpClient client)
 {
     /// <summary>Lists all available diagnostic patterns from the static registry.</summary>

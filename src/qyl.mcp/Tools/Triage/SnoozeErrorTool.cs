@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Triage;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SnoozeErrorTool(HttpClient client)
 {
     private static readonly HashSet<string> ValidDurations = ["1h", "6h", "24h", "7d", "30d"];

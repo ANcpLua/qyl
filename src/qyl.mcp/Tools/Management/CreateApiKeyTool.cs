@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools.Management;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Build)]
 public sealed class CreateApiKeyTool(HttpClient client)
 {
     /// <summary>

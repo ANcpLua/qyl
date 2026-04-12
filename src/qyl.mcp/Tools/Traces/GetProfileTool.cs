@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Traces;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetProfileTool(HttpClient client)
 {
     [McpServerTool(Name = "get_profile", Title = "Get Span Profile",

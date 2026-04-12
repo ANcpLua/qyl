@@ -10,6 +10,7 @@ namespace qyl.mcp.Capabilities;
 [McpServerToolType]
 internal sealed class CapabilityTools(SkillConfiguration skills)
 {
+    [QylCapability("server_introspection", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.list_capabilities", Title = "List Capabilities",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("List qyl.mcp capabilities, enabled skill families, and the primary tools behind each capability. Use this before invoking broad meta-agent tools.")]
@@ -47,6 +48,7 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
         return JsonSerializer.Serialize(response, CapabilityToolsJsonContext.Default.CapabilityListResponseDto);
     }
 
+    [QylCapability("server_introspection", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.get_capability_guide", Title = "Get Capability Guide",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Return a detailed qyl-specific guide for one capability, including identifiers, recommended first tools, follow-up tools, scoping advice, and telemetry evidence hints.")]

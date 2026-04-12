@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ListProjectsTool(HttpClient client)
 {
     /// <summary>
@@ -20,6 +21,7 @@ public sealed class ListProjectsTool(HttpClient client)
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of projects.</returns>
+    [QylCapability("service_discovery", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "list_projects", Title = "List Projects",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List available projects. Use project slugs to scope other tools to a specific project.")]

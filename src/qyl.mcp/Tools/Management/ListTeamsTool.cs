@@ -12,6 +12,7 @@ namespace qyl.mcp.Tools.Management;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class ListTeamsTool(HttpClient client)
 {
     /// <summary>
@@ -21,6 +22,7 @@ public sealed class ListTeamsTool(HttpClient client)
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of teams.</returns>
+    [QylCapability("project_and_access_management", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "list_teams", Title = "List Teams",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List teams with optional name search. Use team slugs to scope members and projects.")]

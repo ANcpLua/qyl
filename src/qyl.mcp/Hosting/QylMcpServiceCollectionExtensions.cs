@@ -52,43 +52,9 @@ internal static class QylMcpServiceCollectionExtensions
         var collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
         services.AddCollectorHttpClient(collectorUrl);
 
-        if (skills.IsEnabled(QylSkillKind.Inspect))
-        {
-            services.AddCollectorToolClient<ReplayTools>();
-            services.AddCollectorToolClient<StructuredLogTools>();
-            services.AddCollectorToolClient<GenAiTools>();
-            services.AddCollectorToolClient<ErrorTools>();
-            services.AddCollectorToolClient<ServiceTools>();
-            services.AddCollectorToolClient<SpanQueryTools>();
-        }
-
-        if (skills.IsEnabled(QylSkillKind.Health))
-            services.AddCollectorToolClient<StorageHealthTools>();
-
-        if (skills.IsEnabled(QylSkillKind.Analytics))
-            services.AddCollectorToolClient<AnalyticsTools>();
-
-        if (skills.IsEnabled(QylSkillKind.Agent))
-            services.AddCollectorToolClient<SummaryTools>();
-
-        if (skills.IsEnabled(QylSkillKind.Anomaly))
-            services.AddCollectorToolClient<AnomalyTools>();
-
-        if (skills.IsEnabled(QylSkillKind.Loom))
-        {
-            services.AddCollectorToolClient<TriageTools>();
-            services.AddCollectorToolClient<ExportForAgentTools>();
-            services.AddCollectorToolClient<FixTools>();
-            services.AddCollectorToolClient<AutofixMcpTools>();
-            services.AddCollectorToolClient<RegressionTools>();
-            services.AddCollectorToolClient<GitHubMcpTools>();
-            services.AddCollectorToolClient<AssistedQueryTools>();
-            services.AddCollectorToolClient<TestGenerationTools>();
-        }
+        Qyl.Generated.QylToolManifest.RegisterServices(services, skills);
 
         services.AddCollectorToolClient<ArtifactTools>();
-        services.AddSingleton<RcaTools>();
-        services.AddSingleton<McpToolRegistry>();
         services.AddSingleton(TimeProvider.System);
 
         if (skills.IsEnabled(QylSkillKind.Debug))

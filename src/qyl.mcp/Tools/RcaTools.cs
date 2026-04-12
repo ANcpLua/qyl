@@ -14,10 +14,13 @@ namespace qyl.mcp.Tools;
 ///     to autonomously investigate error issues.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Agent)]
 internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
+    [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
+    [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.root_cause_analysis", Title = "Root Cause Analysis",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
@@ -58,7 +61,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                 typeof(AnomalyTools),
                 typeof(SpanQueryTools),
                 typeof(StructuredLogTools))
-            .Select(tool => (AITool)new GuardedAIFunction(tool, investigation))
+            .Select(tool => (AITool)investigation.Wrap(tool))
             .ToList();
 
         var agent = new ChatClientBuilder(_llm)

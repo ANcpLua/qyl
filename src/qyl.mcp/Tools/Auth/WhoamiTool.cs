@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Auth;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class WhoamiTool(HttpClient client)
 {
     /// <summary>
@@ -21,6 +22,8 @@ public sealed class WhoamiTool(HttpClient client)
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown string containing the user's identity information.</returns>
+    [QylCapability("server_introspection", QylCapabilityRole.FollowUp)]
+    [QylCapability("project_and_access_management", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "whoami", Title = "Who Am I",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Returns the authenticated user's identity including name, email, user ID, and assigned roles.")]

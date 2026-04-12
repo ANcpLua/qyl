@@ -14,6 +14,7 @@ namespace qyl.mcp.Tools.Errors;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetAttachmentsTool(HttpClient client)
 {
     /// <summary>

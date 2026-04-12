@@ -9,8 +9,11 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for regression detection: trigger checks and query regression events.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class RegressionTools(HttpClient http)
 {
+    [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.check_regressions", Title = "Check Regressions for Service",
         ReadOnly = false, Destructive = false, Idempotent = true)]
     [Description("""

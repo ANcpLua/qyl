@@ -11,6 +11,7 @@ namespace qyl.mcp.Tools.Sessions;
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SearchSessionsTool(HttpClient client)
 {
     [McpServerTool(

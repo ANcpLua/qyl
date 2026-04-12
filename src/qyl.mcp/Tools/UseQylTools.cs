@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
 using qyl.mcp.Agents;
 using qyl.mcp.Formatting;
+using Qyl.Generated;
 
 namespace qyl.mcp.Tools;
 
@@ -14,10 +15,12 @@ namespace qyl.mcp.Tools;
 ///     the right tools, and returns the results.
 /// </summary>
 [McpServerToolType]
-internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration config)
+[QylSkill(QylSkillKind.Agent)]
+internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)
 {
     private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 
+    [QylCapability("agentic_investigation", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
@@ -53,8 +56,9 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
 
         var investigation = InvestigationGuard.FromEnvironment();
 
-        var guardedTools = registry.GetTools()
-            .Select(tool => (AITool)new GuardedAIFunction(tool, investigation))
+        var guardedTools = QylToolManifest
+            .CreateTools(services, static type => type != typeof(UseQylTools))
+            .Select(tool => (AITool)investigation.Wrap(tool))
             .ToList();
 
         var client = new ChatClientBuilder(_agentClient)

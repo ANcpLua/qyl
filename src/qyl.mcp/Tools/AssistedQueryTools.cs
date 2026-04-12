@@ -13,6 +13,7 @@ namespace qyl.mcp.Tools;
 ///     the collector's /api/v1/query endpoint, and formats output.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);

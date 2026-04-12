@@ -12,8 +12,10 @@ namespace qyl.mcp.Tools;
 ///     list, detail, steps, approve, and reject.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class AutofixMcpTools(HttpClient http)
 {
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.list_fix_runs", Title = "List Fix Runs",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
@@ -48,6 +50,7 @@ internal sealed class AutofixMcpTools(HttpClient http)
         return LoomToolEnvelope.Ok(payload);
     }
 
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_fix_run", Title = "Get Fix Run Details",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
@@ -81,6 +84,7 @@ internal sealed class AutofixMcpTools(HttpClient http)
             : LoomToolEnvelope.Ok(payload);
     }
 
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_fix_run_steps", Title = "Get Fix Run Pipeline Steps",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
@@ -114,6 +118,7 @@ internal sealed class AutofixMcpTools(HttpClient http)
             : LoomToolEnvelope.Ok(payload);
     }
 
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
         ReadOnly = false, Destructive = false, Idempotent = true)]
     [Description("""

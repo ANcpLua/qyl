@@ -14,10 +14,12 @@ namespace qyl.mcp.Tools;
 ///     <see cref="GenAiTools" /> with the IChatClient pattern from <see cref="UseQylTools" />.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Agent)]
 internal sealed class SummaryTools(HttpClient client, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
+    [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
@@ -86,6 +88,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             return response.Text ?? "Summary generation produced no output.";
         });
 
+    [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_trace", Title = "Summarize Trace",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""

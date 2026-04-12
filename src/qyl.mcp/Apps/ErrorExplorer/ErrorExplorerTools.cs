@@ -13,6 +13,7 @@ namespace qyl.mcp.Apps.ErrorExplorer;
 ///     Detail/timeline queries reuse existing <see cref="ErrorTools" />.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Apps)]
 public sealed class ErrorExplorerTools(HttpClient client)
 {
     private const string AppUri = "ui://qyl/error-explorer";
@@ -23,6 +24,7 @@ public sealed class ErrorExplorerTools(HttpClient client)
     /// <param name="status">Filter by issue status: unresolved, resolved, or ignored.</param>
     /// <param name="service">Filter by originating service name.</param>
     /// <param name="limit">Maximum number of error groups to return.</param>
+    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
     [McpServerTool(Name = "qyl.app.error_explorer", Title = "Error Explorer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

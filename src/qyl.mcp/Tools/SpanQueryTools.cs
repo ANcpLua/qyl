@@ -10,6 +10,7 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for querying spans.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class SpanQueryTools(HttpClient client)
 {
     /// <summary>Searches spans with flexible filtering by session, service, operation, and status.</summary>
@@ -20,6 +21,7 @@ public sealed class SpanQueryTools(HttpClient client)
     /// <param name="hours">Time window in hours.</param>
     /// <param name="limit">Maximum number of spans to return.</param>
     /// <returns>A list of matching spans with timing and attributes.</returns>
+    [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_spans", Title = "Search Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

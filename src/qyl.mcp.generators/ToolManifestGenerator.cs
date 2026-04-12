@@ -26,13 +26,25 @@ public sealed class ToolManifestGenerator : IIncrementalGenerator
             .Select(static (entry, _) => entry!)
             .Collect();
 
-        context.RegisterSourceOutput(toolTypeEntries, static (spc, entries) =>
+        var capabilityDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                ToolManifestAnalyzer.CapabilityDefinitionMetadataName,
+                ToolManifestAnalyzer.CouldBeCapabilityDefinition,
+                ToolManifestAnalyzer.ExtractCapabilityDefinition)
+            .Where(static entry => entry is not null)
+            .Select(static (entry, _) => entry!)
+            .Collect();
+
+        var combined = toolTypeEntries.Combine(capabilityDefinitions);
+
+        context.RegisterSourceOutput(combined, static (spc, pair) =>
         {
-            var equatable = entries.AsEquatableArray();
+            var tools = pair.Left.AsEquatableArray();
+            var definitions = pair.Right.AsEquatableArray();
 
-            if (equatable.IsEmpty) return;
+            if (tools.IsEmpty) return;
 
-            var source = ToolManifestEmitter.Emit(equatable);
+            var source = ToolManifestEmitter.Emit(tools, definitions);
             if (!string.IsNullOrEmpty(source))
                 spc.AddSource("QylToolManifest.g.cs", SourceText.From(source, Encoding.UTF8));
         });

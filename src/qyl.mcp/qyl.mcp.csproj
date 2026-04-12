@@ -24,6 +24,8 @@
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
     <Using Include="System.Diagnostics"/>
+    <Using Include="qyl.mcp.Skills"/>
+    <Using Include="qyl.mcp.Capabilities"/>
   </ItemGroup>
 
   <ItemGroup>

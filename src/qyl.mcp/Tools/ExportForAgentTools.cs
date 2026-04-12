@@ -10,8 +10,10 @@ namespace qyl.mcp.Tools;
 ///     (Claude Code, Cursor, etc.).  Read-only — no LLM call required.
 /// </summary>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Loom)]
 internal sealed class ExportForAgentTools(HttpClient http)
 {
+    [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.export_for_agent", Title = "Export Issue for Coding Agent",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""

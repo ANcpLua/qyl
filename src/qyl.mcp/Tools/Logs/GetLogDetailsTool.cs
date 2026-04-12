@@ -12,6 +12,7 @@ namespace qyl.mcp.Tools.Logs;
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
+[QylSkill(QylSkillKind.Inspect)]
 public sealed class GetLogDetailsTool(HttpClient client)
 {
     /// <summary>
@@ -20,6 +21,7 @@ public sealed class GetLogDetailsTool(HttpClient client)
     /// <param name="logId">The log ID to inspect.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown string containing the log entry details and attributes.</returns>
+    [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_log_details", Title = "Get Log Details",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full details for a single log entry including all attributes and correlated trace/span IDs.")]

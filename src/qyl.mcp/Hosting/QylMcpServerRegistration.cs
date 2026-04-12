@@ -4,10 +4,14 @@ using System.Text.Json.Nodes;
 using qyl.mcp.Auth;
 using ModelContextProtocol.Protocol;
 using qyl.contracts.Attributes;
+using qyl.mcp.Apps.ErrorExplorer;
+using qyl.mcp.Apps.QueryStudio;
+using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Capabilities;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
+using Qyl.Generated;
 
 namespace qyl.mcp.Hosting;
 
@@ -152,8 +156,17 @@ internal static class QylMcpServerRegistration
                     }
                 });
             })
-            .WithTools<CapabilityTools>(jsonOptions)
-            .WithSkillTools(skills, jsonOptions);
+            .WithTools<CapabilityTools>(jsonOptions);
+
+        QylToolManifest.RegisterTools(mcpBuilder, skills, jsonOptions);
+
+        if (skills.IsEnabled(QylSkillKind.Apps))
+        {
+            mcpBuilder
+                .WithResources<TraceExplorerResource>()
+                .WithResources<ErrorExplorerResource>()
+                .WithResources([QueryStudioResource.Create()]);
+        }
     }
 }
 
