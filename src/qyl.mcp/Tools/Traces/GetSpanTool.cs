@@ -19,12 +19,6 @@ public sealed class GetSpanTool(HttpClient client)
     [McpServerTool(Name = "get_span", Title = "Get Span",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full details for a single span including all attributes.")]
-    /// <summary>
-    /// Fetches a span by ID with its trace context, timing, status, and attribute key-value pairs.
-    /// </summary>
-    /// <param name="spanId">The span ID to inspect.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted detail view of the span and its attributes.</returns>
     public async Task<string> GetSpanAsync(
         [Description("The span ID to inspect")]
         string spanId,

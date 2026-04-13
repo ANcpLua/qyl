@@ -24,14 +24,6 @@ public sealed class LinkErrorsTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Link two related error issues together for cross-referencing without merging. Relationship types: causes, caused_by, related.")]
-    /// <summary>
-    /// Creates a relationship link between two error issues (causes, caused_by, or related).
-    /// </summary>
-    /// <param name="issueId">The source error issue ID.</param>
-    /// <param name="linkedIssueId">The target error issue ID to link.</param>
-    /// <param name="relationship">Relationship type: causes, caused_by, or related.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message with the link details.</returns>
     public async Task<string> LinkErrors(
         [Description("Source error issue ID")] string issueId,
         [Description("Target error issue ID to link")] string linkedIssueId,

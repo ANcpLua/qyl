@@ -20,12 +20,6 @@ public sealed class GetTraceDetailsTool(HttpClient client)
     [McpServerTool(Name = "get_trace_details", Title = "Get Trace Details",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full span tree for a trace. Returns all spans with timing, status, and attributes.")]
-    /// <summary>
-    /// Fetches all spans belonging to the specified trace, rendering them as a hierarchical detail view.
-    /// </summary>
-    /// <param name="traceId">The trace ID to inspect.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted span tree with timing, status, and attribute details per span.</returns>
     public async Task<string> GetTraceDetailsAsync(
         [Description("The trace ID to inspect")]
         string traceId,

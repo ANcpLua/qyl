@@ -23,13 +23,6 @@ public sealed class MergeErrorsTool(HttpClient client)
         Destructive = true,
         Idempotent = false)]
     [Description("Merge duplicate error issues into a primary issue. All events from the merged issues are consolidated under the primary.")]
-    /// <summary>
-    /// Consolidates the specified duplicate error issues into a single primary issue.
-    /// </summary>
-    /// <param name="primaryIssueId">The primary issue ID that absorbs the duplicates.</param>
-    /// <param name="issueIds">The issue IDs to merge into the primary.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message with merge count.</returns>
     public async Task<string> MergeErrors(
         [Description("The primary issue ID that will absorb the duplicates")]
         string primaryIssueId,

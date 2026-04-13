@@ -22,14 +22,6 @@ public sealed class AnnotateSessionTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Add an annotation with optional tags to a debugging session.")]
-    /// <summary>
-    /// Posts an annotation note with optional tags to the specified debugging session.
-    /// </summary>
-    /// <param name="sessionId">The session ID to annotate.</param>
-    /// <param name="note">The annotation text.</param>
-    /// <param name="tags">Optional tags for categorization.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message.</returns>
     public async Task<string> AnnotateSession(
         [Description("Session ID to annotate")]
         string sessionId,

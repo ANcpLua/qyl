@@ -21,12 +21,6 @@ public sealed class ListMetricsTool(HttpClient client)
         OpenWorld = true)]
     [Description(
         "List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
-    /// <summary>
-    /// Retrieves the list of available metrics, optionally filtered by project slug.
-    /// </summary>
-    /// <param name="projectSlug">Optional project slug to filter metrics.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown table of metric names, types, units, and descriptions.</returns>
     public async Task<string> ListMetrics(
         [Description("Filter to a specific project slug")]
         string? projectSlug = null,

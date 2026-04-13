@@ -20,12 +20,6 @@ public sealed class GetProfileTool(HttpClient client)
     [McpServerTool(Name = "get_profile", Title = "Get Span Profile",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get CPU/memory profile data for a span. Returns thread info, hot functions, and stack frame summary.")]
-    /// <summary>
-    /// Fetches profile data for the specified span, returning thread counts and ranked hot functions.
-    /// </summary>
-    /// <param name="spanId">The span ID to fetch profile data for.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted profile report with hot-function rankings.</returns>
     public async Task<string> GetProfileAsync(
         [Description("The span ID to fetch profile data for")]
         string spanId,

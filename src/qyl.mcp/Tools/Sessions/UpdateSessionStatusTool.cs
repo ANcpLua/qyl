@@ -22,13 +22,6 @@ public sealed class UpdateSessionStatusTool(HttpClient client)
         Destructive = true,
         Idempotent = true)]
     [Description("Update the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').")]
-    /// <summary>
-    /// Patches the status field of the specified debugging session.
-    /// </summary>
-    /// <param name="sessionId">The session ID to update.</param>
-    /// <param name="status">The new status value (e.g. 'reviewed', 'investigating', 'resolved').</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message.</returns>
     public async Task<string> UpdateSessionStatus(
         [Description("Session ID")] string sessionId,
         [Description("New status (e.g. 'reviewed', 'investigating', 'resolved')")]

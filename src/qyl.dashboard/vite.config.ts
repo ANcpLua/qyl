@@ -61,16 +61,18 @@ function qylDashboardBuildManifest(runtime: DashboardBuildRuntime | null): Plugi
                 return;
             }
 
-            const entryChunk = Object.values(bundle).find(
-                (output): output is OutputChunk =>
-                    output.type === 'chunk'
-                    && output.isEntry
-                    && output.facadeModuleId?.endsWith('/src/main.tsx'),
+            const entries = Object.values(bundle).filter(
+                (output): output is OutputChunk => output.type === 'chunk' && output.isEntry,
             );
+            const entryChunk = entries.find(
+                output => /[\\/]src[\\/]main\.tsx$/.test(output.facadeModuleId ?? ''),
+            ) ?? entries[0];
 
             if (!entryChunk) {
-                this.error('Unable to resolve the qyl dashboard entry chunk for dashboard-build.json.');
-                return;
+                this.error(
+                    `Unable to resolve the qyl dashboard entry chunk for dashboard-build.json. `
+                    + `Candidates: ${entries.map(e => `${e.fileName} (${e.facadeModuleId ?? 'no facade'})`).join(', ')}`,
+                );
             }
 
             const manifest: DashboardBuildManifest = {

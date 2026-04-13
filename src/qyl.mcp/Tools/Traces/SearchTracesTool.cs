@@ -20,15 +20,6 @@ public sealed class SearchTracesTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description(
         "Search distributed traces by query. Returns a paginated list of matching traces with duration, status, and root span.")]
-    /// <summary>
-    /// Searches traces matching the given query with optional project filter and pagination.
-    /// </summary>
-    /// <param name="query">Search query string.</param>
-    /// <param name="projectSlug">Optional project slug to filter results.</param>
-    /// <param name="cursor">Optional cursor for pagination.</param>
-    /// <param name="limit">Maximum results per page (1-100, default 25).</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted paginated list of matching traces.</returns>
     public async Task<string> SearchTracesAsync(
         [Description("Search query (required)")]
         string query,

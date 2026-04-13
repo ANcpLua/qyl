@@ -9,8 +9,8 @@ using Qyl.Instrumentation.Instrumentation.GenAi;
 namespace Qyl.Collector.Tests.Instrumentation;
 
 /// <summary>
-///     Tests for <see cref="InstrumentedAIFunction" /> and
-///     <see cref="ChatClientExtensions.AddInstrumentedTools" />.
+///     Tests for <see cref="InstrumentedAIFunction" /> and the <c>AddInstrumentedTools</c>
+///     extension method on <see cref="ChatOptions" />.
 /// </summary>
 public sealed class InstrumentedAIFunctionTests
 {

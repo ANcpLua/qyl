@@ -26,14 +26,6 @@ public sealed class SnoozeErrorTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Snooze (temporarily ignore) an error issue for a specified duration. Valid durations: 1h, 6h, 24h, 7d, 30d.")]
-    /// <summary>
-    /// Validates the duration and snoozes the specified error issue with an optional reason.
-    /// </summary>
-    /// <param name="issueId">The error issue ID to snooze.</param>
-    /// <param name="duration">Snooze duration: 1h, 6h, 24h, 7d, or 30d.</param>
-    /// <param name="reason">Optional reason for snoozing.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message with the snooze duration.</returns>
     public async Task<string> SnoozeError(
         [Description("Error issue ID to snooze")] string issueId,
         [Description("Snooze duration: 1h, 6h, 24h, 7d, or 30d")]

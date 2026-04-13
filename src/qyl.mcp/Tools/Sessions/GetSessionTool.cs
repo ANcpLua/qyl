@@ -22,12 +22,6 @@ public sealed class GetSessionTool(HttpClient client)
         Destructive = false,
         OpenWorld = false)]
     [Description("Get full details of a debugging session including associated traces.")]
-    /// <summary>
-    /// Fetches a debugging session by ID with its status, service, span count, and linked traces.
-    /// </summary>
-    /// <param name="sessionId">The session ID to look up.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted detail view of the session and its traces.</returns>
     public async Task<string> GetSession(
         [Description("Session ID to look up")] string sessionId,
         CancellationToken ct = default)

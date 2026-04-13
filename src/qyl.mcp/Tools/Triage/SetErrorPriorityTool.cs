@@ -25,13 +25,6 @@ public sealed class SetErrorPriorityTool(HttpClient client)
         Destructive = false,
         Idempotent = true)]
     [Description("Set the priority level on an error issue for triage. Valid priorities: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info).")]
-    /// <summary>
-    /// Validates and assigns a priority level to the specified error issue.
-    /// </summary>
-    /// <param name="issueId">The error issue ID to set priority on.</param>
-    /// <param name="priority">Priority level: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info).</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success confirmation message with the assigned priority.</returns>
     public async Task<string> SetErrorPriority(
         [Description("Error issue ID to set priority on")] string issueId,
         [Description("Priority level: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info)")]
