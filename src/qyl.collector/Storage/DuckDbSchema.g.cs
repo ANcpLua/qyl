@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-11T19:03:14.7310320+00:00
+//     Generated: 2026-04-13T03:00:04.9299490+00:00
 //     DuckDB schema definitions
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -15,7 +15,7 @@ namespace Qyl.Collector.Storage;
 /// <summary>DuckDB schema from TypeSpec God Schema.</summary>
 public static partial class DuckDbSchema
 {
-    public const int Version = 720872372;
+    public const int Version = 65811750;
 
     public const string AlertFiringsDdl = """
         CREATE TABLE IF NOT EXISTS alert_firings (
@@ -138,14 +138,14 @@ public static partial class DuckDbSchema
             first_seen_at TIMESTAMP NOT NULL,
             last_seen_at TIMESTAMP NOT NULL,
             occurrence_count BIGINT NOT NULL,
-            affected_users_count INTEGER NOT NULL DEFAULT 0,
+            affected_users_count INTEGER NOT NULL,
             status VARCHAR NOT NULL,
             substatus VARCHAR,
             priority VARCHAR NOT NULL,
             assigned_to VARCHAR,
             resolved_at TIMESTAMP,
             resolved_by VARCHAR,
-            regression_count INTEGER NOT NULL DEFAULT 0,
+            regression_count INTEGER NOT NULL,
             last_release VARCHAR,
             tags_json JSON,
             metadata_json JSON,
@@ -256,6 +256,29 @@ public static partial class DuckDbSchema
             verified_at TIMESTAMP,
             expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL
+        );
+        """;
+
+    public const string ProfilesDdl = """
+        CREATE TABLE IF NOT EXISTS profiles (
+            profile_id VARCHAR NOT NULL,
+            trace_id VARCHAR(32),
+            span_id VARCHAR(16),
+            session_id VARCHAR(128),
+            time_unix_nano BIGINT NOT NULL,
+            duration_nano BIGINT NOT NULL,
+            sample_count INTEGER NOT NULL,
+            sample_type VARCHAR,
+            sample_unit VARCHAR,
+            original_payload_format VARCHAR,
+            service_name VARCHAR,
+            profile_frame_type VARCHAR,
+            attributes_json VARCHAR,
+            resource_json VARCHAR,
+            profile_data_json VARCHAR,
+            schema_url VARCHAR(256),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (profile_id)
         );
         """;
 
@@ -413,7 +436,7 @@ public static partial class DuckDbSchema
 
     public static string GetSchemaDdl() =>
         $"""
-        -- QYL DuckDB Schema v720872372
+        -- QYL DuckDB Schema v65811750
         {AlertFiringsDdl}
         {AlertRulesDdl}
         {DeploymentsDdl}
@@ -426,6 +449,7 @@ public static partial class DuckDbSchema
         {GenerationProfilesDdl}
         {GenerationSelectionsDdl}
         {HandshakeSessionsDdl}
+        {ProfilesDdl}
         {ProjectEnvironmentsDdl}
         {ProjectsDdl}
         {SessionEntitiesDdl}
@@ -434,6 +458,11 @@ public static partial class DuckDbSchema
         {WorkflowNodesDdl}
         {WorkflowRunsDdl}
         {WorkspaceEnvelopesDdl}
+        CREATE INDEX IF NOT EXISTS idx_profiles_trace_id ON profiles(trace_id);
+        CREATE INDEX IF NOT EXISTS idx_profiles_session_id ON profiles(session_id);
+        CREATE INDEX IF NOT EXISTS idx_profiles_time ON profiles(time_unix_nano);
+        CREATE INDEX IF NOT EXISTS idx_profiles_sample_type ON profiles(sample_type);
+        CREATE INDEX IF NOT EXISTS idx_profiles_service ON profiles(service_name);
         CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
         CREATE INDEX IF NOT EXISTS idx_spans_session_id ON spans(session_id);
         CREATE INDEX IF NOT EXISTS idx_spans_start_time ON spans(start_time_unix_nano);

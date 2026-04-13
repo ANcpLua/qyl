@@ -1,9 +1,8 @@
 <Project Sdk="ANcpLua.NET.Sdk">
   <PropertyGroup>
-    <RootNamespace>Qyl.Mcp.Tests</RootNamespace>
-    <AssemblyName>Qyl.Mcp.Tests</AssemblyName>
+
     <LangVersion>14</LangVersion>
-    <InvariantGlobalization>true</InvariantGlobalization>
+
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -16,9 +15,22 @@
     <PackageReference Include="xunit.v3.mtp-v2"/>
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    
   </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\qyl.mcp\qyl.mcp.csproj"/>
+    <ProjectReference Include="..\..\src\qyl.contracts\qyl.contracts.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="TestInfrastructure\TestSupport.cs">
+    
+      <Link>TestSupport.cs</Link>
+    </Compile>
   </ItemGroup>
 </Project>

@@ -4,12 +4,12 @@
     <AssemblyName>Qyl.Collector.Tests</AssemblyName>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="xunit.v3.mtp-v2"/>
-    <PackageReference Include="AwesomeAssertions"/>
     <PackageReference Include="NetArchTest.Rules"/>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>

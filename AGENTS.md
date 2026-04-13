@@ -47,9 +47,22 @@ Known debt — architectural:
 - `collector/AgentRuns/` is correct — pure read-only DuckDB queries for agent run observability.
 - `LoomToolEnvelope<T>` — use `LoomToolEnvelope.Ok(data)` and `LoomToolEnvelope.Fail<T>(error)` (non-generic companion class), NOT `LoomToolEnvelope<T>.Ok/Fail`.
 
+Compiler plane — single source of truth (2026-04-12):
+- `[QylSkill(QylSkillKind.X)]` on each `[McpServerToolType]` class is the only place skill ownership is declared.
+- `[QylCapability("id", QylCapabilityRole.Starting/FollowUp)]` on tool methods links tools to capabilities at compile time.
+- `[QylCapabilityDefinition("id", QylSkillKind.X)]` on marker classes in `Capabilities/Definitions/` defines capability metadata.
+- The generator produces everything else: `RegisterTools()`, `RegisterServices()`, `Capabilities[]`, `ToolDescriptors[]`.
+- Do NOT manually add tools to DI, MCP registration, or skill catalogs — the generator handles it from the attribute.
+- Tools without `[QylSkill]` (e.g. `CapabilityTools`, `ArtifactTools`) keep manual registration and are excluded from generated methods.
+
+Agent bounded autonomy (2026-04-12):
+- `InvestigationLineage` (AsyncLocal) enforces max depth (3), root spawn budget (10), cycle detection.
+- `UseQylTools` and `RcaTools` call `InvestigationLineage.TryEnter()` before starting investigations.
+- Env overrides: `QYL_AGENT_MAX_DEPTH`, `QYL_AGENT_MAX_SPAWNS`.
+
 Project map (13 projects):
 - **Platform:** qyl.collector (OTLP ingest, REST API, DuckDB), qyl.contracts (BCL-only types)
-- **MCP:** qyl.mcp (77 tools, stdio + Streamable HTTP), qyl.mcp.generators (interim Roslyn generator)
+- **MCP:** qyl.mcp (77 tools, stdio + Streamable HTTP), qyl.mcp.generators (Roslyn generator — skill-aware manifests + capabilities)
 - **Loom:** qyl.loom (standalone agent exe — triage, RCA, fix, code review)
 - **SDK:** qyl.instrumentation, qyl.instrumentation.generators, qyl.collector.storage.generators
 - **Agents:** Qyl.Agents (runtime), Qyl.Agents.Abstractions (attributes), Qyl.Agents.Generator (unified generator)

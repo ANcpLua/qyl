@@ -27,7 +27,7 @@ describe('build version helpers', () => {
     it('prefers the explicit runtime build id over DOM asset scraping', () => {
         expect(resolveCurrentDashboardBuildId(
             {
-                querySelectorAll: () => [],
+                querySelectorAll: () => [] as unknown as NodeListOf<HTMLScriptElement>,
             },
             {
                 buildId: 'build-123',

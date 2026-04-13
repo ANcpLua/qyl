@@ -53,8 +53,6 @@
     <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitVersion)"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingTrxVersion)"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="$(MicrosoftTestingCodeCoverageVersion)"/>
-    <!-- Assertions -->
-    <PackageVersion Include="AwesomeAssertions" Version="$(AwesomeAssertionsVersion)"/>
     <!-- Architecture Tests -->
     <PackageVersion Include="NetArchTest.Rules" Version="$(NetArchTestVersion)"/>
     <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
