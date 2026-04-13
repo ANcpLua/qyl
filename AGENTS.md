@@ -13,16 +13,7 @@
 - Build verification: `dotnet build src/<project>/<project>.csproj`, not the full
   solution or nuke. Other projects have WIP test failures that aren't your problem.
 
-qyl is organized into seven planes. Prefer changing one plane at a time and keep dependencies one-way.
-
-Read the plane doc that matches the files you touch:
-- `planes/data-plane.md`
-- `planes/serving-plane.md`
-- `planes/intelligence-plane.md`
-- `planes/agent-control-plane.md`
-- `planes/ledger-governance-plane.md`
-- `planes/ui-protocol-plane.md`
-- `planes/compiler-plane.md`
+qyl is organized into seven planes. Prefer changing one plane at a time and keep dependencies one-way. See `docs/ARCHITECTURE.md` for the C4 container view of how the planes map to projects.
 
 Global laws:
 - The data plane is the product core. It must not depend on MAF, AG-UI, or LLM/provider code.
@@ -60,10 +51,15 @@ Agent bounded autonomy (2026-04-12):
 - `UseQylTools` and `RcaTools` call `InvestigationLineage.TryEnter()` before starting investigations.
 - Env overrides: `QYL_AGENT_MAX_DEPTH`, `QYL_AGENT_MAX_SPAWNS`.
 
-Project map (13 projects):
+Project map (8 real projects — see `QYL_GROUND_TRUTH` from SessionStart hook for the full list and forbidden ghost projects):
 - **Platform:** qyl.collector (OTLP ingest, REST API, DuckDB), qyl.contracts (BCL-only types)
 - **MCP:** qyl.mcp (77 tools, stdio + Streamable HTTP), qyl.mcp.generators (Roslyn generator — skill-aware manifests + capabilities)
-- **Loom:** qyl.loom (standalone agent exe — triage, RCA, fix, code review)
+- **Loom:** qyl.loom (standalone agent exe — triage, RCA, fix, code review; HTTP-only to collector)
 - **SDK:** qyl.instrumentation, qyl.instrumentation.generators, qyl.collector.storage.generators
-- **Agents:** Qyl.Agents (runtime), Qyl.Agents.Abstractions (attributes), Qyl.Agents.Generator (unified generator)
-- **Frontend:** qyl.dashboard (React 19, Vite 7, Tailwind CSS 4, Base UI 1.3.0)
+- **Frontend:** qyl.dashboard (React 19, Vite 7, Tailwind CSS 4, Base UI 1.3.0, lucide-react)
+
+Reference docs:
+- `docs/ARCHITECTURE.md` — C4 Context / Container / Component diagrams
+- `docs/THREAT_MODEL.md` — 20 attacker stories with P0–P3 prioritization
+- `docs/OPEN_WORK.md` — consolidated open work items from the former specs/ tree
+- `docs/aot-assessment.md`, `docs/attribute.md`, `docs/generator.md`, `docs/emitters.md` — generator ecosystem reference

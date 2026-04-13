@@ -90,10 +90,9 @@ dotnet run --project src/qyl.collector
 cd src/qyl.dashboard && npm install && npm run dev
 ```
 
-**MCP Server (separate repo for now)**
+**MCP Server**
 
 ```bash
-# From https://github.com/ANcpLua/qyl.mcp
 QYL_COLLECTOR_URL=http://localhost:5100 dotnet run --project src/qyl.mcp
 ```
 
@@ -203,10 +202,23 @@ src/
 plugins/
   qyl-for-ai/                          # Claude Code skill definitions
   qyl-mcp/                             # MCP plugin config
-specs/                                  # Architecture and domain specs
+docs/                                   # Architecture, threat model, open work
 tests/                                  # xUnit v3 + MTP tests
 site/                                   # Landing page (GitHub Pages)
 ```
+
+## Documentation
+
+| Document                    | Purpose                                                      |
+|-----------------------------|--------------------------------------------------------------|
+| `AGENTS.md`                  | Execution style + plane laws for agents working in this repo|
+| `docs/ARCHITECTURE.md`       | C4 model (Context / Container / Component) + deployment     |
+| `docs/THREAT_MODEL.md`       | Static threat analysis with 20 attacker stories, P0–P3      |
+| `docs/OPEN_WORK.md`          | Consolidated open work items from former `specs/` tree      |
+| `docs/aot-assessment.md`     | Native AOT readiness per project                            |
+| `docs/attribute.md`          | Full catalog of compile-time attributes across repos        |
+| `docs/generator.md`          | Full catalog of Roslyn source generators                    |
+| `docs/emitters.md`           | Emitter patterns used across generators                     |
 
 ## License
 
