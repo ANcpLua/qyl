@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients;
 using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;
@@ -75,7 +76,7 @@ public sealed class GenAiInstrumentationTests
     [Fact]
     public void WithQylTelemetry_wraps_OpenTelemetryChatClient_in_ToolInstrumenting()
     {
-        var inner = new CapturingInnerClient();
+        var inner = new FakeChatClient { Metadata = new ChatClientMetadata("test-provider", null, "test-model") };
         var otel = new OpenTelemetryChatClient(inner, sourceName: "test");
 
         var result = otel.WithQylTelemetry();
@@ -87,7 +88,7 @@ public sealed class GenAiInstrumentationTests
     [Fact]
     public void WithQylTelemetry_does_not_double_wrap_ToolInstrumentingChatClient()
     {
-        var inner = new CapturingInnerClient();
+        var inner = new FakeChatClient { Metadata = new ChatClientMetadata("test-provider", null, "test-model") };
         var toolClient = new ToolInstrumentingChatClient(inner);
 
         var result = toolClient.WithQylTelemetry();
@@ -98,7 +99,7 @@ public sealed class GenAiInstrumentationTests
     [Fact]
     public void WithQylTelemetry_wraps_plain_client_with_full_pipeline()
     {
-        var inner = new CapturingInnerClient();
+        var inner = new FakeChatClient { Metadata = new ChatClientMetadata("test-provider", null, "test-model") };
 
         var result = inner.WithQylTelemetry();
 
@@ -107,24 +108,4 @@ public sealed class GenAiInstrumentationTests
     }
 }
 
-file sealed class CapturingInnerClient : IChatClient
-{
-    public ChatClientMetadata Metadata => new("test-provider", null, "test-model");
-
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-        => Task.FromResult(new ChatResponse([new ChatMessage(ChatRole.Assistant, "ok")]));
-
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public object? GetService(Type serviceType, object? serviceKey = null) =>
-        serviceType == typeof(ChatClientMetadata) ? Metadata : null;
-
-    public void Dispose() { }
-}
+// FakeChatClient supersedes the file-scoped CapturingInnerClient that lived here.

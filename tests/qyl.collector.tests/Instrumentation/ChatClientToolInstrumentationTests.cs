@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients;
 using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;
@@ -10,7 +11,7 @@ public sealed class ChatClientToolInstrumentationTests
     [Fact]
     public async Task BuilderInstrumentation_AutoWrapsTools()
     {
-        using var inner = new CapturingChatClient();
+        using var inner = new FakeChatClient();
         using var client = new ChatClientBuilder(inner)
             .UseQylInstrumentation()
             .Build();
@@ -26,7 +27,7 @@ public sealed class ChatClientToolInstrumentationTests
     [Fact]
     public async Task DirectClientInstrumentation_AutoWrapsTools()
     {
-        using var inner = new CapturingChatClient();
+        using var inner = new FakeChatClient();
         using var client = inner.UseQylInstrumentation(agentName: "loom");
 
         var options = CreateOptions();
@@ -40,7 +41,7 @@ public sealed class ChatClientToolInstrumentationTests
     [Fact]
     public async Task OpenTelemetryBridge_AutoWrapsTools()
     {
-        using var inner = new CapturingChatClient();
+        using var inner = new FakeChatClient();
         using var client = inner.WithQylTelemetry();
 
         var options = CreateOptions();
@@ -62,38 +63,6 @@ public sealed class ChatClientToolInstrumentationTests
             Tools = [AIFunctionFactory.Create(static () => "pong")]
         };
 
-    private sealed class CapturingChatClient : IChatClient
-    {
-        public ChatOptions? LastOptions { get; private set; }
-
-        public void Dispose()
-        {
-        }
-
-        public object? GetService(Type serviceType, object? serviceKey = null) => null;
-
-        public Task<ChatResponse> GetResponseAsync(
-            IEnumerable<ChatMessage> messages,
-            ChatOptions? options = null,
-            CancellationToken cancellationToken = default)
-        {
-            LastOptions = options;
-            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "ok")));
-        }
-
-        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-            IEnumerable<ChatMessage> messages,
-            ChatOptions? options = null,
-            CancellationToken cancellationToken = default)
-        {
-            LastOptions = options;
-            return Stream();
-
-            static async IAsyncEnumerable<ChatResponseUpdate> Stream()
-            {
-                await Task.CompletedTask;
-                yield break;
-            }
-        }
-    }
 }
+
+// FakeChatClient supersedes the private nested CapturingChatClient that lived here.

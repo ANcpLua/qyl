@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients;
 using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;
@@ -43,7 +44,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var inner = new CapturingChatClient(new ChatResponse([new ChatMessage(ChatRole.Assistant, "hi")]));
+        var inner = new FakeChatClient().WithResponse("hi");
         var client = BuildClient(inner);
 
         await client.GetResponseAsync(
@@ -65,7 +66,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var inner = new CapturingChatClient(new ChatResponse([new ChatMessage(ChatRole.Assistant, "hi")]));
+        var inner = new FakeChatClient().WithResponse("hi");
         var client = BuildClient(inner);
 
         await client.GetResponseAsync(
@@ -87,13 +88,10 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var response = new ChatResponse([new ChatMessage(ChatRole.Assistant, "done")])
-        {
-            ModelId = "gpt-4o-2024-11",
-            FinishReason = ChatFinishReason.Stop
-        };
-
-        var inner = new CapturingChatClient(response);
+        var inner = new FakeChatClient().WithResponse(
+            "done",
+            finishReason: ChatFinishReason.Stop,
+            modelId: "gpt-4o-2024-11");
         var client = BuildClient(inner);
 
         await client.GetResponseAsync(
@@ -117,16 +115,9 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var response = new ChatResponse([new ChatMessage(ChatRole.Assistant, "text")])
-        {
-            Usage = new UsageDetails
-            {
-                InputTokenCount = 100,
-                OutputTokenCount = 42
-            }
-        };
-
-        var inner = new CapturingChatClient(response);
+        var inner = new FakeChatClient().WithResponse(
+            "text",
+            usage: new UsageDetails { InputTokenCount = 100, OutputTokenCount = 42 });
         var client = BuildClient(inner);
 
         await client.GetResponseAsync(
@@ -145,10 +136,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var response = new ChatResponse([new ChatMessage(ChatRole.Assistant, "text")]);
-        // Usage remains null
-
-        var inner = new CapturingChatClient(response);
+        var inner = new FakeChatClient().WithResponse("text");
         var client = BuildClient(inner);
 
         await client.GetResponseAsync(
@@ -169,7 +157,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var inner = new ThrowingChatClient(
+        var inner = FakeChatClient.WithException(
             new HttpRequestException("connection refused", null, HttpStatusCode.ServiceUnavailable));
         var client = BuildClient(inner);
 
@@ -192,7 +180,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var inner = new CapturingChatClient(new ChatResponse([new ChatMessage(ChatRole.Assistant, "hi")]));
+        var inner = new FakeChatClient().WithResponse("hi");
         var client = BuildClient(inner, agentName: "MyAgent");
 
         await client.GetResponseAsync(
@@ -210,7 +198,7 @@ public sealed class InstrumentedChatClientTests
         var captured = new List<Activity>();
         using var listener = CreateListener(captured);
 
-        var inner = new CapturingChatClient(new ChatResponse([new ChatMessage(ChatRole.Assistant, "hi")]));
+        var inner = new FakeChatClient().WithResponse("hi");
         var client = BuildClient(inner); // no agentName
 
         await client.GetResponseAsync(
@@ -223,49 +211,5 @@ public sealed class InstrumentedChatClientTests
     }
 }
 
-// -- test doubles ---------------------------------------------------------------
-
-/// <summary>Minimal IChatClient that returns a preset response.</summary>
-file sealed class CapturingChatClient(ChatResponse response) : IChatClient
-{
-    public ChatOptions? LastOptions { get; private set; }
-
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        LastOptions = options;
-        return Task.FromResult(response);
-    }
-
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
-
-    public void Dispose() { }
-}
-
-/// <summary>Minimal IChatClient that always throws.</summary>
-file sealed class ThrowingChatClient(Exception exception) : IChatClient
-{
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-        => throw exception;
-
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
-
-    public void Dispose() { }
-}
+// FakeChatClient from ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients
+// supersedes the file-scoped CapturingChatClient + ThrowingChatClient that lived here.
