@@ -224,7 +224,30 @@
         background: var(--color-signal-orange);
     }
 
-    /* Preserve component-defined radius; avoid global hard overrides */
+    /* Focus indicator - brutalist outline for keyboard navigation */
+    :focus-visible {
+        outline: 2px solid var(--color-signal-orange);
+        outline-offset: 2px;
+    }
+
+    /* Text selection - high contrast for operator UI */
+    ::selection {
+        background: var(--color-signal-orange);
+        color: var(--color-brutal-black);
+    }
+
+    /* Cursor discipline - Tailwind v4 preflight removes pointer from buttons */
+    button:not(:disabled),
+    summary,
+    a[href],
+    [role="button"]:not([aria-disabled="true"]),
+    [role="tab"]:not([aria-disabled="true"]),
+    [role="menuitem"]:not([aria-disabled="true"]),
+    [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+    [role="menuitemradio"]:not([aria-disabled="true"]),
+    [role="option"]:not([aria-disabled="true"]) {
+        cursor: pointer;
+    }
 }
 
 @layer components {
@@ -249,66 +272,16 @@
         border-bottom-width: 3px;
     }
 
-    /* BRUTALIST offset shadow utilities */
-    .shadow-brutal {
-        box-shadow: var(--shadow-brutal);
-    }
-
-    .shadow-brutal-sm {
-        box-shadow: var(--shadow-brutal-sm);
-    }
-
-    .shadow-brutal-hover:hover {
-        transform: translate(-2px, -2px);
-        box-shadow: var(--shadow-brutal-lg);
-    }
-
-    /* Signal glow effects */
-    .glow-orange {
-        box-shadow: var(--shadow-glow-orange);
-    }
-
-    .glow-green {
-        box-shadow: var(--shadow-glow-green);
-    }
-
-    .glow-red {
-        box-shadow: var(--shadow-glow-red);
-    }
-
-    .glow-cyan {
-        box-shadow: var(--shadow-glow-cyan);
-    }
-
-    .glow-violet {
-        box-shadow: var(--shadow-glow-violet);
-    }
-
-    .glow-yellow {
-        box-shadow: var(--shadow-glow-yellow);
-    }
-
     /* BRUTALIST section headers */
     .section-header {
         @apply text-xs font-bold tracking-[0.2em] uppercase;
         @apply text-brutal-slate border-b-3 border-brutal-zinc pb-2;
-        letter-spacing: 0.2em;
-    }
-
-    /* Industrial label styling */
-    .label-industrial {
-        @apply text-[11px] tracking-[0.15em] uppercase text-brutal-slate;
     }
 
     /* Waterfall bars - no rounded corners */
     .waterfall-bar {
         @apply h-5;
         min-width: 2px;
-    }
-
-    /* Trace timeline */
-    .trace-line {
-        @apply absolute top-0 bottom-0 w-px bg-border;
     }
 
     /* Log level badges - brutalist style */
@@ -334,27 +307,6 @@
 
     .log-level-fatal {
         @apply bg-signal-red/30 text-signal-red border-3 border-signal-red;
-    }
-
-    /* Resource status dots - square for brutalist */
-    .status-dot {
-        @apply w-2 h-2;
-    }
-
-    .status-running {
-        @apply bg-signal-green;
-    }
-
-    .status-stopped {
-        @apply bg-brutal-slate;
-    }
-
-    .status-error {
-        @apply bg-signal-red;
-    }
-
-    .status-pending {
-        @apply bg-signal-yellow;
     }
 
     /* Keyboard shortcut hints - brutalist */
@@ -414,182 +366,12 @@
     }
 }
 
-@layer utilities {
-    /* Text colors for signals - using v4 automatic generation */
-    .text-signal-orange {
-        color: var(--color-signal-orange);
-    }
-
-    .text-signal-yellow {
-        color: var(--color-signal-yellow);
-    }
-
-    .text-signal-green {
-        color: var(--color-signal-green);
-    }
-
-    .text-signal-cyan {
-        color: var(--color-signal-cyan);
-    }
-
-    .text-signal-violet {
-        color: var(--color-signal-violet);
-    }
-
-    .text-signal-purple {
-        color: var(--color-signal-purple);
-    }
-
-    .text-signal-red {
-        color: var(--color-signal-red);
-    }
-
-    /* Background colors for signals */
-    .bg-signal-orange {
-        background-color: var(--color-signal-orange);
-    }
-
-    .bg-signal-yellow {
-        background-color: var(--color-signal-yellow);
-    }
-
-    .bg-signal-green {
-        background-color: var(--color-signal-green);
-    }
-
-    .bg-signal-cyan {
-        background-color: var(--color-signal-cyan);
-    }
-
-    .bg-signal-violet {
-        background-color: var(--color-signal-violet);
-    }
-
-    .bg-signal-purple {
-        background-color: var(--color-signal-purple);
-    }
-
-    .bg-signal-red {
-        background-color: var(--color-signal-red);
-    }
-
-    /* Border colors for signals */
-    .border-signal-orange {
-        border-color: var(--color-signal-orange);
-    }
-
-    .border-signal-yellow {
-        border-color: var(--color-signal-yellow);
-    }
-
-    .border-signal-green {
-        border-color: var(--color-signal-green);
-    }
-
-    .border-signal-cyan {
-        border-color: var(--color-signal-cyan);
-    }
-
-    .border-signal-violet {
-        border-color: var(--color-signal-violet);
-    }
-
-    .border-signal-purple {
-        border-color: var(--color-signal-purple);
-    }
-
-    .border-signal-red {
-        border-color: var(--color-signal-red);
-    }
-
-    /* Brutalist grayscale utilities */
-    .text-brutal-black {
-        color: var(--color-brutal-black);
-    }
-
-    .text-brutal-carbon {
-        color: var(--color-brutal-carbon);
-    }
-
-    .text-brutal-dark {
-        color: var(--color-brutal-dark);
-    }
-
-    .text-brutal-zinc {
-        color: var(--color-brutal-zinc);
-    }
-
-    .text-brutal-slate {
-        color: var(--color-brutal-slate);
-    }
-
-    .text-brutal-white {
-        color: var(--color-brutal-white);
-    }
-
-    .bg-brutal-black {
-        background-color: var(--color-brutal-black);
-    }
-
-    .bg-brutal-carbon {
-        background-color: var(--color-brutal-carbon);
-    }
-
-    .bg-brutal-dark {
-        background-color: var(--color-brutal-dark);
-    }
-
-    .bg-brutal-zinc {
-        background-color: var(--color-brutal-zinc);
-    }
-
-    .bg-brutal-slate {
-        background-color: var(--color-brutal-slate);
-    }
-
-    .bg-brutal-white {
-        background-color: var(--color-brutal-white);
-    }
-
-    .border-brutal-black {
-        border-color: var(--color-brutal-black);
-    }
-
-    .border-brutal-carbon {
-        border-color: var(--color-brutal-carbon);
-    }
-
-    .border-brutal-dark {
-        border-color: var(--color-brutal-dark);
-    }
-
-    .border-brutal-zinc {
-        border-color: var(--color-brutal-zinc);
-    }
-
-    .border-brutal-slate {
-        border-color: var(--color-brutal-slate);
-    }
-
-    .border-brutal-white {
-        border-color: var(--color-brutal-white);
-    }
-
-    /* Truncate with ellipsis */
-    .truncate-middle {
-        max-width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Hide scrollbar but keep scroll functionality */
-    .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
+/* Reduced motion - WCAG 2.3.3 Animation from Interactions */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
