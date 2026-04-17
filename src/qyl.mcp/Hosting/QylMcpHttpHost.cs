@@ -59,18 +59,6 @@ internal static class QylMcpHttpHost
         app.MapGet("/llms.txt", (HttpRequest request) =>
             Results.Text(QylMcpLlmsTextBuilder.Create(hostOptions, skills, request), "text/plain; charset=utf-8"));
 
-        // RFC 9728 compatibility alias: some MCP clients probe the root well-known
-        // path instead of the resource-scoped path that ModelContextProtocol.AspNetCore
-        // serves at /.well-known/oauth-protected-resource/<resource-path>. Redirect to
-        // the canonical resource-scoped path so the MCP library stays the single source
-        // of truth for the metadata payload (required for RFC-mandated resource-URL match).
-        if (hostOptions.RequiresAuthentication)
-        {
-            var canonicalMetadataPath = $"/.well-known/oauth-protected-resource{hostOptions.Path}";
-            app.MapGet("/.well-known/oauth-protected-resource", () =>
-                Results.Redirect(canonicalMetadataPath, permanent: false, preserveMethod: true));
-        }
-
         app.MapHealthChecks("/healthz", new HealthCheckOptions());
 
         var endpoint = app.MapMcp(hostOptions.Path);
