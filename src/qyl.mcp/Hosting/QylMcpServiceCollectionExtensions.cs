@@ -32,7 +32,7 @@ using LoomMcpJsonContext = Qyl.Contracts.Loom.LoomMcpJsonContext;
 
 namespace qyl.mcp.Hosting;
 
-internal static class QylMcpServiceCollectionExtensions
+internal static partial class QylMcpServiceCollectionExtensions
 {
     public static void ConfigureLogging(ILoggingBuilder logging) =>
         logging.AddConsole(static options => options.LogToStandardErrorThreshold = LogLevel.Trace);
@@ -93,6 +93,19 @@ internal static class QylMcpServiceCollectionExtensions
 
         var authority = hostOptions.KeycloakAuthority!;
 
+        // ── Fail-fast guard (Spec 2) ────────────────────────────────────────
+        // Without an explicit audience, JwtBearer validates only the issuer — so
+        // any token signed by the realm (including a low-privilege client's
+        // service-account token or a user-facing SPA token for an unrelated
+        // application) would be accepted. Refuse to start rather than silently
+        // run with an "any-token-from-realm" policy.
+        if (string.IsNullOrWhiteSpace(hostOptions.KeycloakAudience))
+        {
+            throw new InvalidOperationException(
+                $"{McpAuthOptions.KeycloakAuthorityEnvVar} is set but {McpHostOptions.KeycloakAudienceEnvVar} is empty. " +
+                "Audience validation must be explicit — refusing to start with any-token-from-realm policy.");
+        }
+
         services
             .AddAuthentication(options =>
             {
@@ -104,12 +117,42 @@ internal static class QylMcpServiceCollectionExtensions
                 options.Authority = authority;
                 options.RequireHttpsMetadata = authority.StartsWithIgnoreCase("https://");
                 options.MapInboundClaims = false;
+                options.Audience = hostOptions.KeycloakAudience;
+                options.TokenValidationParameters.ValidateAudience = true;
 
-                if (!string.IsNullOrWhiteSpace(hostOptions.KeycloakAudience))
+                options.Events = new JwtBearerEvents
                 {
-                    options.Audience = hostOptions.KeycloakAudience;
-                    options.TokenValidationParameters.ValidateAudience = true;
-                }
+                    OnTokenValidated = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger(typeof(QylMcpServiceCollectionExtensions).FullName!);
+                        var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
+                        var audience = context.Principal?.FindFirst("aud")?.Value
+                                       ?? hostOptions.KeycloakAudience!;
+                        LogTokenValidated(logger, subject, audience);
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger(typeof(QylMcpServiceCollectionExtensions).FullName!);
+                        LogAudienceMismatch(logger,
+                            context.Exception.GetType().Name,
+                            context.Exception.Message);
+                        return Task.CompletedTask;
+                    },
+                    OnForbidden = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger(typeof(QylMcpServiceCollectionExtensions).FullName!);
+                        var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
+                        LogRoleCheckFailed(logger, subject, context.HttpContext.Request.Path);
+                        return Task.CompletedTask;
+                    }
+                };
             })
             .AddMcp(options =>
             {
@@ -118,6 +161,11 @@ internal static class QylMcpServiceCollectionExtensions
                 {
                     OnResourceMetadataRequest = context =>
                     {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger(typeof(QylMcpServiceCollectionExtensions).FullName!);
+                        LogDiscoveryHit(logger, context.HttpContext.Request.Path);
+
                         var resourceUrl = hostOptions.ResolvePublicMcpUrl(context.HttpContext.Request);
                         context.ResourceMetadata = new ProtectedResourceMetadata
                         {
@@ -132,6 +180,24 @@ internal static class QylMcpServiceCollectionExtensions
                 };
             });
     }
+
+    // ── Auth-path structured logging (EventIds 4001-4099) ───────────────────
+
+    [LoggerMessage(EventId = 4001, Level = LogLevel.Information,
+        Message = "OAuth protected-resource metadata discovery hit: {Path}")]
+    private static partial void LogDiscoveryHit(ILogger logger, string path);
+
+    [LoggerMessage(EventId = 4002, Level = LogLevel.Information,
+        Message = "JWT validated: sub={Subject} aud={Audience}")]
+    private static partial void LogTokenValidated(ILogger logger, string subject, string audience);
+
+    [LoggerMessage(EventId = 4003, Level = LogLevel.Warning,
+        Message = "JWT authentication failed: {ExceptionType}: {ExceptionMessage}")]
+    private static partial void LogAudienceMismatch(ILogger logger, string exceptionType, string exceptionMessage);
+
+    [LoggerMessage(EventId = 4004, Level = LogLevel.Warning,
+        Message = "JWT authorized but role check failed: sub={Subject} path={Path}")]
+    private static partial void LogRoleCheckFailed(ILogger logger, string subject, string path);
 
     public static void ApplyPortFallback(IWebHostBuilder webHost, IConfiguration configuration)
     {
