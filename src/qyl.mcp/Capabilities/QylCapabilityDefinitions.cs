@@ -314,3 +314,24 @@ internal sealed class McpAppsCapability;
     ],
     RelatedCapabilities = ["trace_investigation", "error_investigation"])]
 internal sealed class DebuggerControlCapability;
+
+[QylCapabilityDefinition("lsp_code_intelligence", QylSkillKind.Debug,
+    Title = "LSP Code Intelligence",
+    Summary = "Deterministic, semantic code navigation via Language Server Protocol — goto definition, find references, symbol lookup, diagnostics, and scoped rename. Replaces grep-based code reasoning for agent workflows.",
+    Tags = ["lsp", "code", "navigation", "rename", "symbols"],
+    UseCases = [
+        "Follow a symbol to its declaration without guessing file layout.",
+        "Find every reference to a symbol across a workspace before mutating behavior.",
+        "Perform a safe, compiler-verified rename with a prepare-rename validity gate."
+    ],
+    PrimaryIdentifiers = ["file_path", "line", "column", "query", "new_name"],
+    ScopingHints = [
+        "LSP tools always require absolute paths — reject relative input fast.",
+        "First call per workspace can take 10-30s (csharp-ls index build); subsequent calls complete in seconds."
+    ],
+    EvidenceHints = [
+        "Prefer lsp_goto_definition and lsp_find_references over grep when a symbol is known.",
+        "Always call lsp_prepare_rename before lsp_rename — a null prepareRename means the position is not renameable."
+    ],
+    RelatedCapabilities = ["debugger_control", "trace_investigation"])]
+internal sealed class LspCodeIntelligenceCapability;
