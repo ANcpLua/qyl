@@ -1,16 +1,15 @@
 <Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
-    <RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64</RuntimeIdentifiers>
     <OutputType>Exe</OutputType>
 
     <!-- Set up the NuGet package to be an MCP server -->
     <PackAsTool>true</PackAsTool>
     <PackageType>McpServer</PackageType>
-
-    <!-- Set up the MCP server to be a self-contained application during publish only -->
-    <PublishSelfContained>true</PublishSelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
+    <!-- Dashed binary name for 'dotnet tool install -g Qyl.Mcp' → 'qyl-mcp' on PATH -->
+    <ToolCommandName>qyl-mcp</ToolCommandName>
+    <!-- Override global IsPackable=false in Directory.Build.props; qyl.mcp ships to NuGet -->
+    <IsPackable>true</IsPackable>
     <InvariantGlobalization>true</InvariantGlobalization>
 
     <!-- Package metadata -->
@@ -19,6 +18,22 @@
     <PackageVersion>0.1.0-beta</PackageVersion>
     <PackageTags>AI;MCP;server;stdio;http;streamable-http;observability</PackageTags>
     <Description>An MCP server for qyl observability via stdio or Streamable HTTP.</Description>
+  </PropertyGroup>
+
+  <!-- RIDs only when publishing self-contained binaries (release artifacts,
+       Docker multi-arch). During 'dotnet pack' (PackageType=McpServer) a
+       RuntimeIdentifiers list forces the SDK to publish every RID into
+       100+ MB per-RID packages; we want a single framework-dependent tool
+       package < 5 MB. '$(IsPacking)' is 'true' inside the SDK's pack target. -->
+  <PropertyGroup Condition="'$(IsPacking)' != 'true'">
+    <RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <!-- Self-contained single-file only when publishing to a specific RID
+       (dotnet publish -r <RID>), never during pack. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != '' And '$(IsPacking)' != 'true'">
+    <PublishSelfContained>true</PublishSelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

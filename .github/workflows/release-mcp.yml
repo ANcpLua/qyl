@@ -1,0 +1,61 @@
+# =============================================================================
+# Qyl.Mcp NuGet Release
+# -----------------------------------------------------------------------------
+# Packs src/qyl.mcp as a dotnet-tool .nupkg and publishes to nuget.org.
+# Triggered only by tag pushes of the form 'mcp-v*' (e.g. mcp-v0.1.0-beta).
+# The main qyl product tags 'v*' are handled by release.yml — this workflow
+# is strictly scoped to the Qyl.Mcp package so each component can ship on
+# its own cadence.
+# =============================================================================
+
+name: release-mcp
+
+on:
+  push:
+    tags:
+      - "mcp-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. mcp-v0.1.0-beta)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-mcp-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    name: Pack & push Qyl.Mcp
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Pack & push Qyl.Mcp
+        run: ./eng/build.sh PushMcp --configuration Release
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Upload nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Qyl.Mcp-nupkg
+          path: Artifacts/packages/Qyl.Mcp.*.nupkg
+          if-no-files-found: error
+          retention-days: 30
