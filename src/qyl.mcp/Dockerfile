@@ -19,8 +19,9 @@ WORKDIR /src
 COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Version.props global.json nuget.config ./
 COPY eng/ eng/
 
-# Copy contracts (ProjectReference) and mcp projects
+# Copy contracts (ProjectReference), generator (Analyzer ProjectReference), and mcp projects
 COPY src/qyl.contracts/*.csproj src/qyl.contracts/
+COPY src/qyl.mcp.generators/*.csproj src/qyl.mcp.generators/
 COPY src/qyl.mcp/*.csproj src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
 RUN dotnet restore
@@ -28,6 +29,7 @@ RUN dotnet restore
 # Copy source and publish
 WORKDIR /src
 COPY src/qyl.contracts/ src/qyl.contracts/
+COPY src/qyl.mcp.generators/ src/qyl.mcp.generators/
 COPY src/qyl.mcp/ src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
 RUN dotnet publish -c Release -o /app --no-restore \
