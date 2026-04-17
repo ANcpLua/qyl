@@ -1,0 +1,106 @@
+# SKELETON — deploy-mcp.yml
+#
+# Status: GATED OFF. Every job has `if: false` so nothing runs until ops flips
+# the flag. Do not remove the gate until ALL of the following are true:
+#
+#   1. DNS: mcp.qyl.info CNAME points at the chosen host's edge.
+#   2. TLS: a valid Let's Encrypt (or equivalent) cert exists for mcp.qyl.info.
+#   3. Secrets: the secrets listed under `env` below are present in GH.
+#   4. Keycloak: the qyl realm is provisioned per infra/keycloak/qyl-realm.json
+#      and `QYL_KEYCLOAK_AUTHORITY` / `QYL_KEYCLOAK_AUDIENCE` are set on the
+#      target host (audience guard in qyl.mcp WILL refuse to start otherwise).
+#   5. Smoke: a manual build+push+deploy has succeeded at least once so the
+#      initial container image exists.
+#
+# After all five, change `if: false` to the real trigger condition
+# (e.g. `if: github.ref == 'refs/heads/main'`) and remove this comment block.
+
+name: deploy-mcp
+
+on:
+  # TODO(ops): flip to main push after mcp.qyl.info exists and secrets are set.
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'src/qyl.mcp/**'
+  #     - 'src/qyl.contracts/**'
+  #     - 'Directory.Packages.props'
+  #     - 'Version.props'
+  #     - '.github/workflows/deploy-mcp.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    name: build + push + deploy
+    runs-on: ubuntu-latest
+    # TODO(ops): flip to main push after mcp.qyl.info exists and secrets are set.
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/qyl.mcp/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/qyl-mcp:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/qyl-mcp:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      # TODO(ops): replace the placeholder deploy step below with the host-specific
+      # action. Examples:
+      #
+      #   Fly.io:
+      #     - uses: superfly/flyctl-actions/setup-flyctl@master
+      #     - run: flyctl deploy --remote-only --image ghcr.io/${{ github.repository_owner }}/qyl-mcp:${{ github.sha }}
+      #       env: { FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }} }
+      #
+      #   Railway:
+      #     - uses: railway-deploy-action@v1
+      #       with: { service: qyl-mcp, token: ${{ secrets.RAILWAY_TOKEN }} }
+      #
+      #   Azure Container Apps:
+      #     - uses: azure/container-apps-deploy-action@v2
+      #       with: { containerAppName: qyl-mcp, resourceGroup: qyl, imageToDeploy: ghcr.io/.../qyl-mcp:${{ github.sha }} }
+      - name: Deploy (placeholder)
+        run: |
+          echo "TODO(ops): wire host-specific deploy step"
+          echo "Image: ghcr.io/${{ github.repository_owner }}/qyl-mcp:${{ github.sha }}"
+          exit 1
+
+      - name: Smoke-test OAuth metadata discovery
+        run: |
+          set -eu
+          # Wait for deployment propagation
+          for i in 1 2 3 4 5; do
+            if curl -sSf "https://mcp.qyl.info/healthz" >/dev/null; then
+              break
+            fi
+            sleep $((i * 5))
+          done
+          curl -sSf "https://mcp.qyl.info/.well-known/oauth-protected-resource/mcp" \
+            | jq -e '.authorization_servers | length > 0' >/dev/null
+          curl -sS -i -H "Authorization: Bearer invalid-token" "https://mcp.qyl.info/mcp" \
+            | head -n 20 \
+            | grep -iE '^(HTTP/.+ 401|www-authenticate: bearer)' \
+            || (echo "Invalid-token path did not return 401 + WWW-Authenticate" && exit 1)
