@@ -100,7 +100,6 @@ Most ambitious. The MAF `ChatClient` response loop reflects on tool signatures e
 | `qyl.instrumentation` | C | n/a | Yes, after audit | ActivitySource + semconv. Should be clean. |
 | `Qyl.Agents` (runtime) | C | n/a | Yes, after audit | Verify `JsonRpcMessage` has a context. |
 | `Qyl.Agents.Abstractions` | A | n/a | No (netstandard2.0) | Multi-target net10.0 to mark it. |
-| `samples/maf-agent-qyl` | B | No unless D1 | No | Sample, low priority. |
 | Roslyn generators (×4) | A | n/a | Already `false` | Correct. |
 | `eng/build` | A | n/a | Already `false` | Correct. |
 | All tests | A | n/a | No | Correct. |

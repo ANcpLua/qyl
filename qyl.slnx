@@ -27,9 +27,6 @@
     <Folder Name="/src/dashboard/">
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
     </Folder>
-    <Folder Name="/samples/">
-        <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
-    </Folder>
 
     <!-- TESTS -->
 
@@ -165,23 +162,6 @@
     <Folder Name="/plugins/qyl-mcp/">
         <File Path="plugins/qyl-mcp/mcp.json" />
         <File Path="plugins/qyl-mcp/agents/qyl-mcp.md" />
-    </Folder>
-
-    <!-- SPECS -->
-
-    <Folder Name="/specs/">
-        <File Path="specs/00-architecture.md" />
-        <File Path="specs/SUMMARY.md" />
-        <File Path="specs/api.md" />
-        <File Path="specs/collector.md" />
-        <File Path="specs/contracts.md" />
-        <File Path="specs/cost.md" />
-        <File Path="specs/dashboard.md" />
-        <File Path="specs/instrumentation.md" />
-        <File Path="specs/issue-fingerprinting.md" />
-        <File Path="specs/mcp.md" />
-        <File Path="specs/telemetry-data-model.md" />
-        <File Path="specs/telemetry-intelligence.md" />
     </Folder>
 
     <!-- DOCS -->
