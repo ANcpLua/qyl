@@ -32,7 +32,9 @@ COPY src/qyl.contracts/ src/qyl.contracts/
 COPY src/qyl.mcp.generators/ src/qyl.mcp.generators/
 COPY src/qyl.mcp/ src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
-RUN dotnet publish -c Release -o /app --no-restore \
+# RID triggers PublishSelfContained=true + PublishSingleFile=true in qyl.mcp.csproj
+# (the runtime image is runtime-deps, which does NOT include the .NET runtime).
+RUN dotnet publish -c Release -o /app -r linux-musl-x64 --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishTrimmed=false \
     -p:EnableTrimAnalyzer=false \
