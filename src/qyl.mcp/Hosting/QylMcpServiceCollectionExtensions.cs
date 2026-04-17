@@ -16,6 +16,7 @@ using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
 using qyl.mcp.Tools;
 using qyl.mcp.Tools.Debug;
+using qyl.mcp.Tools.Lsp;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
 using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
@@ -61,6 +62,18 @@ internal static class QylMcpServiceCollectionExtensions
         {
             services.AddSingleton<JetBrainsDiscovery>();
             services.AddSingleton<RiderMcpProxy>();
+
+            // LSP runtime — singletons for pure lookup/state services.
+            services.AddSingleton<LspServerDefinitions>();
+            services.AddSingleton<LspLanguageMappings>();
+            services.AddSingleton<LspServerInstallation>();
+            services.AddSingleton<LspServerResolution>();
+            services.AddSingleton<LspClientWrapper>();
+            services.AddSingleton<WorkspaceEditApplier>();
+
+            // LSP process lifecycle — hosted services tear down LSP servers on host shutdown.
+            services.AddHostedService<LspManagerProcessCleanup>();
+            services.AddHostedService<LspManagerTempDirectoryCleanup>();
         }
 
         services.AddSingleton<ITelemetryStore, HttpTelemetryStore>();
