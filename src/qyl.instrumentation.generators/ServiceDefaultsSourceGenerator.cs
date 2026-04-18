@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
-using Qyl.Instrumentation.Generators.Analyzers;
+using Qyl.Instrumentation.Generators.CallSites;
 using Qyl.Instrumentation.Generators.Emitters;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -259,7 +259,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Fast syntactic check for candidate <c>Build()</c> invocations.
     /// </summary>
     private static bool CouldBeBuildInvocation(SyntaxNode node, CancellationToken _) =>
-        string.Equals(AnalyzerHelpers.GetInvokedMethodName(node), MethodName.Build, StringComparison.Ordinal);
+        string.Equals(IncrementalPipelineHelpers.GetInvokedMethodName(node), MethodName.Build, StringComparison.Ordinal);
 
     // =========================================================================
     // BUILDER CALL SITE EXTRACTION
@@ -275,21 +275,21 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
+        if (!IncrementalPipelineHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
         if (!IsWebApplicationBuilderBuildCall(invocation, context.SemanticModel.Compilation))
             return null;
 
         // Avoid conflicts: skip if another generator has already intercepted this call
-        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
+        if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
         var location = ExtractInterceptableLocation(context, cancellationToken);
         return location is null
             ? null
             : new BuilderCallSite(
-                AnalyzerHelpers.FormatSortKey(context.Node),
+                IncrementalPipelineHelpers.FormatSortKey(context.Node),
                 BuilderCallKind.Build,
                 location);
     }

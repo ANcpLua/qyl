@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Discovers GenAI SDK call sites for compile-time capability manifest emission.
@@ -27,12 +27,12 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///         SDK-specific call-site interception for all providers that implement
 ///         <c>Microsoft.Extensions.AI.IChatClient</c>. This class is retained until
 ///         the IChatClient interceptor path is fully validated in production.
-///         See <see cref="GenAiDirectSdkUsageDiagnosticAnalyzer" /> (QYL001) which warns
-///         developers to migrate away from direct SDK usage.
+///         See AL0131 (<c>ANcpLua.Analyzers.Analyzers.Al0131DirectGenAiSdkUsageAnalyzer</c>),
+///         which warns developers to migrate away from direct SDK usage.
 ///     </para>
 /// </remarks>
 // Transitional: IChatClient interface interception replaces SDK-specific interception.
-// Keep until the IChatClient interceptor path is validated. See QYL001 diagnostic.
+// Keep until the IChatClient interceptor path is validated. See AL0131 diagnostic.
 internal static class GenAiCallSiteAnalyzer
 {
     private static readonly string[] ModelParameterNames = ["model", "modelId", "deploymentName"];
@@ -53,10 +53,10 @@ internal static class GenAiCallSiteAnalyzer
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a GenAI invocation?
-    ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
+    ///     Delegates to <see cref="IncrementalPipelineHelpers.CouldBeInvocation" />.
     /// </summary>
     public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken _) =>
-        AnalyzerHelpers.GetInvokedMethodName(node) is { } methodName &&
+        IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
         CandidateMethodNames.Contains(methodName);
 
     /// <summary>
@@ -67,10 +67,10 @@ internal static class GenAiCallSiteAnalyzer
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (AnalyzerHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
             return null;
 
-        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
+        if (!IncrementalPipelineHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
         if (!TryMatchGenAiMethod(invocation, context.SemanticModel.Compilation, out var provider, out var operation,
@@ -78,7 +78,7 @@ internal static class GenAiCallSiteAnalyzer
             return null;
 
         // Skip if already intercepted by another generator
-        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
+        if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
         if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken)
@@ -89,7 +89,7 @@ internal static class GenAiCallSiteAnalyzer
         var model = TryExtractModelName(invocation);
 
         return new GenAiCallSite(
-            AnalyzerHelpers.FormatSortKey(context.Node),
+            IncrementalPipelineHelpers.FormatSortKey(context.Node),
             provider,
             operation,
             model,

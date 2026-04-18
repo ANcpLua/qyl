@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Analyzes syntax to find invocations of methods decorated with [Traced] attribute.
@@ -22,7 +22,7 @@ internal static class TracedCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
     /// </summary>
     public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken ct) =>
-        AnalyzerHelpers.CouldBeInvocation(node, ct);
+        IncrementalPipelineHelpers.CouldBeInvocation(node, ct);
 
     /// <summary>
     ///     Extracts a traced call site from a syntax context if the target has [Traced] attribute.
@@ -32,16 +32,16 @@ internal static class TracedCallSiteAnalyzer
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (AnalyzerHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
             return null;
 
-        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
+        if (!IncrementalPipelineHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
         if (!TryGetTracedAttribute(invocation.TargetMethod, context.SemanticModel.Compilation, out var tracedInfo))
             return null;
 
-        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
+        if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
         if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken)
@@ -66,7 +66,7 @@ internal static class TracedCallSiteAnalyzer
 
         var returnTypeName = method.ReturnType.ToDisplayString();
         var isAsyncEnumerable = returnTypeName.StartsWithOrdinal(AsyncEnumerablePrefix);
-        var isAsync = !isAsyncEnumerable && AnalyzerHelpers.IsAsyncReturnType(method);
+        var isAsync = !isAsyncEnumerable && IncrementalPipelineHelpers.IsAsyncReturnType(method);
 
         // T-008: Extract code.* attributes from method definition location.
         string? codeFilePath = null;
@@ -83,7 +83,7 @@ internal static class TracedCallSiteAnalyzer
             : null;
 
         return new TracedCallSite(
-            AnalyzerHelpers.FormatSortKey(context.Node),
+            IncrementalPipelineHelpers.FormatSortKey(context.Node),
             tracedInfo.Value.ActivitySourceName,
             tracedInfo.Value.SpanName,
             tracedInfo.Value.SpanKind,

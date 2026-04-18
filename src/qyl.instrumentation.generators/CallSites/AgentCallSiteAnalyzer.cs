@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Analyzes syntax to find Microsoft.Agents.AI agent invocations and [AgentTraced] methods.
@@ -40,7 +40,7 @@ internal static class AgentCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be an agent invocation?
     /// </summary>
     public static bool CouldBeAgentInvocation(SyntaxNode node, CancellationToken _) =>
-        AnalyzerHelpers.GetInvokedMethodName(node) is { } methodName &&
+        IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
         CandidateMethodNames.Contains(methodName);
 
     /// <summary>
@@ -51,14 +51,14 @@ internal static class AgentCallSiteAnalyzer
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (AnalyzerHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
             return null;
 
-        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
+        if (!IncrementalPipelineHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
         // Skip if already intercepted by another generator
-        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
+        if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
         // Try SDK pattern match first
@@ -83,13 +83,13 @@ internal static class AgentCallSiteAnalyzer
             return null;
 
         var method = invocation.TargetMethod;
-        var isAsync = AnalyzerHelpers.IsAsyncReturnType(method);
+        var isAsync = IncrementalPipelineHelpers.IsAsyncReturnType(method);
 
         // For SDK calls, try to extract agent name from the type
         agentName ??= TryExtractAgentName(invocation);
 
         return new AgentCallSite(
-            AnalyzerHelpers.FormatSortKey(context.Node),
+            IncrementalPipelineHelpers.FormatSortKey(context.Node),
             agentName,
             kind,
             method.ContainingType.ToDisplayString(),

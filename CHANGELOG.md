@@ -4,10 +4,12 @@
 
 ### Added
 
-- **QYL001 diagnostic analyzer**: `GenAiDirectSdkUsageDiagnosticAnalyzer` warns when application
-  code calls a GenAI SDK type directly (OpenAI, Anthropic, Ollama, Azure.AI.OpenAI, Cohere, MAF
-  agents). `IChatClient` calls are excluded — already instrumented via
-  `AddChatClient().UseQylInstrumentation()`. `GenAiCallSiteAnalyzer` marked transitional.
+- **AL0131 diagnostic analyzer** (shipped via `ANcpLua.Analyzers` 1.24.0, auto-injected by
+  `ANcpLua.NET.Sdk`): warns when application code calls a GenAI SDK type directly (OpenAI,
+  Anthropic, Ollama, Azure.AI.OpenAI, Cohere, MAF agents). `IChatClient` calls are excluded
+  — already instrumented via `AddChatClient().AsBuilder().UseOpenTelemetry().Build()`.
+  Supersedes the in-tree `QYL001` / `GenAiDirectSdkUsageDiagnosticAnalyzer` which has been
+  removed. `GenAiCallSiteAnalyzer` marked transitional.
 - **MCP collector concurrency limiter**: Added `CollectorConcurrencyLimiter` delegating handler
   that throttles concurrent HTTP requests to the collector via `SemaphoreSlim` (default 5,
   configurable via `QYL_COLLECTOR_MAX_CONCURRENT`). Prevents autonomous agents from saturating

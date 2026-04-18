@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Analyzes classes for [Meter] attributes and methods for [Counter]/[Histogram] attributes.
@@ -43,17 +43,17 @@ internal static class MeterAnalyzer
         if (context.TargetNode is not ClassDeclarationSyntax classSyntax)
             return null;
 
-        if (AnalyzerHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
             return null;
 
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
             return null;
 
-        return AnalyzerHelpers.FindAttributeByName(context.Attributes, context.SemanticModel.Compilation,
+        return IncrementalPipelineHelpers.FindAttributeByName(context.Attributes, context.SemanticModel.Compilation,
             MeterAttributeMetadataName) is not { } meterAttr
             ? null
             : BuildDefinition(classSyntax, classSymbol, meterAttr, context.SemanticModel.Compilation,
-                AnalyzerHelpers.FormatSortKey(context.TargetNode));
+                IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 
     private static MeterDefinition? BuildDefinition(
@@ -118,13 +118,13 @@ internal static class MeterAnalyzer
                 continue;
 
             var counterAttr =
-                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, CounterAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, CounterAttributeFullName);
             var histogramAttr =
-                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, HistogramAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, HistogramAttributeFullName);
             var gaugeAttr =
-                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, GaugeAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, GaugeAttributeFullName);
             var upDownCounterAttr =
-                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation,
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
                     UpDownCounterAttributeFullName);
 
             var (kind, attr) = counterAttr is not null ? (MetricKind.Counter, counterAttr)
@@ -160,7 +160,7 @@ internal static class MeterAnalyzer
     private static string? FindMetricValueTypeName(IMethodSymbol method, Compilation compilation)
     {
         foreach (var param in method.Parameters.Where(param =>
-                     AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is
+                     IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is
                          null))
         {
             return param.Type.ToDisplayString();
@@ -200,7 +200,7 @@ internal static class MeterAnalyzer
 
         foreach (var param in method.Parameters)
         {
-            if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is not
+            if (IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is not
                 { } tagAttr)
                 continue;
 

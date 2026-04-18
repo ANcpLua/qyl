@@ -6,7 +6,7 @@ namespace Qyl.Instrumentation.Generators.Models;
 
 /// <summary>
 ///     Maps a GenAI provider's SDK type-name substring to its OTel provider ID.
-///     Used by <see cref="Analyzers.ProviderDetector" /> for compile-time capability discovery.
+///     Used by <see cref="CallSites.ProviderDetector" /> for compile-time capability discovery.
 /// </summary>
 internal sealed record ProviderDefinition(
     string ProviderId,

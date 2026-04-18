@@ -4,7 +4,7 @@ using Qyl.Instrumentation.Generators.Models;
 namespace Qyl.Instrumentation.Generators.Emitters;
 
 /// <summary>
-///     Emits interceptor source code for agent invocations detected by <see cref="Analyzers.AgentCallSiteAnalyzer" />.
+///     Emits interceptor source code for agent invocations detected by <see cref="CallSites.AgentCallSiteAnalyzer" />.
 /// </summary>
 internal static class AgentInterceptorEmitter
 {

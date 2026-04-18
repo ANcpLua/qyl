@@ -173,10 +173,8 @@ Use these exact queries when hunting GitHub issues, blog posts, NuGet listings, 
 
 ---
 
-## Where QYL001 fits
+## Where AL0131 fits
 
-You asked me to look for the `QYL001` analyzer during this investigation. It's **not** in the current tree and **not** in `/Users/ancplua/ANcpLua.Analyzers`. The only copy lives on the `worktree-agent-a2b23bf8` branch as commit `7ec362fa feat(instrumentation.generators): add QYL001 DiagnosticAnalyzer for direct GenAI SDK usage`.
-
-If QYL001 flags direct `ChatClient`/`OpenAI` usage without going through the instrumented wrapper, it is **directly relevant to this AOT assessment** — because the instrumented wrapper is the layer where `LoomGovernedAIFunction` lives, and `LoomGovernedAIFunction` is the thing a future `[LoomTool]` source generator would plug into. Losing that analyzer means losing the guardrail that keeps users out of the non-AOT path.
+The previous QYL001 analyzer was ported to `ANcpLua.Analyzers` as `AL0131` (shipped in 1.24.0) and is auto-injected into every qyl project via `ANcpLua.NET.Sdk`. It flags direct `ChatClient`/`OpenAI` usage that bypasses the `Microsoft.Extensions.AI.IChatClient` instrumented wrapper. This matters for AOT because the instrumented wrapper is the layer where `LoomGovernedAIFunction` lives, and `LoomGovernedAIFunction` is the thing a future `[LoomTool]` source generator would plug into. Keeping that analyzer on keeps users out of the non-AOT path.
 
 **Recommendation: cherry-pick `7ec362fa` onto main** before deleting the branch. Five seconds of safety.

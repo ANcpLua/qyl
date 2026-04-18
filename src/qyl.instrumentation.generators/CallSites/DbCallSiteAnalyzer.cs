@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Analyzes syntax to find ADO.NET DbCommand method invocations to intercept.
@@ -55,10 +55,10 @@ internal static class DbCallSiteAnalyzer
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
-    ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
+    ///     Delegates to <see cref="IncrementalPipelineHelpers.CouldBeInvocation" />.
     /// </summary>
     public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
-        AnalyzerHelpers.GetInvokedMethodName(node) is { } methodName &&
+        IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
         CandidateMethodNames.Contains(methodName);
 
     /// <summary>
@@ -69,10 +69,10 @@ internal static class DbCallSiteAnalyzer
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (AnalyzerHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
             return null;
 
-        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
+        if (!IncrementalPipelineHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
         if (!TryMatchDbCommandMethod(invocation, context.SemanticModel.Compilation, out var method, out var isAsync,
@@ -80,7 +80,7 @@ internal static class DbCallSiteAnalyzer
             return null;
 
         // Skip if already intercepted by another generator
-        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
+        if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
         if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken)
@@ -88,7 +88,7 @@ internal static class DbCallSiteAnalyzer
             return null;
 
         return new DbCallSite(
-            AnalyzerHelpers.FormatSortKey(context.Node),
+            IncrementalPipelineHelpers.FormatSortKey(context.Node),
             method,
             isAsync,
             concreteType,

@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Qyl.Instrumentation.Generators.Models;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Discovers classes decorated with [McpServerToolType] for compile-time tool manifest generation.
@@ -27,14 +27,14 @@ internal static class ToolManifestAnalyzer
         if (context.TargetNode is not ClassDeclarationSyntax)
             return null;
 
-        if (AnalyzerHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
+        if (IncrementalPipelineHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
             return null;
 
         if (context.TargetSymbol is not INamedTypeSymbol typeSymbol)
             return null;
 
         return new ToolTypeEntry(
-            AnalyzerHelpers.FormatSortKey(context.TargetNode),
+            IncrementalPipelineHelpers.FormatSortKey(context.TargetNode),
             typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
     }
 }

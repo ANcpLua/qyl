@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Centralized name resolution for telemetry tags.
@@ -44,7 +44,7 @@ internal static class TelemetryTagNameResolver
     private static (string? Name, bool? SkipIfNull) ReadOtelOverride(ISymbol symbol, Compilation compilation)
     {
         var attribute =
-            AnalyzerHelpers.FindAttributeByName(symbol.GetAttributes(), compilation, OTelAttributeMetadataName);
+            IncrementalPipelineHelpers.FindAttributeByName(symbol.GetAttributes(), compilation, OTelAttributeMetadataName);
         if (attribute is null)
             return default;
 

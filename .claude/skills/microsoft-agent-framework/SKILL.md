@@ -201,7 +201,7 @@ Copyright header: `// Copyright (c) 2025-2026 ancplua` (qyl personal header, NOT
 
 ## ANcpLua.Roslyn.Utilities integration
 
-qyl depends on `ANcpLua.Roslyn.Utilities` — the second in-house framework at `~/ANcpLua.Roslyn.Utilities/`. Four package tiers:
+qyl depends on `ANcpLua.Roslyn.Utilities` — the second in-house framework at `~/framework/ANcpLua.Roslyn.Utilities/`. Four package tiers:
 
 | Package | qyl consumers |
 |---|---|
