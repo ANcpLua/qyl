@@ -142,6 +142,18 @@ See `docs/Skills/2026-04-13-claude-skills-proposal.md` for the Claude Skills int
 
 ---
 
+## 11. Planned features with execute-ready prompts (new, 2026-04-18)
+
+Three planned items from the 2026-04-17 MCP partner-grade work, each captured as a standalone file under `docs/planned/` with outcome, scope, prerequisites, an execute-ready prompt for the next agent or dev, and a DoD checklist. These are **not** prioritized — pull when the prerequisites are met.
+
+| File | Blocked on | Unlocks |
+|---|---|---|
+| [`docs/planned/2026-04-18-lsp-phase2-typescript.md`](./planned/2026-04-18-lsp-phase2-typescript.md) | None — can start today | TypeScript navigation for `src/qyl.dashboard/` |
+| [`docs/planned/2026-04-18-lsp-phase3-loom-bridge.md`](./planned/2026-04-18-lsp-phase3-loom-bridge.md) | Phase 1 in production ≥ 1 week with real usage | Loom V2 uses deterministic code intelligence instead of grep |
+| [`docs/planned/2026-04-18-oauth-playwright-e2e.md`](./planned/2026-04-18-oauth-playwright-e2e.md) | All 11 items in `.claude/handoffs/2026-04-17-spec2-ops-followup.md` complete, `mcp.qyl.info` live | Regression-proofs the OAuth handshake; gates MCP-registry listing |
+
+---
+
 ## Note on priority
 
 Items in this file are **not** ordered by priority. Cross-reference `docs/THREAT_MODEL.md` §7 for security-driven priorities (5 P0 items there, all of which override anything here). Operational work (§1, §2, §3) is P2 unless tied to a security finding.
