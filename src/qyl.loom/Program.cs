@@ -1,12 +1,18 @@
 using System.Net.ServerSentEvents;
 using Microsoft.AspNetCore.Http;
 using Qyl.Contracts.Copilot;
+using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddQylServiceDefaults(options =>
+{
+    options.AdditionalActivitySources.Add("Qyl.Loom");
+});
 
 builder.Services.AddHttpClient<CollectorClient>(client =>
 {
@@ -44,7 +50,7 @@ builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "qyl.loom" }));
+app.MapQylEndpoints();
 
 // ── Exploration HTTP endpoints ──────────────────────────────────────────────
 

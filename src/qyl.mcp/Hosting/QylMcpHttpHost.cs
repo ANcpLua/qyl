@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.mcp.Landing;
 using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
+using Qyl.Contracts.Observability;
 
 namespace qyl.mcp.Hosting;
 
@@ -20,7 +22,8 @@ internal static class QylMcpHttpHost
 
         var jsonOptions = builder.Services.AddQylMcpCommonServices(builder.Configuration, skills, scope);
         builder.Services.AddQylMcpHttpAuthentication(hostOptions);
-        builder.Services.AddHealthChecks();
+        builder.Services.AddHealthChecks()
+            .AddCheck("self", static () => HealthCheckResult.Healthy(), [QylEndpoints.LiveTag]);
 
         IServiceProvider? serviceProvider = null;
         QylMcpServerRegistration.Configure(
@@ -59,7 +62,10 @@ internal static class QylMcpHttpHost
         app.MapGet("/llms.txt", (HttpRequest request) =>
             Results.Text(QylMcpLlmsTextBuilder.Create(hostOptions, skills, request), "text/plain; charset=utf-8"));
 
-        app.MapHealthChecks("/healthz", new HealthCheckOptions());
+        app.MapHealthChecks(QylEndpoints.Alive,
+            new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag) });
+        app.MapHealthChecks(QylEndpoints.Health,
+            new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag) });
 
         var endpoint = app.MapMcp(hostOptions.Path);
         if (hostOptions.RequiresAuthentication)

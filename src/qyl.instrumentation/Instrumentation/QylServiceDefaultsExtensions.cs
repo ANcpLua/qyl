@@ -21,6 +21,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Qyl.Contracts.Observability;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
 
@@ -74,12 +75,13 @@ public static class QylServiceDefaultsExtensions
 
         if (options.EnableDefaultHealthEndpoints)
         {
-            // Health endpoints (Aspire-compatible)
-            app.MapHealthChecks("/health",
-                new HealthCheckOptions { Predicate = static check => check.Tags.Contains("ready") });
+            // Aspire-compatible probes. Paths + tag names come from Qyl.Contracts.Observability.QylEndpoints
+            // so qyl.mcp (which doesn't reference qyl.instrumentation) stays in lockstep.
+            app.MapHealthChecks(QylEndpoints.Health,
+                new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag) });
 
-            app.MapHealthChecks("/alive",
-                new HealthCheckOptions { Predicate = static check => check.Tags.Contains("live") });
+            app.MapHealthChecks(QylEndpoints.Alive,
+                new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag) });
         }
 
         // Exception capture middleware
@@ -224,8 +226,8 @@ public static class QylServiceDefaultsExtensions
                         .AddAspNetCoreInstrumentation(aspnet =>
                         {
                             aspnet.Filter = static ctx =>
-                                ctx.Request.Path != "/health" &&
-                                ctx.Request.Path != "/alive";
+                                ctx.Request.Path != QylEndpoints.Health &&
+                                ctx.Request.Path != QylEndpoints.Alive;
                         })
                         .AddHttpClientInstrumentation();
 
@@ -254,8 +256,8 @@ public static class QylServiceDefaultsExtensions
     internal static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder =>
         builder.Services.AddHealthChecks()
-            .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"])
-            .AddCheck("ready", static () => HealthCheckResult.Healthy(), ["ready"]);
+            .AddCheck("self", static () => HealthCheckResult.Healthy(), [QylEndpoints.LiveTag])
+            .AddCheck("ready", static () => HealthCheckResult.Healthy(), [QylEndpoints.ReadyTag]);
 
     internal static void ConfigureHttpClients<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder

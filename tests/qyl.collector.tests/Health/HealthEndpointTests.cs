@@ -10,7 +10,8 @@ using Xunit;
 namespace Qyl.Collector.Tests.Health;
 
 /// <summary>
-///     Integration tests for health endpoints: /alive, /health, /ready, /health/ui.
+///     Integration tests for the canonical Aspire-style probes <c>/alive</c> + <c>/health</c>
+///     plus the collector-specific rich <c>/health/ui</c> dashboard endpoint.
 ///     All tests skipped: source-generated OTel interceptors call UseOtlpExporter before
 ///     WebApplicationFactory.ConfigureWebHost can disable it, causing double-registration.
 /// </summary>
@@ -28,9 +29,6 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
         var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var body = await DeserializeAsync<HealthResponse>(response);
-        body.Status.Should().Be(HealthStatus.Healthy);
     }
 
     [Fact(Skip = SkipReason)]
@@ -39,22 +37,6 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
         var response = await _client.GetAsync("/health", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var body = await DeserializeAsync<HealthResponse>(response);
-        body.Status.Should().BeOneOf(HealthStatus.Healthy, HealthStatus.Degraded);
-        body.Version.Should().NotBe(default);
-        body.UptimeSeconds.Should().BeGreaterThanOrEqualTo(0);
-    }
-
-    [Fact(Skip = SkipReason)]
-    public async Task Ready_Returns200_WhenAllDepsHealthy()
-    {
-        var response = await _client.GetAsync("/ready", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var body = await DeserializeAsync<HealthResponse>(response);
-        body.Status.Should().BeOneOf(HealthStatus.Healthy, HealthStatus.Degraded);
     }
 
     [Fact(Skip = SkipReason)]
@@ -72,34 +54,6 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
         names.Should().Contain("disk");
         names.Should().Contain("memory");
         body.CheckedAt.Should().NotBeEmpty();
-    }
-
-    [Fact(Skip = SkipReason)]
-    public async Task ResponseHeaders_NoCache()
-    {
-        var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
-
-        response.Headers.TryGetValues("X-Content-Type-Options", out var xcto).Should().BeTrue();
-        xcto!.Single().Should().Be("nosniff");
-
-        response.Content.Headers.ContentType.Should().NotBeNull();
-        var cacheControl = response.Headers.CacheControl;
-        cacheControl.Should().NotBeNull();
-        cacheControl!.NoStore.Should().BeTrue();
-    }
-
-    [Fact(Skip = SkipReason)]
-    public async Task AllProbeEndpoints_HaveNoStoreHeader()
-    {
-        string[] endpoints = ["/alive", "/health", "/ready", "/health/ui"];
-
-        foreach (var endpoint in endpoints)
-        {
-            var response = await _client.GetAsync(endpoint, TestContext.Current.CancellationToken);
-            var cacheControl = response.Headers.CacheControl;
-            cacheControl.Should().NotBeNull();
-            cacheControl!.NoStore.Should().BeTrue($"{endpoint} missing Cache-Control: no-store");
-        }
     }
 
     private static async Task<T> DeserializeAsync<T>(HttpResponseMessage response)

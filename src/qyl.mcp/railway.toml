@@ -3,7 +3,7 @@ builder = "dockerfile"
 dockerfilePath = "src/qyl.mcp/Dockerfile"
 
 [deploy]
-healthcheckPath = "/healthz"
+healthcheckPath = "/alive"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

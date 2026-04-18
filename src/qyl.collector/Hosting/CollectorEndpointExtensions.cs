@@ -75,7 +75,7 @@ public static class CollectorEndpointExtensions
         app.MapDashboardEndpoints();
         app.MapAnalyticsEndpoints();
         app.MapObserveEndpoints();
-        app.MapQylHealthChecks();
+        app.MapHealthUiEndpoint();
         app.MapSchemaEndpoints();
         app.MapSearchEndpoints();
         app.MapSearchDocumentEndpoints();

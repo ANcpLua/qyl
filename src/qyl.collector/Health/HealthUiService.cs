@@ -39,8 +39,8 @@ public sealed class HealthUiService(
         {
             Status = overallStatus,
             Components = components,
-            UptimeSeconds = (long)(now - HealthExtensions.StartTime).TotalSeconds,
-            Version = HealthExtensions.AppVersion,
+            UptimeSeconds = (long)(now - HealthUiEndpoints.StartTime).TotalSeconds,
+            Version = HealthUiEndpoints.AppVersion,
             LastIngestionTime = lastIngestionTime,
             CheckedAt = now.ToString("o")
         };

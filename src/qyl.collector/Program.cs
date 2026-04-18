@@ -6,12 +6,12 @@ Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-builder.UseQyl(options =>
+builder.AddQylServiceDefaults(options =>
 {
+    // Collector is an OTLP backend — disable OpenAPI (we ship our own generated openapi.yaml)
+    // and auto-discovery (collector never phones out to another collector).
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
-    options.EnableDefaultHealthChecks = false;
-    options.EnableDefaultHealthEndpoints = false;
     options.AdditionalActivitySources.Add("Qyl.Collector");
 });
 
