@@ -241,7 +241,7 @@ public sealed class TokenAuthOptions
     ///     All /api/* endpoints REQUIRE authentication.
     /// </summary>
     public string[] ExcludedPaths { get; set; } =
-        ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
+        ["/health", "/alive", "/health/ui", "/v1/traces", "/v1/logs", "/v1/metrics"];
 }
 
 public sealed class TokenAuthMiddleware(

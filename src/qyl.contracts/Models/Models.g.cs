@@ -206,27 +206,6 @@ public sealed record HandshakeVerifyResponse
 
 }
 
-/// <summary>Health check response</summary>
-public sealed record HealthResponse
-{
-    /// <summary>Service status</summary>
-    [JsonPropertyName("status")]
-    public required global::Qyl.Models.HealthStatus Status { get; init; }
-
-    /// <summary>Service version</summary>
-    [JsonPropertyName("version")]
-    public required global::Qyl.Common.SemVer Version { get; init; }
-
-    /// <summary>Uptime in seconds</summary>
-    [JsonPropertyName("uptime_seconds")]
-    public required long UptimeSeconds { get; init; }
-
-    /// <summary>Component health</summary>
-    [JsonPropertyName("components")]
-    public object? Components { get; init; }
-
-}
-
 /// <summary>Issue update request</summary>
 public sealed record IssueUpdateRequest
 {

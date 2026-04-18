@@ -32,7 +32,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(SpanListResponseDto))]
 [JsonSerializable(typeof(TraceResponseDto))]
 [JsonSerializable(typeof(SpanBatchDto))]
-[JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(HealthUiResponse))]
 [JsonSerializable(typeof(ComponentHealth))]
 [JsonSerializable(typeof(IReadOnlyList<ComponentHealth>))]

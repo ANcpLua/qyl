@@ -65,9 +65,10 @@ public static class QylServiceDefaultsExtensions
     ];
 
     /// <summary>
-    ///     Maps qyl default endpoints (health, OpenAPI).
+    ///     Maps qyl default endpoints (health probes, OpenAPI) and wires the exception-capture
+    ///     middleware. Returns the app for chaining: <c>app.MapQylEndpoints().MapMyStuff();</c>
     /// </summary>
-    public static void MapQylEndpoints(this WebApplication app)
+    public static WebApplication MapQylEndpoints(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
 
@@ -84,14 +85,14 @@ public static class QylServiceDefaultsExtensions
                 new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag) });
         }
 
-        // Exception capture middleware
         app.UseMiddleware<ExceptionCaptureMiddleware>();
 
-        // OpenAPI
         if (options.EnableOpenApi)
         {
             app.MapOpenApi().CacheOutput();
         }
+
+        return app;
     }
 
     // =========================================================================

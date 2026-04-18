@@ -21,6 +21,18 @@ tags:
   - name: Search
   - name: Alerts
 paths:
+  /alive:
+    get:
+      operationId: health_alive
+      description: Liveness probe — runs live-tagged health checks.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+        '503':
+          description: Service unavailable.
+      tags:
+        - Health
   /api/v1/alerts/firings:
     get:
       operationId: AlertsApi_listFirings
@@ -4963,34 +4975,8 @@ paths:
         - Workspaces
   /health:
     get:
-      operationId: health_check
-      description: Health check endpoint
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-      tags:
-        - Health
-  /health/live:
-    get:
-      operationId: health_liveness
-      description: Liveness probe
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-        '503':
-          description: Service unavailable.
-      tags:
-        - Health
-  /health/ready:
-    get:
-      operationId: health_readiness
-      description: Readiness probe
+      operationId: health_ready
+      description: Readiness probe — runs all ready-tagged health checks.
       parameters: []
       responses:
         '200':
@@ -5206,37 +5192,13 @@ components:
           type: string
           description: Workspace ID
       description: Handshake verification response
-    HealthResponse:
-      type: object
-      required:
-        - status
-        - version
-        - uptime_seconds
-      properties:
-        status:
-          allOf:
-            - $ref: '#/components/schemas/HealthStatus'
-          description: Service status
-        version:
-          allOf:
-            - $ref: '#/components/schemas/Qyl.Common.SemVer'
-          description: Service version
-        uptime_seconds:
-          type: integer
-          format: int64
-          description: Uptime in seconds
-        components:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/HealthStatus'
-          description: Component health
-      description: Health check response
     HealthStatus:
       type: string
       enum:
         - healthy
         - degraded
         - unhealthy
+      description: Health status for component-level reporting (HealthUiResponse, dashboard).
     IssueUpdateRequest:
       type: object
       properties:

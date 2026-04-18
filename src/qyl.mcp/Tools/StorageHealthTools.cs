@@ -33,22 +33,23 @@ public sealed class StorageHealthTools(HttpClient client)
                  """)]
     public Task<string> GetStorageStatsAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        var health = await client.GetFromJsonAsync<HealthResponse>(
-            "/health",
-            StorageHealthJsonContext.Default.HealthResponse).ConfigureAwait(false);
+        // /health is a bare 200/503 Aspire-style probe — rich component detail lives on /health/ui.
+        var health = await client.GetFromJsonAsync<HealthUiResponsePayload>(
+            "/health/ui",
+            StorageHealthJsonContext.Default.HealthUiResponsePayload).ConfigureAwait(false);
 
         var sb = new StringBuilder();
         sb.AppendLine("# Storage Statistics");
         sb.AppendLine();
 
-        if (health?.Entries is not null)
+        if (health?.Components is { Count: > 0 } components)
         {
-            foreach (var entry in health.Entries)
+            foreach (var component in components)
             {
-                sb.AppendLine($"- **{entry.Key}:** {entry.Value.Status}");
-                if (entry.Value.Data is not null)
+                sb.AppendLine($"- **{component.Name}:** {component.Status}");
+                if (component.Data is not null)
                 {
-                    foreach (var data in entry.Value.Data)
+                    foreach (var data in component.Data)
                     {
                         sb.AppendLine($"  - {data.Key}: {data.Value}");
                     }
@@ -82,25 +83,32 @@ public sealed class StorageHealthTools(HttpClient client)
                  """)]
     public Task<string> HealthCheckAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        // Check multiple health endpoints concurrently
+        // Aspire-style probes: /alive = live-tagged, /health = ready-tagged. Rich detail from /health/ui.
         var aliveTask = client.GetAsync("/alive");
-        var readyTask = client.GetAsync("/ready");
-        var healthTask = client.GetStringAsync("/health");
+        var healthTask = client.GetAsync("/health");
+        var detailTask = client.GetFromJsonAsync<HealthUiResponsePayload>(
+            "/health/ui", StorageHealthJsonContext.Default.HealthUiResponsePayload);
 
         var alive = await aliveTask.ConfigureAwait(false);
-        var ready = await readyTask.ConfigureAwait(false);
-        var healthJson = await healthTask.ConfigureAwait(false);
+        var health = await healthTask.ConfigureAwait(false);
+        var detail = await detailTask.ConfigureAwait(false);
 
         var sb = new StringBuilder();
         sb.AppendLine("# qyl Collector Health Status");
         sb.AppendLine();
-        sb.AppendLine($"- **Alive:** {(alive.IsSuccessStatusCode ? "OK" : "FAILED")}");
-        sb.AppendLine($"- **Ready:** {(ready.IsSuccessStatusCode ? "OK" : "FAILED")}");
-        sb.AppendLine();
-        sb.AppendLine("## Detailed Health:");
-        sb.AppendLine("```json");
-        sb.AppendLine(healthJson);
-        sb.AppendLine("```");
+        sb.AppendLine($"- **Alive (live probe):** {(alive.IsSuccessStatusCode ? "OK" : "FAILED")}");
+        sb.AppendLine($"- **Ready (health probe):** {(health.IsSuccessStatusCode ? "OK" : "FAILED")}");
+
+        if (detail?.Components is { Count: > 0 } components)
+        {
+            sb.AppendLine();
+            sb.AppendLine("## Components");
+            foreach (var component in components)
+            {
+                sb.AppendLine($"- **{component.Name}:** {component.Status}"
+                              + (string.IsNullOrWhiteSpace(component.Message) ? string.Empty : $" — {component.Message}"));
+            }
+        }
 
         return sb.ToString();
     }, "Health check failed - qyl collector may be down");
@@ -145,17 +153,21 @@ public sealed class StorageHealthTools(HttpClient client)
 
 #region DTOs
 
-internal sealed record HealthResponse(
+// Mirrors Qyl.Collector.Health.HealthUiResponse JSON (camelCase via collector's QylOptions).
+// Kept local so qyl.mcp doesn't take a project reference on qyl.collector.
+internal sealed record HealthUiResponsePayload(
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("entries")]
-    Dictionary<string, HealthEntry>? Entries);
+    [property: JsonPropertyName("components")] IReadOnlyList<ComponentHealthPayload>? Components,
+    [property: JsonPropertyName("uptimeSeconds")] long UptimeSeconds,
+    [property: JsonPropertyName("version")] string? Version);
 
-internal sealed record HealthEntry(
+internal sealed record ComponentHealthPayload(
+    [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("message")] string? Message,
     [property: JsonPropertyName("data")] Dictionary<string, object>? Data);
 
 #endregion
 
-[JsonSerializable(typeof(HealthResponse))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+[JsonSerializable(typeof(HealthUiResponsePayload))]
 internal sealed partial class StorageHealthJsonContext : JsonSerializerContext;

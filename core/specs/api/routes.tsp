@@ -82,22 +82,7 @@ enum ApiVersions {
 // Common Response Models
 // =============================================================================
 
-@doc("Health check response")
-model HealthResponse {
-  @doc("Service status")
-  status: HealthStatus;
-
-  @doc("Service version")
-  version: SemVer;
-
-  @doc("Uptime in seconds")
-  @encodedName("application/json", "uptime_seconds")
-  uptimeSeconds: int64;
-
-  @doc("Component health")
-  components?: Record<HealthStatus>;
-}
-
+@doc("Health status for component-level reporting (HealthUiResponse, dashboard).")
 enum HealthStatus {
   healthy: "healthy",
   degraded: "degraded",
@@ -760,31 +745,27 @@ model OperationInfo {
 }
 
 // =============================================================================
-// Health API
+// Health API — Aspire-shape probes. /alive is cheap liveness (live-tagged checks),
+// /health runs all ready-tagged checks. Collector exposes a rich /health/ui DTO for
+// the dashboard, modelled separately as HealthUiResponse.
 // =============================================================================
 
-@route("/health")
 @tag("Health")
 interface HealthApi {
-  @doc("Health check endpoint")
+  @doc("Liveness probe — runs live-tagged health checks.")
+  @route("/alive")
   @get
-  @operationId("health_check")
-  check(): HealthResponse;
-
-  @doc("Liveness probe")
-  @get
-  @route("/live")
-  @operationId("health_liveness")
-  live(): {
+  @operationId("health_alive")
+  alive(): {
     @statusCode statusCode: 200;
   } | {
     @statusCode statusCode: 503;
   };
 
-  @doc("Readiness probe")
+  @doc("Readiness probe — runs all ready-tagged health checks.")
+  @route("/health")
   @get
-  @route("/ready")
-  @operationId("health_readiness")
+  @operationId("health_ready")
   ready(): {
     @statusCode statusCode: 200;
   } | {

@@ -23,5 +23,5 @@ public static class QylServiceDefaults
     }
 
     /// <summary>Generator-facing alias for <see cref="QylServiceDefaultsExtensions.MapQylEndpoints" />.</summary>
-    public static void MapQylDefaultEndpoints(this WebApplication app) => app.MapQylEndpoints();
+    public static WebApplication MapQylDefaultEndpoints(this WebApplication app) => app.MapQylEndpoints();
 }

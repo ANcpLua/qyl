@@ -45,7 +45,7 @@ public static class CollectorAuthExtensions
             Token = token,
             ExcludedPaths =
             [
-                "/health", "/ready", "/alive",
+                "/health", "/alive", "/health/ui",
                 "/v1/traces", "/v1/logs",
                 "/api/",
                 "/assets/",

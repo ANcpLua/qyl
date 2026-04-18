@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/alive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Liveness probe — runs live-tagged health checks. */
+        get: operations["health_alive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/alerts/firings": {
         parameters: {
             query?: never;
@@ -1157,42 +1174,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Health check endpoint */
-        get: operations["health_check"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Liveness probe */
-        get: operations["health_liveness"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health/ready": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Readiness probe */
-        get: operations["health_readiness"];
+        /** @description Readiness probe — runs all ready-tagged health checks. */
+        get: operations["health_ready"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1327,23 +1310,10 @@ export interface components {
             /** @description Workspace ID */
             workspace_id: string;
         };
-        /** @description Health check response */
-        HealthResponse: {
-            /** @description Service status */
-            status: components["schemas"]["HealthStatus"];
-            /** @description Service version */
-            version: components["schemas"]["Qyl.Common.SemVer"];
-            /**
-             * Format: int64
-             * @description Uptime in seconds
-             */
-            uptime_seconds: number;
-            /** @description Component health */
-            components?: {
-                [key: string]: components["schemas"]["HealthStatus"];
-            };
-        };
-        /** @enum {string} */
+        /**
+         * @description Health status for component-level reporting (HealthUiResponse, dashboard).
+         * @enum {string}
+         */
         HealthStatus: "healthy" | "degraded" | "unhealthy";
         /** @description Issue update request */
         IssueUpdateRequest: {
@@ -4015,6 +3985,31 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    health_alive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AlertsApi_listFirings: {
         parameters: {
             query?: {
@@ -7784,52 +7779,7 @@ export interface operations {
             };
         };
     };
-    health_check: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
-    };
-    health_liveness: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    health_readiness: {
+    health_ready: {
         parameters: {
             query?: never;
             header?: never;
