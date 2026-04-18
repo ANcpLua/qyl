@@ -136,13 +136,7 @@ What **does** carry over:
 
 ---
 
-## 10. MCP Apps + Skills proposal (new, 2026-04-13)
-
-See `docs/Skills/2026-04-13-claude-skills-proposal.md` for the Claude Skills integration proposal. Separate file; not restated here.
-
----
-
-## 11. Planned features with execute-ready prompts (new, 2026-04-18)
+## 10. Planned features with execute-ready prompts (new, 2026-04-18)
 
 Three planned items from the 2026-04-17 MCP partner-grade work, each captured as a standalone file under `docs/planned/` with outcome, scope, prerequisites, an execute-ready prompt for the next agent or dev, and a DoD checklist. These are **not** prioritized — pull when the prerequisites are met.
 

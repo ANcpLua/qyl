@@ -4,7 +4,7 @@ Instructions for AI coding agents working in the qyl codebase.
 
 ## Priority of conventions
 
-When MAF (Microsoft Agent Framework) conventions conflict with qyl conventions, **MAF wins**. qyl consumes MAF and must stay aligned with upstream .NET patterns captured in `docs/maf/` — a mirror of `microsoft/agent-framework/dotnet/` plus the python observability samples. Never paste a qyl-specific shortcut over a MAF rule.
+When MAF (Microsoft Agent Framework) conventions conflict with qyl conventions, **MAF wins**. qyl consumes MAF and must stay aligned with upstream .NET patterns — read the `microsoft-agent-framework` skill (global) plus the `microsoft-agent-framework-qyl` overlay in `.claude/skills/`, and go to upstream at <https://github.com/microsoft/agent-framework/tree/main/dotnet> for anything the skill doesn't cover. Never paste a qyl-specific shortcut over a MAF rule.
 
 ## Execution style
 
@@ -65,7 +65,7 @@ qyl/
 │   ├── ARCHITECTURE.md                   # C4 Context / Container / Component
 │   ├── THREAT_MODEL.md                   # 20 attacker stories with P0–P3 priority
 │   ├── OPEN_WORK.md                      # Consolidated open work items
-│   └── maf/                              # MAF upstream convention mirror (source of truth)
+│   └── planned/                          # Execute-ready prompts for deferred features
 ├── eng/                                  # NUKE 10.1.0 build, MSBuild props, semconv generator
 └── core/                                 # TypeSpec schemas -> openapi.yaml
 ```
@@ -134,7 +134,7 @@ qyl additions:
 
 ## Observability
 
-qyl *is* the observability product, so MAF's OTel conventions are non-negotiable for every qyl service. Synthesized from `docs/maf/otel-dotnet/Program.cs` and `docs/maf/otel-python/README.md`.
+qyl *is* the observability product, so MAF's OTel conventions are non-negotiable for every qyl service. Synthesized from upstream OTel samples at <https://github.com/microsoft/agent-framework/tree/main/dotnet/samples/GettingStarted/AgentOpenTelemetry> and the Python observability reference.
 
 ### Resource attributes (required on every service)
 
@@ -277,7 +277,8 @@ When adding a new sample:
 - `docs/THREAT_MODEL.md` — 20 attacker stories with P0–P3 prioritization
 - `docs/OPEN_WORK.md` — consolidated open work items (from the former specs/ tree)
 - `docs/aot-assessment.md`, `docs/attribute.md`, `docs/generator.md`, `docs/emitters.md` — generator ecosystem reference
-- `docs/maf/` — upstream MAF convention mirror (source of truth for build, style, and OTel patterns)
+- `.claude/skills/microsoft-agent-framework/SKILL.md` — qyl MAF overlay (delta only; core MAF via the global skill + upstream <https://github.com/microsoft/agent-framework/tree/main/dotnet>)
+- `docs/planned/*` — execute-ready prompts for LSP Phase 2/3 and OAuth E2E (indexed from OPEN_WORK.md §11)
 
 ## A note to the agent
 
