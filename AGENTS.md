@@ -269,6 +269,7 @@ When adding a new sample:
     3. Delete the manual `Qyl.Contracts.Models.SpanRecord` if it's redundant, consolidate on one emitted record, one enum namespace.
   - The failed quick-fix attempt lives in git history as the 4c9fd8c9 → 799390e0 revert pair. Do not simply re-delete `SpanRecord` from `Models.g.cs` — verify the collector still builds first.
   - Schema Drift is the only red CI job; Backend, Frontend, Coverage, Dependency Audit are all green on `main`.
+- **Open Dependabot PR #123 — Vite 7→8 major bump on `src/qyl.dashboard`.** Held open because it's a real Frontend (React) CI failure (not the inherited Schema-Drift flake). Needs active migration work: review Vite 8 breaking changes against the dashboard's `vite.config.ts`, test-runner integration (`vite` is a devDependency of the coverage setup), and any plugin ecosystem incompatibilities. Do not blind-merge. All other open Dependabot PRs as of 2026-04-19 were closed (#136, .NET 11 preview — we stay on 10 LTS) or squash-merged (#128 `actions/configure-pages@v6`, #129 `actions/deploy-pages@v5`, #137 dashboard npm patch-minor bundle).
 
 ## Merged repos (2026-04-10)
 
