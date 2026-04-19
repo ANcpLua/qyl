@@ -201,10 +201,4 @@
         <File Path="README.md" />
     </Folder>
 
-    <!-- SITE -->
-
-    <Folder Name="/site/">
-        <File Path="site/index.html" />
-    </Folder>
-
 </Solution>
