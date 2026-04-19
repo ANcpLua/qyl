@@ -23,7 +23,7 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 ///     </para>
 ///     <para>
 ///         <strong>Transitional:</strong> IChatClient interface interception (via
-///         <c>builder.Services.AddChatClient(...).UseQylInstrumentation()</c>) replaces
+///         <c>builder.Services.AddChatClient(...).UseQylTelemetry()</c>) replaces
 ///         SDK-specific call-site interception for all providers that implement
 ///         <c>Microsoft.Extensions.AI.IChatClient</c>. This class is retained until
 ///         the IChatClient interceptor path is fully validated in production.
