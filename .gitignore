@@ -151,3 +151,6 @@ images/
 /eng/Benchmark.Large/Program.cs
 /eng/Benchmark.Large/Types.cs
 /docs/api-docs/
+
+# Local agent scratchpads (objective.json etc.) — not repo content
+.blackboard/
