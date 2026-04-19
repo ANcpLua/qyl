@@ -1,5 +1,4 @@
-using System.Collections.Concurrent;
-using System.Text.Json;
+using ANcpLua.Roslyn.Utilities;
 using Qyl.Contracts.Agenting;
 
 namespace Qyl.Loom.Exploration;
@@ -25,8 +24,10 @@ public sealed class ExplorationSessionStore(TimeProvider timeProvider)
             },
             timeProvider.GetUtcNow());
 
+    // Explicit cast disambiguates the two GetOrNull overloads — ConcurrentDictionary implements
+    // both IDictionary<> and IReadOnlyDictionary<>, so the call would otherwise be CS0121-ambiguous.
     public ExplorationSessionState? Get(string sessionId) =>
-        _sessions.TryGetValue(sessionId, out var session) ? session : null;
+        ((IReadOnlyDictionary<string, ExplorationSessionState>)_sessions).GetOrNull(sessionId);
 
     public void SetContext(string sessionId, string? userContext, string contextBlock)
     {

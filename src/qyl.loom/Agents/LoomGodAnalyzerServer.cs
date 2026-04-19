@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Qyl.Agents;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
@@ -237,8 +238,13 @@ public sealed partial class LoomGodAnalyzerServer(
         if (string.IsNullOrWhiteSpace(policy))
             return FixPolicy.RequireReview;
 
-        return policy.Trim().Replace("-", string.Empty, StringComparison.Ordinal)
-            .Replace("_", string.Empty, StringComparison.Ordinal).ToUpperInvariant() switch
+        var normalized = policy
+            .Trim()
+            .ReplaceOrdinal("-", string.Empty)
+            ?.ReplaceOrdinal("_", string.Empty)
+            ?.ToUpperInvariant() ?? string.Empty;
+
+        return normalized switch
         {
             "AUTOAPPLY" => FixPolicy.AutoApply,
             "DRYRUN" => FixPolicy.DryRun,

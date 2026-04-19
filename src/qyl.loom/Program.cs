@@ -83,7 +83,7 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     if (issue is null)
         return Results.NotFound(new { error = $"Issue '{issueId}' not found." });
 
-    var run = await autofixOrchestrator.CreateFixRunAsync(issueId, Qyl.Contracts.Loom.FixPolicy.AutoApply, ct: ct)
+    var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
 
     return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
