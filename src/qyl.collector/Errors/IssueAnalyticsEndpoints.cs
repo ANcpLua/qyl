@@ -40,15 +40,12 @@ public static class IssueAnalyticsEndpoints
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT time_bucket(INTERVAL '{clampedBucket} minutes', timestamp) AS bucket,
-                                  COUNT(*) AS count
-                           FROM error_issue_events
-                           WHERE issue_id = $1
-                             AND timestamp >= $2
-                           GROUP BY bucket
-                           ORDER BY bucket ASC
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '"
+            + clampedBucket.ToString(CultureInfo.InvariantCulture)
+            + " minutes', timestamp) AS bucket, COUNT(*) AS count"
+            + " FROM error_issue_events"
+            + " WHERE issue_id = $1 AND timestamp >= $2"
+            + " GROUP BY bucket ORDER BY bucket ASC";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
         cmd.Parameters.Add(new DuckDBParameter { Value = cutoff.UtcDateTime });

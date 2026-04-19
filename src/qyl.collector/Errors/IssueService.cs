@@ -198,12 +198,11 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         var clampedOffset = Math.Max(offset, 0);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           {IssueSelectSql}
-                           {whereClause}
-                           ORDER BY last_seen_at DESC
-                           LIMIT ${paramIndex++} OFFSET ${paramIndex}
-                           """;
+        cmd.CommandText = IssueSelectSql
+            + " " + whereClause
+            + " ORDER BY last_seen_at DESC"
+            + " LIMIT $" + (paramIndex++).ToString(CultureInfo.InvariantCulture)
+            + " OFFSET $" + paramIndex.ToString(CultureInfo.InvariantCulture);
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });

@@ -140,22 +140,19 @@ public sealed partial class DuckDbStore
             qb.AddCondition("active_instances = 0");
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT
-                               service_namespace, service_name, service_type,
-                               latest_version, provider_name, default_model,
-                               first_seen, last_seen, last_error_at,
-                               total_instances, active_instances,
-                               environments, versions_seen,
-                               total_spans, total_logs, total_errors,
-                               total_input_tokens, total_output_tokens,
-                               total_cost_usd, total_duration_ns,
-                               avg_duration_ns, error_rate
-                           FROM services
-                           {qb.WhereClause}
-                           ORDER BY last_seen DESC
-                           LIMIT {limit}
-                           """;
+        cmd.CommandText = "SELECT service_namespace, service_name, service_type,"
+            + " latest_version, provider_name, default_model,"
+            + " first_seen, last_seen, last_error_at,"
+            + " total_instances, active_instances,"
+            + " environments, versions_seen,"
+            + " total_spans, total_logs, total_errors,"
+            + " total_input_tokens, total_output_tokens,"
+            + " total_cost_usd, total_duration_ns,"
+            + " avg_duration_ns, error_rate"
+            + " FROM services "
+            + qb.WhereClause
+            + " ORDER BY last_seen DESC LIMIT "
+            + limit.ToString(CultureInfo.InvariantCulture);
         qb.ApplyTo(cmd);
 
         var results = new List<ServiceSummary>();
@@ -201,18 +198,15 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         var typeClause = serviceType is not null ? "AND service_type = $2" : "";
-        cmd.CommandText = $"""
-                           SELECT
-                               service_namespace, service_name, service_instance_id, service_type,
-                               service_version, deployment_environment, os_type, host_arch,
-                               agent_name, provider_name, default_model,
-                               first_seen, last_seen, last_error_at, status,
-                               total_spans, total_logs, total_errors,
-                               total_input_tokens, total_output_tokens, total_cost_usd
-                           FROM service_instances
-                           WHERE service_name = $1 {typeClause}
-                           ORDER BY last_seen DESC
-                           """;
+        cmd.CommandText = "SELECT service_namespace, service_name, service_instance_id, service_type,"
+            + " service_version, deployment_environment, os_type, host_arch,"
+            + " agent_name, provider_name, default_model,"
+            + " first_seen, last_seen, last_error_at, status,"
+            + " total_spans, total_logs, total_errors,"
+            + " total_input_tokens, total_output_tokens, total_cost_usd"
+            + " FROM service_instances"
+            + " WHERE service_name = $1 " + typeClause
+            + " ORDER BY last_seen DESC";
         cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
         if (serviceType is not null)
             cmd.Parameters.Add(new DuckDBParameter { Value = serviceType });

@@ -156,14 +156,11 @@ public sealed partial class DuckDbStore
         var clampedLimit = Math.Clamp(limit, 1, 1000);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT job_id, workspace_id, profile_id, status,
-                                  output_url, error_message, created_at, completed_at
-                           FROM generation_jobs
-                           WHERE workspace_id = $1
-                           ORDER BY created_at DESC
-                           LIMIT {clampedLimit}
-                           """;
+        cmd.CommandText = "SELECT job_id, workspace_id, profile_id, status,"
+            + " output_url, error_message, created_at, completed_at"
+            + " FROM generation_jobs WHERE workspace_id = $1"
+            + " ORDER BY created_at DESC LIMIT "
+            + clampedLimit.ToString(CultureInfo.InvariantCulture);
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         var jobs = new List<GenerationJobRecord>();

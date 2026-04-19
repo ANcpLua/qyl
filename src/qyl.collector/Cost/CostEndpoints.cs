@@ -2,21 +2,28 @@ namespace Qyl.Collector.Cost;
 
 internal static class CostEndpoints
 {
+    private static readonly FrozenSet<string> ValidGroupBy = FrozenSet.Create(
+        StringComparer.Ordinal,
+        ["session_id, service_name", "service_name", "gen_ai_provider_name, gen_ai_request_model"]);
+
+    private static readonly FrozenSet<string> ValidTruncInterval = FrozenSet.Create(
+        StringComparer.Ordinal,
+        ["day", "hour"]);
+
     [QylMapEndpoints]
     public static WebApplication MapCostEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/cost");
 
         group.MapGet("/by-session", static (DuckDbStore store, int? limit, int? hours, CancellationToken ct) =>
-            AggregateAsync(store, "session_id, service_name", limit, hours, ct));
+            AggregateAsync(store, "session_id, service_name", limit, hours, null, ct));
 
         group.MapGet("/by-service", static (DuckDbStore store, int? limit, int? hours, CancellationToken ct) =>
-            AggregateAsync(store, "service_name", limit, hours, ct));
+            AggregateAsync(store, "service_name", limit, hours, null, ct));
 
         group.MapGet("/by-model",
             static (DuckDbStore store, int? limit, int? hours, string? provider, CancellationToken ct) =>
-                AggregateAsync(store, "gen_ai_provider_name, gen_ai_request_model", limit, hours, ct,
-                    string.IsNullOrWhiteSpace(provider) ? null : $"AND gen_ai_provider_name = '{Esc(provider)}'"));
+                AggregateAsync(store, "gen_ai_provider_name, gen_ai_request_model", limit, hours, provider, ct));
 
         group.MapGet("/timeseries", GetCostTimeseriesAsync);
         group.MapGet("/budget", GetBudgetAsync);
@@ -32,29 +39,30 @@ internal static class CostEndpoints
 
     private static async Task<IResult> AggregateAsync(
         DuckDbStore store, string groupBy, int? limit, int? hours,
-        CancellationToken ct, string? extraWhere = null)
+        string? providerFilter, CancellationToken ct)
     {
+        var safeGroupBy = SqlBuilder.Whitelisted(groupBy, ValidGroupBy);
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 1000);
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT {groupBy},
-                               COUNT(*) AS call_count,
-                               COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,
-                               COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,
-                               COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost
-                           FROM spans
-                           WHERE gen_ai_request_model IS NOT NULL
-                             {TimeFilter(hours)} {extraWhere}
-                           GROUP BY {groupBy}
-                           ORDER BY total_cost DESC
-                           LIMIT {boundedLimit}
-                           """;
+        var providerClause = string.IsNullOrWhiteSpace(providerFilter)
+            ? ""
+            : " AND gen_ai_provider_name = $" + cmd.AddParam(providerFilter);
+
+        cmd.CommandText = "SELECT " + safeGroupBy + ", COUNT(*) AS call_count,"
+            + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
+            + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
+            + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+            + " FROM spans"
+            + " WHERE gen_ai_request_model IS NOT NULL"
+            + TimeFilter(hours) + providerClause
+            + " GROUP BY " + safeGroupBy
+            + " ORDER BY total_cost DESC LIMIT " + boundedLimit.ToString(CultureInfo.InvariantCulture);
 
         var items = new List<Dictionary<string, object?>>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        var groupCols = groupBy.Split(',', StringSplitOptions.TrimEntries);
+        var groupCols = safeGroupBy.Split(',', StringSplitOptions.TrimEntries);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var row = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -76,26 +84,25 @@ internal static class CostEndpoints
         DuckDbStore store, string? bucket, int? hours,
         string? service, string? model, CancellationToken ct)
     {
-        var trunc = bucket is "day" ? "day" : "hour";
+        var trunc = SqlBuilder.Whitelisted(bucket is "day" ? "day" : "hour", ValidTruncInterval);
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
         var extra = "";
-        if (!string.IsNullOrWhiteSpace(service)) extra += $" AND service_name = '{Esc(service)}'";
-        if (!string.IsNullOrWhiteSpace(model)) extra += $" AND gen_ai_request_model = '{Esc(model)}'";
+        if (!string.IsNullOrWhiteSpace(service))
+            extra += " AND service_name = $" + cmd.AddParam(service);
+        if (!string.IsNullOrWhiteSpace(model))
+            extra += " AND gen_ai_request_model = $" + cmd.AddParam(model);
 
-        cmd.CommandText = $"""
-                           SELECT
-                               date_trunc('{trunc}', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,
-                               COUNT(*) AS call_count,
-                               COALESCE(SUM(gen_ai_input_tokens), 0),
-                               COALESCE(SUM(gen_ai_output_tokens), 0),
-                               COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost
-                           FROM spans
-                           WHERE gen_ai_request_model IS NOT NULL
-                             {TimeFilter(hours ?? 168)} {extra}
-                           GROUP BY bucket ORDER BY bucket ASC
-                           """;
+        cmd.CommandText = "SELECT date_trunc('" + trunc + "', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,"
+            + " COUNT(*) AS call_count,"
+            + " COALESCE(SUM(gen_ai_input_tokens), 0),"
+            + " COALESCE(SUM(gen_ai_output_tokens), 0),"
+            + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+            + " FROM spans"
+            + " WHERE gen_ai_request_model IS NOT NULL"
+            + TimeFilter(hours ?? 168) + extra
+            + " GROUP BY bucket ORDER BY bucket ASC";
 
         var items = new List<object>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -125,11 +132,8 @@ internal static class CostEndpoints
         var period = hours ?? 720;
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT COALESCE(SUM(gen_ai_cost_usd), 0), COUNT(*)
-                           FROM spans
-                           WHERE gen_ai_request_model IS NOT NULL {TimeFilter(period)}
-                           """;
+        cmd.CommandText = "SELECT COALESCE(SUM(gen_ai_cost_usd), 0), COUNT(*) FROM spans"
+            + " WHERE gen_ai_request_model IS NOT NULL" + TimeFilter(period);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await reader.ReadAsync(ct).ConfigureAwait(false);
@@ -196,10 +200,10 @@ internal static class CostEndpoints
 
     private static string TimeFilter(int? hours) =>
         hours is > 0
-            ? $"AND start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST({hours} AS UBIGINT) * 3600000000000)"
+            ? " AND start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST("
+              + hours.Value.ToString(CultureInfo.InvariantCulture)
+              + " AS UBIGINT) * 3600000000000)"
             : "";
-
-    private static string Esc(string v) => v.ReplaceOrdinal("'", "''")!;
 
     private static string ToCamel(string snakeCol)
     {

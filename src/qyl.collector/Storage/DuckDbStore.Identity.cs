@@ -92,13 +92,10 @@ public sealed partial class DuckDbStore
         var clampedLimit = Math.Clamp(limit, 1, 1000);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT workspace_id, name, service_name, sdk_version, runtime_version,
-                                  framework, git_commit, status, first_seen, last_heartbeat, metadata_json
-                           FROM workspaces
-                           ORDER BY last_heartbeat DESC
-                           LIMIT {clampedLimit}
-                           """;
+        cmd.CommandText = "SELECT workspace_id, name, service_name, sdk_version, runtime_version,"
+            + " framework, git_commit, status, first_seen, last_heartbeat, metadata_json"
+            + " FROM workspaces ORDER BY last_heartbeat DESC LIMIT "
+            + clampedLimit.ToString(CultureInfo.InvariantCulture);
 
         var workspaces = new List<WorkspaceRecord>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -189,13 +186,10 @@ public sealed partial class DuckDbStore
             qb.Add("project_id > $N", cursor);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT project_id, workspace_id, name, description, created_at, updated_at
-                           FROM projects
-                           {qb.WhereClause}
-                           ORDER BY project_id ASC
-                           LIMIT {qb.NextParam}
-                           """;
+        cmd.CommandText = "SELECT project_id, workspace_id, name, description, created_at, updated_at"
+            + " FROM projects " + qb.WhereClause
+            + " ORDER BY project_id ASC LIMIT "
+            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
