@@ -13,6 +13,7 @@ public sealed record PrCreationResult(
 ///     Applies the <c>changes_json</c> from a fix run to a GitHub repository:
 ///     creates a branch, commits each patched file, and opens a pull request.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class PrCreationService(
     GitHubService github,
     DuckDbStore store,

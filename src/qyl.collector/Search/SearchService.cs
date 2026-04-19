@@ -5,6 +5,7 @@ namespace Qyl.Collector.Search;
 ///     <c>search_documents</c>, <c>search_terms</c>, and <c>search_query_audit</c>
 ///     tables for document-indexed search with relevance scoring.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class SearchService(DuckDbStore store, ILogger<SearchService> logger)
 {
     // ==========================================================================

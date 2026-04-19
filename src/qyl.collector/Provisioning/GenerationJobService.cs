@@ -3,6 +3,7 @@ namespace Qyl.Collector.Provisioning;
 /// <summary>
 ///     Manages code generation jobs for instrumentation profile selections.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class GenerationJobService(DuckDbStore store, ILogger<GenerationJobService> logger)
 {
     /// <summary>

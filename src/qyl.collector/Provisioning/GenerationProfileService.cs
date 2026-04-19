@@ -4,6 +4,7 @@ namespace Qyl.Collector.Provisioning;
 ///     CRUD for generation profiles, selections, and generation job queue management.
 ///     Provides built-in profiles and workspace selection persistence via DuckDbStore.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<GenerationProfileService> logger)
 {
     private static readonly FrozenDictionary<string, GenerationProfile> BuiltInProfiles =

@@ -4,6 +4,7 @@ namespace Qyl.Collector.SchemaControl;
 ///     Executes planned schema promotions against DuckDB.
 ///     Records execution time, status, and SQL applied. Rollback is not supported (append-only).
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExecutor> logger)
 {
     /// <summary>

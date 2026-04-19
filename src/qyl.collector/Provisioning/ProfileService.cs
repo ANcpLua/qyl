@@ -4,6 +4,7 @@ namespace Qyl.Collector.Provisioning;
 ///     Business logic for instrumentation profile management.
 ///     Provides built-in profiles and workspace selection persistence.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class ProfileService(DuckDbStore store, ILogger<ProfileService> logger)
 {
     private static readonly FrozenDictionary<string, InstrumentationProfile> BuiltInProfiles =

@@ -8,6 +8,7 @@ namespace Qyl.Collector.Identity;
 ///     Supports: env var, PAT paste, GitHub Device Flow.
 ///     Singleton service — uses Lock for thread-safe token updates.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class GitHubService(
     IHttpClientFactory httpClientFactory,
     DuckDbStore store,

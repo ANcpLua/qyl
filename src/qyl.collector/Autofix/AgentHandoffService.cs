@@ -5,6 +5,7 @@ namespace Qyl.Collector.Autofix;
 ///     from fix runs, accepting/completing/failing handoffs, and retrieving context
 ///     for agents to work with.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class AgentHandoffService(
     DuckDbStore store,
     IConfiguration configuration,

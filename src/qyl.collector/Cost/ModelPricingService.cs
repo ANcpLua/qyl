@@ -4,6 +4,7 @@ namespace Qyl.Collector.Cost;
 ///     Manages model pricing: seeds from JSON on first boot, caches in memory,
 ///     computes per-span cost at ingestion time.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
 {
     private readonly Lock _lock = new();

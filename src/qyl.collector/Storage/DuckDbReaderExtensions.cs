@@ -237,6 +237,7 @@ public interface ITelemetrySseBroadcaster : IAsyncDisposable
     void PublishSpans(SpanBatch batch);
 }
 
+[QylService(QylLifetime.Singleton, typeof(ITelemetrySseBroadcaster))]
 public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 {
     private readonly ConcurrentDictionary<Guid, Channel<TelemetryMessage>> _channels = new();

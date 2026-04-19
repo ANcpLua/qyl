@@ -1,5 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
+[QylService(QylLifetime.Singleton)]
 public sealed class SourceLocationCache
 {
     public const int MaxCacheEntries = 10_000;

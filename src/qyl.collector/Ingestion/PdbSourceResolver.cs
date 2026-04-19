@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Qyl.Collector.Ingestion;
 
+[QylService(QylLifetime.Singleton)]
 public sealed partial class PdbSourceResolver
 {
     public SourceLocation? ResolveFromStackTrace(string? stackTrace)

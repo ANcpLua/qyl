@@ -21,6 +21,7 @@ namespace Qyl.Collector.Storage.Migrations;
 ///     Applies pending DuckDB schema migrations on startup.
 ///     Tracks applied versions in a <c>_schema_versions</c> metadata table.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class MigrationRunner
 {
     /// <summary>

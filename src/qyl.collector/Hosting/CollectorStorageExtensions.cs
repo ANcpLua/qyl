@@ -1,7 +1,5 @@
 using Qyl.Collector.AgentRuns;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Intelligence;
-using Qyl.Collector.SchemaControl;
 using Qyl.Contracts.Intelligence;
 
 namespace Qyl.Collector.Hosting;
@@ -18,17 +16,12 @@ public static class CollectorStorageExtensions
             Directory.CreateDirectory(dataDir);
 
         services.AddSingleton(_ => new DuckDbStore(dataPath));
-        services.AddSingleton<MigrationRunner>();
-        services.AddSingleton<SourceLocationCache>();
-        services.AddSingleton<PdbSourceResolver>();
-
-        services.AddSingleton<SchemaPlanner>();
-        services.AddSingleton<SchemaExecutor>();
-
         services.ActivateSingleton<DuckDbStore>();
 
-        services.AddSingleton<ModelPricingService>();
-
+        // Plain singletons (MigrationRunner, SourceLocationCache, PdbSourceResolver,
+        // SchemaPlanner, SchemaExecutor, ModelPricingService) auto-register via
+        // [QylService(Singleton)] through QylGeneratedRegistry.RegisterQylServices.
+        // Query-service factories stay here — they need sp.GetRequiredService<DuckDbStore>().
         services.AddSingleton(sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(sp => new AnalyticsQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(sp => new AgentInsightsService(sp.GetRequiredService<DuckDbStore>()));

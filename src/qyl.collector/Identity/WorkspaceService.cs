@@ -4,6 +4,7 @@ namespace Qyl.Collector.Identity;
 ///     CRUD operations for workspace envelope entities with heartbeat lifecycle.
 ///     Singleton service — all writes go through the DuckDbStore channel-buffered path.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class WorkspaceService(DuckDbStore store, ILogger<WorkspaceService> logger)
 {
     /// <summary>

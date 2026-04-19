@@ -10,6 +10,7 @@ namespace Qyl.Collector.Observe;
 ///     BatchExportProcessor backed by an OtlpTraceExporter. When unsubscribed, the pipeline
 ///     is torn down cleanly and the source returns to zero-cost dormancy.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 internal sealed class SubscriptionManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, ObservationSubscription> _subscriptions = new(StringComparer.Ordinal);

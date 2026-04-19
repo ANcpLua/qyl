@@ -4,6 +4,7 @@ namespace Qyl.Collector.Identity;
 ///     CRUD for projects and project environments with cursor-based pagination.
 ///     Singleton service backed by DuckDbStore read/write paths.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class ProjectService(DuckDbStore store, ILogger<ProjectService> logger)
 {
     /// <summary>

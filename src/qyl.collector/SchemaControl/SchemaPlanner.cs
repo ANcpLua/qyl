@@ -6,6 +6,7 @@ namespace Qyl.Collector.SchemaControl;
 ///     Plans schema changes by generating safe, additive DDL statements.
 ///     Never produces destructive DDL (DROP TABLE, DROP COLUMN).
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlanner> logger)
 {
     private static readonly string[] AllowedChangeTypes = ["add_column", "add_table", "add_index"];

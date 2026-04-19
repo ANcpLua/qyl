@@ -26,12 +26,11 @@ public static class CollectorCoreExtensions
         });
         services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceServiceMethodProvider>();
 
-        services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
-
+        // ITelemetrySseBroadcaster -> TelemetrySseBroadcaster auto-registers via
+        // [QylService(Singleton, typeof(ITelemetrySseBroadcaster))].
+        // SubscriptionManager auto-registers via [QylService(Singleton)].
         var ringBufferCapacity = config.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);
         services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));
-
-        services.AddSingleton<SubscriptionManager>();
 
         return ports;
     }

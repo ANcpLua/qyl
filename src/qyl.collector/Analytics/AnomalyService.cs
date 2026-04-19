@@ -5,6 +5,7 @@ namespace Qyl.Collector.Analytics;
 ///     via DuckDB time-bucketed aggregations. Supports error rate, latency percentiles,
 ///     request count, token usage, and cost metrics.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalyService> logger)
 {
     // ==========================================================================

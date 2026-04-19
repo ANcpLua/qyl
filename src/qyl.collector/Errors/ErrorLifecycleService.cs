@@ -5,6 +5,7 @@ namespace Qyl.Collector.Errors;
 ///     <c>new → acknowledged → resolved → regressed</c>,
 ///     <c>resolved ↔ reopened</c>.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<ErrorLifecycleService> logger)
 {
     /// <summary>Valid transitions from each source status.</summary>

@@ -5,6 +5,7 @@ namespace Qyl.Collector.Identity;
 ///     State transitions: pending -> verified -> expired.
 ///     Singleton service — writes via DuckDbStore channel, reads via pooled connections.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class HandshakeService(DuckDbStore store, ILogger<HandshakeService> logger)
 {
     private static readonly TimeSpan HandshakeExpiry = TimeSpan.FromMinutes(10);

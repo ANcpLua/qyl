@@ -5,6 +5,7 @@ namespace Qyl.Collector.Errors;
 ///     <c>error_issues</c>, <c>error_issue_events</c>, and <c>error_breadcrumbs</c>
 ///     DuckDB tables using pooled read connections for queries and inline writes.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService> logger)
 {
     // ==========================================================================
