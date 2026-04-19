@@ -214,9 +214,10 @@ public sealed partial class EmbeddingClusterWorker(
                 }
             }
         }
-        catch
+        catch (JsonException ex)
         {
-            // Malformed JSON — fall through
+            // Malformed payload — the text is best-effort; fall through to null.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return null;

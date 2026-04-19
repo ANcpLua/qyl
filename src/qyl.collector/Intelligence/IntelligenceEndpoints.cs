@@ -236,9 +236,10 @@ internal static class IntelligenceEndpoints
                         AddSignalIfPresent(signals, prop.Name, value);
                     }
                 }
-                catch (JsonException)
+                catch (JsonException ex)
                 {
-                    // Skip malformed attributes
+                    // Skip malformed attribute payloads.
+                    System.Diagnostics.Debug.WriteLine(ex);
                 }
             }
         }

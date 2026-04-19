@@ -21,9 +21,10 @@ internal static class SpanEndpoints
                 if (attrs?.TryGetValue("service.name", out var svc) == true)
                     serviceName = svc;
             }
-            catch
+            catch (JsonException ex)
             {
-                /* ignore parse errors */
+                // resource.attributes may be malformed — fall through to default serviceName.
+                System.Diagnostics.Debug.WriteLine(ex);
             }
         }
 

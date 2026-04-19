@@ -398,9 +398,10 @@ public static class DashboardQueries
                 }
             }
         }
-        catch
+        catch (DuckDBException ex)
         {
-            // Graceful fallback — table/column might not exist yet
+            // Graceful fallback — table/column might not exist yet.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return result;
@@ -429,9 +430,10 @@ public static class DashboardQueries
                 rows.Add(new TopNRow(name, value, unit, count, errorRate));
             }
         }
-        catch
+        catch (DuckDBException ex)
         {
-            // Graceful fallback
+            // Graceful fallback — query target may be missing.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return rows;
@@ -454,9 +456,10 @@ public static class DashboardQueries
                 points.Add(new TimeSeriesPoint(time, value));
             }
         }
-        catch
+        catch (DuckDBException ex)
         {
-            // Graceful fallback
+            // Graceful fallback — query target may be missing.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return points;

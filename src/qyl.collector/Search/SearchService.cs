@@ -217,9 +217,10 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
                 await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }, ct).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Expected on shutdown — audit is best-effort.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
         catch (DuckDBException ex)
         {

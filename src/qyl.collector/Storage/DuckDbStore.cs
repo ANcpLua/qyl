@@ -215,14 +215,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             {
                 await _writerTask.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
             }
-            catch
+            catch (TimeoutException ex)
             {
-                // Best effort - proceed with cleanup
+                // Writer did not finish in 1s — proceed with cleanup.
+                System.Diagnostics.Debug.WriteLine(ex);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            // Expected during shutdown
+            // Expected during shutdown.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         Connection.Dispose();
@@ -512,9 +514,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 if (fileInfo.Exists)
                     return fileInfo.Length;
             }
-            catch
+            catch (IOException ex)
             {
-                // Fall through to return 0 if file access fails
+                // Fall through to return 0 if file access fails.
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
             }
 
             return 0;
@@ -531,9 +538,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             if (result is string sizeStr && long.TryParse(sizeStr, out var parsed))
                 return parsed;
         }
-        catch
+        catch (DuckDBException ex)
         {
-            // Return 0 if query fails
+            // Return 0 if the PRAGMA is unavailable on this DuckDB build.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return 0;
@@ -1249,9 +1257,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            // Expected during shutdown
+            // Expected during shutdown.
+            System.Diagnostics.Debug.WriteLine(ex);
         }
         finally
         {
@@ -2054,9 +2063,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 {
                     con.Dispose();
                 }
-                catch
+                catch (DuckDBException ex)
                 {
-                    /* Best effort cleanup */
+                    // Best effort cleanup — connection may already be disposed.
+                    System.Diagnostics.Debug.WriteLine(ex);
                 }
             }
         }
