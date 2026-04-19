@@ -15,10 +15,6 @@
     <IsAotCompatible>false</IsAotCompatible>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
 
-    <!-- ANcpLua.NET.Sdk features for source generators -->
-    <!-- Polyfills (IsExternalInit, NotNullWhen) are in Polyfills.cs -->
-    <!-- Pin Roslyn to 5.0.0 for broad IDE/SDK compatibility (via SDK VersionOverride) -->
-    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <!-- Enable C# 12 interceptors (auto-suppresses RSEXPERIMENTAL002) -->
     <UseInterceptors>true</UseInterceptors>
     <!-- Copy NuGet dependencies to output so transitive .targets can include them -->

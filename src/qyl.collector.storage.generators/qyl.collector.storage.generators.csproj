@@ -15,9 +15,6 @@
     <IsAotCompatible>false</IsAotCompatible>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
 
-    <!-- ANcpLua.NET.Sdk features for source generators -->
-    <!-- Pin Roslyn to 5.0.0 for broad IDE/SDK compatibility (via SDK VersionOverride) -->
-    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>

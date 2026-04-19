@@ -7,7 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsAotCompatible>false</IsAotCompatible>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
-    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 

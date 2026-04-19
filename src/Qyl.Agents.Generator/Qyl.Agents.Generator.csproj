@@ -3,7 +3,6 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Qyl.Agents.Generator</RootNamespace>
     <IsRoslynComponent>true</IsRoslynComponent>
-    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
