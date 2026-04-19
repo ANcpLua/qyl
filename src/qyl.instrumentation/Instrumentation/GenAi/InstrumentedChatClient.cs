@@ -60,7 +60,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        options = ToolInstrumentingChatClient.PrepareOptions(options);
+        options = PrepareOptions(options);
 
         var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
         var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
@@ -99,7 +99,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        options = ToolInstrumentingChatClient.PrepareOptions(options);
+        options = PrepareOptions(options);
 
         var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
         var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
@@ -321,4 +321,22 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         : reason == ChatFinishReason.ToolCalls ? "tool_calls"
         : reason == ChatFinishReason.ContentFilter ? "content_filter"
         : reason.Value;
+
+    /// <summary>
+    ///     Replaces every <see cref="AIFunction"/> in <see cref="ChatOptions.Tools"/> with a
+    ///     qyl-instrumented wrapper. Idempotent — already-wrapped functions are skipped.
+    /// </summary>
+    internal static ChatOptions? PrepareOptions(ChatOptions? options)
+    {
+        if (options?.Tools is not { Count: > 0 } tools)
+            return options;
+
+        for (var i = 0; i < tools.Count; i++)
+        {
+            if (tools[i] is AIFunction fn)
+                tools[i] = GenAiInstrumentation.WrapTool(fn);
+        }
+
+        return options;
+    }
 }

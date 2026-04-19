@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Runtime.CompilerServices;
+using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 
@@ -41,8 +42,8 @@ public static class GenAiInstrumentation
     {
         Guard.NotNull(client);
 
-        // Don't double-wrap
-        if (client is ToolInstrumentingChatClient)
+        // Don't double-wrap.
+        if (client is ToolDecoratingChatClient)
         {
             return client;
         }
@@ -54,7 +55,7 @@ public static class GenAiInstrumentation
                 existingOpenTelemetryClient.EnableSensitiveData = enableSensitiveData.Value;
             }
 
-            return new ToolInstrumentingChatClient(existingOpenTelemetryClient);
+            return new ToolDecoratingChatClient(existingOpenTelemetryClient, WrapTool);
         }
 
         var builder = new ChatClientBuilder(client);
@@ -67,6 +68,10 @@ public static class GenAiInstrumentation
 
         return builder.Build();
     }
+
+    /// <summary>Wraps an <see cref="AIFunction"/> with qyl-tagged tool-execution telemetry.</summary>
+    public static AIFunction WrapTool(AIFunction inner) =>
+        inner is TracedAIFunction ? inner : new TracedAIFunction(inner, ActivitySources.GenAiSource);
 
     /// <summary>
     ///     Extension for ChatClientBuilder pipeline - preferred approach.
@@ -81,7 +86,7 @@ public static class GenAiInstrumentation
         builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,
             configure: configure);
-        builder.Use(static inner => new ToolInstrumentingChatClient(inner));
+        builder.Use(static inner => new ToolDecoratingChatClient(inner, WrapTool));
         return builder;
     }
 

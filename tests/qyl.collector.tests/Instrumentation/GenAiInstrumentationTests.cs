@@ -4,6 +4,7 @@ using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
+using ANcpLua.Agents.Instrumentation;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 
@@ -82,14 +83,14 @@ public sealed class GenAiInstrumentationTests
         var result = otel.WithQylTelemetry();
 
         // OTel client gets wrapped with tool instrumentation on top
-        result.Should().BeOfType<ToolInstrumentingChatClient>();
+        result.Should().BeOfType<ToolDecoratingChatClient>();
     }
 
     [Fact]
-    public void WithQylTelemetry_does_not_double_wrap_ToolInstrumentingChatClient()
+    public void WithQylTelemetry_does_not_double_wrap_ToolDecoratingChatClient()
     {
         var inner = new FakeChatClient { Metadata = new ChatClientMetadata("test-provider", null, "test-model") };
-        var toolClient = new ToolInstrumentingChatClient(inner);
+        var toolClient = new ToolDecoratingChatClient(inner, GenAiInstrumentation.WrapTool);
 
         var result = toolClient.WithQylTelemetry();
 

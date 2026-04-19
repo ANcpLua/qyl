@@ -39,7 +39,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 ///         </item>
 ///         <item>
 ///             <term>IChatClient decorator (runtime)</term>
-///             <description>Use <c>.UseQylInstrumentation()</c> in ChatClientBuilder</description>
+///             <description>Use <c>.UseQylTelemetry()</c> in ChatClientBuilder</description>
 ///         </item>
 ///     </list>
 /// </remarks>

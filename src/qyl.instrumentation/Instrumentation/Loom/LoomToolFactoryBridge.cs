@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
+using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace Qyl.Instrumentation.Instrumentation.Loom;
 
@@ -55,7 +56,7 @@ public static class LoomToolFactoryBridge
         IServiceProvider? services = null)
     {
         ArgumentNullException.ThrowIfNull(metadata);
-        return new InstrumentedAIFunction(CreateAIFunction(metadata, services));
+        return new TracedAIFunction(CreateAIFunction(metadata, services), ActivitySources.GenAiSource);
     }
 
     public static AIFunction CreateInstrumentedAIFunction(
@@ -65,7 +66,7 @@ public static class LoomToolFactoryBridge
     {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(metadata);
-        return new InstrumentedAIFunction(CreateAIFunction(descriptor, metadata, services));
+        return new TracedAIFunction(CreateAIFunction(descriptor, metadata, services), ActivitySources.GenAiSource);
     }
 
     public static IReadOnlyList<AIFunction> CreateInstrumentedAIFunctions(
