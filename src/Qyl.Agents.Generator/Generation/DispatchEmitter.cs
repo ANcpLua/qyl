@@ -1,6 +1,6 @@
-namespace Qyl.Agents.Generator.Generation;
+using Qyl.Agents.Generator.Models;
 
-using Models;
+namespace Qyl.Agents.Generator.Generation;
 
 internal static class DispatchEmitter
 {
