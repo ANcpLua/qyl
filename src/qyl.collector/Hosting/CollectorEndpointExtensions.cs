@@ -124,9 +124,9 @@ public static class CollectorEndpointExtensions
             broadcaster.PublishSpans(batch);
             return Results.Accepted();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return Results.BadRequest(new ErrorResponse("OTLP parse error", ex.Message));
+            return Results.BadRequest(new ErrorResponse("OTLP parse error"));
         }
     }
 
@@ -168,7 +168,7 @@ public static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpLogsEndpoint");
             OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest(new ErrorResponse("OTLP logs parse error", ex.Message));
+            return Results.BadRequest(new ErrorResponse("OTLP logs parse error"));
         }
     }
 
@@ -229,9 +229,9 @@ public static class CollectorEndpointExtensions
             if (batch is null || batch.Spans.Count is 0)
                 return Results.BadRequest(new ErrorResponse("Empty or invalid batch"));
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            return Results.BadRequest(new ErrorResponse("Invalid JSON", ex.Message));
+            return Results.BadRequest(new ErrorResponse("Invalid JSON"));
         }
 
         ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
@@ -348,7 +348,7 @@ public static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpProfilesEndpoint");
             OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest(new ErrorResponse("OTLP profiles parse error", ex.Message));
+            return Results.BadRequest(new ErrorResponse("OTLP profiles parse error"));
         }
     }
 

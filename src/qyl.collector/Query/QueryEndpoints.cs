@@ -86,9 +86,9 @@ internal static class QueryEndpoints
 
             return TypedResults.Ok(new { columns, rows, rowCount = rows.Count });
         }
-        catch (DuckDBException ex)
+        catch (DuckDBException)
         {
-            return TypedResults.BadRequest(new { error = ex.Message });
+            return TypedResults.BadRequest(new { error = "Request failed" });
         }
     }
 

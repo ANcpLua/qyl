@@ -51,9 +51,9 @@ public static class ProvisioningEndpoints
                 await service.SetSelectionAsync(request, ct);
                 return TypedResults.Ok(new { status = "ok" });
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException)
             {
-                return TypedResults.BadRequest(new { error = ex.Message });
+                return TypedResults.BadRequest(new { error = "Request failed" });
             }
         });
 
@@ -85,9 +85,9 @@ public static class ProvisioningEndpoints
                 var job = await service.EnqueueJobAsync(request, ct);
                 return TypedResults.Created($"/api/v1/configurator/jobs/{job.JobId}", job);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException)
             {
-                return TypedResults.BadRequest(new { error = ex.Message });
+                return TypedResults.BadRequest(new { error = "Request failed" });
             }
         });
 
