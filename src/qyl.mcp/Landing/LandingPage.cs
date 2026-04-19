@@ -7,7 +7,7 @@ internal static class LandingPage
     public static string GetHtml(string mcpUrl)
     {
         _cachedHtml ??= ReadEmbeddedHtml();
-        return _cachedHtml.ReplaceOrdinal("{{MCP_URL}}", mcpUrl);
+        return _cachedHtml.ReplaceOrdinal("{{MCP_URL}}", mcpUrl) ?? string.Empty;
     }
 
     private static string ReadEmbeddedHtml()
