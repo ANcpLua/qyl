@@ -36,6 +36,12 @@ public sealed class InstrumentedChatClientTests
         TimeProvider? timeProvider = null)
         => new(inner, agentName, timeProvider);
 
+    // ActivityListener captures every span on the qyl.genai source. Each test below
+    // tags its request with a unique ModelId and filters captured activities by it
+    // so parallel sibling tests can't pollute the assertion.
+    private static Activity ForModel(List<Activity> captured, string modelId) =>
+        captured.Should().ContainSingle(a => (string?)a.GetTagItem(GenAiAttributes.RequestModel) == modelId).Which;
+
     // -- basic span attributes -------------------------------------------------
 
     [Fact]
@@ -49,14 +55,11 @@ public sealed class InstrumentedChatClientTests
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "hello")],
-            new ChatOptions { ModelId = "gpt-4o" },
+            new ChatOptions { ModelId = "icct-basic-attrs" },
             TestContext.Current.CancellationToken);
 
-        captured.Should().ContainSingle();
-        var activity = captured[0];
-
+        var activity = ForModel(captured, "icct-basic-attrs");
         activity.GetTagItem(GenAiAttributes.OperationName).Should().Be(GenAiAttributes.Operations.Chat);
-        activity.GetTagItem(GenAiAttributes.RequestModel).Should().Be("gpt-4o");
         activity.GetTagItem(GenAiAttributes.OutputType).Should().Be(GenAiAttributes.OutputTypes.Text);
     }
 
@@ -76,10 +79,10 @@ public sealed class InstrumentedChatClientTests
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "go")],
-            cancellationToken: TestContext.Current.CancellationToken);
+            new ChatOptions { ModelId = "icct-finish-reason" },
+            TestContext.Current.CancellationToken);
 
-        var activity = captured.Should().ContainSingle().Which;
-
+        var activity = ForModel(captured, "icct-finish-reason");
         activity.GetTagItem(GenAiAttributes.ResponseModel).Should().Be("gpt-4o-2024-11");
 
         var finishReasons = activity.GetTagItem(GenAiAttributes.ResponseFinishReasons) as string[];
@@ -100,10 +103,10 @@ public sealed class InstrumentedChatClientTests
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "prompt")],
-            cancellationToken: TestContext.Current.CancellationToken);
+            new ChatOptions { ModelId = "icct-no-usage" },
+            TestContext.Current.CancellationToken);
 
-        var activity = captured.Should().ContainSingle().Which;
-
+        var activity = ForModel(captured, "icct-no-usage");
         activity.GetTagItem(GenAiAttributes.UsageInputTokens).Should().BeNull();
         activity.GetTagItem(GenAiAttributes.UsageOutputTokens).Should().BeNull();
     }
@@ -122,11 +125,11 @@ public sealed class InstrumentedChatClientTests
 
         var act = async () => await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "call")],
-            cancellationToken: TestContext.Current.CancellationToken);
+            new ChatOptions { ModelId = "icct-http-error" },
+            TestContext.Current.CancellationToken);
         await act.Should().ThrowAsync<HttpRequestException>();
 
-        var activity = captured.Should().ContainSingle().Which;
-
+        var activity = ForModel(captured, "icct-http-error");
         activity.Status.Should().Be(ActivityStatusCode.Error);
         activity.GetTagItem(GenAiAttributes.ErrorType).Should().Be("503");
     }
@@ -144,10 +147,10 @@ public sealed class InstrumentedChatClientTests
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "hi")],
-            cancellationToken: TestContext.Current.CancellationToken);
+            new ChatOptions { ModelId = "icct-no-agent" },
+            TestContext.Current.CancellationToken);
 
-        var activity = captured.Should().ContainSingle().Which;
-
+        var activity = ForModel(captured, "icct-no-agent");
         activity.GetTagItem("gen_ai.agent.name").Should().BeNull();
     }
 }
