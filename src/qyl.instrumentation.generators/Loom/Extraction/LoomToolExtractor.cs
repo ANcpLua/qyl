@@ -43,7 +43,7 @@ internal static class LoomToolExtractor
             phase,
             useOnlyWhen,
             doNotUseWhen,
-            method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            method.ContainingType.GetFullyQualifiedName(),
             LoomDeclarationChainExtractor.Extract(containingType),
             method.Name,
             method.IsStatic,
@@ -75,13 +75,13 @@ internal static class LoomToolExtractor
             namedType.TypeArguments.Length == 1 &&
             namedType.Name is "Task" or "ValueTask")
         {
-            return namedType.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            return namedType.TypeArguments[0].GetFullyQualifiedName();
         }
 
         if (returnType.Name is "Task" or "ValueTask")
             return null;
 
-        return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return returnType.GetFullyQualifiedName();
     }
 
     private static string? GetNamedString(AttributeData attribute, string name)

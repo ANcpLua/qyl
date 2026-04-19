@@ -35,6 +35,6 @@ internal static class ToolManifestAnalyzer
 
         return new ToolTypeEntry(
             IncrementalPipelineHelpers.FormatSortKey(context.TargetNode),
-            typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            typeSymbol.GetFullyQualifiedName());
     }
 }

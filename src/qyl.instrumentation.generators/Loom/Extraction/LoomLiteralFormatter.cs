@@ -32,7 +32,7 @@ internal static class LoomLiteralFormatter
             var converted = ConvertToUnderlyingType(value, underlyingType);
             return converted is null
                 ? null
-                : $"({type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}){SymbolDisplay.FormatPrimitive(converted, true, false)}";
+                : $"({type.GetFullyQualifiedName()}){SymbolDisplay.FormatPrimitive(converted, true, false)}";
         }
 
         return SymbolDisplay.FormatPrimitive(value, true, false);

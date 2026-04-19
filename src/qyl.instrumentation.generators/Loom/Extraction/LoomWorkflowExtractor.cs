@@ -29,9 +29,9 @@ internal static class LoomWorkflowExtractor
 
         return new LoomWorkflowModel(
             id!,
-            runStateType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            runStateType.GetFullyQualifiedName(),
             stepIds.Length is 0 ? default : stepIds.ToEquatableArray(),
-            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            type.GetFullyQualifiedName(),
             LoomDeclarationChainExtractor.Extract(declaration),
             GetNamedString(attribute, "Description"));
     }

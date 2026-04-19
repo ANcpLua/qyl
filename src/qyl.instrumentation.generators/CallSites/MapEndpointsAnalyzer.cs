@@ -43,7 +43,7 @@ internal static class MapEndpointsAnalyzer
         var order = attr.ConstructorArguments is [{ Value: int value }, ..] ? value : 100;
 
         return new MapEndpointsDefinition(
-            ContainingTypeFullyQualifiedName: containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            ContainingTypeFullyQualifiedName: containingType.GetFullyQualifiedName(),
             MethodName: methodSymbol.Name,
             Order: order,
             SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));

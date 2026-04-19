@@ -23,7 +23,7 @@ internal static class LoomStepExtractor
         return new LoomStepModel(
             id!,
             phase,
-            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            type.GetFullyQualifiedName(),
             LoomDeclarationChainExtractor.Extract(declaration),
             description);
     }

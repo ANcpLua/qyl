@@ -48,7 +48,7 @@ internal static class QylHealthCheckAnalyzer
                 .ToEquatableArray();
 
         return new QylHealthCheckDefinition(
-            TypeFullyQualifiedName: classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
             Name: name,
             Tags: tags,
             SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));

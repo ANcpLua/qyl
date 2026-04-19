@@ -20,7 +20,7 @@ internal static class LoomParameterExtractor
         for (var i = 0; i < parameters.Length; i++)
         {
             var parameter = parameters[i];
-            var typeFullyQualified = parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var typeFullyQualified = parameter.Type.GetFullyQualifiedName();
             var isCancellationToken = typeFullyQualified == CancellationTokenTypeName;
             var isServiceProvider = typeFullyQualified == ServiceProviderTypeName;
             var isAIFunctionArguments = typeFullyQualified == AIFunctionArgumentsTypeName;

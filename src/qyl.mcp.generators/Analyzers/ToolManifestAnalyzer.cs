@@ -82,12 +82,12 @@ internal static class ToolManifestAnalyzer
                 GetNamedBool(toolAttr, "Destructive", false),
                 GetNamedBool(toolAttr, "Idempotent", false),
                 GetNamedBool(toolAttr, "OpenWorld", false),
-                method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                method.ReturnType.GetFullyQualifiedName(),
                 capabilities.ToEquatableArray()));
         }
 
         var skillKindName = ExtractSkillKindName(typeSymbol, skillAttrType);
-        var fqn = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var fqn = typeSymbol.GetFullyQualifiedName();
         return new ToolTypeEntry(fqn, skillKindName, methods.ToEquatableArray());
     }
 

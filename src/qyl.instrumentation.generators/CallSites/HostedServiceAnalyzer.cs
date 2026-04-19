@@ -29,7 +29,7 @@ internal static class HostedServiceAnalyzer
             return null;
 
         return new HostedServiceDefinition(
-            TypeFullyQualifiedName: classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
             SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 }

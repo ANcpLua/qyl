@@ -43,10 +43,10 @@ internal static class QylServiceAnalyzer
 
         string? interfaceFqn = null;
         if (attr.ConstructorArguments is [_, { Value: INamedTypeSymbol iface }, ..])
-            interfaceFqn = iface.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            interfaceFqn = iface.GetFullyQualifiedName();
 
         return new QylServiceDefinition(
-            TypeFullyQualifiedName: classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
             LifetimeMethodName: SLifetimeNames[lifetimeIndex],
             InterfaceFullyQualifiedName: interfaceFqn,
             SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));

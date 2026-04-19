@@ -25,7 +25,7 @@ internal static class LoomContractExtractor
                 property.DeclaredAccessibility == Accessibility.Public)
             .Select(static property => new LoomContractPropertyModel(
                 property.Name,
-                property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                property.Type.GetFullyQualifiedName(),
                 IsNullable(property.Type),
                 !IsNullable(property.Type),
                 GetEnumValues(property.Type)))
@@ -33,7 +33,7 @@ internal static class LoomContractExtractor
 
         return new LoomContractModel(
             name!,
-            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            type.GetFullyQualifiedName(),
             LoomDeclarationChainExtractor.Extract(declaration),
             properties.Length is 0 ? default : properties.ToEquatableArray());
     }

@@ -142,9 +142,9 @@ internal static class IntelligenceEndpoints
 
         // Template substitution for context parameters
         if (traceId is not null)
-            query = query.ReplaceOrdinal("${trace_id}", traceId)!;
+            query = query.ReplaceOrdinal("${trace_id}", traceId);
         if (service is not null)
-            query = query.ReplaceOrdinal("${service_name}", service)!;
+            query = query.ReplaceOrdinal("${service_name}", service);
 
         // Execute the DuckDB query
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);

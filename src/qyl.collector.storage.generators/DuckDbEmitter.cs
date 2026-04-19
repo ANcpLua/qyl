@@ -222,34 +222,39 @@ internal static class DuckDbEmitter
         }
         else
         {
-            // Required field - use direct getter
+            // Required field — route through ColumnReader.GetX(default) so the IsDBNull
+            // check stays consistent with the nullable branch and the rest of the storage
+            // layer (which uses reader.Col(N).GetX(default) everywhere).
             switch (baseType)
             {
                 case "string":
-                    sb.Append("reader.GetString(").Append(ordinal).Append(')');
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetString(\"\")");
                     break;
                 case "ulong":
                 case "System.UInt64":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetUInt64(0)");
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetUInt64(0UL)");
                     break;
                 case "long":
                 case "System.Int64":
-                    sb.Append("reader.GetInt64(").Append(ordinal).Append(')');
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetInt64(0L)");
                     break;
                 case "double":
                 case "System.Double":
-                    sb.Append("reader.GetDouble(").Append(ordinal).Append(')');
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetDouble(0d)");
                     break;
                 case "int":
                 case "System.Int32":
-                    sb.Append("reader.GetInt32(").Append(ordinal).Append(')');
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetInt32(0)");
                     break;
                 case "byte":
                 case "System.Byte":
-                    sb.Append("reader.GetByte(").Append(ordinal).Append(')');
+                    sb.Append("reader.Col(").Append(ordinal).Append(").GetByte(0)");
                     break;
                 default:
-                    sb.Append("reader.GetValue(").Append(ordinal).Append(')');
+                    // No ColumnReader accessor for arbitrary object types — fall back to
+                    // raw GetValue, but keep IsDBNull symmetry by routing through Col().
+                    sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(")
+                        .Append(ordinal).Append(')');
                     break;
             }
         }

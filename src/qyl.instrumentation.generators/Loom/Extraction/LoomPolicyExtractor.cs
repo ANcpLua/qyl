@@ -49,7 +49,7 @@ internal static class LoomPolicyExtractor
             return null;
 
         return attribute.ConstructorArguments.FirstOrDefault().Value is ITypeSymbol typeSymbol
-            ? typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            ? typeSymbol.GetFullyQualifiedName()
             : null;
     }
 
