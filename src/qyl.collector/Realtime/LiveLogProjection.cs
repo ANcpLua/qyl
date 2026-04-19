@@ -28,9 +28,7 @@ internal static class LiveLogProjection
             NormalizeSeverity(log.SeverityText, log.SeverityNumber),
             body,
             ParseAttributes(log.AttributesJson),
-            log.ServiceName ?? "unknown",
-            repeatCount,
-            isDuplicateSummary
+            log.ServiceName ?? "unknown"
         );
     }
 
@@ -40,23 +38,24 @@ internal static class LiveLogProjection
     public static string NormalizeSeverity(string? severityText, byte severityNumber)
     {
         var normalized = severityText?.Trim().ToLowerInvariant();
-        if (normalized is "trace" or "debug" or "info" or "warn" or "error" or "fatal")
-            return normalized;
-        if (normalized is "warning") return "warn";
-        if (normalized is "log") return "info";
-
-        return severityNumber switch
+        return normalized switch
         {
-            >= 21 => "fatal",
-            >= 17 => "error",
-            >= 13 => "warn",
-            >= 9 => "info",
-            >= 5 => "debug",
-            _ => "trace"
+            "trace" or "debug" or "info" or "warn" or "error" or "fatal" => normalized,
+            "warning" => "warn",
+            "log" => "info",
+            _ => severityNumber switch
+            {
+                >= 21 => "fatal",
+                >= 17 => "error",
+                >= 13 => "warn",
+                >= 9 => "info",
+                >= 5 => "debug",
+                _ => "trace"
+            }
         };
     }
 
-    public static IReadOnlyDictionary<string, object> ParseAttributes(string? attributesJson)
+    private static Dictionary<string, object> ParseAttributes(string? attributesJson)
     {
         if (string.IsNullOrWhiteSpace(attributesJson))
             return new Dictionary<string, object>();
@@ -98,7 +97,5 @@ internal sealed record LiveLogDto(
     string SeverityText,
     string Body,
     IReadOnlyDictionary<string, object> Attributes,
-    string ServiceName,
-    int RepeatCount,
-    bool IsDuplicateSummary
+    string ServiceName
 );
