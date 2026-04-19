@@ -1,6 +1,6 @@
 # qyl samples
 
-**Currently empty.** The Feb-2026 Loom monolith (`maf-agent-qyl/`) was removed on 2026-04-17 — its content was superseded by the production Loom code under `src/qyl.loom/V2/` (executor-based workflow, not a hosted-agents demo).
+**Currently empty.** The Feb-2026 Loom monolith (`maf-agent-qyl/`) was removed on 2026-04-17. The production Loom pipeline lives under `src/qyl.loom/` (LLM-driven `AutofixAgentService` + `ExplorationOrchestrator`, not a hosted-agents demo).
 
 ## Where to learn what
 
@@ -8,7 +8,9 @@
 |---|---|
 | MAF fundamentals (agents, sessions, tools, streaming, structured output, RAG) | `~/AgentFrameworkBook/` or upstream `microsoft/agent-framework/dotnet/samples/` |
 | qyl-specific MAF delta (`WithQylTelemetry`, `LoomRunState`, hosted `AddAIAgent`) | `.claude/skills/microsoft-agent-framework/SKILL.md` (qyl overlay) |
-| qyl's production agent workflow | `src/qyl.loom/V2/LoomV2Workflow.cs` + `src/qyl.loom/V2/LoomV2Executors.cs` |
+| qyl's production autofix pipeline (real LLM chain, collector-integrated) | `src/qyl.loom/Autofix/AutofixAgentService.cs` |
+| qyl's interactive exploration (SSE streaming, diagnostician + strategist) | `src/qyl.loom/Exploration/ExplorationOrchestrator.cs` |
+| Loom generator attributes (`[LoomContract]` / `[LoomStep]` / `[LoomTool]` / `[LoomWorkflow]`) with real MAF `Executor` + `ProtocolBuilder` + `WorkflowBuilder` | `src/qyl.loom/CompilerDemo/LoomDemoWorkflow.cs` |
 | qyl MCP tool pattern (attributes + generator) | `src/qyl.mcp/Tools/` + the overlay's "Generator-driven attributes" section |
 
 ## When to add a new sample here

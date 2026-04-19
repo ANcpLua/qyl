@@ -143,7 +143,7 @@ Three planned items from the 2026-04-17 MCP partner-grade work, each captured as
 | File | Blocked on | Unlocks |
 |---|---|---|
 | [`docs/planned/2026-04-18-lsp-phase2-typescript.md`](./planned/2026-04-18-lsp-phase2-typescript.md) | None — can start today | TypeScript navigation for `src/qyl.dashboard/` |
-| [`docs/planned/2026-04-18-lsp-phase3-loom-bridge.md`](./planned/2026-04-18-lsp-phase3-loom-bridge.md) | Phase 1 in production ≥ 1 week with real usage | Loom V2 uses deterministic code intelligence instead of grep |
+| [`docs/planned/2026-04-18-lsp-phase3-loom-bridge.md`](./planned/2026-04-18-lsp-phase3-loom-bridge.md) | Phase 1 in production ≥ 1 week with real usage | Loom uses deterministic code intelligence instead of grep |
 | [`docs/planned/2026-04-18-oauth-playwright-e2e.md`](./planned/2026-04-18-oauth-playwright-e2e.md) | All 11 items in `.claude/handoffs/2026-04-17-spec2-ops-followup.md` complete, `mcp.qyl.info` live | Regression-proofs the OAuth handshake; gates MCP-registry listing |
 
 ---
