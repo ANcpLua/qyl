@@ -1,5 +1,4 @@
 using System.Net.ServerSentEvents;
-using Microsoft.AspNetCore.Http;
 using Qyl.Contracts.Copilot;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
@@ -19,14 +18,14 @@ builder.Services.AddHttpClient<CollectorClient>(client =>
     var baseUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
     client.BaseAddress = new Uri(baseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+}).AddStandardResilienceHandler();
 
 builder.Services.AddHttpClient("GitHub", client =>
 {
     client.BaseAddress = new Uri("https://api.github.com");
     client.DefaultRequestHeaders.Add("User-Agent", "qyl-loom");
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-});
+}).AddStandardResilienceHandler();
 
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
 // RegressionDetectionService auto-register via [QylHostedService] through the
@@ -115,7 +114,7 @@ app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", asyn
     CodeReviewService reviewService, CancellationToken ct) =>
 {
     var cached = reviewService.GetCachedResult($"{owner}/{repo}", prNumber);
-    if (cached is null || cached.Comments.Count == 0)
+    if (cached is null || cached.Comments.Count is 0)
         return Results.BadRequest(new { error = "No review comments available. Run a review first." });
 
     var posted = await reviewService
