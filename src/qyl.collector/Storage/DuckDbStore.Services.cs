@@ -134,10 +134,15 @@ public sealed partial class DuckDbStore
         if (typeFilter is not null)
             qb.Add("service_type = $N", typeFilter);
 
-        if (statusFilter == "active")
-            qb.AddCondition("active_instances > 0");
-        else if (statusFilter == "inactive")
-            qb.AddCondition("active_instances = 0");
+        switch (statusFilter)
+        {
+            case "active":
+                qb.AddCondition("active_instances > 0");
+                break;
+            case "inactive":
+                qb.AddCondition("active_instances = 0");
+                break;
+        }
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT service_namespace, service_name, service_type,"

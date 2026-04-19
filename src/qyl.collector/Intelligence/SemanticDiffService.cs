@@ -241,7 +241,7 @@ public static class SemanticDiffService
     private static string BuildWhyItMatters(CandidateSeed seed, double novelty, double causal, double actionability, SemanticDiffOptions o)
     {
         var r = new List<string>(4);
-        if (seed.BaselineCount <= 0 && seed.ComparisonCount > 0) r.Add("It is new in the comparison window.");
+        if (seed is { BaselineCount: <= 0, ComparisonCount: > 0 }) r.Add("It is new in the comparison window.");
         if (seed.ComparisonShare >= o.ConcentrationThreshold) r.Add("It materially narrows the search space because it is concentrated.");
         if (causal >= o.MinimumCausalOverrideScore) r.Add("It aligns with external causal evidence.");
         if (actionability >= 0.65) r.Add("It is actionable enough to guide a targeted fix.");

@@ -33,7 +33,7 @@ internal static class JsonContextEmitter
                     result.Add(p.TypeFullyQualified);
 
                 // Nullable<T> wrapper for nullable value type parameters
-                if (p.IsNullable && p.IsValueType)
+                if (p is { IsNullable: true, IsValueType: true })
                 {
                     var nullableType = $"global::System.Nullable<{p.TypeFullyQualified}>";
                     if (seen.Add(nullableType))

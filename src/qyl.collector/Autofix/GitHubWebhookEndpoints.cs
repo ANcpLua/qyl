@@ -88,19 +88,21 @@ public static class GitHubWebhookEndpoints
         string? prUrl = null;
         string? gitRef = null;
 
-        if (eventType == "pull_request"
-            && root.TryGetProperty("pull_request", out var prEl))
+        switch (eventType)
         {
-            if (prEl.TryGetProperty("number", out var numEl))
-                prNumber = numEl.GetInt32();
-            if (prEl.TryGetProperty("html_url", out var urlEl))
-                prUrl = urlEl.GetString();
-        }
-
-        if (eventType == "push"
-            && root.TryGetProperty("ref", out var refEl))
-        {
-            gitRef = refEl.GetString();
+            case "pull_request"
+                when root.TryGetProperty("pull_request", out var prEl):
+            {
+                if (prEl.TryGetProperty("number", out var numEl))
+                    prNumber = numEl.GetInt32();
+                if (prEl.TryGetProperty("html_url", out var urlEl))
+                    prUrl = urlEl.GetString();
+                break;
+            }
+            case "push"
+                when root.TryGetProperty("ref", out var refEl):
+                gitRef = refEl.GetString();
+                break;
         }
 
         // 7. Store event

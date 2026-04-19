@@ -1,5 +1,6 @@
 using Qyl.Collector.Intelligence;
 using Qyl.Contracts.Intelligence;
+using Xunit;
 
 namespace Qyl.Collector.Tests.Intelligence;
 

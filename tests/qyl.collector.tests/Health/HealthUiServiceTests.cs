@@ -1,5 +1,6 @@
 using Qyl.Collector.Health;
 using Qyl.Models;
+using Xunit;
 
 namespace Qyl.Collector.Tests.Health;
 

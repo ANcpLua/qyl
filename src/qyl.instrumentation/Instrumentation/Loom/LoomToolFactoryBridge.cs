@@ -126,7 +126,7 @@ public static class LoomToolFactoryBridge
         var binding = metadata.ParameterBindings.FirstOrDefault(b =>
             string.Equals(b.Name, paramInfo.Name, StringComparison.Ordinal));
 
-        if (binding is null || (!binding.IsInfrastructureBound && binding.IsSchemaVisible))
+        if (binding is null || binding is { IsInfrastructureBound: false, IsSchemaVisible: true })
             return default;
 
         // CancellationToken is handled natively by MEAI -- exclude from schema only, no custom binder.

@@ -95,12 +95,15 @@ internal static class ParameterExtractor
     {
         // Unwrap nullable<T>
         var coreType = type;
-        if (type is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullable)
-            coreType = nullable.TypeArguments[0];
-
-        // Arrays → array
-        if (type is IArrayTypeSymbol)
-            return ("array", null, default, true);
+        switch (type)
+        {
+            case INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullable:
+                coreType = nullable.TypeArguments[0];
+                break;
+            // Arrays → array
+            case IArrayTypeSymbol:
+                return ("array", null, default, true);
+        }
 
         // Named type dispatch
         if (coreType is INamedTypeSymbol named)

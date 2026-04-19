@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 

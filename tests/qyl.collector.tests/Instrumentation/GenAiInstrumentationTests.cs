@@ -2,6 +2,7 @@ using ANcpLua.Agents.Testing.ChatClients;
 using Microsoft.Extensions.AI;
 using ANcpLua.Agents.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 

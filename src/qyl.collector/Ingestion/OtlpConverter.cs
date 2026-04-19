@@ -685,7 +685,7 @@ public static class OtlpConverter
         var strings = profile.StringTable ?? [];
 
         string? Resolve(int? index) =>
-            index is { } i && i >= 0 && i < strings.Count ? strings[i] : null;
+            index is { } i and >= 0 && i < strings.Count ? strings[i] : null;
 
         var sessionId = profile.Attributes?
             .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;

@@ -252,7 +252,7 @@ public sealed partial class AutofixAgentService(
             ],
             cancellationToken: ct).ConfigureAwait(false);
 
-        return response.Text ?? "Root cause analysis produced no output.";
+        return response.Text;
     }
 
     private async Task<string> RunSolutionPlanAsync(string rcaReport, CancellationToken ct)
@@ -264,7 +264,7 @@ public sealed partial class AutofixAgentService(
             ],
             cancellationToken: ct).ConfigureAwait(false);
 
-        return ExtractJson(response.Text ?? "{}");
+        return ExtractJson(response.Text);
     }
 
     private async Task<string> RunDiffGenerationAsync(
@@ -285,7 +285,7 @@ public sealed partial class AutofixAgentService(
             ],
             cancellationToken: ct).ConfigureAwait(false);
 
-        return ExtractJson(response.Text ?? "{}");
+        return ExtractJson(response.Text);
     }
 
     private async Task<ConfidenceResult> RunConfidenceScoringAsync(
@@ -306,7 +306,7 @@ public sealed partial class AutofixAgentService(
             ],
             cancellationToken: ct).ConfigureAwait(false);
 
-        var json = ExtractJson(response.Text ?? "{}");
+        var json = ExtractJson(response.Text);
         try
         {
             return JsonSerializer.Deserialize(json, AutofixJsonContext.Default.ConfidenceResult)
@@ -326,8 +326,16 @@ public sealed partial class AutofixAgentService(
         var depth = 0;
         for (var i = start; i < text.Length; i++)
         {
-            if (text[i] == '{') depth++;
-            else if (text[i] == '}') depth--;
+            switch (text[i])
+            {
+                case '{':
+                    depth++;
+                    break;
+                case '}':
+                    depth--;
+                    break;
+            }
+
             if (depth is 0) return text[start..(i + 1)];
         }
 

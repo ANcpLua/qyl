@@ -17,7 +17,7 @@ public static class LoomJsonSchemaWriter
                 parameter.Description,
                 parameter.EnumValues);
 
-            if (!parameter.IsNullable && !parameter.HasDefaultValue)
+            if (parameter is { IsNullable: false, HasDefaultValue: false })
                 required.Add(parameter.Name);
         }
 
@@ -50,7 +50,7 @@ public static class LoomJsonSchemaWriter
                         parameter.EnumValues),
                     StringComparer.Ordinal),
                 ["required"] = descriptor.Parameters
-                    .Where(static parameter => !parameter.IsNullable && !parameter.HasDefaultValue)
+                    .Where(static parameter => parameter is { IsNullable: false, HasDefaultValue: false })
                     .Select(static parameter => parameter.Name)
                     .ToArray(),
                 ["additionalProperties"] = false

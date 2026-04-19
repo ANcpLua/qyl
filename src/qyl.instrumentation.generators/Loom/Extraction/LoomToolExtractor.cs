@@ -70,10 +70,7 @@ internal static class LoomToolExtractor
         if (returnType.SpecialType == SpecialType.System_Void)
             return null;
 
-        if (returnType is INamedTypeSymbol namedType &&
-            namedType.IsGenericType &&
-            namedType.TypeArguments.Length == 1 &&
-            namedType.Name is "Task" or "ValueTask")
+        if (returnType is INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1, Name: "Task" or "ValueTask" } namedType)
         {
             return namedType.TypeArguments[0].GetFullyQualifiedName();
         }

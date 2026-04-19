@@ -135,15 +135,17 @@ internal sealed class AutofixMcpTools(HttpClient http)
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
             null, ct).ConfigureAwait(false);
 
-        if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
-                $"Fix run '{runId}' not found for issue '{issueId}'.");
-
-        if (resp.StatusCode == HttpStatusCode.BadRequest)
-            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
-                resp,
-                "Cannot approve fix run.",
-                ct).ConfigureAwait(false));
+        switch (resp.StatusCode)
+        {
+            case HttpStatusCode.NotFound:
+                return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
+                    $"Fix run '{runId}' not found for issue '{issueId}'.");
+            case HttpStatusCode.BadRequest:
+                return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
+                    resp,
+                    "Cannot approve fix run.",
+                    ct).ConfigureAwait(false));
+        }
 
         if (!resp.IsSuccessStatusCode)
             return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
@@ -178,15 +180,17 @@ internal sealed class AutofixMcpTools(HttpClient http)
             new { reason },
             ct).ConfigureAwait(false);
 
-        if (resp.StatusCode == HttpStatusCode.NotFound)
-            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
-                $"Fix run '{runId}' not found for issue '{issueId}'.");
-
-        if (resp.StatusCode == HttpStatusCode.BadRequest)
-            return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
-                resp,
-                "Cannot reject fix run.",
-                ct).ConfigureAwait(false));
+        switch (resp.StatusCode)
+        {
+            case HttpStatusCode.NotFound:
+                return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(
+                    $"Fix run '{runId}' not found for issue '{issueId}'.");
+            case HttpStatusCode.BadRequest:
+                return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
+                    resp,
+                    "Cannot reject fix run.",
+                    ct).ConfigureAwait(false));
+        }
 
         if (!resp.IsSuccessStatusCode)
             return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(

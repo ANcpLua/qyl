@@ -72,7 +72,7 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null) =>
+    private static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null) =>
         ToDtoCore(
             record.TraceId.Value, record.SpanId.Value, record.ParentSpanId?.Value, record.SessionId?.Value,
             record.Name, record.Kind.ToString().ToLowerInvariant(), record.StatusCode.ToString().ToLowerInvariant(),
@@ -260,7 +260,7 @@ public static class SessionMapper
         };
     }
 
-    public static List<SessionDto> ToDtos(IEnumerable<SessionQueryRow> summaries) => [.. summaries.Select(ToDto)];
+    private static List<SessionDto> ToDtos(IEnumerable<SessionQueryRow> summaries) => [.. summaries.Select(ToDto)];
 
     public static SessionListResponseDto ToListResponse(
         IEnumerable<SessionQueryRow> summaries,

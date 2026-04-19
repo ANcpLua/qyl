@@ -21,8 +21,7 @@ internal static class LoomContractExtractor
             .OfType<IPropertySymbol>()
             .Where(static property =>
                 !property.IsStatic &&
-                !property.IsImplicitlyDeclared &&
-                property.DeclaredAccessibility == Accessibility.Public)
+                property is { IsImplicitlyDeclared: false, DeclaredAccessibility: Accessibility.Public })
             .Select(static property => new LoomContractPropertyModel(
                 property.Name,
                 property.Type.GetFullyQualifiedName(),

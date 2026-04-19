@@ -1,5 +1,6 @@
 using DuckDB.NET.Data;
 using Qyl.Collector.Storage;
+using Xunit;
 
 namespace Qyl.Collector.Tests.Storage;
 

@@ -365,7 +365,7 @@ internal sealed class LoomToolAIFunction : AIFunction
 
     private object? ReadArgumentOrDefault(LoomToolParameterDescriptor parameter)
     {
-        if (parameter.HasDefaultValue && parameter.DefaultValueLiteral is not null)
+        if (parameter is { HasDefaultValue: true, DefaultValueLiteral: not null })
             return ConvertLiteral(parameter.DefaultValueLiteral, parameter.Type);
 
         if (parameter.IsNullable || !parameter.Type.IsValueType)
@@ -448,7 +448,7 @@ internal sealed class LoomToolAIFunction : AIFunction
     private static JsonElement BuildJsonSchema(LoomToolBindingSurface bindingSurface)
     {
         using var document = JsonDocument.Parse(
-            LoomJsonSchemaWriter.WriteToolParametersSchema(bindingSurface.Parameters.Where(static parameter => !parameter.ExcludeFromSchema && parameter.IsVisibleToModel).Select(static parameter => parameter.Parameter)));
+            LoomJsonSchemaWriter.WriteToolParametersSchema(bindingSurface.Parameters.Where(static parameter => parameter is { ExcludeFromSchema: false, IsVisibleToModel: true }).Select(static parameter => parameter.Parameter)));
         return document.RootElement.Clone();
     }
 

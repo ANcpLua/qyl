@@ -258,6 +258,17 @@ When adding a new sample:
 
 - `collector/Autofix/` still contains embedded Loom intelligence (`LoomOrchestrator`, `LoomDiagnostician`, `LoomStrategist`, `LoomPrompts`, etc.) that should live in `qyl.loom/` only. The collector should expose read/write endpoints over telemetry state, not own LLM orchestration.
 - `collector/AgentRuns/` is correct — pure read-only DuckDB queries for agent run observability.
+- **Schema Drift (CI Schema Drift job stays red; Backend is green).** The TypeSpec → C# pipeline emits `SpanRecord` into three different places and the collector depends on the one CI's fresh regenerate wants to delete:
+  - `Qyl.Models.SpanRecord` in `src/qyl.contracts/Models/Models.g.cs` — uses `Qyl.OTel.Enums.SpanKind` / `SpanStatusCode`. This is what the collector's `Mappers.cs`, `SpanRingBuffer.cs`, `HealthUiService.cs` (14 call sites) resolve to via `global using Qyl.Models;` in `src/qyl.collector/GlobalUsings.cs`.
+  - `Qyl.Storage.SpanRecord` in `src/qyl.contracts/Models/Storage.g.cs` — also uses `Qyl.OTel.Enums.*`. The routing table (`eng/build/NamespaceRoutingTable.cs:39`) routes `Qyl.Storage.*` here, so CI's fresh generate only emits to this file and removes the record from `Models.g.cs` (that's the 115-line diff CI reports).
+  - `Qyl.Contracts.Models.SpanRecord` in `src/qyl.contracts/Models/SpanRecord.cs` — hand-written, uses `Qyl.Contracts.Enums.SpanKind` / `SpanStatusCode`. Not interchangeable with the generated ones.
+  - **Why this is stuck**: simply deleting `Qyl.Models.SpanRecord` (to match what CI regenerates) breaks the collector because the enum-namespace mismatch is real, not cosmetic. Simply adding `global using Qyl.Storage;` collides with `Qyl.Models` and still doesn't solve the callsite enum references.
+  - **Options for the real fix** (each needs a ruhig-Moment session):
+    1. Change the TypeSpec source so `SpanRecord` is not emitted into the `Qyl.Models` bucket at all — then the committed `Models.g.cs` matches a fresh regenerate.
+    2. Switch `global using Qyl.Models;` → `global using Qyl.Storage;` in `qyl.collector/GlobalUsings.cs` AND update `Mappers.cs` et al. so the enum references match the `Qyl.Storage.SpanRecord` variant (which also uses `Qyl.OTel.Enums.*` — so ideally drop-in, but verify).
+    3. Delete the manual `Qyl.Contracts.Models.SpanRecord` if it's redundant, consolidate on one emitted record, one enum namespace.
+  - The failed quick-fix attempt lives in git history as the 4c9fd8c9 → 799390e0 revert pair. Do not simply re-delete `SpanRecord` from `Models.g.cs` — verify the collector still builds first.
+  - Schema Drift is the only red CI job; Backend, Frontend, Coverage, Dependency Audit are all green on `main`.
 
 ## Merged repos (2026-04-10)
 

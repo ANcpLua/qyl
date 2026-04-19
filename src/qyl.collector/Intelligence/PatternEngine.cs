@@ -82,11 +82,13 @@ public sealed class PatternEngine(
 
     private static bool EvaluateSignal(Signal required, IReadOnlyList<Signal> observed)
     {
-        if (required.Operator is SignalOperator.NotExists)
-            return !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
-
-        if (required.Operator is SignalOperator.Exists)
-            return observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
+        switch (required.Operator)
+        {
+            case SignalOperator.NotExists:
+                return !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
+            case SignalOperator.Exists:
+                return observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
+        }
 
         foreach (var obs in observed)
         {

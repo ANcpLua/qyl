@@ -82,7 +82,7 @@ public sealed class SpanRingBuffer
         }
     }
 
-    public SpanRecord[] Query(Func<SpanRecord, bool> predicate, int maxCount, out ulong generation)
+    private SpanRecord[] Query(Func<SpanRecord, bool> predicate, int maxCount, out ulong generation)
     {
         lock (_lock)
         {
