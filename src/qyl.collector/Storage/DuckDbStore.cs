@@ -329,12 +329,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         var spans = new List<SpanStorageRow>();
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT {SelectSpanColumns}
-                           FROM spans
-                           WHERE session_id = $1
-                           ORDER BY start_time_unix_nano ASC
-                           """;
+        cmd.CommandText = "SELECT " + SelectSpanColumns
+            + " FROM spans WHERE session_id = $1 ORDER BY start_time_unix_nano ASC";
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -351,12 +347,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         var spans = new List<SpanStorageRow>();
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT {SelectSpanColumns}
-                           FROM spans
-                           WHERE trace_id = $1
-                           ORDER BY start_time_unix_nano ASC
-                           """;
+        cmd.CommandText = "SELECT " + SelectSpanColumns
+            + " FROM spans WHERE trace_id = $1 ORDER BY start_time_unix_nano ASC";
         cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -396,13 +388,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("(status_message ILIKE $N OR name ILIKE $N OR attributes_json ILIKE $N)", $"%{searchText}%");
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT {SelectSpanColumns}
-                           FROM spans
-                           {qb.WhereClause}
-                           ORDER BY start_time_unix_nano DESC
-                           LIMIT {qb.NextParam}
-                           """;
+        cmd.CommandText = "SELECT " + SelectSpanColumns
+            + " FROM spans " + qb.WhereClause
+            + " ORDER BY start_time_unix_nano DESC LIMIT "
+            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -466,16 +455,12 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("start_time_unix_nano >= $N", (decimal)startAfter.Value);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT
-                               COUNT(*) as request_count,
-                               COALESCE(SUM(gen_ai_input_tokens), 0) as total_input_tokens,
-                               COALESCE(SUM(gen_ai_output_tokens), 0) as total_output_tokens,
-                               COALESCE(SUM(gen_ai_cost_usd), 0) as total_cost_usd,
-                               AVG(gen_ai_cost_usd) as avg_cost
-                           FROM spans
-                           {qb.WhereClause}
-                           """;
+        cmd.CommandText = "SELECT COUNT(*) as request_count,"
+            + " COALESCE(SUM(gen_ai_input_tokens), 0) as total_input_tokens,"
+            + " COALESCE(SUM(gen_ai_output_tokens), 0) as total_output_tokens,"
+            + " COALESCE(SUM(gen_ai_cost_usd), 0) as total_cost_usd,"
+            + " AVG(gen_ai_cost_usd) as avg_cost"
+            + " FROM spans " + qb.WhereClause;
 
         qb.ApplyTo(cmd);
 
@@ -614,6 +599,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Clear All Operations (for dashboard controls)
     // ==========================================================================
 
+    private static readonly FrozenSet<string> AllowedClearTables = FrozenSet.Create(
+        StringComparer.Ordinal,
+        ["spans", "logs", "profiles", "session_entities"]);
+
     public Task<int> ClearAllSpansAsync(CancellationToken ct = default) => ClearTableAsync("spans", ct);
 
     public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
@@ -626,7 +615,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
-            cmd.CommandText = $"DELETE FROM {tableName}";
+            cmd.CommandText = "DELETE FROM " + SqlBuilder.Whitelisted(tableName, AllowedClearTables);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -837,18 +826,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("time_unix_nano <= $N", (decimal)before.Value);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT log_id, trace_id, span_id, session_id,
-                                  time_unix_nano, observed_time_unix_nano,
-                                  severity_number, severity_text, body,
-                                  service_name, attributes_json, resource_json,
-                                  source_file, source_line, source_column, source_method,
-                                  created_at
-                           FROM logs
-                           {qb.WhereClause}
-                           ORDER BY time_unix_nano DESC
-                           LIMIT {qb.NextParam}
-                           """;
+        cmd.CommandText = "SELECT log_id, trace_id, span_id, session_id,"
+            + " time_unix_nano, observed_time_unix_nano,"
+            + " severity_number, severity_text, body,"
+            + " service_name, attributes_json, resource_json,"
+            + " source_file, source_line, source_column, source_method,"
+            + " created_at"
+            + " FROM logs " + qb.WhereClause
+            + " ORDER BY time_unix_nano DESC LIMIT "
+            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -982,18 +968,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("sample_type = $N", sampleType);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT profile_id, trace_id, span_id, session_id,
-                                  time_unix_nano, duration_nano, sample_count,
-                                  sample_type, sample_unit, original_payload_format,
-                                  service_name, profile_frame_type,
-                                  attributes_json, resource_json,
-                                  schema_url, created_at
-                           FROM profiles
-                           {qb.WhereClause}
-                           ORDER BY time_unix_nano DESC
-                           LIMIT {qb.NextParam}
-                           """;
+        cmd.CommandText = "SELECT profile_id, trace_id, span_id, session_id,"
+            + " time_unix_nano, duration_nano, sample_count,"
+            + " sample_type, sample_unit, original_payload_format,"
+            + " service_name, profile_frame_type,"
+            + " attributes_json, resource_json,"
+            + " schema_url, created_at"
+            + " FROM profiles " + qb.WhereClause
+            + " ORDER BY time_unix_nano DESC LIMIT "
+            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 500) });
@@ -1113,16 +1096,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT error_id, error_type, message, category, fingerprint,
-                                  first_seen, last_seen, occurrence_count,
-                                  affected_users, affected_services, status,
-                                  assigned_to, issue_url, sample_traces
-                           FROM errors
-                           {qb.WhereClause}
-                           ORDER BY last_seen DESC
-                           LIMIT {qb.NextParam}
-                           """;
+        cmd.CommandText = "SELECT error_id, error_type, message, category, fingerprint,"
+            + " first_seen, last_seen, occurrence_count,"
+            + " affected_users, affected_services, status,"
+            + " assigned_to, issue_url, sample_traces"
+            + " FROM errors " + qb.WhereClause
+            + " ORDER BY last_seen DESC LIMIT "
+            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -1369,11 +1349,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using (var exportCmd = con.CreateCommand())
         {
-            exportCmd.CommandText = $"""
-                                     COPY (SELECT * FROM spans WHERE start_time_unix_nano < $1)
-                                     TO '{tempPath}'
-                                     (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
-                                     """;
+            exportCmd.CommandText = "COPY (SELECT * FROM spans WHERE start_time_unix_nano < $1)"
+                + " TO '" + tempPath + "'"
+                + " (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)";
             exportCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
             await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
@@ -1644,15 +1622,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         // OTel Profiles (v1development) — normalized: 6 tables
         using var profilesCmd = con.CreateCommand();
-        profilesCmd.CommandText = $"""
-                                   {DuckDbSchema.ProfilesDdl}
-                                   {DuckDbSchema.ProfileFunctionsDdl}
-                                   {DuckDbSchema.ProfileLocationsDdl}
-                                   {DuckDbSchema.ProfileMappingsDdl}
-                                   {DuckDbSchema.ProfileSamplesDdl}
-                                   {DuckDbSchema.ProfileStacksDdl}
-                                   {DuckDbSchema.ProfilesIndexesDdl}
-                                   """;
+        profilesCmd.CommandText = string.Concat(
+            DuckDbSchema.ProfilesDdl, "\n",
+            DuckDbSchema.ProfileFunctionsDdl, "\n",
+            DuckDbSchema.ProfileLocationsDdl, "\n",
+            DuckDbSchema.ProfileMappingsDdl, "\n",
+            DuckDbSchema.ProfileSamplesDdl, "\n",
+            DuckDbSchema.ProfileStacksDdl, "\n",
+            DuckDbSchema.ProfilesIndexesDdl);
         profilesCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
@@ -1665,12 +1642,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         extCmd.ExecuteNonQuery();
 
         using var workflowRunsCmd = con.CreateCommand();
-        workflowRunsCmd.CommandText = $"""
-                                       {DuckDbSchema.WorkflowRunsV2Ddl}
-                                       {DuckDbSchema.WorkflowNodesV2Ddl}
-                                       {DuckDbSchema.WorkflowCheckpointsV2Ddl}
-                                       {DuckDbSchema.WorkflowEventsV2Ddl}
-                                       """;
+        workflowRunsCmd.CommandText = string.Concat(
+            DuckDbSchema.WorkflowRunsV2Ddl, "\n",
+            DuckDbSchema.WorkflowNodesV2Ddl, "\n",
+            DuckDbSchema.WorkflowCheckpointsV2Ddl, "\n",
+            DuckDbSchema.WorkflowEventsV2Ddl);
         workflowRunsCmd.ExecuteNonQuery();
 
         using var insightsCmd = con.CreateCommand();
@@ -1688,21 +1664,19 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         // Identity domain: workspaces, projects, environments, handshake challenges
         using var identityCmd = con.CreateCommand();
-        identityCmd.CommandText = $"""
-                                   {DuckDbSchema.WorkspacesDdl}
-                                   {DuckDbSchema.ProjectsDdl}
-                                   {DuckDbSchema.ProjectEnvironmentsDdl}
-                                   {DuckDbSchema.HandshakeChallengesDdl}
-                                   {DuckDbSchema.GitHubTokensDdl}
-                                   """;
+        identityCmd.CommandText = string.Concat(
+            DuckDbSchema.WorkspacesDdl, "\n",
+            DuckDbSchema.ProjectsDdl, "\n",
+            DuckDbSchema.ProjectEnvironmentsDdl, "\n",
+            DuckDbSchema.HandshakeChallengesDdl, "\n",
+            DuckDbSchema.GitHubTokensDdl);
         identityCmd.ExecuteNonQuery();
 
         // Provisioning domain: config selections, generation jobs
         using var provisioningCmd = con.CreateCommand();
-        provisioningCmd.CommandText = $"""
-                                       {DuckDbSchema.ConfigSelectionsDdl}
-                                       {DuckDbSchema.GenerationJobsDdl}
-                                       """;
+        provisioningCmd.CommandText = string.Concat(
+            DuckDbSchema.ConfigSelectionsDdl, "\n",
+            DuckDbSchema.GenerationJobsDdl);
         provisioningCmd.ExecuteNonQuery();
 
         // Issue lifecycle events
@@ -1712,11 +1686,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         // Agent audit tables: runs, tool calls, and decision events
         using var agentRunsCmd = con.CreateCommand();
-        agentRunsCmd.CommandText = $"""
-                                    {DuckDbSchema.AgentRunsDdl}
-                                    {DuckDbSchema.ToolCallsDdl}
-                                    {DuckDbSchema.AgentDecisionsDdl}
-                                    """;
+        agentRunsCmd.CommandText = string.Concat(
+            DuckDbSchema.AgentRunsDdl, "\n",
+            DuckDbSchema.ToolCallsDdl, "\n",
+            DuckDbSchema.AgentDecisionsDdl);
         agentRunsCmd.ExecuteNonQuery();
 
         // Semantic span clusters (Phase 5 — EmbeddingClusterWorker)
@@ -1726,10 +1699,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         // Coding agent runs + Loom settings
         using var codingAgentCmd = con.CreateCommand();
-        codingAgentCmd.CommandText = $"""
-                                      {DuckDbSchema.CodingAgentRunsDdl}
-                                      {DuckDbSchema.LoomSettingsDdl}
-                                      """;
+        codingAgentCmd.CommandText = string.Concat(
+            DuckDbSchema.CodingAgentRunsDdl, "\n",
+            DuckDbSchema.LoomSettingsDdl);
         codingAgentCmd.ExecuteNonQuery();
 
         // Loom triage pipeline
@@ -1773,11 +1745,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         // Cost engine: model pricing tables + pre-aggregated view
         using var costCmd = con.CreateCommand();
-        costCmd.CommandText = $"""
-                               {DuckDbSchema.ModelPricingDdl}
-                               {DuckDbSchema.ModelPricingTiersDdl}
-                               {DuckDbSchema.CostByModelHourlyViewDdl}
-                               """;
+        costCmd.CommandText = string.Concat(
+            DuckDbSchema.ModelPricingDdl, "\n",
+            DuckDbSchema.ModelPricingTiersDdl, "\n",
+            DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
     }
 

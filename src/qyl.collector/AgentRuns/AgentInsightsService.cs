@@ -59,19 +59,15 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                               COUNT(*) AS runs,
-                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS errors,
-                               ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
-                           FROM spans
-                           WHERE start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                             AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)
-                           GROUP BY bucket
-                           ORDER BY bucket
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COUNT(*) AS runs,"
+            + " SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS errors,"
+            + " ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate"
+            + " FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)"
+            + " GROUP BY bucket ORDER BY bucket";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
@@ -104,18 +100,14 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                               ROUND(AVG(duration_ns / 1000000.0), 2) AS avg_ms,
-                               ROUND(quantile_cont(duration_ns / 1000000.0, 0.95), 2) AS p95_ms
-                           FROM spans
-                           WHERE start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                             AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)
-                           GROUP BY bucket
-                           ORDER BY bucket
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " ROUND(AVG(duration_ns / 1000000.0), 2) AS avg_ms,"
+            + " ROUND(quantile_cont(duration_ns / 1000000.0, 0.95), 2) AS p95_ms"
+            + " FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)"
+            + " GROUP BY bucket ORDER BY bucket";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
@@ -191,18 +183,13 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                               COALESCE(gen_ai_request_model, 'unknown') AS model,
-                               COUNT(*) AS count
-                           FROM spans
-                           WHERE start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                             AND gen_ai_request_model IS NOT NULL
-                           GROUP BY bucket, model
-                           ORDER BY bucket, count DESC
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COALESCE(gen_ai_request_model, 'unknown') AS model,"
+            + " COUNT(*) AS count FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND gen_ai_request_model IS NOT NULL"
+            + " GROUP BY bucket, model ORDER BY bucket, count DESC";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
@@ -222,18 +209,14 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        cmd.CommandText = $"""
-                           SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                               COALESCE(gen_ai_request_model, 'unknown') AS model,
-                               COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS count
-                           FROM spans
-                           WHERE start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                             AND gen_ai_request_model IS NOT NULL
-                           GROUP BY bucket, model
-                           ORDER BY bucket, count DESC
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COALESCE(gen_ai_request_model, 'unknown') AS model,"
+            + " COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS count"
+            + " FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND gen_ai_request_model IS NOT NULL"
+            + " GROUP BY bucket, model ORDER BY bucket, count DESC";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
@@ -282,18 +265,13 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         // Time series for top tools (bucket others into "Other")
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                               COALESCE(gen_ai_tool_name, 'unknown') AS tool,
-                               COUNT(*) AS count
-                           FROM spans
-                           WHERE start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                             AND gen_ai_tool_name IS NOT NULL
-                           GROUP BY bucket, tool
-                           ORDER BY bucket, count DESC
-                           """;
+        cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COALESCE(gen_ai_tool_name, 'unknown') AS tool,"
+            + " COUNT(*) AS count FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND gen_ai_tool_name IS NOT NULL"
+            + " GROUP BY bucket, tool ORDER BY bucket, count DESC";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         cmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
@@ -469,18 +447,13 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         // Timeseries
         await using var tsCmd = lease.Connection.CreateCommand();
-        tsCmd.CommandText = $"""
-                             SELECT
-                                 time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                                 COALESCE(gen_ai_request_model, 'unknown') AS model,
-                                 COUNT(*) AS count
-                             FROM spans
-                             WHERE start_time_unix_nano >= $1
-                               AND start_time_unix_nano < $2
-                               AND gen_ai_request_model IS NOT NULL
-                             GROUP BY bucket, model
-                             ORDER BY bucket
-                             """;
+        tsCmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COALESCE(gen_ai_request_model, 'unknown') AS model,"
+            + " COUNT(*) AS count FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND gen_ai_request_model IS NOT NULL"
+            + " GROUP BY bucket, model ORDER BY bucket";
         tsCmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         tsCmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
 
@@ -535,18 +508,13 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         // Timeseries
         await using var tsCmd = lease.Connection.CreateCommand();
-        tsCmd.CommandText = $"""
-                             SELECT
-                                 time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
-                                 COALESCE(gen_ai_tool_name, 'unknown') AS tool,
-                                 COUNT(*) AS count
-                             FROM spans
-                             WHERE start_time_unix_nano >= $1
-                               AND start_time_unix_nano < $2
-                               AND gen_ai_tool_name IS NOT NULL
-                             GROUP BY bucket, tool
-                             ORDER BY bucket, count DESC
-                             """;
+        tsCmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
+            + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
+            + " COALESCE(gen_ai_tool_name, 'unknown') AS tool,"
+            + " COUNT(*) AS count FROM spans"
+            + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+            + " AND gen_ai_tool_name IS NOT NULL"
+            + " GROUP BY bucket, tool ORDER BY bucket, count DESC";
         tsCmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(fromMs) });
         tsCmd.Parameters.Add(new DuckDBParameter { Value = MsToNano(toMs) });
 
