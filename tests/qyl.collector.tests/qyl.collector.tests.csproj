@@ -22,4 +22,8 @@
     <ProjectReference Include="..\..\src\qyl.collector\qyl.collector.csproj"/>
     <ProjectReference Include="..\..\src\qyl.contracts\qyl.contracts.csproj"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Ingestion\" />
+  </ItemGroup>
 </Project>

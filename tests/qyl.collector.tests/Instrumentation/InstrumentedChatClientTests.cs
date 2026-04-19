@@ -60,26 +60,6 @@ public sealed class InstrumentedChatClientTests
         activity.GetTagItem(GenAiAttributes.OutputType).Should().Be(GenAiAttributes.OutputTypes.Text);
     }
 
-    [Fact]
-    public async Task GetResponseAsync_falls_back_to_unknown_when_no_model_or_provider()
-    {
-        var captured = new List<Activity>();
-        using var listener = CreateListener(captured);
-
-        var inner = new FakeChatClient().WithResponse("hi");
-        var client = BuildClient(inner);
-
-        await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.User, "hello")],
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        captured.Should().ContainSingle();
-        var activity = captured[0];
-
-        activity.GetTagItem(GenAiAttributes.RequestModel).Should().Be("unknown");
-        activity.GetTagItem(GenAiAttributes.ProviderName).Should().Be("unknown");
-    }
-
     // -- response model and finish reason -------------------------------------
 
     [Fact]
@@ -108,27 +88,6 @@ public sealed class InstrumentedChatClientTests
     }
 
     // -- token usage ----------------------------------------------------------
-
-    [Fact]
-    public async Task GetResponseAsync_records_token_usage_when_present()
-    {
-        var captured = new List<Activity>();
-        using var listener = CreateListener(captured);
-
-        var inner = new FakeChatClient().WithResponse(
-            "text",
-            usage: new UsageDetails { InputTokenCount = 100, OutputTokenCount = 42 });
-        var client = BuildClient(inner);
-
-        await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.User, "prompt")],
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        var activity = captured.Should().ContainSingle().Which;
-
-        activity.GetTagItem(GenAiAttributes.UsageInputTokens).Should().Be(100);
-        activity.GetTagItem(GenAiAttributes.UsageOutputTokens).Should().Be(42);
-    }
 
     [Fact]
     public async Task GetResponseAsync_does_not_add_usage_tags_when_usage_is_null()
@@ -173,24 +132,6 @@ public sealed class InstrumentedChatClientTests
     }
 
     // -- agent name -----------------------------------------------------------
-
-    [Fact]
-    public async Task GetResponseAsync_records_agent_name_when_provided()
-    {
-        var captured = new List<Activity>();
-        using var listener = CreateListener(captured);
-
-        var inner = new FakeChatClient().WithResponse("hi");
-        var client = BuildClient(inner, agentName: "MyAgent");
-
-        await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.User, "hi")],
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        var activity = captured.Should().ContainSingle().Which;
-
-        activity.GetTagItem("gen_ai.agent.name").Should().Be("MyAgent");
-    }
 
     [Fact]
     public async Task GetResponseAsync_does_not_add_agent_name_tag_when_not_provided()

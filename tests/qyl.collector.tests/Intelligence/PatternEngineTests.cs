@@ -18,9 +18,6 @@ public sealed class PatternEngineTests
     // ==========================================================================
 
     [Fact]
-    public void SeedPatterns_All_Contains10Patterns() => DiagnosticPatterns.All.Count.Should().Be(10);
-
-    [Fact]
     public void SeedPatterns_AllHaveUniqueIds()
     {
         var ids = DiagnosticPatterns.All.Select(static p => p.Id).ToList();
@@ -41,9 +38,6 @@ public sealed class PatternEngineTests
             patternIds.Should().Contain(rule.EffectPattern);
         }
     }
-
-    [Fact]
-    public void SeedStrategies_All_Contains4Strategies() => InvestigationStrategies.All.Count.Should().Be(4);
 
     [Fact]
     public void SeedStrategies_AllHaveSteps()

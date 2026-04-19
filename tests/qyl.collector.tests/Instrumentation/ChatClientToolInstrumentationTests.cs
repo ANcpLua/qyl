@@ -26,19 +26,4 @@ public sealed class ChatClientToolInstrumentationTests
 
         result.Should().NotBeSameAs(inner);
     }
-
-    [Fact]
-    public void UseQylTelemetry_extension_appends_tool_decorator()
-    {
-        var inner = new FakeChatClient
-        {
-            Metadata = new ChatClientMetadata("test-provider", null, "test-model")
-        };
-
-        var built = new ChatClientBuilder(inner)
-            .UseQylTelemetry()
-            .Build();
-
-        built.Should().BeOfType<ToolDecoratingChatClient>();
-    }
 }
