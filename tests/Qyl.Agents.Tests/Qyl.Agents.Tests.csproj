@@ -9,7 +9,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions"/>
     <PackageReference Include="OpenAI"/>
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI"/>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing.AgentTesting"/>
+    <PackageReference Include="ANcpLua.Agents.Testing"/>
   </ItemGroup>
 
   <ItemGroup>

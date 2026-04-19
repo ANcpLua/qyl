@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients;
+using ANcpLua.Agents.Testing.ChatClients;
 using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;

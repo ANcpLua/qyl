@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Net;
-using ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients;
+using ANcpLua.Agents.Testing.ChatClients;
 using AwesomeAssertions;
 using Xunit;
 using Microsoft.Extensions.AI;
@@ -211,5 +211,5 @@ public sealed class InstrumentedChatClientTests
     }
 }
 
-// FakeChatClient from ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients
+// FakeChatClient from ANcpLua.Agents.Testing.ChatClients
 // supersedes the file-scoped CapturingChatClient + ThrowingChatClient that lived here.

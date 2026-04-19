@@ -2,7 +2,7 @@ namespace Qyl.Agents.Tests;
 
 using System.Diagnostics;
 using System.Text.Json;
-using ANcpLua.Roslyn.Utilities.Testing.AgentTesting;
+using ANcpLua.Agents.Testing;
 using AwesomeAssertions;
 using Protocol;
 using Xunit;

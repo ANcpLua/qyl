@@ -198,7 +198,7 @@ internal static class CostEndpoints
             ? $"AND start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST({hours} AS UBIGINT) * 3600000000000)"
             : "";
 
-    private static string Esc(string v) => v.Replace("'", "''", StringComparison.Ordinal);
+    private static string Esc(string v) => v.ReplaceOrdinal("'", "''")!;
 
     private static string ToCamel(string snakeCol)
     {

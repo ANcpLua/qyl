@@ -19,7 +19,7 @@ internal static class HostedServiceAnalyzer
         GeneratorAttributeSyntaxContext context,
         CancellationToken _)
     {
-        if (context.TargetNode is not ClassDeclarationSyntax classSyntax)
+        if (context.TargetNode is not ClassDeclarationSyntax)
             return null;
 
         if (IncrementalPipelineHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))

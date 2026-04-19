@@ -28,7 +28,6 @@
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
   </ItemGroup>
-
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
     <Using Include="ANcpLua.Roslyn.Utilities.Analyzers"/>

@@ -53,7 +53,7 @@ public static partial class DevLogsExtensions
 
         app.MapGet("/dev-logs.js", () =>
         {
-            var script = BridgeScript.Replace("{{ROUTE}}", routePattern, StringComparison.Ordinal);
+            var script = BridgeScript.ReplaceOrdinal("{{ROUTE}}", routePattern);
             return Results.Content(script, "application/javascript");
         }).ExcludeFromDescription();
     }

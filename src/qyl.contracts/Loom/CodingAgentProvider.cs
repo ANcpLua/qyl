@@ -39,8 +39,7 @@ public static class CodingAgentProviderNames
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        var normalized = value.Trim().Replace("-", "_", StringComparison.Ordinal)
-            .Replace(" ", "_", StringComparison.Ordinal).ToUpperInvariant();
+        var normalized = value.Trim().Replace('-', '_').Replace(' ', '_').ToUpperInvariant();
         switch (normalized)
         {
             case "LOOM":

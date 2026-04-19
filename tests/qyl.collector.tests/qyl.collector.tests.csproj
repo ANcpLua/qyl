@@ -14,7 +14,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing.AgentTesting"/>
+    <PackageReference Include="ANcpLua.Agents.Testing"/>
   </ItemGroup>
 
   <ItemGroup>
