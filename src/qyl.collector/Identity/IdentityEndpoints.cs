@@ -8,6 +8,7 @@ namespace Qyl.Collector.Identity;
 /// </summary>
 public static class IdentityEndpoints
 {
+    [QylMapEndpoints]
     public static void MapIdentityEndpoints(this WebApplication app)
     {
         var workspaces = app.MapGroup("/api/v1/workspaces");

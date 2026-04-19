@@ -5,6 +5,7 @@ namespace Qyl.Collector.AgentRuns;
 /// </summary>
 public static class AgentRunEndpoints
 {
+    [QylMapEndpoints]
     public static void MapAgentRunEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/agent-runs", static async (

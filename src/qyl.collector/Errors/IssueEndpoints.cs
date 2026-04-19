@@ -11,6 +11,7 @@ public static class IssueEndpoints
     /// <summary>
     ///     Maps issue CRUD, lifecycle, event, and breadcrumb endpoints.
     /// </summary>
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapIssueEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/issues")

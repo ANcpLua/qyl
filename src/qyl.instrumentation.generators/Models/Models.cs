@@ -21,6 +21,16 @@ internal sealed record HostedServiceDefinition(
     string SortKey);
 
 /// <summary>
+///     A static extension method tagged <c>[QylMapEndpoints]</c> that the generator
+///     dispatches from <c>QylGeneratedRegistry.MapQylGeneratedEndpoints</c>.
+/// </summary>
+internal sealed record MapEndpointsDefinition(
+    string ContainingTypeFullyQualifiedName,
+    string MethodName,
+    int Order,
+    string SortKey);
+
+/// <summary>
 ///     Registry of GenAI providers for compile-time capability discovery.
 /// </summary>
 /// <remarks>

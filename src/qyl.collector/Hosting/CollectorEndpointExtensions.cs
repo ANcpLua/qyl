@@ -1,21 +1,11 @@
 using Qyl.Collector.AgentRuns;
-using Qyl.Collector.Analytics;
 using Qyl.Collector.Artifacts;
-using Qyl.Collector.Autofix;
 using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
-using Qyl.Collector.Dashboards;
 using Qyl.Collector.Grpc;
-using Qyl.Collector.Health;
-using Qyl.Collector.Identity;
 using Qyl.Collector.Insights;
-using Qyl.Collector.Intelligence;
 using Qyl.Collector.Meta;
-using Qyl.Collector.Observe;
-using Qyl.Collector.Provisioning;
 using Qyl.Collector.SchemaControl;
-using Qyl.Collector.Search;
-using Qyl.Collector.Services;
 
 namespace Qyl.Collector.Hosting;
 
@@ -67,40 +57,10 @@ public static class CollectorEndpointExtensions
         // Meta
         api.MapGet("/meta", GetMeta);
 
-        // Delegated endpoint groups
-        app.MapServiceEndpoints();
-        app.MapSseEndpoints();
-        app.MapSpanMemoryEndpoints();
-        app.MapInsightsEndpoints();
-        app.MapDashboardEndpoints();
-        app.MapAnalyticsEndpoints();
-        app.MapObserveEndpoints();
-        app.MapHealthUiEndpoint();
-        app.MapSchemaEndpoints();
-        app.MapSearchEndpoints();
-        app.MapSearchDocumentEndpoints();
-        app.MapErrorEndpoints();
-        app.MapIdentityEndpoints();
-        app.MapGitHubEndpoints();
-        app.MapProvisioningEndpoints();
-        app.MapIssueEndpoints();
-        app.MapIssueAnalyticsEndpoints();
-        app.MapAnomalyEndpoints();
-        app.MapAutofixEndpoints();
-        app.MapRegressionEndpoints();
-        app.MapAgentHandoffEndpoints();
-        app.MapGitHubWebhookEndpoints();
-        app.MapLoomSettingsEndpoints();
-        app.MapCodingAgentEndpoints();
-        app.MapLoomWorkerEndpoints();
-        app.MapTriageEndpoints();
-        app.MapAgentRunEndpoints();
-        app.MapAgentInsightsEndpoints();
-        app.MapArtifactEndpoints();
-        app.MapCostEndpoints();
-        app.MapIntelligenceEndpoints();
-        app.MapQueryEndpoints();
-        app.MapLogSummaryEndpoints();
+        // All Map*Endpoints extensions tagged [QylMapEndpoints] are dispatched here
+        // via the generator-emitted QylGeneratedRegistry.MapQylGeneratedEndpoints.
+        // Add a new endpoint module by tagging its Map*Endpoints method — no edit here.
+        global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.MapQylGeneratedEndpoints(app);
 
         // Browser SDK
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>

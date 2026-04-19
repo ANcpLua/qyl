@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class AgentHandoffEndpoints
 {
+    [QylMapEndpoints]
     public static void MapAgentHandoffEndpoints(this WebApplication app)
     {
         // Create handoff from fix run

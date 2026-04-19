@@ -14,6 +14,7 @@ internal static class QueryEndpoints
         "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "ATTACH", "DETACH", "COPY"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
+    [QylMapEndpoints]
     public static WebApplication MapQueryEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/query", ExecuteQueryAsync);

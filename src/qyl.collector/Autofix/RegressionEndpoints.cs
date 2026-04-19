@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class RegressionEndpoints
 {
+    [QylMapEndpoints]
     public static void MapRegressionEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/regressions/check/{serviceName}", static async (

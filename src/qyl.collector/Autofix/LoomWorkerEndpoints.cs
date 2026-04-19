@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class LoomWorkerEndpoints
 {
+    [QylMapEndpoints]
     public static void MapLoomWorkerEndpoints(this WebApplication app)
     {
         // Fix runs — global query (not scoped to issue)

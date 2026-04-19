@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class GitHubWebhookEndpoints
 {
+    [QylMapEndpoints]
     public static void MapGitHubWebhookEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/github/webhooks", HandleWebhookAsync);

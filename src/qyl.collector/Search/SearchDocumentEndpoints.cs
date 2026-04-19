@@ -11,6 +11,7 @@ public static class SearchDocumentEndpoints
     /// <summary>
     ///     Maps document search, suggestion, and click audit endpoints.
     /// </summary>
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSearchDocumentEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/search")

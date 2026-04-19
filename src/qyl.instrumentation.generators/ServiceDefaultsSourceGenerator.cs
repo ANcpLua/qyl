@@ -183,21 +183,33 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.HostedServicesDiscovered);
 
+        var mapEndpointsDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                MapEndpointsAnalyzer.MapEndpointsAttributeMetadataName,
+                MapEndpointsAnalyzer.CouldBeMapEndpointsMethod,
+                MapEndpointsAnalyzer.Extract)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.MapEndpointsDiscovered);
+
         // Always emit QylGeneratedRegistry — the intercepted Build() site calls
         // RegisterQylHostedServices unconditionally, so the class must exist even
         // when the consumer hasn't tagged anything with [QylHostedService] yet.
-        var hostedServiceRegistryInput = hostedServiceDefinitions
+        // MapQylGeneratedEndpoints is emitted into the same class so consumers get
+        // one generated file, one registry, two methods.
+        var generatedRegistryInput = hostedServiceDefinitions
             .CollectAsEquatableArray()
+            .Combine(mapEndpointsDefinitions.CollectAsEquatableArray())
             .Combine(qylRuntimeAvailable);
 
         context.RegisterSourceOutput(
-            hostedServiceRegistryInput,
+            generatedRegistryInput,
             static (spc, input) =>
             {
-                var (definitions, runtimeAvailable) = input;
+                var ((hostedServices, endpoints), runtimeAvailable) = input;
                 if (!runtimeAvailable) return;
                 var source = HostedServiceEmitter.Emit(
-                    definitions.IsDefaultOrEmpty ? [] : definitions.AsImmutableArray());
+                    hostedServices.IsDefaultOrEmpty ? [] : hostedServices.AsImmutableArray(),
+                    endpoints.IsDefaultOrEmpty ? [] : endpoints.AsImmutableArray());
                 spc.AddSource(GeneratedFile.HostedServiceRegistry, SourceText.From(source, Encoding.UTF8));
             });
 
@@ -775,6 +787,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Hosted service auto-registration pipeline
         public const string HostedServicesDiscovered = nameof(HostedServicesDiscovered);
+
+        // Endpoint aggregator pipeline
+        public const string MapEndpointsDiscovered = nameof(MapEndpointsDiscovered);
 
         // Capability manifest pipeline
         public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);

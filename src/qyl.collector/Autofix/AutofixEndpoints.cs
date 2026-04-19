@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class AutofixEndpoints
 {
+    [QylMapEndpoints]
     public static void MapAutofixEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/issues/{issueId}/fix-runs", static async Task<IResult> (

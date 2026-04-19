@@ -15,6 +15,7 @@ public static class ArtifactEndpoints
             .TrimEnd('=');
     }
 
+    [QylMapEndpoints]
     public static void MapArtifactEndpoints(this WebApplication app)
     {
         // ── REST API ──────────────────────────────────────────────────

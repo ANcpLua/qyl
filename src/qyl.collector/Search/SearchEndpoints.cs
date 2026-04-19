@@ -8,6 +8,7 @@ public static class SearchEndpoints
     /// <summary>
     ///     Maps search endpoints: POST /api/v1/search/query and GET /api/v1/search/suggestions.
     /// </summary>
+    [QylMapEndpoints]
     public static void MapSearchEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/search/query", static async Task<IResult> (

@@ -7,6 +7,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class LoomSettingsEndpoints
 {
+    [QylMapEndpoints]
     public static void MapLoomSettingsEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/loom/settings/{orgId}", static async Task<Ok<LoomSettingsRecord>> (

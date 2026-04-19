@@ -2,6 +2,7 @@ namespace Qyl.Collector.Cost;
 
 internal static class CostEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapCostEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/cost");

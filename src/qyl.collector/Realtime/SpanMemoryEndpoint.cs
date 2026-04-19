@@ -9,6 +9,7 @@ public static class SpanMemoryEndpoints
     /// <summary>
     ///     Maps the memory-backed span endpoints.
     /// </summary>
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSpanMemoryEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/v1/spans/recent", GetRecentSpans)

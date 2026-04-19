@@ -4,6 +4,7 @@ namespace Qyl.Collector.Identity;
 
 public static class GitHubEndpoints
 {
+    [QylMapEndpoints]
     public static void MapGitHubEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/github");

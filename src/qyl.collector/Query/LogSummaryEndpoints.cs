@@ -2,6 +2,7 @@ namespace Qyl.Collector.Query;
 
 internal static class LogSummaryEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapLogSummaryEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/logs")

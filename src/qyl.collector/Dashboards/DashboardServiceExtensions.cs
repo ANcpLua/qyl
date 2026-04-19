@@ -13,6 +13,7 @@ public static class DashboardServiceExtensions
         return services;
     }
 
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapDashboardEndpoints(this IEndpointRouteBuilder endpoints)
     {
         DashboardEndpoints.MapDashboardEndpoints(endpoints);

@@ -4,6 +4,7 @@ namespace Qyl.Collector.Intelligence;
 
 internal static class IntelligenceEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapIntelligenceEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/intelligence");

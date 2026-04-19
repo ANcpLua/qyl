@@ -4,6 +4,7 @@ namespace Qyl.Collector.Autofix;
 
 public static class CodingAgentEndpoints
 {
+    [QylMapEndpoints]
     public static void MapCodingAgentEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/fix-runs/{fixRunId}/coding-agents", static async Task<IResult> (

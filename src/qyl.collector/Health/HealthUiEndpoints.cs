@@ -17,6 +17,7 @@ public static class HealthUiEndpoints
     /// <summary>Application SemVer used in <see cref="HealthUiResponse" />.</summary>
     public static readonly SemVer AppVersion = ResolveVersion();
 
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapHealthUiEndpoint(this IEndpointRouteBuilder app)
     {
         app.MapGet("/health/ui", static async (HealthUiService healthUi, CancellationToken ct) =>

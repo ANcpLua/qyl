@@ -4,6 +4,7 @@ public static class ErrorEndpoints
 {
     private static readonly HashSet<string> AllowedStatuses = ["new", "acknowledged", "resolved", "ignored"];
 
+    [QylMapEndpoints]
     public static void MapErrorEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/errors", static async (

@@ -8,6 +8,7 @@ namespace Qyl.Collector.Analytics;
 /// </summary>
 internal static class AnomalyEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapAnomalyEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/analytics/anomaly")

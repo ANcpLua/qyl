@@ -2,6 +2,7 @@ namespace Qyl.Collector.Realtime;
 
 public static class SseEndpoints
 {
+    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSseEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/v1/live", HandleLiveStream);

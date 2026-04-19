@@ -2,6 +2,7 @@ namespace Qyl.Collector.Services;
 
 internal static class ServiceEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapServiceEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/services");

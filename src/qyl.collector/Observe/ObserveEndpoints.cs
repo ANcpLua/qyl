@@ -2,6 +2,7 @@ namespace Qyl.Collector.Observe;
 
 internal static class ObserveEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapObserveEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/observe");

@@ -6,6 +6,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public static class TriageEndpoints
 {
+    [QylMapEndpoints]
     public static void MapTriageEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/triage", static async (

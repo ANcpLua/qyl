@@ -7,6 +7,7 @@ namespace Qyl.Collector.AgentRuns;
 
 internal static class AgentInsightsEndpoints
 {
+    [QylMapEndpoints]
     public static WebApplication MapAgentInsightsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/agents");

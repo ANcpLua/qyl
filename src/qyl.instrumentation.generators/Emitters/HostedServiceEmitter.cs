@@ -3,18 +3,30 @@ using Qyl.Instrumentation.Generators.Models;
 namespace Qyl.Instrumentation.Generators.Emitters;
 
 /// <summary>
-///     Emits <c>QylGeneratedRegistry.g.cs</c> with a single extension method
-///     <c>RegisterQylHostedServices(this IServiceCollection)</c> that registers every
-///     <c>[QylHostedService]</c>-tagged class via <c>services.AddHostedService&lt;T&gt;()</c>.
-///     The interceptor in <c>ServiceDefaultsSourceGenerator</c> injects a call to this method
-///     before <c>builder.Build()</c> on every intercepted call site.
+///     Emits <c>QylGeneratedRegistry.g.cs</c>, the single class that houses every
+///     generator-discovered service-wiring helper:
+///     <list type="bullet">
+///         <item><c>RegisterQylHostedServices(IServiceCollection)</c> — all <c>[QylHostedService]</c> classes.</item>
+///         <item><c>MapQylGeneratedEndpoints(WebApplication)</c> — all <c>[QylMapEndpoints]</c> extension methods, ordered.</item>
+///     </list>
+///     The interceptor in <c>ServiceDefaultsSourceGenerator</c> auto-calls
+///     <c>RegisterQylHostedServices</c> before <c>builder.Build()</c>.
+///     Consumers call <c>MapQylGeneratedEndpoints</c> from their own aggregator so they retain
+///     full control over placement relative to hand-written <c>MapGroup</c>, gRPC, and fallback routes.
 /// </summary>
 internal static class HostedServiceEmitter
 {
-    public static string Emit(ImmutableArray<HostedServiceDefinition> definitions)
+    public static string Emit(
+        ImmutableArray<HostedServiceDefinition> hostedServices,
+        ImmutableArray<MapEndpointsDefinition> mapEndpoints)
     {
-        var ordered = definitions
+        var orderedHosted = hostedServices
             .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
+            .ToImmutableArray();
+
+        var orderedEndpoints = mapEndpoints
+            .OrderBy(static d => d.Order)
+            .ThenBy(static d => d.SortKey, StringComparer.Ordinal)
             .ToImmutableArray();
 
         var sb = new IndentedStringBuilder();
@@ -24,32 +36,56 @@ internal static class HostedServiceEmitter
         sb.AppendLineNoIndent("namespace Qyl.Instrumentation.Generators");
         using (sb.BeginBlock())
         {
-            sb.AppendLineNoIndent("using Microsoft.Extensions.DependencyInjection;");
-            sb.AppendLineNoIndent("using Microsoft.Extensions.Hosting;");
-            sb.AppendLine();
-            sb.AppendLine(
-                "internal static class QylGeneratedRegistry");
+            sb.AppendLine("internal static class QylGeneratedRegistry");
             using (sb.BeginBlock())
             {
-                sb.AppendLine(
-                    "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylHostedServices(");
-                sb.AppendLine(
-                    "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
-                using (sb.BeginBlock())
-                {
-                    foreach (var def in ordered)
-                    {
-                        // TypeFullyQualifiedName already includes the "global::" prefix
-                        // via SymbolDisplayFormat.FullyQualifiedFormat.
-                        sb.AppendLine(
-                            $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionHostedServiceExtensions.AddHostedService<{def.TypeFullyQualifiedName}>(services);");
-                    }
-
-                    sb.AppendLine("return services;");
-                }
+                EmitHostedServices(sb, orderedHosted);
+                sb.AppendLine();
+                EmitMapEndpoints(sb, orderedEndpoints);
             }
         }
 
         return sb.ToString();
+    }
+
+    private static void EmitHostedServices(
+        IndentedStringBuilder sb,
+        ImmutableArray<HostedServiceDefinition> ordered)
+    {
+        sb.AppendLine(
+            "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylHostedServices(");
+        sb.AppendLine(
+            "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
+        using (sb.BeginBlock())
+        {
+            foreach (var def in ordered)
+            {
+                // TypeFullyQualifiedName already includes "global::".
+                sb.AppendLine(
+                    $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionHostedServiceExtensions.AddHostedService<{def.TypeFullyQualifiedName}>(services);");
+            }
+
+            sb.AppendLine("return services;");
+        }
+    }
+
+    private static void EmitMapEndpoints(
+        IndentedStringBuilder sb,
+        ImmutableArray<MapEndpointsDefinition> ordered)
+    {
+        sb.AppendLine(
+            "public static global::Microsoft.AspNetCore.Builder.WebApplication MapQylGeneratedEndpoints(");
+        sb.AppendLine(
+            "    this global::Microsoft.AspNetCore.Builder.WebApplication app)");
+        using (sb.BeginBlock())
+        {
+            foreach (var def in ordered)
+            {
+                // ContainingTypeFullyQualifiedName already includes "global::".
+                sb.AppendLine($"{def.ContainingTypeFullyQualifiedName}.{def.MethodName}(app);");
+            }
+
+            sb.AppendLine("return app;");
+        }
     }
 }
