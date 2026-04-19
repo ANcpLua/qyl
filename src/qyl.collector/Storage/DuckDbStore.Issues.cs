@@ -36,8 +36,11 @@ public sealed partial class DuckDbStore
         CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+
             // Read current status
             await using var readCmd = con.CreateCommand();
+            readCmd.Transaction = tx;
             readCmd.CommandText = "SELECT status FROM errors WHERE error_id = $1";
             readCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             if ((string?)await readCmd.ExecuteScalarAsync(token).ConfigureAwait(false) is not
@@ -45,6 +48,7 @@ public sealed partial class DuckDbStore
 
             // Update error status
             await using var updateCmd = con.CreateCommand();
+            updateCmd.Transaction = tx;
             updateCmd.CommandText = "UPDATE errors SET status = $1 WHERE error_id = $2";
             updateCmd.Parameters.Add(new DuckDBParameter { Value = newStatus });
             updateCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
@@ -52,7 +56,9 @@ public sealed partial class DuckDbStore
 
             // Record the lifecycle event
             await InsertIssueEventInternalAsync(con, issueId, "status_change", currentStatus, newStatus, reason,
-                token).ConfigureAwait(false);
+                token, tx).ConfigureAwait(false);
+
+            await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
     /// <summary>
@@ -61,22 +67,28 @@ public sealed partial class DuckDbStore
     public async Task AssignIssueOwnerAsync(string issueId, string owner, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+
             // Read current owner
             await using var readCmd = con.CreateCommand();
+            readCmd.Transaction = tx;
             readCmd.CommandText = "SELECT assigned_to FROM errors WHERE error_id = $1";
             readCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             var currentOwner = (string?)await readCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
 
             // Update owner
             await using var updateCmd = con.CreateCommand();
+            updateCmd.Transaction = tx;
             updateCmd.CommandText = "UPDATE errors SET assigned_to = $1 WHERE error_id = $2";
             updateCmd.Parameters.Add(new DuckDBParameter { Value = owner });
             updateCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             await updateCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
             // Record ownership event
-            await InsertIssueEventInternalAsync(con, issueId, "assigned", currentOwner, owner, null, token)
+            await InsertIssueEventInternalAsync(con, issueId, "assigned", currentOwner, owner, null, token, tx)
                 .ConfigureAwait(false);
+
+            await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
     /// <summary>
@@ -225,10 +237,13 @@ public sealed partial class DuckDbStore
         CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+
             // Find errors that were resolved but have new occurrences (last_seen > resolved marker)
             // We detect regressions by finding errors with status='resolved' whose fingerprint
             // matches errors in the same service with recent occurrences.
             await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
             cmd.CommandText = """
                               SELECT error_id, fingerprint
                               FROM errors
@@ -256,6 +271,7 @@ public sealed partial class DuckDbStore
             var regressedFingerprints = new HashSet<string>(StringComparer.Ordinal);
             await using (var checkCmd = con.CreateCommand())
             {
+                checkCmd.Transaction = tx;
                 var placeholders = string.Join(", ", fingerprints.Select(static (_, index) => $"${index + 1}"));
                 checkCmd.CommandText = $"""
                                         SELECT DISTINCT fingerprint
@@ -279,6 +295,7 @@ public sealed partial class DuckDbStore
 
                 // Transition to regressed
                 await using var updateCmd = con.CreateCommand();
+                updateCmd.Transaction = tx;
                 updateCmd.CommandText = "UPDATE errors SET status = 'regressed' WHERE error_id = $1";
                 updateCmd.Parameters.Add(new DuckDBParameter { Value = errorId });
                 await updateCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -287,11 +304,12 @@ public sealed partial class DuckDbStore
                     ? $"Regression detected in deployment {deployVersion}"
                     : "Regression detected: same fingerprint reappeared";
                 await InsertIssueEventInternalAsync(con, errorId, "regression", "resolved", "regressed", reason,
-                    token).ConfigureAwait(false);
+                    token, tx).ConfigureAwait(false);
 
                 regressedIds.Add(errorId);
             }
 
+            await tx.CommitAsync(token).ConfigureAwait(false);
             return (IReadOnlyList<string>)regressedIds;
         }, ct).ConfigureAwait(false);
 
@@ -301,9 +319,11 @@ public sealed partial class DuckDbStore
 
     private static async ValueTask InsertIssueEventInternalAsync(
         DuckDBConnection con, string issueId, string eventType,
-        string? oldValue, string? newValue, string? reason, CancellationToken ct)
+        string? oldValue, string? newValue, string? reason, CancellationToken ct,
+        DbTransaction? transaction = null)
     {
         await using var cmd = con.CreateCommand();
+        if (transaction is not null) cmd.Transaction = transaction;
         cmd.CommandText = """
                           INSERT INTO issue_events (event_id, issue_id, event_type, old_value, new_value, reason)
                           VALUES ($1, $2, $3, $4, $5, $6)

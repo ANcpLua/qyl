@@ -61,25 +61,28 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        var newId = Guid.NewGuid().ToString("N");
 
-        // Read on read connection
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var checkCmd = lease.Connection.CreateCommand();
-        checkCmd.CommandText = """
-                               SELECT id FROM error_issues
-                               WHERE project_id = $1 AND fingerprint = $2
-                               LIMIT 1
-                               """;
-        checkCmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-        checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
-        var existingId = await checkCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
-
-        if (existingId is not null)
+        var resolvedId = await store.ExecuteWriteAsync(async (con, token) =>
         {
-            // Write through write channel
-            await store.ExecuteWriteAsync(async (con, token) =>
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+
+            // Read existing fingerprint under the write lock so the check+insert is atomic.
+            await using var checkCmd = con.CreateCommand();
+            checkCmd.Transaction = tx;
+            checkCmd.CommandText = """
+                                   SELECT id FROM error_issues
+                                   WHERE project_id = $1 AND fingerprint = $2
+                                   LIMIT 1
+                                   """;
+            checkCmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
+            var existingId = await checkCmd.ExecuteScalarAsync(token).ConfigureAwait(false) as string;
+
+            if (existingId is not null)
             {
                 await using var updateCmd = con.CreateCommand();
+                updateCmd.Transaction = tx;
                 updateCmd.CommandText = """
                                         UPDATE error_issues SET
                                             occurrence_count = occurrence_count + 1,
@@ -90,16 +93,13 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
                 updateCmd.Parameters.Add(new DuckDBParameter { Value = now });
                 updateCmd.Parameters.Add(new DuckDBParameter { Value = existingId });
                 await updateCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }, ct).ConfigureAwait(false);
 
-            LogIssueUpserted(existingId, fingerprint);
-            return existingId;
-        }
+                await tx.CommitAsync(token).ConfigureAwait(false);
+                return existingId;
+            }
 
-        var issueId = Guid.NewGuid().ToString("N");
-        await store.ExecuteWriteAsync(async (con, token) =>
-        {
             await using var insertCmd = con.CreateCommand();
+            insertCmd.Transaction = tx;
             insertCmd.CommandText = """
                                     INSERT INTO error_issues
                                         (id, project_id, fingerprint, title, culprit, error_type, category,
@@ -107,7 +107,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
                                          status, priority, created_at, updated_at)
                                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 1, 'unresolved', 'medium', $12, $13)
                                     """;
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+            insertCmd.Parameters.Add(new DuckDBParameter { Value = newId });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = title });
@@ -121,10 +121,13 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
             insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
             await insertCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+
+            await tx.CommitAsync(token).ConfigureAwait(false);
+            return newId;
         }, ct).ConfigureAwait(false);
 
-        LogIssueUpserted(issueId, fingerprint);
-        return issueId;
+        LogIssueUpserted(resolvedId, fingerprint);
+        return resolvedId;
     }
 
     /// <summary>
