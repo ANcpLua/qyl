@@ -24,8 +24,6 @@ public sealed class ExplorationSessionStore(TimeProvider timeProvider)
             },
             timeProvider.GetUtcNow());
 
-    // Explicit cast disambiguates the two GetOrNull overloads — ConcurrentDictionary implements
-    // both IDictionary<> and IReadOnlyDictionary<>, so the call would otherwise be CS0121-ambiguous.
     public ExplorationSessionState? Get(string sessionId) =>
         ((IReadOnlyDictionary<string, ExplorationSessionState>)_sessions).GetOrNull(sessionId);
 
