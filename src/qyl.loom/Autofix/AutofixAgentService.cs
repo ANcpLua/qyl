@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using Qyl.Contracts.Observability;
 
 namespace Qyl.Loom;
 
@@ -7,6 +8,7 @@ namespace Qyl.Loom;
 ///     the multi-step autofix pipeline: gather context -> RCA -> solution plan ->
 ///     diff generation -> confidence scoring -> policy gate routing.
 /// </summary>
+[QylHostedService]
 public sealed partial class AutofixAgentService(
     CollectorClient collector,
     AutofixOrchestrator orchestrator,

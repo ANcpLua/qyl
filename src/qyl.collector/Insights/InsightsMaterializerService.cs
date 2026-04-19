@@ -5,6 +5,7 @@ namespace Qyl.Collector.Insights;
 ///     from DuckDB telemetry into the materialized_insights table.
 ///     Consumers (REST, MCP, Copilot) serve this instantly with zero query cost.
 /// </summary>
+[QylHostedService]
 public sealed partial class InsightsMaterializerService(
     DuckDbStore store,
     ILogger<InsightsMaterializerService> logger,

@@ -31,3 +31,4 @@ global using Qyl.Models;
 global using Qyl.Collector.Errors;
 global using Qyl.Collector.Mapping;
 global using Qyl.Contracts.Loom;
+global using Qyl.Contracts.Observability;

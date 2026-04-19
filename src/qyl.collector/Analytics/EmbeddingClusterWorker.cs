@@ -25,6 +25,7 @@ namespace Qyl.Collector.Analytics;
 ///     Only active when <see cref="IEmbeddingGenerator{TInput,TEmbedding}" /> is
 ///     registered in the DI container.
 /// </summary>
+[QylHostedService]
 public sealed partial class EmbeddingClusterWorker(
     DuckDbStore store,
     IServiceProvider services,

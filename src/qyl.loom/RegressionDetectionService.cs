@@ -1,3 +1,5 @@
+using Qyl.Contracts.Observability;
+
 namespace Qyl.Loom;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace Qyl.Loom;
 ///     Checks if resolved errors have re-appeared after a deploy and triggers re-triage
 ///     via <see cref="TriagePipelineService" /> when regressions are found.
 /// </summary>
+[QylHostedService]
 public sealed partial class RegressionDetectionService(
     CollectorClient collector,
     TriagePipelineService triagePipeline,

@@ -168,6 +168,39 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.ToolTypesDiscovered);
 
+        // =====================================================================
+        // HOSTED SERVICE REGISTRATION PIPELINE
+        // Discovers [QylHostedService]-tagged classes and emits
+        // QylGeneratedRegistry.RegisterQylHostedServices(IServiceCollection)
+        // which is called from the intercepted builder.Build() site.
+        // =====================================================================
+
+        var hostedServiceDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                HostedServiceAnalyzer.HostedServiceAttributeMetadataName,
+                HostedServiceAnalyzer.CouldBeHostedServiceClass,
+                HostedServiceAnalyzer.Extract)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.HostedServicesDiscovered);
+
+        // Always emit QylGeneratedRegistry — the intercepted Build() site calls
+        // RegisterQylHostedServices unconditionally, so the class must exist even
+        // when the consumer hasn't tagged anything with [QylHostedService] yet.
+        var hostedServiceRegistryInput = hostedServiceDefinitions
+            .CollectAsEquatableArray()
+            .Combine(qylRuntimeAvailable);
+
+        context.RegisterSourceOutput(
+            hostedServiceRegistryInput,
+            static (spc, input) =>
+            {
+                var (definitions, runtimeAvailable) = input;
+                if (!runtimeAvailable) return;
+                var source = HostedServiceEmitter.Emit(
+                    definitions.IsDefaultOrEmpty ? [] : definitions.AsImmutableArray());
+                spc.AddSource(GeneratedFile.HostedServiceRegistry, SourceText.From(source, Encoding.UTF8));
+            });
+
         context.RegisterSourceOutput(
             toolTypeEntries.CollectAsEquatableArray(),
             static (spc, toolTypes) =>
@@ -379,6 +412,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                     this global::{{WellKnownType.WebApplicationBuilder}} builder)
                                 {
                                     {{useQylCall}}
+                                    global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHostedServices(builder.Services);
                                     var app = builder.{{MethodName.Build}}();
                                     app.{{MethodName.MapQylDefaultEndpoints}}();
                                     return app;
@@ -739,6 +773,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Tool manifest pipeline
         public const string ToolTypesDiscovered = nameof(ToolTypesDiscovered);
 
+        // Hosted service auto-registration pipeline
+        public const string HostedServicesDiscovered = nameof(HostedServicesDiscovered);
+
         // Capability manifest pipeline
         public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);
 
@@ -763,6 +800,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string AgentInterceptors = "AgentIntercepts.g.cs";
         public const string Capabilities = "QylCapabilities.g.cs";
         public const string ToolManifest = "QylToolManifest.g.cs";
+        public const string HostedServiceRegistry = "QylGeneratedRegistry.g.cs";
     }
 
     /// <summary>

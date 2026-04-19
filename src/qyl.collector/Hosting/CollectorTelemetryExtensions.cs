@@ -1,11 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
-using Qyl.Collector.Analytics;
 using Qyl.Collector.Health;
-using Qyl.Collector.Insights;
-using Qyl.Collector.Services;
 using Qyl.Collector.Telemetry;
-using Qyl.Contracts.Observability;
 using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Qyl.Collector.Hosting;
@@ -51,10 +46,9 @@ public static class CollectorTelemetryExtensions
 
         services.AddTelemetryHealthCheckPublisher();
 
-        services.AddHostedService<InsightsMaterializerService>();
-        services.AddHostedService<ServiceMaterializerService>();
-        services.AddHostedService<EmbeddingClusterWorker>();
-
+        // Hosted services (InsightsMaterializerService, ServiceMaterializerService,
+        // EmbeddingClusterWorker) auto-register via [QylHostedService] — see
+        // QylGeneratedRegistry.RegisterQylHostedServices emitted by the generator.
         return services;
     }
 }

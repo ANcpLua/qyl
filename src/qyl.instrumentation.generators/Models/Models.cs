@@ -13,6 +13,14 @@ internal sealed record ProviderDefinition(
     string TypeContains);
 
 /// <summary>
+///     A class tagged <c>[QylHostedService]</c> that will be auto-registered via
+///     <c>services.AddHostedService&lt;T&gt;()</c> in the generated <c>QylGeneratedRegistry</c>.
+/// </summary>
+internal sealed record HostedServiceDefinition(
+    string TypeFullyQualifiedName,
+    string SortKey);
+
+/// <summary>
 ///     Registry of GenAI providers for compile-time capability discovery.
 /// </summary>
 /// <remarks>

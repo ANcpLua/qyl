@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using Qyl.Contracts.Observability;
 
 namespace Qyl.Loom;
 
@@ -7,6 +8,7 @@ namespace Qyl.Loom;
 ///     scores their fixability (via LLM or heuristic fallback), generates
 ///     summaries, and routes high-confidence issues to the autofix pipeline.
 /// </summary>
+[QylHostedService]
 public sealed partial class TriagePipelineService(
     CollectorClient collector,
     AutofixOrchestrator orchestrator,

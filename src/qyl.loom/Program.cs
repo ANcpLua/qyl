@@ -28,11 +28,10 @@ builder.Services.AddHttpClient("GitHub", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
 });
 
-// Background pipelines
+// Background pipelines — TriagePipelineService, AutofixAgentService, and
+// RegressionDetectionService auto-register via [QylHostedService] through the
+// generator's QylGeneratedRegistry.RegisterQylHostedServices hook.
 builder.Services.AddSingleton<AutofixOrchestrator>();
-builder.Services.AddHostedService<TriagePipelineService>();
-builder.Services.AddHostedService<AutofixAgentService>();
-builder.Services.AddHostedService<RegressionDetectionService>();
 
 // Exploration (interactive investigation)
 builder.Services.AddSingleton<ExplorationContextBuilder>();
