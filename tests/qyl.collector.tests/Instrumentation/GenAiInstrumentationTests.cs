@@ -13,19 +13,6 @@ namespace Qyl.Collector.Tests.Instrumentation;
 /// <summary>Tests for <see cref="GenAiInstrumentation" />.</summary>
 public sealed class GenAiInstrumentationTests
 {
-    private static ActivityListener CreateListener(List<Activity> captured)
-    {
-        var listener = new ActivityListener
-        {
-            ShouldListenTo = static source => source.Name == ActivitySources.GenAi,
-            Sample = static (ref ActivityCreationOptions<ActivityContext> _) =>
-                ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = captured.Add
-        };
-        ActivitySource.AddActivityListener(listener);
-        return listener;
-    }
-
     [Fact]
     public void WithQylTelemetry_wraps_OpenTelemetryChatClient_in_ToolInstrumenting()
     {

@@ -84,7 +84,7 @@ public sealed class InstrumentedChatClientTests
 
         var finishReasons = activity.GetTagItem(GenAiAttributes.ResponseFinishReasons) as string[];
         finishReasons.Should().NotBeNull();
-        finishReasons![0].Should().Be("stop");
+        finishReasons[0].Should().Be("stop");
     }
 
     // -- token usage ----------------------------------------------------------

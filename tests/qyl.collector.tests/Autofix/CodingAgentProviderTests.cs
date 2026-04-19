@@ -121,8 +121,9 @@ public sealed class CodingAgentProviderTests
     [Fact]
     public void TryParse_NullInput_OutParamDefaultsToLoom()
     {
-        CodingAgentProviderNames.TryParse(null, out var provider);
+        var success = CodingAgentProviderNames.TryParse(null, out var provider);
 
+        success.Should().BeFalse();
         provider.Should().Be(CodingAgentProvider.Loom);
     }
 }

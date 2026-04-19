@@ -110,7 +110,7 @@ public sealed class LogSummaryServiceTests
 
         result.Matched.Should().BeTrue();
         result.Log.Should().NotBeNull();
-        result.Log!.Body.Should().ContainEquivalentOf("ready");
+        result.Log.Body.Should().ContainEquivalentOf("ready");
         result.WaitedMs.Should().BeGreaterThanOrEqualTo(0);
         result.PollCount.Should().BeGreaterThan(0);
     }
@@ -220,7 +220,7 @@ public sealed class LogSummaryServiceTests
         bySeverity["fatal"].Should().Be(1);
         stats.OldestTimestamp.Should().NotBeNull();
         stats.NewestTimestamp.Should().NotBeNull();
-        stats.NewestTimestamp.Should().BeOnOrAfter(stats.OldestTimestamp!.Value);
+        stats.NewestTimestamp.Should().BeOnOrAfter(stats.OldestTimestamp.Value);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ public sealed class LiveLogDeduplicatorTests
     [Fact]
     public void ProcessBatch_EmitsFirstLogImmediately_AndSummaryAfterQuietWindow()
     {
-        var t0 = DateTimeOffset.Parse("2026-03-04T00:00:00Z");
+        var t0 = new DateTimeOffset(2026, 3, 4, 0, 0, 0, TimeSpan.Zero);
         var deduplicator = new LiveLogDeduplicator(TimeSpan.FromSeconds(5));
 
         var emitted = deduplicator.ProcessBatch(
@@ -34,7 +34,7 @@ public sealed class LiveLogDeduplicatorTests
     [Fact]
     public void ProcessBatch_DeduplicatesAcrossInterleavedMessages()
     {
-        var t0 = DateTimeOffset.Parse("2026-03-04T00:00:00Z");
+        var t0 = new DateTimeOffset(2026, 3, 4, 0, 0, 0, TimeSpan.Zero);
         var deduplicator = new LiveLogDeduplicator(TimeSpan.FromSeconds(5));
 
         var emitted = deduplicator.ProcessBatch(
@@ -57,7 +57,7 @@ public sealed class LiveLogDeduplicatorTests
     [Fact]
     public void ProcessBatch_ForceFlushes_WhenSuppressedLimitReached()
     {
-        var t0 = DateTimeOffset.Parse("2026-03-04T00:00:00Z");
+        var t0 = new DateTimeOffset(2026, 3, 4, 0, 0, 0, TimeSpan.Zero);
         var deduplicator = new LiveLogDeduplicator(TimeSpan.FromSeconds(30), 2);
 
         var emitted = deduplicator.ProcessBatch(

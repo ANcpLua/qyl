@@ -23,7 +23,7 @@ public sealed class DuckDbStoreRegressionTests
         }
 
         var sw = Stopwatch.StartNew();
-        var regressedIds = await store.DetectRegressionsAsync(serviceName);
+        var regressedIds = await store.DetectRegressionsAsync(serviceName, ct: TestContext.Current.CancellationToken);
         sw.Stop();
 
         // With one-row-per-fingerprint and upsert semantics, regression detection

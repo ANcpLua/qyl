@@ -28,8 +28,8 @@ public sealed class InvestigationQueryValidationTests
         var explainQuery = $"EXPLAIN {testQuery}";
 
         await using var store = new DuckDbStore(":memory:");
-        using var lease = await store.GetReadConnectionAsync(TestContext.Current.CancellationToken);
-        using var cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(TestContext.Current.CancellationToken);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = explainQuery;
 
         var ex = await Record.ExceptionAsync(async () =>

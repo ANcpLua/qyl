@@ -432,7 +432,7 @@ public sealed class PatternEngineTests
         var strategy = engine.SelectStrategy(match);
 
         strategy.Should().NotBeNull();
-        strategy!.Id.Should().Be("investigate_error_issue");
+        strategy.Id.Should().Be("investigate_error_issue");
     }
 
     [Fact]
@@ -445,7 +445,7 @@ public sealed class PatternEngineTests
         var strategy = engine.SelectStrategy(match);
 
         strategy.Should().NotBeNull();
-        strategy!.Id.Should().Be("investigate_latency");
+        strategy.Id.Should().Be("investigate_latency");
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public sealed class PatternEngineTests
         var strategy = engine.SelectStrategy(match);
 
         strategy.Should().NotBeNull();
-        strategy!.Id.Should().Be("investigate_cost");
+        strategy.Id.Should().Be("investigate_cost");
     }
 
     [Fact]
@@ -471,7 +471,7 @@ public sealed class PatternEngineTests
         var strategy = engine.SelectStrategy(match);
 
         strategy.Should().NotBeNull();
-        strategy!.Id.Should().Be("investigate_genai");
+        strategy.Id.Should().Be("investigate_genai");
     }
 
     [Fact]

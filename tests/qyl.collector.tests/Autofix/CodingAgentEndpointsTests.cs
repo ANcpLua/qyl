@@ -49,7 +49,7 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
         var result = await _store.GetCodingAgentRunAsync("agent-001", ct);
 
         result.Should().NotBeNull();
-        result!.FixRunId.Should().Be("fix-001");
+        result.FixRunId.Should().Be("fix-001");
         result.Provider.Should().Be("cursor");
         result.Status.Should().Be("pending");
     }
@@ -106,7 +106,7 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
         var updated = await _store.GetCodingAgentRunAsync("agent-upd", ct);
 
         updated.Should().NotBeNull();
-        updated!.Status.Should().Be("completed");
+        updated.Status.Should().Be("completed");
         updated.PrUrl.Should().Be("https://github.com/acme/repo/pull/42");
         updated.AgentUrl.Should().Be("https://cursor.sh/agents/xyz");
         updated.CompletedAt.Should().NotBeNull();
@@ -124,6 +124,6 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
         var updated = await _store.GetCodingAgentRunAsync("agent-pend", ct);
 
         updated.Should().NotBeNull();
-        updated!.CompletedAt.Should().BeNull();
+        updated.CompletedAt.Should().BeNull();
     }
 }

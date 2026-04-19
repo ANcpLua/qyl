@@ -44,7 +44,7 @@ public sealed class CostComputationTests
         var cost = f.Service.ComputeCost("openai", "gpt-4o", 1000, 500);
 
         cost.Should().NotBeNull();
-        cost!.Value.Should().Be(0.0075);
+        cost.Value.Should().Be(0.0075);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class CostComputationTests
         var cost = f.Service.ComputeCost("openai", "gpt-4o", 0, 0);
 
         cost.Should().NotBeNull();
-        cost!.Value.Should().Be(0.0);
+        cost.Value.Should().Be(0.0);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public sealed class CostComputationTests
         var cost = f.Service.ComputeCost(provider, model, input, output);
 
         cost.Should().NotBeNull();
-        cost!.Value.Should().BeApproximately(expected, 1e-8);
+        cost.Value.Should().BeApproximately(expected, 1e-8);
     }
 
     [Fact]
