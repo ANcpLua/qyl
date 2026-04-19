@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Mcp.Generators;
+using Xunit;
 
 namespace qyl.mcp.generators.tests;
 
@@ -72,13 +73,13 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("typeof(global::TestApp.Tools.MyTools)", generated);
-        Assert.Contains("svc_TestApp_Tools_MyTools.Greet", generated);
-        Assert.Contains("svc_TestApp_Tools_MyTools.Farewell", generated);
-        Assert.Contains("Name = \"test.greet\"", generated);
-        Assert.Contains("Name = \"test.farewell\"", generated);
-        Assert.Contains("CreateTools(", generated);
-        Assert.Contains("GetRequiredService<global::TestApp.Tools.MyTools>", generated);
+        Assert.Contains("typeof(global::TestApp.Tools.MyTools)", generated, StringComparison.Ordinal);
+        Assert.Contains("svc_TestApp_Tools_MyTools.Greet", generated, StringComparison.Ordinal);
+        Assert.Contains("svc_TestApp_Tools_MyTools.Farewell", generated, StringComparison.Ordinal);
+        Assert.Contains("Name = \"test.greet\"", generated, StringComparison.Ordinal);
+        Assert.Contains("Name = \"test.farewell\"", generated, StringComparison.Ordinal);
+        Assert.Contains("CreateTools(", generated, StringComparison.Ordinal);
+        Assert.Contains("GetRequiredService<global::TestApp.Tools.MyTools>", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -99,7 +100,7 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("Name = \"DoWork\"", generated);
+        Assert.Contains("Name = \"DoWork\"", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -119,8 +120,8 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("typeof(global::TestApp.Tools.EmptyTools)", generated);
-        Assert.DoesNotContain("GetRequiredService<global::TestApp.Tools.EmptyTools>", generated);
+        Assert.Contains("typeof(global::TestApp.Tools.EmptyTools)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetRequiredService<global::TestApp.Tools.EmptyTools>", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,7 +193,7 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("filter?.Invoke(typeof(global::TestApp.Tools.FilterableTools)) != false", generated);
+        Assert.Contains("filter?.Invoke(typeof(global::TestApp.Tools.FilterableTools)) != false", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -216,8 +217,8 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("Name = \"instance.tool\"", generated);
-        Assert.DoesNotContain("Name = \"static.tool\"", generated);
+        Assert.Contains("Name = \"instance.tool\"", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Name = \"static.tool\"", generated, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -241,8 +242,8 @@ public sealed class ToolManifestGeneratorTests
 
         var generated = RunGenerator(source);
 
-        Assert.Contains("Name = \"pub.tool\"", generated);
-        Assert.DoesNotContain("Name = \"priv.tool\"", generated);
+        Assert.Contains("Name = \"pub.tool\"", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Name = \"priv.tool\"", generated, StringComparison.Ordinal);
     }
 
     private static string RunGenerator(string source, string filePath = "Test.cs")
@@ -270,7 +271,7 @@ public sealed class ToolManifestGeneratorTests
         var result = driver.RunGenerators(compilation).GetRunResult();
 
         var generatedSource = result.GeneratedTrees
-            .FirstOrDefault(static t => t.FilePath.Contains("QylToolManifest"));
+            .FirstOrDefault(static t => t.FilePath.Contains("QylToolManifest", StringComparison.Ordinal));
 
         return generatedSource?.GetText().ToString() ?? string.Empty;
     }

@@ -37,7 +37,6 @@ public enum DoraPerformanceLevel
     Low = 3,
 }
 
-/// <summary>Health status for component-level reporting (HealthUiResponse, dashboard).</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HealthStatus>))]
 public enum HealthStatus
 {

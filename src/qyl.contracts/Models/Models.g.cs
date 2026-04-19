@@ -491,6 +491,119 @@ public sealed record ServiceInfo
 
 }
 
+/// <summary>OpenTelemetry span record for storage and query</summary>
+public sealed record SpanRecord
+{
+    /// <summary>Unique span identifier</summary>
+    [JsonPropertyName("spanId")]
+    public required global::Qyl.Common.SpanId SpanId { get; init; }
+
+    /// <summary>Trace identifier</summary>
+    [JsonPropertyName("traceId")]
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
+
+    /// <summary>Parent span identifier (null for root spans)</summary>
+    [JsonPropertyName("parentSpanId")]
+    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
+
+    /// <summary>Session identifier for grouping related traces</summary>
+    [JsonPropertyName("sessionId")]
+    public global::Qyl.Common.SessionId? SessionId { get; init; }
+
+    /// <summary>Human-readable span name</summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    /// <summary>Span kind</summary>
+    [JsonPropertyName("kind")]
+    public required global::Qyl.OTel.Enums.SpanKind Kind { get; init; }
+
+    /// <summary>Start timestamp in nanoseconds since epoch</summary>
+    [JsonPropertyName("startTimeUnixNano")]
+    public required long StartTimeUnixNano { get; init; }
+
+    /// <summary>End timestamp in nanoseconds since epoch</summary>
+    [JsonPropertyName("endTimeUnixNano")]
+    public required long EndTimeUnixNano { get; init; }
+
+    /// <summary>Duration in nanoseconds</summary>
+    [JsonPropertyName("durationNs")]
+    public required long DurationNs { get; init; }
+
+    /// <summary>Span status code</summary>
+    [JsonPropertyName("statusCode")]
+    public required global::Qyl.OTel.Enums.SpanStatusCode StatusCode { get; init; }
+
+    /// <summary>Status message (only for ERROR status)</summary>
+    [JsonPropertyName("statusMessage")]
+    public string? StatusMessage { get; init; }
+
+    /// <summary>Service name from resource attributes</summary>
+    [JsonPropertyName("serviceName")]
+    public string? ServiceName { get; init; }
+
+    /// <summary>GenAI provider name (e.g., openai, anthropic) - OTel 1.40: gen_ai.provider.name</summary>
+    [JsonPropertyName("genAiProviderName")]
+    public string? GenAiProviderName { get; init; }
+
+    /// <summary>Requested model name</summary>
+    [JsonPropertyName("genAiRequestModel")]
+    public string? GenAiRequestModel { get; init; }
+
+    /// <summary>Actual response model name</summary>
+    [JsonPropertyName("genAiResponseModel")]
+    public string? GenAiResponseModel { get; init; }
+
+    /// <summary>Input/prompt tokens</summary>
+    [JsonPropertyName("genAiInputTokens")]
+    public long? GenAiInputTokens { get; init; }
+
+    /// <summary>Output/completion tokens</summary>
+    [JsonPropertyName("genAiOutputTokens")]
+    public long? GenAiOutputTokens { get; init; }
+
+    /// <summary>Request temperature</summary>
+    [JsonPropertyName("genAiTemperature")]
+    public double? GenAiTemperature { get; init; }
+
+    /// <summary>Response finish reason</summary>
+    [JsonPropertyName("genAiStopReason")]
+    public string? GenAiStopReason { get; init; }
+
+    /// <summary>Tool name for tool calls</summary>
+    [JsonPropertyName("genAiToolName")]
+    public string? GenAiToolName { get; init; }
+
+    /// <summary>Tool call ID</summary>
+    [JsonPropertyName("genAiToolCallId")]
+    public string? GenAiToolCallId { get; init; }
+
+    /// <summary>Estimated cost in USD</summary>
+    [JsonPropertyName("genAiCostUsd")]
+    public double? GenAiCostUsd { get; init; }
+
+    /// <summary>All span attributes as JSON</summary>
+    [JsonPropertyName("attributesJson")]
+    public string? AttributesJson { get; init; }
+
+    /// <summary>Resource attributes as JSON</summary>
+    [JsonPropertyName("resourceJson")]
+    public string? ResourceJson { get; init; }
+
+    /// <summary>W3C Baggage key-value pairs as JSON for cross-cutting concern propagation</summary>
+    [JsonPropertyName("baggageJson")]
+    public string? BaggageJson { get; init; }
+
+    /// <summary>OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)</summary>
+    [JsonPropertyName("schemaUrl")]
+    public string? SchemaUrl { get; init; }
+
+    /// <summary>Row creation timestamp</summary>
+    [JsonPropertyName("createdAt")]
+    public DateTimeOffset? CreatedAt { get; init; }
+
+}
+
 /// <summary>Trace search query</summary>
 public sealed record TraceQuery
 {
