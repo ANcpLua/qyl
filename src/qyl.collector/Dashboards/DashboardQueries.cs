@@ -169,8 +169,9 @@ public static class DashboardQueries
                 new StatCardData("Requests", stats.GetValueOrDefault("total_requests", "0"))));
             widgets.Add(new DashboardWidget("genai-tokens", "Total Tokens", "stat",
                 new StatCardData("Tokens",
-                    (long.Parse(stats.GetValueOrDefault("total_input_tokens", "0")) +
-                     long.Parse(stats.GetValueOrDefault("total_output_tokens", "0"))).ToString())));
+                    ((long.TryParse(stats.GetValueOrDefault("total_input_tokens", "0"), out var inputTokens) ? inputTokens : 0L) +
+                     (long.TryParse(stats.GetValueOrDefault("total_output_tokens", "0"), out var outputTokens) ? outputTokens : 0L))
+                    .ToString())));
             widgets.Add(new DashboardWidget("genai-cost", "Total Cost", "stat",
                 new StatCardData("Cost", "$" + stats.GetValueOrDefault("total_cost_usd", "0"))));
             widgets.Add(new DashboardWidget("genai-latency", "Avg Latency", "stat",

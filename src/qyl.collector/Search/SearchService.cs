@@ -93,8 +93,10 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
             });
         }
 
-        // Log the query for audit (fire-and-forget, non-blocking)
-        _ = LogQueryAuditAsync(queryText, entityType, projectId, results.Count, ct);
+        // Audit the query inline — cost is dominated by the insert, which LogQueryAuditAsync
+        // handles via ExecuteWriteAsync (OperationCanceledException and DuckDBException are
+        // swallowed inside to keep audit best-effort).
+        await LogQueryAuditAsync(queryText, entityType, projectId, results.Count, ct).ConfigureAwait(false);
 
         LogSearchExecuted(queryText, results.Count);
         return results;
@@ -215,9 +217,13 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
                 await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }, ct).ConfigureAwait(false);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            // Best-effort audit logging -- never fail the search
+            // Expected on shutdown — audit is best-effort.
+        }
+        catch (DuckDBException ex)
+        {
+            LogAuditFailed(ex);
         }
     }
 
@@ -228,6 +234,10 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Search executed: '{QueryText}' returned {ResultCount} results")]
     private partial void LogSearchExecuted(string queryText, int resultCount);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Audit logging failed")]
+    private partial void LogAuditFailed(Exception ex);
 }
 
 // =============================================================================

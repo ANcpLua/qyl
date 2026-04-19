@@ -207,7 +207,11 @@ public sealed partial class MigrationRunner
                 continue;
             }
 
-            var version = int.Parse(match.Groups["version"].Value, CultureInfo.InvariantCulture);
+            if (!int.TryParse(match.Groups["version"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var version))
+            {
+                LogSkippingInvalidFile(fileName);
+                continue;
+            }
             var description = match.Groups["description"].Value.Replace('_', ' ');
 
             if (version > afterVersion)

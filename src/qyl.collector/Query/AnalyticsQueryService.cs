@@ -90,8 +90,13 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     private static (DateTime Start, DateTime End) ParseYearMonth(string period)
     {
         var parts = period.Split('-');
-        var year = int.Parse(parts[0], CultureInfo.InvariantCulture);
-        var month = int.Parse(parts[1], CultureInfo.InvariantCulture);
+        if (parts.Length < 2
+            || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var year)
+            || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var month))
+        {
+            throw new ArgumentException($"Invalid year-month period: '{period}'. Expected 'YYYY-MM'.", nameof(period));
+        }
+
         var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         return (start, start.AddMonths(1));
     }
