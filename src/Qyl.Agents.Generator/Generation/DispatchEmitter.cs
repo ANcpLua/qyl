@@ -47,10 +47,10 @@ internal static class DispatchEmitter
 
         // Per-tool private methods
         foreach (var tool in server.Tools)
-            EmitPerToolMethod(sb, tool);
+            EmitPerToolMethod(sb, tool, server);
     }
 
-    private static void EmitPerToolMethod(IndentedStringBuilder sb, ToolModel tool)
+    private static void EmitPerToolMethod(IndentedStringBuilder sb, ToolModel tool, ServerModel server)
     {
         sb.AppendLine($"private async global::System.Threading.Tasks.Task<string> {PerToolMethod(tool)}(");
         sb.AppendLine("    global::System.Text.Json.JsonElement args,");
@@ -64,6 +64,8 @@ internal static class DispatchEmitter
             sb.AppendLine("if (activity is not null)");
             using (sb.BeginBlock())
             {
+                sb.AppendLine($"activity.SetTag(\"server.name\", {Lit(server.ServerName)});");
+                sb.AppendLine("activity.SetTag(\"gen_ai.system\", \"mcp\");");
                 sb.AppendLine("activity.SetTag(\"gen_ai.operation.name\", \"execute_tool\");");
                 sb.AppendLine($"activity.SetTag(\"gen_ai.tool.name\", {Lit(tool.ToolName)});");
                 sb.AppendLine("activity.SetTag(\"gen_ai.tool.type\", \"function\");");

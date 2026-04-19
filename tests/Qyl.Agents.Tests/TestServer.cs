@@ -14,7 +14,7 @@ public partial class CalcServer
     /// and to count how many times tools are dispatched during end-to-end tests.
     /// </summary>
     [Tool(ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
-    public int Add([Description("First integer operand")] int a, [Description("Second integer operand")] int b)
+    public int Add([Description("First number")] int a, [Description("Second number")] int b)
     {
         CallCount++;
         return a + b;
@@ -26,7 +26,7 @@ public partial class CalcServer
     /// handles async tool methods and cancellation tokens over the MCP transport.
     /// </summary>
     [Tool(ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
-    public Task<int> Multiply([Description("First integer factor")] int a, [Description("Second integer factor")] int b,
+    public Task<int> Multiply([Description("First factor")] int a, [Description("Second factor")] int b,
         CancellationToken ct)
     {
         CallCount++;
