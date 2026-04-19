@@ -72,6 +72,7 @@ internal static class TestServiceCollectionFactory
 
         services.AddLogging();
         services.AddRedaction();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(ScopeFactory.Create(serviceName, sessionId));
         services.AddMcpAuth(configuration);
