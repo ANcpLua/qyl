@@ -49,10 +49,12 @@ public sealed partial class DuckDbStore
     }
 
     /// <summary>
-    ///     Updates an autofix step status and output.
+    ///     Updates an autofix step status and output. Scoped to (runId, stepId) so a
+    ///     mismatched pair (e.g., stepId from another run) is a no-op instead of
+    ///     silently mutating the wrong record.
     /// </summary>
     public async Task UpdateAutofixStepAsync(
-        string stepId, string status, string? outputJson = null,
+        string runId, string stepId, string status, string? outputJson = null,
         string? errorMessage = null, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -64,12 +66,13 @@ public sealed partial class DuckDbStore
                                   error_message = $3,
                                   started_at = CASE WHEN $1 = 'running' AND started_at IS NULL THEN now() ELSE started_at END,
                                   completed_at = CASE WHEN $1 IN ('completed', 'failed') THEN now() ELSE completed_at END
-                              WHERE step_id = $4
+                              WHERE step_id = $4 AND run_id = $5
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = outputJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = errorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = stepId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 

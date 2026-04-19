@@ -46,7 +46,7 @@ public static class LoomWorkerEndpoints
             DuckDbStore store, CancellationToken ct) =>
         {
             await store.UpdateAutofixStepAsync(
-                stepId, request.Status ?? "completed",
+                runId, stepId, request.Status ?? "completed",
                 request.OutputJson, errorMessage: request.ErrorMessage, ct: ct);
             return TypedResults.NoContent();
         });
