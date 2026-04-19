@@ -121,7 +121,7 @@ internal static class ToolExtractor
 
             var resultType = awaitable.GetTaskResultType(ret);
             var original = namedRet.OriginalDefinition.ToDisplayString();
-            var isValueTask = original.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
+            var isValueTask = original.StartsWithOrdinal("System.Threading.Tasks.ValueTask");
 
             if (resultType is not null)
                 return (isValueTask ? ReturnKind.ValueTaskOfT : ReturnKind.TaskOfT,

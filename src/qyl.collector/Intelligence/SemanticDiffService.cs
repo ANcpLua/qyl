@@ -1,4 +1,3 @@
-using Qyl.Collector.Analytics;
 using DistributionComparer = Qyl.Collector.Analytics.DistributionComparer;
 using StatisticalMath = Qyl.Collector.Analytics.StatisticalMath;
 
@@ -190,7 +189,7 @@ public static class SemanticDiffService
             }
         }
 
-        if (seeds.Count == 0) return [];
+        if (seeds.Count is 0) return [];
 
         var normalizedNovelty = NormalizeArray(seeds, static seed => seed.RawNovelty);
         var results = new List<SemanticDiffRecord>(seeds.Count);
@@ -219,8 +218,8 @@ public static class SemanticDiffService
         results.Sort(static (x, y) =>
         {
             var s = x.Suppressed.CompareTo(y.Suppressed);
-            return s != 0 ? s : y.SemanticXorScore.CompareTo(x.SemanticXorScore) is var sc && sc != 0 ? sc
-                : y.NoveltyScore.CompareTo(x.NoveltyScore) is var n && n != 0 ? n
+            return s is not 0 ? s : y.SemanticXorScore.CompareTo(x.SemanticXorScore) is var sc && sc is not 0 ? sc
+                : y.NoveltyScore.CompareTo(x.NoveltyScore) is var n && n is not 0 ? n
                 : string.CompareOrdinal(x.DimensionKey, y.DimensionKey);
         });
 
@@ -246,7 +245,7 @@ public static class SemanticDiffService
         if (seed.ComparisonShare >= o.ConcentrationThreshold) r.Add("It materially narrows the search space because it is concentrated.");
         if (causal >= o.MinimumCausalOverrideScore) r.Add("It aligns with external causal evidence.");
         if (actionability >= 0.65) r.Add("It is actionable enough to guide a targeted fix.");
-        if (r.Count == 0) r.Add(novelty >= 0.50 ? "It represents a meaningful behavioral shift." : "It is one of the least noisy surviving changes.");
+        if (r.Count is 0) r.Add(novelty >= 0.50 ? "It represents a meaningful behavioral shift." : "It is one of the least noisy surviving changes.");
         return string.Join(" ", r);
     }
 
@@ -295,7 +294,7 @@ public static class SemanticDiffService
     private static Dictionary<string, double> NormalizeDimensionScores(List<DistributionComparer.KeyScoreFiltered> scores)
     {
         var result = new Dictionary<string, double>(StringComparer.Ordinal);
-        if (scores.Count == 0) return result;
+        if (scores.Count is 0) return result;
         var min = scores.Min(static s => s.Score);
         var max = scores.Max(static s => s.Score);
         foreach (var s in scores) result[s.Key] = Normalize(s.Score, min, max);

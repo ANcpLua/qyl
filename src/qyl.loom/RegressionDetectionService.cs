@@ -51,7 +51,7 @@ public sealed partial class RegressionDetectionService(
         var deployments = await collector.GetDeploymentsAfterAsync(_lastChecked, ct)
             .ConfigureAwait(false);
 
-        if (deployments.Count == 0) return;
+        if (deployments.Count is 0) return;
 
         var totalRegressions = 0;
 

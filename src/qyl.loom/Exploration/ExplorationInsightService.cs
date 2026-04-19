@@ -1,7 +1,5 @@
-using System.Text;
-using System.Text.Json;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
-using Qyl.Contracts.Loom;
 
 namespace Qyl.Loom.Exploration;
 
@@ -79,12 +77,12 @@ public sealed partial class ExplorationInsightService(
 
         var initialGuess = issue.ErrorType switch
         {
-            { } t when t.Contains("NullReference", StringComparison.OrdinalIgnoreCase) =>
+            { } t when t.ContainsIgnoreCase("NullReference") =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
-            { } t when t.Contains("NetworkError", StringComparison.OrdinalIgnoreCase)
-                     || t.Contains("HttpRequest", StringComparison.OrdinalIgnoreCase) =>
+            { } t when t.ContainsIgnoreCase("NetworkError")
+                     || t.ContainsIgnoreCase("HttpRequest") =>
                 "A network request is failing — this may be a symptom of a backend exception or connectivity issue.",
-            { } t when t.Contains("Timeout", StringComparison.OrdinalIgnoreCase) =>
+            { } t when t.ContainsIgnoreCase("Timeout") =>
                 "An operation is timing out — check for slow queries, external service latency, or deadlocks.",
             _ => $"A {issue.ErrorType} is being thrown — investigate the stack trace for the originating call site."
         };

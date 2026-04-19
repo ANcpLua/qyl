@@ -1,7 +1,6 @@
 using qyl.mcp;
 using qyl.mcp.Hosting;
 using qyl.mcp.Scoping;
-using qyl.mcp.Skills;
 
 var skills = SkillConfiguration.FromEnvironment();
 var scope = QylScope.FromEnvironment();

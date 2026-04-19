@@ -82,20 +82,22 @@ internal static class SqlOperationParser
             if (sql.IsEmpty)
                 return sql;
 
-            // Check for single-line comment: --
-            if (sql.Length >= 2 && sql[0] == '-' && sql[1] == '-')
+            switch (sql.Length)
             {
-                var newlineIndex = sql.IndexOfAny('\r', '\n');
-                sql = newlineIndex < 0 ? [] : sql[(newlineIndex + 1)..];
-                continue;
-            }
-
-            // Check for block comment: /* ... */
-            if (sql.Length >= 2 && sql[0] == '/' && sql[1] == '*')
-            {
-                var endIndex = IndexOfBlockCommentEnd(sql, 2);
-                sql = endIndex < 0 ? [] : sql[(endIndex + 2)..];
-                continue;
+                // Check for single-line comment: --
+                case >= 2 when sql[0] == '-' && sql[1] == '-':
+                {
+                    var newlineIndex = sql.IndexOfAny('\r', '\n');
+                    sql = newlineIndex < 0 ? [] : sql[(newlineIndex + 1)..];
+                    continue;
+                }
+                // Check for block comment: /* ... */
+                case >= 2 when sql[0] == '/' && sql[1] == '*':
+                {
+                    var endIndex = IndexOfBlockCommentEnd(sql, 2);
+                    sql = endIndex < 0 ? [] : sql[(endIndex + 2)..];
+                    continue;
+                }
             }
 
             // No more comments to skip
@@ -113,17 +115,20 @@ internal static class SqlOperationParser
         var depth = 1;
         for (var i = start; i < sql.Length - 1; i++)
         {
-            if (sql[i] == '/' && sql[i + 1] == '*')
+            switch (sql[i])
             {
-                depth++;
-                i++; // Skip the '*'
-            }
-            else if (sql[i] == '*' && sql[i + 1] == '/')
-            {
-                depth--;
-                if (depth is 0)
-                    return i;
-                i++; // Skip the '/'
+                case '/' when sql[i + 1] == '*':
+                    depth++;
+                    i++; // Skip the '*'
+                    break;
+                case '*' when sql[i + 1] == '/':
+                {
+                    depth--;
+                    if (depth is 0)
+                        return i;
+                    i++; // Skip the '/'
+                    break;
+                }
             }
         }
 

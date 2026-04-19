@@ -1,5 +1,3 @@
-using Qyl.Collector.Autofix;
-
 namespace Qyl.Collector.Storage;
 
 /// <summary>

@@ -51,7 +51,7 @@ public sealed partial class AutofixAgentService(
         var pending = await collector.GetPendingFixRunsAsync(5, ct)
             .ConfigureAwait(false);
 
-        if (pending.Count == 0) return;
+        if (pending.Count is 0) return;
 
         LogProcessingBatch(pending.Count);
 
@@ -328,7 +328,7 @@ public sealed partial class AutofixAgentService(
         {
             if (text[i] == '{') depth++;
             else if (text[i] == '}') depth--;
-            if (depth == 0) return text[start..(i + 1)];
+            if (depth is 0) return text[start..(i + 1)];
         }
 
         return "{}";

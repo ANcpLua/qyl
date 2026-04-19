@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.mcp.Landing;
 using qyl.mcp.Scoping;
-using qyl.mcp.Skills;
 using Qyl.Contracts.Observability;
 
 namespace qyl.mcp.Hosting;

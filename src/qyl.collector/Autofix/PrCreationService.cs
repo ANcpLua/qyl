@@ -80,7 +80,7 @@ public sealed partial class PrCreationService(
                 committedFiles.Add(file.Path);
         }
 
-        if (committedFiles.Count == 0)
+        if (committedFiles.Count is 0)
         {
             return new PrCreationResult(false, null, null,
                 $"No files could be committed. Errors: {string.Join("; ", patchErrors)}");

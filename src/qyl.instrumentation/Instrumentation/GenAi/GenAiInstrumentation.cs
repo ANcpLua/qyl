@@ -42,20 +42,20 @@ public static class GenAiInstrumentation
     {
         Guard.NotNull(client);
 
-        // Don't double-wrap.
-        if (client is ToolDecoratingChatClient)
+        switch (client)
         {
-            return client;
-        }
-
-        if (client is OpenTelemetryChatClient existingOpenTelemetryClient)
-        {
-            if (enableSensitiveData.HasValue)
+            // Don't double-wrap.
+            case ToolDecoratingChatClient:
+                return client;
+            case OpenTelemetryChatClient existingOpenTelemetryClient:
             {
-                existingOpenTelemetryClient.EnableSensitiveData = enableSensitiveData.Value;
-            }
+                if (enableSensitiveData.HasValue)
+                {
+                    existingOpenTelemetryClient.EnableSensitiveData = enableSensitiveData.Value;
+                }
 
-            return new ToolDecoratingChatClient(existingOpenTelemetryClient, WrapTool);
+                return new ToolDecoratingChatClient(existingOpenTelemetryClient, WrapTool);
+            }
         }
 
         var builder = new ChatClientBuilder(client);

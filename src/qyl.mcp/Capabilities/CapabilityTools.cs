@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using qyl.mcp.Metadata;
-using qyl.mcp.Skills;
 
 namespace qyl.mcp.Capabilities;
 

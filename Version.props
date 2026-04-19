@@ -16,8 +16,8 @@
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
     <ANcpLuaRoslynUtilitiesVersion>1.53.0</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaRoslynUtilitiesBaseVersion>1.53.0</ANcpLuaRoslynUtilitiesBaseVersion>
-    <ANcpLuaAgentsTestingVersion>0.2.0-preview.1</ANcpLuaAgentsTestingVersion>
-    <ANcpLuaAgentsVersion>0.2.0</ANcpLuaAgentsVersion>
+    <ANcpLuaAgentsTestingVersion>0.3.1-preview.1</ANcpLuaAgentsTestingVersion>
+    <ANcpLuaAgentsVersion>0.3.1</ANcpLuaAgentsVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>

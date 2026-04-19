@@ -1,8 +1,5 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 
 namespace Qyl.Loom.CodeReview;
@@ -87,7 +84,7 @@ public sealed partial class CodeReviewService(
         IReadOnlyList<CodeReviewComment> comments, CancellationToken ct = default)
     {
         var token = configuration["GITHUB_TOKEN"];
-        if (string.IsNullOrEmpty(token) || comments.Count == 0)
+        if (string.IsNullOrEmpty(token) || comments.Count is 0)
             return false;
 
         using var client = httpClientFactory.CreateClient("GitHub");
@@ -155,7 +152,7 @@ public sealed partial class CodeReviewService(
         try
         {
             var issues = await collector.GetRecentIssuesAsync(10, ct).ConfigureAwait(false);
-            if (issues.Count == 0) return null;
+            if (issues.Count is 0) return null;
 
             return string.Join("\n",
                 issues.Select(static i =>

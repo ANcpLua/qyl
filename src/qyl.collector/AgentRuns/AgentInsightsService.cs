@@ -650,16 +650,19 @@ public sealed class AgentInsightsService(DuckDbStore store)
     {
         if (reader.IsDBNull(ordinal)) return [];
         var value = reader.GetValue(ordinal);
-        if (value is IReadOnlyList<string> list)
-            return [.. list];
-        if (value is Array arr)
+        switch (value)
         {
-            var result = new List<string>(arr.Length);
-            result.AddRange(from object? item in arr select item?.ToString() ?? "");
-            return result;
+            case IReadOnlyList<string> list:
+                return [.. list];
+            case Array arr:
+            {
+                var result = new List<string>(arr.Length);
+                result.AddRange(from object? item in arr select item?.ToString() ?? "");
+                return result;
+            }
+            default:
+                return [];
         }
-
-        return [];
     }
 }
 

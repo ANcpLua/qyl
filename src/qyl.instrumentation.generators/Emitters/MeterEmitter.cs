@@ -139,46 +139,50 @@ internal static class MeterEmitter
         sb.AppendLine($"public static partial void {method.MethodName}({paramList})");
         using (sb.BeginBlock())
         {
-            if (method.Tags.Length is 0)
+            switch (method.Tags.Length)
             {
-                sb.AppendLine(method.Kind switch
+                case 0:
+                    sb.AppendLine(method.Kind switch
+                    {
+                        MetricKind.Counter when method.ValueTypeName is not null => $"{fieldName}.Add(value);",
+                        MetricKind.Counter => $"{fieldName}.Add(1);",
+                        MetricKind.UpDownCounter => $"{fieldName}.Add(value);",
+                        _ => $"{fieldName}.Record(value);"
+                    });
+                    break;
+                case 1:
                 {
-                    MetricKind.Counter when method.ValueTypeName is not null => $"{fieldName}.Add(value);",
-                    MetricKind.Counter => $"{fieldName}.Add(1);",
-                    MetricKind.UpDownCounter => $"{fieldName}.Add(value);",
-                    _ => $"{fieldName}.Record(value);"
-                });
-            }
-            else if (method.Tags.Length == 1)
-            {
-                var tag = method.Tags[0];
-                var kvp = $"new KeyValuePair<string, object?>(\"{tag.TagName}\", {tag.ParameterName})";
+                    var tag = method.Tags[0];
+                    var kvp = $"new KeyValuePair<string, object?>(\"{tag.TagName}\", {tag.ParameterName})";
 
-                sb.AppendLine(method.Kind switch
+                    sb.AppendLine(method.Kind switch
+                    {
+                        MetricKind.Counter when method.ValueTypeName is not null =>
+                            $"{fieldName}.Add(value, {kvp});",
+                        MetricKind.Counter => $"{fieldName}.Add(1, {kvp});",
+                        MetricKind.UpDownCounter => $"{fieldName}.Add(value, {kvp});",
+                        _ => $"{fieldName}.Record(value, {kvp});"
+                    });
+                    break;
+                }
+                default:
                 {
-                    MetricKind.Counter when method.ValueTypeName is not null =>
-                        $"{fieldName}.Add(value, {kvp});",
-                    MetricKind.Counter => $"{fieldName}.Add(1, {kvp});",
-                    MetricKind.UpDownCounter => $"{fieldName}.Add(value, {kvp});",
-                    _ => $"{fieldName}.Record(value, {kvp});"
-                });
-            }
-            else
-            {
-                var tagList = method.Tags
-                    .Select(static t => $"new(\"{t.TagName}\", {t.ParameterName})")
-                    .ToList();
+                    var tagList = method.Tags
+                        .Select(static t => $"new(\"{t.TagName}\", {t.ParameterName})")
+                        .ToList();
 
-                sb.AppendLine($"var tags = new KeyValuePair<string, object?>[] {{ {string.Join(", ", tagList)} }};");
+                    sb.AppendLine($"var tags = new KeyValuePair<string, object?>[] {{ {string.Join(", ", tagList)} }};");
 
-                sb.AppendLine(method.Kind switch
-                {
-                    MetricKind.Counter when method.ValueTypeName is not null =>
-                        $"{fieldName}.Add(value, tags);",
-                    MetricKind.Counter => $"{fieldName}.Add(1, tags);",
-                    MetricKind.UpDownCounter => $"{fieldName}.Add(value, tags);",
-                    _ => $"{fieldName}.Record(value, tags);"
-                });
+                    sb.AppendLine(method.Kind switch
+                    {
+                        MetricKind.Counter when method.ValueTypeName is not null =>
+                            $"{fieldName}.Add(value, tags);",
+                        MetricKind.Counter => $"{fieldName}.Add(1, tags);",
+                        MetricKind.UpDownCounter => $"{fieldName}.Add(value, tags);",
+                        _ => $"{fieldName}.Record(value, tags);"
+                    });
+                    break;
+                }
             }
         }
 

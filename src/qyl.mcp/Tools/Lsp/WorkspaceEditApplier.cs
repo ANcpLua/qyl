@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
@@ -89,7 +88,7 @@ internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
             .ThenByDescending(e => e.StartChar)
             .ToList();
 
-        if (ordered.Count == 0)
+        if (ordered.Count is 0)
             return 0;
 
         var working = new StringBuilder(original);

@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ANcpLua.Roslyn.Utilities;
 
 namespace Qyl.Loom.Exploration;
 
@@ -6,9 +6,9 @@ internal static class ExplorationResponseParser
 {
     internal static ExplorationRootCause? TryParseRootCause(string text)
     {
-        var jsonStart = text.IndexOf("{\"summary\"", StringComparison.Ordinal);
+        var jsonStart = text.IndexOfOrdinal("{\"summary\"");
         if (jsonStart < 0)
-            jsonStart = text.IndexOf("```json", StringComparison.Ordinal);
+            jsonStart = text.IndexOfOrdinal("```json");
 
         if (jsonStart < 0)
             return null;
@@ -59,12 +59,17 @@ internal static class ExplorationResponseParser
         var depth = 0;
         for (var i = start; i < text.Length; i++)
         {
-            if (text[i] == '{')
-                depth++;
-            else if (text[i] == '}')
-                depth--;
+            switch (text[i])
+            {
+                case '{':
+                    depth++;
+                    break;
+                case '}':
+                    depth--;
+                    break;
+            }
 
-            if (depth == 0)
+            if (depth is 0)
                 return text[start..(i + 1)];
         }
 

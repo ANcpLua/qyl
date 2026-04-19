@@ -42,7 +42,7 @@ internal sealed class RegressionTools(HttpClient http)
 
             var root = JsonNode.Parse(json);
             var count = root?["count"]?.GetValue<int>() ?? 0;
-            if (count == 0)
+            if (count is 0)
                 return $"No regressions detected for service '{serviceName}'.";
 
             var ids = root?["regressedIssueIds"]?.AsArray();
@@ -117,7 +117,7 @@ internal sealed class RegressionTools(HttpClient http)
         {
             var root = JsonNode.Parse(json);
             var items = root?["items"]?.AsArray();
-            if (items is null || items.Count == 0)
+            if (items is null || items.Count is 0)
             {
                 return issueId is not null
                     ? $"No regressions found for issue '{issueId}'."

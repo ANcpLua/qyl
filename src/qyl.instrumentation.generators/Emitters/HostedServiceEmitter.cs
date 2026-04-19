@@ -123,7 +123,7 @@ internal static class HostedServiceEmitter
                 foreach (var def in ordered)
                 {
                     var tags = def.Tags.AsImmutableArray();
-                    var tagsLiteral = tags.Length == 0
+                    var tagsLiteral = tags.Length is 0
                         ? "global::System.Array.Empty<string>()"
                         : "new string[] { " + string.Join(", ", tags.Select(Literal)) + " }";
                     sb.AppendLine(

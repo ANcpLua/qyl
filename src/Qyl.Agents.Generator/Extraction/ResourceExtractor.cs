@@ -70,7 +70,7 @@ internal static class ResourceExtractor
             if (resultType is not null)
             {
                 var original = namedRet.OriginalDefinition.ToDisplayString();
-                var isValueTask = original.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
+                var isValueTask = original.StartsWithOrdinal("System.Threading.Tasks.ValueTask");
                 var kind = isValueTask ? ReturnKind.ValueTaskOfT : ReturnKind.TaskOfT;
 
                 if (resultType.SpecialType == SpecialType.System_String)

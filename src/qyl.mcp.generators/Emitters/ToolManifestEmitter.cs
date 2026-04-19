@@ -159,7 +159,7 @@ internal static class ToolManifestEmitter
     private static void EmitStringArrayInit(IndentedStringBuilder sb, string propertyName, IEnumerable<string> values)
     {
         var list = values.ToList();
-        if (list.Count == 0)
+        if (list.Count is 0)
         {
             sb.AppendLine($"{propertyName} = global::System.Array.Empty<string>(),");
             return;

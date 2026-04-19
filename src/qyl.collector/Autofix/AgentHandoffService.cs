@@ -63,7 +63,7 @@ public sealed partial class AgentHandoffService(
         var affected = await store.UpdateHandoffStatusAsync(
             handoffId, "accepted", expectedCurrentStatus: "pending", ct: ct).ConfigureAwait(false);
 
-        if (affected == 0)
+        if (affected is 0)
             return null;
 
         LogHandoffAccepted(handoffId);

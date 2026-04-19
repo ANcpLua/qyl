@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
 using Qyl.Contracts.Observability;
 
@@ -77,7 +78,7 @@ public sealed partial class TriagePipelineService(
     internal async Task TriageUntriagedIssuesAsync(CancellationToken ct)
     {
         var issueIds = await collector.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);
-        if (issueIds.Count == 0) return;
+        if (issueIds.Count is 0) return;
 
         LogTriageBatchStart(issueIds.Count);
 
@@ -153,14 +154,21 @@ public sealed partial class TriagePipelineService(
         // Heuristic scoring based on error characteristics
         var score = 0.3; // Base score
 
-        // High occurrence count suggests reproducible -> more fixable
-        if (issue.EventCount >= 10) score += 0.15;
-        else if (issue.EventCount >= 3) score += 0.1;
+        switch (issue.EventCount)
+        {
+            // High occurrence count suggests reproducible -> more fixable
+            case >= 10:
+                score += 0.15;
+                break;
+            case >= 3:
+                score += 0.1;
+                break;
+        }
 
         // Known error types are more fixable
-        if (issue.ErrorType.Contains("NullReference", StringComparison.OrdinalIgnoreCase) ||
-            issue.ErrorType.Contains("ArgumentException", StringComparison.OrdinalIgnoreCase) ||
-            issue.ErrorType.Contains("InvalidOperation", StringComparison.OrdinalIgnoreCase))
+        if (issue.ErrorType.ContainsIgnoreCase("NullReference") ||
+            issue.ErrorType.ContainsIgnoreCase("ArgumentException") ||
+            issue.ErrorType.ContainsIgnoreCase("InvalidOperation"))
             score += 0.2;
 
         // Recent errors are more actionable

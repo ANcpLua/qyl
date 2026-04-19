@@ -1,8 +1,5 @@
-using System.Diagnostics;
 using System.Net;
 using ANcpLua.Agents.Testing.ChatClients;
-using AwesomeAssertions;
-using Xunit;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;

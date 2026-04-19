@@ -1,5 +1,3 @@
-using Qyl.Contracts.Loom;
-
 namespace Qyl.Collector.Autofix;
 
 public static class CodingAgentEndpoints

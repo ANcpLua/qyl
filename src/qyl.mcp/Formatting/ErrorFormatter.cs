@@ -42,7 +42,7 @@ internal static class ErrorFormatter
     }
 
     private static string FormatOperationCancelled(OperationCanceledException ex) =>
-        ex.Message.Contains("tool call limit", StringComparison.OrdinalIgnoreCase)
+        ex.Message.ContainsIgnoreCase("tool call limit")
             ? $"**Investigation Budget Reached**\n\n{ex.Message}"
             : "**Cancelled:** The operation was cancelled.";
 

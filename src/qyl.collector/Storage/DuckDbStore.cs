@@ -190,7 +190,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     /// </summary>
     public DuckDBConnection Connection { get; }
 
-    internal string DatabasePath { get; }
+    private string DatabasePath { get; }
 
     // ==========================================================================
     // Lifecycle
@@ -518,10 +518,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             using var cmd = Connection.CreateCommand();
             cmd.CommandText = "SELECT database_size FROM pragma_database_size()";
             var result = cmd.ExecuteScalar();
-            if (result is long size)
-                return size;
-            if (result is string sizeStr && long.TryParse(sizeStr, out var parsed))
-                return parsed;
+            switch (result)
+            {
+                case long size:
+                    return size;
+                case string sizeStr when long.TryParse(sizeStr, out var parsed):
+                    return parsed;
+            }
         }
         catch (DuckDBException ex)
         {
@@ -1590,7 +1593,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return new ReadLease(this, con);
     }
 
-    internal void ReturnRead(DuckDBConnection con)
+    private void ReturnRead(DuckDBConnection con)
     {
         try
         {

@@ -17,7 +17,7 @@ public static class StatisticalMath
     public static double Entr(double x) =>
         double.IsNaN(x) ? x :
         x > 0 ? -x * Math.Log(x) :
-        x == 0 ? 0 :
+        x is 0 ? 0 :
         double.NegativeInfinity;
 
     /// <summary>
@@ -26,7 +26,7 @@ public static class StatisticalMath
     public static double RelEntr(double x, double y) =>
         double.IsNaN(x) || double.IsNaN(y) ? double.NaN :
         x > 0 && y > 0 ? x * Math.Log(x / y) :
-        x == 0 && y >= 0 ? 0 :
+        x is 0 && y >= 0 ? 0 :
         double.PositiveInfinity;
 
     // =========================================================================
@@ -61,7 +61,7 @@ public static class StatisticalMath
         for (var i = 0; i < xs.Length; i++)
             total += xs[i];
 
-        if (total == 0) return 0;
+        if (total is 0) return 0;
 
         double result = 0;
         for (var i = 0; i < xs.Length; i++)
@@ -82,7 +82,7 @@ public static class StatisticalMath
         var idx = 0;
         for (var i = 0; i < a.Length; i++)
         {
-            if (a[i] != 0)
+            if (a[i] is not 0)
                 result[idx++] = RelEntr(a[i], b[i]);
         }
 
@@ -193,7 +193,7 @@ public static class StatisticalMath
         var lambda = lambdaParam ?? BoxCoxNormMax(shifted);
 
         var transformed = new double[values.Length];
-        if (lambda == 0.0)
+        if (lambda is 0.0)
         {
             for (var i = 0; i < shifted.Length; i++)
                 transformed[i] = Math.Log(Math.Max(shifted[i], 1e-10));
@@ -213,7 +213,7 @@ public static class StatisticalMath
     internal static double BoxCoxLlf(double lambdaParam, ReadOnlySpan<double> values)
     {
         var n = values.Length;
-        if (n == 0) return 0.0;
+        if (n is 0) return 0.0;
 
         double logSum = 0;
         Span<double> logValues = stackalloc double[n];
@@ -224,7 +224,7 @@ public static class StatisticalMath
         }
 
         double logvar;
-        if (lambdaParam == 0.0)
+        if (lambdaParam is 0.0)
         {
             var logMean = logSum / n;
             double logVar = 0;
@@ -302,7 +302,7 @@ public static class StatisticalMath
         variance /= values.Length;
 
         var stdDev = Math.Sqrt(variance);
-        if (stdDev == 0)
+        if (stdDev is 0)
         {
             var zeros = new double[values.Length];
             return zeros;

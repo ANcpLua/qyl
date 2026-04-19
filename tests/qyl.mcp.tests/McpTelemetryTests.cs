@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using qyl.contracts.Attributes;
 
 namespace Qyl.Mcp.Tests;
@@ -29,7 +28,7 @@ public sealed class McpTelemetryTests : IDisposable
         using var activity = TelemetryConstants.ActivitySource.StartActivity("mcp.receive ping", ActivityKind.Server);
 
         activity.Should().NotBeNull();
-        _collected.Should().ContainSingle(a => a.OperationName == "mcp.receive ping");
+        _collected.Should().ContainSingle(static a => a.OperationName == "mcp.receive ping");
     }
 
     [Fact]

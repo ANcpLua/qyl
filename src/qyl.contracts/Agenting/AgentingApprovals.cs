@@ -1,5 +1,3 @@
-using System;
-
 namespace Qyl.Contracts.Agenting;
 
 /// <summary>

@@ -1,11 +1,6 @@
-using System.Diagnostics;
 using ANcpLua.Agents.Testing.ChatClients;
-using AwesomeAssertions;
-using Xunit;
 using Microsoft.Extensions.AI;
-using qyl.contracts.Attributes;
 using ANcpLua.Agents.Instrumentation;
-using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Collector.Tests.Instrumentation;

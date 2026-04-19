@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Qyl.Collector.Dashboard;
 
 internal sealed record DashboardBuildDescriptor(

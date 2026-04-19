@@ -1,8 +1,5 @@
-using System.Text;
 using Microsoft.AspNetCore.Http;
-using qyl.mcp.Capabilities;
 using qyl.mcp.Metadata;
-using qyl.mcp.Skills;
 
 namespace qyl.mcp.Hosting;
 

@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)
+internal sealed class  UseQylTools(IServiceProvider services, IConfiguration config)
 {
     private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 

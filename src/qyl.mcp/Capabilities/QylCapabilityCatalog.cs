@@ -1,4 +1,3 @@
-using qyl.mcp.Skills;
 using Qyl.Generated;
 
 namespace qyl.mcp.Capabilities;

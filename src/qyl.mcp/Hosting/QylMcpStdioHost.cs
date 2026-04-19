@@ -1,7 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using qyl.mcp.Scoping;
-using qyl.mcp.Skills;
 
 namespace qyl.mcp.Hosting;
 

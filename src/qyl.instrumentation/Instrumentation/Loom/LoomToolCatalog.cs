@@ -383,23 +383,23 @@ internal sealed class LoomToolAIFunction : AIFunction
 
         var targetType = Nullable.GetUnderlyingType(type) ?? type;
 
-        if (targetType.IsInstanceOfType(value))
+        if (targetType.IsInstanceOfType(value) || targetType == typeof(object))
             return value;
 
-        if (targetType == typeof(object))
-            return value;
-
-        if (value is JsonElement element)
-            return element.Deserialize(targetType, JsonSerializerOptions);
-
-        if (value is JsonDocument document)
-            return document.RootElement.Deserialize(targetType, JsonSerializerOptions);
-
-        if (value is JsonNode node)
-            return node.Deserialize(targetType, JsonSerializerOptions);
-
-        var payload = JsonSerializer.Serialize(value, value.GetType(), JsonSerializerOptions);
-        return JsonSerializer.Deserialize(payload, targetType, JsonSerializerOptions);
+        switch (value)
+        {
+            case JsonElement element:
+                return element.Deserialize(targetType, JsonSerializerOptions);
+            case JsonDocument document:
+                return document.RootElement.Deserialize(targetType, JsonSerializerOptions);
+            case JsonNode node:
+                return node.Deserialize(targetType, JsonSerializerOptions);
+            default:
+            {
+                var payload = JsonSerializer.Serialize(value, value.GetType(), JsonSerializerOptions);
+                return JsonSerializer.Deserialize(payload, targetType, JsonSerializerOptions);
+            }
+        }
     }
 
     private object? ConvertLiteral(string literal, Type type)
@@ -416,11 +416,13 @@ internal sealed class LoomToolAIFunction : AIFunction
             return _options.MarshalResult(context, result);
         }
 
-        if (result is null)
-            return null;
-
-        if (result is JsonElement or JsonNode or JsonDocument)
-            return result;
+        switch (result)
+        {
+            case null:
+                return null;
+            case JsonElement or JsonNode or JsonDocument:
+                return result;
+        }
 
         if (IsDirectlySerializable(result.GetType()))
             return result;

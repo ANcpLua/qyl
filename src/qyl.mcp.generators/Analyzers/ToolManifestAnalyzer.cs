@@ -109,7 +109,7 @@ internal static class ToolManifestAnalyzer
                 attr.AttributeClass.ToDisplayString() != "qyl.mcp.Capabilities.QylCapabilityDefinitionAttribute")
                 continue;
 
-            if (attr.ConstructorArguments.Length == 0)
+            if (attr.ConstructorArguments.Length is 0)
                 return null;
 
             var id = attr.ConstructorArguments[0].Value as string;
@@ -152,7 +152,7 @@ internal static class ToolManifestAnalyzer
             if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, capabilityAttrType))
                 continue;
 
-            if (attr.ConstructorArguments.Length == 0 ||
+            if (attr.ConstructorArguments.Length is 0 ||
                 attr.ConstructorArguments[0].Value is not string id ||
                 string.IsNullOrWhiteSpace(id))
                 continue;

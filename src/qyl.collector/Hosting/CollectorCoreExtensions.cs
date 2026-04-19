@@ -1,5 +1,4 @@
 using Qyl.Collector.Grpc;
-using Qyl.Collector.Observe;
 
 namespace Qyl.Collector.Hosting;
 

@@ -78,7 +78,7 @@ internal static class ServerExtractor
             .Where(m => m.MethodKind == MethodKind.Ordinary && m.HasAttribute(ToolAttributeName))
             .ToList();
 
-        if (toolMethods.Count == 0)
+        if (toolMethods.Count is 0)
         {
             var warning = DiagnosticInfo.Create(DiagnosticDescriptors.NoToolsFound, type, type.Name);
             return DiagnosticFlow.Ok(default(EquatableArray<ToolModel>)).Warn(warning);
@@ -120,7 +120,7 @@ internal static class ServerExtractor
             .Where(m => m.MethodKind == MethodKind.Ordinary && m.HasAttribute(ResourceAttributeName))
             .ToList();
 
-        if (resourceMethods.Count == 0)
+        if (resourceMethods.Count is 0)
             return DiagnosticFlow.Ok(default(EquatableArray<ResourceModel>));
 
         var awaitable = new AwaitableContext(compilation);
@@ -160,7 +160,7 @@ internal static class ServerExtractor
             .Where(m => m.MethodKind == MethodKind.Ordinary && m.HasAttribute(PromptAttributeName))
             .ToList();
 
-        if (promptMethods.Count == 0)
+        if (promptMethods.Count is 0)
             return DiagnosticFlow.Ok(default(EquatableArray<PromptModel>));
 
         var awaitable = new AwaitableContext(compilation);
@@ -218,7 +218,7 @@ internal static class ServerExtractor
                 current.Keyword.ValueText,
                 string.Join(" ", modifiers),
                 current.TypeParameterList?.ToString().Trim() ?? string.Empty,
-                current.ConstraintClauses.Count == 0
+                current.ConstraintClauses.Count is 0
                     ? default
                     : current.ConstraintClauses.Select(static c => c.ToString().Trim()).ToArray().ToEquatableArray()));
         }

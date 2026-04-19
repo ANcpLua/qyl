@@ -1,5 +1,3 @@
-using qyl.mcp.Skills;
-
 namespace qyl.mcp.Capabilities;
 
 /// <summary>

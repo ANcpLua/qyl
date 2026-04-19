@@ -187,7 +187,7 @@ internal sealed class LspClientConnection : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         // Polite shutdown: shutdown request + exit notification, 2s budget. If the server is

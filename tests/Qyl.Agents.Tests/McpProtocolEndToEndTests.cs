@@ -2,7 +2,6 @@ namespace Qyl.Agents.Tests;
 
 using System.Diagnostics;
 using System.Text.Json;
-using ANcpLua.Agents.Testing;
 using ANcpLua.Agents.Testing.Diagnostics;
 using AwesomeAssertions;
 using Protocol;

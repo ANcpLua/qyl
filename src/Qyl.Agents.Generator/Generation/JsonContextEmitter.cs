@@ -7,7 +7,7 @@ internal static class JsonContextEmitter
     public static void Emit(IndentedStringBuilder sb, ServerModel server)
     {
         var types = CollectSerializableTypes(server);
-        if (types.Count == 0) return;
+        if (types.Count is 0) return;
 
         sb.AppendLine("[global::System.Text.Json.Serialization.JsonSourceGenerationOptions(");
         sb.AppendLine("    global::System.Text.Json.JsonSerializerDefaults.Web)]");

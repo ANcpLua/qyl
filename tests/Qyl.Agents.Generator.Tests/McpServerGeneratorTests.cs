@@ -40,7 +40,7 @@ public sealed class McpServerGeneratorTests : IDisposable
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
             .Produces("TestApp.MyTools.McpServer.g.cs")
-            .File("TestApp.MyTools.McpServer.g.cs", content =>
+            .File("TestApp.MyTools.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("DispatchToolCallAsync");
                 content.Should().Contain("ExecuteTool_EchoAsync");
@@ -103,7 +103,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("Docs.DocTools.McpServer.g.cs", content =>
+            .File("Docs.DocTools.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("name: doc-tools");
                 content.Should().Contain("description: A doc server");
@@ -140,7 +140,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("Multi.ToolBox.McpServer.g.cs", content =>
+            .File("Multi.ToolBox.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("ExecuteTool_AddAsync");
                 content.Should().Contain("ExecuteTool_SubtractAsync");
@@ -391,7 +391,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("EnumTest.EnumServer.McpServer.g.cs", content =>
+            .File("EnumTest.EnumServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("Low");
                 content.Should().Contain("Medium");
@@ -424,7 +424,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("NullableTest.NullableServer.McpServer.g.cs", content =>
+            .File("NullableTest.NullableServer.McpServer.g.cs", static content =>
             {
                 content.Should().NotContain("s_jsonOptions");
                 content.Should().Contain("GetInt32()");
@@ -454,7 +454,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("JsonCtx.CtxServer.McpServer.g.cs", content =>
+            .File("JsonCtx.CtxServer.McpServer.g.cs", static content =>
             {
                 content.Should().NotContain("s_jsonOptions");
                 content.Should().Contain("GetString()");
@@ -487,7 +487,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("FormatTest.FormatServer.McpServer.g.cs", content =>
+            .File("FormatTest.FormatServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("date-time");
                 content.Should().Contain("uuid");
@@ -517,7 +517,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("ArrayTest.ArrayServer.McpServer.g.cs", content =>
+            .File("ArrayTest.ArrayServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("s_jsonOptions");
                 content.Should().Contain("array");
@@ -549,7 +549,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("MultiLine.MultiServer.McpServer.g.cs", content =>
+            .File("MultiLine.MultiServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("description:");
             })
@@ -577,7 +577,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("OTelTest.OTelServer.McpServer.g.cs", content =>
+            .File("OTelTest.OTelServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("SetTag(\"server.name\"");
                 content.Should().Contain("SetTag(\"gen_ai.system\", \"mcp\")");
@@ -606,7 +606,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("SafetyTest.CalcServer.McpServer.g.cs", content =>
+            .File("SafetyTest.CalcServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("ReadOnlyHint = true");
                 content.Should().Contain("IdempotentHint = true");
@@ -665,7 +665,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("ResTest.ResServer.McpServer.g.cs", content =>
+            .File("ResTest.ResServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("DispatchResourceReadAsync");
                 content.Should().Contain("GetResourceInfos");
@@ -752,7 +752,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("PromptTest.PromptServer.McpServer.g.cs", content =>
+            .File("PromptTest.PromptServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("DispatchPromptAsync");
                 content.Should().Contain("GetPromptInfos");
@@ -834,7 +834,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 
         using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
         result
-            .File("LlmsTest.CalcServer.McpServer.g.cs", content =>
+            .File("LlmsTest.CalcServer.McpServer.g.cs", static content =>
             {
                 content.Should().Contain("LlmsTxt");
                 content.Should().Contain("s_llmsTxt");

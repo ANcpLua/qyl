@@ -270,21 +270,23 @@ internal static class TracedInterceptorEmitter
             // Parameter tags
             foreach (var tag in cs.TracedTags)
             {
-                if (tag is { SkipIfDefault: true, IsValueType: true })
+                switch (tag)
                 {
-                    var globalType = tag.TypeName.ToGlobalTypeName();
-                    sb.AppendLine(
-                        $"if (!global::System.Collections.Generic.EqualityComparer<{globalType}>.Default.Equals({tag.ParameterName}, default))");
-                    sb.AppendLine($"    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
-                }
-                else if (tag is { SkipIfNull: true, IsNullable: true })
-                {
-                    sb.AppendLine($"if ({tag.ParameterName} is not null)");
-                    sb.AppendLine($"    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
-                }
-                else
-                {
-                    sb.AppendLine($"activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
+                    case { SkipIfDefault: true, IsValueType: true }:
+                    {
+                        var globalType = tag.TypeName.ToGlobalTypeName();
+                        sb.AppendLine(
+                            $"if (!global::System.Collections.Generic.EqualityComparer<{globalType}>.Default.Equals({tag.ParameterName}, default))");
+                        sb.AppendLine($"    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
+                        break;
+                    }
+                    case { SkipIfNull: true, IsNullable: true }:
+                        sb.AppendLine($"if ({tag.ParameterName} is not null)");
+                        sb.AppendLine($"    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
+                        break;
+                    default:
+                        sb.AppendLine($"activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
+                        break;
                 }
             }
 

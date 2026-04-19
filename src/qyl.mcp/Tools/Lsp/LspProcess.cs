@@ -1,7 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Diagnostics;
-
 namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
@@ -106,7 +104,7 @@ internal sealed class LspProcess : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         try

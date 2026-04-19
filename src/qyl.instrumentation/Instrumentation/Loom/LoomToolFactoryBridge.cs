@@ -4,7 +4,6 @@ using System.Text.Json;
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Qyl.Instrumentation.Instrumentation;
 
 namespace Qyl.Instrumentation.Instrumentation.Loom;
 

@@ -171,7 +171,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
             metric, metricExpr, period2Start, period2End, service, ct).ConfigureAwait(false);
 
         var meanDelta = period2.Mean - period1.Mean;
-        var meanDeltaPercent = period1.Mean != 0
+        var meanDeltaPercent = period1.Mean is not 0
             ? meanDelta / period1.Mean * 100.0
             : 0;
 

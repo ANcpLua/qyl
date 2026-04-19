@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Mcp.Generators;
@@ -257,13 +256,8 @@ public sealed class ToolManifestGeneratorTests
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
         };
 
-        var systemRuntimePath = Path.Combine(runtimeDir, "System.Runtime.dll");
-        if (File.Exists(systemRuntimePath))
-            references.Add(MetadataReference.CreateFromFile(systemRuntimePath));
-
-        var netstandardPath = Path.Combine(runtimeDir, "netstandard.dll");
-        if (File.Exists(netstandardPath))
-            references.Add(MetadataReference.CreateFromFile(netstandardPath));
+        TryAddReference(references, Path.Combine(runtimeDir, "System.Runtime.dll"));
+        TryAddReference(references, Path.Combine(runtimeDir, "netstandard.dll"));
 
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
@@ -276,8 +270,24 @@ public sealed class ToolManifestGeneratorTests
         var result = driver.RunGenerators(compilation).GetRunResult();
 
         var generatedSource = result.GeneratedTrees
-            .FirstOrDefault(t => t.FilePath.Contains("QylToolManifest"));
+            .FirstOrDefault(static t => t.FilePath.Contains("QylToolManifest"));
 
         return generatedSource?.GetText().ToString() ?? string.Empty;
+    }
+
+    // Probe optional runtime reference without System.IO.File — RS1035 bans File in
+    // projects pulling in Microsoft.CodeAnalysis.Analyzers via the generator ref.
+    // MetadataReference.CreateFromFile throws FileNotFoundException on missing path;
+    // that's expected when the SDK layout differs across hosts.
+    private static void TryAddReference(List<MetadataReference> references, string path)
+    {
+        try
+        {
+            references.Add(MetadataReference.CreateFromFile(path));
+        }
+        catch (FileNotFoundException ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"optional ref skipped: {path} ({ex.Message})");
+        }
     }
 }

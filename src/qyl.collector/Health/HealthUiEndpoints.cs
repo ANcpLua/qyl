@@ -1,5 +1,3 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Health;
 
 /// <summary>

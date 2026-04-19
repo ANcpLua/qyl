@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
-using System.Text;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
@@ -191,7 +190,7 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
 
         var sb = new StringBuilder();
         sb.AppendLine(title);
-        if (locations.Count == 0)
+        if (locations.Count is 0)
         {
             sb.AppendLine("No results.");
             return sb.ToString();
@@ -219,7 +218,7 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     {
         var sb = new StringBuilder();
         sb.AppendLine(title);
-        if (result is not JsonArray array || array.Count == 0)
+        if (result is not JsonArray array || array.Count is 0)
         {
             sb.AppendLine("No symbols.");
             return sb.ToString();
@@ -241,7 +240,7 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         var items = result?["items"] as JsonArray;
         var sb = new StringBuilder();
         sb.AppendLine($"# Diagnostics for {LspClientWrapper.UriToPath(uri)}");
-        if (items is null || items.Count == 0)
+        if (items is null || items.Count is 0)
         {
             sb.AppendLine("No diagnostics.");
             return sb.ToString();

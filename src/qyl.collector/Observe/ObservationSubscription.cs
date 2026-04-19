@@ -39,7 +39,7 @@ internal sealed class ObservationSubscription : IDisposable
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         // Order matters:

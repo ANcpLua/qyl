@@ -258,7 +258,7 @@ public sealed partial class DuckDbStore
             while (await reader.ReadAsync(token).ConfigureAwait(false))
                 candidates.Add((reader.GetString(0), reader.GetString(1)));
 
-            if (candidates.Count == 0)
+            if (candidates.Count is 0)
                 return regressedIds;
 
             var fingerprints = candidates

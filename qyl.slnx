@@ -33,6 +33,7 @@
     <Folder Name="/tests/">
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
         <Project Path="tests/qyl.mcp.generators.tests/qyl.mcp.generators.tests.csproj" />
+        <File Path="tests\Qyl.Agents.Generator.Tests\McpServerGeneratorTests.cs" />
         <File Path="tests\qyl.mcp.tests\GlobalUsings.cs" />
         <File Path="tests\qyl.mcp.tests\HttpTelemetryStoreTests.cs" />
         <File Path="tests\qyl.mcp.tests\McpCollectorHttpClientExtensionsTests.cs" />
@@ -40,14 +41,6 @@
         <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj" />
         <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj" />
         <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
-    </Folder>
-    <Folder Name="/docs/done/">
-        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension copy.md.md" />
-        <File Path="docs\example.md" />
-    </Folder>
-    <Folder Name="/docs/Skills/" />
-    <Folder Name="/docs/WIP /">
-        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension copy.md.md" />
     </Folder>
 
     <!-- BUILD -->
@@ -172,6 +165,9 @@
         <File Path="docs\convergence-plan.md" />
         <File Path="docs\MCP sse 1.2.0.md" />
         <File Path="docs\netagents.md" />
+        <File Path="docs\planned\2026-04-18-lsp-phase2-typescript.md" />
+        <File Path="docs\planned\2026-04-18-lsp-phase3-loom-bridge.md" />
+        <File Path="docs\planned\2026-04-18-oauth-playwright-e2e.md" />
         <File Path="docs\plans\2026-04-07-generated-metadata-capability-guides-and-host-split.md" />
         <File Path="docs\seer-competitive-intel-v7.md" />
         <File Path="docs\specs\2026-04-08-result-cap-coaching-design.md" />

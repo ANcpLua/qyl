@@ -133,7 +133,7 @@ internal sealed class GitHubMcpTools(HttpClient http)
             }
 
             var comments = root?["comments"]?.AsArray();
-            if (comments is null || comments.Count == 0)
+            if (comments is null || comments.Count is 0)
                 return $"Code review for {repoFullName} PR #{prNumber}: no issues found.";
 
             StringBuilder sb = new();
@@ -164,7 +164,7 @@ internal sealed class GitHubMcpTools(HttpClient http)
         {
             var root = JsonNode.Parse(json);
             var items = root?["items"]?.AsArray();
-            if (items is null || items.Count == 0)
+            if (items is null || items.Count is 0)
                 return "No GitHub webhook events found.";
 
             StringBuilder sb = new();

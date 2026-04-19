@@ -35,7 +35,7 @@ public sealed class PatternEngine(
                 }
             }
 
-            if (!allSatisfied || pattern.Signals.Count == 0)
+            if (!allSatisfied || pattern.Signals.Count is 0)
                 continue;
 
             var score = pattern.Confidence * ((double)matchedSignals.Count / pattern.Signals.Count);

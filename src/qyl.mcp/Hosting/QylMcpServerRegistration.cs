@@ -7,10 +7,8 @@ using qyl.contracts.Attributes;
 using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
-using qyl.mcp.Capabilities;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
-using qyl.mcp.Skills;
 using Qyl.Generated;
 
 namespace qyl.mcp.Hosting;

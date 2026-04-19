@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.Buffers;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -174,8 +173,8 @@ internal sealed class LspClientTransport : IAsyncDisposable
         while (true)
         {
             var read = await input.ReadAsync(scratch.AsMemory(0, 1), ct).ConfigureAwait(false);
-            if (read == 0)
-                return buffer.Count == 0 ? -1 : throw new EndOfStreamException("LSP transport: stream ended inside header.");
+            if (read is 0)
+                return buffer.Count is 0 ? -1 : throw new EndOfStreamException("LSP transport: stream ended inside header.");
 
             buffer.Add(scratch[0]);
 
@@ -211,7 +210,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
         while (offset < destination.Length)
         {
             var read = await input.ReadAsync(destination[offset..], ct).ConfigureAwait(false);
-            if (read == 0)
+            if (read is 0)
                 throw new EndOfStreamException(
                     $"LSP transport: stream ended with {destination.Length - offset} bytes still expected.");
 
@@ -222,7 +221,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         await _readerCts.CancelAsync().ConfigureAwait(false);

@@ -1,5 +1,3 @@
-using qyl.mcp.Skills;
-
 namespace qyl.mcp.Metadata;
 
 /// <summary>
