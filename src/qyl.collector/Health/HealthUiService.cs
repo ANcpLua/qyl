@@ -5,6 +5,7 @@ namespace Qyl.Collector.Health;
 /// <summary>
 ///     Service for gathering detailed health information for the UI dashboard.
 /// </summary>
+[QylService(QylLifetime.Singleton)]
 public sealed class HealthUiService(
     DuckDbStore store,
     SpanRingBuffer ringBuffer,

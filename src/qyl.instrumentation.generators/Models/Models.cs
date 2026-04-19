@@ -31,6 +31,29 @@ internal sealed record MapEndpointsDefinition(
     string SortKey);
 
 /// <summary>
+///     A class tagged <c>[QylService(Lifetime, AsInterface?)]</c> auto-registered in
+///     <c>QylGeneratedRegistry.RegisterQylServices</c>.
+///     <see cref="LifetimeMethodName" /> is the literal name of the
+///     <c>ServiceCollectionServiceExtensions.AddX</c> helper — "Singleton", "Scoped", or "Transient".
+/// </summary>
+internal sealed record QylServiceDefinition(
+    string TypeFullyQualifiedName,
+    string LifetimeMethodName,
+    string? InterfaceFullyQualifiedName,
+    string SortKey);
+
+/// <summary>
+///     A class tagged <c>[QylHealthCheck(Name, Tags...)]</c> auto-registered in
+///     <c>QylGeneratedRegistry.RegisterQylHealthChecks</c> via
+///     <c>healthBuilder.AddCheck&lt;T&gt;(Name, failureStatus: null, tags: Tags)</c>.
+/// </summary>
+internal sealed record QylHealthCheckDefinition(
+    string TypeFullyQualifiedName,
+    string Name,
+    EquatableArray<string> Tags,
+    string SortKey);
+
+/// <summary>
 ///     Registry of GenAI providers for compile-time capability discovery.
 /// </summary>
 /// <remarks>

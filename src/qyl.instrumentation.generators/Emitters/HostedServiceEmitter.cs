@@ -18,7 +18,9 @@ internal static class HostedServiceEmitter
 {
     public static string Emit(
         ImmutableArray<HostedServiceDefinition> hostedServices,
-        ImmutableArray<MapEndpointsDefinition> mapEndpoints)
+        ImmutableArray<MapEndpointsDefinition> mapEndpoints,
+        ImmutableArray<QylServiceDefinition> services,
+        ImmutableArray<QylHealthCheckDefinition> healthChecks)
     {
         var orderedHosted = hostedServices
             .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
@@ -27,6 +29,14 @@ internal static class HostedServiceEmitter
         var orderedEndpoints = mapEndpoints
             .OrderBy(static d => d.Order)
             .ThenBy(static d => d.SortKey, StringComparer.Ordinal)
+            .ToImmutableArray();
+
+        var orderedServices = services
+            .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
+            .ToImmutableArray();
+
+        var orderedHealthChecks = healthChecks
+            .OrderBy(static d => d.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 
         var sb = new IndentedStringBuilder();
@@ -40,6 +50,10 @@ internal static class HostedServiceEmitter
             using (sb.BeginBlock())
             {
                 EmitHostedServices(sb, orderedHosted);
+                sb.AppendLine();
+                EmitServices(sb, orderedServices);
+                sb.AppendLine();
+                EmitHealthChecks(sb, orderedHealthChecks);
                 sb.AppendLine();
                 EmitMapEndpoints(sb, orderedEndpoints);
             }
@@ -68,6 +82,60 @@ internal static class HostedServiceEmitter
             sb.AppendLine("return services;");
         }
     }
+
+    private static void EmitServices(
+        IndentedStringBuilder sb,
+        ImmutableArray<QylServiceDefinition> ordered)
+    {
+        sb.AppendLine(
+            "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylServices(");
+        sb.AppendLine(
+            "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
+        using (sb.BeginBlock())
+        {
+            foreach (var def in ordered)
+            {
+                // Emit either AddLifetime<T>(services) or AddLifetime<IFoo, Foo>(services).
+                var call = def.InterfaceFullyQualifiedName is null
+                    ? $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.TypeFullyQualifiedName}>(services);"
+                    : $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.InterfaceFullyQualifiedName}, {def.TypeFullyQualifiedName}>(services);";
+                sb.AppendLine(call);
+            }
+
+            sb.AppendLine("return services;");
+        }
+    }
+
+    private static void EmitHealthChecks(
+        IndentedStringBuilder sb,
+        ImmutableArray<QylHealthCheckDefinition> ordered)
+    {
+        sb.AppendLine(
+            "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylHealthChecks(");
+        sb.AppendLine(
+            "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
+        using (sb.BeginBlock())
+        {
+            if (ordered.Length > 0)
+            {
+                sb.AppendLine(
+                    "var builder = global::Microsoft.Extensions.DependencyInjection.HealthCheckServiceCollectionExtensions.AddHealthChecks(services);");
+                foreach (var def in ordered)
+                {
+                    var tags = def.Tags.AsImmutableArray();
+                    var tagsLiteral = tags.Length == 0
+                        ? "global::System.Array.Empty<string>()"
+                        : "new string[] { " + string.Join(", ", tags.Select(Literal)) + " }";
+                    sb.AppendLine(
+                        $"global::Microsoft.Extensions.DependencyInjection.HealthChecksBuilderAddCheckExtensions.AddCheck<{def.TypeFullyQualifiedName}>(builder, {Literal(def.Name)}, failureStatus: null, tags: {tagsLiteral});");
+                }
+            }
+
+            sb.AppendLine("return services;");
+        }
+    }
+
+    private static string Literal(string s) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true);
 
     private static void EmitMapEndpoints(
         IndentedStringBuilder sb,

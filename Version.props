@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="Package Versions">
     <DotNetRuntimeVersion>10.0.6</DotNetRuntimeVersion>
-    <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>10.5.0</MicrosoftExtensionsVersion>
     <MicrosoftExtensionsAiVersion>10.5.0</MicrosoftExtensionsAiVersion>
     <OpenTelemetryVersion>1.15.0</OpenTelemetryVersion>
     <OpenTelemetryAspNetCoreInstrumentationVersion>1.15.1</OpenTelemetryAspNetCoreInstrumentationVersion>
@@ -17,6 +17,7 @@
     <ANcpLuaRoslynUtilitiesVersion>1.53.0</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaRoslynUtilitiesBaseVersion>1.53.0</ANcpLuaRoslynUtilitiesBaseVersion>
     <ANcpLuaAgentsTestingVersion>0.1.3-preview.1</ANcpLuaAgentsTestingVersion>
+    <ANcpLuaAgentsVersion>0.2.0</ANcpLuaAgentsVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>

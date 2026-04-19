@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Qyl.Collector.Health;
 using Qyl.Collector.Telemetry;
-using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Qyl.Collector.Hosting;
 
@@ -14,16 +12,9 @@ public static class CollectorTelemetryExtensions
         services.AddQylTelemetry();
         services.AddLogging(logging => logging.AddQylLogging(environment));
 
-        // Register collector-specific health checks. The self/live and ready probes are already
-        // wired by QylServiceDefaults; we just add domain-specific checks under the same tags so
-        // /alive and /health pick them up automatically.
-        services.AddSingleton<HealthUiService>();
-
+        // Complex built-in checks that don't map to a simple [QylHealthCheck] class tag
+        // (they're parameterised extension calls on IHealthChecksBuilder).
         var healthBuilder = services.AddHealthChecks()
-            .AddCheck<DuckDbHealthCheck>(
-                "duckdb",
-                MsHealthStatus.Unhealthy,
-                ["db", "storage", QylEndpoints.ReadyTag])
             .AddApplicationLifecycleHealthCheck(QylEndpoints.LiveTag);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
@@ -46,9 +37,11 @@ public static class CollectorTelemetryExtensions
 
         services.AddTelemetryHealthCheckPublisher();
 
-        // Hosted services (InsightsMaterializerService, ServiceMaterializerService,
-        // EmbeddingClusterWorker) auto-register via [QylHostedService] — see
-        // QylGeneratedRegistry.RegisterQylHostedServices emitted by the generator.
+        // The rest auto-wires via the generator:
+        //   [QylHostedService] -> InsightsMaterializerService, ServiceMaterializerService,
+        //                         EmbeddingClusterWorker
+        //   [QylHealthCheck]   -> DuckDbHealthCheck ("duckdb", [db, storage, ready])
+        //   [QylService]       -> HealthUiService (Singleton)
         return services;
     }
 }

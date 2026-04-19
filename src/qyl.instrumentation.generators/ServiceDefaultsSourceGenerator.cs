@@ -191,25 +191,44 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.MapEndpointsDiscovered);
 
-        // Always emit QylGeneratedRegistry — the intercepted Build() site calls
-        // RegisterQylHostedServices unconditionally, so the class must exist even
-        // when the consumer hasn't tagged anything with [QylHostedService] yet.
-        // MapQylGeneratedEndpoints is emitted into the same class so consumers get
-        // one generated file, one registry, two methods.
+        var qylServiceDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                QylServiceAnalyzer.QylServiceAttributeMetadataName,
+                QylServiceAnalyzer.CouldBeQylServiceClass,
+                QylServiceAnalyzer.Extract)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.QylServicesDiscovered);
+
+        var qylHealthCheckDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                QylHealthCheckAnalyzer.QylHealthCheckAttributeMetadataName,
+                QylHealthCheckAnalyzer.CouldBeHealthCheckClass,
+                QylHealthCheckAnalyzer.Extract)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.QylHealthChecksDiscovered);
+
+        // Always emit QylGeneratedRegistry. The intercepted Build() site calls
+        // RegisterQylHostedServices / RegisterQylServices / RegisterQylHealthChecks
+        // unconditionally, so the class (and its four methods) must exist even when
+        // a consumer hasn't tagged anything.
         var generatedRegistryInput = hostedServiceDefinitions
             .CollectAsEquatableArray()
             .Combine(mapEndpointsDefinitions.CollectAsEquatableArray())
+            .Combine(qylServiceDefinitions.CollectAsEquatableArray())
+            .Combine(qylHealthCheckDefinitions.CollectAsEquatableArray())
             .Combine(qylRuntimeAvailable);
 
         context.RegisterSourceOutput(
             generatedRegistryInput,
             static (spc, input) =>
             {
-                var ((hostedServices, endpoints), runtimeAvailable) = input;
+                var ((((hostedServices, endpoints), services), healthChecks), runtimeAvailable) = input;
                 if (!runtimeAvailable) return;
                 var source = HostedServiceEmitter.Emit(
                     hostedServices.IsDefaultOrEmpty ? [] : hostedServices.AsImmutableArray(),
-                    endpoints.IsDefaultOrEmpty ? [] : endpoints.AsImmutableArray());
+                    endpoints.IsDefaultOrEmpty ? [] : endpoints.AsImmutableArray(),
+                    services.IsDefaultOrEmpty ? [] : services.AsImmutableArray(),
+                    healthChecks.IsDefaultOrEmpty ? [] : healthChecks.AsImmutableArray());
                 spc.AddSource(GeneratedFile.HostedServiceRegistry, SourceText.From(source, Encoding.UTF8));
             });
 
@@ -425,6 +444,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                 {
                                     {{useQylCall}}
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHostedServices(builder.Services);
+                                    global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylServices(builder.Services);
+                                    global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHealthChecks(builder.Services);
                                     var app = builder.{{MethodName.Build}}();
                                     app.{{MethodName.MapQylDefaultEndpoints}}();
                                     return app;
@@ -790,6 +811,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Endpoint aggregator pipeline
         public const string MapEndpointsDiscovered = nameof(MapEndpointsDiscovered);
+
+        // DI / health-check auto-registration pipelines
+        public const string QylServicesDiscovered = nameof(QylServicesDiscovered);
+        public const string QylHealthChecksDiscovered = nameof(QylHealthChecksDiscovered);
 
         // Capability manifest pipeline
         public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);
