@@ -2,6 +2,10 @@
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
+    <!-- Project name contains "generators" so ANcpLua.NET.Sdk (since 2.25.13) auto-detects
+         this as a Roslyn component and would pin Microsoft.CodeAnalysis.CSharp to 5.0.0.
+         Opt out of the auto-pin so the explicit 5.3.0 override below can reach test code. -->
+    <SourceGeneratorRoslynVersion></SourceGeneratorRoslynVersion>
   </PropertyGroup>
 
   <ItemGroup>

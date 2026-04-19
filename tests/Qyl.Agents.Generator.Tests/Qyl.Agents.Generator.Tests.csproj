@@ -2,15 +2,16 @@
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
+    <!-- Project name contains "Generator" so ANcpLua.NET.Sdk auto-detects this as
+         a Roslyn component and would pin Microsoft.CodeAnalysis.CSharp to 5.0.0.
+         This is a test project that needs the 5.3.0 graph (Workspaces 5.3.0 → Common 5.3.0);
+         opt out of the auto-pin so the implicit net10.0 Roslyn reference wins. -->
+    <SourceGeneratorRoslynVersion></SourceGeneratorRoslynVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="xunit.v3.mtp-v2"/>
     <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
-    <!-- ANcpLua.Roslyn.Utilities.Testing pulls CSharp 5.0.0 → Common 5.0.0, but the generator
-         project references CSharp.Workspaces 5.3.0 → Common 5.3.0. Pin Common 5.3.0 directly
-         here to unify the graph; NU1107 otherwise. -->
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(MicrosoftCodeAnalysisCSharpVersion)"/>
   </ItemGroup>
 
   <ItemGroup>
