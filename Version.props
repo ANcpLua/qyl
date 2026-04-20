@@ -14,8 +14,8 @@
     <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
     <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.53.0</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaRoslynUtilitiesBaseVersion>1.53.0</ANcpLuaRoslynUtilitiesBaseVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.53.3</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesBaseVersion>1.53.3</ANcpLuaRoslynUtilitiesBaseVersion>
     <ANcpLuaAgentsTestingVersion>0.3.1-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.3.1</ANcpLuaAgentsVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>

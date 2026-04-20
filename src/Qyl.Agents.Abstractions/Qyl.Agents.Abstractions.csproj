@@ -13,17 +13,10 @@
   <ItemGroup>
     <Using Include="System"/>
   </ItemGroup>
-  <!-- Link polyfills for netstandard2.0 required init -->
+  <!-- netstandard2.0 polyfills (IsExternalInit, RequiredMember, CompilerFeatureRequired,
+       SetsRequiredMembers, Experimental) — contentFiles drop from the focused
+       Polyfills-only package. PrivateAssets="all" keeps it out of the published nupkg. -->
   <ItemGroup>
-    <Compile Include="..\..\shared\Polyfills\IsExternalInit.cs"
-             Link="Polyfills\IsExternalInit.cs"/>
-    <Compile Include="..\..\shared\Polyfills\RequiredMemberAttribute.cs"
-             Link="Polyfills\RequiredMemberAttribute.cs"/>
-    <Compile Include="..\..\shared\Polyfills\CompilerFeatureRequiredAttribute.cs"
-             Link="Polyfills\CompilerFeatureRequiredAttribute.cs"/>
-    <Compile Include="..\..\shared\Polyfills\SetsRequiredMembersAttribute.cs"
-             Link="Polyfills\SetsRequiredMembersAttribute.cs"/>
-    <Compile Include="..\..\shared\Polyfills\ExperimentalAttribute.cs"
-             Link="Polyfills\ExperimentalAttribute.cs"/>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Polyfills" PrivateAssets="all"/>
   </ItemGroup>
 </Project>
