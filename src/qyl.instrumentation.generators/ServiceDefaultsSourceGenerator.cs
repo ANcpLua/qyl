@@ -44,7 +44,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var toggles = context.AnalyzerConfigOptionsProvider
             .Select(static (options, _) => new PipelineToggles(
                 IsPipelineEnabled(options, "QylDatabase"),
-                IsPipelineEnabled(options, "QylAgent"),
                 IsPipelineEnabled(options, "QylTraced"),
                 IsPipelineEnabled(options, "QylMeter")))
             .WithTrackingName(PipelineStage.ToggleCheck);
@@ -56,8 +55,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .Select(static (pair, _) => pair.Left && pair.Right.Meter);
         var tracedEnabled = qylRuntimeAvailable.Combine(toggles)
             .Select(static (pair, _) => pair.Left && pair.Right.Traced);
-        var agentEnabled = qylRuntimeAvailable.Combine(toggles)
-            .Select(static (pair, _) => pair.Left && pair.Right.Agent);
 
         var meterDefinitions = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -75,17 +72,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WithTrackingName(PipelineStage.TracedCallSitesDiscovered);
 
         // =====================================================================
-        // GENAI / DB / AGENT CALL SITE PROVIDERS
-        // Exposed as standalone providers so they can feed both
-        // their individual emitters AND the capability manifest pipeline.
+        // DB CALL SITE PROVIDER
+        // (Agent + GenAI interception was removed on 2026-04-21 — runtime
+        //  instrumentation now flows through builder.UseQylTelemetry() which
+        //  composes Microsoft.Extensions.AI's UseOpenTelemetry() middleware.)
         // =====================================================================
-
-        var genAiCallSites = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
-                GenAiCallSiteAnalyzer.ExtractCallSite)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered);
 
         var dbCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -94,23 +85,14 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.DbCallSitesDiscovered);
 
-        var agentCallSites = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                AgentCallSiteAnalyzer.CouldBeAgentInvocation,
-                AgentCallSiteAnalyzer.ExtractCallSite)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.AgentCallSitesDiscovered);
-
         // =====================================================================
-        // SERVICE REGISTRATION (telemetry + capabilities)
+        // SERVICE REGISTRATION (activity sources + meters)
         // =====================================================================
 
         var generatedRegistration = BuildGeneratedServiceRegistration(
             context,
             meterDefinitions, meterEnabled,
             tracedCallSites, tracedEnabled,
-            genAiCallSites,
-            agentCallSites,
             toggles);
 
         var builderInterceptors = builderCallSites
@@ -129,11 +111,14 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // INDIVIDUAL EMITTER PIPELINES
         // =====================================================================
 
-        // GenAi SDK interception removed. Runtime IChatClient instrumentation lives in
-        // `builder.UseQylTelemetry()` (qyl.instrumentation/GenAi/GenAiInstrumentation.cs),
-        // which composes Microsoft.Extensions.AI's `UseOpenTelemetry()` middleware (semconv
-        // 1.40 tag emission) with `ToolDecoratingChatClient` (qyl tool-wrapping).
-        // GenAiCallSiteAnalyzer is retained for compile-time capability discovery only.
+        // Runtime IChatClient + AIAgent instrumentation is handled at composition
+        // root via `builder.UseQylTelemetry()` (qyl.instrumentation/GenAi/
+        // GenAiInstrumentation.cs): Microsoft.Extensions.AI's `UseOpenTelemetry()`
+        // middleware emits GenAI semconv 1.40 tags; `ToolDecoratingChatClient`
+        // wraps every AIFunction with qyl tool-execution spans.
+        //
+        // No compile-time interceptors are generated for IChatClient / AIAgent /
+        // capability topology anymore — the upstream middleware owns that path.
 
         RegisterCollectedEmitterPipeline(context,
             dbCallSites, dbEnabled,
@@ -146,13 +131,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         RegisterCollectedEmitterPipeline(context,
             tracedCallSites, tracedEnabled,
             TracedInterceptorEmitter.Emit, GeneratedFile.TracedInterceptors, "QSG005");
-
-        RegisterCollectedEmitterPipeline(context,
-            agentCallSites, agentEnabled,
-            AgentInterceptorEmitter.Emit, GeneratedFile.AgentInterceptors, "QSG006");
-
-        // GenAi call sites feed the capability manifest pipeline below (providers, models, operations)
-        // but no longer generate interceptor code — InstrumentedChatClient handles runtime instrumentation.
 
         // =====================================================================
         // TOOL MANIFEST PIPELINE
@@ -244,30 +222,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     spc.AddSource(GeneratedFile.ToolManifest, SourceText.From(source, Encoding.UTF8));
             });
 
-        // =====================================================================
-        // CAPABILITY MANIFEST PIPELINE
-        // Emits [assembly: GeneratedCapabilityAttribute] for cross-assembly
-        // discovery. Capabilities are always emitted (not gated by toggles)
-        // because they reflect inherent service topology, not active telemetry.
-        // =====================================================================
-
-        var capabilityInput = genAiCallSites
-            .CollectAsEquatableArray()
-            .Combine(agentCallSites.CollectAsEquatableArray())
-            .Combine(qylRuntimeAvailable);
-
-        context.RegisterSourceOutput(capabilityInput, static (spc, input) =>
-        {
-            var ((genAi, agents), runtimeAvailable) = input;
-            if (!runtimeAvailable) return;
-
-            var source = CapabilityEmitter.Emit(
-                genAi.AsImmutableArray(),
-                agents.AsImmutableArray());
-
-            if (!string.IsNullOrEmpty(source))
-                spc.AddSource(GeneratedFile.Capabilities, SourceText.From(source, Encoding.UTF8));
-        });
     }
 
     // =========================================================================
@@ -462,11 +416,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         IncrementalValueProvider<bool> meterEnabled,
         IncrementalValuesProvider<TracedCallSite> tracedCallSites,
         IncrementalValueProvider<bool> tracedEnabled,
-        IncrementalValuesProvider<GenAiCallSite> genAiCallSites,
-        IncrementalValuesProvider<AgentCallSite> agentCallSites,
         IncrementalValueProvider<PipelineToggles> toggles)
     {
-        // Telemetry sources (existing: meters + traced activity sources)
+        // Telemetry sources: meters + traced activity sources
         var currentTelemetry = meterDefinitions
             .CollectAsEquatableArray()
             .Combine(meterEnabled)
@@ -479,29 +431,19 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             })
             .WithTrackingName(PipelineStage.GeneratedTelemetryCurrentDiscovered);
 
-        // Capabilities (new: GenAI + Agent topology data)
-        var currentCapabilities = genAiCallSites
-            .CollectAsEquatableArray()
-            .Combine(agentCallSites.CollectAsEquatableArray())
-            .Select(static (input, _) => BuildCurrentCapabilities(input.Left, input.Right))
-            .WithTrackingName(PipelineStage.CapabilitiesCurrentDiscovered);
-
-        // Referenced assemblies (telemetry + capabilities)
+        // Referenced assemblies: pick up [GeneratedActivitySource] / [GeneratedMeter]
         var referencedRegistration = context.CompilationProvider
             .Select(CollectReferencedServiceRegistration)
             .WithTrackingName(PipelineStage.GeneratedTelemetryReferencedDiscovered);
 
         return currentTelemetry
-            .Combine(currentCapabilities)
             .Combine(referencedRegistration)
             .Combine(toggles)
             .Select(static (input, _) =>
             {
-                var (((telemetry, capabilities), referenced), toggles) = input;
+                var ((telemetry, referenced), toggles) = input;
                 return FilterServiceRegistration(
-                    MergeServiceRegistrations(
-                        MergeTelemetryWithCapabilities(telemetry, capabilities),
-                        referenced),
+                    MergeServiceRegistrations(telemetry, referenced),
                     toggles);
             })
             .WithTrackingName(PipelineStage.GeneratedTelemetryCombined);
@@ -509,7 +451,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     // --- Current assembly extraction ---
 
-    private static TelemetryRegistration BuildCurrentTelemetryRegistration(
+    private static GeneratedServiceRegistration BuildCurrentTelemetryRegistration(
         EquatableArray<MeterDefinition> meters,
         EquatableArray<TracedCallSite> tracedCallSites) =>
         new(
@@ -530,45 +472,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     .ToArray()
                     .ToEquatableArray());
 
-    private static CapabilityRegistration BuildCurrentCapabilities(
-        EquatableArray<GenAiCallSite> genAi,
-        EquatableArray<AgentCallSite> agents) =>
-        new(
-            agents.IsDefaultOrEmpty
-                ? default
-                : agents
-                    .Where(static c => c.AgentName is not null)
-                    .Select(static c => c.AgentName!)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static n => n, StringComparer.Ordinal)
-                    .ToArray()
-                    .ToEquatableArray(),
-            genAi.IsDefaultOrEmpty
-                ? default
-                : genAi
-                    .Select(static c => c.Provider)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static n => n, StringComparer.Ordinal)
-                    .ToArray()
-                    .ToEquatableArray(),
-            genAi.IsDefaultOrEmpty
-                ? default
-                : genAi
-                    .Where(static c => c.Model is not null)
-                    .Select(static c => c.Model!)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static n => n, StringComparer.Ordinal)
-                    .ToArray()
-                    .ToEquatableArray(),
-            genAi.IsDefaultOrEmpty
-                ? default
-                : genAi
-                    .Select(static c => c.Operation)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static n => n, StringComparer.Ordinal)
-                    .ToArray()
-                    .ToEquatableArray());
-
     // --- Referenced assembly scanning ---
 
     private static GeneratedServiceRegistration CollectReferencedServiceRegistration(
@@ -577,45 +480,30 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     {
         var activitySources = new SortedSet<string>(StringComparer.Ordinal);
         var meterNames = new SortedSet<string>(StringComparer.Ordinal);
-        var agents = new SortedSet<string>(StringComparer.Ordinal);
-        var genAiProviders = new SortedSet<string>(StringComparer.Ordinal);
-        var genAiModels = new SortedSet<string>(StringComparer.Ordinal);
-        var genAiOperations = new SortedSet<string>(StringComparer.Ordinal);
 
         foreach (var reference in compilation.References)
         {
             if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly)
                 continue;
 
-            CollectGeneratedAttributes(
-                assembly.GetAttributes(),
-                activitySources, meterNames,
-                agents, genAiProviders, genAiModels, genAiOperations);
+            CollectGeneratedAttributes(assembly.GetAttributes(), activitySources, meterNames);
         }
 
         return new GeneratedServiceRegistration(
             activitySources.Count is 0 ? default : activitySources.ToArray().ToEquatableArray(),
-            meterNames.Count is 0 ? default : meterNames.ToArray().ToEquatableArray(),
-            agents.Count is 0 ? default : agents.ToArray().ToEquatableArray(),
-            genAiProviders.Count is 0 ? default : genAiProviders.ToArray().ToEquatableArray(),
-            genAiModels.Count is 0 ? default : genAiModels.ToArray().ToEquatableArray(),
-            genAiOperations.Count is 0 ? default : genAiOperations.ToArray().ToEquatableArray());
+            meterNames.Count is 0 ? default : meterNames.ToArray().ToEquatableArray());
     }
 
     private static void CollectGeneratedAttributes(
         ImmutableArray<AttributeData> attributes,
         SortedSet<string> activitySources,
-        SortedSet<string> meterNames,
-        SortedSet<string> agents,
-        SortedSet<string> genAiProviders,
-        SortedSet<string> genAiModels,
-        SortedSet<string> genAiOperations)
+        SortedSet<string> meterNames)
     {
         foreach (var attribute in attributes)
         {
             var attributeName = attribute.AttributeClass?.ToDisplayString();
 
-            // Telemetry attributes: [GeneratedActivitySource("name")] / [GeneratedMeter("name")]
+            // [GeneratedActivitySource("name")] / [GeneratedMeter("name")]
             if (attribute.ConstructorArguments.Length is 1 &&
                 attribute.GetConstructorArgument<string>(0) is { Length: > 0 } name)
             {
@@ -625,47 +513,17 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                 else if (string.Equals(attributeName, WellKnownType.GeneratedMeterAttribute, StringComparison.Ordinal))
                     meterNames.Add(name);
             }
-
-            // Capability attributes: [GeneratedCapability("kind", "value")]
-            if (attribute.ConstructorArguments.Length is 2 &&
-                string.Equals(attributeName, WellKnownType.GeneratedCapabilityAttribute, StringComparison.Ordinal) &&
-                attribute.GetConstructorArgument<string>(0) is { Length: > 0 } kind &&
-                attribute.GetConstructorArgument<string>(1) is { Length: > 0 } value)
-            {
-                switch (kind)
-                {
-                    case CapabilityKind.Agent: agents.Add(value); break;
-                    case CapabilityKind.GenAiProvider: genAiProviders.Add(value); break;
-                    case CapabilityKind.GenAiModel: genAiModels.Add(value); break;
-                    case CapabilityKind.GenAiOperation: genAiOperations.Add(value); break;
-                }
-            }
         }
     }
 
     // --- Merge & filter ---
-
-    private static GeneratedServiceRegistration MergeTelemetryWithCapabilities(
-        TelemetryRegistration telemetry,
-        CapabilityRegistration capabilities) =>
-        new(
-            telemetry.ActivitySources,
-            telemetry.MeterNames,
-            capabilities.AgentNames,
-            capabilities.GenAiProviders,
-            capabilities.GenAiModels,
-            capabilities.GenAiOperations);
 
     private static GeneratedServiceRegistration MergeServiceRegistrations(
         GeneratedServiceRegistration current,
         GeneratedServiceRegistration referenced) =>
         new(
             MergeNames(current.ActivitySources, referenced.ActivitySources),
-            MergeNames(current.MeterNames, referenced.MeterNames),
-            MergeNames(current.CapabilityAgents, referenced.CapabilityAgents),
-            MergeNames(current.CapabilityGenAiProviders, referenced.CapabilityGenAiProviders),
-            MergeNames(current.CapabilityGenAiModels, referenced.CapabilityGenAiModels),
-            MergeNames(current.CapabilityGenAiOperations, referenced.CapabilityGenAiOperations));
+            MergeNames(current.MeterNames, referenced.MeterNames));
 
     private static EquatableArray<string> MergeNames(
         EquatableArray<string> left,
@@ -687,24 +545,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         PipelineToggles toggles) =>
         new(
             toggles.Traced ? registration.ActivitySources : default,
-            toggles.Meter ? registration.MeterNames : default,
-            // Capabilities are not gated by toggles — they reflect inherent topology
-            registration.CapabilityAgents,
-            registration.CapabilityGenAiProviders,
-            registration.CapabilityGenAiModels,
-            registration.CapabilityGenAiOperations);
+            toggles.Meter ? registration.MeterNames : default);
 
     private static string? BuildGeneratedServiceRegistrationLambda(
         GeneratedServiceRegistration registration)
     {
-        var hastelemetry = !registration.ActivitySources.IsDefaultOrEmpty ||
-                           !registration.MeterNames.IsDefaultOrEmpty;
-        var hasCapabilities = !registration.CapabilityAgents.IsDefaultOrEmpty ||
-                              !registration.CapabilityGenAiProviders.IsDefaultOrEmpty ||
-                              !registration.CapabilityGenAiModels.IsDefaultOrEmpty ||
-                              !registration.CapabilityGenAiOperations.IsDefaultOrEmpty;
-
-        if (!hastelemetry && !hasCapabilities)
+        if (registration.ActivitySources.IsDefaultOrEmpty && registration.MeterNames.IsDefaultOrEmpty)
             return null;
 
         var sb = new StringBuilder();
@@ -717,22 +563,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         foreach (var meterName in registration.MeterNames)
             sb.AppendLine($"            options.AdditionalMeterNames.Add({Literal(meterName)});");
 
-        AppendCapabilityAttribute(sb, "qyl.capability.agents", registration.CapabilityAgents);
-        AppendCapabilityAttribute(sb, "qyl.capability.genai.providers", registration.CapabilityGenAiProviders);
-        AppendCapabilityAttribute(sb, "qyl.capability.genai.models", registration.CapabilityGenAiModels);
-        AppendCapabilityAttribute(sb, "qyl.capability.genai.operations", registration.CapabilityGenAiOperations);
-
         sb.Append("        }");
         return sb.ToString();
-    }
-
-    private static void AppendCapabilityAttribute(
-        StringBuilder sb, string key, EquatableArray<string> values)
-    {
-        if (values.IsDefaultOrEmpty) return;
-        var items = string.Join(", ", values.Select(static v => Literal(v)));
-        sb.AppendLine(
-            $"            options.CapabilityAttributes.Add(new({Literal(key)}, new string[] {{ {items} }}));");
     }
 
     private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
@@ -754,15 +586,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string QylServiceDefaults = "Qyl.Instrumentation.QylServiceDefaults";
         public const string GeneratedActivitySourceAttribute = "Qyl.Instrumentation.GeneratedActivitySourceAttribute";
         public const string GeneratedMeterAttribute = "Qyl.Instrumentation.GeneratedMeterAttribute";
-        public const string GeneratedCapabilityAttribute = "Qyl.Instrumentation.GeneratedCapabilityAttribute";
-    }
-
-    private static class CapabilityKind
-    {
-        public const string Agent = "agent";
-        public const string GenAiProvider = "genai.provider";
-        public const string GenAiModel = "genai.model";
-        public const string GenAiOperation = "genai.operation";
     }
 
     /// <summary>
@@ -791,9 +614,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Builder interception pipeline
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
 
-        // GenAI interception pipeline
-        public const string GenAiCallSitesDiscovered = nameof(GenAiCallSitesDiscovered);
-
         // Database interception pipeline
         public const string DbCallSitesDiscovered = nameof(DbCallSitesDiscovered);
 
@@ -802,9 +622,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Traced method pipeline
         public const string TracedCallSitesDiscovered = nameof(TracedCallSitesDiscovered);
-
-        // Agent interception pipeline
-        public const string AgentCallSitesDiscovered = nameof(AgentCallSitesDiscovered);
 
         // Tool manifest pipeline
         public const string ToolTypesDiscovered = nameof(ToolTypesDiscovered);
@@ -818,9 +635,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // DI / health-check auto-registration pipelines
         public const string QylServicesDiscovered = nameof(QylServicesDiscovered);
         public const string QylHealthChecksDiscovered = nameof(QylHealthChecksDiscovered);
-
-        // Capability manifest pipeline
-        public const string CapabilitiesCurrentDiscovered = nameof(CapabilitiesCurrentDiscovered);
 
         // MSBuild property toggle check
         public const string ToggleCheck = nameof(ToggleCheck);
@@ -840,8 +654,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string DbInterceptors = "DbIntercepts.g.cs";
         public const string MeterImplementations = "MeterImplementations.g.cs";
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
-        public const string AgentInterceptors = "AgentIntercepts.g.cs";
-        public const string Capabilities = "QylCapabilities.g.cs";
         public const string ToolManifest = "QylToolManifest.g.cs";
         public const string HostedServiceRegistry = "QylGeneratedRegistry.g.cs";
     }
@@ -851,27 +663,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     /// </summary>
     private sealed record PipelineToggles(
         bool Database,
-        bool Agent,
         bool Traced,
         bool Meter);
 
-    private readonly record struct TelemetryRegistration(
-        EquatableArray<string> ActivitySources,
-        EquatableArray<string> MeterNames);
-
-    private readonly record struct CapabilityRegistration(
-        EquatableArray<string> AgentNames,
-        EquatableArray<string> GenAiProviders,
-        EquatableArray<string> GenAiModels,
-        EquatableArray<string> GenAiOperations);
-
     private readonly record struct GeneratedServiceRegistration(
         EquatableArray<string> ActivitySources,
-        EquatableArray<string> MeterNames,
-        EquatableArray<string> CapabilityAgents,
-        EquatableArray<string> CapabilityGenAiProviders,
-        EquatableArray<string> CapabilityGenAiModels,
-        EquatableArray<string> CapabilityGenAiOperations);
+        EquatableArray<string> MeterNames);
 
     private readonly record struct BuilderInterceptorInput(
         EquatableArray<BuilderCallSite> CallSites,

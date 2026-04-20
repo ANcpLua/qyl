@@ -131,35 +131,6 @@ internal sealed record BuilderCallSite(
 
 #endregion
 
-#region GenAI Call Site Types
-
-/// <summary>
-///     A discovered GenAI SDK call site ready for instrumentation.
-/// </summary>
-/// <remarks>
-///     Contains complete semantic information extracted from a GenAI method call.
-///     This enables generating OTel-compliant spans with proper gen_ai.* attributes.
-/// </remarks>
-internal sealed record GenAiCallSite(
-    string SortKey,
-    string Provider,
-    string Operation,
-    string? Model,
-    string ContainingTypeName,
-    string MethodName,
-    bool IsAsync,
-    string ReturnTypeName,
-    EquatableArray<string> ParameterTypes,
-    InterceptableLocation Location)
-{
-    /// <summary>
-    ///     True if return type is IAsyncEnumerable (streaming response).
-    /// </summary>
-    public bool IsStreaming => ReturnTypeName.StartsWithOrdinal("System.Collections.Generic.IAsyncEnumerable<");
-}
-
-#endregion
-
 #region Database Call Site Types
 
 /// <summary>
@@ -231,40 +202,6 @@ internal sealed record MetricTagParameter(
     string ParameterName,
     string TagName,
     string TypeName);
-
-#endregion
-
-#region Agent Call Site Types
-
-/// <summary>
-///     The kind of Microsoft.Agents.AI call being intercepted.
-/// </summary>
-internal enum AgentCallKind
-{
-    /// <summary>AIAgent.InvokeAsync / ChatClientAgent.InvokeAsync</summary>
-    InvokeAsync,
-
-    /// <summary>AIAgentBuilder.AddAgent / UseAgent / ConfigureAgent</summary>
-    BuilderRegistration,
-
-    /// <summary>[AgentTraced]-decorated method</summary>
-    AgentTracedMethod
-}
-
-/// <summary>
-///     A discovered Microsoft.Agents.AI call site ready for instrumentation.
-/// </summary>
-internal sealed record AgentCallSite(
-    string SortKey,
-    string? AgentName,
-    AgentCallKind Kind,
-    string ContainingTypeName,
-    string MethodName,
-    bool IsAsync,
-    string ReturnTypeName,
-    EquatableArray<string> ParameterTypes,
-    EquatableArray<string> ParameterNames,
-    InterceptableLocation Location);
 
 #endregion
 
