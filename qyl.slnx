@@ -31,15 +31,10 @@
     <!-- TESTS -->
 
     <Folder Name="/tests/">
-        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
-        <Project Path="tests/qyl.mcp.generators.tests/qyl.mcp.generators.tests.csproj" />
-        <File Path="tests\Qyl.Agents.Generator.Tests\McpServerGeneratorTests.cs" />
-        <File Path="tests\qyl.mcp.tests\GlobalUsings.cs" />
-        <File Path="tests\qyl.mcp.tests\HttpTelemetryStoreTests.cs" />
-        <File Path="tests\qyl.mcp.tests\McpCollectorHttpClientExtensionsTests.cs" />
-        <File Path="tests\qyl.mcp.tests\McpTelemetryTests.cs" />
         <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj" />
         <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj" />
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
+        <Project Path="tests/qyl.mcp.generators.tests/qyl.mcp.generators.tests.csproj" />
         <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
     </Folder>
 
@@ -160,17 +155,20 @@
     <!-- DOCS -->
 
     <Folder Name="/docs/">
-        <File Path="docs\2026 mcp sdk roadmap.md" />
-        <File Path="docs\ANcpLua.Roslyn.Utilities.qlyextension.md.md" />
-        <File Path="docs\convergence-plan.md" />
-        <File Path="docs\MCP sse 1.2.0.md" />
-        <File Path="docs\netagents.md" />
-        <File Path="docs\planned\2026-04-18-lsp-phase2-typescript.md" />
-        <File Path="docs\planned\2026-04-18-lsp-phase3-loom-bridge.md" />
-        <File Path="docs\planned\2026-04-18-oauth-playwright-e2e.md" />
-        <File Path="docs\plans\2026-04-07-generated-metadata-capability-guides-and-host-split.md" />
-        <File Path="docs\seer-competitive-intel-v7.md" />
-        <File Path="docs\specs\2026-04-08-result-cap-coaching-design.md" />
+        <File Path="docs/ARCHITECTURE.md" />
+        <File Path="docs/OPEN_WORK.md" />
+        <File Path="docs/THREAT_MODEL.md" />
+        <File Path="docs/aot-assessment.md" />
+        <File Path="docs/attribute.md" />
+        <File Path="docs/emitters.md" />
+        <File Path="docs/example.md" />
+        <File Path="docs/generator.md" />
+        <File Path="docs/mcp-oauth-runbook.md" />
+    </Folder>
+    <Folder Name="/docs/planned/">
+        <File Path="docs/planned/2026-04-18-lsp-phase2-typescript.md" />
+        <File Path="docs/planned/2026-04-18-lsp-phase3-loom-bridge.md" />
+        <File Path="docs/planned/2026-04-18-oauth-playwright-e2e.md" />
     </Folder>
 
     <!-- CI/CD -->
@@ -181,7 +179,8 @@
         <File Path=".github/workflows/auto-merge.yml" />
         <File Path=".github/workflows/ci.yml" />
         <File Path=".github/workflows/claude.yml" />
-        <File Path=".github/workflows/pages.yml" />
+        <File Path=".github/workflows/deploy-mcp.yml" />
+        <File Path=".github/workflows/release-mcp.yml" />
         <File Path=".github/workflows/release.yml" />
     </Folder>
 
