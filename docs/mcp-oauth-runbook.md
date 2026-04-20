@@ -1,156 +1,164 @@
-# MCP OAuth runbook — `mcp.qyl.info`
+# MCP OAuth
 
-**Audience:** on-call operator debugging an OAuth failure against `qyl.mcp` in HTTP mode.
-**Scope:** end-user `authorization_code + PKCE` flow (Claude Code / Claude Desktop → Keycloak → `mcp.qyl.info`). The
-separate **service-to-service** `client_credentials` flow used by `KeycloakTokenProvider` (MCP → collector) is
-intentionally out of scope — different code path, different failure modes.
+How `qyl.mcp` authenticates end-user clients (Claude Code, Claude Desktop) against Keycloak over HTTP transport, the discovery endpoints it exposes, the audit events it emits, and the failure modes an operator is likely to hit.
 
-## TL;DR commands
+Scope: the **authorization_code + PKCE** flow from an MCP client to `mcp.qyl.info`. The separate **client_credentials** flow used by `KeycloakTokenProvider` for qyl.mcp → qyl.collector calls is a different code path and is not covered here.
 
-```bash
-# 1. Is the server healthy?
-curl -sSf https://mcp.qyl.info/healthz
-
-# 2. Does OAuth discovery work? Both paths should return the same JSON.
-curl -sS https://mcp.qyl.info/.well-known/oauth-protected-resource/mcp | jq
-curl -sS https://mcp.qyl.info/.well-known/oauth-protected-resource | jq
-# Both are served by ModelContextProtocol.AspNetCore 1.2.0 and return the same
-# payload — no redirect, no alias in the qyl layer.
-
-# 3. What does an invalid token look like from the server's POV?
-curl -sS -i -H "Authorization: Bearer invalid-token" https://mcp.qyl.info/mcp | head
-
-# 4. What does the Keycloak realm advertise?
-curl -sS https://keycloak.example.com/realms/qyl/.well-known/openid-configuration | jq
-```
-
-## Expected discovery URLs
-
-| URL                                                                        | Served by                                                                                      | Purpose                                                                                 |
-|----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| `https://mcp.qyl.info/.well-known/oauth-protected-resource/mcp`            | `ModelContextProtocol.AspNetCore` 1.2.0 (resource-scoped route registered by `MapMcp("/mcp")`) | Returns `{resource, authorization_servers, bearer_methods_supported, ...}` per RFC 9728 |
-| `https://mcp.qyl.info/.well-known/oauth-protected-resource`                | `ModelContextProtocol.AspNetCore` 1.2.0 (root fallback, also registered by `MapMcp`)           | Same payload as above. Confirmed empirically — no alias needed in `QylMcpHttpHost`.     |
-| `https://keycloak.example.com/realms/qyl/.well-known/openid-configuration` | Keycloak (OIDC discovery)                                                                      | Returns `issuer`, `authorization_endpoint`, `token_endpoint`, `jwks_uri`, etc.          |
-| `https://keycloak.example.com/realms/qyl/protocol/openid-connect/certs`    | Keycloak (JWKS)                                                                                | Fetched by `JwtBearer` to validate token signatures                                     |
-
-**RFC 9728 compliance note:** the `resource` field in the protected-resource metadata MUST equal the URL the client
-used. The MCP library's `ClientOAuthProvider.VerifyResourceMatch` enforces this. Because both root and resource-scoped
-paths return the **same** payload with a single `resource` field set from `ResolvePublicMcpUrl`, the invariant holds;
-this is also why `QYL_MCP_PUBLIC_URL` must be set in production.
-
-## Expected invalid-token response
+## Authentication Flow
 
 ```
-curl -sS -i -H "Authorization: Bearer invalid" https://mcp.qyl.info/mcp
+MCP client                     qyl.mcp                        Keycloak
+ (Claude Code)                  (mcp.qyl.info)                 (realms/qyl)
+ │                              │                              │
+ │  GET /mcp                    │                              │
+ │  (no token)                  │                              │
+ │─────────────────────────────>│                              │
+ │                              │                              │
+ │  401 + WWW-Authenticate:     │                              │
+ │  resource_metadata=".../mcp" │                              │
+ │<─────────────────────────────│                              │
+ │                              │                              │
+ │  GET /.well-known/           │                              │
+ │  oauth-protected-resource/mcp│                              │
+ │─────────────────────────────>│                              │
+ │                              │                              │
+ │  { resource, authorization_  │                              │
+ │  servers: [keycloak], ... }  │                              │
+ │<─────────────────────────────│                              │
+ │                              │                              │
+ │  GET /.well-known/openid-configuration (issuer)             │
+ │────────────────────────────────────────────────────────────>│
+ │                              │                              │
+ │  POST /clients-registrations/openid-connect (DCR)           │
+ │────────────────────────────────────────────────────────────>│
+ │                              │                              │
+ │  PKCE dance: authorization_endpoint → token_endpoint        │
+ │<═══════════════════════════════════════════════════════════>│
+ │                              │                              │
+ │  GET /mcp                    │                              │
+ │  Authorization: Bearer ...   │                              │
+ │─────────────────────────────>│                              │
+ │                              │  Fetch JWKS + validate sig   │
+ │                              │─────────────────────────────>│
+ │                              │<─────────────────────────────│
+ │  200 OK (MCP handshake)      │                              │
+ │<─────────────────────────────│                              │
+```
+
+The `WWW-Authenticate` header's `resource_metadata` URL is how clients discover the authorization server per RFC 9728. `ModelContextProtocol.AspNetCore` 1.2.0 registers both the root and resource-scoped well-known paths from `MapMcp("/mcp")`.
+
+## Discovery Endpoints
+
+| URL | Served by | Payload |
+|-----|-----------|---------|
+| `/.well-known/oauth-protected-resource/mcp` | MCP library 1.2.0 | RFC 9728 `{ resource, authorization_servers, bearer_methods_supported }` |
+| `/.well-known/oauth-protected-resource` | MCP library 1.2.0 (root fallback) | Same payload — no qyl alias needed |
+| `/realms/qyl/.well-known/openid-configuration` | Keycloak | `issuer`, `authorization_endpoint`, `token_endpoint`, `jwks_uri` |
+| `/realms/qyl/protocol/openid-connect/certs` | Keycloak | JWKS for `JwtBearer` signature validation |
+
+The `resource` field in the protected-resource metadata MUST equal the URL the client used (`ClientOAuthProvider.VerifyResourceMatch`). Because both well-known paths return the same payload with `resource` set from `ResolvePublicMcpUrl`, the invariant holds — this is why `QYL_MCP_PUBLIC_URL` is mandatory behind a proxy.
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `QYL_KEYCLOAK_AUTHORITY` | HTTP mode | Issuer URL (e.g. `https://keycloak.example.com/realms/qyl`). Unset = auth disabled, HTTP mode is open. |
+| `QYL_KEYCLOAK_AUDIENCE` | with authority | Expected `aud` claim. **Fail-fast**: setting authority without audience aborts startup. |
+| `QYL_MCP_PUBLIC_URL` | behind proxy | Public origin for metadata (`https://mcp.qyl.info`). Required when `X-Forwarded-Host` differs from request host. |
+| `QYL_KEYCLOAK_CLIENT_ID` | qyl.mcp → qyl.collector | Client credentials flow (service-to-service, not end-user). |
+| `QYL_KEYCLOAK_CLIENT_SECRET` | qyl.mcp → qyl.collector | Paired with client id. |
+
+## Invalid-Token Response
+
+```
+$ curl -sS -i -H "Authorization: Bearer invalid" https://mcp.qyl.info/mcp
 
 HTTP/2 401
 www-authenticate: Bearer resource_metadata="https://mcp.qyl.info/.well-known/oauth-protected-resource/mcp"
 content-length: 0
 ```
 
-Key headers:
+Any other status code means the pipeline is misconfigured — re-check `QYL_KEYCLOAK_AUTHORITY` and `endpoint.RequireAuthorization()` in `Hosting/QylMcpHttpHost.cs`.
 
-- `401 Unauthorized` — any other code indicates a misconfigured auth pipeline.
-- `WWW-Authenticate: Bearer resource_metadata="..."` — the `resource_metadata` URL is how MCP clients find the
-  authorization server per RFC 9728.
+## Audit Events
 
-If the response is `404` or `200`, the MCP endpoint isn't actually guarded — re-check `QYL_KEYCLOAK_AUTHORITY` and
-`endpoint.RequireAuthorization()` in `QylMcpHttpHost.cs:66`.
+Structured log events in the 4001–4099 range, emitted from `Hosting/QylMcpServiceCollectionExtensions.cs`:
 
-## Structured log events
+| EventId | Level | When | What to check |
+|---------|-------|------|---------------|
+| 4001 | Info | Protected-resource metadata requested | Healthy — fires once per cold client. |
+| 4002 | Info | JWT validated successfully | `sub` = Keycloak user id, `aud` = audience. |
+| 4003 | Warn | JWT authentication failed | `ExceptionType` pinpoints cause (see failure modes). |
+| 4004 | Warn | JWT valid but role check failed | Well-formed token; principal lacks required role. Authorization, not authentication. |
 
-`src/qyl.mcp/Hosting/QylMcpServiceCollectionExtensions.cs` emits four events in the 4001-4099 range:
-
-| EventId | Level       | When                                  | What to do                                                                                                                                                           |
-|---------|-------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 4001    | Information | Protected-resource metadata requested | Healthy traffic — this fires once per cold client.                                                                                                                   |
-| 4002    | Information | JWT validated successfully            | Healthy. `sub` = user's Keycloak id, `aud` = configured audience.                                                                                                    |
-| 4003    | Warning     | JWT authentication failed             | Token invalid. Inspect `ExceptionType` / `ExceptionMessage` — `SecurityTokenInvalidAudienceException` means the token's `aud` doesn't match `QYL_KEYCLOAK_AUDIENCE`. |
-| 4004    | Warning     | JWT valid but role check failed       | Token is well-formed but the principal lacks a required role. Authorization policy, not authentication.                                                              |
-
-Query these in Aspire Dashboard / Seq / whatever log backend is wired:
+Query from Aspire Dashboard / Seq / any OTel log backend:
 
 ```
 EventId.Id >= 4001 AND EventId.Id <= 4099
 ```
 
-## Known failure modes
+## Failure Modes
 
-### 1. "Audience validation must be explicit — refusing to start"
+### Audience validation refuses to start
 
-**Symptom:** container exits immediately on startup with `InvalidOperationException`.
+**Symptom:** container exits on boot with `InvalidOperationException: Audience validation must be explicit`.
 **Cause:** `QYL_KEYCLOAK_AUTHORITY` is set but `QYL_KEYCLOAK_AUDIENCE` is empty.
-**Fix:** set `QYL_KEYCLOAK_AUDIENCE=qyl-mcp-user` (or whatever audience the Keycloak mapper emits). This is the Spec 2
-fail-fast guard — it's doing its job. Never unset the guard; add the audience.
+**Fix:** set `QYL_KEYCLOAK_AUDIENCE=qyl-mcp-user` (or whatever the Keycloak mapper emits). Do not disable the guard.
 
-### 2. DCR (Dynamic Client Registration) disabled
+### DCR (Dynamic Client Registration) rejected
 
-**Symptom:** Claude Code reports "dynamic client registration failed" when running `claude mcp add`.
-**Cause:** the Keycloak realm doesn't accept `POST /realms/qyl/clients-registrations/openid-connect`.
-**Fix:** enable DCR at the realm level.
+**Symptom:** `claude mcp add` reports "dynamic client registration failed".
+**Cause:** realm doesn't accept `POST /realms/qyl/clients-registrations/openid-connect`.
+**Fix:** enable at realm level, or pre-register `qyl-mcp` manually from `infra/keycloak/qyl-realm.json`.
 
 ```bash
 kcadm.sh update realms/qyl -s 'attributes."clientRegistrationAllowed"=true'
-# then verify
-curl -sSf https://keycloak.example.com/realms/qyl/clients-registrations/openid-connect \
-  -H 'Content-Type: application/json' \
-  -d '{"client_name":"test","redirect_uris":["http://127.0.0.1/cb"]}' \
-  | jq
 ```
 
-If DCR is a hard "no" from your Keycloak admins, pre-register `qyl-mcp` manually per `infra/keycloak/qyl-realm.json` and
-hand the `client_id` to each user. DCR is better, but not a blocker.
+### Loopback port wildcards rejected
 
-### 3. Loopback port wildcards rejected (Keycloak < 25)
+**Symptom:** login succeeds but Keycloak returns "invalid redirect URI".
+**Cause:** Keycloak < 25 rejects `http://127.0.0.1/*` wildcards on port.
+**Fix:** upgrade to Keycloak 25+, or register explicit loopback ports (`:45678`, `:45679`, …).
 
-**Symptom:** Claude Code gets to the Keycloak login page but returns "invalid redirect URI" after login.
-**Cause:** older Keycloak rejects `http://127.0.0.1/*` as a wildcard on the port.
-**Fix:** upgrade Keycloak to 25+, or register explicit loopback ports (`http://127.0.0.1:45678/callback`,
-`http://127.0.0.1:45679/callback`, ...) — brittle but works.
+### Resource URI mismatch
 
-### 4. Resource mismatch — `ClientOAuthProvider.VerifyResourceMatch` fails
+**Symptom:** OAuth discovery succeeds, token exchange errors "resource URI mismatch".
+**Cause:** `resource` in metadata doesn't exactly match the client's request URL. Usually `QYL_MCP_PUBLIC_URL` is unset behind a proxy.
+**Fix:** `QYL_MCP_PUBLIC_URL=https://mcp.qyl.info`. `McpHostOptions.ResolvePublicMcpUrl` prefers it over `request.Host`.
 
-**Symptom:** Claude Code discovers OAuth metadata but then errors out on token exchange with "resource URI mismatch".
-**Cause:** the `resource` field in the protected-resource metadata doesn't exactly match the URL the client used.
-Usually caused by `QYL_MCP_PUBLIC_URL` being unset when the container sees an internal hostname via `X-Forwarded-Host`.
-**Fix:** set `QYL_MCP_PUBLIC_URL=https://mcp.qyl.info` in the container env. `McpHostOptions.ResolvePublicMcpUrl`
-prefers this over `request.Host`.
+### JWKS fetch fails silently
 
-### 5. JWKS fetch fails — silent handshake failure
-
-**Symptom:** all tokens return 401 regardless of validity. Event 4003 repeatedly logs
-`SecurityTokenSignatureKeyNotFoundException`.
-**Cause:** the `qyl.mcp` container can't reach `https://keycloak.example.com/realms/qyl/protocol/openid-connect/certs`.
-Common on private networks where the container has outbound restrictions.
-**Fix:** whitelist the Keycloak host from the container's egress. Test with:
+**Symptom:** every token returns 401. Event 4003 repeatedly logs `SecurityTokenSignatureKeyNotFoundException`.
+**Cause:** container egress can't reach `/realms/qyl/protocol/openid-connect/certs`.
+**Fix:** allowlist the Keycloak host. Verify from the container:
 
 ```bash
 docker exec qyl-mcp wget -qO- https://keycloak.example.com/realms/qyl/protocol/openid-connect/certs | jq
 ```
 
-### 6. Cold-start past SLO
+### Token has no `aud` claim
 
-**Symptom:** first `claude mcp add` against an idle instance times out.
-**Cause:** host scaled to zero; cold-start is 5-15s.
-**Fix:** `min_machines_running = 1` (Fly), paid tier (Railway), `minReplicas = 1` (ACA). See `infra/mcp/README.md`.
-
-### 7. Token has no `aud` claim
-
-**Symptom:** Event 4003 repeatedly logs `SecurityTokenInvalidAudienceException` with `aud` being null or a string that
-isn't `qyl-mcp-user`.
-**Cause:** the Keycloak audience mapper isn't attached to the client or isn't emitting to the access token.
-**Fix:** re-check the mapper config in `infra/keycloak/qyl-realm.json`:
+**Symptom:** Event 4003 logs `SecurityTokenInvalidAudienceException`, `aud` is null or unexpected.
+**Cause:** Keycloak audience mapper is not attached, or not emitting to the access token.
+**Fix:** `infra/keycloak/qyl-realm.json` mapper:
 
 ```
 protocolMapper: oidc-audience-mapper
 config:
   included.custom.audience: qyl-mcp-user
-  access.token.claim: "true"   # must be true; id.token.claim can be false
+  access.token.claim: "true"
 ```
 
-## Incident drill
+### Cold-start past SLO
 
-Once per quarter, run the full dance from a clean container to catch drift:
+**Symptom:** first `claude mcp add` against an idle instance times out.
+**Cause:** host scaled to zero.
+**Fix:** `min_machines_running = 1` (Fly), paid tier (Railway), `minReplicas = 1` (ACA). See `infra/mcp/README.md`.
+
+## Smoke Test
+
+From a clean container, end-to-end dance once per quarter to catch drift:
 
 ```bash
 docker run --rm -it mcr.microsoft.com/devcontainers/base:ubuntu bash -lc '
@@ -159,10 +167,22 @@ docker run --rm -it mcr.microsoft.com/devcontainers/base:ubuntu bash -lc '
 '
 ```
 
-If any step other than "browser login" is manual, something has regressed.
+Any step other than the browser login prompt being manual = regression.
 
-## When this runbook is wrong
+## Key Files
 
-When the symptoms don't match anything here: dump the auth-path logs (`EventId.Id between 4001 and 4099`) for the
-failing request, inspect the JWT on `https://jwt.io` (paste only in dev — never in prod), compare claims to the Keycloak
-realm config, and add the new failure mode to this runbook so the next operator benefits.
+| File | Purpose |
+|------|---------|
+| `src/qyl.mcp/Hosting/QylMcpHttpHost.cs` | Registers `MapMcp("/mcp")` + `RequireAuthorization()` |
+| `src/qyl.mcp/Hosting/QylMcpServiceCollectionExtensions.cs` | `JwtBearer` wiring, audit event sources (4001–4099) |
+| `src/qyl.mcp/Auth/McpAuthOptions.cs` | `QYL_KEYCLOAK_*` env var names + validation |
+| `src/qyl.mcp/Auth/McpAuthHandler.cs` | Authentication handler |
+| `src/qyl.mcp/Auth/McpAuthExtensions.cs` | Fail-fast audience guard |
+| `src/qyl.mcp/Auth/KeycloakTokenProvider.cs` | Service-to-service flow (out of scope for this doc) |
+| `src/qyl.mcp/McpHostOptions.cs` | `ResolvePublicMcpUrl`, `QYL_MCP_PUBLIC_URL` |
+| `infra/keycloak/qyl-realm.json` | Realm + client + audience mapper config |
+| `infra/mcp/README.md` | Deploy targets + cold-start tuning |
+
+## When This Doc Is Wrong
+
+If the symptom doesn't match any failure mode above: dump the 4001–4099 range for the failing request, paste the JWT into `https://jwt.io` (dev only — never a prod token), compare claims against the realm config, and add the new mode here.

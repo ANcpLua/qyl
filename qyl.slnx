@@ -155,9 +155,6 @@
     <!-- DOCS -->
 
     <Folder Name="/docs/">
-        <File Path="docs/ARCHITECTURE.md"/>
-        <File Path="docs/OPEN_WORK.md"/>
-        <File Path="docs/aot-assessment.md"/>
         <File Path="docs/mcp-oauth-runbook.md"/>
     </Folder>
     <Folder Name="/docs/planned/">
