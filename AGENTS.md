@@ -60,7 +60,7 @@ qyl/
 │   ├── Qyl.Agents.Abstractions/          # (merged) attribute surface: [Tool] [Prompt] [Resource]
 │   └── Qyl.Agents.Generator/             # (merged) full MCP server generator (dispatch, schemas, OTel, JSON contexts)
 ├── tests/                                # Per-project test assemblies (xUnit v3 + MTP)
-├── samples/                              # See samples/AGENTS.md
+├── samples/                              # Currently empty — see §Sample Structure
 ├── docs/
 │   ├── ARCHITECTURE.md                   # C4 Context / Container / Component
 │   ├── THREAT_MODEL.md                   # 20 attacker stories with P0–P3 priority
@@ -228,16 +228,39 @@ docker run --rm -it -d \
 
 ## Sample Structure
 
-See [`samples/AGENTS.md`](./samples/AGENTS.md) for the full sample layout and conventions. qyl samples are **capability-first, single-file, hosted-builder-based**, and never pretend that multiple bounded agents share magical conversation memory.
+**`samples/` is currently empty.** The Feb-2026 Loom monolith (`maf-agent-qyl/`) was removed on 2026-04-17. The production Loom pipeline lives under `src/qyl.loom/` (LLM-driven `AutofixAgentService` + `ExplorationOrchestrator`), not as a hosted-agents demo.
 
-When adding a new sample:
+### Where to learn what
 
-- Create a standalone project at `samples/<category>/<sample-name>/` (categories mirror MAF: `01-get-started`, `02-agents`, `03-workflows`, `04-hosting`, `05-end-to-end`).
+| You want to learn | Go to |
+|---|---|
+| MAF fundamentals (agents, sessions, tools, streaming, structured output, RAG) | `~/AgentFrameworkBook/` or upstream `microsoft/agent-framework/dotnet/samples/` |
+| qyl-specific MAF delta (`WithQylTelemetry`, `LoomRunState`, hosted `AddAIAgent`) | `.claude/skills/microsoft-agent-framework/SKILL.md` (qyl overlay) |
+| qyl's production autofix pipeline (real LLM chain, collector-integrated) | `src/qyl.loom/Autofix/AutofixAgentService.cs` |
+| qyl's interactive exploration (SSE streaming, diagnostician + strategist) | `src/qyl.loom/Exploration/ExplorationOrchestrator.cs` |
+| Loom generator attributes (`[LoomContract]` / `[LoomStep]` / `[LoomTool]` / `[LoomWorkflow]`) with real MAF `Executor` + `ProtocolBuilder` + `WorkflowBuilder` | `src/qyl.loom/CompilerDemo/LoomDemoWorkflow.cs` |
+| qyl MCP tool pattern (attributes + generator) | `src/qyl.mcp/Tools/` + the overlay's "Generator-driven attributes" section |
+
+### When to add a new sample
+
+Only when the sample demonstrates something **qyl-specific** that neither upstream nor `~/AgentFrameworkBook/` covers:
+
+- `WithQylTelemetry` wiring against a non-obvious provider
+- End-to-end `[QylSkill]` + `[QylCapability]` tool declaration hitting the qyl.mcp generator output
+- `InvestigationLineage` guard exercised in a multi-step agent sequence
+- `LoomRunState` discipline across bounded agents with real trace assertions
+
+Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBook/`, not here.
+
+### Rules for a qyl-specific sample
+
+- Standalone project at `samples/<category>/<name>/` (categories mirror MAF: `01-get-started`, `02-agents`, `03-workflows`, `04-hosting`, `05-end-to-end`).
 - Add the `.csproj` to `qyl.slnx`.
 - Include a `README.md` with required env vars, the exact `dotnet run --project ...` invocation, and expected output.
 - Configure via environment variables — never hardcode secrets.
-- Wire OTel on every sample (even the smallest). qyl is observability; every sample should show up in the Aspire Dashboard.
-- Reference the sample in `samples/README.md`.
+- Wire OTel on every sample. qyl is observability; every sample should show up in the Aspire Dashboard.
+- Reference `FakeChatClient` from `ANcpLua.Roslyn.Utilities.Testing.AgentTesting.ChatClients` for mock chat behavior (never hand-roll `Moq<IChatClient>`).
+- UTF-8 with BOM on new `.cs` files. Copyright `// Copyright (c) 2025-2026 ancplua`.
 
 ## Compile-time wiring — single source of truth
 
@@ -294,4 +317,4 @@ When adding a new sample:
 
 ## A note to the agent
 
-When you learn something non-obvious, update this AGENTS.md or a sibling like `samples/AGENTS.md` so future sessions benefit. Never ask for confirmation on non-destructive edits.
+When you learn something non-obvious, update this AGENTS.md (root) so future sessions benefit. Never ask for confirmation on non-destructive edits.
