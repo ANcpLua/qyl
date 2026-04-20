@@ -157,11 +157,7 @@
     <Folder Name="/docs/">
         <File Path="docs/ARCHITECTURE.md" />
         <File Path="docs/OPEN_WORK.md" />
-        <File Path="docs/THREAT_MODEL.md" />
         <File Path="docs/aot-assessment.md" />
-        <File Path="docs/attribute.md" />
-        <File Path="docs/emitters.md" />
-        <File Path="docs/generator.md" />
         <File Path="docs/mcp-oauth-runbook.md" />
     </Folder>
     <Folder Name="/docs/planned/">
