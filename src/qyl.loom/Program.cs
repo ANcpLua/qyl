@@ -43,8 +43,12 @@ builder.Services.AddSingleton<ExplorationOrchestrator>();
 // Code review
 builder.Services.AddSingleton<CodeReviewService>();
 
-// MCP server
+// MCP server — tools dispatched by official MCP SDK
 builder.Services.AddSingleton<LoomGodAnalyzerServer>();
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<LoomGodAnalyzerServer>();
 
 var app = builder.Build();
 
@@ -128,8 +132,7 @@ app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", asyn
 
 // ── MCP server ──────────────────────────────────────────────────────────────
 
-var loomServer = app.Services.GetRequiredService<LoomGodAnalyzerServer>();
-app.MapLoomGodAnalyzerServer(loomServer);
+app.MapMcp("/mcp/loom");
 
 app.Run();
 

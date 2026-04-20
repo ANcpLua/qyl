@@ -17,8 +17,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
-    <PackageReference Include="Qyl.Agents.Abstractions"/>
-    <PackageReference Include="Qyl.Agents"/>
+    <PackageReference Include="ModelContextProtocol"/>
+    <PackageReference Include="ModelContextProtocol.AspNetCore"/>
   </ItemGroup>
 
   <ItemGroup>

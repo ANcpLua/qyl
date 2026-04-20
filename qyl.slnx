@@ -18,11 +18,6 @@
         <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
         <Project Path="src/qyl.mcp.generators/qyl.mcp.generators.csproj"/>
     </Folder>
-    <Folder Name="/src/agents/">
-        <Project Path="src/Qyl.Agents/Qyl.Agents.csproj"/>
-        <Project Path="src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj"/>
-        <Project Path="src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj"/>
-    </Folder>
     <Folder Name="/src/"/>
     <Folder Name="/src/dashboard/">
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
@@ -31,8 +26,6 @@
     <!-- TESTS -->
 
     <Folder Name="/tests/">
-        <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj"/>
-        <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj"/>
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
         <Project Path="tests/qyl.mcp.generators.tests/qyl.mcp.generators.tests.csproj"/>
         <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj"/>

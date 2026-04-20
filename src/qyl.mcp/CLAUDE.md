@@ -24,10 +24,12 @@ hit. Constraints:
 - **No filter-level enforcement.** Coaching is explicit and context-aware at the tool level.
 - **Fixed-scope tools skip coaching.** `list_trace_logs`, `get_error_issue` events, `export_for_agent`.
 
-## Generator (interim)
+## Generator
 
-`src/qyl.mcp.generators/` is an interim generator that emits `QylToolManifest` with `ToolTypes[]`, `ToolDescriptors[]`,
-and `CreateTools()`. It will be replaced by `Qyl.Agents.Generator` when the convergence plan completes. See
-`docs/plans/2026-04-10-complete-cp2-cp3-post-merge.md`.
+`src/qyl.mcp.generators/` emits `QylToolManifest` with `ToolTypes[]`, `ToolDescriptors[]`, and `CreateTools()`. It is
+the **single** MCP tool-discovery generator in qyl — the legacy `Qyl.Agents.Generator` / `Qyl.Agents.Abstractions` /
+`Qyl.Agents` triad was removed on 2026-04-20 after convergence. Both `qyl.mcp` and `qyl.loom` now stand on the official
+`ModelContextProtocol` SDK for protocol + dispatch, with `qyl.mcp.generators` layered on top for skill-aware manifest
+emission.
 
 The emitter uses `IndentedStringBuilder.BeginBlock()` pattern (not `Indent()/Outdent()` which are internal).

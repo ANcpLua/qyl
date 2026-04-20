@@ -22,7 +22,6 @@
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>
     <MicrosoftIdentityModelVersion>8.17.0</MicrosoftIdentityModelVersion>
-    <QylAgentsVersion>0.2.0</QylAgentsVersion>
     <NukeVersion>10.1.0</NukeVersion>
     <NetArchTestVersion>1.3.2</NetArchTestVersion>
     <YamlDotNetVersion>16.3.0</YamlDotNetVersion>

@@ -76,10 +76,6 @@
     <PackageVersion Include="ModelContextProtocol.Core" Version="$(ModelContextProtocolVersion)"/>
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)"/>
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="$(ModelContextProtocolVersion)"/>
-    <!-- Qyl.Agents / NetAgents -->
-    <PackageVersion Include="Qyl.Agents.Abstractions" Version="$(QylAgentsVersion)"/>
-    <PackageVersion Include="Qyl.Agents.Generator" Version="$(QylAgentsVersion)"/>
-    <PackageVersion Include="Qyl.Agents" Version="$(QylAgentsVersion)"/>
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
@@ -90,7 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>
-    <PackageDownload Include="NetAgents" Version="[$(QylAgentsVersion)]"/>
     <PackageDownload Include="ReportGenerator" Version="[$(ReportGeneratorVersion)]"/>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>
   </ItemGroup>
