@@ -129,8 +129,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // INDIVIDUAL EMITTER PIPELINES
         // =====================================================================
 
-        // GenAi SDK interception removed: InstrumentedChatClient (runtime DelegatingChatClient)
-        // handles all IChatClient instrumentation with provider/model/token enrichment.
+        // GenAi SDK interception removed. Runtime IChatClient instrumentation lives in
+        // `builder.UseQylTelemetry()` (qyl.instrumentation/GenAi/GenAiInstrumentation.cs),
+        // which composes Microsoft.Extensions.AI's `UseOpenTelemetry()` middleware (semconv
+        // 1.40 tag emission) with `ToolDecoratingChatClient` (qyl tool-wrapping).
         // GenAiCallSiteAnalyzer is retained for compile-time capability discovery only.
 
         RegisterCollectedEmitterPipeline(context,

@@ -16,22 +16,16 @@ using Models;
 ///         Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
 ///     </para>
 ///     <para>
-///         Runtime instrumentation is handled by <c>InstrumentedChatClient</c> (DelegatingChatClient
-///         wrapper with provider/model/token enrichment from ChatClientMetadata + ChatResponse).
-///         This analyzer feeds only the <c>CapabilityEmitter</c> for compile-time topology discovery
-///         ([GeneratedCapabilityAttribute] for providers, models, operations).
-///     </para>
-///     <para>
-///         <strong>Transitional:</strong> IChatClient interface interception (via
-///         <c>builder.Services.AddChatClient(...).UseQylTelemetry()</c>) replaces
-///         SDK-specific call-site interception for all providers that implement
-///         <c>Microsoft.Extensions.AI.IChatClient</c>. This class is retained until
-///         the IChatClient interceptor path is fully validated in production.
+///         Runtime instrumentation is handled by <c>builder.UseQylTelemetry()</c> in
+///         <c>qyl.instrumentation/GenAi/GenAiInstrumentation.cs</c>, which composes
+///         Microsoft.Extensions.AI's <c>UseOpenTelemetry()</c> middleware (semconv 1.40
+///         tag emission) with <c>ToolDecoratingChatClient</c> (qyl tool-wrapping layer).
+///         This analyzer feeds only the <c>CapabilityEmitter</c> for compile-time topology
+///         discovery ([GeneratedCapabilityAttribute] for providers, models, operations).
 ///         See AL0131 (<c>ANcpLua.Analyzers.Analyzers.Al0131DirectGenAiSdkUsageAnalyzer</c>),
-///         which warns developers to migrate away from direct SDK usage.
+///         which warns developers to migrate away from direct provider SDK usage.
 ///     </para>
 /// </remarks>
-// Transitional: IChatClient interface interception replaces SDK-specific interception.
 // Keep until the IChatClient interceptor path is validated. See AL0131 diagnostic.
 internal static class GenAiCallSiteAnalyzer
 {
