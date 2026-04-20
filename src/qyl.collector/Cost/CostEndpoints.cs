@@ -3,12 +3,11 @@ namespace Qyl.Collector.Cost;
 internal static class CostEndpoints
 {
     private static readonly FrozenSet<string> ValidGroupBy = FrozenSet.Create(
-        StringComparer.Ordinal,
-        ["session_id, service_name", "service_name", "gen_ai_provider_name, gen_ai_request_model"]);
+        StringComparer.Ordinal, "session_id, service_name", "service_name",
+        "gen_ai_provider_name, gen_ai_request_model");
 
     private static readonly FrozenSet<string> ValidTruncInterval = FrozenSet.Create(
-        StringComparer.Ordinal,
-        ["day", "hour"]);
+        StringComparer.Ordinal, "day", "hour");
 
     [QylMapEndpoints]
     public static WebApplication MapCostEndpoints(this WebApplication app)
@@ -51,14 +50,14 @@ internal static class CostEndpoints
             : " AND gen_ai_provider_name = $" + cmd.AddParam(providerFilter);
 
         cmd.CommandText = "SELECT " + safeGroupBy + ", COUNT(*) AS call_count,"
-            + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
-            + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
-            + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
-            + " FROM spans"
-            + " WHERE gen_ai_request_model IS NOT NULL"
-            + TimeFilter(hours) + providerClause
-            + " GROUP BY " + safeGroupBy
-            + " ORDER BY total_cost DESC LIMIT " + boundedLimit.ToString(CultureInfo.InvariantCulture);
+                          + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
+                          + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
+                          + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+                          + " FROM spans"
+                          + " WHERE gen_ai_request_model IS NOT NULL"
+                          + TimeFilter(hours) + providerClause
+                          + " GROUP BY " + safeGroupBy
+                          + " ORDER BY total_cost DESC LIMIT " + boundedLimit.ToString(CultureInfo.InvariantCulture);
 
         var items = new List<Dictionary<string, object?>>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -94,15 +93,16 @@ internal static class CostEndpoints
         if (!string.IsNullOrWhiteSpace(model))
             extra += " AND gen_ai_request_model = $" + cmd.AddParam(model);
 
-        cmd.CommandText = "SELECT date_trunc('" + trunc + "', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,"
-            + " COUNT(*) AS call_count,"
-            + " COALESCE(SUM(gen_ai_input_tokens), 0),"
-            + " COALESCE(SUM(gen_ai_output_tokens), 0),"
-            + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
-            + " FROM spans"
-            + " WHERE gen_ai_request_model IS NOT NULL"
-            + TimeFilter(hours ?? 168) + extra
-            + " GROUP BY bucket ORDER BY bucket ASC";
+        cmd.CommandText = "SELECT date_trunc('" + trunc +
+                          "', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,"
+                          + " COUNT(*) AS call_count,"
+                          + " COALESCE(SUM(gen_ai_input_tokens), 0),"
+                          + " COALESCE(SUM(gen_ai_output_tokens), 0),"
+                          + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+                          + " FROM spans"
+                          + " WHERE gen_ai_request_model IS NOT NULL"
+                          + TimeFilter(hours ?? 168) + extra
+                          + " GROUP BY bucket ORDER BY bucket ASC";
 
         var items = new List<object>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -133,7 +133,7 @@ internal static class CostEndpoints
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT COALESCE(SUM(gen_ai_cost_usd), 0), COUNT(*) FROM spans"
-            + " WHERE gen_ai_request_model IS NOT NULL" + TimeFilter(period);
+                          + " WHERE gen_ai_request_model IS NOT NULL" + TimeFilter(period);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await reader.ReadAsync(ct).ConfigureAwait(false);

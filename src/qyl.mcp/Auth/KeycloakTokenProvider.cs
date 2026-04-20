@@ -1,11 +1,11 @@
+namespace qyl.mcp.Auth;
+
 using System.Collections.Frozen;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
-namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Fetches and caches a Keycloak JWT via OAuth2 client-credentials flow.
@@ -17,6 +17,7 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     ///     Named HTTP client identifier used for DI registration.
     /// </summary>
     public const string HttpClientName = "KeycloakTokenProvider";
+
     private readonly HttpClient _httpClient;
     private readonly Lock _lock = new();
 

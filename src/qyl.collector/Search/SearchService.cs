@@ -55,18 +55,18 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT d.id, d.entity_type, d.entity_id, d.title, d.body, d.url,"
-            + " d.tags_json, d.boost, d.indexed_at,"
-            + " COALESCE(t.score, 0.0) + d.boost AS relevance_score"
-            + " FROM search_documents d"
-            + " LEFT JOIN ("
-            + "     SELECT document_id, SUM(term_frequency) AS score"
-            + "     FROM search_terms WHERE term ILIKE $1 ESCAPE '\\'"
-            + "     GROUP BY document_id"
-            + " ) t ON t.document_id = d.id"
-            + " WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)"
-            + " " + additionalWhere
-            + " ORDER BY relevance_score DESC, d.updated_at DESC"
-            + " LIMIT $" + paramIndex.ToString(CultureInfo.InvariantCulture);
+                          + " d.tags_json, d.boost, d.indexed_at,"
+                          + " COALESCE(t.score, 0.0) + d.boost AS relevance_score"
+                          + " FROM search_documents d"
+                          + " LEFT JOIN ("
+                          + "     SELECT document_id, SUM(term_frequency) AS score"
+                          + "     FROM search_terms WHERE term ILIKE $1 ESCAPE '\\'"
+                          + "     GROUP BY document_id"
+                          + " ) t ON t.document_id = d.id"
+                          + " WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)"
+                          + " " + additionalWhere
+                          + " ORDER BY relevance_score DESC, d.updated_at DESC"
+                          + " LIMIT $" + paramIndex.ToString(CultureInfo.InvariantCulture);
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 200) });
@@ -217,7 +217,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         catch (OperationCanceledException ex)
         {
             // Expected on shutdown — audit is best-effort.
-            System.Diagnostics.Debug.WriteLine(ex);
+            Debug.WriteLine(ex);
         }
         catch (DuckDBException ex)
         {

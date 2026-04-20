@@ -26,9 +26,11 @@ internal static class ToolExtractor
         var (returnKind, resultTypeFqn) = ClassifyReturnType(method, awaitable);
 
         if (returnKind is null)
+        {
             return DiagnosticFlow.Fail<ToolModel>(DiagnosticInfo.Create(
                 DiagnosticDescriptors.UnsupportedReturnType, method, method.Name,
                 method.ReturnType.ToDisplayString()));
+        }
 
         var toolAttr = method.GetAttribute(ToolAttributeName);
         var toolName = toolAttr?.GetConstructorArgument<string>(0)
@@ -65,14 +67,18 @@ internal static class ToolExtractor
             destructive == ToolHintValue.Unset &&
             idempotent == ToolHintValue.Unset &&
             openWorld == ToolHintValue.Unset)
+        {
             flow = flow.Warn(DiagnosticInfo.Create(
                 DiagnosticDescriptors.AllHintsUnset, method, method.Name));
+        }
 
         // Claude-quality: tool description should be 50+ chars (3-4 sentences)
         if (description.Length < 50)
+        {
             flow = flow.Warn(DiagnosticInfo.Create(
                 DiagnosticDescriptors.ToolDescriptionTooShort, method,
                 toolName, description.Length.ToString()));
+        }
 
         // Claude-quality: check parameter descriptions
         foreach (var param in method.Parameters)
@@ -83,9 +89,11 @@ internal static class ToolExtractor
             var paramDesc = param.GetAttribute("System.ComponentModel.DescriptionAttribute");
             var paramDescLength = paramDesc?.GetConstructorArgument<string>(0)?.Length ?? 0;
             if (paramDescLength < 10)
+            {
                 flow = flow.Warn(DiagnosticInfo.Create(
                     DiagnosticDescriptors.ParameterDescriptionTooShort, param,
                     param.Name, toolName, paramDescLength.ToString()));
+            }
         }
 
         // Claude-quality: suggest input_examples for complex tools
@@ -99,9 +107,11 @@ internal static class ToolExtractor
         }
 
         if (method.Parameters.Length >= 3 && complexParamCount > 0)
+        {
             flow = flow.Warn(DiagnosticInfo.Create(
                 DiagnosticDescriptors.ConsiderInputExamples, method,
                 toolName, method.Parameters.Length.ToString()));
+        }
 
         return flow;
     }
@@ -124,8 +134,10 @@ internal static class ToolExtractor
             var isValueTask = original.StartsWithOrdinal("System.Threading.Tasks.ValueTask");
 
             if (resultType is not null)
+            {
                 return (isValueTask ? ReturnKind.ValueTaskOfT : ReturnKind.TaskOfT,
                     resultType.GetFullyQualifiedName());
+            }
 
             return (isValueTask ? ReturnKind.ValueTask : ReturnKind.Task, string.Empty);
         }
@@ -170,8 +182,11 @@ internal static class ToolExtractor
     private static bool HasCancellationToken(IMethodSymbol method)
     {
         foreach (var p in method.Parameters)
+        {
             if (p.Type.ToDisplayString() == CancellationTokenTypeName)
                 return true;
+        }
+
         return false;
     }
 }

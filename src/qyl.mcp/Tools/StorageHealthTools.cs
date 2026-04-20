@@ -1,10 +1,10 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for system health and storage status.
@@ -66,7 +66,7 @@ public sealed class StorageHealthTools(HttpClient client)
 
     /// <summary>Checks the health status of all qyl collector components.</summary>
     /// <returns>Health status of DuckDB, ingestion pipeline, and SSE streaming.</returns>
-    [QylCapability("health_and_storage", QylCapabilityRole.Starting)]
+    [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.health_check", Title = "Health Check",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -106,7 +106,9 @@ public sealed class StorageHealthTools(HttpClient client)
             foreach (var component in components)
             {
                 sb.AppendLine($"- **{component.Name}:** {component.Status}"
-                              + (string.IsNullOrWhiteSpace(component.Message) ? string.Empty : $" — {component.Message}"));
+                              + (string.IsNullOrWhiteSpace(component.Message)
+                                  ? string.Empty
+                                  : $" — {component.Message}"));
             }
         }
 
@@ -115,7 +117,7 @@ public sealed class StorageHealthTools(HttpClient client)
 
     /// <summary>Retrieves pre-computed system context (topology, performance, known issues) from the insights materializer.</summary>
     /// <returns>Markdown system context with topology, performance profile, and alerts.</returns>
-    [QylCapability("health_and_storage", QylCapabilityRole.Starting)]
+    [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -157,14 +159,18 @@ public sealed class StorageHealthTools(HttpClient client)
 // Kept local so qyl.mcp doesn't take a project reference on qyl.collector.
 internal sealed record HealthUiResponsePayload(
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("components")] IReadOnlyList<ComponentHealthPayload>? Components,
-    [property: JsonPropertyName("uptimeSeconds")] long UptimeSeconds,
-    [property: JsonPropertyName("version")] string? Version);
+    [property: JsonPropertyName("components")]
+    IReadOnlyList<ComponentHealthPayload>? Components,
+    [property: JsonPropertyName("uptimeSeconds")]
+    long UptimeSeconds,
+    [property: JsonPropertyName("version")]
+    string? Version);
 
 internal sealed record ComponentHealthPayload(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("message")] string? Message,
+    [property: JsonPropertyName("message")]
+    string? Message,
     [property: JsonPropertyName("data")] Dictionary<string, object>? Data);
 
 #endregion

@@ -3,10 +3,15 @@
 // Single entry point: builder.UseQyl() and app.MapQylEndpoints()
 // =============================================================================
 
+namespace Qyl.Instrumentation.Instrumentation;
+
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Contracts.Observability;
+using Discovery;
+using ErrorCapture;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
@@ -21,11 +26,6 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Qyl.Contracts.Observability;
-using Qyl.Instrumentation.Discovery;
-using Qyl.Instrumentation.ErrorCapture;
-
-namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
 ///     Extension methods to configure qyl service defaults with zero-config observability.

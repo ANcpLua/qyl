@@ -27,9 +27,11 @@ internal static class PromptExtractor
         var (returnKind, resultTypeFqn, isStructured) = ClassifyPromptReturnType(method, awaitable);
 
         if (returnKind is null)
+        {
             return DiagnosticFlow.Fail<PromptModel>(DiagnosticInfo.Create(
                 DiagnosticDescriptors.PromptInvalidReturnType, method, method.Name,
                 method.ReturnType.ToDisplayString()));
+        }
 
         var promptAttr = method.GetAttribute(PromptAttributeName);
         var promptName = promptAttr?.GetConstructorArgument<string>(0)
@@ -90,8 +92,11 @@ internal static class PromptExtractor
     private static bool HasCancellationToken(IMethodSymbol method)
     {
         foreach (var p in method.Parameters)
+        {
             if (p.Type.ToDisplayString() == CancellationTokenTypeName)
                 return true;
+        }
+
         return false;
     }
 }

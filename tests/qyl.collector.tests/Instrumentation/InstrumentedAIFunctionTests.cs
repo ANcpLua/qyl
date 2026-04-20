@@ -1,3 +1,5 @@
+namespace Qyl.Collector.Tests.Instrumentation;
+
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
@@ -5,13 +7,11 @@ using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Xunit;
 
-namespace Qyl.Collector.Tests.Instrumentation;
-
 /// <summary>
 ///     Verifies that the qyl-specific tool decorator
-///     (<see cref="GenAiInstrumentation.WrapTool"/>) wraps every <see cref="AIFunction"/>
-///     with a <see cref="TracedAIFunction"/> against the qyl <c>gen_ai</c>
-///     <see cref="ActivitySource"/>, emits OTel GenAI semconv 1.40 tags, and is idempotent.
+///     (<see cref="GenAiInstrumentation.WrapTool" />) wraps every <see cref="AIFunction" />
+///     with a <see cref="TracedAIFunction" /> against the qyl <c>gen_ai</c>
+///     <see cref="ActivitySource" />, emits OTel GenAI semconv 1.40 tags, and is idempotent.
 /// </summary>
 public sealed class InstrumentedAIFunctionTests
 {
@@ -23,7 +23,7 @@ public sealed class InstrumentedAIFunctionTests
         var listener = new ActivityListener
         {
             ShouldListenTo = static source => source.Name == ActivitySources.GenAi,
-            Sample = static (ref ActivityCreationOptions<ActivityContext> _) =>
+            Sample = static (ref _) =>
                 ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = captured.Add
         };

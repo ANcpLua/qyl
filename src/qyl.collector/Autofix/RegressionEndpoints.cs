@@ -30,7 +30,12 @@ public static class RegressionEndpoints
             {
                 items = items.Select(static r => new
                 {
-                    r.EventId, r.IssueId, r.OldValue, r.NewValue, r.Reason, r.CreatedAt
+                    r.EventId,
+                    r.IssueId,
+                    r.OldValue,
+                    r.NewValue,
+                    r.Reason,
+                    r.CreatedAt
                 }),
                 total = items.Count
             });
@@ -47,7 +52,12 @@ public static class RegressionEndpoints
             {
                 items = items.Select(static r => new
                 {
-                    r.EventId, r.IssueId, r.OldValue, r.NewValue, r.Reason, r.CreatedAt
+                    r.EventId,
+                    r.IssueId,
+                    r.OldValue,
+                    r.NewValue,
+                    r.Reason,
+                    r.CreatedAt
                 }),
                 total = items.Count
             });

@@ -1,6 +1,5 @@
 namespace Qyl.Agents.Protocol;
 
-using System.Diagnostics;
 using System.Text.Json;
 using Tasks;
 
@@ -533,8 +532,11 @@ internal sealed class McpProtocolHandler<TServer>(TServer server, IMcpTaskStore?
     private static bool HasAnyTaskSupport()
     {
         foreach (var tool in s_tools)
+        {
             if (tool.TaskSupport is not ToolTaskSupport.Unset)
                 return true;
+        }
+
         return false;
     }
 }

@@ -13,9 +13,9 @@
 // ALTER TABLE migrations execute.
 // =============================================================================
 
-using System.Text.RegularExpressions;
-
 namespace Qyl.Collector.Storage.Migrations;
+
+using System.Text.RegularExpressions;
 
 /// <summary>
 ///     Applies pending DuckDB schema migrations on startup.
@@ -207,11 +207,13 @@ public sealed partial class MigrationRunner
                 continue;
             }
 
-            if (!int.TryParse(match.Groups["version"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var version))
+            if (!int.TryParse(match.Groups["version"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out var version))
             {
                 LogSkippingInvalidFile(fileName);
                 continue;
             }
+
             var description = match.Groups["description"].Value.Replace('_', ' ');
 
             if (version > afterVersion)

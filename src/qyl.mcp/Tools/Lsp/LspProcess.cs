@@ -12,10 +12,7 @@ internal sealed class LspProcess : IAsyncDisposable
     private readonly Process _process;
     private int _disposed;
 
-    private LspProcess(Process process)
-    {
-        _process = process;
-    }
+    private LspProcess(Process process) => _process = process;
 
     /// <summary>
     ///     Standard input of the LSP server process — writes go to the server's stdin.
@@ -31,6 +28,22 @@ internal sealed class LspProcess : IAsyncDisposable
     ///     Process id, useful for logging and cleanup hooks.
     /// </summary>
     public int Id => _process.Id;
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
+            return;
+
+        try
+        {
+            await ExitAsync(TimeSpan.FromSeconds(2), CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            _process.Dispose();
+        }
+    }
 
     /// <summary>
     ///     Starts an LSP server process in the given working directory.
@@ -48,7 +61,7 @@ internal sealed class LspProcess : IAsyncDisposable
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true,
+            CreateNoWindow = true
         };
 
         foreach (var argument in resolution.Definition.Arguments)
@@ -93,27 +106,11 @@ internal sealed class LspProcess : IAsyncDisposable
         try
         {
             if (!_process.HasExited)
-                _process.Kill(entireProcessTree: true);
+                _process.Kill(true);
         }
         catch (InvalidOperationException)
         {
             // Process already exited between the HasExited check and Kill — benign.
-        }
-    }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
-            return;
-
-        try
-        {
-            await ExitAsync(TimeSpan.FromSeconds(2), CancellationToken.None).ConfigureAwait(false);
-        }
-        finally
-        {
-            _process.Dispose();
         }
     }
 }

@@ -4,12 +4,12 @@
 // Uses qyl.contracts.Attributes for OTel 1.40 semantic conventions
 // =============================================================================
 
+namespace Qyl.Instrumentation.Instrumentation.GenAi;
+
 using System.Runtime.CompilerServices;
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
-
-namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
 /// <summary>
 ///     Token usage data for GenAI operations.
@@ -61,15 +61,15 @@ public static class GenAiInstrumentation
         var builder = new ChatClientBuilder(client);
 
         builder.UseQylTelemetry(
-            sourceName: sourceName ?? GenAiConstants.SourceName,
-            configure: enableSensitiveData.HasValue
+            sourceName ?? GenAiConstants.SourceName,
+            enableSensitiveData.HasValue
                 ? openTelemetryChatClient => openTelemetryChatClient.EnableSensitiveData = enableSensitiveData.Value
                 : null);
 
         return builder.Build();
     }
 
-    /// <summary>Wraps an <see cref="AIFunction"/> with qyl-tagged tool-execution telemetry.</summary>
+    /// <summary>Wraps an <see cref="AIFunction" /> with qyl-tagged tool-execution telemetry.</summary>
     public static AIFunction WrapTool(AIFunction inner) =>
         inner is TracedAIFunction ? inner : new TracedAIFunction(inner, ActivitySources.GenAiSource);
 

@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+using Models;
 
 internal static class LoomContractExtractor
 {

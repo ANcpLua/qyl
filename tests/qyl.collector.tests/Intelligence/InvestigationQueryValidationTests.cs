@@ -1,8 +1,8 @@
-using Qyl.Collector.Storage;
+namespace Qyl.Collector.Tests.Intelligence;
+
+using Collector.Storage;
 using Qyl.Contracts.Intelligence;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Intelligence;
 
 /// <summary>
 ///     Validates that all DuckDB queries in investigation strategies are

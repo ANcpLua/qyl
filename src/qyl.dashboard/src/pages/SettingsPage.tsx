@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import {
+    Bot,
     Brain,
     Database,
     Keyboard,
@@ -9,7 +10,6 @@ import {
     Monitor,
     Moon,
     Paintbrush,
-    Bot,
     Settings,
     Sun,
     Trash2,

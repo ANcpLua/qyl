@@ -1,9 +1,9 @@
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+using Models;
 
 internal static class LoomDeclarationChainExtractor
 {
@@ -38,10 +38,12 @@ internal static class LoomDeclarationChainExtractor
             var modifiers = current.Modifiers.Select(static modifier => modifier.ValueText).ToList();
 
             if (!current.Modifiers.Any(SyntaxKind.PartialKeyword))
+            {
                 diagnostics.Add(DiagnosticInfo.Create(
                     LoomDiagnosticDescriptors.TypeMustBePartial,
                     current.Identifier,
                     current.Identifier.ValueText));
+            }
 
             if (!modifiers.Contains("partial", StringComparer.Ordinal))
                 modifiers.Add("partial");
@@ -89,5 +91,5 @@ file static class LoomDiagnosticDescriptors
         "Type '{0}' must be declared as partial to support Loom code generation",
         "Qyl.Loom",
         DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        true);
 }

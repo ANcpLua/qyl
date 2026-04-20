@@ -16,9 +16,9 @@
 //   5. Persist assignments to span_clusters via DuckDbStore.
 // =============================================================================
 
-using Microsoft.Extensions.AI;
-
 namespace Qyl.Collector.Analytics;
+
+using Microsoft.Extensions.AI;
 
 /// <summary>
 ///     Background service that enriches gen_ai spans with semantic cluster labels.
@@ -217,7 +217,7 @@ public sealed partial class EmbeddingClusterWorker(
         catch (JsonException ex)
         {
             // Malformed payload — the text is best-effort; fall through to null.
-            System.Diagnostics.Debug.WriteLine(ex);
+            Debug.WriteLine(ex);
         }
 
         return null;

@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Triage;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
-/// Adds an annotation with optional tags to a trace for triage purposes.
+///     Adds an annotation with optional tags to a trace for triage purposes.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

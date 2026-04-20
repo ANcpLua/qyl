@@ -1,11 +1,11 @@
+namespace qyl.mcp.Apps.QueryStudio;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using qyl.mcp.Tools;
-
-namespace qyl.mcp.Apps.QueryStudio;
+using Tools;
 
 /// <summary>
 ///     MCP tools for the Query Studio ext-app.
@@ -16,7 +16,7 @@ namespace qyl.mcp.Apps.QueryStudio;
 [QylSkill(QylSkillKind.Apps)]
 internal sealed class QueryStudioTools(HttpClient client)
 {
-    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
+    [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.query_studio", Title = "Query Studio",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

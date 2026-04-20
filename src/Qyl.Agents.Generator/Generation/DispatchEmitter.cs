@@ -1,6 +1,6 @@
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Generation;
+
+using Models;
 
 internal static class DispatchEmitter
 {
@@ -33,8 +33,10 @@ internal static class DispatchEmitter
             using (sb.BeginBlock())
             {
                 foreach (var tool in server.Tools)
+                {
                     sb.AppendLine(
                         $"{Lit(tool.ToolName)} => await {PerToolMethod(tool)}(arguments, cancellationToken),");
+                }
 
                 sb.AppendLine(
                     "_ => throw new global::System.ArgumentException($\"Unknown tool: {toolName}\", nameof(toolName))");
@@ -290,8 +292,10 @@ internal static class DispatchEmitter
         foreach (var tool in server.Tools)
         {
             foreach (var p in tool.Parameters)
+            {
                 if (GetCoreAccessor(p) is null)
                     return true;
+            }
 
             if (tool.ReturnKind is ReturnKind.Sync or ReturnKind.TaskOfT or ReturnKind.ValueTaskOfT)
             {
@@ -304,25 +308,21 @@ internal static class DispatchEmitter
         return false;
     }
 
-    private static bool IsDirectlySerializableReturn(string rt)
-    {
-        return rt.IsStringType() || rt.TypeNamesEqual("bool") || IsNumericType(rt);
-    }
+    private static bool IsDirectlySerializableReturn(string rt) =>
+        rt.IsStringType() || rt.TypeNamesEqual("bool") || IsNumericType(rt);
 
-    private static bool IsNumericType(string typeFullyQualified)
-    {
-        return typeFullyQualified.Contains("System.Int16") ||
-               typeFullyQualified.Contains("System.Int32") ||
-               typeFullyQualified.Contains("System.Int64") ||
-               typeFullyQualified.Contains("System.UInt16") ||
-               typeFullyQualified.Contains("System.UInt32") ||
-               typeFullyQualified.Contains("System.UInt64") ||
-               typeFullyQualified.Contains("System.Byte") ||
-               typeFullyQualified.Contains("System.SByte") ||
-               typeFullyQualified.Contains("System.Double") ||
-               typeFullyQualified.Contains("System.Single") ||
-               typeFullyQualified.Contains("System.Decimal");
-    }
+    private static bool IsNumericType(string typeFullyQualified) =>
+        typeFullyQualified.Contains("System.Int16") ||
+        typeFullyQualified.Contains("System.Int32") ||
+        typeFullyQualified.Contains("System.Int64") ||
+        typeFullyQualified.Contains("System.UInt16") ||
+        typeFullyQualified.Contains("System.UInt32") ||
+        typeFullyQualified.Contains("System.UInt64") ||
+        typeFullyQualified.Contains("System.Byte") ||
+        typeFullyQualified.Contains("System.SByte") ||
+        typeFullyQualified.Contains("System.Double") ||
+        typeFullyQualified.Contains("System.Single") ||
+        typeFullyQualified.Contains("System.Decimal");
 
     private static string BuildCallArgs(ToolModel tool)
     {
@@ -332,13 +332,7 @@ internal static class DispatchEmitter
         return string.Join(", ", parts);
     }
 
-    private static string PerToolMethod(ToolModel tool)
-    {
-        return $"ExecuteTool_{tool.MethodName}Async";
-    }
+    private static string PerToolMethod(ToolModel tool) => $"ExecuteTool_{tool.MethodName}Async";
 
-    private static string Lit(string value)
-    {
-        return EmitHelpers.Lit(value);
-    }
+    private static string Lit(string value) => EmitHelpers.Lit(value);
 }

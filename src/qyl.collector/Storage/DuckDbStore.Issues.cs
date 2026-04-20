@@ -127,11 +127,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT error_id, fingerprint, error_type, message, status,"
-            + " assigned_to, occurrence_count, first_seen, last_seen"
-            + " FROM errors "
-            + qb.WhereClause
-            + " ORDER BY last_seen DESC LIMIT "
-            + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+                          + " assigned_to, occurrence_count, first_seen, last_seen"
+                          + " FROM errors "
+                          + qb.WhereClause
+                          + " ORDER BY last_seen DESC LIMIT "
+                          + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -272,8 +272,8 @@ public sealed partial class DuckDbStore
                 checkCmd.Transaction = tx;
                 var placeholders = string.Join(", ", fingerprints.Select(static (_, index) => $"${index + 1}"));
                 checkCmd.CommandText = "SELECT DISTINCT fingerprint FROM errors"
-                    + " WHERE status = 'new' AND fingerprint IN ("
-                    + placeholders + ")";
+                                       + " WHERE status = 'new' AND fingerprint IN ("
+                                       + placeholders + ")";
 
                 foreach (var fingerprint in fingerprints)
                     checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });

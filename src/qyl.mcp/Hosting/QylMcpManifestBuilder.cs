@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Http;
-using qyl.mcp.Metadata;
-
 namespace qyl.mcp.Hosting;
+
+using Metadata;
+using Microsoft.AspNetCore.Http;
 
 internal static class QylMcpManifestBuilder
 {
@@ -10,10 +10,7 @@ internal static class QylMcpManifestBuilder
         var capabilities = QylCapabilityCatalog.GetEnabled(skills)
             .Select(static capability => new QylMcpManifestCapability
             {
-                Id = capability.Id,
-                Title = capability.Title,
-                Summary = capability.Summary,
-                Skill = capability.Skill,
+                Id = capability.Id, Title = capability.Title, Summary = capability.Summary, Skill = capability.Skill
             })
             .ToArray();
 
@@ -28,7 +25,7 @@ internal static class QylMcpManifestBuilder
             ToolCount = QylMcpMetadataCatalog.GetEnabledTools(skills).Count,
             CapabilityCount = capabilities.Length,
             ToolFamilies = QylSkillCatalog.GetEnabledSkillLabels(skills),
-            Capabilities = capabilities,
+            Capabilities = capabilities
         };
     }
 }

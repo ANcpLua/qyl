@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Management;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// MCP tool that creates a new API key for programmatic access.
+///     MCP tool that creates a new API key for programmatic access.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class CreateApiKeyTool(HttpClient client)
 {
     /// <summary>
-    /// Creates a new API key and returns its name, prefix, and full key value.
+    ///     Creates a new API key and returns its name, prefix, and full key value.
     /// </summary>
     /// <param name="name">Human-readable name for the API key (e.g. 'ci-pipeline', 'dev-local').</param>
     /// <param name="ct">Cancellation token.</param>

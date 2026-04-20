@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomRegistryOutputGenerator
 {
@@ -25,7 +25,11 @@ internal static class LoomRegistryOutputGenerator
                 "global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolDescriptor",
                 tools.IsEmpty
                     ? []
-                    : [.. tools.Select(static tool => $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}Descriptor")]);
+                    :
+                    [
+                        .. tools.Select(static tool =>
+                            $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}Descriptor")
+                    ]);
 
             AppendRegistry(
                 sb,
@@ -33,7 +37,11 @@ internal static class LoomRegistryOutputGenerator
                 "global::Qyl.Instrumentation.Instrumentation.Loom.LoomRuntimeMetadataDescriptor",
                 tools.IsEmpty
                     ? []
-                    : [.. tools.Select(static tool => $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}RuntimeMetadata")]);
+                    :
+                    [
+                        .. tools.Select(static tool =>
+                            $"{tool.ContainingTypeFullyQualified}.{tool.MethodName}RuntimeMetadata")
+                    ]);
 
             AppendRegistry(
                 sb,
@@ -87,6 +95,7 @@ internal static class LoomRegistryOutputGenerator
             foreach (var value in values)
                 sb.AppendLine(value + ",");
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -141,18 +150,22 @@ internal static class LoomRegistryOutputGenerator
                 sb.AppendLine(anyRequiresApproval ? "true," : "false,");
 
                 if (sideEffects.Length is 0)
+                {
                     sb.AppendLine(
                         "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect>()");
+                }
                 else
                 {
                     var effectLiterals = sideEffects.Select(effect =>
-                        $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                        $"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){effect.ToString(CultureInfo.InvariantCulture)}");
                     sb.AppendLine(
                         $"new global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect[] {{ {string.Join(", ", effectLiterals)} }}");
                 }
+
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -174,8 +187,10 @@ internal static class LoomRegistryOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var contract in contracts.OrderBy(static c => c.Name, StringComparer.Ordinal))
-                sb.AppendLine($"[{LoomGenerationHelpers.StringLiteral(contract.Name)}] = {contract.FullyQualifiedTypeName}.JsonSchema,");
+                sb.AppendLine(
+                    $"[{LoomGenerationHelpers.StringLiteral(contract.Name)}] = {contract.FullyQualifiedTypeName}.JsonSchema,");
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }

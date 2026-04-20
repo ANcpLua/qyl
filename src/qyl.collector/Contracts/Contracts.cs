@@ -1,6 +1,6 @@
-using System.Collections.Immutable;
-
 namespace Qyl.Collector.Contracts;
+
+using System.Collections.Immutable;
 
 public sealed record SpanDto
 {

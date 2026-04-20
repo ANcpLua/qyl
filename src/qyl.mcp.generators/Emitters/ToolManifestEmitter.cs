@@ -1,7 +1,6 @@
-using ANcpLua.Roslyn.Utilities;
-using Qyl.Mcp.Generators.Models;
-
 namespace Qyl.Mcp.Generators.Emitters;
+
+using Models;
 
 internal static class ToolManifestEmitter
 {
@@ -55,7 +54,7 @@ internal static class ToolManifestEmitter
                 {
                     if (!index.TryGetValue(attribution.CapabilityId, out var buckets))
                     {
-                        buckets = (new List<string>(), new List<string>());
+                        buckets = ([], []);
                         index[attribution.CapabilityId] = buckets;
                     }
 
@@ -77,6 +76,7 @@ internal static class ToolManifestEmitter
             foreach (var entry in sorted)
                 sb.AppendLine($"typeof({entry.FullyQualifiedTypeName}),");
         }
+
         sb.AppendLine(";");
     }
 
@@ -106,10 +106,12 @@ internal static class ToolManifestEmitter
                         sb.AppendLine($"OpenWorld = {BoolLiteral(method.OpenWorld)},");
                         sb.AppendLine($"ReturnType = {StringLiteral(method.ReturnTypeDisplayName)},");
                     }
+
                     sb.AppendLine(",");
                 }
             }
         }
+
         sb.AppendLine(";");
     }
 
@@ -150,9 +152,11 @@ internal static class ToolManifestEmitter
                     EmitStringArrayInit(sb, "EvidenceHints", def.EvidenceHints);
                     EmitStringArrayInit(sb, "RelatedCapabilityIds", def.RelatedCapabilities);
                 }
+
                 sb.AppendLine(",");
             }
         }
+
         sb.AppendLine(";");
     }
 
@@ -171,6 +175,7 @@ internal static class ToolManifestEmitter
             foreach (var value in list)
                 sb.AppendLine($"{StringLiteral(value)},");
         }
+
         sb.AppendLine(",");
     }
 

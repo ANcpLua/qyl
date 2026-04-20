@@ -1,6 +1,6 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
 namespace Qyl.Collector.Health;
+
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 /// <summary>
 ///     Health check that verifies DuckDB database connectivity.

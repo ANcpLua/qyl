@@ -1,7 +1,7 @@
-using Microsoft.Extensions.AI;
-using Qyl.Contracts.Copilot;
-
 namespace Qyl.Loom.Exploration;
+
+using Contracts.Copilot;
+using Microsoft.Extensions.AI;
 
 /// <summary>
 ///     Bounded sub-agent responsible only for root-cause investigation.
@@ -48,10 +48,12 @@ public sealed class ExplorationDiagnostician(IChatClient? llm = null)
         catch (OperationCanceledException)
         {
             var partial = fullText.ToString();
-            return new ExplorationDiagnosisResult(partial, ExplorationResponseParser.TryParseRootCause(partial), updates, true);
+            return new ExplorationDiagnosisResult(partial, ExplorationResponseParser.TryParseRootCause(partial),
+                updates, true);
         }
 
         var monologue = fullText.ToString();
-        return new ExplorationDiagnosisResult(monologue, ExplorationResponseParser.TryParseRootCause(monologue), updates, false);
+        return new ExplorationDiagnosisResult(monologue, ExplorationResponseParser.TryParseRootCause(monologue),
+            updates, false);
     }
 }

@@ -1,10 +1,10 @@
+namespace Qyl.Collector.Tests;
+
 using System.Reflection;
 using NetArchTest.Rules;
 using Qyl.Contracts.Primitives;
 using Xunit;
 using TestResult = NetArchTest.Rules.TestResult;
-
-namespace Qyl.Collector.Tests;
 
 /// <summary>
 ///     Enforces project dependency boundaries across the qyl platform.

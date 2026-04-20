@@ -29,16 +29,21 @@ internal sealed record LspServerDefinition(
 internal sealed class LspServerDefinitions
 {
     private static readonly LspServerDefinition CSharpLs = new(
-        Id: "csharp-ls",
-        Executable: "csharp-ls",
-        Arguments: [],
-        InstallCommand: "dotnet tool install -g csharp-ls",
-        FirstInitTimeoutSeconds: 90);
+        "csharp-ls",
+        "csharp-ls",
+        [],
+        "dotnet tool install -g csharp-ls",
+        90);
 
     private readonly Dictionary<string, LspServerDefinition> _byId = new(StringComparer.Ordinal)
     {
-        [CSharpLs.Id] = CSharpLs,
+        [CSharpLs.Id] = CSharpLs
     };
+
+    /// <summary>
+    ///     Enumerate known server ids. Used in diagnostic error messages.
+    /// </summary>
+    public IReadOnlyCollection<string> KnownIds => _byId.Keys;
 
     /// <summary>
     ///     Look up a server definition by its id.
@@ -57,9 +62,4 @@ internal sealed class LspServerDefinitions
         definition = null!;
         return false;
     }
-
-    /// <summary>
-    ///     Enumerate known server ids. Used in diagnostic error messages.
-    /// </summary>
-    public IReadOnlyCollection<string> KnownIds => _byId.Keys;
 }

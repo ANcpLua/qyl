@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Discovery;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// MCP tool that retrieves the service dependency map showing nodes and edges between services.
+///     MCP tool that retrieves the service dependency map showing nodes and edges between services.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools.Discovery;
 public sealed class GetServiceMapTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves the service dependency map with service nodes and inter-service call edges.
+    ///     Retrieves the service dependency map with service nodes and inter-service call edges.
     /// </summary>
     /// <param name="projectSlug">Optional project slug filter.</param>
     /// <param name="ct">Cancellation token.</param>

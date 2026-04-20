@@ -1,8 +1,8 @@
-using Qyl.Collector.Storage;
+namespace Qyl.Collector.Tests.Autofix;
+
+using Collector.Storage;
 using Qyl.Contracts.Loom;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Autofix;
 
 public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
 {
@@ -28,9 +28,7 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
         var ct = TestContext.Current.CancellationToken;
         var input = new LoomSettingsRecord
         {
-            Id = "default",
-            DefaultCodingAgent = "cursor",
-            AutomationTuning = "aggressive"
+            Id = "default", DefaultCodingAgent = "cursor", AutomationTuning = "aggressive"
         };
 
         await _store.UpsertLoomSettingsAsync(input, ct);
@@ -44,11 +42,7 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
     public async Task Upsert_NormalizesProviderSlug()
     {
         var ct = TestContext.Current.CancellationToken;
-        var input = new LoomSettingsRecord
-        {
-            Id = "default",
-            DefaultCodingAgent = "GITHUB_COPILOT"
-        };
+        var input = new LoomSettingsRecord { Id = "default", DefaultCodingAgent = "GITHUB_COPILOT" };
 
         await _store.UpsertLoomSettingsAsync(input, ct);
         var result = await _store.GetLoomSettingsAsync("default", ct);
@@ -64,7 +58,8 @@ public sealed class LoomSettingsEndpointsTests : IAsyncDisposable
         await _store.UpsertLoomSettingsAsync(
             new LoomSettingsRecord { Id = "default", DefaultCodingAgent = "cursor", AutomationTuning = "low" }, ct);
         await _store.UpsertLoomSettingsAsync(
-            new LoomSettingsRecord { Id = "default", DefaultCodingAgent = "claude_code", AutomationTuning = "high" }, ct);
+            new LoomSettingsRecord { Id = "default", DefaultCodingAgent = "claude_code", AutomationTuning = "high" },
+            ct);
 
         var result = await _store.GetLoomSettingsAsync("default", ct);
 

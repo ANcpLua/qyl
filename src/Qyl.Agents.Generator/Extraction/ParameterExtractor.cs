@@ -37,11 +37,13 @@ internal static class ParameterExtractor
 
             var description = parameter.GetAttributeConstructorArgument<string>(DescriptionAttributeName, 0);
             if (description is null)
+            {
                 diagnostics.Add(DiagnosticInfo.Create(
                     DiagnosticDescriptors.ParameterMissingDescription,
                     parameter,
                     parameter.Name,
                     method.Name));
+            }
 
             var isNullable = IsNullable(parameter.Type);
             var hasDefault = parameter.HasExplicitDefaultValue;
@@ -70,18 +72,17 @@ internal static class ParameterExtractor
 
         foreach (var diagnostic in diagnostics)
             // QA0009 is Warning, QA0008 is Error — errors cause failure
+        {
             if (diagnostic.Descriptor.DefaultSeverity == DiagnosticSeverity.Error)
                 flow = flow.Error(diagnostic);
             else
                 flow = flow.Warn(diagnostic);
+        }
 
         return flow;
     }
 
-    private static bool IsCancellationToken(ITypeSymbol type)
-    {
-        return type.ToDisplayString() == CancellationTokenTypeName;
-    }
+    private static bool IsCancellationToken(ITypeSymbol type) => type.ToDisplayString() == CancellationTokenTypeName;
 
     private static bool IsNullable(ITypeSymbol type)
     {

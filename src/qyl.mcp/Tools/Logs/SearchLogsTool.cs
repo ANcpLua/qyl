@@ -1,13 +1,13 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using Qyl.Contracts.Models;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Logs;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+using Qyl.Contracts.Models;
+
 /// <summary>
-/// MCP tool that searches structured logs by query with pagination support.
+///     MCP tool that searches structured logs by query with pagination support.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -15,7 +15,7 @@ namespace qyl.mcp.Tools.Logs;
 public sealed class SearchLogsTool(HttpClient client)
 {
     /// <summary>
-    /// Searches structured logs matching a query, returning a paginated list of log entries.
+    ///     Searches structured logs matching a query, returning a paginated list of log entries.
     /// </summary>
     /// <param name="query">The search query string.</param>
     /// <param name="projectSlug">Optional project slug filter.</param>
@@ -23,7 +23,7 @@ public sealed class SearchLogsTool(HttpClient client)
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of matching log entries.</returns>
-    [QylCapability("log_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("log_investigation")]
     [McpServerTool(Name = "search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]

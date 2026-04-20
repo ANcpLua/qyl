@@ -1,7 +1,7 @@
 namespace Qyl.Contracts.Agenting;
 
 /// <summary>
-/// Deterministic validation checkpoint outcome.
+///     Deterministic validation checkpoint outcome.
 /// </summary>
 public sealed record ValidationCheckpoint
 {
@@ -17,7 +17,7 @@ public sealed record ValidationCheckpoint
 }
 
 /// <summary>
-/// Policy gate result that transitions the run state.
+///     Policy gate result that transitions the run state.
 /// </summary>
 public sealed record AgentRunPolicyEvaluation
 {
@@ -32,7 +32,7 @@ public sealed record AgentRunPolicyEvaluation
 }
 
 /// <summary>
-/// Compact confidence signal used for repair loop control.
+///     Compact confidence signal used for repair loop control.
 /// </summary>
 public sealed record ConfidenceSignal
 {

@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Intelligence;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Directed causal relationship between two diagnostic patterns.

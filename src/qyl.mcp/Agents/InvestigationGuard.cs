@@ -1,10 +1,10 @@
-using ANcpLua.Agents.Governance;
-
 namespace qyl.mcp.Agents;
+
+using ANcpLua.Agents.Governance;
 
 /// <summary>
 ///     qyl-flavored entry point that preserves the <c>QYL_AGENT_MAX_TOOL_CALLS</c>
-///     environment variable. Delegates to <see cref="AgentCallGuard"/> in
+///     environment variable. Delegates to <see cref="AgentCallGuard" /> in
 ///     ANcpLua.Agents.Governance.
 /// </summary>
 internal static class InvestigationGuard

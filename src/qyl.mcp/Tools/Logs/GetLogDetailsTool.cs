@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Logs;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Logs;
 
 /// <summary>
-/// MCP tool that retrieves full details for a single log entry including attributes and correlated trace/span IDs.
+///     MCP tool that retrieves full details for a single log entry including attributes and correlated trace/span IDs.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools.Logs;
 public sealed class GetLogDetailsTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves all attributes and correlated trace/span IDs for a single log entry.
+    ///     Retrieves all attributes and correlated trace/span IDs for a single log entry.
     /// </summary>
     /// <param name="logId">The log ID to inspect.</param>
     /// <param name="ct">Cancellation token.</param>

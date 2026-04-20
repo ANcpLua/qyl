@@ -1,6 +1,5 @@
 namespace Qyl.Agents.Generator.Generation;
 
-using System.Text;
 using Models;
 
 internal static class SchemaEmitter
@@ -73,6 +72,7 @@ internal static class SchemaEmitter
     {
         var sb = new StringBuilder(value.Length);
         foreach (var c in value)
+        {
             switch (c)
             {
                 case '\\': sb.Append("\\\\"); break;
@@ -89,6 +89,7 @@ internal static class SchemaEmitter
                         sb.Append(c);
                     break;
             }
+        }
 
         return sb.ToString();
     }

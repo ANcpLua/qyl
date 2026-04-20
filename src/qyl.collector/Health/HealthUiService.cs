@@ -1,6 +1,6 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Health;
+
+using Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Service for gathering detailed health information for the UI dashboard.

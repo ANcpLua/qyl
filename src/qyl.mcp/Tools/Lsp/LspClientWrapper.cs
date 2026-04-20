@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
+namespace qyl.mcp.Tools.Lsp;
+
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
-
-namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Per-workspace client pool. Lazily starts one <see cref="LspClient" /> per
@@ -17,6 +17,33 @@ internal sealed class LspClientWrapper(
 {
     private readonly ConcurrentDictionary<string, Lazy<Task<LspClient>>> _clients = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DocumentState> _documents = new(StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var kv in _clients)
+        {
+            if (!kv.Value.IsValueCreated)
+                continue;
+
+            try
+            {
+                var client = await kv.Value.Value.ConfigureAwait(false);
+                await client.Connection.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException cancelled)
+            {
+                logger.LogDebug(cancelled, "LSP client {Key} start was cancelled; nothing to dispose", kv.Key);
+            }
+            catch (IOException ex)
+            {
+                logger.LogWarning(ex, "LSP client {Key} disposal encountered an IO error", kv.Key);
+            }
+        }
+
+        _clients.Clear();
+        _documents.Clear();
+    }
 
     /// <summary>Resolves a client for the file's workspace + server and ensures the document is open.</summary>
     public async Task<OpenedDocument> OpenAsync(string filePath, CancellationToken ct)
@@ -86,8 +113,8 @@ internal sealed class LspClientWrapper(
 
         if (!_documents.TryGetValue(key, out var state))
         {
-            await client.DidOpenAsync(uri, languageId, version: 1, text, ct).ConfigureAwait(false);
-            _documents[key] = new DocumentState(text, Version: 1);
+            await client.DidOpenAsync(uri, languageId, 1, text, ct).ConfigureAwait(false);
+            _documents[key] = new DocumentState(text, 1);
             return;
         }
 
@@ -109,35 +136,8 @@ internal sealed class LspClientWrapper(
         serverId switch
         {
             "csharp-ls" => "csharp",
-            _ => Path.GetExtension(filePath).TrimStart('.').ToLowerInvariant(),
+            _ => Path.GetExtension(filePath).TrimStart('.').ToLowerInvariant()
         };
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        foreach (var kv in _clients)
-        {
-            if (!kv.Value.IsValueCreated)
-                continue;
-
-            try
-            {
-                var client = await kv.Value.Value.ConfigureAwait(false);
-                await client.Connection.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (OperationCanceledException cancelled)
-            {
-                logger.LogDebug(cancelled, "LSP client {Key} start was cancelled; nothing to dispose", kv.Key);
-            }
-            catch (IOException ex)
-            {
-                logger.LogWarning(ex, "LSP client {Key} disposal encountered an IO error", kv.Key);
-            }
-        }
-
-        _clients.Clear();
-        _documents.Clear();
-    }
 
     private sealed record DocumentState(string Text, int Version);
 }

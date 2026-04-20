@@ -1,7 +1,7 @@
+namespace Qyl.Collector.Intelligence;
+
 using System.Text.RegularExpressions;
 using Qyl.Contracts.Intelligence;
-
-namespace Qyl.Collector.Intelligence;
 
 /// <summary>
 ///     Pure computation engine for matching observed telemetry signals against

@@ -25,10 +25,12 @@ public sealed class McpAuthOptions
     ///     Environment variable name for the Keycloak realm authority URL.
     /// </summary>
     public const string KeycloakAuthorityEnvVar = "QYL_KEYCLOAK_AUTHORITY";
+
     /// <summary>
     ///     Environment variable name for the Keycloak OAuth2 client ID.
     /// </summary>
     public const string KeycloakClientIdEnvVar = "QYL_KEYCLOAK_CLIENT_ID";
+
     /// <summary>
     ///     Environment variable name for the Keycloak OAuth2 client secret.
     /// </summary>

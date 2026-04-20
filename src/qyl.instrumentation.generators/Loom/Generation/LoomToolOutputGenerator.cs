@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomToolOutputGenerator
 {
@@ -42,8 +42,10 @@ internal static class LoomToolOutputGenerator
             if (tool.RequiredCapabilities.IsEmpty)
                 sb.AppendLine("global::System.Array.Empty<string>(),");
             else
+            {
                 sb.AppendLine(
                     $"new string[] {{ {string.Join(", ", tool.RequiredCapabilities.Select(LoomGenerationHelpers.StringLiteral))} }},");
+            }
 
             sb.AppendLine(tool.RequiresApproval ? "true," : "false,");
             sb.AppendLine($"(global::Qyl.Instrumentation.Instrumentation.Loom.ToolSideEffect){tool.SideEffect},");
@@ -93,7 +95,7 @@ internal static class LoomToolOutputGenerator
             foreach (var parameter in parameters)
             {
                 sb.AppendLine("new(");
-    
+
                 sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(parameter.Name)},");
                 sb.AppendLine($"{LoomGenerationHelpers.TypeOf(parameter.TypeFullyQualified)},");
                 sb.AppendLine(parameter.IsNullable ? "true," : "false,");
@@ -103,12 +105,15 @@ internal static class LoomToolOutputGenerator
                 if (parameter.EnumValues.IsEmpty)
                     sb.AppendLine("global::System.Array.Empty<string>()");
                 else
+                {
                     sb.AppendLine(
                         $"new string[] {{ {string.Join(", ", parameter.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}");
-    
+                }
+
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(",");
     }
 
@@ -130,7 +135,7 @@ internal static class LoomToolOutputGenerator
             foreach (var parameter in parameters)
             {
                 sb.AppendLine("new(");
-    
+
                 sb.AppendLine($"{LoomGenerationHelpers.StringLiteral(parameter.Name)},");
                 sb.AppendLine($"{LoomGenerationHelpers.TypeOf(parameter.TypeFullyQualified)},");
                 sb.AppendLine(parameter.IsNullable ? "true," : "false,");
@@ -142,12 +147,15 @@ internal static class LoomToolOutputGenerator
                 if (parameter.EnumValues.IsEmpty)
                     sb.AppendLine("global::System.Array.Empty<string>()");
                 else
+                {
                     sb.AppendLine(
                         $"new string[] {{ {string.Join(", ", parameter.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}");
-    
+                }
+
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(",");
     }
 
@@ -175,8 +183,11 @@ internal static class LoomToolOutputGenerator
         if (tool.RequiredCapabilities.IsEmpty)
             sb.AppendLine("global::System.Array.Empty<string>()");
         else
+        {
             sb.AppendLine(
                 $"new string[] {{ {string.Join(", ", tool.RequiredCapabilities.Select(LoomGenerationHelpers.StringLiteral))} }}");
+        }
+
         sb.AppendLine("),");
     }
 
@@ -195,8 +206,11 @@ internal static class LoomToolOutputGenerator
         if (tool.RequiredCapabilities.IsEmpty)
             sb.AppendLine("global::System.Array.Empty<string>()");
         else
+        {
             sb.AppendLine(
                 $"new string[] {{ {string.Join(", ", tool.RequiredCapabilities.Select(LoomGenerationHelpers.StringLiteral))} }}");
+        }
+
         sb.AppendLine(")");
     }
 

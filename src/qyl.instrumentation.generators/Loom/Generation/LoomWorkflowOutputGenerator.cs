@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomWorkflowOutputGenerator
 {
@@ -27,8 +27,10 @@ internal static class LoomWorkflowOutputGenerator
         if (workflow.StepIds.IsEmpty)
             sb.AppendLine("global::System.Array.Empty<string>(),");
         else
+        {
             sb.AppendLine(
                 $"new string[] {{ {string.Join(", ", workflow.StepIds.Select(LoomGenerationHelpers.StringLiteral))} }},");
+        }
 
         sb.AppendLine($"{LoomGenerationHelpers.NullableStringLiteral(workflow.Description)}");
         sb.AppendLine(");");

@@ -1,7 +1,5 @@
 namespace Qyl.Agents;
 
-using System;
-
 /// <summary>
 ///     Marks a method as an MCP resource within an <see cref="McpServerAttribute" /> class.
 ///     The source generator will produce resource dispatch code and metadata.

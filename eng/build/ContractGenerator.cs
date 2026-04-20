@@ -101,9 +101,12 @@ public static class ContractGenerator
     private static JsonElement FindFacade(JsonElement root, string upstreamPrefix)
     {
         foreach (var facade in root.GetProperty("facades").EnumerateArray())
+        {
             if (string.Equals(facade.GetProperty("upstreamPrefix").GetString(),
                     upstreamPrefix, StringComparison.Ordinal))
                 return facade;
+        }
+
         throw new InvalidOperationException(
             $"Facade with upstreamPrefix '{upstreamPrefix}' not found in qyl-extensions.json");
     }
@@ -233,8 +236,11 @@ public static class ContractGenerator
                 sb.AppendLine("        MetricInstruments:");
                 sb.AppendLine("        [");
                 foreach (var metric in domain.MetricInstruments)
+                {
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"            new(\"{metric.Name}\", \"{metric.Instrument}\", \"{metric.Unit}\"),");
+                }
+
                 sb.AppendLine("        ],");
             }
 
@@ -257,6 +263,7 @@ public static class ContractGenerator
         var sb = new StringBuilder();
         var nextUpper = true;
         foreach (var ch in name)
+        {
             if (ch == '_' || ch == '.')
             {
                 nextUpper = true;
@@ -266,6 +273,7 @@ public static class ContractGenerator
                 sb.Append(nextUpper ? char.ToUpperInvariant(ch) : ch);
                 nextUpper = false;
             }
+        }
 
         return sb.ToString();
     }

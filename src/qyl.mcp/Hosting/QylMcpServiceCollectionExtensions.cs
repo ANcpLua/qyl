@@ -1,18 +1,3 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using ModelContextProtocol.AspNetCore.Authentication;
-using qyl.mcp.Apps.ErrorExplorer;
-using ModelContextProtocol.Authentication;
-using qyl.mcp.Auth;
-using qyl.mcp.Metadata;
-using qyl.mcp.Scoping;
-using qyl.mcp.Tools;
-using qyl.mcp.Tools.Debug;
-using qyl.mcp.Tools.Lsp;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
 using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
@@ -28,6 +13,23 @@ using TelemetryToolsJsonContext = qyl.mcp.Tools.TelemetryToolsJsonContext;
 using LoomMcpJsonContext = Qyl.Contracts.Loom.LoomMcpJsonContext;
 
 namespace qyl.mcp.Hosting;
+
+using System.Text.Json;
+using Apps.ErrorExplorer;
+using Auth;
+using Metadata;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.AspNetCore.Authentication;
+using ModelContextProtocol.Authentication;
+using Qyl.Generated;
+using Scoping;
+using Tools;
+using Tools.Debug;
+using Tools.Lsp;
 
 internal static partial class QylMcpServiceCollectionExtensions
 {
@@ -49,7 +51,7 @@ internal static partial class QylMcpServiceCollectionExtensions
         var collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
         services.AddCollectorHttpClient(collectorUrl);
 
-        Qyl.Generated.QylToolManifest.RegisterServices(services, skills);
+        QylToolManifest.RegisterServices(services, skills);
 
         services.AddCollectorToolClient<ArtifactTools>();
         services.AddSingleton(TimeProvider.System);
@@ -182,7 +184,7 @@ internal static partial class QylMcpServiceCollectionExtensions
                             AuthorizationServers = [authority],
                             BearerMethodsSupported = McpAuthMetadata.BearerMethodsSupported,
                             ResourceName = QylServerMetadata.DisplayName,
-                            ResourceDocumentation = QylServerMetadata.DocumentationUrl,
+                            ResourceDocumentation = QylServerMetadata.DocumentationUrl
                         };
                         return Task.CompletedTask;
                     }

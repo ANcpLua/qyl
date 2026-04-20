@@ -1,6 +1,6 @@
-using ANcpLua.Roslyn.Utilities;
-
 namespace Qyl.Loom.Exploration;
+
+using ANcpLua.Roslyn.Utilities;
 
 internal static class ExplorationResponseParser
 {

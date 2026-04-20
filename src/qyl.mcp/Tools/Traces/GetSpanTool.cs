@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Traces;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Traces;
 
 /// <summary>
-/// Retrieves full details for a single span including all attributes.
+///     Retrieves full details for a single span including all attributes.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

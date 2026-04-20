@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Errors;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Errors;
 
 /// <summary>
-/// MCP tool that lists attachments (screenshots, logs, minidumps) for an error event.
+///     MCP tool that lists attachments (screenshots, logs, minidumps) for an error event.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -18,7 +17,7 @@ namespace qyl.mcp.Tools.Errors;
 public sealed class GetAttachmentsTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves the list of attachments for an error event, optionally scoped to a specific event.
+    ///     Retrieves the list of attachments for an error event, optionally scoped to a specific event.
     /// </summary>
     /// <param name="issueId">The error issue ID to retrieve attachments for.</param>
     /// <param name="eventId">Optional event ID to scope attachments to a specific event.</param>

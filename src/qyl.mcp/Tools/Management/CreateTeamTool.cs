@@ -1,14 +1,13 @@
+namespace qyl.mcp.Tools.Management;
 
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
 using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that creates a new team for organizing projects and members.
+///     MCP tool that creates a new team for organizing projects and members.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +15,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class CreateTeamTool(HttpClient client)
 {
     /// <summary>
-    /// Creates a new team with the specified name, optional slug, and optional description.
+    ///     Creates a new team with the specified name, optional slug, and optional description.
     /// </summary>
     /// <param name="name">Display name for the team.</param>
     /// <param name="slug">Optional URL-safe slug identifier; auto-generated from name if omitted.</param>

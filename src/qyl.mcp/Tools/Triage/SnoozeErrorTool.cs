@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Triage;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
-/// Snoozes an error issue for a specified duration, temporarily suppressing it from triage views.
+///     Snoozes an error issue for a specified duration, temporarily suppressing it from triage views.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
@@ -25,9 +24,11 @@ public sealed class SnoozeErrorTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description("Snooze (temporarily ignore) an error issue for a specified duration. Valid durations: 1h, 6h, 24h, 7d, 30d.")]
+    [Description(
+        "Snooze (temporarily ignore) an error issue for a specified duration. Valid durations: 1h, 6h, 24h, 7d, 30d.")]
     public async Task<string> SnoozeError(
-        [Description("Error issue ID to snooze")] string issueId,
+        [Description("Error issue ID to snooze")]
+        string issueId,
         [Description("Snooze duration: 1h, 6h, 24h, 7d, or 30d")]
         string duration,
         [Description("Optional reason for snoozing")]
@@ -53,5 +54,4 @@ public sealed class SnoozeErrorTool(HttpClient client)
 internal sealed record SnoozeErrorRequestDto(
     [property: JsonPropertyName("duration")]
     string Duration,
-    [property: JsonPropertyName("reason")]
-    string? Reason = null);
+    [property: JsonPropertyName("reason")] string? Reason = null);

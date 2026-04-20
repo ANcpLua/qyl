@@ -2,9 +2,9 @@
 // SessionQueryService - Pure DuckDB queries with SpanQueryBuilder
 // =============================================================================
 
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Query;
+
+using Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Session query service using SpanQueryBuilder for type-safe query construction.
@@ -45,11 +45,11 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = SessionSelectColumns
-            + " WHERE ($1::VARCHAR IS NULL OR session_id = $1)"
-            + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
-            + " GROUP BY COALESCE(session_id, trace_id)"
-            + " ORDER BY MAX(end_time_unix_nano) DESC"
-            + " LIMIT $3 OFFSET $4";
+                          + " WHERE ($1::VARCHAR IS NULL OR session_id = $1)"
+                          + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
+                          + " GROUP BY COALESCE(session_id, trace_id)"
+                          + " ORDER BY MAX(end_time_unix_nano) DESC"
+                          + " LIMIT $3 OFFSET $4";
 
         AddParams(cmd, sessionFilter, after, limit, offset);
         return await ExecuteSessionQueryAsync(cmd, ct);
@@ -64,8 +64,8 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = SessionSelectColumns
-            + " WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)"
-            + " GROUP BY COALESCE(session_id, trace_id)";
+                          + " WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)"
+                          + " GROUP BY COALESCE(session_id, trace_id)";
 
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 

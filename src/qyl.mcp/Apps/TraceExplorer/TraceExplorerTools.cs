@@ -1,12 +1,12 @@
+namespace qyl.mcp.Apps.TraceExplorer;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
-using qyl.mcp.Tools;
-
-namespace qyl.mcp.Apps.TraceExplorer;
+using Tools;
 
 /// <summary>
 ///     MCP tools for the Trace Explorer ext-app.
@@ -18,7 +18,7 @@ internal sealed class TraceExplorerTools(HttpClient client)
 {
     private const string ResourceUri = "ui://qyl/trace-viewer";
 
-    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
+    [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.trace_viewer", Title = "Trace Viewer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

@@ -7,12 +7,12 @@
 //   services.AddChatClient(client);
 // =============================================================================
 
+namespace Qyl.Instrumentation.Instrumentation.GenAi;
+
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
-
-namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
 /// <summary>
 ///     Wraps any <see cref="IChatClient" /> with qyl OpenTelemetry instrumentation.
@@ -323,7 +323,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         : reason.Value;
 
     /// <summary>
-    ///     Replaces every <see cref="AIFunction"/> in <see cref="ChatOptions.Tools"/> with a
+    ///     Replaces every <see cref="AIFunction" /> in <see cref="ChatOptions.Tools" /> with a
     ///     qyl-instrumented wrapper. Idempotent — already-wrapped functions are skipped.
     /// </summary>
     internal static ChatOptions? PrepareOptions(ChatOptions? options)

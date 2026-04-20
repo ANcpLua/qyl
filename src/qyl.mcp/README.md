@@ -38,7 +38,8 @@ qyl.mcp
 Remote mode exposes:
 
 - `/mcp` — Streamable HTTP MCP endpoint
-- `/mcp` — Session-aware stream endpoint is the same Streamable HTTP root (`POST` initialize/request, `GET` session stream)
+- `/mcp` — Session-aware stream endpoint is the same Streamable HTTP root (`POST` initialize/request, `GET` session
+  stream)
 - `/mcp.json` — lightweight discovery metadata
 - `/llms.txt` — human/LLM-readable server summary
 - `/healthz` — container health endpoint
@@ -47,7 +48,8 @@ Remote mode exposes:
 
 - Legacy SSE endpoints (`/mcp/sse`, `/mcp/message`) are not exposed by default.
 - Existing clients should target `/mcp` for Streamable HTTP discovery and transport.
-- Legacy SSE compatibility must be handled through your client migration plan before this 1.2.0 transport default is adopted.
+- Legacy SSE compatibility must be handled through your client migration plan before this 1.2.0 transport default is
+  adopted.
 
 ### Railway monorepo deployment
 
@@ -119,30 +121,35 @@ The exact exposed tool set is controlled by `QYL_SKILLS`.
 
 ## Capability discovery and HTTP metadata
 
-The server now exposes two low-cost discovery tools so MCP hosts and operators can understand the available qyl surface area before invoking broad investigation flows.
+The server now exposes two low-cost discovery tools so MCP hosts and operators can understand the available qyl surface
+area before invoking broad investigation flows.
 
 ### `qyl.list_capabilities`
 
 Use `qyl.list_capabilities` to enumerate the capability families currently enabled by `QYL_SKILLS`.
 
 The tool returns:
+
 - server name and version
 - enabled skill families
 - capability ids, titles, summaries, and tags
 - optional primary tool names when `includeTools=true`
 
 Supported filters:
+
 - `skill`: narrow to one skill family such as `inspect`, `agent`, `loom`, `apps`, or `debug`
 - `tag`: narrow to one domain such as `traces`, `errors`, `logs`, `metrics`, `genai`, or `debugger`
 - `includeTools`: include the primary tool names behind each capability
 
-This is the recommended entrypoint when a host needs to decide whether to stay in direct tool mode or escalate to `qyl.use_qyl`.
+This is the recommended entrypoint when a host needs to decide whether to stay in direct tool mode or escalate to
+`qyl.use_qyl`.
 
 ### `qyl.get_capability_guide`
 
 Use `qyl.get_capability_guide` with a capability id returned by `qyl.list_capabilities`.
 
 The guide returns qyl-specific operating context for that capability, including:
+
 - primary identifiers to carry through the workflow
 - recommended starting tools
 - recommended follow-up tools
@@ -155,13 +162,15 @@ This is intended to be the deterministic replacement for hard-coded client-side 
 
 ## HTTP transport metadata endpoints
 
-When the server runs in HTTP mode, it exposes the MCP endpoint plus two metadata documents for hosts, operators, and LLM-oriented clients.
+When the server runs in HTTP mode, it exposes the MCP endpoint plus two metadata documents for hosts, operators, and
+LLM-oriented clients.
 
 ### `/mcp.json`
 
 `/mcp.json` returns a JSON manifest describing the live HTTP server surface.
 
 The manifest includes:
+
 - server name and version
 - resolved MCP endpoint URL
 - transport type
@@ -178,6 +187,7 @@ This endpoint is intended for programmatic discovery and host bootstrapping.
 `/llms.txt` returns a plain-text summary of the live HTTP server for LLM-facing clients.
 
 The document includes:
+
 - server summary
 - resolved MCP endpoint URL
 - auth mode
@@ -186,11 +196,14 @@ The document includes:
 - discovery tool names
 - a compact list of enabled capabilities
 
-This endpoint is intended to give clients a fast human-readable and model-readable overview of the server without requiring a full MCP session.
+This endpoint is intended to give clients a fast human-readable and model-readable overview of the server without
+requiring a full MCP session.
 
 ## Default endpoint behavior
 
-When qyl runs in HTTP mode, the MCP endpoint defaults to `/mcp` unless `QYL_MCP_PATH` overrides it. The companion metadata endpoints remain available at:
+When qyl runs in HTTP mode, the MCP endpoint defaults to `/mcp` unless `QYL_MCP_PATH` overrides it. The companion
+metadata endpoints remain available at:
+
 - `/mcp.json`
 - `/llms.txt`
 

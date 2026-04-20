@@ -17,7 +17,9 @@ public static class McpHost
     public static Task RunStdioAsync<TServer>(
         TServer server,
         CancellationToken ct = default) where TServer : class, IMcpServer
-        => RunStdioCoreAsync(server, null, ct);
+    {
+        return RunStdioCoreAsync(server, null, ct);
+    }
 
     /// <summary>
     ///     Runs the MCP server over stdio with task store for long-running tool support.
@@ -26,7 +28,9 @@ public static class McpHost
         TServer server,
         IMcpTaskStore taskStore,
         CancellationToken ct = default) where TServer : class, IMcpServer
-        => RunStdioCoreAsync(server, taskStore, ct);
+    {
+        return RunStdioCoreAsync(server, taskStore, ct);
+    }
 
     private static async Task RunStdioCoreAsync<TServer>(
         TServer server,

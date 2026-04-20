@@ -1,9 +1,9 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Analyzes syntax to find invocations of methods decorated with [Traced] attribute.

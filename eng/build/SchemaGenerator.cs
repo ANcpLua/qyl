@@ -46,9 +46,11 @@ public static class SchemaGenerator
         // C# Primitives (Qyl.Common namespace)
         var scalars = schema.Schemas.Where(static s => s.IsScalar).ToList();
         if (scalars.Count > 0)
+        {
             files.Add(new GeneratedFile(
                 protocolDir / "Primitives" / "Scalars.g.cs",
                 GenerateScalars(scalars)));
+        }
 
         // C# Enums (grouped by namespace, like Models)
         var enums = schema.Schemas.Where(static s => s.IsEnum).ToList();
@@ -74,9 +76,11 @@ public static class SchemaGenerator
         // DuckDB Schema
         var tables = schema.Schemas.Where(static s => s.Extensions.ContainsKey("x-duckdb-table")).ToList();
         if (tables.Count > 0)
+        {
             files.Add(new GeneratedFile(
                 collectorDir / "Storage" / "DuckDbSchema.g.cs",
                 GenerateDuckDb(tables, schema)));
+        }
 
         // Write files using guard
         foreach (var file in files) guard.WriteIfAllowed(file.Path, file.Content, file.Path.Name);
@@ -117,11 +121,15 @@ public static class SchemaGenerator
                 sb.AppendLine(CultureInfo.InvariantCulture,
                     $"[System.Text.Json.Serialization.JsonConverter(typeof({typeName}JsonConverter))]");
                 if (isHex)
+                {
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"public readonly partial record struct {typeName}({underlying} Value) : System.IParsable<{typeName}>, System.ISpanFormattable");
+                }
                 else
+                {
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"public readonly partial record struct {typeName}({underlying} Value)");
+                }
 
                 sb.AppendLine("{");
 
@@ -263,12 +271,16 @@ public static class SchemaGenerator
             // Use appropriate JSON converter
             if (isIntegerEnum)
                 // Integer enums: serialize as integers
+            {
                 sb.AppendLine(CultureInfo.InvariantCulture,
                     $"[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonNumberEnumConverter<{typeName}>))]");
+            }
             else
                 // String enums: serialize as strings
+            {
                 sb.AppendLine(CultureInfo.InvariantCulture,
                     $"[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<{typeName}>))]");
+            }
 
             sb.AppendLine(CultureInfo.InvariantCulture, $"public enum {typeName}");
             sb.AppendLine("{");
@@ -363,6 +375,7 @@ public static class SchemaGenerator
         var capitalizeNext = true;
 
         foreach (var c in value)
+        {
             if (c is '_' or '-' or ' ' or '.')
             {
                 capitalizeNext = true;
@@ -376,6 +389,7 @@ public static class SchemaGenerator
             {
                 sb.Append(c);
             }
+        }
 
         if (sb.Length is 0) return "Unknown";
 
@@ -420,8 +434,10 @@ public static class SchemaGenerator
                 if (isNullable)
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    public {propType}? {propName} {{ get; init; }}");
                 else
+                {
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"    public required {propType} {propName} {{ get; init; }}");
+                }
 
                 sb.AppendLine();
             }
@@ -590,11 +606,13 @@ public static class SchemaGenerator
             var refSchema = schema.Schemas.FirstOrDefault(s => s.Name == refTypeName);
 
             if (refSchema is not null)
+            {
                 return refSchema.Extensions.TryGetValue("x-duckdb-type", out var refDuckType)
                     ? refDuckType
                     :
                     // Fall back to type mapping
                     TypeMappingTable.GetDuckDbType(refSchema.Type, refSchema.Format);
+            }
         }
 
         return TypeMappingTable.GetDuckDbType(prop.Type, prop.Format);
@@ -720,6 +738,7 @@ public static class SchemaGenerator
             sb.AppendLine(");");
 
             foreach (var prop in table.Properties)
+            {
                 if (prop.Extensions.TryGetValue("x-duckdb-index", out var indexName))
                 {
                     var colName = prop.Extensions.TryGetValue("x-duckdb-column", out var c)
@@ -728,6 +747,7 @@ public static class SchemaGenerator
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"CREATE INDEX IF NOT EXISTS {indexName} ON {tableName}({colName});");
                 }
+            }
         }
 
         return sb.ToString();
@@ -775,6 +795,7 @@ public sealed record OpenApiSchema(
         var schemasNode = components is not null ? GetMapping(components, "schemas") : null;
 
         if (schemasNode is not null)
+        {
             foreach (var (keyNode, valueNode) in schemasNode.Children)
             {
                 if (keyNode is not YamlScalarNode { Value: { } name })
@@ -782,6 +803,7 @@ public sealed record OpenApiSchema(
                 if (valueNode is YamlMappingNode schemaNode)
                     schemas.Add(ParseSchema(name, schemaNode));
             }
+        }
 
         return new OpenApiSchema(title, version, schemas.ToImmutable());
     }
@@ -862,6 +884,7 @@ public sealed record OpenApiSchema(
         {
             var key = ((YamlScalarNode)keyNode).Value ?? "";
             if (key.StartsWith("x-", StringComparison.Ordinal))
+            {
                 builder[key] = valueNode switch
                 {
                     YamlScalarNode scalar => scalar.Value ?? "",
@@ -869,6 +892,7 @@ public sealed record OpenApiSchema(
                         seq.Children.OfType<YamlScalarNode>().Select(static s => s.Value)),
                     _ => builder[key]
                 };
+            }
         }
 
         return builder.ToImmutable();
@@ -886,11 +910,14 @@ public sealed record OpenApiSchema(
     static ImmutableArray<string> GetStringArray(YamlMappingNode parent, string key)
     {
         if (parent.Children.TryGetValue(key, out var node) && node is YamlSequenceNode seq)
+        {
             return
             [
                 ..seq.Children.OfType<YamlScalarNode>().Select(static s => s.Value ?? "")
                     .Where(static s => s.Length > 0)
             ];
+        }
+
         return [];
     }
 }
@@ -1025,8 +1052,10 @@ public sealed partial class GenerationGuard(bool force = false, bool dryRun = fa
         if (Stats.DryRunCount > 0) Log.Information("  Dry Run:     {Count} files", Stats.DryRunCount);
 
         if (NukeBuild.IsServerBuild && Stats.SkippedCount > 0 && !Force && failOnStaleInCi)
+        {
             throw new InvalidOperationException(
                 $"CI: {Stats.SkippedCount} stale files. Run 'nuke Generate --ipipeline-force-generate'.");
+        }
 
         Log.Information("═══════════════════════════════════════════════════════════════");
     }

@@ -1,6 +1,6 @@
-using Qyl.Contracts.Intelligence;
-
 namespace Qyl.Collector.Intelligence;
+
+using Qyl.Contracts.Intelligence;
 
 internal static class IntelligenceEndpoints
 {
@@ -239,7 +239,7 @@ internal static class IntelligenceEndpoints
                 catch (JsonException ex)
                 {
                     // Skip malformed attribute payloads.
-                    System.Diagnostics.Debug.WriteLine(ex);
+                    Debug.WriteLine(ex);
                 }
             }
         }

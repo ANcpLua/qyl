@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Analysis;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Analysis;
 
 /// <summary>
-/// MCP tool that suggests fixes for errors in a trace by analyzing error spans and proposing remediation steps.
+///     MCP tool that suggests fixes for errors in a trace by analyzing error spans and proposing remediation steps.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools.Analysis;
 public sealed class SuggestFixTool(HttpClient client)
 {
     /// <summary>
-    /// Analyzes error spans in a trace and proposes context-aware remediation steps.
+    ///     Analyzes error spans in a trace and proposes context-aware remediation steps.
     /// </summary>
     /// <param name="traceId">The trace ID containing errors to analyze.</param>
     /// <param name="errorMessage">Optional specific error message to focus on.</param>

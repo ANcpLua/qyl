@@ -1,6 +1,5 @@
 namespace Qyl.Agents.Generator.Generation;
 
-using System.Text;
 using Models;
 
 // NOTE: The /mcp link target is the JSON-RPC endpoint. An LLM crawler hitting it via GET
@@ -80,8 +79,10 @@ internal static class LlmsTxtEmitter
                         first = false;
                         txt.Append(p.CamelCaseName);
                     }
+
                     txt.Append(')');
                 }
+
                 txt.AppendLine();
             }
         }

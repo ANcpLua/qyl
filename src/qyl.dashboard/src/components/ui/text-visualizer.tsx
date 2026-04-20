@@ -155,7 +155,17 @@ function JsonTreeNode({name, value, depth, isLast}: JsonTreeNodeProps) {
 }
 
 // Token types for safe syntax highlighting
-type TokenType = "key" | "string" | "number" | "keyword" | "bracket" | "tag" | "attr-name" | "attr-value" | "text" | "plain";
+type TokenType =
+    "key"
+    | "string"
+    | "number"
+    | "keyword"
+    | "bracket"
+    | "tag"
+    | "attr-name"
+    | "attr-value"
+    | "text"
+    | "plain";
 
 interface Token {
     type: TokenType;

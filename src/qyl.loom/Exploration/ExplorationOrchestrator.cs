@@ -1,6 +1,6 @@
-using Qyl.Contracts.Copilot;
-
 namespace Qyl.Loom.Exploration;
+
+using Contracts.Copilot;
 
 /// <summary>
 ///     Facade for the interactive exploration flow. Chains diagnostician → strategist
@@ -84,13 +84,17 @@ public sealed partial class ExplorationOrchestrator(
 
     private static StreamUpdate MakeProgress(int percent, string message) => new()
     {
-        Kind = StreamUpdateKind.Progress, Progress = percent, Content = message,
+        Kind = StreamUpdateKind.Progress,
+        Progress = percent,
+        Content = message,
         Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     private static StreamUpdate MakeContent(string content, string? toolName = null) => new()
     {
-        Kind = StreamUpdateKind.Content, Content = content, ToolName = toolName,
+        Kind = StreamUpdateKind.Content,
+        Content = content,
+        ToolName = toolName,
         Timestamp = TimeProvider.System.GetUtcNow()
     };
 

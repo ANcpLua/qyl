@@ -1,13 +1,13 @@
-using System.ComponentModel;
-using System.Net;
-using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Triage;
 
+using System.ComponentModel;
+using System.Net;
+using Formatting;
+using mcp.Errors;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// Marks a trace as reviewed during triage.
+///     Marks a trace as reviewed during triage.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

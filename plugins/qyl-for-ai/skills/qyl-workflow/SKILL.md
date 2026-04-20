@@ -18,11 +18,11 @@ Root skill for qyl observability investigations.
 
 ## Available Sub-Skills
 
-| Skill | Use When |
-|-------|----------|
-| [qyl-fix-issues](../qyl-fix-issues/SKILL.md) | Debugging production errors, investigating exceptions |
-| [qyl-code-review](../qyl-code-review/SKILL.md) | Reviewing PRs with observability context |
-| [qyl-setup-monitoring](../qyl-setup-monitoring/SKILL.md) | Setting up OTel instrumentation for AI agents |
+| Skill                                                    | Use When                                              |
+|----------------------------------------------------------|-------------------------------------------------------|
+| [qyl-fix-issues](../qyl-fix-issues/SKILL.md)             | Debugging production errors, investigating exceptions |
+| [qyl-code-review](../qyl-code-review/SKILL.md)           | Reviewing PRs with observability context              |
+| [qyl-setup-monitoring](../qyl-setup-monitoring/SKILL.md) | Setting up OTel instrumentation for AI agents         |
 
 ## qyl Architecture
 

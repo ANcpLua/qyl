@@ -1,8 +1,8 @@
+namespace qyl.mcp.Tools;
+
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     HTTP-based telemetry store querying qyl.collector REST API.

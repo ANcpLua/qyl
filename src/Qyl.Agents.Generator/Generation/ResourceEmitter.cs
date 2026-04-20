@@ -35,8 +35,10 @@ internal static class ResourceEmitter
             using (sb.BeginBlock())
             {
                 foreach (var resource in server.Resources)
+                {
                     sb.AppendLine(
                         $"{Lit(resource.Uri)} => await {PerResourceMethod(resource)}(cancellationToken),");
+                }
 
                 sb.AppendLine(
                     "_ => throw new global::System.ArgumentException($\"Unknown resource: {uri}\", nameof(uri))");
@@ -68,28 +70,16 @@ internal static class ResourceEmitter
             sb.AppendLine(
                 $"var raw = {(needsAwait ? "await " : "")}{resource.MethodName}({ctArg});");
 
-            if (resource.IsBinary)
-            {
-                sb.AppendLine(
-                    "return new global::Qyl.Agents.ResourceReadResult(global::System.Convert.ToBase64String(raw), true);");
-            }
-            else
-            {
-                sb.AppendLine(
-                    "return new global::Qyl.Agents.ResourceReadResult(raw, false);");
-            }
+            sb.AppendLine(
+                resource.IsBinary
+                    ? "return new global::Qyl.Agents.ResourceReadResult(global::System.Convert.ToBase64String(raw), true);"
+                    : "return new global::Qyl.Agents.ResourceReadResult(raw, false);");
         }
 
         sb.AppendLine();
     }
 
-    private static string PerResourceMethod(ResourceModel resource)
-    {
-        return $"ReadResource_{resource.MethodName}Async";
-    }
+    private static string PerResourceMethod(ResourceModel resource) => $"ReadResource_{resource.MethodName}Async";
 
-    private static string Lit(string value)
-    {
-        return EmitHelpers.Lit(value);
-    }
+    private static string Lit(string value) => EmitHelpers.Lit(value);
 }

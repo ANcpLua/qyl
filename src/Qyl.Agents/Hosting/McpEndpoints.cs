@@ -19,7 +19,9 @@ public static class McpEndpoints
     public static IEndpointRouteBuilder MapMcpServer<TServer>(
         this IEndpointRouteBuilder endpoints,
         string pattern = "/mcp") where TServer : class, IMcpServer, new()
-        => endpoints.MapMcpServer(new TServer(), pattern);
+    {
+        return endpoints.MapMcpServer(new TServer(), pattern);
+    }
 
     /// <summary>
     ///     Maps MCP server endpoints using the default parameterless constructor, with task support.
@@ -28,7 +30,9 @@ public static class McpEndpoints
         this IEndpointRouteBuilder endpoints,
         IMcpTaskStore taskStore,
         string pattern = "/mcp") where TServer : class, IMcpServer, new()
-        => endpoints.MapMcpServer(new TServer(), taskStore, pattern);
+    {
+        return endpoints.MapMcpServer(new TServer(), taskStore, pattern);
+    }
 
     /// <summary>
     ///     Maps an existing MCP server instance (for DI or factory patterns).
@@ -43,7 +47,9 @@ public static class McpEndpoints
         this IEndpointRouteBuilder endpoints,
         TServer server,
         string pattern = "/mcp") where TServer : class, IMcpServer
-        => endpoints.MapMcpServerCore(server, null, pattern);
+    {
+        return endpoints.MapMcpServerCore(server, null, pattern);
+    }
 
     /// <summary>
     ///     Maps an existing MCP server instance with task store for long-running tool support.
@@ -53,7 +59,9 @@ public static class McpEndpoints
         TServer server,
         IMcpTaskStore taskStore,
         string pattern = "/mcp") where TServer : class, IMcpServer
-        => endpoints.MapMcpServerCore(server, taskStore, pattern);
+    {
+        return endpoints.MapMcpServerCore(server, taskStore, pattern);
+    }
 
     private static IEndpointRouteBuilder MapMcpServerCore<TServer>(
         this IEndpointRouteBuilder endpoints,
@@ -64,7 +72,7 @@ public static class McpEndpoints
         var handler = new McpProtocolHandler<TServer>(server, taskStore);
         var normalizedPattern = pattern.TrimEnd('/');
 
-        endpoints.MapPost(normalizedPattern, async (HttpContext context) =>
+        endpoints.MapPost(normalizedPattern, async context =>
         {
             JsonRpcRequest? request;
             try

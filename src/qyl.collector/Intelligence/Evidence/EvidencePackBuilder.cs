@@ -1,6 +1,6 @@
-using Qyl.Contracts.Agenting;
-
 namespace Qyl.Collector.Intelligence.Evidence;
+
+using Qyl.Contracts.Agenting;
 
 public interface IEvidencePackBuilder
 {
@@ -33,32 +33,23 @@ public sealed class DeterministicEvidencePackBuilder : IEvidencePackBuilder
             IssueId = input.IssueId,
             CreatedAtUtc = input.CreatedAtUtc,
             Artifacts = artifacts,
-            ContextJson = Serialize(new
-            {
-                issue = input.Issue,
-                regression = input.Regression,
-                deployment = input.Deployment
-            }),
-            SignalsSummaryJson = Serialize(new
-            {
-                issueFacts,
-                regressionFacts,
-                deploymentFacts,
-                contextFacts
-            }),
+            ContextJson =
+                Serialize(new
+                {
+                    issue = input.Issue, regression = input.Regression, deployment = input.Deployment
+                }),
+            SignalsSummaryJson = Serialize(new { issueFacts, regressionFacts, deploymentFacts, contextFacts }),
             CausalHintsJson = Serialize(causalFacts)
         };
     }
 
-    private static EvidenceFact[] OrderFacts(IReadOnlyList<EvidenceFact>? facts)
-    {
-        return (facts ?? Array.Empty<EvidenceFact>())
-            .OrderBy(static fact => fact.Category, StringComparer.Ordinal)
-            .ThenBy(static fact => fact.Key, StringComparer.Ordinal)
-            .ThenBy(static fact => fact.Value, StringComparer.Ordinal)
-            .ThenBy(static fact => fact.Source, StringComparer.Ordinal)
-            .ToArray();
-    }
+    private static EvidenceFact[] OrderFacts(IReadOnlyList<EvidenceFact>? facts) =>
+        (facts ?? Array.Empty<EvidenceFact>())
+        .OrderBy(static fact => fact.Category, StringComparer.Ordinal)
+        .ThenBy(static fact => fact.Key, StringComparer.Ordinal)
+        .ThenBy(static fact => fact.Value, StringComparer.Ordinal)
+        .ThenBy(static fact => fact.Source, StringComparer.Ordinal)
+        .ToArray();
 
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
 }

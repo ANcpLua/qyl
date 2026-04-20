@@ -1,6 +1,6 @@
-using Qyl.Contracts.Copilot;
-
 namespace Qyl.Loom.Exploration;
+
+using Contracts.Copilot;
 
 public sealed record ExplorationInsight
 {
@@ -18,8 +18,10 @@ public sealed record ExplorationRootCause
 
 public sealed record ExplorationCausalStep(
     [property: JsonPropertyName("order")] int Order,
-    [property: JsonPropertyName("description")] string Description,
-    [property: JsonPropertyName("is_root_cause")] bool IsRootCause);
+    [property: JsonPropertyName("description")]
+    string Description,
+    [property: JsonPropertyName("is_root_cause")]
+    bool IsRootCause);
 
 public sealed record ExplorationSolution
 {
@@ -29,17 +31,21 @@ public sealed record ExplorationSolution
 
 public sealed record ExplorationSolutionStep(
     [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("description")] string Description);
+    [property: JsonPropertyName("description")]
+    string Description);
 
 public sealed record ExplorationExploreRequest(
-    [property: JsonPropertyName("user_context")] string? UserContext);
+    [property: JsonPropertyName("user_context")]
+    string? UserContext);
 
 public sealed record ExplorationCodeItUpRequest(
     [property: JsonPropertyName("repo")] string? Repo,
-    [property: JsonPropertyName("base_branch")] string? BaseBranch);
+    [property: JsonPropertyName("base_branch")]
+    string? BaseBranch);
 
 public sealed record ExplorationCodeItUpResponse(
-    [property: JsonPropertyName("success")] bool Success,
+    [property: JsonPropertyName("success")]
+    bool Success,
     [property: JsonPropertyName("run_id")] string RunId,
     [property: JsonPropertyName("pr_url")] string? PrUrl,
     [property: JsonPropertyName("error")] string? Error);

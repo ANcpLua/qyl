@@ -89,14 +89,14 @@ internal static class WorkspaceRootWalker
         while (directory is not null)
         {
             // Prefer solution-level anchors.
-            if (ContainsAny(directory, AnchorFileExtensions, isExtension: true))
+            if (ContainsAny(directory, AnchorFileExtensions, true))
                 return directory.FullName;
 
-            if (ContainsAny(directory, AnchorFileNames, isExtension: false))
+            if (ContainsAny(directory, AnchorFileNames, false))
                 return directory.FullName;
 
             // Remember the deepest project-level anchor as a fallback.
-            if (projectLevelRoot is null && ContainsAny(directory, AnchorProjectFileExtensions, isExtension: true))
+            if (projectLevelRoot is null && ContainsAny(directory, AnchorProjectFileExtensions, true))
                 projectLevelRoot = directory.FullName;
 
             directory = directory.Parent;

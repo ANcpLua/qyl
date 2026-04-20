@@ -1,9 +1,9 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for AI chat analytics.
@@ -23,7 +23,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="userId">Filters conversations by user ID.</param>
     /// <param name="model">Filters conversations by model name.</param>
     /// <returns>A formatted paginated list of conversations with metadata.</returns>
-    [QylCapability("analytics", QylCapabilityRole.Starting)]
+    [QylCapability("analytics")]
     [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -219,7 +219,7 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
     /// <param name="minConversations">Minimum conversations required to form a cluster.</param>
     /// <returns>Topic clusters ranked by conversation count.</returns>
-    [QylCapability("analytics", QylCapabilityRole.Starting)]
+    [QylCapability("analytics")]
     [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

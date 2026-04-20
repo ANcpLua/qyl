@@ -1,8 +1,8 @@
+namespace Qyl.Collector.Observe;
+
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using Qyl.Contracts.Generated;
-
-namespace Qyl.Collector.Observe;
 
 /// <summary>
 ///     Manages dynamic observability subscriptions that activate dormant ActivitySources on demand.

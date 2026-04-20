@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Metrics;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// Queries time-series data for a specific metric with optional filtering and time range.
+///     Queries time-series data for a specific metric with optional filtering and time range.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

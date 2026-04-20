@@ -10,11 +10,13 @@ internal sealed class LspLanguageMappings
 {
     private readonly Dictionary<string, string> _extensionToServerId = new(StringComparer.OrdinalIgnoreCase)
     {
-        [".cs"] = "csharp-ls",
-        [".csproj"] = "csharp-ls",
-        [".slnx"] = "csharp-ls",
-        [".sln"] = "csharp-ls",
+        [".cs"] = "csharp-ls", [".csproj"] = "csharp-ls", [".slnx"] = "csharp-ls", [".sln"] = "csharp-ls"
     };
+
+    /// <summary>
+    ///     Enumerate known file extensions for diagnostic messages.
+    /// </summary>
+    public IReadOnlyCollection<string> KnownExtensions => _extensionToServerId.Keys;
 
     /// <summary>
     ///     Resolves a server id from a file path extension.
@@ -34,9 +36,4 @@ internal sealed class LspLanguageMappings
         serverId = string.Empty;
         return false;
     }
-
-    /// <summary>
-    ///     Enumerate known file extensions for diagnostic messages.
-    /// </summary>
-    public IReadOnlyCollection<string> KnownExtensions => _extensionToServerId.Keys;
 }

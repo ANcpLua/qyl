@@ -1,11 +1,11 @@
+namespace qyl.mcp.Scoping;
+
 using System.Collections.Frozen;
 using System.Text.Json;
 
-namespace qyl.mcp.Scoping;
-
 /// <summary>
 ///     Auto-injects scoped parameters into MCP tool call arguments.
-///     When qyl.mcp is scoped (via <see cref="QylScope"/>), matching tool parameters
+///     When qyl.mcp is scoped (via <see cref="QylScope" />), matching tool parameters
 ///     are injected silently so the agent doesn't need to specify them on every call.
 /// </summary>
 internal static class ConstraintInjector
@@ -13,8 +13,7 @@ internal static class ConstraintInjector
     private static readonly FrozenDictionary<string, Func<QylScope, string?>> InjectableParameters =
         new Dictionary<string, Func<QylScope, string?>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["serviceName"] = static s => s.ServiceName,
-            ["sessionId"] = static s => s.SessionId
+            ["serviceName"] = static s => s.ServiceName, ["sessionId"] = static s => s.SessionId
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     public static IDictionary<string, JsonElement>? InjectScope(

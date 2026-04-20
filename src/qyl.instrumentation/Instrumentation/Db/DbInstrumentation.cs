@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Instrumentation.Db;
+
 using System.Collections.Concurrent;
 using System.Data.Common;
 using qyl.contracts.Attributes;
-
-namespace Qyl.Instrumentation.Instrumentation.Db;
 
 /// <summary>
 ///     Instrumentation helpers for ADO.NET database calls.

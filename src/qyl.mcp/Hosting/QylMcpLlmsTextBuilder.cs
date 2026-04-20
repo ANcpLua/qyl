@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Http;
-using qyl.mcp.Metadata;
-
 namespace qyl.mcp.Hosting;
+
+using Metadata;
+using Microsoft.AspNetCore.Http;
 
 internal static class QylMcpLlmsTextBuilder
 {
@@ -15,7 +15,8 @@ internal static class QylMcpLlmsTextBuilder
         builder.AppendLine();
         builder.AppendLine($"- Endpoint: {hostOptions.ResolvePublicMcpUrl(request)}");
         builder.AppendLine("- Transport: Streamable HTTP");
-        builder.AppendLine($"- Auth: {(hostOptions.RequiresAuthentication ? "OAuth 2.0 bearer token" : "No host auth configured")}");
+        builder.AppendLine(
+            $"- Auth: {(hostOptions.RequiresAuthentication ? "OAuth 2.0 bearer token" : "No host auth configured")}");
         builder.AppendLine($"- Tool count: {QylMcpMetadataCatalog.GetEnabledTools(skills).Count}");
         builder.AppendLine($"- Capability count: {capabilities.Count}");
         builder.AppendLine("- Discovery tools: `qyl.list_capabilities`, `qyl.get_capability_guide`");

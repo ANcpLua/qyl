@@ -1,14 +1,14 @@
+namespace Qyl.Instrumentation.Generators;
+
+using CallSites;
+using Emitters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
-using Qyl.Instrumentation.Generators.CallSites;
-using Qyl.Instrumentation.Generators.Emitters;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators;
+using Models;
 
 /// <summary>
 ///     Intercepts WebApplicationBuilder.Build() calls to auto-register Qyl service defaults.
@@ -323,7 +323,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Fast syntactic check for candidate <c>Build()</c> invocations.
     /// </summary>
     private static bool CouldBeBuildInvocation(SyntaxNode node, CancellationToken _) =>
-        string.Equals(IncrementalPipelineHelpers.GetInvokedMethodName(node), MethodName.Build, StringComparison.Ordinal);
+        string.Equals(IncrementalPipelineHelpers.GetInvokedMethodName(node), MethodName.Build,
+            StringComparison.Ordinal);
 
     // =========================================================================
     // BUILDER CALL SITE EXTRACTION

@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.CallSites;
+
+using Models;
 
 /// <summary>
 ///     Detects instrumentation provider packages from compilation references.

@@ -1,15 +1,14 @@
+namespace qyl.mcp.Tools.Errors;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-
-namespace qyl.mcp.Tools.Errors;
 
 /// <summary>
-/// MCP tool that retrieves the distribution of a tag's values for an error issue.
+///     MCP tool that retrieves the distribution of a tag's values for an error issue.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -17,7 +16,7 @@ namespace qyl.mcp.Tools.Errors;
 public sealed class GetTagDistributionTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves occurrence counts and percentages for each value of a specific tag on an error issue.
+    ///     Retrieves occurrence counts and percentages for each value of a specific tag on an error issue.
     /// </summary>
     /// <param name="issueId">The error issue ID.</param>
     /// <param name="tagKey">The tag key to inspect (e.g. "browser", "environment", "url", "os").</param>
@@ -37,8 +36,7 @@ public sealed class GetTagDistributionTool(HttpClient client)
                  Returns: Markdown table with value, count, and percentage columns
                  """)]
     public async Task<string> GetTagDistributionAsync(
-        [Description("The error issue ID")]
-        string issueId,
+        [Description("The error issue ID")] string issueId,
         [Description("The tag key to inspect (e.g. \"browser\", \"environment\", \"url\", \"os\")")]
         string tagKey,
         CancellationToken ct = default)

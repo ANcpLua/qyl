@@ -165,6 +165,7 @@ public static partial class SchemaMigrationGenerator
 
             // New columns
             foreach (var col in tableDef.Columns)
+            {
                 if (!prevColumns.TryGetValue(col.Name, out var prevCol))
                 {
                     changes.Add(new SchemaChange(ChangeKind.AddColumn, tableName, col.Name, col));
@@ -173,29 +174,36 @@ public static partial class SchemaMigrationGenerator
                 {
                     // Type change
                     if (!string.Equals(prevCol.Type, col.Type, StringComparison.OrdinalIgnoreCase))
+                    {
                         changes.Add(new SchemaChange(ChangeKind.AlterColumnType, tableName, col.Name, col)
                         {
                             PreviousColumn = prevCol
                         });
+                    }
 
                     // Nullability change (NOT NULL added)
                     if (col.IsNotNull && !prevCol.IsNotNull)
                         changes.Add(new SchemaChange(ChangeKind.AddNotNull, tableName, col.Name, col));
                 }
+            }
 
             // Removed columns (comment only, for safety)
             var currentColumns = tableDef.Columns.ToDictionary(
                 static c => c.Name, static c => c, StringComparer.OrdinalIgnoreCase);
 
             foreach (var col in prevTable.Columns)
+            {
                 if (!currentColumns.ContainsKey(col.Name))
                     changes.Add(new SchemaChange(ChangeKind.RemoveColumn, tableName, col.Name, col));
+            }
         }
 
         // Dropped tables (comment only, for safety)
         foreach (var (tableName, _) in previous)
+        {
             if (!current.ContainsKey(tableName))
                 changes.Add(new SchemaChange(ChangeKind.RemoveTable, tableName, null, null));
+        }
 
         return changes.ToImmutable();
     }
@@ -232,6 +240,7 @@ public static partial class SchemaMigrationGenerator
             sb.AppendLine("-- ---------------------------------------------------------------------------");
 
             foreach (var change in tableGroup)
+            {
                 switch (change.Kind)
                 {
                     case ChangeKind.AddTable:
@@ -283,6 +292,7 @@ public static partial class SchemaMigrationGenerator
                             $"-- DROP TABLE IF EXISTS {change.TableName};");
                         break;
                 }
+            }
 
             sb.AppendLine();
         }

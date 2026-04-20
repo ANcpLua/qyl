@@ -1,7 +1,5 @@
 namespace Qyl.Agents;
 
-using System;
-
 /// <summary>
 ///     Marks a method as an MCP prompt template within an <see cref="McpServerAttribute" /> class.
 ///     The source generator will produce prompt dispatch code and metadata.

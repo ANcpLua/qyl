@@ -1,12 +1,12 @@
+namespace qyl.mcp.Apps.ErrorExplorer;
+
 using System.ComponentModel;
-using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using qyl.mcp.Tools;
-
-namespace qyl.mcp.Apps.ErrorExplorer;
+using Tools;
 
 /// <summary>
 ///     MCP ext-app tool that returns error groups with a UI resource link.
@@ -24,7 +24,7 @@ public sealed class ErrorExplorerTools(HttpClient client)
     /// <param name="status">Filter by issue status: unresolved, resolved, or ignored.</param>
     /// <param name="service">Filter by originating service name.</param>
     /// <param name="limit">Maximum number of error groups to return.</param>
-    [QylCapability("mcp_apps", QylCapabilityRole.Starting)]
+    [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.error_explorer", Title = "Error Explorer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

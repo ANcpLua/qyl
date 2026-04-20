@@ -1,3 +1,5 @@
+namespace Qyl.Collector.Tests.Instrumentation;
+
 using System.Net;
 using ANcpLua.Agents.Testing.ChatClients;
 using Microsoft.Extensions.AI;
@@ -5,8 +7,6 @@ using qyl.contracts.Attributes;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Instrumentation;
 
 /// <summary>
 ///     Tests for <see cref="InstrumentedChatClient" />.
@@ -20,7 +20,7 @@ public sealed class InstrumentedChatClientTests
         var listener = new ActivityListener
         {
             ShouldListenTo = static source => source.Name == ActivitySources.GenAi,
-            Sample = static (ref ActivityCreationOptions<ActivityContext> _) =>
+            Sample = static (ref _) =>
                 ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = captured.Add
         };
@@ -71,7 +71,7 @@ public sealed class InstrumentedChatClientTests
 
         var inner = new FakeChatClient().WithResponse(
             "done",
-            finishReason: ChatFinishReason.Stop,
+            ChatFinishReason.Stop,
             modelId: "gpt-4o-2024-11");
         var client = BuildClient(inner);
 

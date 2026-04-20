@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Intelligence;
+
+using System.Text.Json.Serialization;
 
 /// <summary>Classification category for diagnostic patterns.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<PatternCategory>))]

@@ -58,14 +58,15 @@ trace.set_tracer_provider(provider)
 
 qyl follows OTel Semantic Conventions 1.40 for GenAI:
 
-| Attribute | Description |
-|-----------|-------------|
-| `gen_ai.system` | Provider (openai, anthropic, etc.) |
-| `gen_ai.request.model` | Model name |
-| `gen_ai.usage.input_tokens` | Input token count |
-| `gen_ai.usage.output_tokens` | Output token count |
-| `gen_ai.operation.name` | Operation (chat, completion, embedding) |
+| Attribute                    | Description                             |
+|------------------------------|-----------------------------------------|
+| `gen_ai.system`              | Provider (openai, anthropic, etc.)      |
+| `gen_ai.request.model`       | Model name                              |
+| `gen_ai.usage.input_tokens`  | Input token count                       |
+| `gen_ai.usage.output_tokens` | Output token count                      |
+| `gen_ai.operation.name`      | Operation (chat, completion, embedding) |
 
 ## Verification
 
-After instrumenting, use `qyl.health_check` to verify the connection, then `search_traces` to confirm telemetry is flowing.
+After instrumenting, use `qyl.health_check` to verify the connection, then `search_traces` to confirm telemetry is
+flowing.

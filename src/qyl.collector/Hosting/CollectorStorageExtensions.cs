@@ -1,8 +1,8 @@
-using Qyl.Collector.AgentRuns;
-using Qyl.Collector.Intelligence;
-using Qyl.Contracts.Intelligence;
-
 namespace Qyl.Collector.Hosting;
+
+using AgentRuns;
+using Intelligence;
+using Qyl.Contracts.Intelligence;
 
 public static class CollectorStorageExtensions
 {

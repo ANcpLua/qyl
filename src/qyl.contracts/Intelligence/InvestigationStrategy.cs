@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Intelligence;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Deterministic investigation sequence triggered by a matched pattern.

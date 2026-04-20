@@ -1,8 +1,8 @@
+namespace qyl.mcp.Tools.Debug;
+
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools.Debug;
 
 /// <summary>
 ///     MCP tools for debugging via Rider's Debugger MCP plugin.
@@ -14,7 +14,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 {
     // -- Connection -------------------------------------------------------
 
-    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
+    [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.status", Title = "Debug Connection Status",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Check Rider debugger MCP connection status and refresh endpoint discovery.")]
@@ -48,7 +48,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Sessions ---------------------------------------------------------
 
-    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
+    [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.start_session", Title = "Start Debug Session",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Start a debug session using a run configuration name.")]
@@ -85,7 +85,7 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
 
     // -- Run Configurations -----------------------------------------------
 
-    [QylCapability("debugger_control", QylCapabilityRole.Starting)]
+    [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.list_run_configs", Title = "List Run Configurations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("List available run/debug configurations in the project.")]
@@ -116,7 +116,8 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
     public Task<string> RemoveBreakpointAsync(
         [Description("Breakpoint ID")] string breakpointId,
         CancellationToken ct = default) =>
-        CallRiderToolAsync("remove_breakpoint", new Dictionary<string, object?> { ["breakpointId"] = breakpointId }, ct);
+        CallRiderToolAsync("remove_breakpoint", new Dictionary<string, object?> { ["breakpointId"] = breakpointId },
+            ct);
 
     [McpServerTool(Name = "qyl.debug.list_breakpoints", Title = "List Breakpoints",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]

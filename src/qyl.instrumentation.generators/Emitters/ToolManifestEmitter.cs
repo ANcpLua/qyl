@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.Emitters;
+
+using Models;
 
 /// <summary>
 ///     Emits <c>QylToolManifest.ToolTypes</c> — a compile-time <c>Type[]</c> of all

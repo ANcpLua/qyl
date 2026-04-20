@@ -26,9 +26,9 @@ internal static class DashboardBuildDescriptorReader
         }
 
         return new DashboardBuildDescriptor(
-            BuildId: Path.GetFileName(legacyEntryAsset),
-            EntryAsset: legacyEntryAsset,
-            BuiltAtUtc: null);
+            Path.GetFileName(legacyEntryAsset),
+            legacyEntryAsset,
+            null);
     }
 
     private static bool TryReadDescriptorJson(
@@ -73,9 +73,9 @@ internal static class DashboardBuildDescriptorReader
             }
 
             descriptor = new DashboardBuildDescriptor(
-                BuildId: buildId ?? Path.GetFileName(entryAsset),
-                EntryAsset: entryAsset,
-                BuiltAtUtc: ReadString(root, "builtAtUtc"));
+                buildId ?? Path.GetFileName(entryAsset),
+                entryAsset,
+                ReadString(root, "builtAtUtc"));
 
             return true;
         }

@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace qyl.mcp.Formatting;
+
+using System.Text.Json.Serialization;
 
 internal sealed record TraceSummaryDto(
     [property: JsonPropertyName("trace_id")]

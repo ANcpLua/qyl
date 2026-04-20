@@ -1,11 +1,11 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for managing autofix fix runs:
@@ -15,7 +15,7 @@ namespace qyl.mcp.Tools;
 [QylSkill(QylSkillKind.Loom)]
 internal sealed class AutofixMcpTools(HttpClient http)
 {
-    [QylCapability("loom_triage_and_fix", QylCapabilityRole.Starting)]
+    [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.list_fix_runs", Title = "List Fix Runs",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""
@@ -36,10 +36,12 @@ internal sealed class AutofixMcpTools(HttpClient http)
             return LoomToolEnvelope.Fail<LoomFixRunList>($"Issue '{issueId}' not found.");
 
         if (!resp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunList>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to list fix runs.",
                 ct).ConfigureAwait(false));
+        }
 
         var payload = await resp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunList, ct).ConfigureAwait(false);
@@ -63,18 +65,22 @@ internal sealed class AutofixMcpTools(HttpClient http)
         CancellationToken ct = default)
     {
         using var resp = await http.GetAsync(
-            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
             .ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunDto>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
+        }
 
         if (!resp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunDto>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to load fix run details.",
                 ct).ConfigureAwait(false));
+        }
 
         var payload = await resp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);
@@ -97,18 +103,22 @@ internal sealed class AutofixMcpTools(HttpClient http)
         CancellationToken ct = default)
     {
         using var resp = await http.GetAsync(
-            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
             .ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
+        {
             return LoomToolEnvelope.Fail<LoomAutofixStepList>(
                 $"Fix run '{runId}' not found for issue '{issueId}'.");
+        }
 
         if (!resp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomAutofixStepList>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to load fix run steps.",
                 ct).ConfigureAwait(false));
+        }
 
         var payload = await resp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomAutofixStepList, ct).ConfigureAwait(false);
@@ -148,10 +158,12 @@ internal sealed class AutofixMcpTools(HttpClient http)
         }
 
         if (!resp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to approve fix run.",
                 ct).ConfigureAwait(false));
+        }
 
         var transition = await resp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);
@@ -193,10 +205,12 @@ internal sealed class AutofixMcpTools(HttpClient http)
         }
 
         if (!resp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunTransitionResponse>(await ReadCollectorErrorAsync(
                 resp,
                 "Failed to reject fix run.",
                 ct).ConfigureAwait(false));
+        }
 
         var transition = await resp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunTransitionResponse, ct).ConfigureAwait(false);

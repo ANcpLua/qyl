@@ -1,6 +1,6 @@
-using Qyl.Contracts.Intelligence;
-
 namespace Qyl.Collector.Intelligence;
+
+using Qyl.Contracts.Intelligence;
 
 /// <summary>
 ///     Deterministic pattern matching over telemetry signals.

@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
+namespace qyl.mcp.Tools.Lsp;
+
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
-
-namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Applies an LSP <c>WorkspaceEdit</c> to disk. Edits per file are applied bottom-up so earlier
@@ -14,13 +14,6 @@ namespace qyl.mcp.Tools.Lsp;
 /// </summary>
 internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
 {
-    /// <summary>Summary of an applied <c>WorkspaceEdit</c>.</summary>
-    /// <param name="FilesChanged">Files whose contents changed on disk.</param>
-    /// <param name="EditsPerFile">Map from file path to edit count.</param>
-    public sealed record ApplySummary(
-        IReadOnlyList<string> FilesChanged,
-        IReadOnlyDictionary<string, int> EditsPerFile);
-
     /// <summary>Applies a <c>WorkspaceEdit</c>.</summary>
     public async Task<ApplySummary> ApplyAsync(JsonNode workspaceEdit, CancellationToken ct)
     {
@@ -97,8 +90,10 @@ internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
             var startOffset = ResolveOffset(lineOffsets, edit.StartLine, edit.StartChar, original.Length);
             var endOffset = ResolveOffset(lineOffsets, edit.EndLine, edit.EndChar, original.Length);
             if (endOffset < startOffset)
+            {
                 throw new InvalidDataException(
                     $"WorkspaceEdit for {filePath} has end position before start position.");
+            }
 
             working.Remove(startOffset, endOffset - startOffset);
             working.Insert(startOffset, edit.NewText);
@@ -120,11 +115,11 @@ internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
         var end = range["end"] ?? throw new InvalidDataException("TextEdit range is missing 'end'.");
 
         return new Edit(
-            StartLine: start["line"]?.GetValue<int>() ?? 0,
-            StartChar: start["character"]?.GetValue<int>() ?? 0,
-            EndLine: end["line"]?.GetValue<int>() ?? 0,
-            EndChar: end["character"]?.GetValue<int>() ?? 0,
-            NewText: edit["newText"]?.GetValue<string>() ?? string.Empty);
+            start["line"]?.GetValue<int>() ?? 0,
+            start["character"]?.GetValue<int>() ?? 0,
+            end["line"]?.GetValue<int>() ?? 0,
+            end["character"]?.GetValue<int>() ?? 0,
+            edit["newText"]?.GetValue<string>() ?? string.Empty);
     }
 
     private static int[] BuildLineOffsets(string text)
@@ -146,6 +141,13 @@ internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
         var lineStart = lineOffsets[line];
         return Math.Clamp(lineStart + character, lineStart, textLength);
     }
+
+    /// <summary>Summary of an applied <c>WorkspaceEdit</c>.</summary>
+    /// <param name="FilesChanged">Files whose contents changed on disk.</param>
+    /// <param name="EditsPerFile">Map from file path to edit count.</param>
+    public sealed record ApplySummary(
+        IReadOnlyList<string> FilesChanged,
+        IReadOnlyDictionary<string, int> EditsPerFile);
 
     private sealed record Edit(int StartLine, int StartChar, int EndLine, int EndChar, string NewText);
 }

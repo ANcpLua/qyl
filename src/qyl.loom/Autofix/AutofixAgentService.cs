@@ -1,7 +1,7 @@
-using Microsoft.Extensions.AI;
-using Qyl.Contracts.Observability;
-
 namespace Qyl.Loom;
+
+using Contracts.Observability;
+using Microsoft.Extensions.AI;
 
 /// <summary>
 ///     Background service that autonomously picks up pending fix runs and executes
@@ -124,7 +124,7 @@ public sealed partial class AutofixAgentService(
             if (run.StoppingPoint is "code_changes")
             {
                 await CompleteRunEarlyAsync(run, "Stopped at code_changes per stopping_point",
-                    ct, changesJson: changesJson).ConfigureAwait(false);
+                    ct, changesJson).ConfigureAwait(false);
                 return;
             }
 
@@ -165,7 +165,7 @@ public sealed partial class AutofixAgentService(
         FixRunRecord run, string description, CancellationToken ct, string? changesJson = null)
     {
         await orchestrator.UpdateFixRunStatusAsync(
-            run.IssueId, run.RunId, "review", description, changesJson: changesJson, ct: ct)
+                run.IssueId, run.RunId, "review", description, changesJson: changesJson, ct: ct)
             .ConfigureAwait(false);
 
         LogFixRunStoppedEarly(run.RunId, run.StoppingPoint!);

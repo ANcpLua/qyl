@@ -1,6 +1,7 @@
 # PLANNED — OAuth end-to-end Playwright harness
 
-**Status:** Planned. **Blocked on** `.claude/handoffs/2026-04-17-spec2-ops-followup.md` items 1–11 — requires `mcp.qyl.info` to be live with a real Keycloak realm, test user, and green deploy.
+**Status:** Planned. **Blocked on** `.claude/handoffs/2026-04-17-spec2-ops-followup.md` items 1–11 — requires
+`mcp.qyl.info` to be live with a real Keycloak realm, test user, and green deploy.
 **Predecessor:** Spec 2 code landed on 2026-04-17 in `main` (guard + logging + deploy skeleton).
 **Unlocks:** Regression-proofs the Claude-Code → Keycloak → qyl.mcp OAuth dance. Required before MCP-registry listing.
 
@@ -11,7 +12,8 @@ CI job runs on every push to `main` (or nightly) in a fresh container. From zero
 1. `claude mcp add --transport http qyl https://mcp.qyl.info/mcp`
 2. Scripted browser completes the Keycloak PKCE flow with `test@qyl.info`
 3. Tokens flow back, stored client-side
-4. `claude` invokes 3 canonical tools (e.g. `qyl.list_services`, `qyl.get_trace`, `qyl.list_error_issues`) and asserts non-empty responses
+4. `claude` invokes 3 canonical tools (e.g. `qyl.list_services`, `qyl.get_trace`, `qyl.list_error_issues`) and asserts
+   non-empty responses
 5. Invalid-token request returns proper RFC-9728 `401 + WWW-Authenticate: Bearer resource_metadata=...`
 6. After access-token TTL + 10 s, next call silently refreshes and succeeds
 
@@ -23,11 +25,15 @@ Net-new test project. Does not modify runtime code.
 
 - **New project:** `tests/qyl.mcp.e2e/qyl.mcp.e2e.csproj` — xUnit v3 + MTP + `Microsoft.Playwright`
 - **New:** `tests/qyl.mcp.e2e/OAuthDanceTests.cs` — the 6 assertions above as distinct `[Fact]` methods
-- **New:** `tests/qyl.mcp.e2e/DevcontainerFixture.cs` — xUnit fixture that boots a fresh `mcr.microsoft.com/devcontainers/base:ubuntu` container via Testcontainers, installs `claude-code`, exposes the CLI to the test
-- **New workflow:** `.github/workflows/oauth-e2e.yml` — triggers on `push` to `main` and nightly cron; needs `QYL_E2E_KEYCLOAK_TEST_USER_PW` secret
+- **New:** `tests/qyl.mcp.e2e/DevcontainerFixture.cs` — xUnit fixture that boots a fresh
+  `mcr.microsoft.com/devcontainers/base:ubuntu` container via Testcontainers, installs `claude-code`, exposes the CLI to
+  the test
+- **New workflow:** `.github/workflows/oauth-e2e.yml` — triggers on `push` to `main` and nightly cron; needs
+  `QYL_E2E_KEYCLOAK_TEST_USER_PW` secret
 - **Optional:** `tests/qyl.mcp.e2e/README.md` with "how to run locally" — requires `docker` + `dotnet` only
 
-Do **not** touch: runtime `src/qyl.mcp/**`, `Hosting/QylMcpHttpHost.cs`, or any Keycloak config (those are in Spec 2 ops work, already landed or handed off).
+Do **not** touch: runtime `src/qyl.mcp/**`, `Hosting/QylMcpHttpHost.cs`, or any Keycloak config (those are in Spec 2 ops
+work, already landed or handed off).
 
 ## Prerequisites — hard gates
 
@@ -38,7 +44,8 @@ Cannot start until **all** of the following are ✅ (cross-reference `.claude/ha
 - [ ] Test user `test@qyl.info` exists in Keycloak with known password stored as GH secret
 - [ ] Deploy workflow's `if: false` gate is flipped and the container is actually serving
 
-Do **not** scaffold the E2E before these are green — you'll write against assumptions and the test will need a rewrite after real deployment.
+Do **not** scaffold the E2E before these are green — you'll write against assumptions and the test will need a rewrite
+after real deployment.
 
 ## Execute-ready prompt
 

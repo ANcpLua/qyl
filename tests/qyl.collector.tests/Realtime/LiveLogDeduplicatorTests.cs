@@ -1,9 +1,9 @@
-using Qyl.Collector.Realtime;
-using Qyl.Collector.Storage;
+namespace Qyl.Collector.Tests.Realtime;
+
+using Collector.Realtime;
+using Collector.Storage;
 using Qyl.Contracts.Primitives;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Realtime;
 
 public sealed class LiveLogDeduplicatorTests
 {
@@ -44,7 +44,7 @@ public sealed class LiveLogDeduplicatorTests
         ]);
 
         emitted.Count.Should().Be(2);
-        emitted.Select(static x => x.Log.Body ?? string.Empty).ToArray().Should().BeEquivalentTo(["A", "B"]);
+        emitted.Select(static x => x.Log.Body ?? string.Empty).ToArray().Should().BeEquivalentTo("A", "B");
 
         var flushed = deduplicator.FlushExpired(t0.AddSeconds(10).UtcDateTime);
         flushed.Should().ContainSingle();

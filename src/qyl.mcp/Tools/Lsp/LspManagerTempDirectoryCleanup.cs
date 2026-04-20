@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
+namespace qyl.mcp.Tools.Lsp;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
-namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Prunes stale LSP workspace temp directories on startup. csharp-ls creates per-workspace
@@ -27,7 +27,8 @@ internal sealed class LspManagerTempDirectoryCleanup(
         var cutoff = time.GetUtcNow() - MaxAge;
         foreach (var prefix in Prefixes)
         {
-            foreach (var directory in Directory.EnumerateDirectories(tempRoot, prefix + "*", SearchOption.TopDirectoryOnly))
+            foreach (var directory in Directory.EnumerateDirectories(tempRoot, prefix + "*",
+                         SearchOption.TopDirectoryOnly))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 TryPrune(directory, cutoff);
@@ -48,7 +49,7 @@ internal sealed class LspManagerTempDirectoryCleanup(
             if (info.LastWriteTimeUtc >= cutoff.UtcDateTime)
                 return;
 
-            info.Delete(recursive: true);
+            info.Delete(true);
             logger.LogInformation("Pruned stale LSP temp dir {Directory}", directory);
         }
         catch (IOException ex)

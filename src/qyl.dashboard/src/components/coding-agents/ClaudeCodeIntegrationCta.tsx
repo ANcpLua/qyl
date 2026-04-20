@@ -9,7 +9,7 @@ export function ClaudeCodeIntegrationCta({onEnabled}: { onEnabled?: () => void }
     const {mutate, isPending} = useUpdateLoomSettings();
 
     const handleEnable = () => {
-        mutate ({default_coding_agent: 'claude_code'}, {
+        mutate({default_coding_agent: 'claude_code'}, {
             onSuccess: () => {
                 toast.success('Claude Code agent enabled');
                 onEnabled?.();

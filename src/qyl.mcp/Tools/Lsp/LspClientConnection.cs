@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 ancplua
 
+namespace qyl.mcp.Tools.Lsp;
+
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-
-namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Owns a single LSP server connection: process + transport + real
@@ -15,12 +15,12 @@ namespace qyl.mcp.Tools.Lsp;
 /// </summary>
 internal sealed class LspClientConnection : IAsyncDisposable
 {
-    private readonly LspProcess _process;
-    private readonly LspClientTransport _transport;
-    private readonly ILogger _logger;
-    private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonNode?>> _pending = new();
     private readonly CancellationTokenSource _dispatcherCts = new();
     private readonly Task _dispatcherTask;
+    private readonly ILogger _logger;
+    private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonNode?>> _pending = new();
+    private readonly LspProcess _process;
+    private readonly LspClientTransport _transport;
     private int _disposed;
 
     private LspClientConnection(
@@ -38,6 +38,53 @@ internal sealed class LspClientConnection : IAsyncDisposable
 
     /// <summary>Resolved server + binary + workspace metadata.</summary>
     public LspServerResolutionResult Resolution { get; }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
+            return;
+
+        // Polite shutdown: shutdown request + exit notification, 2s budget. If the server is
+        // unresponsive or already torn down, LspProcess.DisposeAsync handles the forceful kill.
+        try
+        {
+            using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await SendRequestAsync("shutdown", null, shutdownCts.Token).ConfigureAwait(false);
+            await SendNotificationAsync("exit", null, shutdownCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("LSP server did not acknowledge shutdown within 2s; falling through to process kill.");
+        }
+        catch (LspProtocolException ex)
+        {
+            _logger.LogDebug(ex, "LSP server rejected shutdown; falling through to process kill.");
+        }
+        catch (IOException ex)
+        {
+            _logger.LogDebug(ex, "LSP transport pipe broken during shutdown; falling through to process kill.");
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogDebug(ex, "LSP transport already disposed during shutdown.");
+        }
+
+        await _dispatcherCts.CancelAsync().ConfigureAwait(false);
+        try
+        {
+            await _dispatcherTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("LSP dispatcher task observed cancellation during disposal.");
+        }
+
+        _dispatcherCts.Dispose();
+
+        await _transport.DisposeAsync().ConfigureAwait(false);
+        await _process.DisposeAsync().ConfigureAwait(false);
+    }
 
     /// <summary>Starts the process, wraps the transport, runs the real init handshake.</summary>
     /// <param name="resolution">Resolved launch parameters.</param>
@@ -113,15 +160,16 @@ internal sealed class LspClientConnection : IAsyncDisposable
             ["clientInfo"] = new JsonObject { ["name"] = "qyl.mcp", ["version"] = "1.0.0" },
             ["capabilities"] = new JsonObject
             {
-                ["workspace"] = new JsonObject
-                {
-                    ["workspaceEdit"] = new JsonObject
+                ["workspace"] =
+                    new JsonObject
                     {
-                        ["documentChanges"] = true,
-                        ["resourceOperations"] = new JsonArray { "create", "rename", "delete" },
+                        ["workspaceEdit"] = new JsonObject
+                        {
+                            ["documentChanges"] = true,
+                            ["resourceOperations"] = new JsonArray { "create", "rename", "delete" }
+                        },
+                        ["symbol"] = new JsonObject()
                     },
-                    ["symbol"] = new JsonObject(),
-                },
                 ["textDocument"] = new JsonObject
                 {
                     ["synchronization"] = new JsonObject(),
@@ -129,9 +177,9 @@ internal sealed class LspClientConnection : IAsyncDisposable
                     ["references"] = new JsonObject(),
                     ["documentSymbol"] = new JsonObject(),
                     ["rename"] = new JsonObject { ["prepareSupport"] = true },
-                    ["diagnostic"] = new JsonObject(),
-                },
-            },
+                    ["diagnostic"] = new JsonObject()
+                }
+            }
         };
 
         return RunHandshakeAsync(initParams, token);
@@ -183,60 +231,11 @@ internal sealed class LspClientConnection : IAsyncDisposable
             }
         }
     }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
-            return;
-
-        // Polite shutdown: shutdown request + exit notification, 2s budget. If the server is
-        // unresponsive or already torn down, LspProcess.DisposeAsync handles the forceful kill.
-        try
-        {
-            using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            await SendRequestAsync("shutdown", null, shutdownCts.Token).ConfigureAwait(false);
-            await SendNotificationAsync("exit", null, shutdownCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogDebug("LSP server did not acknowledge shutdown within 2s; falling through to process kill.");
-        }
-        catch (LspProtocolException ex)
-        {
-            _logger.LogDebug(ex, "LSP server rejected shutdown; falling through to process kill.");
-        }
-        catch (IOException ex)
-        {
-            _logger.LogDebug(ex, "LSP transport pipe broken during shutdown; falling through to process kill.");
-        }
-        catch (ObjectDisposedException ex)
-        {
-            _logger.LogDebug(ex, "LSP transport already disposed during shutdown.");
-        }
-
-        await _dispatcherCts.CancelAsync().ConfigureAwait(false);
-        try
-        {
-            await _dispatcherTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogDebug("LSP dispatcher task observed cancellation during disposal.");
-        }
-        _dispatcherCts.Dispose();
-
-        await _transport.DisposeAsync().ConfigureAwait(false);
-        await _process.DisposeAsync().ConfigureAwait(false);
-    }
 }
 
 /// <summary>Thrown when a JSON-RPC response carries an <c>error</c> object.</summary>
 internal sealed class LspProtocolException : Exception
 {
-    /// <summary>JSON-RPC error code.</summary>
-    public int Code { get; }
-
     /// <summary>Constructs with a JSON-RPC error code and message.</summary>
     public LspProtocolException(int code, string message)
         : base($"LSP error {code}: {message}") => Code = code;
@@ -254,4 +253,7 @@ internal sealed class LspProtocolException : Exception
     /// <summary>Constructs from a message + inner exception (code defaults to 0).</summary>
     public LspProtocolException(string message, Exception innerException)
         : base(message, innerException) => Code = 0;
+
+    /// <summary>JSON-RPC error code.</summary>
+    public int Code { get; }
 }

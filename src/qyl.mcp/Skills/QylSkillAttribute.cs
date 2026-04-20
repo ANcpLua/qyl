@@ -6,7 +6,7 @@ namespace qyl.mcp.Skills;
 ///     skill-aware MCP registration, DI registration, and metadata. When absent,
 ///     the tool is excluded from generated registration and must be wired manually.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 internal sealed class QylSkillAttribute(QylSkillKind skill) : Attribute
 {
     public QylSkillKind Skill { get; } = skill;

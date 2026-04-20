@@ -8,13 +8,13 @@ import {
     Database,
     ExternalLink,
     GitBranch,
+    type LucideIcon,
     Radio,
     Search,
     Server,
     ShieldCheck,
     Sparkles,
     Terminal,
-    type LucideIcon,
     Workflow,
 } from 'lucide-react';
 import {Link} from 'react-router-dom';
@@ -121,7 +121,8 @@ function SectionTitle({children}: { children: string }) {
 function QylWordmark() {
     return (
         <div className="flex items-center gap-4">
-            <div className="relative flex h-13 w-13 items-center justify-center rounded-full border border-signal-violet/40 bg-signal-violet/12 shadow-[0_0_40px_rgba(147,51,234,0.18)]">
+            <div
+                className="relative flex h-13 w-13 items-center justify-center rounded-full border border-signal-violet/40 bg-signal-violet/12 shadow-[0_0_40px_rgba(147,51,234,0.18)]">
                 <div className="absolute inset-1 rounded-full border border-signal-violet/20"/>
                 <Terminal className="h-6 w-6 text-signal-violet"/>
             </div>
@@ -138,10 +139,10 @@ function QylWordmark() {
 }
 
 function StatusRow({
-    label,
-    value,
-    active,
-}: {
+                       label,
+                       value,
+                       active,
+                   }: {
     label: string;
     value: string;
     active: boolean;
@@ -174,7 +175,8 @@ function ScopeRow({scope}: { scope: ScopeGroup }) {
 
     return (
         <div className="grid gap-3 px-5 py-5 sm:grid-cols-[auto_1fr_auto] sm:items-start">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-signal-violet">
+            <div
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-signal-violet">
                 <Icon className="h-5 w-5"/>
             </div>
             <div>
@@ -186,7 +188,8 @@ function ScopeRow({scope}: { scope: ScopeGroup }) {
                 </p>
             </div>
             <div className="justify-self-start sm:justify-self-end">
-                <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-brutal-slate">
+                <span
+                    className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-brutal-slate">
                     {scope.level}
                 </span>
             </div>
@@ -195,10 +198,10 @@ function ScopeRow({scope}: { scope: ScopeGroup }) {
 }
 
 function HeroScene({
-    mcpSurface,
-    transportLabel,
-    githubLabel,
-}: {
+                       mcpSurface,
+                       transportLabel,
+                       githubLabel,
+                   }: {
     mcpSurface: string;
     transportLabel: string;
     githubLabel: string;
@@ -208,14 +211,16 @@ function HeroScene({
             className="relative h-[360px] sm:h-[480px] lg:h-[620px]"
             style={{animation: 'data-stream 720ms ease-out 120ms both'}}
         >
-            <div className="absolute inset-0 rounded-[38px] bg-[radial-gradient(circle_at_32%_22%,rgba(126,34,206,0.18),transparent_30%),radial-gradient(circle_at_84%_24%,rgba(245,158,11,0.12),transparent_22%),radial-gradient(circle_at_58%_84%,rgba(34,211,238,0.12),transparent_26%)]"/>
+            <div
+                className="absolute inset-0 rounded-[38px] bg-[radial-gradient(circle_at_32%_22%,rgba(126,34,206,0.18),transparent_30%),radial-gradient(circle_at_84%_24%,rgba(245,158,11,0.12),transparent_22%),radial-gradient(circle_at_58%_84%,rgba(34,211,238,0.12),transparent_26%)]"/>
             <div className="absolute inset-x-[14%] inset-y-[10%] rounded-[999px] border border-signal-violet/12"/>
             <div className="absolute inset-x-[8%] inset-y-[4%] rounded-[999px] border border-signal-violet/8"/>
             <div
                 className="absolute right-[10%] top-[8%] h-38 w-38 rounded-full border border-signal-violet/20 blur-[1px]"
                 style={{animation: 'pulse-live 6s ease-in-out infinite'}}
             />
-            <div className="absolute left-[6%] top-[26%] w-[58%] rounded-[28px] border border-white/10 bg-[#090d17]/88 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl scan-lines sm:p-6">
+            <div
+                className="absolute left-[6%] top-[26%] w-[58%] rounded-[28px] border border-white/10 bg-[#090d17]/88 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl scan-lines sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
@@ -225,7 +230,8 @@ function HeroScene({
                             Live ingest and query path
                         </div>
                     </div>
-                    <div className="rounded-full border border-signal-cyan/30 bg-signal-cyan/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-signal-cyan">
+                    <div
+                        className="rounded-full border border-signal-cyan/30 bg-signal-cyan/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-signal-cyan">
                         Side channel
                     </div>
                 </div>
@@ -268,7 +274,8 @@ function HeroScene({
                 style={{animation: 'data-stream 780ms ease-out 260ms both'}}
             >
                 <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/12 text-signal-violet">
+                    <div
+                        className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/12 text-signal-violet">
                         <Workflow className="h-5 w-5"/>
                     </div>
                     <div className="text-2xl font-semibold tracking-[-0.03em] text-brutal-white">
@@ -305,11 +312,13 @@ function HeroScene({
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-100/80">
                         Destination
                     </div>
-                    <code className="mt-3 block overflow-x-auto rounded-[14px] bg-black/25 px-3 py-2 font-mono text-sm text-amber-50">
+                    <code
+                        className="mt-3 block overflow-x-auto rounded-[14px] bg-black/25 px-3 py-2 font-mono text-sm text-amber-50">
                         {mcpSurface}
                     </code>
                     <p className="mt-3 text-sm leading-6 text-amber-50/80">
-                        qyl.mcp stays separate from qyl.collector. Facts flow through the collector; agent access is scoped through the MCP surface.
+                        qyl.mcp stays separate from qyl.collector. Facts flow through the collector; agent access is
+                        scoped through the MCP surface.
                     </p>
                 </div>
 
@@ -411,9 +420,11 @@ export function OnboardingPage() {
 
                 <header className="fixed inset-x-0 top-0 z-20">
                     <div className="border-b border-white/6 bg-brutal-black/72 backdrop-blur-xl">
-                        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-6 py-4 lg:px-10 xl:px-16">
+                        <div
+                            className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-6 py-4 lg:px-10 xl:px-16">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-signal-violet/35 bg-signal-violet/12 text-signal-violet">
+                                <div
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-signal-violet/35 bg-signal-violet/12 text-signal-violet">
                                     <Terminal className="h-4 w-4"/>
                                 </div>
                                 <div>
@@ -465,7 +476,8 @@ export function OnboardingPage() {
                         id="surface"
                         className="relative flex min-h-[calc(100svh-73px)] items-center border-b border-white/6"
                     >
-                        <div className="mx-auto grid w-full max-w-[1480px] gap-16 px-6 py-14 lg:grid-cols-[minmax(0,35rem)_1fr] lg:px-10 xl:px-16">
+                        <div
+                            className="mx-auto grid w-full max-w-[1480px] gap-16 px-6 py-14 lg:grid-cols-[minmax(0,35rem)_1fr] lg:px-10 xl:px-16">
                             <div
                                 className="max-w-[36rem]"
                                 style={{animation: 'data-stream 720ms ease-out both'}}
@@ -481,8 +493,10 @@ export function OnboardingPage() {
                                 </h1>
 
                                 <p className="mt-6 max-w-[36rem] text-base leading-7 text-brutal-slate sm:text-lg">
-                                    OTLP-native observability for traces, logs, metrics, GenAI cost, and agent-native investigation.
-                                    qyl stays off your control path, stores telemetry in DuckDB, and gives operators a clean place to inspect facts before they automate anything.
+                                    OTLP-native observability for traces, logs, metrics, GenAI cost, and agent-native
+                                    investigation.
+                                    qyl stays off your control path, stores telemetry in DuckDB, and gives operators a
+                                    clean place to inspect facts before they automate anything.
                                 </p>
 
                                 <div className="mt-9 flex flex-wrap gap-3">
@@ -502,9 +516,11 @@ export function OnboardingPage() {
                                     </Button>
                                 </div>
 
-                                <div className="mt-9 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl scan-lines">
+                                <div
+                                    className="mt-9 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl scan-lines">
                                     <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
-                                        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                        <div
+                                            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                             Send telemetry
                                         </div>
                                         <button
@@ -523,7 +539,8 @@ export function OnboardingPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-8 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 backdrop-blur-xl">
+                                <div
+                                    className="mt-8 overflow-hidden rounded-[22px] border border-white/10 bg-white/5 backdrop-blur-xl">
                                     <StatusRow
                                         active={hasCollectorMeta}
                                         label="Collector"
@@ -563,13 +580,16 @@ export function OnboardingPage() {
                                         <SectionTitle>Give your agent scoped access to telemetry.</SectionTitle>
                                     </div>
                                     <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
-                                        qyl.mcp stays separate from the collector and exposes the telemetry surface over stdio or Streamable HTTP.
-                                        The contract keeps raw facts, AI analysis, and proposed actions explicitly separated so operators can trust what the agent is looking at.
+                                        qyl.mcp stays separate from the collector and exposes the telemetry surface over
+                                        stdio or Streamable HTTP.
+                                        The contract keeps raw facts, AI analysis, and proposed actions explicitly
+                                        separated so operators can trust what the agent is looking at.
                                     </p>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                    <div
+                                        className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
                                         {scopeGroups.map((scope, index) => (
                                             <div
                                                 key={scope.title}
@@ -581,54 +601,75 @@ export function OnboardingPage() {
                                     </div>
 
                                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                        <div
+                                            className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                            <div
+                                                className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                 Provenance contract
                                             </div>
                                             <div className="mt-6 grid gap-5 md:grid-cols-3">
                                                 <div className="border-l border-signal-cyan/30 pl-4">
-                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-cyan">
+                                                    <div
+                                                        className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-cyan">
                                                         Facts
                                                     </div>
                                                     <p className="mt-2 text-sm leading-6 text-brutal-slate">
-                                                        Traces, logs, metrics, costs, services, and issue records from qyl.collector.
+                                                        Traces, logs, metrics, costs, services, and issue records from
+                                                        qyl.collector.
                                                     </p>
                                                 </div>
                                                 <div className="border-l border-signal-violet/30 pl-4">
-                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-violet">
+                                                    <div
+                                                        className="text-sm font-semibold uppercase tracking-[0.18em] text-signal-violet">
                                                         Analysis
                                                     </div>
                                                     <p className="mt-2 text-sm leading-6 text-brutal-slate">
-                                                        Loom reasoning and pattern evaluation layered on top without rewriting the evidence.
+                                                        Loom reasoning and pattern evaluation layered on top without
+                                                        rewriting the evidence.
                                                     </p>
                                                 </div>
                                                 <div className="border-l border-amber-300/35 pl-4">
-                                                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-100/90">
+                                                    <div
+                                                        className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-100/90">
                                                         Actions
                                                     </div>
                                                     <p className="mt-2 text-sm leading-6 text-brutal-slate">
-                                                        Triage updates, annotations, or follow-up steps kept separate from telemetry facts.
+                                                        Triage updates, annotations, or follow-up steps kept separate
+                                                        from telemetry facts.
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
-                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                        <div
+                                            className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
+                                            <div
+                                                className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                 Transport notes
                                             </div>
                                             <div className="mt-5 space-y-4 text-sm leading-6 text-brutal-white">
-                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                <div
+                                                    className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
                                                     <div className="font-semibold text-brutal-white">Local mode</div>
-                                                    <div className="mt-1 text-brutal-slate">stdio transport for local agent workflows.</div>
+                                                    <div className="mt-1 text-brutal-slate">stdio transport for local
+                                                        agent workflows.
+                                                    </div>
                                                 </div>
-                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                <div
+                                                    className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
                                                     <div className="font-semibold text-brutal-white">Remote mode</div>
-                                                    <div className="mt-1 text-brutal-slate">Streamable HTTP at <code className="font-mono text-brutal-white">/mcp</code>.</div>
+                                                    <div className="mt-1 text-brutal-slate">Streamable HTTP at <code
+                                                        className="font-mono text-brutal-white">/mcp</code>.
+                                                    </div>
                                                 </div>
-                                                <div className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
-                                                    <div className="font-semibold text-brutal-white">Collector boundary</div>
-                                                    <div className="mt-1 text-brutal-slate">MCP stays HTTP-only; no project reference to the collector runtime.</div>
+                                                <div
+                                                    className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
+                                                    <div className="font-semibold text-brutal-white">Collector
+                                                        boundary
+                                                    </div>
+                                                    <div className="mt-1 text-brutal-slate">MCP stays HTTP-only; no
+                                                        project reference to the collector runtime.
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -647,17 +688,21 @@ export function OnboardingPage() {
                                         <SectionTitle>Point any OpenTelemetry pipeline at qyl.</SectionTitle>
                                     </div>
                                     <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
-                                        qyl stays .NET-first without locking the rest of your stack to a custom SDK. Bring a standard OTel exporter, use the qyl line if you want a one-line .NET setup, and start collecting facts immediately.
+                                        qyl stays .NET-first without locking the rest of your stack to a custom SDK.
+                                        Bring a standard OTel exporter, use the qyl line if you want a one-line .NET
+                                        setup, and start collecting facts immediately.
                                     </p>
 
                                     <div className="mt-10 space-y-8">
                                         {launchSteps.map((step, index) => (
                                             <div key={step.title} className="flex gap-4">
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-sm font-semibold text-signal-violet">
+                                                <div
+                                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-signal-violet/30 bg-signal-violet/10 text-sm font-semibold text-signal-violet">
                                                     {index + 1}
                                                 </div>
                                                 <div>
-                                                    <div className="text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                    <div
+                                                        className="text-lg font-medium tracking-[-0.02em] text-brutal-white">
                                                         {step.title}
                                                     </div>
                                                     <p className="mt-2 max-w-[32rem] text-sm leading-6 text-brutal-slate">
@@ -670,17 +715,21 @@ export function OnboardingPage() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                                    <div
+                                        className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
                                         <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
                                             <div>
-                                                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                <div
+                                                    className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                     Transport selector
                                                 </div>
-                                                <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                <div
+                                                    className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
                                                     {selectedProtocol.label}
                                                 </div>
                                             </div>
-                                            <div className="inline-flex rounded-full border border-white/10 bg-white/4 p-1">
+                                            <div
+                                                className="inline-flex rounded-full border border-white/10 bg-white/4 p-1">
                                                 <button
                                                     type="button"
                                                     className={cn(
@@ -712,9 +761,11 @@ export function OnboardingPage() {
 
                                         <div className="border-t border-white/8 px-6 py-6">
                                             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]">
-                                                <div className="overflow-hidden rounded-[22px] border border-white/10 bg-black/20">
+                                                <div
+                                                    className="overflow-hidden rounded-[22px] border border-white/10 bg-black/20">
                                                     <div className="flex items-center justify-between gap-4 px-4 py-3">
-                                                        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                        <div
+                                                            className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                             Export target
                                                         </div>
                                                         <button
@@ -727,14 +778,16 @@ export function OnboardingPage() {
                                                         </button>
                                                     </div>
                                                     <div className="border-t border-white/8 px-4 py-4">
-                                                        <code className="block overflow-x-auto font-mono text-sm text-brutal-white">
+                                                        <code
+                                                            className="block overflow-x-auto font-mono text-sm text-brutal-white">
                                                             {selectedProtocol.env}
                                                         </code>
                                                     </div>
                                                 </div>
 
                                                 <div className="rounded-[22px] border border-white/10 bg-white/4 p-4">
-                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                    <div
+                                                        className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                         Endpoint
                                                     </div>
                                                     <div className="mt-3 break-all font-mono text-sm text-brutal-white">
@@ -749,13 +802,16 @@ export function OnboardingPage() {
                                     </div>
 
                                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
+                                        <div
+                                            className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
                                             <div className="flex items-center justify-between gap-4 px-6 py-5">
                                                 <div>
-                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                    <div
+                                                        className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                         qyl .NET shortcut
                                                     </div>
-                                                    <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                    <div
+                                                        className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
                                                         One line for the qyl SDK
                                                     </div>
                                                 </div>
@@ -769,27 +825,34 @@ export function OnboardingPage() {
                                                 </button>
                                             </div>
                                             <div className="border-t border-white/8 px-6 py-6">
-                                                <code className="block overflow-x-auto font-mono text-base text-brutal-white">
+                                                <code
+                                                    className="block overflow-x-auto font-mono text-base text-brutal-white">
                                                     builder.AddQyl();
                                                 </code>
                                                 <p className="mt-4 max-w-[56ch] text-sm leading-6 text-brutal-slate">
-                                                    qyl is .NET-first. The source generators emit compile-time interceptors, wire OTLP export, and keep runtime instrumentation clean.
+                                                    qyl is .NET-first. The source generators emit compile-time
+                                                    interceptors, wire OTLP export, and keep runtime instrumentation
+                                                    clean.
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
-                                            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                        <div
+                                            className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 backdrop-blur-xl">
+                                            <div
+                                                className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                 Live ports
                                             </div>
                                             <div className="mt-5 space-y-4">
                                                 <div className="flex items-center justify-between gap-4 text-sm">
                                                     <span className="text-brutal-slate">Dashboard</span>
-                                                    <span className="font-mono text-brutal-white">{connection.dashboardPort}</span>
+                                                    <span
+                                                        className="font-mono text-brutal-white">{connection.dashboardPort}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-4 text-sm">
                                                     <span className="text-brutal-slate">OTLP HTTP</span>
-                                                    <span className="font-mono text-brutal-white">{connection.otlpHttpPort}</span>
+                                                    <span
+                                                        className="font-mono text-brutal-white">{connection.otlpHttpPort}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-4 text-sm">
                                                     <span className="text-brutal-slate">OTLP gRPC</span>
@@ -799,7 +862,8 @@ export function OnboardingPage() {
                                                 </div>
                                                 <div className="flex items-center justify-between gap-4 text-sm">
                                                     <span className="text-brutal-slate">Origin</span>
-                                                    <span className="font-mono text-brutal-white">{window.location.origin}</span>
+                                                    <span
+                                                        className="font-mono text-brutal-white">{window.location.origin}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -812,27 +876,35 @@ export function OnboardingPage() {
                     <section id="launch">
                         <div className="mx-auto max-w-[1480px] px-6 py-20 lg:px-10 xl:px-16">
                             <div className="grid gap-14 lg:grid-cols-[minmax(0,30rem)_1fr]">
-                                <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8">
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0))]"/>
+                                <div
+                                    className="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/4 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8">
+                                    <div
+                                        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0))]"/>
                                     <div className="relative">
                                         <Eyebrow>Launch qyl</Eyebrow>
                                         <div className="mt-5">
                                             <SectionTitle>One image to launch. One surface to inspect.</SectionTitle>
                                         </div>
                                         <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
-                                            Start with the collector and dashboard. Add qyl.mcp when you want natural-language telemetry access. Add Loom when you want multi-step AI investigation and autofix. The product layers stay separate, but the operator story stays coherent.
+                                            Start with the collector and dashboard. Add qyl.mcp when you want
+                                            natural-language telemetry access. Add Loom when you want multi-step AI
+                                            investigation and autofix. The product layers stay separate, but the
+                                            operator story stays coherent.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl scan-lines">
+                                    <div
+                                        className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0c1221]/84 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl scan-lines">
                                         <div className="flex items-center justify-between gap-4 px-6 py-5">
                                             <div>
-                                                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                                                <div
+                                                    className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
                                                     Launch command
                                                 </div>
-                                                <div className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
+                                                <div
+                                                    className="mt-2 text-lg font-medium tracking-[-0.02em] text-brutal-white">
                                                     Single image, single process
                                                 </div>
                                             </div>
@@ -853,7 +925,8 @@ export function OnboardingPage() {
                                     </div>
 
                                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-                                        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
+                                        <div
+                                            className="overflow-hidden rounded-[30px] border border-white/10 bg-white/4 backdrop-blur-xl">
                                             <StatusRow
                                                 active={hasCollectorMeta}
                                                 label="Live origin"

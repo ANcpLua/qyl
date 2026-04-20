@@ -1,9 +1,7 @@
 namespace Qyl.Agents.Tests;
 
-using System.Diagnostics;
 using System.Text.Json;
 using ANcpLua.Agents.Testing.Diagnostics;
-using AwesomeAssertions;
 using Protocol;
 using Xunit;
 
@@ -12,10 +10,7 @@ public sealed class McpProtocolEndToEndTests
     private readonly McpProtocolHandler<CalcServer> _handler;
     private readonly CalcServer _server = new();
 
-    public McpProtocolEndToEndTests()
-    {
-        _handler = new McpProtocolHandler<CalcServer>(_server);
-    }
+    public McpProtocolEndToEndTests() => _handler = new McpProtocolHandler<CalcServer>(_server);
 
     [Fact]
     public async Task InitializeReturnsServerInfo()
@@ -187,14 +182,8 @@ public sealed class McpProtocolEndToEndTests
         transport.AssertKind(ActivityKind.Server);
     }
 
-    private static JsonRpcRequest MakeRequest(string method)
-    {
-        return new JsonRpcRequest
-        {
-            Id = JsonDocument.Parse("1").RootElement,
-            Method = method
-        };
-    }
+    private static JsonRpcRequest MakeRequest(string method) =>
+        new() { Id = JsonDocument.Parse("1").RootElement, Method = method };
 
     private static JsonRpcRequest MakeToolCallRequest(string toolName, JsonElement args)
     {

@@ -40,7 +40,7 @@
        don't apply to the NUKE build project (which requires a Main method) -->
   <Target Name="RemoveTUnitAnalyzers" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::new('%(Filename)').StartsWith('TUnit'))" />
+      <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::new('%(Filename)').StartsWith('TUnit'))"/>
     </ItemGroup>
   </Target>
 

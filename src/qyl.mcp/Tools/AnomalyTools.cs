@@ -1,9 +1,9 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for anomaly detection analytics.
@@ -20,7 +20,7 @@ public sealed class AnomalyTools(HttpClient client)
     /// <param name="service">Optional service name filter.</param>
     /// <returns>Baseline statistics and a list of anomalous time buckets with z-scores.</returns>
     [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
-    [QylCapability("anomaly_detection", QylCapabilityRole.Starting)]
+    [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -98,7 +98,7 @@ public sealed class AnomalyTools(HttpClient client)
     /// <param name="service">Optional service name filter.</param>
     /// <returns>Statistical summary with mean, standard deviation, and percentiles.</returns>
     [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
-    [QylCapability("anomaly_detection", QylCapabilityRole.Starting)]
+    [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.get_metric_baseline", Title = "Get Metric Baseline",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

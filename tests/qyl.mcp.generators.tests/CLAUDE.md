@@ -12,7 +12,6 @@
 - xUnit v3 with Microsoft Testing Platform
 - AwesomeAssertions
 
-
 ## Banned APIs
 
 - Use `TimeProvider` instead of current-time APIs

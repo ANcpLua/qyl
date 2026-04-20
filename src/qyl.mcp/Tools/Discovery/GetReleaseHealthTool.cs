@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Discovery;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Discovery;
 
 /// <summary>
-/// MCP tool that retrieves health and adoption metrics for a specific release.
+///     MCP tool that retrieves health and adoption metrics for a specific release.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -18,7 +17,7 @@ namespace qyl.mcp.Tools.Discovery;
 public sealed class GetReleaseHealthTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves crash-free rate, error count, session count, and adoption percentage for a release.
+    ///     Retrieves crash-free rate, error count, session count, and adoption percentage for a release.
     /// </summary>
     /// <param name="version">The release version to inspect (e.g. '1.2.3' or 'abc123').</param>
     /// <param name="projectSlug">Optional project slug filter.</param>
@@ -27,7 +26,8 @@ public sealed class GetReleaseHealthTool(HttpClient client)
     [QylCapability("service_discovery", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_release_health", Title = "Get Release Health",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get health and adoption metrics for a specific release — crash-free rate, error count, session count, and adoption percentage.")]
+    [Description(
+        "Get health and adoption metrics for a specific release — crash-free rate, error count, session count, and adoption percentage.")]
     public async Task<string> GetReleaseHealthAsync(
         [Description("The release version to inspect (e.g. '1.2.3' or 'abc123')")]
         string version,

@@ -1,8 +1,8 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that packages an error issue, its triage assessment, and the latest

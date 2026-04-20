@@ -39,8 +39,10 @@ internal static class PromptEmitter
             using (sb.BeginBlock())
             {
                 foreach (var prompt in server.Prompts)
+                {
                     sb.AppendLine(
                         $"{Lit(prompt.PromptName)} => await {PerPromptMethod(prompt)}(arguments, cancellationToken),");
+                }
 
                 sb.AppendLine(
                     "_ => throw new global::System.ArgumentException($\"Unknown prompt: {name}\", nameof(name))");
@@ -126,13 +128,7 @@ internal static class PromptEmitter
         return string.Join(", ", parts);
     }
 
-    private static string PerPromptMethod(PromptModel prompt)
-    {
-        return $"ExecutePrompt_{prompt.MethodName}Async";
-    }
+    private static string PerPromptMethod(PromptModel prompt) => $"ExecutePrompt_{prompt.MethodName}Async";
 
-    private static string Lit(string value)
-    {
-        return EmitHelpers.Lit(value);
-    }
+    private static string Lit(string value) => EmitHelpers.Lit(value);
 }

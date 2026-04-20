@@ -1,9 +1,10 @@
-using Qyl.Collector.Cost;
-using Qyl.Collector.Dashboard;
-using Qyl.Collector.Grpc;
-using Qyl.Collector.Meta;
-
 namespace Qyl.Collector.Hosting;
+
+using Cost;
+using Dashboard;
+using Grpc;
+using Instrumentation.Generators;
+using Meta;
 
 public static class CollectorEndpointExtensions
 {
@@ -56,7 +57,7 @@ public static class CollectorEndpointExtensions
         // All Map*Endpoints extensions tagged [QylMapEndpoints] are dispatched here
         // via the generator-emitted QylGeneratedRegistry.MapQylGeneratedEndpoints.
         // Add a new endpoint module by tagging its Map*Endpoints method — no edit here.
-        global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.MapQylGeneratedEndpoints(app);
+        QylGeneratedRegistry.MapQylGeneratedEndpoints(app);
 
         // Browser SDK
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
@@ -358,8 +359,8 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(
-            sessionId: session,
-            traceId: trace,
+            session,
+            trace,
             serviceName: service,
             sampleType: sampleType,
             limit: limit ?? 100,

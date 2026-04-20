@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Intelligence;
+
+using System.Text.Json.Serialization;
 
 /// <summary>Comparison operator for signal evaluation.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SignalOperator>))]

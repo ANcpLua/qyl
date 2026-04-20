@@ -1,6 +1,6 @@
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools;
+
+using Formatting;
 
 /// <summary>
 ///     Shared helper for MCP tool methods that call qyl.collector via HTTP.
@@ -9,7 +9,7 @@ internal static class CollectorHelper
 {
     /// <summary>
     ///     Executes an async HTTP operation and returns a categorized error message on failure.
-    ///     Defaults to <see cref="McpTransportMode.Stdio"/> detail level.
+    ///     Defaults to <see cref="McpTransportMode.Stdio" /> detail level.
     /// </summary>
     public static Task<string> ExecuteAsync(
         Func<Task<string>> operation,

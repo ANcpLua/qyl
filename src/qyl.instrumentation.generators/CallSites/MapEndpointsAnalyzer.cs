@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Discovers <c>public static</c> extension methods tagged with
@@ -43,9 +43,9 @@ internal static class MapEndpointsAnalyzer
         var order = attr.ConstructorArguments is [{ Value: int value }, ..] ? value : 100;
 
         return new MapEndpointsDefinition(
-            ContainingTypeFullyQualifiedName: containingType.GetFullyQualifiedName(),
-            MethodName: methodSymbol.Name,
-            Order: order,
-            SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
+            containingType.GetFullyQualifiedName(),
+            methodSymbol.Name,
+            order,
+            IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 }

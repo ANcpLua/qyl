@@ -1,9 +1,9 @@
+namespace Qyl.Instrumentation.ErrorCapture;
+
+using Instrumentation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Qyl.Instrumentation.Instrumentation;
-
-namespace Qyl.Instrumentation.ErrorCapture;
 
 public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<ExceptionCaptureMiddleware> logger)
 {

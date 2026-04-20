@@ -1,15 +1,14 @@
+namespace qyl.mcp.Tools.Errors;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-
-namespace qyl.mcp.Tools.Errors;
 
 /// <summary>
-/// MCP tool that retrieves the breadcrumb trail for an error event showing actions leading up to the error.
+///     MCP tool that retrieves the breadcrumb trail for an error event showing actions leading up to the error.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -17,7 +16,7 @@ namespace qyl.mcp.Tools.Errors;
 public sealed class GetBreadcrumbsTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves the breadcrumb trail of user actions, HTTP requests, and navigation events for an error event.
+    ///     Retrieves the breadcrumb trail of user actions, HTTP requests, and navigation events for an error event.
     /// </summary>
     /// <param name="issueId">The error issue ID.</param>
     /// <param name="eventId">Optional specific event ID within the issue; uses the latest event if omitted.</param>
@@ -26,10 +25,10 @@ public sealed class GetBreadcrumbsTool(HttpClient client)
     [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_breadcrumbs", Title = "Get Event Breadcrumbs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get the breadcrumb trail for an error event — user actions, HTTP requests, console messages, and navigation events leading up to the error.")]
+    [Description(
+        "Get the breadcrumb trail for an error event — user actions, HTTP requests, console messages, and navigation events leading up to the error.")]
     public async Task<string> GetBreadcrumbsAsync(
-        [Description("The error issue ID")]
-        string issueId,
+        [Description("The error issue ID")] string issueId,
         [Description("Specific event ID within the issue (latest event if omitted)")]
         string? eventId = null,
         CancellationToken ct = default)

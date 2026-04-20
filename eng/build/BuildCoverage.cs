@@ -132,6 +132,7 @@ interface ICoverage : IQylTest
         Dictionary<string, object> metrics = [];
 
         foreach (var line in lines)
+        {
             if (line.Contains("Line coverage:", StringComparison.Ordinal))
                 metrics["lineCoverage"] = ExtractPercentage(line);
             else if (line.Contains("Branch coverage:", StringComparison.Ordinal))
@@ -142,6 +143,7 @@ interface ICoverage : IQylTest
                 metrics["coverableLines"] = ExtractNumber(line);
             else if (line.Contains("Covered lines:", StringComparison.Ordinal))
                 metrics["coveredLines"] = ExtractNumber(line);
+        }
 
         return new Dictionary<string, object>
         {
@@ -416,6 +418,7 @@ public static class CoverageSummaryConverter
             XElement xmlFile = new("file", new XAttribute("path", filePath));
 
             foreach (var branch in file.Branches)
+            {
                 xmlFile.Add(new XElement("branch",
                     new XAttribute("line", branch.Line),
                     new XAttribute("coveredBranches", branch.CoveredBranches),
@@ -424,12 +427,15 @@ public static class CoverageSummaryConverter
                         branch.CoveragePercent.ToString("F1", CultureInfo.InvariantCulture)),
                     new XAttribute("hits", branch.Hits),
                     new XAttribute("reason", branch.Reason)));
+            }
 
             foreach (var line in file.Lines)
+            {
                 xmlFile.Add(new XElement("line",
                     new XAttribute("number", line.Line),
                     new XAttribute("hits", line.Hits),
                     new XAttribute("reason", line.Reason)));
+            }
 
             xmlSummary.Add(xmlFile);
             filesWithIssues++;

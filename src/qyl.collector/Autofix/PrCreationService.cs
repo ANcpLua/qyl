@@ -1,6 +1,6 @@
-using Qyl.Collector.Identity;
-
 namespace Qyl.Collector.Autofix;
+
+using Identity;
 
 /// <summary>Result of a pull-request creation attempt.</summary>
 public sealed record PrCreationResult(

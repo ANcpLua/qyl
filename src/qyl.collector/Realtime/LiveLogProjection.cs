@@ -1,6 +1,6 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Realtime;
+
+using Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Shared projection helpers for streaming/searching log rows as UI-friendly DTOs.
@@ -58,13 +58,13 @@ internal static class LiveLogProjection
     private static Dictionary<string, object> ParseAttributes(string? attributesJson)
     {
         if (string.IsNullOrWhiteSpace(attributesJson))
-            return new Dictionary<string, object>();
+            return [];
 
         try
         {
             using var document = JsonDocument.Parse(attributesJson);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
-                return new Dictionary<string, object>();
+                return [];
 
             var result = new Dictionary<string, object>(StringComparer.Ordinal);
             foreach (var property in document.RootElement.EnumerateObject())
@@ -83,7 +83,7 @@ internal static class LiveLogProjection
         }
         catch
         {
-            return new Dictionary<string, object>();
+            return [];
         }
     }
 }

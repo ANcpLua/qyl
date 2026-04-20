@@ -1,9 +1,9 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Analyzes classes for [Meter] attributes and methods for [Counter]/[Histogram] attributes.
@@ -118,11 +118,14 @@ internal static class MeterAnalyzer
                 continue;
 
             var counterAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, CounterAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
+                    CounterAttributeFullName);
             var histogramAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, HistogramAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
+                    HistogramAttributeFullName);
             var gaugeAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation, GaugeAttributeFullName);
+                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
+                    GaugeAttributeFullName);
             var upDownCounterAttr =
                 IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
                     UpDownCounterAttributeFullName);
@@ -160,7 +163,8 @@ internal static class MeterAnalyzer
     private static string? FindMetricValueTypeName(IMethodSymbol method, Compilation compilation)
     {
         foreach (var param in method.Parameters.Where(param =>
-                     IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is
+                     IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation,
+                             TagAttributeFullName) is
                          null))
         {
             return param.Type.ToDisplayString();
@@ -200,7 +204,8 @@ internal static class MeterAnalyzer
 
         foreach (var param in method.Parameters)
         {
-            if (IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is not
+            if (IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName)
+                is not
                 { } tagAttr)
                 continue;
 

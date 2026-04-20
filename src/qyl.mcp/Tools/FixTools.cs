@@ -1,10 +1,10 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that submits and tracks Loom fix jobs at the collector boundary.
@@ -40,8 +40,10 @@ internal sealed class FixTools(HttpClient http)
             return LoomToolEnvelope.Fail<LoomFixRunDto>($"Issue '{issueId}' not found.");
 
         if (!createResp.IsSuccessStatusCode)
+        {
             return LoomToolEnvelope.Fail<LoomFixRunDto>(
                 $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}");
+        }
 
         var run = await createResp.Content.ReadFromJsonAsync(
             LoomMcpJsonContext.Default.LoomFixRunDto, ct).ConfigureAwait(false);

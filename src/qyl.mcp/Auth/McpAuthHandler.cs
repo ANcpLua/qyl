@@ -1,8 +1,8 @@
+namespace qyl.mcp.Auth;
+
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
-namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Delegating handler that authenticates outgoing collector requests.

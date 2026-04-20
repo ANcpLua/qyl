@@ -1,6 +1,7 @@
-using System.Net.Http.Json;
-
 namespace Qyl.Loom;
+
+using System.Net;
+using System.Net.Http.Json;
 
 /// <summary>
 ///     Typed HTTP client for the qyl collector REST API.
@@ -15,7 +16,7 @@ public sealed class CollectorClient(HttpClient http)
         var response = await http.GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
             .ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             return null;
 
         response.EnsureSuccessStatusCode();
@@ -75,7 +76,7 @@ public sealed class CollectorClient(HttpClient http)
             .GetAsync($"/api/v1/fix-runs/{Uri.EscapeDataString(runId)}", ct)
             .ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             return null;
 
         response.EnsureSuccessStatusCode();
@@ -101,9 +102,9 @@ public sealed class CollectorClient(HttpClient http)
 
         response.EnsureSuccessStatusCode();
         return await response.Content
-            .ReadFromJsonAsync(CollectorClientJsonContext.Default.FixRunRecord, ct)
-            .ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Collector returned null fix run.");
+                   .ReadFromJsonAsync(CollectorClientJsonContext.Default.FixRunRecord, ct)
+                   .ConfigureAwait(false)
+               ?? throw new InvalidOperationException("Collector returned null fix run.");
     }
 
     public async Task UpdateFixRunAsync(
@@ -265,7 +266,9 @@ public sealed record IssueEventDto
 public sealed record FixRunListResponse(List<FixRunRecord> Items, int Total);
 
 public sealed record FixRunCreateRequest(
-    string? Policy, string? Instruction = null, string? StoppingPoint = null);
+    string? Policy,
+    string? Instruction = null,
+    string? StoppingPoint = null);
 
 public sealed record FixRunPatchRequest(
     string? Status = null,
@@ -274,7 +277,9 @@ public sealed record FixRunPatchRequest(
     string? ChangesJson = null);
 
 public sealed record AutofixStepPatchRequest(
-    string? Status = null, string? OutputJson = null, string? ErrorMessage = null);
+    string? Status = null,
+    string? OutputJson = null,
+    string? ErrorMessage = null);
 
 public sealed record TriagePatchRequest(string? FixRunId = null);
 

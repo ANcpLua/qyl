@@ -1,13 +1,13 @@
+namespace qyl.mcp.Hosting;
+
+using Landing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using qyl.mcp.Landing;
-using qyl.mcp.Scoping;
 using Qyl.Contracts.Observability;
-
-namespace qyl.mcp.Hosting;
+using Scoping;
 
 internal static class QylMcpHttpHost
 {

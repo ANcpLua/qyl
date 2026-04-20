@@ -1,6 +1,6 @@
-using qyl.contracts.Attributes;
-
 namespace Qyl.Mcp.Tests;
+
+using qyl.contracts.Attributes;
 
 public sealed class McpTelemetryTests : IDisposable
 {
@@ -12,7 +12,7 @@ public sealed class McpTelemetryTests : IDisposable
         _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == McpAttributes.SourceName,
-            Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            Sample = static (ref _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => _collected.Add(activity)
         };
         ActivitySource.AddActivityListener(_listener);

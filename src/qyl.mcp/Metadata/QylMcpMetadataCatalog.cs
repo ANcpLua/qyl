@@ -1,6 +1,6 @@
-using Qyl.Generated;
-
 namespace qyl.mcp.Metadata;
+
+using Qyl.Generated;
 
 /// <summary>
 ///     Thin filter wrapper around the generator-produced <c>QylToolManifest.ToolDescriptors</c>.
@@ -10,7 +10,9 @@ namespace qyl.mcp.Metadata;
 internal static class QylMcpMetadataCatalog
 {
     public static IReadOnlyList<ToolDescriptor> GetEnabledTools(SkillConfiguration skills) =>
-        [.. QylToolManifest.ToolDescriptors
+    [
+        .. QylToolManifest.ToolDescriptors
             .Where(tool => tool.SkillKind is null || skills.IsEnabled(tool.SkillKind.Value))
-            .OrderBy(static tool => tool.Name, StringComparer.Ordinal)];
+            .OrderBy(static tool => tool.Name, StringComparer.Ordinal)
+    ];
 }

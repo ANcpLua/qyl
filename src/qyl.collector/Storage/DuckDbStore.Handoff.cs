@@ -1,6 +1,6 @@
-using Qyl.Collector.Autofix;
-
 namespace Qyl.Collector.Storage;
+
+using Autofix;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with agent handoff

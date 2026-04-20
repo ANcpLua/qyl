@@ -1,8 +1,8 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying and triggering Loom triage assessments.
@@ -12,7 +12,7 @@ namespace qyl.mcp.Tools;
 [QylSkill(QylSkillKind.Loom)]
 internal sealed class TriageTools(HttpClient http)
 {
-    [QylCapability("loom_triage_and_fix", QylCapabilityRole.Starting)]
+    [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.get_triage", Title = "Get Triage Result",
         ReadOnly = true, Destructive = false, Idempotent = true)]
     [Description("""

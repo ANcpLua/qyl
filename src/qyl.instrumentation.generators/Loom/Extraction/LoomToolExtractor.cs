@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+using Models;
 
 internal static class LoomToolExtractor
 {
@@ -59,10 +59,7 @@ internal static class LoomToolExtractor
             sideEffect);
     }
 
-    private static bool IsAwaitable(ITypeSymbol typeSymbol)
-    {
-        return typeSymbol.Name is "Task" or "ValueTask";
-    }
+    private static bool IsAwaitable(ITypeSymbol typeSymbol) => typeSymbol.Name is "Task" or "ValueTask";
 
     private static string? GetOutputType(IMethodSymbol method)
     {
@@ -70,7 +67,10 @@ internal static class LoomToolExtractor
         if (returnType.SpecialType == SpecialType.System_Void)
             return null;
 
-        if (returnType is INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1, Name: "Task" or "ValueTask" } namedType)
+        if (returnType is INamedTypeSymbol
+            {
+                IsGenericType: true, TypeArguments.Length: 1, Name: "Task" or "ValueTask"
+            } namedType)
         {
             return namedType.TypeArguments[0].GetFullyQualifiedName();
         }

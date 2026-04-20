@@ -1,6 +1,6 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Search;
+
+using Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Builds cross-entity DuckDB queries using UNION ALL with time-bounded text search.

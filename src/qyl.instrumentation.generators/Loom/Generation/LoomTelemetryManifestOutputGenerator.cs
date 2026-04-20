@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomTelemetryManifestOutputGenerator
 {
@@ -45,7 +45,7 @@ internal static class LoomTelemetryManifestOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 foreach (var parameter in tool.Parameters)
                 {
@@ -65,6 +65,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 }
             }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -83,7 +84,7 @@ internal static class LoomTelemetryManifestOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
 
@@ -96,6 +97,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -114,7 +116,7 @@ internal static class LoomTelemetryManifestOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
 
@@ -130,6 +132,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -148,7 +151,7 @@ internal static class LoomTelemetryManifestOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
 
@@ -166,6 +169,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -180,17 +184,20 @@ internal static class LoomTelemetryManifestOutputGenerator
         var count = tools.Length + contracts.Length + steps.Length + workflows.Length;
         if (count is 0)
         {
-            AppendPropertyHeader(sb, "Manifest", "global::Qyl.Instrumentation.Instrumentation.Loom.LoomManifestEntry", 0);
+            AppendPropertyHeader(sb, "Manifest", "global::Qyl.Instrumentation.Instrumentation.Loom.LoomManifestEntry",
+                0);
             return;
         }
 
-        AppendPropertyHeader(sb, "Manifest", "global::Qyl.Instrumentation.Instrumentation.Loom.LoomManifestEntry", count);
+        AppendPropertyHeader(sb, "Manifest", "global::Qyl.Instrumentation.Instrumentation.Loom.LoomManifestEntry",
+            count);
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.Name, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
-                AppendManifestEntry(sb, "tool", tool.Name, tool.ContainingTypeFullyQualified, tool.MethodName, tool.Phase,
+                AppendManifestEntry(sb, "tool", tool.Name, tool.ContainingTypeFullyQualified, tool.MethodName,
+                    tool.Phase,
                     tool.Description);
             }
 
@@ -198,12 +205,16 @@ internal static class LoomTelemetryManifestOutputGenerator
                 AppendManifestEntry(sb, "contract", contract.Name, contract.FullyQualifiedTypeName, null, null, null);
 
             foreach (var step in steps.OrderBy(static step => step.Id, StringComparer.Ordinal))
-                AppendManifestEntry(sb, "step", step.Id, step.ExecutorTypeFullyQualified, null, step.Phase, step.Description);
+                AppendManifestEntry(sb, "step", step.Id, step.ExecutorTypeFullyQualified, null, step.Phase,
+                    step.Description);
 
             foreach (var workflow in workflows.OrderBy(static workflow => workflow.Id, StringComparer.Ordinal))
+            {
                 AppendManifestEntry(sb, "workflow", workflow.Id, workflow.WorkflowTypeFullyQualified, null, null,
                     workflow.Description);
+            }
         }
+
         sb.AppendLine(";");
         sb.AppendLine();
     }
@@ -241,14 +252,14 @@ internal static class LoomTelemetryManifestOutputGenerator
         {
             sb.AppendLine(
                 "public static global::Qyl.Instrumentation.Instrumentation.Loom.LoomInterceptorManifest InterceptorManifest => new(");
-    
+
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomToolInterceptorDescriptor>(),");
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomStepInterceptorDescriptor>(),");
             sb.AppendLine(
                 "global::System.Array.Empty<global::Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowInterceptorDescriptor>()");
-    
+
             sb.AppendLine(");");
             sb.AppendLine();
             return;
@@ -281,7 +292,7 @@ internal static class LoomTelemetryManifestOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var tool in tools.OrderBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal)
-                                     .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
+                         .ThenBy(static tool => tool.MethodName, StringComparer.Ordinal))
             {
                 sb.AppendLine("new(");
 
@@ -295,6 +306,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(",");
     }
 
@@ -325,6 +337,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         sb.AppendLine(",");
     }
 
@@ -354,6 +367,7 @@ internal static class LoomTelemetryManifestOutputGenerator
                 sb.AppendLine("),");
             }
         }
+
         // No trailing comma -- this is the last argument in the LoomInterceptorManifest constructor.
         sb.AppendLine();
     }

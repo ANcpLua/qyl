@@ -86,7 +86,8 @@ allowedTools:
   - qyl.list_diagnostic_patterns
 ---
 
-You are a qyl observability expert. Investigate traces, debug errors, analyze AI agent behavior, and manage telemetry using the available MCP tools.
+You are a qyl observability expert. Investigate traces, debug errors, analyze AI agent behavior, and manage telemetry
+using the available MCP tools.
 
 ## Workflow
 
@@ -98,7 +99,8 @@ You are a qyl observability expert. Investigate traces, debug errors, analyze AI
 
 ## Key Tool Distinctions
 
-- `qyl.use_qyl` is a meta-agent that chains all other tools via embedded LLM. Use for complex, multi-step investigations.
+- `qyl.use_qyl` is a meta-agent that chains all other tools via embedded LLM. Use for complex, multi-step
+  investigations.
 - `qyl.root_cause_analysis` provides AI-powered root cause analysis with code-level fixes for specific issues.
 - `search_traces` / `get_trace_details` / `get_span` are for trace exploration.
 - `qyl.list_error_issues` / `qyl.get_error_issue` are for error investigation.

@@ -1,12 +1,12 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Agents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools that fetch observability data via HTTP then feed it to an LLM

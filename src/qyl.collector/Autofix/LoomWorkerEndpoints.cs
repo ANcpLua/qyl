@@ -47,7 +47,7 @@ public static class LoomWorkerEndpoints
         {
             await store.UpdateAutofixStepAsync(
                 runId, stepId, request.Status ?? "completed",
-                request.OutputJson, errorMessage: request.ErrorMessage, ct: ct);
+                request.OutputJson, request.ErrorMessage, ct);
             return TypedResults.NoContent();
         });
 
@@ -82,6 +82,8 @@ public static class LoomWorkerEndpoints
 }
 
 public sealed record AutofixStepPatchRequest(
-    string? Status = null, string? OutputJson = null, string? ErrorMessage = null);
+    string? Status = null,
+    string? OutputJson = null,
+    string? ErrorMessage = null);
 
 public sealed record TriagePatchRequest(string? FixRunId = null);

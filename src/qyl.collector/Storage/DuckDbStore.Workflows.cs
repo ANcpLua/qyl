@@ -1,6 +1,6 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Storage;
+
+using Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with workflow execution,

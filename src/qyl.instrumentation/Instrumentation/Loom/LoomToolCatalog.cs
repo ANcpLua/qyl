@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Instrumentation.Loom;
+
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.AI;
-
-namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static partial class LoomGeneratedRegistry
 {
@@ -127,20 +127,16 @@ public static class LoomToolDescriptorExtensions
     {
         var binding = options.BindParameter?.Invoke(parameter) ?? CreateDefaultParameterBinding(parameter);
 
-        return binding with
-        {
-            Parameter = parameter
-        };
+        return binding with { Parameter = parameter };
     }
 
     private static LoomToolResultBindingDescriptor BindResult(
         LoomToolDescriptor descriptor,
-        LoomToolAIFunctionOptions options)
-    {
-        return options.BindResult?.Invoke(descriptor) ?? CreateDefaultResultBinding(descriptor, options);
-    }
+        LoomToolAIFunctionOptions options) =>
+        options.BindResult?.Invoke(descriptor) ?? CreateDefaultResultBinding(descriptor, options);
 
-    private static LoomToolParameterBindingDescriptor CreateDefaultParameterBinding(LoomToolParameterDescriptor parameter)
+    private static LoomToolParameterBindingDescriptor CreateDefaultParameterBinding(
+        LoomToolParameterDescriptor parameter)
     {
         var kind = parameter.Type switch
         {
@@ -155,7 +151,7 @@ public static class LoomToolDescriptorExtensions
             parameter,
             kind,
             isVisibleToModel,
-            ExcludeFromSchema: !isVisibleToModel);
+            !isVisibleToModel);
     }
 
     private static LoomToolResultBindingDescriptor CreateDefaultResultBinding(
@@ -166,7 +162,7 @@ public static class LoomToolDescriptorExtensions
         return new LoomToolResultBindingDescriptor(
             descriptor.OutputType,
             isVisibleToModel,
-            ExcludeFromSchema: !isVisibleToModel);
+            !isVisibleToModel);
     }
 }
 
@@ -228,14 +224,11 @@ public sealed class LoomToolAIFunctionOptions
 internal sealed class LoomToolAIFunction : AIFunction
 {
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new(JsonSerializerDefaults.Web);
+    private readonly LoomToolBindingSurface _bindingSurface;
 
     private readonly LoomToolDescriptor _descriptor;
     private readonly LoomToolAIFunctionOptions _options;
     private readonly IServiceProvider? _services;
-    private readonly LoomToolBindingSurface _bindingSurface;
-    private readonly JsonElement _jsonSchema;
-    private readonly JsonElement? _returnJsonSchema;
-    private readonly IReadOnlyDictionary<string, object?> _additionalProperties;
 
     public LoomToolAIFunction(
         LoomToolDescriptor descriptor,
@@ -248,22 +241,23 @@ internal sealed class LoomToolAIFunction : AIFunction
         _options = options;
         _services = services;
         _bindingSurface = descriptor.GetBindingSurface(options);
-        _jsonSchema = BuildJsonSchema(_bindingSurface);
-        _returnJsonSchema = BuildReturnJsonSchema(_bindingSurface.Result, options);
-        _additionalProperties = BuildAdditionalProperties(descriptor, _bindingSurface, options);
+        JsonSchema = BuildJsonSchema(_bindingSurface);
+        ReturnJsonSchema = BuildReturnJsonSchema(_bindingSurface.Result, options);
+        AdditionalProperties = BuildAdditionalProperties(descriptor, _bindingSurface, options);
     }
 
     public override string Name => _descriptor.Name;
 
     public override string Description => BuildDescription(_descriptor);
 
-    public override JsonElement JsonSchema => _jsonSchema;
+    public override JsonElement JsonSchema { get; }
 
-    public override JsonElement? ReturnJsonSchema => _returnJsonSchema;
+    public override JsonElement? ReturnJsonSchema { get; }
 
-    public override JsonSerializerOptions JsonSerializerOptions => _options.SerializerOptions ?? DefaultSerializerOptions;
+    public override JsonSerializerOptions JsonSerializerOptions =>
+        _options.SerializerOptions ?? DefaultSerializerOptions;
 
-    public override IReadOnlyDictionary<string, object?> AdditionalProperties => _additionalProperties;
+    public override IReadOnlyDictionary<string, object?> AdditionalProperties { get; }
 
     public override object? GetService(Type serviceType, object? serviceKey)
     {
@@ -326,7 +320,8 @@ internal sealed class LoomToolAIFunction : AIFunction
             LoomToolParameterBindingKind.AiArgument => ReadArgument(arguments, binding.Parameter),
             LoomToolParameterBindingKind.ServiceProvider => services,
             LoomToolParameterBindingKind.CancellationToken => cancellationToken,
-            LoomToolParameterBindingKind.Runtime => ResolveRuntimeValue(binding, arguments, services, cancellationToken),
+            LoomToolParameterBindingKind.Runtime =>
+                ResolveRuntimeValue(binding, arguments, services, cancellationToken),
             _ => ResolveRuntimeValue(binding, arguments, services, cancellationToken)
         };
     }
@@ -448,7 +443,9 @@ internal sealed class LoomToolAIFunction : AIFunction
     private static JsonElement BuildJsonSchema(LoomToolBindingSurface bindingSurface)
     {
         using var document = JsonDocument.Parse(
-            LoomJsonSchemaWriter.WriteToolParametersSchema(bindingSurface.Parameters.Where(static parameter => parameter is { ExcludeFromSchema: false, IsVisibleToModel: true }).Select(static parameter => parameter.Parameter)));
+            LoomJsonSchemaWriter.WriteToolParametersSchema(bindingSurface.Parameters
+                .Where(static parameter => parameter is { ExcludeFromSchema: false, IsVisibleToModel: true })
+                .Select(static parameter => parameter.Parameter)));
         return document.RootElement.Clone();
     }
 
@@ -470,20 +467,23 @@ internal sealed class LoomToolAIFunction : AIFunction
     {
         var additionalProperties = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["loom.binding.parameters"] = bindingSurface.Parameters.Select(static binding => new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                ["name"] = binding.Parameter.Name,
-                ["kind"] = binding.Kind.ToString(),
-                ["visible"] = binding.IsVisibleToModel,
-                ["excludeFromSchema"] = binding.ExcludeFromSchema,
-                ["type"] = binding.Parameter.Type.FullName ?? binding.Parameter.Type.Name
-            }).ToArray(),
-            ["loom.binding.result"] = new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                ["excludeFromSchema"] = bindingSurface.Result.ExcludeFromSchema,
-                ["type"] = bindingSurface.Result.Type?.FullName,
-                ["visible"] = bindingSurface.Result.IsVisibleToModel
-            },
+            ["loom.binding.parameters"] =
+                bindingSurface.Parameters.Select(static binding =>
+                    new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        ["name"] = binding.Parameter.Name,
+                        ["kind"] = binding.Kind.ToString(),
+                        ["visible"] = binding.IsVisibleToModel,
+                        ["excludeFromSchema"] = binding.ExcludeFromSchema,
+                        ["type"] = binding.Parameter.Type.FullName ?? binding.Parameter.Type.Name
+                    }).ToArray(),
+            ["loom.binding.result"] =
+                new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["excludeFromSchema"] = bindingSurface.Result.ExcludeFromSchema,
+                    ["type"] = bindingSurface.Result.Type?.FullName,
+                    ["visible"] = bindingSurface.Result.IsVisibleToModel
+                },
             ["loom.declaringType"] = descriptor.DeclaringType.FullName ?? descriptor.DeclaringType.Name,
             ["loom.doNotUseWhen"] = descriptor.DoNotUseWhen,
             ["loom.methodName"] = descriptor.MethodName,

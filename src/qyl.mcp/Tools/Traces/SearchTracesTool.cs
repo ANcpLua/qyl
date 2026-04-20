@@ -1,20 +1,20 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using Qyl.Contracts.Models;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Traces;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+using Qyl.Contracts.Models;
+
 /// <summary>
-/// Searches distributed traces by query, returning a paginated list with duration, status, and root span.
+///     Searches distributed traces by query, returning a paginated list with duration, status, and root span.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed class SearchTracesTool(HttpClient client)
 {
-    [QylCapability("trace_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("trace_investigation")]
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "search_traces", Title = "Search Traces",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

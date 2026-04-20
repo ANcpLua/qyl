@@ -1,20 +1,20 @@
+namespace Qyl.Loom.Exploration;
+
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
-
-namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Generates pre-investigation insights for the sidebar panel.
 ///     Produces "What Happened" / "Initial Guess" / "In the Trace" summary.
-///     Uses <see cref="CollectorClient"/> instead of direct DuckDB access.
+///     Uses <see cref="CollectorClient" /> instead of direct DuckDB access.
 /// </summary>
 public sealed partial class ExplorationInsightService(
     CollectorClient collector,
     ILogger<ExplorationInsightService> logger,
     IChatClient? llm = null)
 {
-    private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+    private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
 
     public async Task<ExplorationInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
@@ -80,7 +80,7 @@ public sealed partial class ExplorationInsightService(
             { } t when t.ContainsIgnoreCase("NullReference") =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
             { } t when t.ContainsIgnoreCase("NetworkError")
-                     || t.ContainsIgnoreCase("HttpRequest") =>
+                       || t.ContainsIgnoreCase("HttpRequest") =>
                 "A network request is failing — this may be a symptom of a backend exception or connectivity issue.",
             { } t when t.ContainsIgnoreCase("Timeout") =>
                 "An operation is timing out — check for slow queries, external service latency, or deadlocks.",

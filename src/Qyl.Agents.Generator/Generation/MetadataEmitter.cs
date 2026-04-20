@@ -42,20 +42,34 @@ internal static class MetadataEmitter
                         sb.AppendLine($"Description = {Lit(tool.Description)},");
                         sb.AppendLine($"InputSchema = s_schema_{tool.MethodName}.ToArray(),");
                         if (tool.ReadOnly != ToolHintValue.Unset)
+                        {
                             sb.AppendLine(
                                 $"ReadOnlyHint = {HintBool(tool.ReadOnly)},");
+                        }
+
                         if (tool.Destructive != ToolHintValue.Unset)
+                        {
                             sb.AppendLine(
                                 $"DestructiveHint = {HintBool(tool.Destructive)},");
+                        }
+
                         if (tool.Idempotent != ToolHintValue.Unset)
+                        {
                             sb.AppendLine(
                                 $"IdempotentHint = {HintBool(tool.Idempotent)},");
+                        }
+
                         if (tool.OpenWorld != ToolHintValue.Unset)
+                        {
                             sb.AppendLine(
                                 $"OpenWorldHint = {HintBool(tool.OpenWorld)},");
+                        }
+
                         if (tool.TaskSupport != ToolTaskSupportValue.Unset)
+                        {
                             sb.AppendLine(
                                 $"TaskSupport = global::Qyl.Agents.ToolTaskSupport.{tool.TaskSupport},");
+                        }
                     }
 
                     sb.AppendLine(",");
@@ -163,13 +177,7 @@ internal static class MetadataEmitter
         }
     }
 
-    private static string HintBool(ToolHintValue hint)
-    {
-        return hint == ToolHintValue.True ? "true" : "false";
-    }
+    private static string HintBool(ToolHintValue hint) => hint == ToolHintValue.True ? "true" : "false";
 
-    private static string Lit(string? value)
-    {
-        return EmitHelpers.Lit(value);
-    }
+    private static string Lit(string? value) => EmitHelpers.Lit(value);
 }

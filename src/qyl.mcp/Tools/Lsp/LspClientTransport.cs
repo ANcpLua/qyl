@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 ancplua
 
+namespace qyl.mcp.Tools.Lsp;
+
 using System.Buffers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
-
-namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     JSON-RPC 2.0 stdio transport with LSP-style <c>Content-Length</c> framing. Hand-rolled
@@ -19,15 +19,15 @@ internal sealed class LspClientTransport : IAsyncDisposable
     // LSP base protocol: "Content-Length: N\r\n\r\n" header, UTF-8 JSON body.
     private const string HeaderPrefix = "Content-Length: ";
     private static readonly byte[] HeaderTerminator = "\r\n\r\n"u8.ToArray();
-
-    private readonly Stream _writer;
-    private readonly SemaphoreSlim _writeLock = new(initialCount: 1, maxCount: 1);
     private readonly Channel<JsonObject> _incoming;
+    private readonly ILogger? _logger;
     private readonly CancellationTokenSource _readerCts = new();
     private readonly Task _readerTask;
-    private readonly ILogger? _logger;
-    private long _nextRequestId;
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
+
+    private readonly Stream _writer;
     private int _disposed;
+    private long _nextRequestId;
 
     /// <summary>
     ///     Constructs a transport over pre-connected stdio streams and starts a background reader
@@ -42,8 +42,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
         _logger = logger;
         _incoming = Channel.CreateUnbounded<JsonObject>(new UnboundedChannelOptions
         {
-            SingleReader = true,
-            SingleWriter = true,
+            SingleReader = true, SingleWriter = true
         });
 
         _readerTask = Task.Run(() => ReadLoopAsync(input, _readerCts.Token));
@@ -52,18 +51,37 @@ internal sealed class LspClientTransport : IAsyncDisposable
     /// <summary>Reader side of the demultiplex channel.</summary>
     public ChannelReader<JsonObject> IncomingReader => _incoming.Reader;
 
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
+            return;
+
+        await _readerCts.CancelAsync().ConfigureAwait(false);
+        try
+        {
+            await _readerTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException cancelled)
+        {
+            _logger?.LogDebug(cancelled, "LSP transport reader loop cancelled during disposal.");
+        }
+        catch (IOException ex)
+        {
+            _logger?.LogDebug(ex, "LSP transport reader loop terminated with IO exception during disposal.");
+        }
+
+        _readerCts.Dispose();
+        _writeLock.Dispose();
+    }
+
     /// <summary>Allocate a monotonic request id for a JSON-RPC <c>id</c> field.</summary>
     public long AllocateRequestId() => Interlocked.Increment(ref _nextRequestId);
 
     /// <summary>Sends a JSON-RPC request frame (one with an <c>id</c>).</summary>
     public Task SendRequestAsync(long id, string method, JsonNode? parameters, CancellationToken ct)
     {
-        var frame = new JsonObject
-        {
-            ["jsonrpc"] = "2.0",
-            ["id"] = id,
-            ["method"] = method,
-        };
+        var frame = new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["method"] = method };
         if (parameters is not null)
             frame["params"] = parameters;
         return WriteFrameAsync(frame, ct);
@@ -72,11 +90,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
     /// <summary>Sends a JSON-RPC notification frame (no <c>id</c>).</summary>
     public Task SendNotificationAsync(string method, JsonNode? parameters, CancellationToken ct)
     {
-        var frame = new JsonObject
-        {
-            ["jsonrpc"] = "2.0",
-            ["method"] = method,
-        };
+        var frame = new JsonObject { ["jsonrpc"] = "2.0", ["method"] = method };
         if (parameters is not null)
             frame["params"] = parameters;
         return WriteFrameAsync(frame, ct);
@@ -166,7 +180,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
     {
         // Accumulate bytes one at a time until we see the "\r\n\r\n" header terminator.
         // Header size is tiny — a few dozen bytes — so byte-at-a-time keeps the code small.
-        var buffer = new List<byte>(capacity: 64);
+        var buffer = new List<byte>(64);
         var scratch = new byte[1];
         var matchIndex = 0;
 
@@ -174,7 +188,9 @@ internal sealed class LspClientTransport : IAsyncDisposable
         {
             var read = await input.ReadAsync(scratch.AsMemory(0, 1), ct).ConfigureAwait(false);
             if (read is 0)
-                return buffer.Count is 0 ? -1 : throw new EndOfStreamException("LSP transport: stream ended inside header.");
+                return buffer.Count is 0
+                    ? -1
+                    : throw new EndOfStreamException("LSP transport: stream ended inside header.");
 
             buffer.Add(scratch[0]);
 
@@ -193,7 +209,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
         var headerText = Encoding.ASCII.GetString(
             buffer.ToArray(), 0, buffer.Count - HeaderTerminator.Length);
 
-        foreach (var line in headerText.Split("\r\n", StringSplitOptions.None))
+        foreach (var line in headerText.Split("\r\n"))
         {
             if (!line.StartsWithIgnoreCase(HeaderPrefix))
                 continue;
@@ -211,35 +227,12 @@ internal sealed class LspClientTransport : IAsyncDisposable
         {
             var read = await input.ReadAsync(destination[offset..], ct).ConfigureAwait(false);
             if (read is 0)
+            {
                 throw new EndOfStreamException(
                     $"LSP transport: stream ended with {destination.Length - offset} bytes still expected.");
+            }
 
             offset += read;
         }
     }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
-            return;
-
-        await _readerCts.CancelAsync().ConfigureAwait(false);
-        try
-        {
-            await _readerTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException cancelled)
-        {
-            _logger?.LogDebug(cancelled, "LSP transport reader loop cancelled during disposal.");
-        }
-        catch (IOException ex)
-        {
-            _logger?.LogDebug(ex, "LSP transport reader loop terminated with IO exception during disposal.");
-        }
-
-        _readerCts.Dispose();
-        _writeLock.Dispose();
-    }
 }
-

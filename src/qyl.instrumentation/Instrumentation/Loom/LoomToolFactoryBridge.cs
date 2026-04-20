@@ -1,3 +1,5 @@
+namespace Qyl.Instrumentation.Instrumentation.Loom;
+
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
@@ -5,11 +7,9 @@ using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Qyl.Instrumentation.Instrumentation.Loom;
-
 /// <summary>
-///     Converts <see cref="LoomRuntimeMetadataDescriptor"/> into <see cref="AIFunction"/> instances
-///     via <see cref="AIFunctionFactory"/>, bypassing the custom <c>LoomToolAIFunction</c> subclass.
+///     Converts <see cref="LoomRuntimeMetadataDescriptor" /> into <see cref="AIFunction" /> instances
+///     via <see cref="AIFunctionFactory" />, bypassing the custom <c>LoomToolAIFunction</c> subclass.
 ///     All binding metadata is compiler-emitted; the bridge performs no runtime discovery.
 /// </summary>
 public static class LoomToolFactoryBridge
@@ -151,50 +151,49 @@ public static class LoomToolFactoryBridge
         var structuredType = result.StructuredOutputType;
         return (value, _, _) => value is null
             ? new ValueTask<object?>((object?)null)
-            : new ValueTask<object?>((object?)JsonSerializer.SerializeToElement(value, structuredType));
+            : new ValueTask<object?>(JsonSerializer.SerializeToElement(value, structuredType));
     }
 
     private static string BuildDescriptionFromMetadata(LoomRuntimeMetadataDescriptor metadata) =>
         $"[{metadata.Phase}] {metadata.Name}";
 
     private static string BuildDescriptionFromDescriptor(LoomToolDescriptor descriptor) =>
-        string.Join(' ', new[]
-        {
-            descriptor.Description,
-            descriptor.UseOnlyWhen is not null ? $"Use only when {descriptor.UseOnlyWhen}." : null,
-            descriptor.DoNotUseWhen is not null ? $"Do not use when {descriptor.DoNotUseWhen}." : null
-        }.Where(static s => !string.IsNullOrWhiteSpace(s)));
+        string.Join(' ',
+            new[]
+            {
+                descriptor.Description,
+                descriptor.UseOnlyWhen is not null ? $"Use only when {descriptor.UseOnlyWhen}." : null,
+                descriptor.DoNotUseWhen is not null ? $"Do not use when {descriptor.DoNotUseWhen}." : null
+            }.Where(static s => !string.IsNullOrWhiteSpace(s)));
 
     private static Dictionary<string, object?> BuildAdditionalProperties(
         LoomRuntimeMetadataDescriptor metadata) =>
-        new Dictionary<string, object?>(StringComparer.Ordinal)
+        new(StringComparer.Ordinal)
         {
             ["loom.name"] = metadata.Name,
             ["loom.declaringType"] = metadata.DeclaringType.FullName ?? metadata.DeclaringType.Name,
             ["loom.methodName"] = metadata.MethodName,
             ["loom.phase"] = metadata.Phase.ToString(),
             ["loom.bridge"] = "factory",
-
-            ["loom.binding.parameters"] = metadata.ParameterBindings.Select(static b => new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                ["name"] = b.Name,
-                ["type"] = b.Type.FullName ?? b.Type.Name,
-                ["schemaVisible"] = b.IsSchemaVisible,
-                ["infrastructureBound"] = b.IsInfrastructureBound,
-                ["nullable"] = b.IsNullable
-            }).ToArray(),
-
+            ["loom.binding.parameters"] =
+                metadata.ParameterBindings.Select(static b =>
+                    new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        ["name"] = b.Name,
+                        ["type"] = b.Type.FullName ?? b.Type.Name,
+                        ["schemaVisible"] = b.IsSchemaVisible,
+                        ["infrastructureBound"] = b.IsInfrastructureBound,
+                        ["nullable"] = b.IsNullable
+                    }).ToArray(),
             ["loom.result.outputType"] = metadata.Result.OutputType?.FullName,
             ["loom.result.structuredOutputType"] = metadata.Result.StructuredOutputType?.FullName,
             ["loom.result.schemaHint"] = metadata.Result.ResultSchemaHint,
             ["loom.result.hasStructuredOutput"] = metadata.Result.HasStructuredOutput,
             ["loom.result.schemaVisible"] = metadata.Result.IsSchemaVisible,
-
             ["loom.telemetry.isAwaitable"] = metadata.Telemetry.IsAwaitable,
             ["loom.telemetry.returnsValue"] = metadata.Telemetry.ReturnsValue,
             ["loom.telemetry.sideEffect"] = metadata.Telemetry.SideEffect.ToString(),
             ["loom.telemetry.capabilities"] = metadata.Telemetry.RequiredCapabilities.ToArray(),
-
             ["loom.policy.requiresApproval"] = metadata.Policy.RequiresApproval,
             ["loom.policy.sideEffect"] = metadata.Policy.SideEffect.ToString(),
             ["loom.policy.maxAttempts"] = metadata.Policy.MaxAttempts,

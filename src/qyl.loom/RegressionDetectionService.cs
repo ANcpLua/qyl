@@ -1,6 +1,6 @@
-using Qyl.Contracts.Observability;
-
 namespace Qyl.Loom;
+
+using Contracts.Observability;
 
 /// <summary>
 ///     Background service that polls for new deployments and runs regression detection.

@@ -1,5 +1,7 @@
 namespace Qyl.Mcp.Tests;
 
+using Polly.Timeout;
+
 public sealed class McpCollectorHttpClientExtensionsTests
 {
     [Fact]
@@ -58,7 +60,7 @@ public sealed class McpCollectorHttpClientExtensionsTests
 
         var act = async () => await client.GetAsync("/api/v1/sessions", TestContext.Current.CancellationToken);
 
-        var exception = (await act.Should().ThrowAsync<Polly.Timeout.TimeoutRejectedException>()).Which;
+        var exception = (await act.Should().ThrowAsync<TimeoutRejectedException>()).Which;
         exception.Message.Should().Contain("00:00:00.0500000");
     }
 
@@ -118,7 +120,7 @@ public sealed class McpCollectorHttpClientExtensionsTests
         await using var provider = services.BuildServiceProvider();
         var tool = provider.GetRequiredService<ReplayTools>();
 
-        var result = await tool.ListSessionsAsync(limit: 5, serviceName: "planner");
+        var result = await tool.ListSessionsAsync(5, "planner");
 
         result.Should().Contain("session-1");
         handler.LastRequestUri.Should().Be(
@@ -162,8 +164,5 @@ public sealed class McpCollectorHttpClientExtensionsTests
     }
 
     private static HttpResponseMessage JsonResponse(string json) =>
-        new(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
+        new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
 }

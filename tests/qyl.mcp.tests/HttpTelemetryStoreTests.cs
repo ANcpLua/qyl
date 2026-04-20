@@ -112,10 +112,10 @@ public sealed class HttpTelemetryStoreTests
 
         var store = CreateStore(handler);
         var results = await store.SearchRunsAsync(
-            provider: "openai",
-            model: "gpt-4o",
-            errorType: "Error",
-            since: new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc));
+            "openai",
+            "gpt-4o",
+            "Error",
+            new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc));
 
         var run = results.Should().ContainSingle().Which;
         run.RunId.Should().Be("keep");
@@ -133,10 +133,10 @@ public sealed class HttpTelemetryStoreTests
 
         var store = CreateStore(handler);
         var results = await store.SearchRunsAsync(
-            provider: "openai",
-            model: "gpt-4o",
-            errorType: "Error",
-            since: null);
+            "openai",
+            "gpt-4o",
+            "Error",
+            null);
 
         results.Should().BeEmpty();
     }
@@ -197,9 +197,9 @@ public sealed class HttpTelemetryStoreTests
 
         var store = CreateStore(handler);
         var summaries = await store.GetTokenUsageAsync(
-            since: new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
-            until: new DateTime(2026, 4, 2, 23, 59, 59, DateTimeKind.Utc),
-            groupBy: "model");
+            new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 4, 2, 23, 59, 59, DateTimeKind.Utc),
+            "model");
 
         var summary = summaries.Should().ContainSingle().Which;
         summary.GroupKey.Should().Be("gpt-4o");
@@ -250,7 +250,7 @@ public sealed class HttpTelemetryStoreTests
         };
 
         var store = CreateStore(handler);
-        var summaries = await store.GetTokenUsageAsync(since: null, until: null, groupBy: "service");
+        var summaries = await store.GetTokenUsageAsync(null, null, "service");
 
         summaries.Length.Should().Be(2);
         summaries.Should().Contain(static summary => summary.GroupKey == "planner" && summary.RunCount == 1);
@@ -272,7 +272,7 @@ public sealed class HttpTelemetryStoreTests
         };
 
         var store = CreateStore(handler);
-        var summaries = await store.GetTokenUsageAsync(since: null, until: null, groupBy: "model");
+        var summaries = await store.GetTokenUsageAsync(null, null, "model");
 
         summaries.Should().BeEmpty();
     }
@@ -319,7 +319,7 @@ public sealed class HttpTelemetryStoreTests
         };
 
         var store = CreateStore(handler);
-        var errors = await store.ListErrorsAsync(limit: 10, agentName: "planner");
+        var errors = await store.ListErrorsAsync(10, "planner");
 
         var error = errors.Should().ContainSingle().Which;
         error.RunId.Should().Be("error-run");
@@ -337,7 +337,7 @@ public sealed class HttpTelemetryStoreTests
         };
 
         var store = CreateStore(handler);
-        var errors = await store.ListErrorsAsync(limit: 10, agentName: "planner");
+        var errors = await store.ListErrorsAsync(10, "planner");
 
         errors.Should().BeEmpty();
     }
@@ -399,7 +399,7 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(
             handler,
             new FixedTimeProvider(new DateTimeOffset(2026, 4, 2, 11, 0, 0, TimeSpan.Zero)));
-        var stats = await store.GetLatencyStatsAsync("planner", hours: 2);
+        var stats = await store.GetLatencyStatsAsync("planner", 2);
 
         stats.AgentName.Should().Be("planner");
         stats.P50Ms.Should().Be(20);
@@ -442,7 +442,7 @@ public sealed class HttpTelemetryStoreTests
         var store = CreateStore(
             handler,
             new FixedTimeProvider(new DateTimeOffset(2026, 4, 2, 11, 0, 0, TimeSpan.Zero)));
-        var stats = await store.GetLatencyStatsAsync("planner", hours: 2);
+        var stats = await store.GetLatencyStatsAsync("planner", 2);
 
         stats.AgentName.Should().Be("planner");
         stats.P50Ms.Should().Be(0);
@@ -458,10 +458,7 @@ public sealed class HttpTelemetryStoreTests
         RecordingHttpMessageHandler handler,
         TimeProvider? timeProvider = null)
     {
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = TestCollectorEndpoint.BaseAddress
-        };
+        var client = new HttpClient(handler) { BaseAddress = TestCollectorEndpoint.BaseAddress };
 
         return new HttpTelemetryStore(
             client,
@@ -470,8 +467,5 @@ public sealed class HttpTelemetryStoreTests
     }
 
     private static HttpResponseMessage JsonResponse(string json) =>
-        new(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
+        new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
 }

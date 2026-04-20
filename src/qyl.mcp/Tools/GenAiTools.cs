@@ -1,10 +1,10 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying GenAI telemetry (LLM calls, token usage, costs).
@@ -18,7 +18,7 @@ public sealed class GenAiTools(HttpClient client)
     /// <param name="sessionId">Optional session ID filter.</param>
     /// <param name="hours">Time window in hours.</param>
     /// <returns>Request count, input/output tokens, total cost, and error count.</returns>
-    [QylCapability("genai_observability", QylCapabilityRole.Starting)]
+    [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.get_genai_stats", Title = "Get GenAI Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -74,7 +74,7 @@ public sealed class GenAiTools(HttpClient client)
     /// <param name="sessionId">Filter by session ID.</param>
     /// <param name="limit">Maximum number of spans to return.</param>
     /// <returns>A list of GenAI spans with provider, model, tokens, cost, and status.</returns>
-    [QylCapability("genai_observability", QylCapabilityRole.Starting)]
+    [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

@@ -1,15 +1,14 @@
+namespace qyl.mcp.Tools.Triage;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Triage;
-
 
 /// <summary>
-/// Sets the priority level (P0-P4) on an error issue for triage.
+///     Sets the priority level (P0-P4) on an error issue for triage.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
@@ -24,9 +23,11 @@ public sealed class SetErrorPriorityTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description("Set the priority level on an error issue for triage. Valid priorities: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info).")]
+    [Description(
+        "Set the priority level on an error issue for triage. Valid priorities: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info).")]
     public async Task<string> SetErrorPriority(
-        [Description("Error issue ID to set priority on")] string issueId,
+        [Description("Error issue ID to set priority on")]
+        string issueId,
         [Description("Priority level: P0 (critical), P1 (high), P2 (medium), P3 (low), P4 (info)")]
         string priority,
         CancellationToken ct = default)

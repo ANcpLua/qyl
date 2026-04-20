@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation;
+
+using Instrumentation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-using Qyl.Instrumentation.Instrumentation;
-
-namespace Qyl.Instrumentation;
 
 /// <summary>
 ///     Generator-facing entry points. The <c>qyl.instrumentation.generators</c> interceptor wraps every

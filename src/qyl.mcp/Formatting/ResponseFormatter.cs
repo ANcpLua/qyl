@@ -1,10 +1,10 @@
 // src/qyl.mcp/Formatting/ResponseFormatter.cs
 
+namespace qyl.mcp.Formatting;
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Qyl.Contracts.Models;
-
-namespace qyl.mcp.Formatting;
 
 /// <summary>
 ///     Formats collector API responses for AI consumption.
@@ -148,7 +148,8 @@ public static class ResponseFormatter
 public sealed class StructuredResponse
 {
     /// <summary>Raw telemetry data returned by the tool.</summary>
-    [JsonPropertyName("facts")] public required object Facts { get; init; }
+    [JsonPropertyName("facts")]
+    public required object Facts { get; init; }
 
     /// <summary>AI-generated analysis derived from the facts.</summary>
     [JsonPropertyName("analysis")]
@@ -177,10 +178,12 @@ public sealed class StructuredResponse
 public sealed class SuggestedAction
 {
     /// <summary>MCP tool name to invoke.</summary>
-    [JsonPropertyName("tool")] public required string Tool { get; init; }
+    [JsonPropertyName("tool")]
+    public required string Tool { get; init; }
 
     /// <summary>Human-readable explanation of what this action accomplishes.</summary>
-    [JsonPropertyName("description")] public required string Description { get; init; }
+    [JsonPropertyName("description")]
+    public required string Description { get; init; }
 
     /// <summary>Parameter key-value pairs to pass to the tool.</summary>
     [JsonPropertyName("parameters")]
@@ -194,10 +197,12 @@ public sealed class SuggestedAction
 public sealed class PaginationInfo
 {
     /// <summary>Opaque cursor to pass for retrieving the next page.</summary>
-    [JsonPropertyName("cursor")] public string? Cursor { get; init; }
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
 
     /// <summary>Indicates whether additional pages are available.</summary>
-    [JsonPropertyName("has_more")] public bool HasMore { get; init; }
+    [JsonPropertyName("has_more")]
+    public bool HasMore { get; init; }
 }
 
 /// <summary>
@@ -206,7 +211,8 @@ public sealed class PaginationInfo
 public sealed class EvidenceInfo
 {
     /// <summary>Identifiers of the telemetry sources that produced the facts.</summary>
-    [JsonPropertyName("sources")] public IReadOnlyList<string> Sources { get; init; } = [];
+    [JsonPropertyName("sources")]
+    public IReadOnlyList<string> Sources { get; init; } = [];
 
     /// <summary>Time window the evidence spans.</summary>
     [JsonPropertyName("time_range")]
@@ -220,10 +226,12 @@ public sealed class EvidenceInfo
 public sealed class TimeRangeInfo
 {
     /// <summary>Start of the time range (ISO 8601).</summary>
-    [JsonPropertyName("from")] public required string From { get; init; }
+    [JsonPropertyName("from")]
+    public required string From { get; init; }
 
     /// <summary>End of the time range (ISO 8601).</summary>
-    [JsonPropertyName("to")] public required string To { get; init; }
+    [JsonPropertyName("to")]
+    public required string To { get; init; }
 }
 
 [JsonSerializable(typeof(StructuredResponse))]

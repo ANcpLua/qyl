@@ -1,13 +1,13 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using Qyl.Contracts.Models;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Discovery;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+using Qyl.Contracts.Models;
+
 /// <summary>
-/// MCP tool that lists available projects with pagination support.
+///     MCP tool that lists available projects with pagination support.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -15,13 +15,13 @@ namespace qyl.mcp.Tools.Discovery;
 public sealed class ListProjectsTool(HttpClient client)
 {
     /// <summary>
-    /// Lists available projects, returning slugs that can scope other tools.
+    ///     Lists available projects, returning slugs that can scope other tools.
     /// </summary>
     /// <param name="cursor">Cursor for pagination.</param>
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of projects.</returns>
-    [QylCapability("service_discovery", QylCapabilityRole.Starting)]
+    [QylCapability("service_discovery")]
     [McpServerTool(Name = "list_projects", Title = "List Projects",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List available projects. Use project slugs to scope other tools to a specific project.")]

@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis.CSharp;
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.Emitters;
+
+using Microsoft.CodeAnalysis.CSharp;
+using Models;
 
 /// <summary>
 ///     Emits meter implementations for [Meter] attributed partial classes.
@@ -171,7 +171,8 @@ internal static class MeterEmitter
                         .Select(static t => $"new(\"{t.TagName}\", {t.ParameterName})")
                         .ToList();
 
-                    sb.AppendLine($"var tags = new KeyValuePair<string, object?>[] {{ {string.Join(", ", tagList)} }};");
+                    sb.AppendLine(
+                        $"var tags = new KeyValuePair<string, object?>[] {{ {string.Join(", ", tagList)} }};");
 
                     sb.AppendLine(method.Kind switch
                     {

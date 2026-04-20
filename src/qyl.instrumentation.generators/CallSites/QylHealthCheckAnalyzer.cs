@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Discovers classes tagged with <c>[QylHealthCheck(name, tags...)]</c> for auto-registration
@@ -38,19 +38,17 @@ internal static class QylHealthCheckAnalyzer
             return null;
 
         var tags = tagConstants.IsDefault
-            ? default(EquatableArray<string>)
-            : System.Linq.Enumerable.ToArray(
-                    System.Linq.Enumerable.Select(
-                        System.Linq.Enumerable.Where(
-                            System.Linq.Enumerable.Select(tagConstants, static t => t.Value as string),
-                            static t => !string.IsNullOrEmpty(t)),
-                        static t => t!))
+            ? default
+            : Enumerable.Select(
+                    Enumerable.Select(tagConstants, static t => t.Value as string)
+                        .Where(static t => !string.IsNullOrEmpty(t)),
+                    static t => t!).ToArray()
                 .ToEquatableArray();
 
         return new QylHealthCheckDefinition(
-            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
-            Name: name,
-            Tags: tags,
-            SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
+            classSymbol.GetFullyQualifiedName(),
+            name,
+            tags,
+            IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 }

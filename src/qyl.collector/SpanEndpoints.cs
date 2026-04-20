@@ -24,7 +24,7 @@ internal static class SpanEndpoints
             catch (JsonException ex)
             {
                 // resource.attributes may be malformed — fall through to default serviceName.
-                System.Diagnostics.Debug.WriteLine(ex);
+                Debug.WriteLine(ex);
             }
         }
 

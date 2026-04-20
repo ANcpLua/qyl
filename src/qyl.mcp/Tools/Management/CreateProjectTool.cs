@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Management;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// MCP tool that creates a new observability project.
+///     MCP tool that creates a new observability project.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class CreateProjectTool(HttpClient client)
 {
     /// <summary>
-    /// Creates a new observability project with the specified name, slug, and optional description.
+    ///     Creates a new observability project with the specified name, slug, and optional description.
     /// </summary>
     /// <param name="name">Display name for the project.</param>
     /// <param name="slug">URL-safe slug identifier.</param>

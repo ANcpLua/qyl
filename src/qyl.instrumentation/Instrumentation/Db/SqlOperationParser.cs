@@ -5,10 +5,10 @@
 // Owner: qyl.instrumentation
 // =============================================================================
 
+namespace Qyl.Instrumentation.Instrumentation.Db;
+
 using System.Runtime.CompilerServices;
 using qyl.contracts.Attributes;
-
-namespace Qyl.Instrumentation.Instrumentation.Db;
 
 /// <summary>
 ///     Parses SQL statements to extract the primary operation type per OTel semantic conventions.

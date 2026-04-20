@@ -1,7 +1,7 @@
+namespace Qyl.Loom.Agents;
+
 using Microsoft.AspNetCore.Routing;
 using Qyl.Agents.Hosting;
-
-namespace Qyl.Loom.Agents;
 
 public static class LoomGodAnalyzerHostingExtensions
 {

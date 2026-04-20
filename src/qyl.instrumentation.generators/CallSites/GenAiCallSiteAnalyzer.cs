@@ -1,10 +1,10 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Discovers GenAI SDK call sites for compile-time capability manifest emission.

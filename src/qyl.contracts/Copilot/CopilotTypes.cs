@@ -4,9 +4,9 @@
 // Owner: Qyl.Contracts | Consumers: copilot, collector, dashboard
 // =============================================================================
 
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Copilot;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Execution mode for unified tri-track routing.

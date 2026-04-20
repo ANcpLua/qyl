@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Discovers classes tagged with <c>[QylService(lifetime, asInterface?)]</c> for
@@ -46,9 +46,9 @@ internal static class QylServiceAnalyzer
             interfaceFqn = iface.GetFullyQualifiedName();
 
         return new QylServiceDefinition(
-            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
-            LifetimeMethodName: SLifetimeNames[lifetimeIndex],
-            InterfaceFullyQualifiedName: interfaceFqn,
-            SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
+            classSymbol.GetFullyQualifiedName(),
+            SLifetimeNames[lifetimeIndex],
+            interfaceFqn,
+            IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 }

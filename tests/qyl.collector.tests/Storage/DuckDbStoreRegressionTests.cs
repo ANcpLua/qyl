@@ -1,8 +1,8 @@
-using DuckDB.NET.Data;
-using Qyl.Collector.Storage;
-using Xunit;
-
 namespace Qyl.Collector.Tests.Storage;
+
+using Collector.Storage;
+using DuckDB.NET.Data;
+using Xunit;
 
 public sealed class DuckDbStoreRegressionTests
 {

@@ -1,12 +1,12 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
+using Agents;
+using Formatting;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
-using qyl.mcp.Formatting;
 using Qyl.Generated;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP meta-tool that gives an embedded LLM agent access to ALL qyl tools.
@@ -16,11 +16,11 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class  UseQylTools(IServiceProvider services, IConfiguration config)
+internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)
 {
     private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 
-    [QylCapability("agentic_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("agentic_investigation")]
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""

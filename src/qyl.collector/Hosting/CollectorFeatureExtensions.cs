@@ -1,6 +1,6 @@
-using Qyl.Collector.Dashboards;
-
 namespace Qyl.Collector.Hosting;
+
+using Dashboards;
 
 public static class CollectorFeatureExtensions
 {

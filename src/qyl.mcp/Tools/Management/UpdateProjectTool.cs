@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Management;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that updates an existing project's name or description.
+///     MCP tool that updates an existing project's name or description.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class UpdateProjectTool(HttpClient client)
 {
     /// <summary>
-    /// Updates the name and/or description of an existing project.
+    ///     Updates the name and/or description of an existing project.
     /// </summary>
     /// <param name="slug">The project slug to update.</param>
     /// <param name="name">Optional new display name.</param>

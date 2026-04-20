@@ -1,13 +1,17 @@
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.Emitters;
+
+using Microsoft.CodeAnalysis.CSharp;
+using Models;
 
 /// <summary>
 ///     Emits <c>QylGeneratedRegistry.g.cs</c>, the single class that houses every
 ///     generator-discovered service-wiring helper:
 ///     <list type="bullet">
 ///         <item><c>RegisterQylHostedServices(IServiceCollection)</c> — all <c>[QylHostedService]</c> classes.</item>
-///         <item><c>MapQylGeneratedEndpoints(WebApplication)</c> — all <c>[QylMapEndpoints]</c> extension methods, ordered.</item>
+///         <item>
+///             <c>MapQylGeneratedEndpoints(WebApplication)</c> — all <c>[QylMapEndpoints]</c> extension methods,
+///             ordered.
+///         </item>
 ///     </list>
 ///     The interceptor in <c>ServiceDefaultsSourceGenerator</c> auto-calls
 ///     <c>RegisterQylHostedServices</c> before <c>builder.Build()</c>.
@@ -135,7 +139,7 @@ internal static class HostedServiceEmitter
         }
     }
 
-    private static string Literal(string s) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true);
+    private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
 
     private static void EmitMapEndpoints(
         IndentedStringBuilder sb,

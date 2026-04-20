@@ -1,7 +1,6 @@
 namespace Qyl.Agents.Generator.Tests;
 
 using ANcpLua.Roslyn.Utilities.Testing;
-using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
 using Xunit;
 
@@ -9,10 +8,7 @@ public sealed class McpServerGeneratorTests : IDisposable
 {
     private readonly IDisposable _refs = TestConfiguration.WithAdditionalReferences(typeof(McpServerAttribute));
 
-    public void Dispose()
-    {
-        _refs.Dispose();
-    }
+    public void Dispose() => _refs.Dispose();
 
     [Fact]
     public async Task SingleToolGeneratesFullOutput()

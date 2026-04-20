@@ -1,7 +1,7 @@
+namespace Qyl.Collector.Tests.Autofix;
+
 using Qyl.Contracts.Loom;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Autofix;
 
 public sealed class CodingAgentProviderTests
 {

@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomStepOutputGenerator
 {

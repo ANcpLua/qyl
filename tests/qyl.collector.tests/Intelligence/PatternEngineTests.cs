@@ -1,8 +1,8 @@
-using Qyl.Collector.Intelligence;
+namespace Qyl.Collector.Tests.Intelligence;
+
+using Collector.Intelligence;
 using Qyl.Contracts.Intelligence;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Intelligence;
 
 public sealed class PatternEngineTests
 {

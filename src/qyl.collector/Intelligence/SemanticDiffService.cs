@@ -153,19 +153,32 @@ public static class SemanticDiffService
                 var firstAppearance = bCount <= 0 && cCount > 0 ? 1.0 : 0.0;
                 var positiveKl = cProb > bProb ? StatisticalMath.RelEntr(cProb, bProb) : 0.0;
 
-                var rawNovelty = positiveKl + positiveDelta + (firstAppearance * 0.50) + (normalizedDimensionScore * 0.35);
-                var supportScore = options.SupportSaturationCount > 0 ? Clamp01(cCount / options.SupportSaturationCount) : (cCount > 0 ? 1.0 : 0.0);
-                var concentrationScore = options.ConcentrationThreshold > 0 ? Clamp01(cShare / options.ConcentrationThreshold) : (cShare > 0 ? 1.0 : 0.0);
+                var rawNovelty = positiveKl + positiveDelta + (firstAppearance * 0.50) +
+                                 (normalizedDimensionScore * 0.35);
+                var supportScore = options.SupportSaturationCount > 0
+                    ?
+                    Clamp01(cCount / options.SupportSaturationCount)
+                    : cCount > 0
+                        ? 1.0
+                        : 0.0;
+                var concentrationScore = options.ConcentrationThreshold > 0
+                    ?
+                    Clamp01(cShare / options.ConcentrationThreshold)
+                    : cShare > 0
+                        ? 1.0
+                        : 0.0;
                 var actionablePattern = IsKnownActionablePattern(key, value) ? 1.0 : 0.0;
 
-                var rawActionability = (concentrationScore * 0.40) + (supportScore * 0.25) + (normalizedDimensionScore * 0.20) + (actionablePattern * 0.15);
+                var rawActionability = (concentrationScore * 0.40) + (supportScore * 0.25) +
+                                       (normalizedDimensionScore * 0.20) + (actionablePattern * 0.15);
                 var rawCausal = firstAppearance * 0.10;
                 if (IsLocalizedDimension(key) && cShare >= options.ConcentrationThreshold) rawCausal += 0.10;
                 if (normalizedDimensionScore >= 0.80) rawCausal += 0.05;
 
                 var evidence = new List<string>(4);
                 if (firstAppearance > 0) evidence.Add("Value did not appear in the baseline window.");
-                if (cShare >= options.ConcentrationThreshold) evidence.Add("Value is concentrated in the comparison window.");
+                if (cShare >= options.ConcentrationThreshold)
+                    evidence.Add("Value is concentrated in the comparison window.");
                 if (positiveKl > 0) evidence.Add("Distributional surprise is elevated for this value.");
 
                 double noveltyBoost = 0, causalBoost = 0, actionabilityBoost = 0;
@@ -200,7 +213,8 @@ public static class SemanticDiffService
             var noveltyScore = Clamp01(normalizedNovelty[i] + seed.NoveltyBoost);
             var causalScore = Clamp01(seed.RawCausal + seed.CausalBoost);
             var actionabilityScore = Clamp01(seed.RawActionability + seed.ActionabilityBoost);
-            var xorScore = (noveltyScore * options.NoveltyWeight) + (causalScore * options.CausalWeight) + (actionabilityScore * options.ActionabilityWeight);
+            var xorScore = (noveltyScore * options.NoveltyWeight) + (causalScore * options.CausalWeight) +
+                           (actionabilityScore * options.ActionabilityWeight);
 
             var (suppressed, why) = DecideSuppression(seed, noveltyScore, causalScore, xorScore, options);
 
@@ -209,7 +223,8 @@ public static class SemanticDiffService
                 seed.BaselineCount, seed.ComparisonCount, seed.BaselineShare, seed.ComparisonShare,
                 noveltyScore, causalScore, actionabilityScore, xorScore,
                 suppressed, why,
-                string.Create(CultureInfo.InvariantCulture, $"{seed.Key}={DisplayValue(seed.Value)} shifted from {seed.BaselineShare:P1} to {seed.ComparisonShare:P1}."),
+                string.Create(CultureInfo.InvariantCulture,
+                    $"{seed.Key}={DisplayValue(seed.Value)} shifted from {seed.BaselineShare:P1} to {seed.ComparisonShare:P1}."),
                 BuildWhyItMatters(seed, noveltyScore, causalScore, actionabilityScore, options),
                 seed.Evidence,
                 context.BaselineStart, context.BaselineEnd, context.ComparisonStart, context.ComparisonEnd));
@@ -218,7 +233,8 @@ public static class SemanticDiffService
         results.Sort(static (x, y) =>
         {
             var s = x.Suppressed.CompareTo(y.Suppressed);
-            return s is not 0 ? s : y.SemanticXorScore.CompareTo(x.SemanticXorScore) is var sc && sc is not 0 ? sc
+            return s is not 0 ? s
+                : y.SemanticXorScore.CompareTo(x.SemanticXorScore) is var sc && sc is not 0 ? sc
                 : y.NoveltyScore.CompareTo(x.NoveltyScore) is var n && n is not 0 ? n
                 : string.CompareOrdinal(x.DimensionKey, y.DimensionKey);
         });
@@ -228,28 +244,42 @@ public static class SemanticDiffService
         return results;
     }
 
-    private static (bool, string?) DecideSuppression(CandidateSeed seed, double novelty, double causal, double xor, SemanticDiffOptions o) =>
-        seed.ForcedSuppression is not null ? (true, seed.ForcedSuppression)
-        : Array.Exists(o.NoiseDimensionKeys, k => string.Equals(k, seed.Key, StringComparison.Ordinal)) ? (true, "configured noise dimension")
-        : Array.Exists(o.NoiseDimensionValues, v => string.Equals(v, seed.Value, StringComparison.Ordinal)) ? (true, "configured noise value")
-        : seed.ComparisonCount < o.MinSupportCount ? (true, "low comparison support")
-        : seed.DimensionFiltered && causal < o.MinimumCausalOverrideScore ? (true, "dimension stayed within expected variance")
-        : novelty < o.MinimumNoveltyScore && causal < o.MinimumCausalOverrideScore ? (true, "low novelty and weak causal alignment")
-        : xor < o.MinimumSemanticXorScore ? (true, "semantic XOR score below threshold")
-        : (false, null);
+    private static (bool, string?) DecideSuppression(CandidateSeed seed, double novelty, double causal, double xor,
+        SemanticDiffOptions o) =>
+        seed.ForcedSuppression is not null
+            ? (true, seed.ForcedSuppression)
+            : Array.Exists(o.NoiseDimensionKeys, k => string.Equals(k, seed.Key, StringComparison.Ordinal))
+                ? (true, "configured noise dimension")
+                : Array.Exists(o.NoiseDimensionValues, v => string.Equals(v, seed.Value, StringComparison.Ordinal))
+                    ? (true, "configured noise value")
+                    : seed.ComparisonCount < o.MinSupportCount
+                        ? (true, "low comparison support")
+                        : seed.DimensionFiltered && causal < o.MinimumCausalOverrideScore
+                            ? (true, "dimension stayed within expected variance")
+                            : novelty < o.MinimumNoveltyScore && causal < o.MinimumCausalOverrideScore
+                                ? (true, "low novelty and weak causal alignment")
+                                : xor < o.MinimumSemanticXorScore
+                                    ? (true, "semantic XOR score below threshold")
+                                    : (false, null);
 
-    private static string BuildWhyItMatters(CandidateSeed seed, double novelty, double causal, double actionability, SemanticDiffOptions o)
+    private static string BuildWhyItMatters(CandidateSeed seed, double novelty, double causal, double actionability,
+        SemanticDiffOptions o)
     {
         var r = new List<string>(4);
         if (seed is { BaselineCount: <= 0, ComparisonCount: > 0 }) r.Add("It is new in the comparison window.");
-        if (seed.ComparisonShare >= o.ConcentrationThreshold) r.Add("It materially narrows the search space because it is concentrated.");
+        if (seed.ComparisonShare >= o.ConcentrationThreshold)
+            r.Add("It materially narrows the search space because it is concentrated.");
         if (causal >= o.MinimumCausalOverrideScore) r.Add("It aligns with external causal evidence.");
         if (actionability >= 0.65) r.Add("It is actionable enough to guide a targeted fix.");
-        if (r.Count is 0) r.Add(novelty >= 0.50 ? "It represents a meaningful behavioral shift." : "It is one of the least noisy surviving changes.");
+        if (r.Count is 0)
+            r.Add(novelty >= 0.50
+                ? "It represents a meaningful behavioral shift."
+                : "It is one of the least noisy surviving changes.");
         return string.Join(" ", r);
     }
 
-    private static Dictionary<string, Dictionary<string, double>> ToAttributeDict(DistributionComparer.KeyedValueCount[] rows)
+    private static Dictionary<string, Dictionary<string, double>> ToAttributeDict(
+        DistributionComparer.KeyedValueCount[] rows)
     {
         var result = new Dictionary<string, Dictionary<string, double>>(StringComparer.Ordinal);
         foreach (ref readonly var row in rows.AsSpan())
@@ -258,10 +288,12 @@ public static class SemanticDiffService
                 result[row.Key] = values = new Dictionary<string, double>(StringComparer.Ordinal);
             values[row.Value] = row.Count;
         }
+
         return result;
     }
 
-    private static HashSet<string> UnionKeys(Dictionary<string, Dictionary<string, double>> a, Dictionary<string, Dictionary<string, double>> b)
+    private static HashSet<string> UnionKeys(Dictionary<string, Dictionary<string, double>> a,
+        Dictionary<string, Dictionary<string, double>> b)
     {
         var keys = new HashSet<string>(a.Keys, StringComparer.Ordinal);
         keys.UnionWith(b.Keys);
@@ -291,7 +323,8 @@ public static class SemanticDiffService
 
     private static double Clamp01(double v) => double.IsNaN(v) ? 0.0 : Math.Clamp(v, 0.0, 1.0);
 
-    private static Dictionary<string, double> NormalizeDimensionScores(List<DistributionComparer.KeyScoreFiltered> scores)
+    private static Dictionary<string, double> NormalizeDimensionScores(
+        List<DistributionComparer.KeyScoreFiltered> scores)
     {
         var result = new Dictionary<string, double>(StringComparer.Ordinal);
         if (scores.Count is 0) return result;
@@ -306,13 +339,19 @@ public static class SemanticDiffService
         var result = new double[seeds.Count];
         var min = double.MaxValue;
         var max = double.MinValue;
-        for (var i = 0; i < seeds.Count; i++) { var v = selector(seeds[i]); if (v < min) min = v; if (v > max) max = v; }
+        for (var i = 0; i < seeds.Count; i++)
+        {
+            var v = selector(seeds[i]);
+            if (v < min) min = v;
+            if (v > max) max = v;
+        }
+
         for (var i = 0; i < seeds.Count; i++) result[i] = Normalize(selector(seeds[i]), min, max);
         return result;
     }
 
     private static double Normalize(double v, double min, double max) =>
-        max - min <= 1e-12 ? (v > 0 ? 1.0 : 0.0) : Clamp01((v - min) / (max - min));
+        max - min <= 1e-12 ? v > 0 ? 1.0 : 0.0 : Clamp01((v - min) / (max - min));
 
     private static bool IsLocalizedDimension(string key) =>
         key.ContainsIgnoreCase("route") || key.ContainsIgnoreCase("endpoint") ||
@@ -328,9 +367,19 @@ public static class SemanticDiffService
     private static string DisplayValue(string value) => string.IsNullOrEmpty(value) ? "(missing)" : value;
 
     private sealed record CandidateSeed(
-        string Key, string Value, double BaselineCount, double ComparisonCount,
-        double BaselineShare, double ComparisonShare,
-        double RawNovelty, double RawCausal, double RawActionability,
-        double NoveltyBoost, double CausalBoost, double ActionabilityBoost,
-        bool DimensionFiltered, string? ForcedSuppression, string[] Evidence);
+        string Key,
+        string Value,
+        double BaselineCount,
+        double ComparisonCount,
+        double BaselineShare,
+        double ComparisonShare,
+        double RawNovelty,
+        double RawCausal,
+        double RawActionability,
+        double NoveltyBoost,
+        double CausalBoost,
+        double ActionabilityBoost,
+        bool DimensionFiltered,
+        string? ForcedSuppression,
+        string[] Evidence);
 }

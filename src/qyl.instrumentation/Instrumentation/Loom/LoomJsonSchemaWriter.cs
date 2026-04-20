@@ -1,9 +1,11 @@
-using System.Text.Json;
-
 namespace Qyl.Instrumentation.Instrumentation.Loom;
+
+using System.Text.Json;
 
 public static class LoomJsonSchemaWriter
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     public static string WriteToolParametersSchema(IEnumerable<LoomToolParameterDescriptor> parameters)
     {
         var properties = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -57,11 +59,7 @@ public static class LoomJsonSchemaWriter
             }
         };
 
-        var root = new Dictionary<string, object?>
-        {
-            ["type"] = "function",
-            ["function"] = function
-        };
+        var root = new Dictionary<string, object?> { ["type"] = "function", ["function"] = function };
 
         return JsonSerializer.Serialize(root, JsonOptions);
     }
@@ -99,11 +97,7 @@ public static class LoomJsonSchemaWriter
     {
         var nullableUnderlyingType = Nullable.GetUnderlyingType(type);
         var actualType = nullableUnderlyingType ?? type;
-        var root = new Dictionary<string, object?>
-        {
-            ["title"] = actualType.Name,
-            ["type"] = CreateTypeNode(type)
-        };
+        var root = new Dictionary<string, object?> { ["title"] = actualType.Name, ["type"] = CreateTypeNode(type) };
 
         if (nullableUnderlyingType is not null)
             root["nullable"] = true;
@@ -135,16 +129,16 @@ public static class LoomJsonSchemaWriter
             var t when t == typeof(string) => "string",
             var t when t == typeof(bool) => "boolean",
             var t when t == typeof(byte) ||
-                      t == typeof(sbyte) ||
-                      t == typeof(short) ||
-                      t == typeof(ushort) ||
-                      t == typeof(int) ||
-                      t == typeof(uint) ||
-                      t == typeof(long) ||
-                      t == typeof(ulong) => "integer",
+                       t == typeof(sbyte) ||
+                       t == typeof(short) ||
+                       t == typeof(ushort) ||
+                       t == typeof(int) ||
+                       t == typeof(uint) ||
+                       t == typeof(long) ||
+                       t == typeof(ulong) => "integer",
             var t when t == typeof(float) ||
-                      t == typeof(double) ||
-                      t == typeof(decimal) => "number",
+                       t == typeof(double) ||
+                       t == typeof(decimal) => "number",
             _ => "object"
         };
 
@@ -160,11 +154,7 @@ public static class LoomJsonSchemaWriter
 
         if (actualType.IsEnum)
         {
-            return new Dictionary<string, object?>
-            {
-                ["type"] = "string",
-                ["enum"] = Enum.GetNames(actualType)
-            };
+            return new Dictionary<string, object?> { ["type"] = "string", ["enum"] = Enum.GetNames(actualType) };
         }
 
         if (actualType == typeof(string))
@@ -199,18 +189,13 @@ public static class LoomJsonSchemaWriter
         {
             return new Dictionary<string, object?>
             {
-                ["type"] = "array",
-                ["items"] = CreateTypeNode(actualType.GetElementType() ?? typeof(object))
+                ["type"] = "array", ["items"] = CreateTypeNode(actualType.GetElementType() ?? typeof(object))
             };
         }
 
         if (TryGetEnumerableElementType(actualType, out var elementType))
         {
-            return new Dictionary<string, object?>
-            {
-                ["type"] = "array",
-                ["items"] = CreateTypeNode(elementType)
-            };
+            return new Dictionary<string, object?> { ["type"] = "array", ["items"] = CreateTypeNode(elementType) };
         }
 
         return "object";
@@ -258,9 +243,4 @@ public static class LoomJsonSchemaWriter
 
         return string.Join(' ', parts.Where(static part => !string.IsNullOrWhiteSpace(part)));
     }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
 }

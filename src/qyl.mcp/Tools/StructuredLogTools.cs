@@ -1,10 +1,10 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for accessing OTLP structured logs stored by qyl.collector.
@@ -118,7 +118,7 @@ public sealed class StructuredLogTools(HttpClient client)
     /// <param name="traceId">The trace ID to get logs for.</param>
     /// <returns>Logs ordered by timestamp and grouped by span ID.</returns>
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
-    [QylCapability("log_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("log_investigation")]
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

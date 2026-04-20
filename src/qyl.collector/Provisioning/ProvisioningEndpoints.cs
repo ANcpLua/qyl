@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace Qyl.Collector.Provisioning;
+
+using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
 ///     Minimal API endpoints for generation profile management and code generation jobs.

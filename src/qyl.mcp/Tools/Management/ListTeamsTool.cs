@@ -1,14 +1,13 @@
+namespace qyl.mcp.Tools.Management;
 
 using System.ComponentModel;
 using System.Net.Http.Json;
+using Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that lists teams with optional name search and pagination.
+///     MCP tool that lists teams with optional name search and pagination.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,13 +15,13 @@ namespace qyl.mcp.Tools.Management;
 public sealed class ListTeamsTool(HttpClient client)
 {
     /// <summary>
-    /// Lists teams with optional name/slug filtering, returning slugs that can scope members and projects.
+    ///     Lists teams with optional name/slug filtering, returning slugs that can scope members and projects.
     /// </summary>
     /// <param name="query">Optional filter for teams by name or slug.</param>
     /// <param name="limit">Maximum results per page (1-100, default 25).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted paginated list of teams.</returns>
-    [QylCapability("project_and_access_management", QylCapabilityRole.Starting)]
+    [QylCapability("project_and_access_management")]
     [McpServerTool(Name = "list_teams", Title = "List Teams",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List teams with optional name search. Use team slugs to scope members and projects.")]

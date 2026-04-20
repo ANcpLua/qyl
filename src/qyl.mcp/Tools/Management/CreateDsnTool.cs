@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Management;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that creates a new DSN (Data Source Name) for a project.
+///     MCP tool that creates a new DSN (Data Source Name) for a project.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -18,7 +17,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class CreateDsnTool(HttpClient client)
 {
     /// <summary>
-    /// Creates a new DSN for a project and returns the full DSN value.
+    ///     Creates a new DSN for a project and returns the full DSN value.
     /// </summary>
     /// <param name="projectSlug">The project slug to create the DSN for.</param>
     /// <param name="label">Optional human-readable label for the DSN.</param>
@@ -30,7 +29,8 @@ public sealed class CreateDsnTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = false)]
-    [Description("Create a new DSN (Data Source Name) for a project. Returns the full DSN value — save it, it may not be shown again.")]
+    [Description(
+        "Create a new DSN (Data Source Name) for a project. Returns the full DSN value — save it, it may not be shown again.")]
     public async Task<string> CreateDsnAsync(
         [Description("Project slug to create the DSN for")]
         string projectSlug,

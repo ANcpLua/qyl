@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Management;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that sets the data retention period for a project.
+///     MCP tool that sets the data retention period for a project.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class ConfigureRetentionTool(HttpClient client)
 {
     /// <summary>
-    /// Sets the data retention period in days for the specified project.
+    ///     Sets the data retention period in days for the specified project.
     /// </summary>
     /// <param name="projectSlug">The project slug to configure.</param>
     /// <param name="retentionDays">Number of days to retain data.</param>

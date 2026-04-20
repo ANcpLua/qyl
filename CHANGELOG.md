@@ -38,21 +38,28 @@
   plus a new incremental generator slice under `src/qyl.instrumentation.generators/Loom/` that follows the
   `extractor -> immutable model -> emitter -> registry` pattern. This emits generated tool descriptors,
   contract descriptors, step/workflow manifests, and a central `LoomGeneratedRegistry` without adding qyl host glue.
-- **Loom telemetry/policy manifest slice**: Extended the Loom generator with explicit telemetry, policy, and unified manifest registry output for tools/contracts/steps/workflows, including structured-output and budget extraction from Loom attributes.
+- **Loom telemetry/policy manifest slice**: Extended the Loom generator with explicit telemetry, policy, and unified
+  manifest registry output for tools/contracts/steps/workflows, including structured-output and budget extraction from
+  Loom attributes.
 - **Loom runtime metadata parity**: Tightened the Loom generator/runtime boundary so full method signatures
   remain descriptor-emitted, infrastructure-bound parameters stay out of model-visible schema, the registry
   emits a capability manifest, and generated manifest output reuses runtime descriptor types instead of
   re-declaring them.
 - **Loom Dockerfile**: `src/qyl.loom/Dockerfile` — standalone container for the Loom intelligence plane.
-- **Root docker-compose.yml**: Orchestrates `collector` and `loom` services for local dev with `QYL_OTLP_AUTH_MODE=Unsecured`.
-- **BitNet agent demo**: `samples/bitnet-agent-demo/` — 3-agent BitNet tracing demo with BitNet server and its own compose file.
-- **MAF overlap audit report**: Added `docs/superpowers/plans/2026-04-02-maf-overlap-analysis.md`, a repo-grounded analysis of where qyl still uses self-implemented agent/orchestration/runtime code instead of Microsoft Agent Framework layers, with concrete keep/replace/delete recommendations.
+- **Root docker-compose.yml**: Orchestrates `collector` and `loom` services for local dev with
+  `QYL_OTLP_AUTH_MODE=Unsecured`.
+- **BitNet agent demo**: `samples/bitnet-agent-demo/` — 3-agent BitNet tracing demo with BitNet server and its own
+  compose file.
+- **MAF overlap audit report**: Added `docs/superpowers/plans/2026-04-02-maf-overlap-analysis.md`, a repo-grounded
+  analysis of where qyl still uses self-implemented agent/orchestration/runtime code instead of Microsoft Agent
+  Framework layers, with concrete keep/replace/delete recommendations.
 - **Dedicated qyl.mcp test project**: Added `tests/qyl.mcp.tests/` with focused HTTP-bound tests for
   collector client registration and `HttpTelemetryStore`, plus `InternalsVisibleTo` wiring so MCP DI and
   telemetry seams are covered directly without depending on collector tests.
 - **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `src/qyl.collector/Autofix/`
   exposes REST endpoints for standalone Loom background workers: `GET /api/v1/fix-runs` (pending query),
-  `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`, `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
+  `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`,
+  `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
   `PATCH /api/v1/triage/{triageId}`, `GET /api/v1/issues/untriaged`, `GET /api/v1/deployments`.
   Registered in `CollectorEndpointExtensions.cs`.
 - **Standalone Loom executable**: `qyl.loom` is now `OutputType=Exe` with its own `Program.cs`
@@ -62,10 +69,16 @@
 
 ### Changed
 
-- **qyl onboarding launch surface rebuilt**: Moved `/onboarding` out of the dashboard shell and replaced the old step wizard with a full-bleed qyl landing page focused on OTLP ingest, MCP access, and launch actions. The new page keeps live collector/GitHub status, transport-specific copy snippets, and direct entry points into traces, issues, services, and settings.
-- **Instruction entrypoints unified**: Root `AGENTS.md` now symlinks to `.claude/AGENTS.md`, and root `CLAUDE.md` now symlinks to `AGENTS.md`, so the repo has one canonical instruction surface.
+- **qyl onboarding launch surface rebuilt**: Moved `/onboarding` out of the dashboard shell and replaced the old step
+  wizard with a full-bleed qyl landing page focused on OTLP ingest, MCP access, and launch actions. The new page keeps
+  live collector/GitHub status, transport-specific copy snippets, and direct entry points into traces, issues, services,
+  and settings.
+- **Instruction entrypoints unified**: Root `AGENTS.md` now symlinks to `.claude/AGENTS.md`, and root `CLAUDE.md` now
+  symlinks to `AGENTS.md`, so the repo has one canonical instruction surface.
 
-- **Claude architecture pack reset**: Replaced the old `.claude/rules` and `qyl-workflows` instruction sprawl with a minimal seven-plane architecture pack covering data, serving, intelligence, agent/control, ledger/governance, UI/protocol, and compiler responsibilities.
+- **Claude architecture pack reset**: Replaced the old `.claude/rules` and `qyl-workflows` instruction sprawl with a
+  minimal seven-plane architecture pack covering data, serving, intelligence, agent/control, ledger/governance,
+  UI/protocol, and compiler responsibilities.
 
 - **Loom spec docs moved under qyl.loom**: Moved the primary Loom spec from `specs/loom.md` to
   `src/qyl.loom/specs/loom.md` and the reverse-engineered Loom design reference from `eng/build/loom.md`
@@ -79,9 +92,13 @@
   MCP 1.2.0 maps Streamable HTTP on the configured path by default and does not expose legacy `/mcp/sse`
   or `/mcp/message` endpoints.
 
-- **NUKE Docker targets updated**: `ImageSpecs` now targets `loom` instead of dashboard, `ComposeFile` points to root `docker-compose.yml`, `DockerBuildDashboard` renamed to `DockerBuildLoom`.
-- **Collector dashboard serves physical files first**: Fixed priority inversion bug where `CreateSlimBuilder` caused embedded resources to shadow physical wwwroot files. Physical files now take priority.
-- **Collector architecture test wording aligned with reality**: `ArchitectureTests` no longer claims the server has "zero LLM dependencies"; it now states the actual boundary: `Microsoft.Extensions.AI` abstractions are allowed, while MAF runtime packages, GitHub Copilot SDK, and provider SDKs are not.
+- **NUKE Docker targets updated**: `ImageSpecs` now targets `loom` instead of dashboard, `ComposeFile` points to root
+  `docker-compose.yml`, `DockerBuildDashboard` renamed to `DockerBuildLoom`.
+- **Collector dashboard serves physical files first**: Fixed priority inversion bug where `CreateSlimBuilder` caused
+  embedded resources to shadow physical wwwroot files. Physical files now take priority.
+- **Collector architecture test wording aligned with reality**: `ArchitectureTests` no longer claims the server has "
+  zero LLM dependencies"; it now states the actual boundary: `Microsoft.Extensions.AI` abstractions are allowed, while
+  MAF runtime packages, GitHub Copilot SDK, and provider SDKs are not.
 - **Qyl chat instrumentation now auto-wraps tool calls**: `UseQylInstrumentation()` and `WithQylTelemetry()`
   now wrap `ChatOptions.Tools` with `InstrumentedAIFunction` automatically, so `execute_tool` spans are emitted
   without a separate manual `AddInstrumentedTools()` call whenever qyl is already instrumenting the chat client.
@@ -100,21 +117,30 @@
 
 ### Removed
 
-- **Dead `impl/` and `CodingAgent/` dirs from loom**: Deleted 10 stale markdown docs from `src/qyl.loom/impl/` and already-deleted `CodingAgent/` directory references.
-- **Unused central MAF package versions**: Deleted dead central package-management entries for `Microsoft.Agents.AI.Abstractions`, `Microsoft.Agents.AI.GitHub.Copilot`, `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, and `Microsoft.Agents.AI.Workflows.Declarative`. No project referenced them; only `Microsoft.Agents.AI.Hosting` remains live via the MAF sample.
+- **Dead `impl/` and `CodingAgent/` dirs from loom**: Deleted 10 stale markdown docs from `src/qyl.loom/impl/` and
+  already-deleted `CodingAgent/` directory references.
+- **Unused central MAF package versions**: Deleted dead central package-management entries for
+  `Microsoft.Agents.AI.Abstractions`, `Microsoft.Agents.AI.GitHub.Copilot`,
+  `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, and `Microsoft.Agents.AI.Workflows.Declarative`. No project referenced
+  them; only `Microsoft.Agents.AI.Hosting` remains live via the MAF sample.
 - **Dead weight purged from qyl.loom**: Deleted `Identity/`, `Workflow/`, `AgentRuns/`, `Analytics/`,
   `impl/seer/`, `EmbeddingClusterWorker.cs`, `ProjectService.cs`, `PrCreationService.cs`,
   `AutofixEndpoints.cs`, `TriageEndpoints.cs`, `RegressionEndpoints.cs`. Removed corresponding
   `<Compile Update>` and `<Content Include>` entries from `qyl.loom.csproj`. These were dead weight:
   collector already hosts all these endpoints, and the remaining services (autofix, triage pipeline,
   regression detection, agents) are preserved for standalone Loom.
-- **Dead qyl.loom HTTP mirror cluster deleted**: Removed the unused `qyl.loom` endpoint/code-review/investigation surface
-  that duplicated live collector-owned Loom routes. Deleted `LoomEndpoints`, `LoomSettingsEndpoints`, the old coding-agent and
-  code-review endpoint files, the duplicate `LoomInsight`/explorer model stack, and their `qyl.loom.csproj` compile metadata.
+- **Dead qyl.loom HTTP mirror cluster deleted**: Removed the unused `qyl.loom` endpoint/code-review/investigation
+  surface
+  that duplicated live collector-owned Loom routes. Deleted `LoomEndpoints`, `LoomSettingsEndpoints`, the old
+  coding-agent and
+  code-review endpoint files, the duplicate `LoomInsight`/explorer model stack, and their `qyl.loom.csproj` compile
+  metadata.
 - **Phosphor icons eliminated**: Replaced all `@phosphor-icons/react` usage with `lucide-react` across 25+ dashboard
   files. Removed `@phosphor-icons/react` from package.json. Lucide is now the sole icon library.
-- **Loom import cleanup (Hades)**: Removed 21 unused PackageReferences and 1 unused ProjectReference (qyl.instrumentation)
-  from `qyl.loom.csproj`. Replaced `ContainsIgnoreCase`/`StartsWithIgnoreCase`/`StartsWithOrdinal` extension methods with
+- **Loom import cleanup (Hades)**: Removed 21 unused PackageReferences and 1 unused ProjectReference (
+  qyl.instrumentation)
+  from `qyl.loom.csproj`. Replaced `ContainsIgnoreCase`/`StartsWithIgnoreCase`/`StartsWithOrdinal` extension methods
+  with
   standard BCL `Contains`/`StartsWith` + `StringComparison`.
 - **Dead code cleanup (Hades audit)**: Deleted 8 files (~26,427 lines) confirmed unused by grep across entire repo.
   `Clear.cs` (26K stale diff in qyl.mcp), `WorkspaceContext.cs` (orphaned, zero refs), `PolicyGate.cs` (empty stub),
@@ -123,12 +149,21 @@
 
 ### Fixed
 
-- **qyl.dashboard deploy drift notice**: Dashboard production builds now emit an explicit `dashboard-build.json` descriptor. The collector reads that descriptor from physical or embedded assets instead of scraping `index.html`, and the dashboard compares the running build ID against `/api/v1/meta` before stale route chunks fail.
-- **qyl.dashboard stale chunk recovery**: `ErrorBoundary` now recognizes recoverable lazy-chunk load failures, reloads the tab once per failing chunk signature within a short session window, and shows a reload action instead of a dead-end retry when the same stale asset error persists.
-- **qyl.dashboard preview bundle crash fixed**: Simplified `vite.config.ts` manual chunking to keep only the heavy chart bundles isolated. This removes the brittle `react-vendor` / `tanstack` split that caused the built preview app to crash before React mounted.
-- **NuGet MCP server command fixed**: MCP config corrected `dnx` to `nuget-mcp-server`, removed duplicate `qyl-local` plugin entry.
-- **Collector healthcheck in Docker**: Added `curl` to collector Dockerfile and `ASPNETCORE_WEBROOT` env var for proper healthcheck and static file serving.
-- **Unsecured auth for local dev compose**: Both root `docker-compose.yml` and sample compose files set `QYL_OTLP_AUTH_MODE=Unsecured` so local OTLP ingest works without API keys.
+- **qyl.dashboard deploy drift notice**: Dashboard production builds now emit an explicit `dashboard-build.json`
+  descriptor. The collector reads that descriptor from physical or embedded assets instead of scraping `index.html`, and
+  the dashboard compares the running build ID against `/api/v1/meta` before stale route chunks fail.
+- **qyl.dashboard stale chunk recovery**: `ErrorBoundary` now recognizes recoverable lazy-chunk load failures, reloads
+  the tab once per failing chunk signature within a short session window, and shows a reload action instead of a
+  dead-end retry when the same stale asset error persists.
+- **qyl.dashboard preview bundle crash fixed**: Simplified `vite.config.ts` manual chunking to keep only the heavy chart
+  bundles isolated. This removes the brittle `react-vendor` / `tanstack` split that caused the built preview app to
+  crash before React mounted.
+- **NuGet MCP server command fixed**: MCP config corrected `dnx` to `nuget-mcp-server`, removed duplicate `qyl-local`
+  plugin entry.
+- **Collector healthcheck in Docker**: Added `curl` to collector Dockerfile and `ASPNETCORE_WEBROOT` env var for proper
+  healthcheck and static file serving.
+- **Unsecured auth for local dev compose**: Both root `docker-compose.yml` and sample compose files set
+  `QYL_OTLP_AUTH_MODE=Unsecured` so local OTLP ingest works without API keys.
 - **Railway Docker builds no longer depend on service-specific cache IDs**: `src/qyl.collector/Dockerfile`
   and `src/qyl.mcp/Dockerfile` no longer use Railway cache mounts. This removes both the old
   hardcoded-service-ID failure and the invalid generic-cache-mount failure when the repo is built from
@@ -165,12 +200,16 @@
 - **MCP code review route alignment**: `qyl.trigger_code_review` and `qyl.get_code_review` now split `owner/repo`
   into the collector's `{owner}/{repo}` route shape instead of sending an escaped full name that could not match the
   active endpoint surface.
-- **SEC-001 XSS fix**: Replaced `dangerouslySetInnerHTML` in `text-visualizer.tsx` with tokenized React element rendering.
+- **SEC-001 XSS fix**: Replaced `dangerouslySetInnerHTML` in `text-visualizer.tsx` with tokenized React element
+  rendering.
 - **SEC-002 type safety**: Replaced `as unknown as SpanRecord` in `use-telemetry.ts` with proper typed construction.
-- **A11Y-001/002**: Added keyboard support (role, tabIndex, onKeyDown) to DashboardCard and PerformancePage service rows.
-- **A11Y-003**: Replaced all `outline-none` with `outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2`.
+- **A11Y-001/002**: Added keyboard support (role, tabIndex, onKeyDown) to DashboardCard and PerformancePage service
+  rows.
+- **A11Y-003**: Replaced all `outline-none` with
+  `outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2`.
 - **UX-001**: Added React ErrorBoundary component wrapping routes in App.tsx.
-- **TASTE-002**: Replaced 60+ raw Tailwind colors with semantic tokens (signal-red, signal-green, etc.) across dashboard.
+- **TASTE-002**: Replaced 60+ raw Tailwind colors with semantic tokens (signal-red, signal-green, etc.) across
+  dashboard.
 - **TASTE-003**: Replaced hardcoded HSL/oklch chart colors with CSS variable theme tokens.
 
 - **Dependency baseline updated**: .NET runtime packages `10.0.4` → `10.0.5`, `Microsoft.Extensions.AI*`

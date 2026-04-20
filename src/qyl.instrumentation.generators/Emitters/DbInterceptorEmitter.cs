@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis.CSharp;
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.Emitters;
+
+using Microsoft.CodeAnalysis.CSharp;
+using Models;
 
 /// <summary>
 ///     Emits interceptor source code for ADO.NET DbCommand method invocations.

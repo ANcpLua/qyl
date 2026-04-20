@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Models;
 
 internal static class LoomContractOutputGenerator
 {
@@ -42,10 +42,12 @@ internal static class LoomContractOutputGenerator
                         ? "global::System.Array.Empty<string>()"
                         : $"new string[] {{ {string.Join(", ", property.EnumValues.Select(LoomGenerationHelpers.StringLiteral))} }}";
 
-                    sb.AppendLine($"new({LoomGenerationHelpers.StringLiteral(property.Name)}, {LoomGenerationHelpers.TypeOf(property.TypeFullyQualified)}, {(property.IsNullable ? "true" : "false")}, {(property.IsRequired ? "true" : "false")}, {enumValues}),");
+                    sb.AppendLine(
+                        $"new({LoomGenerationHelpers.StringLiteral(property.Name)}, {LoomGenerationHelpers.TypeOf(property.TypeFullyQualified)}, {(property.IsNullable ? "true" : "false")}, {(property.IsRequired ? "true" : "false")}, {enumValues}),");
                 }
             }
         }
+
         sb.AppendLine(");");
         sb.AppendLine();
 
@@ -84,6 +86,7 @@ internal static class LoomContractOutputGenerator
             json.Append("\":");
             AppendPropertySchema(json, property);
         }
+
         json.Append('}');
 
         json.Append(",\"required\":[");
@@ -101,6 +104,7 @@ internal static class LoomContractOutputGenerator
             json.Append(EscapeJsonString(property.Name));
             json.Append('"');
         }
+
         json.Append(']');
 
         json.Append(",\"additionalProperties\":false}");
@@ -125,6 +129,7 @@ internal static class LoomContractOutputGenerator
                 json.Append(EscapeJsonString(value));
                 json.Append('"');
             }
+
             json.Append(']');
         }
         else
@@ -169,7 +174,8 @@ internal static class LoomContractOutputGenerator
         const string nullablePrefix = "global::System.Nullable<";
         if (typeFullyQualified.StartsWithOrdinal(nullablePrefix) &&
             typeFullyQualified.EndsWithOrdinal(">"))
-            return typeFullyQualified.Substring(nullablePrefix.Length, typeFullyQualified.Length - nullablePrefix.Length - 1);
+            return typeFullyQualified.Substring(nullablePrefix.Length,
+                typeFullyQualified.Length - nullablePrefix.Length - 1);
 
         return typeFullyQualified;
     }

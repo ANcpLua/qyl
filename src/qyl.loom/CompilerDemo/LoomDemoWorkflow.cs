@@ -1,7 +1,7 @@
-using Microsoft.Agents.AI.Workflows;
-using Qyl.Instrumentation.Instrumentation.Loom;
-
 namespace Qyl.Loom.CompilerDemo;
+
+using Instrumentation.Instrumentation.Loom;
+using Microsoft.Agents.AI.Workflows;
 
 [LoomStep("loom.demo.detect", Phase = LoomPhase.Detect, Description = "Detect regression and localize evidence.")]
 internal sealed partial class LoomDemoDetectExecutor() : Executor("loom.demo.detect")
@@ -71,7 +71,8 @@ internal sealed partial class LoomDemoVerifyExecutor() : Executor("loom.demo.ver
         => ValueTask.FromResult(LoomDemoTools.VerifyFix(patch));
 }
 
-[LoomStep("loom.demo.report", Phase = LoomPhase.Report, Description = "Project artifacts into an operator-grade report.")]
+[LoomStep("loom.demo.report", Phase = LoomPhase.Report,
+    Description = "Project artifacts into an operator-grade report.")]
 internal sealed partial class LoomDemoReportExecutor() : Executor("loom.demo.report")
 {
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocol)

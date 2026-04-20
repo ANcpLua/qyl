@@ -1,15 +1,14 @@
+namespace qyl.mcp.Tools.Management;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Management;
 
 /// <summary>
-/// MCP tool that lists all DSNs for a project.
+///     MCP tool that lists all DSNs for a project.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -17,7 +16,7 @@ namespace qyl.mcp.Tools.Management;
 public sealed class ListDsnsTool(HttpClient client)
 {
     /// <summary>
-    /// Lists all DSNs configured for a project, used by client SDKs to send telemetry data.
+    ///     Lists all DSNs configured for a project, used by client SDKs to send telemetry data.
     /// </summary>
     /// <param name="projectSlug">The project slug to list DSNs for.</param>
     /// <param name="ct">Cancellation token.</param>

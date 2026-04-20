@@ -1,8 +1,8 @@
-using System.Numerics;
-using Qyl.Collector.Search;
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Storage;
+
+using System.Numerics;
+using Qyl.Contracts.Primitives;
+using Search;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with unified cross-entity search operations.

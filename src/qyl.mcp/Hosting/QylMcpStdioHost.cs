@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Hosting;
-using qyl.mcp.Scoping;
-
 namespace qyl.mcp.Hosting;
+
+using Microsoft.Extensions.Hosting;
+using Scoping;
 
 internal static class QylMcpStdioHost
 {

@@ -96,8 +96,10 @@ public static class NamespaceRoutingTable
     public static string GetCSharpNamespace(string schemaName)
     {
         foreach (var route in s_sortedRoutes)
+        {
             if (schemaName.StartsWith(route.Prefix, StringComparison.Ordinal))
                 return route.Namespace;
+        }
 
         return "Qyl.Models"; // default fallback
     }

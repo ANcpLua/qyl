@@ -23,6 +23,12 @@ insert_final_newline = true
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
+# Modern-C# style pins — silence Rider/Roslyn defaults that push pre-C#-10 patterns.
+# Severity 'silent' = preferred direction is correct, but don't nag.
+csharp_using_directive_placement = inside_namespace:silent # IDE0065 default = outside_namespace
+csharp_style_namespace_declarations = file_scoped:silent # IDE0161 default = block_scoped
+csharp_prefer_braces = when_multiline:silent # IDE0011 default = true (forces braces on single-line if)
+
 # =============================================================================
 # ANcpLua.Analyzers (AL) - Rules with Code Fixes
 # =============================================================================

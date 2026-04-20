@@ -1,7 +1,7 @@
+namespace Qyl.Collector.Query;
+
 using System.Text.RegularExpressions;
 using Qyl.Contracts.Primitives;
-
-namespace Qyl.Collector.Query;
 
 [QylService(QylLifetime.Singleton)]
 internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProvider)

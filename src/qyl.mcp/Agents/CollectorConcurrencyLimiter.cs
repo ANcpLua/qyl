@@ -1,11 +1,11 @@
-using Microsoft.Extensions.Configuration;
-
 namespace qyl.mcp.Agents;
+
+using Microsoft.Extensions.Configuration;
 
 /// <summary>
 ///     HTTP delegating handler that limits concurrent requests to the qyl collector.
 ///     DuckDB is single-writer; unbounded concurrency from autonomous agents saturates it.
-///     Excess requests queue on the semaphore. If queued longer than <see cref="QueueTimeout"/>,
+///     Excess requests queue on the semaphore. If queued longer than <see cref="QueueTimeout" />,
 ///     the request proceeds anyway to avoid deadlock.
 /// </summary>
 internal sealed class CollectorConcurrencyLimiter : DelegatingHandler, IDisposable
@@ -27,6 +27,12 @@ internal sealed class CollectorConcurrencyLimiter : DelegatingHandler, IDisposab
         _semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
     }
 
+    public new void Dispose()
+    {
+        _semaphore.Dispose();
+        base.Dispose();
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -43,11 +49,5 @@ internal sealed class CollectorConcurrencyLimiter : DelegatingHandler, IDisposab
                 _semaphore.Release();
             }
         }
-    }
-
-    public new void Dispose()
-    {
-        _semaphore.Dispose();
-        base.Dispose();
     }
 }

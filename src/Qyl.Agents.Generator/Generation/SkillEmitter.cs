@@ -1,6 +1,5 @@
 namespace Qyl.Agents.Generator.Generation;
 
-using System.Text;
 using Models;
 
 internal static class SkillEmitter
@@ -138,17 +137,18 @@ internal static class SkillEmitter
 
     private static void EmitYamlValue(StringBuilder sb, string key, string value)
     {
-        if (value.Contains('\n'))
+        if (value.Contains('\n', StringComparison.Ordinal))
         {
             sb.Append(key).AppendLine(": |");
             foreach (var line in value.Split('\n'))
                 sb.Append("  ").AppendLine(line.TrimEnd('\r'));
         }
-        else if (value.Contains(':') || value.Contains('#') || value.Contains('"') ||
-                 (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]))))
+        else if (value.Contains(':', StringComparison.Ordinal) || value.Contains('#', StringComparison.Ordinal) ||
+                 value.Contains('"', StringComparison.Ordinal) ||
+                 (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[^1]))))
         {
             sb.Append(key).Append(": \"")
-                .Append(value.Replace("\\", "\\\\").Replace("\"", "\\\""))
+                .Append(value.Replace("\\", @"\\").Replace("\"", "\\\""))
                 .AppendLine("\"");
         }
         else

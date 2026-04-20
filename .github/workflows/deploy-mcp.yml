@@ -27,7 +27,7 @@ on:
   #     - 'Directory.Packages.props'
   #     - 'Version.props'
   #     - '.github/workflows/deploy-mcp.yml'
-  workflow_dispatch: {}
+  workflow_dispatch: { }
 
 permissions:
   contents: read

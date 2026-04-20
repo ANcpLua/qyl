@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Intelligence;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Named combination of signals identifying a known failure mode.

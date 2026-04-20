@@ -1,7 +1,7 @@
 namespace Qyl.Contracts.Agenting;
 
 /// <summary>
-/// Canonical lifecycle phases for a run under the agent/control and governance model.
+///     Canonical lifecycle phases for a run under the agent/control and governance model.
 /// </summary>
 public enum AgentRunPhase
 {
@@ -20,7 +20,7 @@ public enum AgentRunPhase
 }
 
 /// <summary>
-/// High-level run status emitted by automation and control systems.
+///     High-level run status emitted by automation and control systems.
 /// </summary>
 public enum AgentRunStatus
 {
@@ -35,7 +35,7 @@ public enum AgentRunStatus
 }
 
 /// <summary>
-/// Artifact kinds persisted or derived during an agentic run.
+///     Artifact kinds persisted or derived during an agentic run.
 /// </summary>
 public enum AgentRunArtifactKind
 {
@@ -53,7 +53,7 @@ public enum AgentRunArtifactKind
 }
 
 /// <summary>
-/// Capability scope for actions taken by an agent run.
+///     Capability scope for actions taken by an agent run.
 /// </summary>
 public enum AgentCapabilityScope
 {
@@ -64,7 +64,7 @@ public enum AgentCapabilityScope
 }
 
 /// <summary>
-/// Approval decision for a gated run transition.
+///     Approval decision for a gated run transition.
 /// </summary>
 public enum AgentRunApprovalStatus
 {
@@ -76,7 +76,7 @@ public enum AgentRunApprovalStatus
 }
 
 /// <summary>
-/// Governance decision after policy evaluation.
+///     Governance decision after policy evaluation.
 /// </summary>
 public enum AgentRunPolicyDecision
 {
@@ -88,7 +88,7 @@ public enum AgentRunPolicyDecision
 }
 
 /// <summary>
-/// Confidence/validation outcome for a run checkpoint.
+///     Confidence/validation outcome for a run checkpoint.
 /// </summary>
 public enum ValidationOutcome
 {
@@ -100,7 +100,7 @@ public enum ValidationOutcome
 }
 
 /// <summary>
-/// Capability declaration used by policy/ledger to gate tool and workflow behavior.
+///     Capability declaration used by policy/ledger to gate tool and workflow behavior.
 /// </summary>
 public sealed record AgentCapabilityDescriptor
 {

@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis.CSharp;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Generation;
+
+using Microsoft.CodeAnalysis.CSharp;
+using Models;
 
 internal static class LoomGenerationHelpers
 {

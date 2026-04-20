@@ -1,7 +1,7 @@
 namespace Qyl.Contracts.Agenting;
 
 /// <summary>
-/// Canonical artifact reference for a run.
+///     Canonical artifact reference for a run.
 /// </summary>
 public sealed record AgentRunArtifactRef
 {
@@ -19,7 +19,7 @@ public sealed record AgentRunArtifactRef
 }
 
 /// <summary>
-/// Snapshot of an execution artifact payload.
+///     Snapshot of an execution artifact payload.
 /// </summary>
 public sealed record AgentRunArtifact
 {
@@ -35,7 +35,7 @@ public sealed record AgentRunArtifact
 }
 
 /// <summary>
-/// Input/output boundaries for evidence and artifact exchange between planes.
+///     Input/output boundaries for evidence and artifact exchange between planes.
 /// </summary>
 public sealed record AgentRunEvidencePack
 {

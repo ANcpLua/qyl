@@ -1,14 +1,16 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Loom;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Request body for creating a new Loom autofix run.
 /// </summary>
 public sealed record LoomFixRunCreateRequest(
     [property: JsonPropertyName("policy")] string? Policy = null,
-    [property: JsonPropertyName("instruction")] string? Instruction = null,
-    [property: JsonPropertyName("stoppingPoint")] string? StoppingPoint = null);
+    [property: JsonPropertyName("instruction")]
+    string? Instruction = null,
+    [property: JsonPropertyName("stoppingPoint")]
+    string? StoppingPoint = null);
 
 /// <summary>Payload of a Collector autofix run object.</summary>
 public sealed record LoomFixRunDto
@@ -72,8 +74,14 @@ public sealed record LoomErrorResponse(
 public sealed record LoomToolEnvelope<T>
 {
     [JsonPropertyName("success")] public required bool Success { get; init; }
-    [JsonPropertyName("data")] [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public T? Data { get; init; }
-    [JsonPropertyName("error")] [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Error { get; init; }
+
+    [JsonPropertyName("data")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public T? Data { get; init; }
+
+    [JsonPropertyName("error")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Error { get; init; }
 }
 
 /// <summary>

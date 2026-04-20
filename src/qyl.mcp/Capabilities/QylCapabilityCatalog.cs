@@ -1,6 +1,6 @@
-using Qyl.Generated;
-
 namespace qyl.mcp.Capabilities;
+
+using Qyl.Generated;
 
 /// <summary>
 ///     Thin filter wrapper around the generator-produced capability list in
@@ -10,9 +10,11 @@ namespace qyl.mcp.Capabilities;
 internal static class QylCapabilityCatalog
 {
     public static IReadOnlyList<QylCapabilityDescriptor> GetEnabled(SkillConfiguration skills) =>
-        [.. QylToolManifest.Capabilities
+    [
+        .. QylToolManifest.Capabilities
             .Where(capability => capability.RequiredSkill is null || skills.IsEnabled(capability.RequiredSkill.Value))
-            .OrderBy(static capability => capability.Title, StringComparer.Ordinal)];
+            .OrderBy(static capability => capability.Title, StringComparer.Ordinal)
+    ];
 
     public static QylCapabilityDescriptor? FindEnabled(string capabilityId, SkillConfiguration skills) =>
         GetEnabled(skills).FirstOrDefault(capability => capability.Id.EqualsIgnoreCase(capabilityId));

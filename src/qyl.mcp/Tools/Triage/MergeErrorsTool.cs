@@ -1,15 +1,14 @@
+namespace qyl.mcp.Tools.Triage;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
-/// Merges duplicate error issues into a primary issue, consolidating all events under the primary.
+///     Merges duplicate error issues into a primary issue, consolidating all events under the primary.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
@@ -22,7 +21,8 @@ public sealed class MergeErrorsTool(HttpClient client)
         ReadOnly = false,
         Destructive = true,
         Idempotent = false)]
-    [Description("Merge duplicate error issues into a primary issue. All events from the merged issues are consolidated under the primary.")]
+    [Description(
+        "Merge duplicate error issues into a primary issue. All events from the merged issues are consolidated under the primary.")]
     public async Task<string> MergeErrors(
         [Description("The primary issue ID that will absorb the duplicates")]
         string primaryIssueId,

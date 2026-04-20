@@ -1,9 +1,9 @@
+namespace Qyl.Instrumentation.DevLogs;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-
-namespace Qyl.Instrumentation.DevLogs;
 
 /// <summary>
 ///     Opt-in frontend→backend console bridge. Emits a <c>&lt;script&gt;</c> at

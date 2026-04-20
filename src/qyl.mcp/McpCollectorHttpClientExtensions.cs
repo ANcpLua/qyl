@@ -1,11 +1,11 @@
+namespace qyl.mcp;
+
+using Agents;
+using Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
-using qyl.mcp.Agents;
-using qyl.mcp.Auth;
-using qyl.mcp.Scoping;
-
-namespace qyl.mcp;
+using Scoping;
 
 internal static class McpCollectorHttpClientExtensions
 {
@@ -45,8 +45,8 @@ internal static class McpCollectorHttpClientExtensions
 
         // Most MCP tools ask for a bare HttpClient. Make that default resolve to the
         // collector-configured named client so tool constructors stay simple.
-        services.Replace(ServiceDescriptor.Transient<HttpClient>(
-            static sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient(CollectorClientName)));
+        services.Replace(ServiceDescriptor.Transient<HttpClient>(static sp =>
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(CollectorClientName)));
 
         httpClientBuilder
             .AddStandardResilienceHandler()

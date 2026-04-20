@@ -1,14 +1,14 @@
-using ANcpLua.Roslyn.Utilities;
-using Qyl.Agents;
-using Qyl.Loom.CodeReview;
-using Qyl.Loom.Exploration;
-
 namespace Qyl.Loom.Agents;
+
+using ANcpLua.Roslyn.Utilities;
+using CodeReview;
+using Exploration;
+using Qyl.Agents;
 
 [McpServer("loom-god-analyzer",
     Description = "Compile-time Loom analyzer surface backed by qyl collector services.",
     Version = "0.1.0")]
-public sealed partial class LoomGodAnalyzerServer(
+public sealed class LoomGodAnalyzerServer(
     CollectorClient collector,
     AutofixOrchestrator autofixOrchestrator,
     ExplorationInsightService insightService,
@@ -56,9 +56,7 @@ public sealed partial class LoomGodAnalyzerServer(
 
     public static McpServerInfo GetServerInfo() => new()
     {
-        Name = ServerName,
-        Description = ServerDescription,
-        Version = ServerVersion
+        Name = ServerName, Description = ServerDescription, Version = ServerVersion
     };
 
     public static IReadOnlyList<McpToolInfo> GetToolInfos() =>
@@ -105,7 +103,10 @@ public sealed partial class LoomGodAnalyzerServer(
             Description = "Reusable system prompt for the Loom god-analyzer workflow.",
             Arguments =
             [
-                new McpPromptArgument { Name = "issueId", Description = "Issue identifier to analyze.", Required = true },
+                new McpPromptArgument
+                {
+                    Name = "issueId", Description = "Issue identifier to analyze.", Required = true
+                },
                 new McpPromptArgument
                 {
                     Name = "operatorGoal",
@@ -119,16 +120,14 @@ public sealed partial class LoomGodAnalyzerServer(
     public async Task<string> DispatchToolCallAsync(
         string toolName,
         JsonElement arguments,
-        CancellationToken cancellationToken)
-    {
-        return toolName switch
+        CancellationToken cancellationToken) =>
+        toolName switch
         {
             "loom_get_issue_insight" => await DispatchInsightAsync(arguments, cancellationToken).ConfigureAwait(false),
             "loom_start_fix_run" => await DispatchFixRunAsync(arguments, cancellationToken).ConfigureAwait(false),
             "loom_review_pull_request" => await DispatchReviewAsync(arguments, cancellationToken).ConfigureAwait(false),
             _ => throw new InvalidOperationException($"Unknown tool '{toolName}'.")
         };
-    }
 
     public Task<ResourceReadResult> DispatchResourceReadAsync(string uri, CancellationToken cancellationToken) =>
         Task.FromException<ResourceReadResult>(
@@ -142,9 +141,7 @@ public sealed partial class LoomGodAnalyzerServer(
         if (!string.Equals(name, "loom_god_analyzer", StringComparison.Ordinal))
             throw new InvalidOperationException($"Unknown prompt '{name}'.");
 
-        var promptArgs = JsonSerializer.Deserialize(
-                             arguments,
-                             LoomGodAnalyzerJsonContext.Default.LoomGodAnalyzerPromptArgs)
+        var promptArgs = arguments.Deserialize(LoomGodAnalyzerJsonContext.Default.LoomGodAnalyzerPromptArgs)
                          ?? throw new InvalidOperationException("Prompt arguments are required.");
 
         return await Task.FromResult(BuildGodAnalyzerPrompt(promptArgs.IssueId, promptArgs.OperatorGoal))
@@ -211,7 +208,7 @@ public sealed partial class LoomGodAnalyzerServer(
 
     private async Task<string> DispatchInsightAsync(JsonElement arguments, CancellationToken ct)
     {
-        var toolArgs = JsonSerializer.Deserialize(arguments, LoomGodAnalyzerJsonContext.Default.LoomGetIssueInsightArgs)
+        var toolArgs = arguments.Deserialize(LoomGodAnalyzerJsonContext.Default.LoomGetIssueInsightArgs)
                        ?? throw new InvalidOperationException("Tool arguments are required.");
         var insight = await GetIssueInsightAsync(toolArgs.IssueId, ct).ConfigureAwait(false);
         return JsonSerializer.Serialize(insight, LoomGodAnalyzerJsonContext.Default.ExplorationInsight);
@@ -219,7 +216,7 @@ public sealed partial class LoomGodAnalyzerServer(
 
     private async Task<string> DispatchFixRunAsync(JsonElement arguments, CancellationToken ct)
     {
-        var toolArgs = JsonSerializer.Deserialize(arguments, LoomGodAnalyzerJsonContext.Default.LoomStartFixRunArgs)
+        var toolArgs = arguments.Deserialize(LoomGodAnalyzerJsonContext.Default.LoomStartFixRunArgs)
                        ?? throw new InvalidOperationException("Tool arguments are required.");
         var run = await StartFixRunAsync(toolArgs.IssueId, toolArgs.Policy, ct).ConfigureAwait(false);
         return JsonSerializer.Serialize(run, LoomGodAnalyzerJsonContext.Default.FixRunRecord);
@@ -227,7 +224,7 @@ public sealed partial class LoomGodAnalyzerServer(
 
     private async Task<string> DispatchReviewAsync(JsonElement arguments, CancellationToken ct)
     {
-        var toolArgs = JsonSerializer.Deserialize(arguments, LoomGodAnalyzerJsonContext.Default.LoomReviewPullRequestArgs)
+        var toolArgs = arguments.Deserialize(LoomGodAnalyzerJsonContext.Default.LoomReviewPullRequestArgs)
                        ?? throw new InvalidOperationException("Tool arguments are required.");
         var review = await ReviewPullRequestAsync(toolArgs.RepoFullName, toolArgs.PrNumber, ct).ConfigureAwait(false);
         return JsonSerializer.Serialize(review, LoomGodAnalyzerJsonContext.Default.CodeReviewResult);

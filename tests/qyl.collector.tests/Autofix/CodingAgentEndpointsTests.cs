@@ -1,9 +1,9 @@
+namespace Qyl.Collector.Tests.Autofix;
+
+using Collector.Storage;
 using DuckDB.NET.Data;
-using Qyl.Collector.Storage;
 using Qyl.Contracts.Loom;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Autofix;
 
 /// <summary>
 ///     Storage-layer tests for the coding agent run operations backing
@@ -98,9 +98,9 @@ public sealed class CodingAgentEndpointsTests : IAsyncDisposable
 
         await _store.UpdateCodingAgentRunStatusAsync(
             "agent-upd", "completed",
-            prUrl: "https://github.com/acme/repo/pull/42",
-            agentUrl: "https://cursor.sh/agents/xyz",
-            ct: ct);
+            "https://github.com/acme/repo/pull/42",
+            "https://cursor.sh/agents/xyz",
+            ct);
 
         var updated = await _store.GetCodingAgentRunAsync("agent-upd", ct);
 

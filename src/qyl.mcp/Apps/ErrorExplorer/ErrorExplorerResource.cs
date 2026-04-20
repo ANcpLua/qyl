@@ -1,7 +1,7 @@
+namespace qyl.mcp.Apps.ErrorExplorer;
+
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Apps.ErrorExplorer;
 
 /// <summary>
 ///     Serves the Error Explorer HTML as an MCP resource at <c>ui://qyl/error-explorer</c>.

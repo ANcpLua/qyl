@@ -62,7 +62,10 @@ function rawToSpan(raw: RawSpanRow): SpanRecord {
         kind: (raw.kind & 0x7) as SpanRecord['kind'],
         start_time_unix_nano: raw.start_time_unix_nano,
         end_time_unix_nano: raw.end_time_unix_nano,
-        status: {code: (raw.status_code & 0x3) as SpanRecord['status']['code'], message: raw.status_message ?? undefined},
+        status: {
+            code: (raw.status_code & 0x3) as SpanRecord['status']['code'],
+            message: raw.status_message ?? undefined
+        },
         attributes: parseAttrs(raw.attributes_json),
         // Storage returns resource as JSON key-value pairs; TypeSpec type is flat typed object
         resource: Object.fromEntries(

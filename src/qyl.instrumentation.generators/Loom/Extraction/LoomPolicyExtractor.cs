@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
+using Microsoft.CodeAnalysis;
+using Models;
 
 internal static class LoomPolicyExtractor
 {
@@ -73,7 +73,8 @@ internal static class LoomPolicyExtractor
     {
         foreach (var attribute in symbol.GetAttributes())
         {
-            if (!string.Equals(attribute.AttributeClass?.Name, RequiresCapabilityAttributeName, StringComparison.Ordinal))
+            if (!string.Equals(attribute.AttributeClass?.Name, RequiresCapabilityAttributeName,
+                    StringComparison.Ordinal))
                 continue;
 
             var capability = attribute.ConstructorArguments.FirstOrDefault().Value as string;

@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Qyl.Contracts.Loom;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 ///     Storage record for a fix run. Maps to the fix_runs DuckDB table.

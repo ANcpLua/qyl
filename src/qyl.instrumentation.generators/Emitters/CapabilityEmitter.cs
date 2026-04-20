@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis.CSharp;
-using Qyl.Instrumentation.Generators.Models;
-
 namespace Qyl.Instrumentation.Generators.Emitters;
+
+using Microsoft.CodeAnalysis.CSharp;
+using Models;
 
 /// <summary>
 ///     Emits assembly-level <c>[GeneratedCapabilityAttribute]</c> entries that declare

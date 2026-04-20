@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Analysis;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Analysis;
 
 /// <summary>
-/// MCP tool that analyzes a session returning span count, status, service, and trace breakdown.
+///     MCP tool that analyzes a session returning span count, status, service, and trace breakdown.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -16,7 +16,7 @@ namespace qyl.mcp.Tools.Analysis;
 public sealed class AnalyzeSessionTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves and formats structured analysis of a session's span count, status, service, and traces.
+    ///     Retrieves and formats structured analysis of a session's span count, status, service, and traces.
     /// </summary>
     /// <param name="sessionId">The session ID to analyze.</param>
     /// <param name="focus">Optional focus area such as 'latency', 'errors', or 'dependencies'.</param>

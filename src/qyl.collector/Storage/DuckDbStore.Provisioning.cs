@@ -1,6 +1,6 @@
-using Qyl.Collector.Provisioning;
-
 namespace Qyl.Collector.Storage;
+
+using Provisioning;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with provisioning operations:
@@ -157,10 +157,10 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT job_id, workspace_id, profile_id, status,"
-            + " output_url, error_message, created_at, completed_at"
-            + " FROM generation_jobs WHERE workspace_id = $1"
-            + " ORDER BY created_at DESC LIMIT "
-            + clampedLimit.ToString(CultureInfo.InvariantCulture);
+                          + " output_url, error_message, created_at, completed_at"
+                          + " FROM generation_jobs WHERE workspace_id = $1"
+                          + " ORDER BY created_at DESC LIMIT "
+                          + clampedLimit.ToString(CultureInfo.InvariantCulture);
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         var jobs = new List<GenerationJobRecord>();

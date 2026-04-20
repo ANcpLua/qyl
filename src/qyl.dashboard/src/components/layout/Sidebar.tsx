@@ -2,6 +2,7 @@ import {NavLink, useLocation} from 'react-router-dom';
 import type {LucideIcon} from 'lucide-react';
 import {
     Activity,
+    AlertCircle,
     Bug,
     ChevronLeft,
     ChevronRight,
@@ -9,6 +10,7 @@ import {
     Database,
     FileText,
     Gauge,
+    GitBranch,
     Globe,
     Layers,
     LayoutGrid,
@@ -19,8 +21,6 @@ import {
     Sparkles,
     Terminal,
     TriangleAlert,
-    GitBranch,
-    AlertCircle,
     Zap,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';

@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 
 internal static class LoomLiteralFormatter
 {

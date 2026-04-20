@@ -1,10 +1,10 @@
+namespace Qyl.Collector.Tests.Cost;
+
+using Collector.Cost;
+using Collector.Storage;
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
-using Qyl.Collector.Cost;
-using Qyl.Collector.Storage;
 using Xunit;
-
-namespace Qyl.Collector.Tests.Cost;
 
 public sealed class CostComputationTests
 {

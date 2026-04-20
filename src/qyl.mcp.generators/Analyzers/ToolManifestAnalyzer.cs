@@ -1,9 +1,8 @@
-using ANcpLua.Roslyn.Utilities;
+namespace Qyl.Mcp.Generators.Analyzers;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Mcp.Generators.Models;
-
-namespace Qyl.Mcp.Generators.Analyzers;
+using Models;
 
 /// <summary>
 ///     Discovers classes decorated with <c>[McpServerToolType]</c> and their <c>[McpServerTool]</c>

@@ -1,20 +1,22 @@
+namespace qyl.mcp.Capabilities;
+
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Metadata;
 using ModelContextProtocol.Server;
-using qyl.mcp.Metadata;
-
-namespace qyl.mcp.Capabilities;
 
 [McpServerToolType]
 internal sealed class CapabilityTools(SkillConfiguration skills)
 {
-    [QylCapability("server_introspection", QylCapabilityRole.Starting)]
+    [QylCapability("server_introspection")]
     [McpServerTool(Name = "qyl.list_capabilities", Title = "List Capabilities",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("List qyl.mcp capabilities, enabled skill families, and the primary tools behind each capability. Use this before invoking broad meta-agent tools.")]
+    [Description(
+        "List qyl.mcp capabilities, enabled skill families, and the primary tools behind each capability. Use this before invoking broad meta-agent tools.")]
     public string ListCapabilities(
-        [Description("Optional skill family filter such as inspect, health, analytics, agent, build, anomaly, loom, apps, debug, or core")]
+        [Description(
+            "Optional skill family filter such as inspect, health, analytics, agent, build, anomaly, loom, apps, debug, or core")]
         string? skill = null,
         [Description("Optional tag filter such as traces, errors, logs, metrics, genai, apps, or debugger")]
         string? tag = null,
@@ -31,7 +33,7 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
                 Summary = capability.Summary,
                 Skill = capability.Skill,
                 Tags = capability.Tags,
-                ToolNames = includeTools ? capability.ToolNames : null,
+                ToolNames = includeTools ? capability.ToolNames : null
             })
             .ToArray();
 
@@ -41,18 +43,20 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
             Version = QylServerMetadata.Version,
             Skills = QylSkillCatalog.GetEnabledSkillLabels(skills),
             CapabilityCount = capabilities.Length,
-            Capabilities = capabilities,
+            Capabilities = capabilities
         };
 
         return JsonSerializer.Serialize(response, CapabilityToolsJsonContext.Default.CapabilityListResponseDto);
     }
 
-    [QylCapability("server_introspection", QylCapabilityRole.Starting)]
+    [QylCapability("server_introspection")]
     [McpServerTool(Name = "qyl.get_capability_guide", Title = "Get Capability Guide",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Return a detailed qyl-specific guide for one capability, including identifiers, recommended first tools, follow-up tools, scoping advice, and telemetry evidence hints.")]
+    [Description(
+        "Return a detailed qyl-specific guide for one capability, including identifiers, recommended first tools, follow-up tools, scoping advice, and telemetry evidence hints.")]
     public string GetCapabilityGuide(
-        [Description("Capability id from qyl.list_capabilities, for example trace_investigation or loom_triage_and_fix")]
+        [Description(
+            "Capability id from qyl.list_capabilities, for example trace_investigation or loom_triage_and_fix")]
         string capabilityId)
     {
         var capability = QylCapabilityCatalog.FindEnabled(capabilityId, skills);
@@ -65,7 +69,7 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
                 Message = "Capability not found or not enabled by the current skill configuration.",
                 AvailableCapabilities = QylCapabilityCatalog.GetEnabled(skills)
                     .Select(static candidate => candidate.Id)
-                    .ToArray(),
+                    .ToArray()
             };
 
             return JsonSerializer.Serialize(notFound, CapabilityToolsJsonContext.Default.CapabilityGuideResponseDto);
@@ -100,10 +104,10 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
                         Title = tool.Title,
                         Skill = tool.Skill,
                         ReadOnly = tool.ReadOnly,
-                        Destructive = tool.Destructive,
+                        Destructive = tool.Destructive
                     };
                 })
-                .ToArray(),
+                .ToArray()
         };
 
         return JsonSerializer.Serialize(response, CapabilityToolsJsonContext.Default.CapabilityGuideResponseDto);

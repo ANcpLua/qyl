@@ -1,9 +1,9 @@
+namespace qyl.mcp.Tools;
+
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-
-namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying the error issue system.
@@ -19,7 +19,7 @@ public sealed class ErrorTools(HttpClient client)
     /// <param name="level">Filter by error level (e.g. 'error', 'warning', 'fatal').</param>
     /// <param name="limit">Maximum number of issues to return.</param>
     /// <returns>A table of error issues with status, priority, and occurrence counts.</returns>
-    [QylCapability("error_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("error_investigation")]
     [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -83,7 +83,7 @@ public sealed class ErrorTools(HttpClient client)
     /// <param name="includeEvents">Whether to include recent events with stack traces.</param>
     /// <param name="eventLimit">Maximum number of events to return.</param>
     /// <returns>Detailed issue metadata and optional recent event list.</returns>
-    [QylCapability("error_investigation", QylCapabilityRole.Starting)]
+    [QylCapability("error_investigation")]
     [McpServerTool(Name = "qyl.get_error_issue", Title = "Get Error Issue",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""

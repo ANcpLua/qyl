@@ -1,7 +1,7 @@
-using ANcpLua.Roslyn.Utilities;
-using Qyl.Contracts.Agenting;
-
 namespace Qyl.Loom.Exploration;
+
+using ANcpLua.Roslyn.Utilities;
+using Contracts.Agenting;
 
 /// <summary>
 ///     Keeps active exploration sessions and issues continuation tokens
@@ -87,7 +87,8 @@ public sealed class ExplorationSessionStore(TimeProvider timeProvider)
     }
 
     private ExplorationSessionState GetRequired(string sessionId) =>
-        Get(sessionId) ?? throw new InvalidOperationException($"Exploration session '{sessionId}' was not initialized.");
+        Get(sessionId) ??
+        throw new InvalidOperationException($"Exploration session '{sessionId}' was not initialized.");
 
     private void Touch(ExplorationSessionState session) => session.UpdatedAt = timeProvider.GetUtcNow();
 }

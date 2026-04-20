@@ -1,7 +1,7 @@
 namespace Qyl.Contracts.Agenting;
 
 /// <summary>
-/// Approval request raised by policy or workflow checkpoints.
+///     Approval request raised by policy or workflow checkpoints.
 /// </summary>
 public sealed record AgentRunApprovalRequest
 {
@@ -19,7 +19,7 @@ public sealed record AgentRunApprovalRequest
 }
 
 /// <summary>
-/// Approval decision written to ledger and replayable by the control plane.
+///     Approval decision written to ledger and replayable by the control plane.
 /// </summary>
 public sealed record AgentRunApprovalDecision
 {

@@ -117,7 +117,8 @@ function BuildUpdateBanner() {
     }
 
     return (
-        <div className="fixed bottom-4 left-4 z-50 max-w-sm rounded-[20px] border border-signal-violet/35 bg-brutal-carbon/94 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+        <div
+            className="fixed bottom-4 left-4 z-50 max-w-sm rounded-[20px] border border-signal-violet/35 bg-brutal-carbon/94 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-signal-violet">
                 New build available
             </div>
@@ -125,8 +126,10 @@ function BuildUpdateBanner() {
                 A newer qyl dashboard build is ready on this server.
             </div>
             <p className="mt-2 text-sm leading-6 text-brutal-slate">
-                Reload before opening more routes so the page picks up the latest build descriptor and avoids stale lazy-chunk imports.
-                Reload before opening more routes so the page picks up the latest build descriptor and entry bundle before stale lazy-chunk imports fail.
+                Reload before opening more routes so the page picks up the latest build descriptor and avoids stale
+                lazy-chunk imports.
+                Reload before opening more routes so the page picks up the latest build descriptor and entry bundle
+                before stale lazy-chunk imports fail.
             </p>
             {serverBuildLabel && (
                 <div className="mt-3 text-[11px] font-mono uppercase tracking-[0.18em] text-brutal-slate">
@@ -157,31 +160,31 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
                 <ErrorBoundary>
-                <BuildUpdateBanner/>
-                <Suspense>
-                    <Routes>
-                        <Route path="/index.html" element={<Navigate to="/" replace/>}/>
-                        <Route path="/onboarding" element={<OnboardingPage/>}/>
-                        <Route element={<DashboardLayout/>}>
-                            <Route path="/" element={<FirstVisitGate/>}/>
-                            <Route path="/traces" element={<TracesPage/>}/>
-                            <Route path="/logs" element={<LogsPage/>}/>
-                            <Route path="/genai" element={<GenAIPage/>}/>
-                            <Route path="/cost" element={<CostPage/>}/>
-                            <Route path="/services" element={<ServicesPage/>}/>
-                            <Route path="/dashboards" element={<DashboardPage/>}/>
-                            <Route path="/dashboards/:id" element={<DashboardPage/>}/>
-                            <Route path="/search" element={<SearchPage/>}/>
-                            <Route path="/settings" element={<SettingsPage/>}/>
-                            <Route path="/issues" element={<IssuesPage/>}/>
-                            <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                            <Route path="/alerts" element={<AlertsPage/>}/>
-                            <Route path="/performance" element={<PerformancePage/>}/>
-                            <Route path="/errors" element={<ErrorsOutagesPage/>}/>
-                            <Route path="/spans" element={<SpanExplorerPage/>}/>
-                        </Route>
-                    </Routes>
-                </Suspense>
+                    <BuildUpdateBanner/>
+                    <Suspense>
+                        <Routes>
+                            <Route path="/index.html" element={<Navigate to="/" replace/>}/>
+                            <Route path="/onboarding" element={<OnboardingPage/>}/>
+                            <Route element={<DashboardLayout/>}>
+                                <Route path="/" element={<FirstVisitGate/>}/>
+                                <Route path="/traces" element={<TracesPage/>}/>
+                                <Route path="/logs" element={<LogsPage/>}/>
+                                <Route path="/genai" element={<GenAIPage/>}/>
+                                <Route path="/cost" element={<CostPage/>}/>
+                                <Route path="/services" element={<ServicesPage/>}/>
+                                <Route path="/dashboards" element={<DashboardPage/>}/>
+                                <Route path="/dashboards/:id" element={<DashboardPage/>}/>
+                                <Route path="/search" element={<SearchPage/>}/>
+                                <Route path="/settings" element={<SettingsPage/>}/>
+                                <Route path="/issues" element={<IssuesPage/>}/>
+                                <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
+                                <Route path="/alerts" element={<AlertsPage/>}/>
+                                <Route path="/performance" element={<PerformancePage/>}/>
+                                <Route path="/errors" element={<ErrorsOutagesPage/>}/>
+                                <Route path="/spans" element={<SpanExplorerPage/>}/>
+                            </Route>
+                        </Routes>
+                    </Suspense>
                 </ErrorBoundary>
             </BrowserRouter>
             <Toaster richColors position="bottom-right"/>

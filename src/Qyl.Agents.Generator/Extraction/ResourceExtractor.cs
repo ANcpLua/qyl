@@ -26,9 +26,11 @@ internal static class ResourceExtractor
         var (returnKind, resultTypeFqn, isBinary) = ClassifyResourceReturnType(method, awaitable);
 
         if (returnKind is null)
+        {
             return DiagnosticFlow.Fail<ResourceModel>(DiagnosticInfo.Create(
                 DiagnosticDescriptors.ResourceInvalidReturnType, method, method.Name,
                 method.ReturnType.ToDisplayString()));
+        }
 
         var resourceAttr = method.GetAttribute(ResourceAttributeName);
         var uri = resourceAttr?.GetConstructorArgument<string>(0) ?? string.Empty;
@@ -87,8 +89,11 @@ internal static class ResourceExtractor
     private static bool HasCancellationToken(IMethodSymbol method)
     {
         foreach (var p in method.Parameters)
+        {
             if (p.Type.ToDisplayString() == CancellationTokenTypeName)
                 return true;
+        }
+
         return false;
     }
 }

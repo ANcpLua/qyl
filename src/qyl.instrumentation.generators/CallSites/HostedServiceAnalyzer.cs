@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Generators.CallSites;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Instrumentation.Generators.Models;
-
-namespace Qyl.Instrumentation.Generators.CallSites;
+using Models;
 
 /// <summary>
 ///     Discovers classes tagged with <c>[QylHostedService]</c> for compile-time
@@ -29,7 +29,7 @@ internal static class HostedServiceAnalyzer
             return null;
 
         return new HostedServiceDefinition(
-            TypeFullyQualifiedName: classSymbol.GetFullyQualifiedName(),
-            SortKey: IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
+            classSymbol.GetFullyQualifiedName(),
+            IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 }

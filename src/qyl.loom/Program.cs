@@ -64,10 +64,10 @@ app.MapGet("/api/v1/loom/{issueId}/insight", async (
 });
 
 app.MapPost("/api/v1/loom/{issueId}/explore", (
-    string issueId,
-    ExplorationExploreRequest? request,
-    ExplorationOrchestrator orchestrator,
-    CancellationToken ct) =>
+        string issueId,
+        ExplorationExploreRequest? request,
+        ExplorationOrchestrator orchestrator,
+        CancellationToken ct) =>
     TypedResults.ServerSentEvents(
         StreamExploreAsync(orchestrator, issueId, request?.UserContext, ct),
         null));

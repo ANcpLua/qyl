@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
-
 namespace qyl.mcp.Tools.Metrics;
 
+using System.ComponentModel;
+using System.Net.Http.Json;
+using Formatting;
+using ModelContextProtocol.Server;
+
 /// <summary>
-/// Lists all available metrics, optionally filtered by project, showing name, type, unit, and description.
+///     Lists all available metrics, optionally filtered by project, showing name, type, unit, and description.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

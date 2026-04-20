@@ -1,6 +1,6 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Mapping;
+
+using Qyl.Contracts.Primitives;
 
 public static class SpanMapper
 {

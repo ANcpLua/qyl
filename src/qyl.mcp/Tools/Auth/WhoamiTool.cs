@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Auth;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Auth;
 
 /// <summary>
-/// MCP tool that returns the authenticated user's identity including name, email, user ID, and roles.
+///     MCP tool that returns the authenticated user's identity including name, email, user ID, and roles.
 /// </summary>
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
@@ -18,12 +17,12 @@ namespace qyl.mcp.Tools.Auth;
 public sealed class WhoamiTool(HttpClient client)
 {
     /// <summary>
-    /// Retrieves the authenticated user's identity details from the qyl API.
+    ///     Retrieves the authenticated user's identity details from the qyl API.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A formatted markdown string containing the user's identity information.</returns>
     [QylCapability("server_introspection", QylCapabilityRole.FollowUp)]
-    [QylCapability("project_and_access_management", QylCapabilityRole.Starting)]
+    [QylCapability("project_and_access_management")]
     [McpServerTool(Name = "whoami", Title = "Who Am I",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Returns the authenticated user's identity including name, email, user ID, and assigned roles.")]

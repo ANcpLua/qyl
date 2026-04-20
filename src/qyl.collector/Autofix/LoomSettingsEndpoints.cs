@@ -25,8 +25,7 @@ public static class LoomSettingsEndpoints
         {
             var normalized = settings with
             {
-                Id = orgId,
-                DefaultCodingAgent = CodingAgentProviderNames.NormalizeSlug(settings.DefaultCodingAgent)
+                Id = orgId, DefaultCodingAgent = CodingAgentProviderNames.NormalizeSlug(settings.DefaultCodingAgent)
             };
 
             await store.UpsertLoomSettingsAsync(normalized, ct).ConfigureAwait(false);

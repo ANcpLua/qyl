@@ -3,11 +3,11 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
-using Qyl.Collector.Grpc;
-using Qyl.Collector.Services;
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Ingestion;
+
+using Grpc;
+using Qyl.Contracts.Primitives;
+using Services;
 
 /// <summary>
 ///     Converts OTLP protobuf/JSON to SpanStorageRow.
@@ -752,9 +752,7 @@ public static class OtlpConverter
                 linesJson = JsonSerializer.Serialize(
                     loc.Lines.Select(static line => new
                     {
-                        functionOrdinal = line.FunctionIndex,
-                        line = line.Line,
-                        column = line.Column
+                        functionOrdinal = line.FunctionIndex, line = line.Line, column = line.Column
                     }));
             }
 
@@ -803,7 +801,9 @@ public static class OtlpConverter
                 LinkTraceId = linkTraceId,
                 LinkSpanId = linkSpanId,
                 ValuesJson = s.Values is { Count: > 0 } ? JsonSerializer.Serialize(s.Values) : null,
-                TimestampsJson = s.TimestampsUnixNano is { Count: > 0 } ? JsonSerializer.Serialize(s.TimestampsUnixNano) : null
+                TimestampsJson = s.TimestampsUnixNano is { Count: > 0 }
+                    ? JsonSerializer.Serialize(s.TimestampsUnixNano)
+                    : null
             });
         }
 

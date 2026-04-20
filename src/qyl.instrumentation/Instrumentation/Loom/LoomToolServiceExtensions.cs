@@ -1,8 +1,8 @@
+namespace Qyl.Instrumentation.Instrumentation.Loom;
+
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-
-namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static class LoomToolServiceExtensions
 {
@@ -76,8 +76,8 @@ public static class LoomToolServiceExtensions
         ArgumentNullException.ThrowIfNull(toolName);
 
         var metadata = LoomGeneratedRegistry.RuntimeMetadata
-            .FirstOrDefault(m => string.Equals(m.Name, toolName, StringComparison.Ordinal))
-            ?? throw new ArgumentException($"No Loom tool found with name '{toolName}'.", nameof(toolName));
+                           .FirstOrDefault(m => string.Equals(m.Name, toolName, StringComparison.Ordinal))
+                       ?? throw new ArgumentException($"No Loom tool found with name '{toolName}'.", nameof(toolName));
 
         services.AddSingleton(sp => LoomToolFactoryBridge.CreateAIFunction(metadata, sp));
         return services;

@@ -1,17 +1,16 @@
-using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json.Nodes;
-using qyl.mcp.Auth;
-using ModelContextProtocol.Protocol;
-using qyl.contracts.Attributes;
-using qyl.mcp.Apps.ErrorExplorer;
-using qyl.mcp.Apps.QueryStudio;
-using qyl.mcp.Apps.TraceExplorer;
-using qyl.mcp.Metadata;
-using qyl.mcp.Scoping;
-using Qyl.Generated;
-
 namespace qyl.mcp.Hosting;
+
+using System.Text.Json;
+using Apps.ErrorExplorer;
+using Apps.QueryStudio;
+using Apps.TraceExplorer;
+using Auth;
+using contracts.Attributes;
+using Metadata;
+using Microsoft.Extensions.DependencyInjection;
+using ModelContextProtocol.Protocol;
+using Qyl.Generated;
+using Scoping;
 
 internal static class QylMcpServerRegistration
 {
@@ -25,7 +24,8 @@ internal static class QylMcpServerRegistration
     {
         var mcpBuilder = services.AddMcpServer(options =>
         {
-            options.ServerInfo = new Implementation { Name = QylServerMetadata.Name, Version = QylServerMetadata.Version };
+            options.ServerInfo =
+                new Implementation { Name = QylServerMetadata.Name, Version = QylServerMetadata.Version };
             options.ServerInstructions = QylServerMetadata.Instructions;
         });
 
@@ -79,7 +79,9 @@ internal static class QylMcpServerRegistration
 
                 filters.AddOutgoingFilter(next => async (context, cancellationToken) =>
                 {
-                    using var activity = TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
+                    using var activity =
+                        TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client,
+                            parentContext: default);
 
                     switch (context.JsonRpcMessage)
                     {
@@ -121,7 +123,9 @@ internal static class QylMcpServerRegistration
                     }
 
                     using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        toolName is not null ? $"{GenAiAttributes.Operations.ExecuteTool} {toolName}" : GenAiAttributes.Operations.ExecuteTool);
+                        toolName is not null
+                            ? $"{GenAiAttributes.Operations.ExecuteTool} {toolName}"
+                            : GenAiAttributes.Operations.ExecuteTool);
 
                     activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
                     activity?.SetTag(GenAiAttributes.ToolName, toolName);
@@ -140,7 +144,7 @@ internal static class QylMcpServerRegistration
 
                         if (totalChars > 10_000)
                         {
-                            result.Meta ??= new JsonObject();
+                            result.Meta ??= [];
                             result.Meta["anthropic/maxResultSizeChars"] = totalChars;
                         }
 

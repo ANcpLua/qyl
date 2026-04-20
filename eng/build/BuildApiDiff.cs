@@ -89,9 +89,11 @@ interface IApiDiff : IHazSourcePaths
 
             var failOnBreaking = FailOnBreaking ?? IsServerBuild;
             if (result.HasBreaking && failOnBreaking)
+            {
                 throw new InvalidOperationException(
                     $"{result.Breaking.Count} breaking API change(s) detected (see diff above). " +
                     "If intentional, update the schema version and document the change.");
+            }
         });
 
     /// <summary>
@@ -236,10 +238,12 @@ internal static class OpenApiDiffer
 
         // Shared paths: diff operations
         foreach (var path in baseline.Keys.Intersect(current.Keys, StringComparer.Ordinal))
+        {
             DiffOperations(path,
                 GetOperations(baseline[path]),
                 GetOperations(current[path]),
                 changes);
+        }
     }
 
     private static void DiffOperations(
@@ -249,12 +253,16 @@ internal static class OpenApiDiffer
         List<ApiChange> changes)
     {
         foreach (var method in baseline.Except(current, StringComparer.OrdinalIgnoreCase))
+        {
             changes.Add(new ApiChange(ApiChangeKind.OperationRemoved, path,
                 method.ToUpperInvariant(), true));
+        }
 
         foreach (var method in current.Except(baseline, StringComparer.OrdinalIgnoreCase))
+        {
             changes.Add(new ApiChange(ApiChangeKind.OperationAdded, path,
                 method.ToUpperInvariant(), false));
+        }
     }
 
     // ── Schema-level diff ────────────────────────────────────────────────────
@@ -287,23 +295,31 @@ internal static class OpenApiDiffer
 
         // Properties removed → breaking (consumers depend on response fields)
         foreach (var prop in baseProps.Except(currProps, StringComparer.Ordinal))
+        {
             changes.Add(new ApiChange(ApiChangeKind.PropertyRemoved,
                 $"{schemaName}.{prop}", null, true));
+        }
 
         // Properties added → non-breaking
         foreach (var prop in currProps.Except(baseProps, StringComparer.Ordinal))
+        {
             changes.Add(new ApiChange(ApiChangeKind.PropertyAdded,
                 $"{schemaName}.{prop}", null, false));
+        }
 
         // Required set tightened → breaking (callers must now supply the field)
         foreach (var prop in currRequired.Except(baseRequired, StringComparer.OrdinalIgnoreCase))
+        {
             changes.Add(new ApiChange(ApiChangeKind.RequiredAdded,
                 $"{schemaName}.{prop}", null, true));
+        }
 
         // Required set relaxed → non-breaking
         foreach (var prop in baseRequired.Except(currRequired, StringComparer.OrdinalIgnoreCase))
+        {
             changes.Add(new ApiChange(ApiChangeKind.RequiredRemoved,
                 $"{schemaName}.{prop}", null, false));
+        }
     }
 
     // ── Node helpers ─────────────────────────────────────────────────────────
@@ -312,13 +328,16 @@ internal static class OpenApiDiffer
     {
         if (!root.Children.TryGetValue("paths", out var node) ||
             node is not YamlMappingNode pathsNode)
-            return new Dictionary<string, YamlMappingNode>();
+            return [];
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in pathsNode.Children)
+        {
             if (key is YamlScalarNode { Value: { } k } &&
                 value is YamlMappingNode v)
                 result[k] = v;
+        }
+
         return result;
     }
 
@@ -326,17 +345,20 @@ internal static class OpenApiDiffer
     {
         if (!root.Children.TryGetValue("components", out var comp) ||
             comp is not YamlMappingNode compNode)
-            return new Dictionary<string, YamlMappingNode>();
+            return [];
 
         if (!compNode.Children.TryGetValue("schemas", out var schemas) ||
             schemas is not YamlMappingNode schemasNode)
-            return new Dictionary<string, YamlMappingNode>();
+            return [];
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in schemasNode.Children)
+        {
             if (key is YamlScalarNode { Value: { } k } &&
                 value is YamlMappingNode v)
                 result[k] = v;
+        }
+
         return result;
     }
 
@@ -344,9 +366,12 @@ internal static class OpenApiDiffer
     {
         var ops = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, _) in pathNode.Children)
+        {
             if (key is YamlScalarNode { Value: { } method } &&
                 HttpMethods.Contains(method))
                 ops.Add(method);
+        }
+
         return ops;
     }
 
@@ -358,8 +383,11 @@ internal static class OpenApiDiffer
 
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (key, _) in propsNode.Children)
+        {
             if (key is YamlScalarNode { Value: { } name })
                 result.Add(name);
+        }
+
         return result;
     }
 
@@ -371,8 +399,11 @@ internal static class OpenApiDiffer
 
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in seqNode.Children.OfType<YamlScalarNode>())
+        {
             if (item.Value is { } v)
                 result.Add(v);
+        }
+
         return result;
     }
 }
@@ -401,8 +432,10 @@ internal static class OpenApiDiffReport
             Log.Warning("");
             Log.Warning("  ⚠  BREAKING ({Count}):", result.Breaking.Count);
             foreach (var c in result.Breaking)
+            {
                 Log.Warning("    [-] {Kind,-22} {Subject}{Detail}",
                     c.Kind, c.Subject, c.Detail is null ? "" : $"  [{c.Detail}]");
+            }
         }
 
         if (result.NonBreaking.Count > 0)
@@ -410,8 +443,10 @@ internal static class OpenApiDiffReport
             Log.Information("");
             Log.Information("  +  NON-BREAKING ({Count}):", result.NonBreaking.Count);
             foreach (var c in result.NonBreaking)
+            {
                 Log.Information("    [+] {Kind,-22} {Subject}{Detail}",
                     c.Kind, c.Subject, c.Detail is null ? "" : $"  [{c.Detail}]");
+            }
         }
 
         Log.Information("");

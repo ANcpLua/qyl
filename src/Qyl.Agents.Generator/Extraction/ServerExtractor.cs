@@ -17,8 +17,10 @@ internal static class ServerExtractor
 
         if (context.TargetSymbol is not INamedTypeSymbol typeSymbol ||
             context.TargetNode is not ClassDeclarationSyntax classDeclaration)
+        {
             return DiagnosticFlow.Fail<ServerModel>(DiagnosticInfo.Create(
                 DiagnosticDescriptors.ClassMustBePartial, context.TargetNode, context.TargetNode.ToString()));
+        }
 
         var guardFlow = SemanticGuard.ForType(typeSymbol)
             .MustBeClass(DiagnosticInfo.Create(DiagnosticDescriptors.ClassMustBePartial, typeSymbol, typeSymbol.Name))
@@ -94,12 +96,16 @@ internal static class ServerExtractor
             var duplicateDiags = new List<DiagnosticInfo>();
 
             foreach (var tool in tools)
+            {
                 if (!seen.Add(tool.ToolName))
+                {
                     duplicateDiags.Add(DiagnosticInfo.Create(
                         DiagnosticDescriptors.DuplicateToolName,
                         type,
                         tool.ToolName,
                         type.Name));
+                }
+            }
 
             if (duplicateDiags.Count > 0)
                 return DiagnosticFlow.Fail<EquatableArray<ToolModel>>(duplicateDiags.ToArray());
@@ -134,12 +140,16 @@ internal static class ServerExtractor
             var duplicateDiags = new List<DiagnosticInfo>();
 
             foreach (var resource in resources)
+            {
                 if (!seen.Add(resource.Uri))
+                {
                     duplicateDiags.Add(DiagnosticInfo.Create(
                         DiagnosticDescriptors.DuplicateResourceUri,
                         type,
                         resource.Uri,
                         type.Name));
+                }
+            }
 
             if (duplicateDiags.Count > 0)
                 return DiagnosticFlow.Fail<EquatableArray<ResourceModel>>(duplicateDiags.ToArray());
@@ -174,12 +184,16 @@ internal static class ServerExtractor
             var duplicateDiags = new List<DiagnosticInfo>();
 
             foreach (var prompt in prompts)
+            {
                 if (!seen.Add(prompt.PromptName))
+                {
                     duplicateDiags.Add(DiagnosticInfo.Create(
                         DiagnosticDescriptors.DuplicatePromptName,
                         type,
                         prompt.PromptName,
                         type.Name));
+                }
+            }
 
             if (duplicateDiags.Count > 0)
                 return DiagnosticFlow.Fail<EquatableArray<PromptModel>>(duplicateDiags.ToArray());
@@ -204,10 +218,12 @@ internal static class ServerExtractor
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!current.Modifiers.Any(SyntaxKind.PartialKeyword))
+            {
                 diagnostics.Add(DiagnosticInfo.Create(
                     DiagnosticDescriptors.ClassMustBePartial,
                     current.Identifier,
                     current.Identifier.ValueText));
+            }
 
             var modifiers = current.Modifiers.Select(static m => m.ValueText).ToList();
             if (!modifiers.Contains("partial"))

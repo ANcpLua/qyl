@@ -1,16 +1,15 @@
+namespace qyl.mcp.Tools.Traces;
 
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Traces;
 
 /// <summary>
-/// Retrieves CPU/memory profile data for a span, including thread info, hot functions, and stack frame summary.
+///     Retrieves CPU/memory profile data for a span, including thread info, hot functions, and stack frame summary.
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
@@ -19,7 +18,8 @@ public sealed class GetProfileTool(HttpClient client)
 {
     [McpServerTool(Name = "get_profile", Title = "Get Span Profile",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get CPU/memory profile data for a span. Returns thread info, hot functions, and stack frame summary.")]
+    [Description(
+        "Get CPU/memory profile data for a span. Returns thread info, hot functions, and stack frame summary.")]
     public async Task<string> GetProfileAsync(
         [Description("The span ID to fetch profile data for")]
         string spanId,

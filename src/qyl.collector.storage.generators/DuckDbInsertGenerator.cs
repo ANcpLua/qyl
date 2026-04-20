@@ -4,12 +4,12 @@
 // Owner: Qyl.Collector.Storage.Generators
 // =============================================================================
 
+namespace Qyl.Collector.Storage.Generators;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-
-namespace Qyl.Collector.Storage.Generators;
 
 /// <summary>
 ///     Generates DuckDB helper methods for types decorated with [DuckDbTable].

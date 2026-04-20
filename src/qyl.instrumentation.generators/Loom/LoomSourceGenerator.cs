@@ -1,10 +1,10 @@
+namespace Qyl.Instrumentation.Generators.Loom;
+
+using Extraction;
+using Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Qyl.Instrumentation.Generators.Loom.Extraction;
-using Qyl.Instrumentation.Generators.Loom.Generation;
-
-namespace Qyl.Instrumentation.Generators.Loom;
 
 [Generator]
 public sealed class LoomSourceGenerator : IIncrementalGenerator
@@ -59,9 +59,9 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
             "Qyl.Instrumentation.Instrumentation.Loom.LoomWorkflowAttribute",
             static (node, _) => node is TypeDeclarationSyntax);
 
-        var hasLoomTypes = context.CompilationProvider.Select(
-            static (compilation, _) =>
-                compilation.GetTypeByMetadataName("Qyl.Instrumentation.Instrumentation.Loom.LoomToolDescriptor") is not null);
+        var hasLoomTypes = context.CompilationProvider.Select(static (compilation, _) =>
+            compilation.GetTypeByMetadataName(
+                "Qyl.Instrumentation.Instrumentation.Loom.LoomToolDescriptor") is not null);
 
         context.RegisterSourceOutput(
             tools.Combine(contracts).Combine(steps).Combine(workflows).Combine(hasLoomTypes),
@@ -72,7 +72,8 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
                 if (!hasLoomTypes)
                     return;
 
-                foreach (var group in tools.GroupBy(static tool => tool.ContainingTypeFullyQualified, StringComparer.Ordinal))
+                foreach (var group in tools.GroupBy(static tool => tool.ContainingTypeFullyQualified,
+                             StringComparer.Ordinal))
                 {
                     var first = group.First();
                     var source = LoomToolOutputGenerator.Generate(
@@ -114,7 +115,8 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
                     "Qyl.Instrumentation.Instrumentation.Loom.LoomGeneratedRegistry.g.cs",
                     SourceText.From(registry, Encoding.UTF8));
 
-                var telemetryManifest = LoomTelemetryManifestOutputGenerator.Generate(tools, contracts, steps, workflows);
+                var telemetryManifest =
+                    LoomTelemetryManifestOutputGenerator.Generate(tools, contracts, steps, workflows);
                 spc.AddSource(
                     "Qyl.Instrumentation.Instrumentation.Loom.LoomGeneratedRegistry.TelemetryManifest.g.cs",
                     SourceText.From(telemetryManifest, Encoding.UTF8));
@@ -133,7 +135,7 @@ public sealed class LoomSourceGenerator : IIncrementalGenerator
                 static (syntaxContext, cancellationToken) =>
                 {
                     var declaration = syntaxContext.TargetNode as TypeDeclarationSyntax
-                                     ?? syntaxContext.TargetNode.Parent as TypeDeclarationSyntax;
+                                      ?? syntaxContext.TargetNode.Parent as TypeDeclarationSyntax;
 
                     return declaration is not null
                         ? LoomDeclarationChainExtractor.ExtractWithDiagnostics(declaration, cancellationToken)

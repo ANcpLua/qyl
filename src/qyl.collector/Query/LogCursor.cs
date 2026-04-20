@@ -1,6 +1,6 @@
-using System.Buffers.Binary;
-
 namespace Qyl.Collector.Query;
+
+using System.Buffers.Binary;
 
 /// <summary>
 ///     Opaque cursor encoding for log timeline deltas.

@@ -1,14 +1,14 @@
+namespace qyl.mcp.Tools.Sessions;
+
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using Formatting;
+using mcp.Errors;
 using ModelContextProtocol.Server;
-using qyl.mcp.Errors;
-using qyl.mcp.Formatting;
-
-namespace qyl.mcp.Tools.Sessions;
 
 /// <summary>
-/// Updates the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').
+///     Updates the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').
 /// </summary>
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]

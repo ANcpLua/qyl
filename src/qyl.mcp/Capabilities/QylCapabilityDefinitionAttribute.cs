@@ -12,13 +12,10 @@ namespace qyl.mcp.Capabilities;
 ///     (e.g. server introspection). Use the two-arg form when the capability is gated on a skill
 ///     family via <see cref="SkillConfiguration.IsEnabled" />.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 internal sealed class QylCapabilityDefinitionAttribute : Attribute
 {
-    public QylCapabilityDefinitionAttribute(string id)
-    {
-        Id = id;
-    }
+    public QylCapabilityDefinitionAttribute(string id) => Id = id;
 
     public QylCapabilityDefinitionAttribute(string id, QylSkillKind requiredSkill)
     {

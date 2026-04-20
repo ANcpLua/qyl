@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis;
-using Qyl.Instrumentation.Generators.Loom.Models;
-
 namespace Qyl.Instrumentation.Generators.Loom.Extraction;
+
+using Microsoft.CodeAnalysis;
+using Models;
 
 internal static class LoomParameterExtractor
 {
