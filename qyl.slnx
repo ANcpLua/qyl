@@ -161,7 +161,6 @@
         <File Path="docs/aot-assessment.md" />
         <File Path="docs/attribute.md" />
         <File Path="docs/emitters.md" />
-        <File Path="docs/example.md" />
         <File Path="docs/generator.md" />
         <File Path="docs/mcp-oauth-runbook.md" />
     </Folder>
