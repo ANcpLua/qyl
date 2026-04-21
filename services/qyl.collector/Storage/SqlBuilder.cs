@@ -1,19 +1,9 @@
 namespace Qyl.Collector.Storage;
 
 /// <summary>
-///     Helpers that keep DuckDB command construction out of string interpolation (AL0111).
-///     Two patterns:
-///     <list type="bullet">
-///         <item>
-///             <see cref="AddParam" /> — parameterize untrusted values. Returns the 1-based
-///             positional index for use in DuckDB <c>$N</c> placeholders.
-///         </item>
-///         <item>
-///             <see cref="Whitelisted" /> — validate a lexical schema fragment (column, GROUP BY
-///             list, bucket interval) against a pre-declared <see cref="FrozenSet{T}" /> and
-///             return it unchanged for direct concatenation.
-///         </item>
-///     </list>
+///     Keeps DuckDB command construction out of string interpolation (AL0111): <see cref="AddParam" /> parameterizes
+///     untrusted values and returns the 1-based <c>$N</c> index; <see cref="Whitelisted" /> validates a lexical schema
+///     fragment against a pre-declared <see cref="FrozenSet{T}" /> before direct concatenation.
 /// </summary>
 internal static class SqlBuilder
 {

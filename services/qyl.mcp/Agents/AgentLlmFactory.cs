@@ -6,12 +6,9 @@ using Qyl.Instrumentation.Instrumentation.GenAi;
 namespace qyl.mcp.Agents;
 
 /// <summary>
-///     qyl-flavored entry point that preserves the <c>QYL_AGENT_API_KEY</c> /
-///     <c>QYL_AGENT_MODEL</c> / <c>QYL_AGENT_ENDPOINT</c> configuration keys.
-///     Delegates to <see cref="AgentChatClientFactory" /> in ANcpLua.Agents.Factory
-///     and wraps the result with <c>WithQylTelemetry()</c> so every tool-consumer
-///     inherits OTel GenAI semconv 1.40 + qyl tool-execution spans without having
-///     to compose the middleware themselves.
+///     Resolves <c>QYL_AGENT_API_KEY</c> / <c>QYL_AGENT_MODEL</c> / <c>QYL_AGENT_ENDPOINT</c> and hands them to
+///     <see cref="AgentChatClientFactory" />, then wraps the result with <c>WithQylTelemetry()</c> so every tool-consumer
+///     inherits OTel GenAI semconv 1.40 + qyl tool-execution spans without composing the middleware themselves.
 /// </summary>
 internal static class AgentLlmFactory
 {

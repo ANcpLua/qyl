@@ -12,20 +12,12 @@ using Qyl.Generated;
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP meta-tool that gives an embedded <c>ChatClientAgent</c> access to ALL qyl tools.
-///     Follows the Sentry <c>use_sentry</c> pattern: the calling agent (Claude/Cursor)
-///     sends a natural-language query, the embedded agent autonomously calls the right
-///     tools under an <see cref="InvestigationLineage"/> guard, and returns the result.
+///     Meta-tool: embedded <see cref="ChatClientAgent" /> answers natural-language observability questions by
+///     autonomously calling every other qyl MCP tool under an <see cref="InvestigationLineage" /> guard.
+///     <c>UseFunctionInvocation</c> is wired at the chat-client layer (not the agent layer) so qyl's non-default
+///     <c>MaximumIterationsPerRequest</c> + <c>AllowConcurrentInvocation=false</c> take effect — <see cref="ChatClientAgent" />
+///     only inserts a default invoker when none is present.
 /// </summary>
-/// <remarks>
-///     Mirrors the Apex three-builder pattern: the agent is built via
-///     <c>IChatClient.AsAIAgent(ChatClientAgentOptions)</c> with tools fixed at
-///     construction time. <c>UseFunctionInvocation</c> is applied at the chat-client
-///     layer first because <c>ChatClientAgent</c> only inserts a default
-///     <c>FunctionInvokingChatClient</c> when none is present — qyl needs non-default
-///     <c>MaximumIterationsPerRequest</c> and <c>AllowConcurrentInvocation</c> for
-///     lineage-safe sequential tool dispatch.
-/// </remarks>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)

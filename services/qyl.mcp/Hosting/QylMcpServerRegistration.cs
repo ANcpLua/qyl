@@ -18,30 +18,14 @@ using Qyl.Generated;
 namespace qyl.mcp.Hosting;
 
 /// <summary>
-///     Wires the qyl MCP server into DI: transport (stdio or Streamable HTTP), authorization, the JSON-RPC
-///     telemetry pipeline, and the generator-emitted tool manifest.
+///     Wires the qyl MCP server into DI: transport (stdio or Streamable HTTP), authorization, JSON-RPC telemetry,
+///     and the generator-emitted tool manifest. Telemetry mirrors the MAF <c>Executor</c> pattern — one
+///     <c>ActivityKind.Server</c> span per inbound message, child <c>execute_tool {name}</c> spans parented via
+///     <c>Activity.Current</c>, W3C trace context propagated through <c>params._meta.traceparent</c> by the
+///     <c>ModelContextProtocol</c> SDK. MAF runtime is intentionally NOT imported here — dispatch is owned by the
+///     MCP SDK, and layering a MAF <c>Executor</c> on top would double-dispatch every <c>tools/call</c>. qyl.loom
+///     is where the MAF workflow runtime actually runs.
 /// </summary>
-/// <remarks>
-///     <para>
-///         The telemetry shape mirrors the Microsoft Agent Framework <c>Executor</c> pattern: one
-///         <c>ActivityKind.Server</c> span per inbound JSON-RPC message, child <c>execute_tool {name}</c> spans
-///         parented automatically via <c>Activity.Current</c>, and W3C trace-context propagated through the MCP
-///         <c>params._meta.traceparent</c> field by the <c>ModelContextProtocol</c> SDK. No manual link creation
-///         is required on the happy path.
-///     </para>
-///     <para>
-///         MAF reference for the pattern this file mirrors:
-///         <c>Microsoft.Agents.AI.Workflows.Executor.ExecuteCoreAsync(object, TypeId, IWorkflowContext, CancellationToken)</c>.
-///         See also <c>Microsoft.Agents.AI.Workflows.WorkflowTelemetryContext.StartExecutorProcessActivity</c>,
-///         <c>Microsoft.Agents.AI.Workflows.Execution.ActivityExtensions.CreateSourceLinks(TraceContext)</c>, and
-///         <c>Microsoft.Agents.AI.Workflows.ProtocolBuilder.AddMethodAttributeTypes(MethodInfo)</c>.
-///     </para>
-///     <para>
-///         The MAF runtime is intentionally not imported. MCP dispatch is owned by <c>ModelContextProtocol</c>;
-///         layering a MAF <c>Executor</c> on top would double-dispatch every <c>tools/call</c>. qyl.loom is the
-///         project that uses MAF workflow runtime — qyl.mcp only borrows MAF's mental model.
-///     </para>
-/// </remarks>
 internal static class QylMcpServerRegistration
 {
     public static void Configure(
