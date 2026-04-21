@@ -74,7 +74,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>
     <!-- TypeSpec http-client-csharp runtime dep -->
     <PackageVersion Include="System.ClientModel" Version="$(SystemClientModelVersion)"/>
-    <!-- Aspire Hosting — used by Qyl.Aspire.Hosting dashboard aggregator -->
+    <!-- Aspire Hosting (Microsoft NuGet) — consumed by Qyl.Fleet's dashboard aggregator -->
     <PackageVersion Include="Aspire.Hosting" Version="$(AspireHostingVersion)"/>
     <!-- MCP -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="$(ModelContextProtocolVersion)"/>

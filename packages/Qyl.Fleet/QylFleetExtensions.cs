@@ -1,16 +1,16 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.Net.Sockets;
+using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Qyl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting;
+namespace Qyl.Fleet.Hosting;
 
-/// <summary>Extension methods for wiring the qyl dashboard aggregator into an Aspire AppHost.</summary>
-public static partial class QylAspireHostingExtensions
+/// <summary>Extension methods for wiring the qyl dashboard aggregator into a distributed-app host.</summary>
+public static partial class QylFleetExtensions
 {
     [LoggerMessage(EventId = 1001, Level = LogLevel.Error,
         Message = "qyl dashboard aggregator failed to bind (port in use / network unavailable)")]

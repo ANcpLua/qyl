@@ -1,19 +1,20 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.Net.Sockets;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Qyl.Fleet.Hosting;
 
 /// <summary>
-/// An Aspire resource that aggregates telemetry from multiple <c>qyl.collector</c> backends
-/// behind a single HTTP endpoint and serves the qyl dashboard frontend.
+/// A distributed-application resource that fronts multiple <c>qyl.collector</c> backends with a
+/// single HTTP endpoint and serves the qyl dashboard frontend.
 /// </summary>
 /// <remarks>
-/// The aggregator runs in-process inside the AppHost, requiring no container image. It
-/// serves the dashboard SPA from embedded assembly resources when <c>Qyl.Dashboard.Embedded</c>
-/// is available, otherwise falls back to proxying from the first configured backend.
+/// The aggregator runs in-process inside the AppHost, requiring no container image. It serves
+/// the dashboard SPA from embedded assembly resources when <c>Qyl.Dashboard.Embedded</c> is
+/// available, otherwise falls back to proxying from the first configured backend.
 /// </remarks>
-/// <param name="name">The Aspire resource name.</param>
+/// <param name="name">The resource name.</param>
 public class QylDashboardResource(string name) : Resource(name), IResourceWithEndpoints, IResourceWithWaitSupport
 {
     internal const string PrimaryEndpointName = "http";

@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Aspire.Hosting</RootNamespace>
-    <PackageId>Qyl.Aspire.Hosting</PackageId>
-    <Description>Aspire hosting integration for qyl. `AddQylDashboard()` spins up an in-process aggregator that fans REST + SSE requests out to multiple qyl.collector backends and serves a single dashboard surface.</Description>
+    <RootNamespace>Qyl.Fleet.Hosting</RootNamespace>
+    <PackageId>Qyl.Fleet</PackageId>
+    <Description>qyl distributed-app hosting: `AddQylDashboard()` spins up an in-process aggregator that routes dashboard REST + SSE across a fleet of qyl.collector backends.</Description>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

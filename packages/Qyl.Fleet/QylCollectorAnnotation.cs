@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 ancplua
 
-using Aspire.Hosting.Qyl;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Qyl.Fleet.Hosting;
 
 /// <summary>
 /// Tracks one collector backend registered under a <see cref="QylDashboardResource"/>.

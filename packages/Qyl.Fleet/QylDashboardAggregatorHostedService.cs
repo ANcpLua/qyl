@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Qyl;
+namespace Qyl.Fleet.Hosting;
 
 /// <summary>
 /// In-process reverse proxy that serves the qyl dashboard and routes every REST / SSE request
