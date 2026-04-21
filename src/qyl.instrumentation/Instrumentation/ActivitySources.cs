@@ -44,32 +44,21 @@ public static class ActivitySources
         return plus > 0 ? informational[..plus] : informational;
     }
 
-    // Lazy-initialized ActivitySource instances
-    private static ActivitySource? s_genAi;
-
-    private static ActivitySource? s_db;
-    private static ActivitySource? s_agent;
-    private static ActivitySource? s_mcp;
-
-    // Lazy-initialized Meter instances
-    private static Meter? s_genAiMeter;
-    private static Meter? s_agentMeter;
-
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
-    public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(GenAi, Version);
+    public static ActivitySource GenAiSource => field ??= new ActivitySource(GenAi, Version);
 
     /// <summary>ActivitySource for database instrumentation.</summary>
-    public static ActivitySource DbSource => s_db ??= new ActivitySource(Db, Version);
+    public static ActivitySource DbSource => field ??= new ActivitySource(Db, Version);
 
     /// <summary>ActivitySource for agent instrumentation.</summary>
-    public static ActivitySource AgentSource => s_agent ??= new ActivitySource(Agent, Version);
+    public static ActivitySource AgentSource => field ??= new ActivitySource(Agent, Version);
 
     /// <summary>ActivitySource for MCP protocol instrumentation.</summary>
-    public static ActivitySource McpSource => s_mcp ??= new ActivitySource(Mcp, Version);
+    public static ActivitySource McpSource => field ??= new ActivitySource(Mcp, Version);
 
     /// <summary>Meter for GenAI metrics.</summary>
-    public static Meter GenAiMeter => s_genAiMeter ??= new Meter(GenAi, Version);
+    public static Meter GenAiMeter => field ??= new Meter(GenAi, Version);
 
     /// <summary>Meter for agent metrics.</summary>
-    public static Meter AgentMeter => s_agentMeter ??= new Meter(Agent, Version);
+    public static Meter AgentMeter => field ??= new Meter(Agent, Version);
 }

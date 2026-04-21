@@ -370,6 +370,20 @@ dotnet_diagnostic.CA2000.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
 
 # =============================================================================
+# LSP CLIENT (src/qyl.mcp/Tools/Lsp)
+# =============================================================================
+# LspClientConnection.OpenAsync constructs an LspClientTransport and transfers
+# ownership to the connection via its private constructor — the connection's
+# DisposeAsync then disposes the transport. CA2000 cannot model ownership
+# transfer through a constructor parameter and fires a false positive on the
+# new LspClientTransport(...) expression inside the factory. Downgrade to
+# `suggestion` for this folder only: the IDE still surfaces the hint, but the
+# build does not break. Not moved to `none` so new CA2000 real issues
+# (e.g. genuine leaks elsewhere in the LSP client) remain visible.
+[src/qyl.mcp/Tools/Lsp/**.cs]
+dotnet_diagnostic.CA2000.severity = suggestion
+
+# =============================================================================
 # FILE TYPES
 # =============================================================================
 

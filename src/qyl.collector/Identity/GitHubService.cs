@@ -18,7 +18,6 @@ public sealed partial class GitHubService(
     private readonly string? _clientId = configuration["QYL_GITHUB_CLIENT_ID"];
     private readonly string? _envToken = configuration["QYL_GITHUB_TOKEN"];
     private readonly Lock _tokenLock = new();
-    private string _authMethod = "none";
     private string? _runtimeToken;
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(GetEffectiveToken());
@@ -28,9 +27,11 @@ public sealed partial class GitHubService(
         get
         {
             lock (_tokenLock)
-                return _authMethod;
+                return field;
         }
-    }
+
+        private set;
+    } = "none";
 
     public bool IsDeviceFlowAvailable => !string.IsNullOrWhiteSpace(_clientId);
 
@@ -50,7 +51,7 @@ public sealed partial class GitHubService(
             lock (_tokenLock)
             {
                 _runtimeToken = record.Token;
-                _authMethod = record.AuthMethod;
+                AuthMethod = record.AuthMethod;
             }
 
             LogTokenLoaded(record.AuthMethod, record.GitHubLogin ?? "unknown");
@@ -58,7 +59,7 @@ public sealed partial class GitHubService(
         else if (!string.IsNullOrWhiteSpace(_envToken))
         {
             lock (_tokenLock)
-                _authMethod = "env";
+                AuthMethod = "env";
 
             LogTokenLoaded("env", "from environment variable");
         }
@@ -79,7 +80,7 @@ public sealed partial class GitHubService(
         lock (_tokenLock)
         {
             _runtimeToken = token;
-            _authMethod = authMethod;
+            AuthMethod = authMethod;
         }
 
         LogTokenSaved(authMethod, user.Login);
@@ -96,7 +97,7 @@ public sealed partial class GitHubService(
         lock (_tokenLock)
         {
             _runtimeToken = null;
-            _authMethod = !string.IsNullOrWhiteSpace(_envToken) ? "env" : "none";
+            AuthMethod = !string.IsNullOrWhiteSpace(_envToken) ? "env" : "none";
         }
 
         LogTokenCleared();

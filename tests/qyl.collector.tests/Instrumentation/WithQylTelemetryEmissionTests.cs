@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using ANcpLua.Agents.Testing.ChatClients;
 using ANcpLua.Agents.Testing.Diagnostics;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Xunit;
@@ -49,19 +50,17 @@ public sealed class WithQylTelemetryEmissionTests
             "WithQylTelemetry must emit at least one Activity on 'qyl.genai' per invocation");
 
         var chatActivity = collector.Activities
-            .First(a => a.OperationName.Contains("chat", StringComparison.OrdinalIgnoreCase)
-                     || a.Tags.Any(t => t.Key == "gen_ai.operation.name"));
+            .First(static a => a.OperationName.ContainsIgnoreCase("chat")
+                            || a.Tags.Any(static t => t.Key == "gen_ai.operation.name"));
 
         // GenAI semconv 1.40 core attributes
         chatActivity.AssertHasTag("gen_ai.operation.name");
         chatActivity.AssertHasTag("gen_ai.request.model");
 
-        // Provider identification — accept either the 1.40 key (gen_ai.provider.name) or
-        // the legacy pre-1.40 key (gen_ai.system); upstream Microsoft.Extensions.AI is
-        // still in migration.
+        // Provider identification — OTel GenAI semconv 1.40.
         chatActivity.Tags.Should().Contain(
-            t => t.Key == "gen_ai.provider.name" || t.Key == "gen_ai.system",
-            "GenAI spans must identify the provider");
+            static t => t.Key == "gen_ai.provider.name",
+            "GenAI spans must identify the provider via the 1.40 attribute");
     }
 
     [Fact]
