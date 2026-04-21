@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Qyl.Collector - Telemetry API Backend
 # Build from repository root:
-#   docker build -f src/qyl.collector/Dockerfile -t qyl-collector .
+#   docker build -f services/qyl.collector/Dockerfile -t qyl-collector .
 
 # ============================================================================
 # STAGE 1: Build React Dashboard
@@ -11,11 +11,11 @@ FROM node:22-slim AS dashboard
 WORKDIR /dashboard
 
 # Copy package files and install dependencies
-COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
+COPY services/qyl.dashboard/package.json services/qyl.dashboard/package-lock.json ./
 RUN npm ci --prefer-offline
 
 # Copy source and build
-COPY src/qyl.dashboard/ ./
+COPY services/qyl.dashboard/ ./
 RUN npm run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
@@ -32,26 +32,26 @@ COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Vers
 COPY eng/ eng/
 
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
-COPY src/qyl.contracts/*.csproj src/qyl.contracts/
-COPY src/qyl.collector/*.csproj src/qyl.collector/
-COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
-COPY src/qyl.collector.storage.generators/*.csproj src/qyl.collector.storage.generators/
+COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
+COPY services/qyl.collector/*.csproj services/qyl.collector/
+COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
+COPY services/qyl.collector.storage.generators/*.csproj services/qyl.collector.storage.generators/
 
 # Restore dependencies
-WORKDIR /src/src/qyl.collector
+WORKDIR /src/services/qyl.collector
 RUN dotnet restore
 
 # Copy source files
 WORKDIR /src
-COPY src/qyl.contracts/ src/qyl.contracts/
-COPY src/qyl.collector/ src/qyl.collector/
-COPY src/qyl.instrumentation/ src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
-COPY src/qyl.collector.storage.generators/ src/qyl.collector.storage.generators/
+COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
+COPY services/qyl.collector/ services/qyl.collector/
+COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
+COPY services/qyl.collector.storage.generators/ services/qyl.collector.storage.generators/
 
 # Publish
-WORKDIR /src/src/qyl.collector
+WORKDIR /src/services/qyl.collector
 RUN dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \

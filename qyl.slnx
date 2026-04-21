@@ -1,26 +1,21 @@
 <Solution>
 
-    <!-- PROJECTS -->
+    <!-- PROJECTS — 3-tier layout -->
 
-    <Folder Name="/src/platform/">
-        <Project Path="src/qyl.collector/qyl.collector.csproj"/>
-        <Project Path="src/qyl.contracts/qyl.contracts.csproj"/>
+    <Folder Name="/packages/">
+        <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj"/>
     </Folder>
-    <Folder Name="/src/loom/">
-        <Project Path="src/qyl.loom/qyl.loom.csproj"/>
+    <Folder Name="/services/">
+        <Project Path="services/qyl.collector/qyl.collector.csproj"/>
+        <Project Path="services/qyl.loom/qyl.loom.csproj"/>
+        <Project Path="services/qyl.mcp/qyl.mcp.csproj"/>
+        <Project Path="services/qyl.dashboard/qyl.dashboard.esproj"/>
     </Folder>
-    <Folder Name="/src/sdk/">
-        <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj"/>
-        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
-        <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj"/>
-    </Folder>
-    <Folder Name="/src/mcp/">
-        <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
-        <Project Path="src/qyl.mcp.generators/qyl.mcp.generators.csproj"/>
-    </Folder>
-    <Folder Name="/src/"/>
-    <Folder Name="/src/dashboard/">
-        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
+    <Folder Name="/internal/">
+        <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj"/>
+        <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
+        <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj"/>
+        <Project Path="internal/qyl.mcp.generators/qyl.mcp.generators.csproj"/>
     </Folder>
 
     <!-- TESTS -->
@@ -121,9 +116,9 @@
     <!-- DOCKER -->
 
     <Folder Name="/docker/">
-        <File Path="src/qyl.collector/Dockerfile"/>
-        <File Path="src/qyl.loom/Dockerfile"/>
-        <File Path="src/qyl.dashboard/Dockerfile"/>
+        <File Path="services/qyl.collector/Dockerfile"/>
+        <File Path="services/qyl.loom/Dockerfile"/>
+        <File Path="services/qyl.dashboard/Dockerfile"/>
         <File Path="eng/compose.yaml"/>
     </Folder>
     <Folder Name="/plugins/"/>

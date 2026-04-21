@@ -3,7 +3,7 @@
 # Default container mode is remote Streamable HTTP for OpenAI / Anthropic connectors.
 #
 # Build from repository root:
-#   docker build -f src/qyl.mcp/Dockerfile -t qyl-mcp .
+#   docker build -f services/qyl.mcp/Dockerfile -t qyl-mcp .
 
 # ============================================================================
 # STAGE 1: Build .NET Native AOT
@@ -21,22 +21,22 @@ COPY eng/ eng/
 
 # Copy contracts (ProjectReference), generators (Analyzer ProjectReference), instrumentation
 # (ProjectReference for WithQylTelemetry middleware pipeline), and mcp projects
-COPY src/qyl.contracts/*.csproj src/qyl.contracts/
-COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
-COPY src/qyl.mcp.generators/*.csproj src/qyl.mcp.generators/
-COPY src/qyl.mcp/*.csproj src/qyl.mcp/
-WORKDIR /src/src/qyl.mcp
+COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
+COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
+COPY internal/qyl.mcp.generators/*.csproj internal/qyl.mcp.generators/
+COPY services/qyl.mcp/*.csproj services/qyl.mcp/
+WORKDIR /src/services/qyl.mcp
 RUN dotnet restore
 
 # Copy source and publish
 WORKDIR /src
-COPY src/qyl.contracts/ src/qyl.contracts/
-COPY src/qyl.instrumentation/ src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
-COPY src/qyl.mcp.generators/ src/qyl.mcp.generators/
-COPY src/qyl.mcp/ src/qyl.mcp/
-WORKDIR /src/src/qyl.mcp
+COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
+COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
+COPY internal/qyl.mcp.generators/ internal/qyl.mcp.generators/
+COPY services/qyl.mcp/ services/qyl.mcp/
+WORKDIR /src/services/qyl.mcp
 # RID triggers PublishSelfContained=true + PublishSingleFile=true in qyl.mcp.csproj
 # (the runtime image is runtime-deps, which does NOT include the .NET runtime).
 RUN dotnet publish -c Release -o /app -r linux-musl-x64 --no-restore \

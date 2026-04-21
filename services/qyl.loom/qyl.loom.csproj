@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
-    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
-    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
+    <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\internal\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"/>

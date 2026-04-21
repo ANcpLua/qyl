@@ -47,7 +47,7 @@ interface IDocker : IHazSourcePaths
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
-        ("qyl-loom", SourceDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom"))
+        ("qyl-loom", ServicesDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom"))
     ];
 
     // ════════════════════════════════════════════════════════════════════════
@@ -191,7 +191,7 @@ interface IDocker : IHazSourcePaths
         ProcessTasks.StartProcess(
                 "docker",
                 $"compose {arguments}",
-                SourceDirectory,
+                RootDirectory,
                 logOutput: true)
             .AssertZeroExitCode();
 }

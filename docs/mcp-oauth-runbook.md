@@ -173,13 +173,13 @@ Any step other than the browser login prompt being manual = regression.
 
 | File | Purpose |
 |------|---------|
-| `src/qyl.mcp/Hosting/QylMcpHttpHost.cs` | Registers `MapMcp("/mcp")` + `RequireAuthorization()` |
-| `src/qyl.mcp/Hosting/QylMcpServiceCollectionExtensions.cs` | `JwtBearer` wiring, audit event sources (4001–4099) |
-| `src/qyl.mcp/Auth/McpAuthOptions.cs` | `QYL_KEYCLOAK_*` env var names + validation |
-| `src/qyl.mcp/Auth/McpAuthHandler.cs` | Authentication handler |
-| `src/qyl.mcp/Auth/McpAuthExtensions.cs` | Fail-fast audience guard |
-| `src/qyl.mcp/Auth/KeycloakTokenProvider.cs` | Service-to-service flow (out of scope for this doc) |
-| `src/qyl.mcp/McpHostOptions.cs` | `ResolvePublicMcpUrl`, `QYL_MCP_PUBLIC_URL` |
+| `services/qyl.mcp/Hosting/QylMcpHttpHost.cs` | Registers `MapMcp("/mcp")` + `RequireAuthorization()` |
+| `services/qyl.mcp/Hosting/QylMcpServiceCollectionExtensions.cs` | `JwtBearer` wiring, audit event sources (4001–4099) |
+| `services/qyl.mcp/Auth/McpAuthOptions.cs` | `QYL_KEYCLOAK_*` env var names + validation |
+| `services/qyl.mcp/Auth/McpAuthHandler.cs` | Authentication handler |
+| `services/qyl.mcp/Auth/McpAuthExtensions.cs` | Fail-fast audience guard |
+| `services/qyl.mcp/Auth/KeycloakTokenProvider.cs` | Service-to-service flow (out of scope for this doc) |
+| `services/qyl.mcp/McpHostOptions.cs` | `ResolvePublicMcpUrl`, `QYL_MCP_PUBLIC_URL` |
 | `infra/keycloak/qyl-realm.json` | Realm + client + audience mapper config |
 | `infra/mcp/README.md` | Deploy targets + cold-start tuning |
 

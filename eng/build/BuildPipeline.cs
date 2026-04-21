@@ -188,9 +188,9 @@ partial interface IPipeline : IHazSourcePaths
             ProcessTasks.StartProcess("bash", script,    logOutput: true).AssertZeroExitCode();
 
             Log.Information("Semconv written to:");
-            Log.Information("  TypeScript: src/qyl.dashboard/src/lib/semconv.ts");
-            Log.Information("  DuckDB:     src/qyl.collector/Storage/promoted-columns.g.sql");
-            Log.Information("Facades under src/qyl.contracts/Attributes/*.cs are hand-maintained.");
+            Log.Information("  TypeScript: services/qyl.dashboard/src/lib/semconv.ts");
+            Log.Information("  DuckDB:     services/qyl.collector/Storage/promoted-columns.g.sql");
+            Log.Information("Facades under packages/Qyl.Contracts/Attributes/*.cs are hand-maintained.");
             Log.Information("TypeSpec at core/specs/generated/semconv.g.tsp is pinned at v1.40.0 (no generator yet).");
         });
 
@@ -410,8 +410,8 @@ partial interface IPipeline : IHazSourcePaths
             Log.Information("  C# Records: protocol/*.g.cs");
             Log.Information("  DuckDB DDL: collector/Storage/DuckDbSchema.g.cs");
             Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
-            Log.Information("  Contracts:   src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs");
-            Log.Information("  Contracts:   src/qyl.collector/Observe/Generated/DomainContracts.g.cs");
+            Log.Information("  Contracts:   internal/qyl.instrumentation.generators/Generated/DomainContracts.g.cs");
+            Log.Information("  Contracts:   services/qyl.collector/Observe/Generated/DomainContracts.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 

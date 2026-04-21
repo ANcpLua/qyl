@@ -47,11 +47,11 @@ reviews:
   # ─── Labeling ────────────────────────────────────────────────────────
   labeling_instructions:
     - label: 'area:dashboard'
-      instructions: 'Apply when the PR modifies files under src/qyl.dashboard/.'
+      instructions: 'Apply when the PR modifies files under services/qyl.dashboard/.'
     - label: 'area:ingestion'
       instructions: 'Apply when the PR modifies the OTLP ingestion pipeline under src/qyl.ingestion/.'
     - label: 'area:mcp'
-      instructions: 'Apply when the PR modifies MCP server code under src/qyl.mcp/.'
+      instructions: 'Apply when the PR modifies MCP server code under services/qyl.mcp/.'
     - label: 'area:infra'
       instructions: 'Apply when the PR modifies eng/, .github/, Dockerfiles, or build infrastructure.'
     - label: 'breaking'
@@ -98,7 +98,7 @@ reviews:
         - No new dependencies on Sentry-specific types in core/ — Sentry is an optional backend, not the identity.
         - CancellationToken must be threaded through all async public methods.
 
-    - path: 'src/qyl.dashboard/**'
+    - path: 'services/qyl.dashboard/**'
       instructions: >-
         React/TypeScript dashboard. Review for: single-responsibility components, proper hook usage
         (no hooks in conditionals, correct dependency arrays), TypeScript strictness (no `any` unless
@@ -114,7 +114,7 @@ reviews:
         unnecessary allocations, copies, or LINQ in hot paths. Prefer Span<T> and ArrayPool where
         applicable.
 
-    - path: 'src/qyl.mcp/**'
+    - path: 'services/qyl.mcp/**'
       instructions: >-
         MCP server implementation. Review for: correct MCP protocol adherence, tool definition
         completeness, proper error responses, and that tool descriptions are accurate and useful
@@ -193,7 +193,7 @@ reviews:
       - name: 'No unbounded MCP responses'
         mode: warning
         instructions: >-
-          If this PR adds or modifies MCP tool definitions (under src/qyl.mcp/), verify that every
+          If this PR adds or modifies MCP tool definitions (under services/qyl.mcp/), verify that every
           tool returning a collection includes a maxResults parameter or pagination mechanism. Pass if:
           no MCP tool changes, or all collection-returning tools are bounded. Fail if: a tool can
           return an unbounded list.
@@ -347,7 +347,7 @@ code_generation:
           Use XML doc comments with <summary>, <param>, <returns>, and <exception> tags.
           Document public and protected members only. Keep summaries to one sentence.
           Use <inheritdoc/> for interface implementations unless the implementation adds behavior.
-      - path: 'src/qyl.dashboard/**/*.ts'
+      - path: 'services/qyl.dashboard/**/*.ts'
         instructions: >-
           Use TSDoc format. Document exported functions and component props.
           Keep descriptions concise. Use @param, @returns, @throws tags.
@@ -359,7 +359,7 @@ code_generation:
           Use descriptive test names: MethodName_Scenario_ExpectedResult.
           Mock external dependencies with NSubstitute. Test async methods with
           async Task, not async void.
-      - path: 'src/qyl.dashboard/**/*.ts'
+      - path: 'services/qyl.dashboard/**/*.ts'
         instructions: >-
           Use Vitest with React Testing Library. Test component behavior, not
           implementation details. Prefer userEvent over fireEvent. Assert on

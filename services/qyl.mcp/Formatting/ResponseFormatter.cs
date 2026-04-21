@@ -1,4 +1,4 @@
-// src/qyl.mcp/Formatting/ResponseFormatter.cs
+// services/qyl.mcp/Formatting/ResponseFormatter.cs
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

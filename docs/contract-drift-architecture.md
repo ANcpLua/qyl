@@ -7,8 +7,8 @@
 qyl has **six** code-generation pipelines that produce overlapping outputs into shared namespaces. When an agent is asked "fix the contract drift" the honest answer is "which of the six pipelines do you mean?" — and because no single document has named them, no agent has ever committed to a full cleanup. We end up with symptoms like:
 
 - `Qyl.Models.SpanRecord`, `Qyl.Storage.SpanRecord`, and `Qyl.Contracts.Models.SpanRecord` — three versions of the same record with divergent enum namespaces (the Schema Drift PR #138 was the emergency fix; the underlying duplication still stands).
-- `src/qyl.collector/Ingestion/OtlpAttributes.Utf8.g.cs` (**6,923 lines**) and `src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` (**7,555 lines**) — both auto-generated UTF-8 byte-literal tables for OTel attributes. **Neither has a caller in `src/`**. 14,478 lines of dead generated code nobody dares delete.
-- `src/qyl.mcp.generators/Emitters/ToolManifestEmitter.cs` and `src/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` — two emitters with the same name, both emitting `QylToolManifest`-shaped output, in different Roslyn generator projects.
+- `services/qyl.collector/Ingestion/OtlpAttributes.Utf8.g.cs` (**6,923 lines**) and `internal/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` (**7,555 lines**) — both auto-generated UTF-8 byte-literal tables for OTel attributes. **Neither has a caller in `src/`**. 14,478 lines of dead generated code nobody dares delete.
+- `internal/qyl.mcp.generators/Emitters/ToolManifestEmitter.cs` and `internal/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` — two emitters with the same name, both emitting `QylToolManifest`-shaped output, in different Roslyn generator projects.
 
 The document below is the authority-decision framework. **Every output file has exactly one owning pipeline. Every duplicate is named with a disposition (keep / delete / migrate).** Future PRs reference this file and delete orphans without guilt.
 
@@ -51,7 +51,7 @@ The document below is the authority-decision framework. **Every output file has 
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  PIPELINE 3 — ServiceDefaults SG (Roslyn IIncrementalGenerator)         │
-│  src/qyl.instrumentation.generators/ServiceDefaultsSourceGenerator.cs   │
+│  internal/qyl.instrumentation.generators/ServiceDefaultsSourceGenerator.cs   │
 │  Reads:  [Meter] [Traced] [HostedService] [QylHealthCheck] [QylService] │
 │          [MapEndpoints] [DbCallSite] at compile time                    │
 │  Emits:  in-memory .g.cs (no committed files — consumers see via SG)    │
@@ -59,7 +59,7 @@ The document below is the authority-decision framework. **Every output file has 
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  PIPELINE 4 — MCP Tool Manifest (Roslyn IIncrementalGenerator)          │
-│  src/qyl.mcp.generators/ToolManifestGenerator.cs                        │
+│  internal/qyl.mcp.generators/ToolManifestGenerator.cs                        │
 │  Reads:  [McpServerToolType] [QylSkill] [QylCapability]                 │
 │          [QylCapabilityDefinition]                                      │
 │  Emits:  QylToolManifest in-memory                                      │
@@ -67,7 +67,7 @@ The document below is the authority-decision framework. **Every output file has 
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  PIPELINE 5 — Loom Workflow (Roslyn IIncrementalGenerator)              │
-│  src/qyl.instrumentation.generators/Loom/LoomSourceGenerator.cs         │
+│  internal/qyl.instrumentation.generators/Loom/LoomSourceGenerator.cs         │
 │  Reads:  [LoomTool] [LoomContract] [LoomStep] [LoomWorkflow]            │
 │          [RequiresCapability] [RequiresApproval] [LoomBudget]           │
 │          [ToolSideEffect] [EmitsStructuredOutput]                       │
@@ -76,7 +76,7 @@ The document below is the authority-decision framework. **Every output file has 
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  PIPELINE 6 — DuckDB Insert (Roslyn IIncrementalGenerator)              │
-│  src/qyl.collector.storage.generators/DuckDbInsertGenerator.cs          │
+│  internal/qyl.collector.storage.generators/DuckDbInsertGenerator.cs          │
 │  Reads:  [DuckDbTable] [DuckDbColumn] [DuckDbIgnore]                    │
 │  Emits:  AddParameters / MapFromReader / ColumnList per table, in-mem   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -103,31 +103,31 @@ The document below is the authority-decision framework. **Every output file has 
 | Output | Owner | Notes |
 |---|---|---|
 | `core/openapi/openapi.yaml` | **P1** | Intermediate. Built by `npm run compile` in `core/specs/`. Committed so consumers can diff. |
-| `src/qyl.contracts/Models/*.g.cs` (12 files) | **P1** | Namespace routed by `NamespaceRoutingTable.cs`. |
-| `src/qyl.contracts/Enums/*.g.cs` (10 files) | **P1** | Same routing table. |
-| `src/qyl.contracts/Primitives/Scalars.g.cs` | **P1** | TraceId / SpanId / SessionId etc. |
-| `src/qyl.collector/Storage/DuckDbSchema.g.cs` | **P1** | DDL const table. `Version` is a SHA-256 of content. |
-| `src/qyl.dashboard/src/types/api.ts` | **P1** | `openapi-typescript` consumes `openapi.yaml`. |
+| `packages/Qyl.Contracts/Models/*.g.cs` (12 files) | **P1** | Namespace routed by `NamespaceRoutingTable.cs`. |
+| `packages/Qyl.Contracts/Enums/*.g.cs` (10 files) | **P1** | Same routing table. |
+| `packages/Qyl.Contracts/Primitives/Scalars.g.cs` | **P1** | TraceId / SpanId / SessionId etc. |
+| `services/qyl.collector/Storage/DuckDbSchema.g.cs` | **P1** | DDL const table. `Version` is a SHA-256 of content. |
+| `services/qyl.dashboard/src/types/api.ts` | **P1** | `openapi-typescript` consumes `openapi.yaml`. |
 
 ### Pipeline 2 — Semconv (upstream `.d.ts` → 5 shapes)
 
 | Output | Owner | Notes |
 |---|---|---|
 | `core/specs/generated/semconv.g.tsp` | **P2** | **Feedback loop — Pipeline 1 imports this**. NUKE enforces `GenerateSemconv → TypeSpecCompile`. |
-| `src/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs` | **P2** | String-const groups. |
-| `src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` | **P2** | UTF-8 `ReadOnlySpan<byte>` literals. |
-| `src/qyl.dashboard/src/lib/semconv.ts` | **P2** | TS `as const` objects + enums. |
-| `src/qyl.collector/Storage/promoted-columns.g.sql` | **P2** | DuckDB promoted-column list. |
+| `internal/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs` | **P2** | String-const groups. |
+| `internal/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` | **P2** | UTF-8 `ReadOnlySpan<byte>` literals. |
+| `services/qyl.dashboard/src/lib/semconv.ts` | **P2** | TS `as const` objects + enums. |
+| `services/qyl.collector/Storage/promoted-columns.g.sql` | **P2** | DuckDB promoted-column list. |
 
 ### Pipeline 2b — Domain Contracts (`qyl-extensions.json` + semconv facades)
 
 | Output | Owner | Notes |
 |---|---|---|
-| `src/qyl.contracts/Attributes/GenAiAttributes.g.cs` | **P2b (facades)** | Emitted by the semconv TS script reading `qyl-extensions.json → facades[]`. |
-| `src/qyl.contracts/Attributes/DbAttributes.g.cs` | **P2b (facades)** | Same emitter, same JSON. |
-| `src/qyl.contracts/Attributes/McpAttributes.g.cs` | **P2b (facades)** | Same. |
-| `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | **P2b (domains)** | Emitted by `eng/build/ContractGenerator.cs` reading the same JSON. |
-| `src/qyl.collector/Observe/Generated/DomainContracts.g.cs` | **P2b (domains)** | **Byte-identical copy of the above.** Intentional — two consumers, one content. |
+| `packages/Qyl.Contracts/Attributes/GenAiAttributes.g.cs` | **P2b (facades)** | Emitted by the semconv TS script reading `qyl-extensions.json → facades[]`. |
+| `packages/Qyl.Contracts/Attributes/DbAttributes.g.cs` | **P2b (facades)** | Same emitter, same JSON. |
+| `packages/Qyl.Contracts/Attributes/McpAttributes.g.cs` | **P2b (facades)** | Same. |
+| `internal/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | **P2b (domains)** | Emitted by `eng/build/ContractGenerator.cs` reading the same JSON. |
+| `services/qyl.collector/Observe/Generated/DomainContracts.g.cs` | **P2b (domains)** | **Byte-identical copy of the above.** Intentional — two consumers, one content. |
 
 ### Pipelines 3 – 6 — in-memory Roslyn SGs
 
@@ -139,8 +139,8 @@ No committed output files. Output is seen only by the consumer project at compil
 
 | File | Size | Active generator? | Last regenerated | Callers in `src/` |
 |---|---|---|---|---|
-| `src/qyl.collector/Ingestion/OtlpAttributes.Utf8.g.cs` | 6,923 lines | **No** — header says "run npm run generate in SemconvGenerator" but the script's `CONFIG.outputs` doesn't include this path | 2026-03-10 (`f6b817a7`) | **0** |
-| `src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` | 7,555 lines | **Yes** — Pipeline 2 `csharpUtf8` output | 2026-04-10 (`1f5171c2`) | **0** |
+| `services/qyl.collector/Ingestion/OtlpAttributes.Utf8.g.cs` | 6,923 lines | **No** — header says "run npm run generate in SemconvGenerator" but the script's `CONFIG.outputs` doesn't include this path | 2026-03-10 (`f6b817a7`) | **0** |
+| `internal/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs` | 7,555 lines | **Yes** — Pipeline 2 `csharpUtf8` output | 2026-04-10 (`1f5171c2`) | **0** |
 
 **Both unreferenced in `src/`.** The first is an orphan from a pre-collector split; the second is the current generator's output. Neither is consumed.
 
@@ -150,8 +150,8 @@ No committed output files. Output is seen only by the consumer project at compil
 
 | File | Size | Callers |
 |---|---|---|
-| `src/qyl.collector/Ingestion/OtlpAttributes.cs` (hand-written, contains `SchemaNormalizer`) | 277 lines | **0** |
-| `src/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs` (Pipeline 2 `csharp` output) | ~thousands | **0** |
+| `services/qyl.collector/Ingestion/OtlpAttributes.cs` (hand-written, contains `SchemaNormalizer`) | 277 lines | **0** |
+| `internal/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs` (Pipeline 2 `csharp` output) | ~thousands | **0** |
 
 **Decision:** delete `OtlpAttributes.cs` outright (hand-written, zero callers, triggers AL0133 warnings on deprecated semconv keys). Keep `SemanticConventions.g.cs` *if* a caller appears; otherwise drop it in the same cleanup.
 
@@ -161,27 +161,27 @@ No committed output files. Output is seen only by the consumer project at compil
 |---|---|---|---|
 | `SpanRecord` (generated) | `Qyl.Models` | **P1** via TypeSpec → `Models.g.cs` | **Removed on 2026-04-20** (PR #138 fix). TypeSpec routing no longer emits into this namespace. |
 | `SpanRecord` (generated) | `Qyl.Storage` | **P1** via TypeSpec → `Storage.g.cs` | **Current authoritative version** post-PR #138. |
-| `SpanRecord` (hand-written) | `Qyl.Contracts.Models` | Manual — `src/qyl.contracts/Models/SpanRecord.cs` | **Still exists.** Uses `Qyl.Contracts.Enums` instead of `Qyl.OTel.Enums`. |
+| `SpanRecord` (hand-written) | `Qyl.Contracts.Models` | Manual — `packages/Qyl.Contracts/Models/SpanRecord.cs` | **Still exists.** Uses `Qyl.Contracts.Enums` instead of `Qyl.OTel.Enums`. |
 
-**Decision:** delete `src/qyl.contracts/Models/SpanRecord.cs` after verifying no caller depends on the `Qyl.Contracts.Enums` variant. If callers exist, port them to `Qyl.Storage.SpanRecord` (uses `Qyl.OTel.Enums.*`). One caller audit + one follow-up PR. **Do not** attempt this as a drive-by during unrelated work.
+**Decision:** delete `packages/Qyl.Contracts/Models/SpanRecord.cs` after verifying no caller depends on the `Qyl.Contracts.Enums` variant. If callers exist, port them to `Qyl.Storage.SpanRecord` (uses `Qyl.OTel.Enums.*`). One caller audit + one follow-up PR. **Do not** attempt this as a drive-by during unrelated work.
 
 ### 🟠 O-4. `ToolManifestEmitter` name collision across two generator projects
 
 | File | Project | Purpose |
 |---|---|---|
-| `src/qyl.mcp.generators/Emitters/ToolManifestEmitter.cs` | `qyl.mcp.generators` | Emits `QylToolManifest` from `[McpServerToolType]` types |
-| `src/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` | `qyl.instrumentation.generators` | Emits… also tool manifest shape |
+| `internal/qyl.mcp.generators/Emitters/ToolManifestEmitter.cs` | `qyl.mcp.generators` | Emits `QylToolManifest` from `[McpServerToolType]` types |
+| `internal/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` | `qyl.instrumentation.generators` | Emits… also tool manifest shape |
 
 The projects are separately referenced by consumers, so the two emitters don't compile-conflict — but the duplication means one class must be kept in sync by hand, and the `[QylSkill]`/`[QylCapability]` ↔ `[McpServerToolType]` attribute surfaces are **ambiguously split across two pipelines**.
 
-**Decision:** consolidate. `qyl.mcp.generators/ToolManifestGenerator.cs` is newer and owns the full MCP tool manifest contract (per the `microsoft-agent-framework-qyl` skill). Delete `src/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` and any analyzer refs in `src/qyl.instrumentation.generators/CallSites/ToolManifestAnalyzer.cs` unless that analyzer does something the MCP pipeline doesn't. Verify against `qyl.mcp.tests`.
+**Decision:** consolidate. `qyl.mcp.generators/ToolManifestGenerator.cs` is newer and owns the full MCP tool manifest contract (per the `microsoft-agent-framework-qyl` skill). Delete `internal/qyl.instrumentation.generators/Emitters/ToolManifestEmitter.cs` and any analyzer refs in `internal/qyl.instrumentation.generators/CallSites/ToolManifestAnalyzer.cs` unless that analyzer does something the MCP pipeline doesn't. Verify against `qyl.mcp.tests`.
 
 ### 🟠 O-5. Dual `DomainContracts.g.cs` is intentional — flag as such
 
 Two files with identical content (`ContractGenerator.cs:42-45` emits to both):
 
-- `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` (consumed at compile time by the instrumentation SG)
-- `src/qyl.collector/Observe/Generated/DomainContracts.g.cs` (consumed at runtime by the collector)
+- `internal/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` (consumed at compile time by the instrumentation SG)
+- `services/qyl.collector/Observe/Generated/DomainContracts.g.cs` (consumed at runtime by the collector)
 
 This is **not drift** — two consumers need the same content in different project trees (one is a Roslyn generator project, one is a runtime project, and Roslyn generators can't share runtime assemblies). But it looks like drift to every auditor.
 

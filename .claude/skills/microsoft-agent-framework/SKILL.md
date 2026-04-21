@@ -328,7 +328,7 @@ dotnet test --project tests/<project>.tests --ignore-exit-code 8
 nuke Generate && nuke Build
 
 # Touched [McpServerToolType] / [QylSkill]?
-dotnet build src/qyl.mcp/qyl.mcp.csproj --tl:off
+dotnet build services/qyl.mcp/qyl.mcp.csproj --tl:off
 
 # Touched telemetry composition?
 # Start Aspire Dashboard, run sample, confirm qyl.genai + qyl.agent spans emit from composition-root wiring only.

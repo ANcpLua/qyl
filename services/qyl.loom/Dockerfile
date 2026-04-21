@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Qyl.Loom - AI Investigation Microservice
 # Build from repository root:
-#   docker build -f src/qyl.loom/Dockerfile -t qyl-loom .
+#   docker build -f services/qyl.loom/Dockerfile -t qyl-loom .
 
 # ============================================================================
 # STAGE 1: Build .NET
@@ -16,24 +16,24 @@ COPY eng/ eng/
 
 # Copy project files for restore (layer caching). qyl.loom references qyl.instrumentation
 # for WithQylTelemetry, which itself pulls in qyl.instrumentation.generators.
-COPY src/qyl.contracts/*.csproj src/qyl.contracts/
-COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
-COPY src/qyl.loom/*.csproj src/qyl.loom/
+COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
+COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
+COPY services/qyl.loom/*.csproj services/qyl.loom/
 
 # Restore dependencies
-WORKDIR /src/src/qyl.loom
+WORKDIR /src/services/qyl.loom
 RUN dotnet restore
 
 # Copy source files
 WORKDIR /src
-COPY src/qyl.contracts/ src/qyl.contracts/
-COPY src/qyl.instrumentation/ src/qyl.instrumentation/
-COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
-COPY src/qyl.loom/ src/qyl.loom/
+COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
+COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
+COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
+COPY services/qyl.loom/ services/qyl.loom/
 
 # Publish
-WORKDIR /src/src/qyl.loom
+WORKDIR /src/services/qyl.loom
 RUN dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \

@@ -50,7 +50,7 @@ export ENABLE_SENSITIVE_DATA=true   # dev-only — captures prompts/completions
 Fastest path: call `assisted_query` (it builds an `IChatClient` via `AgentLlmFactory.TryCreate`).
 
 ```bash
-dotnet run --project src/qyl.mcp -- --tool assisted_query --args '{"query":"show error spans from the last hour"}'
+dotnet run --project services/qyl.mcp -- --tool assisted_query --args '{"query":"show error spans from the last hour"}'
 ```
 
 (Or wire it through your MCP client of choice — Claude Code, Cursor, a raw `curl` to the Streamable HTTP endpoint.)
@@ -101,4 +101,4 @@ docker stop aspire-dashboard
 
 ---
 
-**Cadence:** run this smoke test once after any PR that touches `src/qyl.instrumentation/Instrumentation/GenAi/`, `src/qyl.mcp/Agents/AgentLlmFactory.cs`, the MAF / `Microsoft.Extensions.AI` package versions, or the `ANcpLua.Analyzers` package (which ships `WithQylTelemetry`'s wrapping rules).
+**Cadence:** run this smoke test once after any PR that touches `internal/qyl.instrumentation/Instrumentation/GenAi/`, `services/qyl.mcp/Agents/AgentLlmFactory.cs`, the MAF / `Microsoft.Extensions.AI` package versions, or the `ANcpLua.Analyzers` package (which ships `WithQylTelemetry`'s wrapping rules).

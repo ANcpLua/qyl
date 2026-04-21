@@ -17,7 +17,7 @@ services:
   qyl-collector:
     build:
       context: ..
-      dockerfile: src/qyl.collector/Dockerfile
+      dockerfile: services/qyl.collector/Dockerfile
     container_name: qyl-collector
     ports:
       - "5100:5100"    # Dashboard + REST API + SSE
@@ -45,7 +45,7 @@ services:
   qyl-dashboard:
     build:
       context: ..
-      dockerfile: src/qyl.dashboard/Dockerfile
+      dockerfile: services/qyl.dashboard/Dockerfile
     container_name: qyl-dashboard
     ports:
       - "8080:80"
@@ -62,7 +62,7 @@ services:
   qyl-mcp:
     build:
       context: ..
-      dockerfile: src/qyl.mcp/Dockerfile
+      dockerfile: services/qyl.mcp/Dockerfile
     container_name: qyl-mcp
     ports:
       - "5200:5200"

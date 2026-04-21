@@ -2,7 +2,7 @@
 # Multi-stage build with nginx for production
 #
 # Build from repository root:
-#   docker build -f src/qyl.dashboard/Dockerfile -t qyl-dashboard .
+#   docker build -f services/qyl.dashboard/Dockerfile -t qyl-dashboard .
 
 # ============================================================================
 # STAGE 1: Build React App
@@ -12,11 +12,11 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
+COPY services/qyl.dashboard/package.json services/qyl.dashboard/package-lock.json ./
 RUN npm ci
 
 # Copy source and build
-COPY src/qyl.dashboard/ ./
+COPY services/qyl.dashboard/ ./
 RUN npm run build
 
 # ============================================================================
@@ -34,7 +34,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY src/qyl.dashboard/nginx.conf /etc/nginx/conf.d/default.conf
+COPY services/qyl.dashboard/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

@@ -32,7 +32,7 @@ After any TypeSpec or generator change:
 
 ```
 nuke Generate
-dotnet build src/qyl.collector/qyl.collector.csproj
+dotnet build services/qyl.collector/qyl.collector.csproj
 ```
 
 If `nuke Generate` shows `[UNCHANGED]` for a file you expected to change, either:

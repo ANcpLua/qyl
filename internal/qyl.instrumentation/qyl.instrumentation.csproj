@@ -55,10 +55,10 @@
 
   <ItemGroup>
     <!-- Shared types -->
-    <ProjectReference Include="../qyl.contracts/qyl.contracts.csproj"/>
+    <ProjectReference Include="../../packages/Qyl.Contracts/qyl.contracts.csproj"/>
 
     <!-- Source generator for auto-instrumentation -->
-    <ProjectReference Include="../qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"
+    <ProjectReference Include="../../internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>

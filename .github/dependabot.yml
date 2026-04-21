@@ -96,7 +96,7 @@ updates:
 
   # npm (dashboard) updates
   - package-ecosystem: "npm"
-    directory: "/src/qyl.dashboard"
+    directory: "/services/qyl.dashboard"
     schedule:
       interval: "weekly"
       day: "wednesday"

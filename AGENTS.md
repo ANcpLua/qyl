@@ -42,9 +42,11 @@ no builder surface exists.
 ```bash
 # From repo root — prefer per-project builds over full solution
 dotnet restore qyl.slnx
-dotnet build src/<project>/<project>.csproj        # Default verification
-dotnet test --project tests/<project>.tests        # MTP requires --project
-dotnet format src/<project>
+dotnet build services/<project>/<project>.csproj   # services/ — runnable containers
+dotnet build internal/<project>/<project>.csproj   # internal/ — generators + helpers
+dotnet build packages/<Project>/<Project>.csproj   # packages/ — published NuGet surface
+dotnet test  --project tests/<project>.tests      # MTP requires --project
+dotnet format services/<project>
 
 # Single test (MTP syntax — Microsoft Testing Platform via xUnit v3)
 dotnet test --project tests/qyl.collector.tests \
@@ -52,11 +54,12 @@ dotnet test --project tests/qyl.collector.tests \
     --ignore-exit-code 8
 
 # Generators + full pipeline (release / CI parity)
-nuke Generate                                       # Regenerate TypeSpec + Roslyn outputs
+nuke Generate                                       # Regenerate TypeSpec + Roslyn + Weaver outputs
 nuke Build
 
 # One-time setup on a fresh clone (if not cloned with --recurse-submodules)
 git submodule update --init .tools/semconv-upstream
+./eng/semconv/bootstrap-weaver.sh                  # Pins Weaver binary per platform
 ```
 
 Rules:
@@ -72,30 +75,38 @@ Rules:
 
 ## Project Structure
 
+Post-2026-04-21 three-tier layout. Published surface (`packages/`), runnable containers (`services/`), internal
+helpers (`internal/`). The `src/` prefix is gone.
+
 ```
 qyl/
-├── src/
+├── packages/                             # PUBLISHED — NuGet.org + npmjs.com
+│   └── Qyl.Contracts/                    # BCL-only types (no MAF, no OTel SDK, no provider code)
+├── services/                             # RUNNABLE — container image only
 │   ├── qyl.collector/                    # OTLP ingest (gRPC 4317 / HTTP 4318), REST API :5100, DuckDB 1.5.0 storage
-│   ├── qyl.contracts/                    # BCL-only types (no MAF, no OTel SDK, no provider code)
 │   ├── qyl.mcp/                          # 77 MCP tools — stdio + Streamable HTTP
-│   ├── qyl.mcp.generators/               # Interim Roslyn generator — skill-aware tool manifest
 │   ├── qyl.loom/                         # Standalone agent Exe — triage, RCA, fix, code review (HTTP-only to collector)
-│   ├── qyl.instrumentation/              # Runtime OTel SDK surface (GenAI semconv 1.40)
-│   ├── qyl.instrumentation.generators/   # Roslyn generator — instrumentation boilerplate
+│   └── qyl.dashboard/                    # React 19 + Vite 7 + Tailwind 4 + Base UI 1.3.0 + lucide-react
+├── internal/                             # INTERNAL — project-reference only (no NuGet publish)
+│   ├── qyl.instrumentation/              # Runtime OTel SDK surface (GenAI semconv 1.40) + UseQylTelemetry / UseQylAgentTelemetry helpers
+│   ├── qyl.instrumentation.generators/   # Roslyn generator — instrumentation boilerplate + QYL0135 analyzer
 │   ├── qyl.collector.storage.generators/ # Roslyn generator — DuckDB insert/map code
-│   ├── qyl.dashboard/                    # React 19 + Vite 7 + Tailwind 4 + Base UI 1.3.0 + lucide-react
-│   ├── Qyl.Agents/                       # (merged from netagents) shared agent plumbing
-│   ├── Qyl.Agents.Abstractions/          # (merged) attribute surface: [Tool] [Prompt] [Resource]
-│   └── Qyl.Agents.Generator/             # (merged) full MCP server generator (dispatch, schemas, OTel, JSON contexts)
+│   └── qyl.mcp.generators/               # Roslyn generator — skill-aware tool manifest + Meta emission
 ├── tests/                                # Per-project test assemblies (xUnit v3 + MTP)
 ├── samples/                              # Currently empty — see §Sample Structure
 ├── docs/
 │   ├── ARCHITECTURE.md                   # C4 Context / Container / Component
 │   ├── THREAT_MODEL.md                   # 20 attacker stories with P0–P3 priority
 │   ├── OPEN_WORK.md                      # Consolidated open work items
-│   └── planned/                          # Execute-ready prompts for deferred features
-├── eng/                                  # NUKE 10.1.0 build, MSBuild props, semconv generator
-└── core/                                 # TypeSpec schemas -> openapi.yaml
+│   ├── contract-drift-architecture.md    # Six codegen pipelines — authority decisions
+│   └── planned/                          # Execute-ready mandates
+├── eng/
+│   ├── build/                            # NUKE 10.1.0 build, MSBuild props
+│   └── semconv/                          # Weaver runner + templates → otel-attribute-registry.json
+└── core/
+    ├── specs/                            # TypeSpec source of truth
+    │   └── emitters/                     # @qyl/typespec-emit-{csharp,duckdb,ts-types,qyl-semconv-lint}
+    └── openapi/                          # openapi.yaml — deleted in Commit 9 of the native-emitters mandate
 ```
 
 The authoritative list of real projects and forbidden names lives in `QYL_GROUND_TRUTH` emitted by the SessionStart
@@ -111,9 +122,12 @@ hook. Read it at the start of every session and do not enumerate ghost projects 
 - `ChatClientAgent` (MAF): `AIAgent` implementation over an `IChatClient`.
 - `IChatClient` (`Microsoft.Extensions.AI`): provider-agnostic chat surface. Build behind `IXxxChatClientBuilder`
   (Apex pattern — enum-switch over `ChatProvider`, returns raw `IChatClient`). Decorate at the composition root via
-  `.AsBuilder().UseQylTelemetry("qyl.genai").Build()` (the qyl wrapper over `UseFunctionInvocation` +
-  `UseOpenTelemetry` + `ToolDecoratingChatClient`). Pair with `.AsBuilder().UseOpenTelemetry("qyl.agent").Build()` on
-  the `AIAgent` layer.
+  `.AsBuilder().UseQylTelemetry("qyl.genai").Build()` (wraps `UseOpenTelemetry` + `UseLogging` +
+  `ToolDecoratingChatClient`, refuses to double-wrap). Pair with `.AsBuilder().UseQylAgentTelemetry().Build()` on
+  the `AIAgent` layer — that helper bundles `UseOpenTelemetry("qyl.agent")` + `UseLogging()`. Diagnostic `QYL0135`
+  (`AgentCompositionRootAnalyzer` in `internal/qyl.instrumentation.generators/Analyzers/`) fires on any construction
+  site that misses the wrap; detection is symbol-based and all-or-nothing, so renames or namespace collisions don't
+  silently disable it.
 - `AITool` / `AIFunction` / `AIFunctionFactory.Create(delegate, name, description)`: tool registration surface.
 - `LoomToolEnvelope<T>`: qyl's tool-result wrapper. Construct via the **non-generic companion** —
   `LoomToolEnvelope.Ok(data)` / `LoomToolEnvelope.Fail<T>(error)`. NEVER `LoomToolEnvelope<T>.Ok/Fail`.
@@ -220,21 +234,29 @@ using IChatClient instrumented = new AzureOpenAIClient(new Uri(endpoint), new De
     .GetChatClient(deploymentName)
     .AsIChatClient()
     .AsBuilder()
-    .UseQylTelemetry(sourceName: "qyl.genai", configure: cfg => cfg.EnableSensitiveData = null /* env */)
+    .UseQylTelemetry(sourceName: "qyl.genai")
     .Build();
 
-var agent = new ChatClientAgent(instrumented, name: "...", instructions: "...", tools: [...])
+var agent = instrumented
+    .AsAIAgent(new ChatClientAgentOptions { Name = "...", ChatOptions = new ChatOptions { Instructions = "..." } })
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: "qyl.agent", configure: cfg => cfg.EnableSensitiveData = null)
+    .UseQylAgentTelemetry()
     .Build();
 ```
 
-- `EnableSensitiveData = null` defers to `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. Never pass `true`
-  as a literal in prod.
-- `sourceName` is the **application's own** `ActivitySource` name, not the framework's. qyl-owned names are
-  enumerated below.
-- Both layers live at the composition root, never scattered through call sites. No attribute-based agent tracing
-  — `[AgentTraced]` was removed in the 2026-04 collapse.
+- `UseQylTelemetry` bundles `UseOpenTelemetry` + `UseLogging` + `ToolDecoratingChatClient` at the chat-client layer.
+  Refuses to double-wrap. Defers sensitive-data capture to `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` —
+  never pass a literal `true` in prod.
+- `UseQylAgentTelemetry` bundles `UseOpenTelemetry("qyl.agent")` + `UseLogging()` at the agent layer. One scope per
+  `RunAsync` boundary, paired with per-completion chat-client decoration.
+- `sourceName` is the **application's own** `ActivitySource` name, not the framework's. qyl-owned names enumerated
+  below.
+- Both layers live at the composition root. No attribute-based agent tracing — `[AgentTraced]` was removed in the
+  2026-04 collapse and QYL0135 flags any construction site that forgets the wrap.
+- If the call site needs non-default `FunctionInvokingChatClient` settings (`MaximumIterationsPerRequest`,
+  `AllowConcurrentInvocation = false` — critical for `InvestigationLineage` correctness in meta-tools), apply
+  `.UseFunctionInvocation(configure: …)` at the chat-client layer **before** `.AsAIAgent(...)`. `ChatClientAgent`
+  auto-inserts a default FICC otherwise, so tool-less summarizers need no explicit FICC line.
 
 ### Environment variables (standard OTel, not qyl-invented)
 
@@ -296,7 +318,7 @@ docker run --rm -it -d \
 ## Sample Structure
 
 **`samples/` is currently empty.** The Feb-2026 Loom monolith (`maf-agent-qyl/`) was removed on 2026-04-17. The
-production Loom pipeline lives under `src/qyl.loom/` (LLM-driven `AutofixAgentService` + `ExplorationOrchestrator`), not
+production Loom pipeline lives under `services/qyl.loom/` (LLM-driven `AutofixAgentService` + `ExplorationOrchestrator`), not
 as a hosted-agents demo.
 
 ### Where to learn what
@@ -305,10 +327,10 @@ as a hosted-agents demo.
 |----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | MAF fundamentals (agents, sessions, tools, streaming, structured output, RAG)                                                                                  | `~/AgentFrameworkBook/` or upstream `microsoft/agent-framework/dotnet/samples/` |
 | qyl-specific MAF delta (`WithQylTelemetry`, `LoomRunState`, hosted `AddAIAgent`)                                                                               | `.claude/skills/microsoft-agent-framework/SKILL.md` (qyl overlay)               |
-| qyl's production autofix pipeline (real LLM chain, collector-integrated)                                                                                       | `src/qyl.loom/Autofix/AutofixAgentService.cs`                                   |
-| qyl's interactive exploration (SSE streaming, diagnostician + strategist)                                                                                      | `src/qyl.loom/Exploration/ExplorationOrchestrator.cs`                           |
-| Loom generator attributes (`[LoomContract]` / `[LoomStep]` / `[LoomTool]` / `[LoomWorkflow]`) with real MAF `Executor` + `ProtocolBuilder` + `WorkflowBuilder` | `src/qyl.loom/CompilerDemo/LoomDemoWorkflow.cs`                                 |
-| qyl MCP tool pattern (attributes + generator)                                                                                                                  | `src/qyl.mcp/Tools/` + the overlay's "Generator-driven attributes" section      |
+| qyl's production autofix pipeline (real LLM chain, collector-integrated)                                                                                       | `services/qyl.loom/Autofix/AutofixAgentService.cs`                                   |
+| qyl's interactive exploration (SSE streaming, diagnostician + strategist)                                                                                      | `services/qyl.loom/Exploration/ExplorationOrchestrator.cs`                           |
+| Loom generator attributes (`[LoomContract]` / `[LoomStep]` / `[LoomTool]` / `[LoomWorkflow]`) with real MAF `Executor` + `ProtocolBuilder` + `WorkflowBuilder` | `services/qyl.loom/CompilerDemo/LoomDemoWorkflow.cs`                                 |
+| qyl MCP tool pattern (attributes + generator)                                                                                                                  | `services/qyl.mcp/Tools/` + the overlay's "Generator-driven attributes" section      |
 
 ### When to add a new sample
 
@@ -339,10 +361,23 @@ Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBo
 - `[QylCapability("id", Starting|FollowUp)]` on tool methods links tools to capabilities at compile time.
 - `[QylCapabilityDefinition("id", QylSkillKind.X)]` on marker classes in `Capabilities/Definitions/` defines capability
   metadata.
-- The generator produces `RegisterTools()`, `RegisterServices()`, `Capabilities[]`, `ToolDescriptors[]`.
+- The generator produces `RegisterTools()`, `RegisterServices()`, `Capabilities[]`, `ToolDescriptors[]`, and
+  `CreateTools(services, predicate)` — the last is a second dispatch surface used by `UseQylTools` / `RcaTools` for
+  embedded-agent `UseFunctionInvocation` loops; it is load-bearing and must not be deleted.
+- `RegisterTools` emits **explicit per-method `McpServerTool.Create(...)` registrations with `Meta` attached** —
+  `qyl.skill` + `qyl.capabilities.starting` + `qyl.capabilities.followUp` in the `McpServerToolCreateOptions.Meta`
+  `JsonObject`. `.WithTools<T>()` is not used — it has no per-tool Meta attachment point.
 - Do NOT hand-add tools to DI, MCP registration, or skill catalogs — the generator handles it from the attribute.
 - Tools without `[QylSkill]` (`CapabilityTools`, `ArtifactTools`) keep manual registration and are excluded from the
   generator's output.
+
+**Analyzer-enforced composition-root wrap.** Every `AIAgent` construction site must chain
+`.AsBuilder().UseQylAgentTelemetry().Build()`. `QYL0135` (`AgentCompositionRootAnalyzer`) fires if any site forgets.
+Detection is symbol-based (compares `IMethodSymbol.OriginalDefinition` via `SymbolEqualityComparer`), catches both
+`new *Agent(...)` direct construction and `xxx.AsAIAgent(...)` extension results assigned to a local, and walks
+`AIAgentBuilder` chains to verify presence of `UseQylAgentTelemetry` / `UseOpenTelemetry` / `UseLogging`.
+Method-name resolution at compilation start is all-or-nothing — if MAF renames an entry point the analyzer bails
+entirely rather than degrade to partial coverage.
 
 ## Agent bounded autonomy
 
@@ -358,13 +393,13 @@ Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBo
 - `collector/AgentRuns/` is correct — pure read-only DuckDB queries for agent run observability.
 - **Schema Drift (CI Schema Drift job stays red; Backend is green).** The TypeSpec → C# pipeline emits `SpanRecord` into
   three different places and the collector depends on the one CI's fresh regenerate wants to delete:
-    - `Qyl.Models.SpanRecord` in `src/qyl.contracts/Models/Models.g.cs` — uses `Qyl.OTel.Enums.SpanKind` /
+    - `Qyl.Models.SpanRecord` in `packages/Qyl.Contracts/Models/Models.g.cs` — uses `Qyl.OTel.Enums.SpanKind` /
       `SpanStatusCode`. This is what the collector's `Mappers.cs`, `SpanRingBuffer.cs`, `HealthUiService.cs` (14 call
-      sites) resolve to via `global using Qyl.Models;` in `src/qyl.collector/GlobalUsings.cs`.
-    - `Qyl.Storage.SpanRecord` in `src/qyl.contracts/Models/Storage.g.cs` — also uses `Qyl.OTel.Enums.*`. The routing
+      sites) resolve to via `global using Qyl.Models;` in `services/qyl.collector/GlobalUsings.cs`.
+    - `Qyl.Storage.SpanRecord` in `packages/Qyl.Contracts/Models/Storage.g.cs` — also uses `Qyl.OTel.Enums.*`. The routing
       table (`eng/build/NamespaceRoutingTable.cs:39`) routes `Qyl.Storage.*` here, so CI's fresh generate only emits to
       this file and removes the record from `Models.g.cs` (that's the 115-line diff CI reports).
-    - `Qyl.Contracts.Models.SpanRecord` in `src/qyl.contracts/Models/SpanRecord.cs` — hand-written, uses
+    - `Qyl.Contracts.Models.SpanRecord` in `packages/Qyl.Contracts/Models/SpanRecord.cs` — hand-written, uses
       `Qyl.Contracts.Enums.SpanKind` / `SpanStatusCode`. Not interchangeable with the generated ones.
     - **Why this is stuck**: simply deleting `Qyl.Models.SpanRecord` (to match what CI regenerates) breaks the collector
       because the enum-namespace mismatch is real, not cosmetic. Simply adding `global using Qyl.Storage;` collides with
@@ -380,20 +415,58 @@ Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBo
     - The failed quick-fix attempt lives in git history as the 4c9fd8c9 → 799390e0 revert pair. Do not simply re-delete
       `SpanRecord` from `Models.g.cs` — verify the collector still builds first.
     - Schema Drift is the only red CI job; Backend, Frontend, Coverage, Dependency Audit are all green on `main`.
-- **Open Dependabot PR #123 — Vite 7→8 major bump on `src/qyl.dashboard`.** Held open because it's a real Frontend (
+- **Open Dependabot PR #123 — Vite 7→8 major bump on `services/qyl.dashboard`.** Held open because it's a real Frontend (
   React) CI failure (not the inherited Schema-Drift flake). Needs active migration work: review Vite 8 breaking changes
   against the dashboard's `vite.config.ts`, test-runner integration (`vite` is a devDependency of the coverage setup),
   and any plugin ecosystem incompatibilities. Do not blind-merge. All other open Dependabot PRs as of 2026-04-19 were
   closed (#136, .NET 11 preview — we stay on 10 LTS) or squash-merged (#128 `actions/configure-pages@v6`, #129
   `actions/deploy-pages@v5`, #137 dashboard npm patch-minor bundle).
 
+## In-flight refactors
+
+### TypeSpec-native emitters + semconv-lint (2026-04-21, 15-commit mandate)
+
+`docs/planned/2026-04-21-typespec-native-emitters.md` is the authoritative execution plan. Atomic commits 1→15.
+Current progress: Commit 1 (repo-layout move to `services/` / `internal/` / `packages/`) landed. Remaining commits
+destroy the OpenAPI intermediate + hand-rolled `eng/build/*Generator.cs` and replace them with:
+
+- `@qyl/typespec-emit-csharp` — emits `packages/Qyl.Contracts/Generated/*.g.cs` from TypeSpec.
+- `@qyl/typespec-emit-duckdb` — emits `DuckDbSchema.g.cs` + per-version migration DDL.
+- `@qyl/typespec-emit-ts-types` — emits branded TS scalars + interfaces into `packages/qyl-client/`.
+- `@typespec/http-client-csharp` + `@typespec/http-client-js` — typed SDK clients.
+- `@typespec/http-server-csharp` — ASP.NET server controllers for the collector's :5100 REST API.
+- `@typespec/json-schema` — JSON Schema bundle for MCP / dashboard validation.
+- `@qyl/typespec-qyl-semconv-lint` — `$onValidate`-backed library that flags `qyl.*` attribute collisions with OTel
+  semconv, naming violations, and cross-site type drift. Six diagnostic codes `QYL-LINT-001..006`.
+
+**Consequence:** the SpanRecord triple-definition drift listed under "Known debt" resolves at Commit 6 (tspconfig
+cutover) when TypeSpec emits exactly one `SpanRecord` record into `packages/Qyl.Contracts/Generated/`. The hand-written
+`SpanRecord.cs` goes away; the Schema-Drift CI job clears.
+
+Commit 15 deletes the mandate itself once the series lands. Do not edit the mandate mid-execution — the commits are
+the record.
+
+### Weaver registry integration
+
+`eng/semconv/run-weaver.sh` emits:
+
+- `services/qyl.dashboard/src/lib/semconv.ts` — TS `as const` attribute keys.
+- `services/qyl.collector/Storage/promoted-columns.g.sql` — DuckDB promoted columns.
+- `core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json` — flat attribute registry consumed by the
+  TypeSpec lint library. Added in Commit 11 of the native-emitters mandate.
+
+The three hand-maintained facades under `packages/Qyl.Contracts/Attributes/{GenAi,Db,Mcp}Attributes.g.cs` are the
+follow-up target — a new Weaver template emits them from the same registry, closing the last manual-edit path.
+
 ## Merged repos (2026-04-10)
 
-- `qyl.mcp` (77 MCP tools) and `qyl.mcp.generators` (interim tool manifest generator) merged from a standalone repo.
-- `Qyl.Agents`, `Qyl.Agents.Abstractions`, `Qyl.Agents.Generator` merged from the netagents repo.
+- `qyl.mcp` (77 MCP tools) and `qyl.mcp.generators` (skill-aware tool manifest generator) merged from a standalone
+  repo.
+- `Qyl.Agents`, `Qyl.Agents.Abstractions`, `Qyl.Agents.Generator` merged from the netagents repo and **retired
+  2026-04-20** after `qyl.mcp.generators` absorbed the full MCP surface (dispatch, schemas, OTel Meta emission, JSON
+  contexts). Do not re-add them.
 - `qyl.mcp.generators` emits `QylToolManifest` with `ToolDescriptors` (skill-aware), `Capabilities`, `RegisterTools`,
-  `RegisterServices`, `CreateTools`.
-- `Qyl.Agents.Generator` is the full generator (dispatch, schemas, OTel, JSON contexts) — convergence target.
+  `RegisterServices`, `CreateTools`. Meta-attachment emission landed 2026-04-21 (see §Compile-time wiring).
 
 ## Dashboard deep links
 

@@ -58,12 +58,12 @@ Remote mode exposes:
 Use the dedicated config-as-code file:
 
 ```text
-/src/qyl.mcp/railway.toml
+/services/qyl.mcp/railway.toml
 ```
 
 That file points Railway at:
 
-- `src/qyl.mcp/Dockerfile`
+- `services/qyl.mcp/Dockerfile`
 - `/healthz`
 
 Do not reuse the repo-root `railway.toml` for the MCP service. The root file is for `qyl.collector`.

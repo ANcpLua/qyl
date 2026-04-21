@@ -79,22 +79,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: src/qyl.dashboard/package-lock.json
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
       - name: Install dependencies
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm ci
 
       - name: Type check
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run typecheck
 
       - name: Lint
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run lint
 
       - name: Test
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: |
           if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
             npm run test -- --run --reporter=verbose
@@ -103,14 +103,14 @@ jobs:
           fi
 
       - name: Build
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
-          path: src/qyl.dashboard/dist
+          path: services/qyl.dashboard/dist
           retention-days: 14
 
   frontend-coverage:
@@ -127,14 +127,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: src/qyl.dashboard/package-lock.json
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
       - name: Install dependencies
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm ci
 
       - name: Run tests with coverage
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: |
           if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
             npm run test:coverage
@@ -143,11 +143,11 @@ jobs:
           fi
 
       - name: Upload coverage report
-        if: hashFiles('src/qyl.dashboard/coverage/**') != ''
+        if: hashFiles('services/qyl.dashboard/coverage/**') != ''
         uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
-          path: src/qyl.dashboard/coverage
+          path: services/qyl.dashboard/coverage
           retention-days: 14
 
   schema-drift:
@@ -187,19 +187,19 @@ jobs:
       - name: Assert no generated file drift
         run: |
           if ! git diff --exit-code -- \
-            src/qyl.contracts/ \
-            src/qyl.collector/Storage/DuckDbSchema.g.cs \
-            src/qyl.dashboard/src/types/api.ts \
-            src/qyl.instrumentation/ \
-            src/qyl.instrumentation.generators/Generated/ \
+            packages/Qyl.Contracts/ \
+            services/qyl.collector/Storage/DuckDbSchema.g.cs \
+            services/qyl.dashboard/src/types/api.ts \
+            internal/qyl.instrumentation/ \
+            internal/qyl.instrumentation.generators/Generated/ \
             core/openapi/; then
             echo "::error::Generated files are stale. Run 'nuke Generate' locally and commit the result."
             git diff --stat -- \
-              src/qyl.contracts/ \
-              src/qyl.collector/Storage/DuckDbSchema.g.cs \
-              src/qyl.dashboard/src/types/api.ts \
-              src/qyl.instrumentation/ \
-              src/qyl.instrumentation.generators/Generated/ \
+              packages/Qyl.Contracts/ \
+              services/qyl.collector/Storage/DuckDbSchema.g.cs \
+              services/qyl.dashboard/src/types/api.ts \
+              internal/qyl.instrumentation/ \
+              internal/qyl.instrumentation.generators/Generated/ \
               core/openapi/
             exit 1
           fi
@@ -218,7 +218,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Audit frontend dependencies
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm audit --audit-level=high
         continue-on-error: true
 

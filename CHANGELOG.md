@@ -15,27 +15,27 @@
   configurable via `QYL_COLLECTOR_MAX_CONCURRENT`). Prevents autonomous agents from saturating
   DuckDB's single-writer path. Queued requests time out after 30s and proceed to avoid deadlock.
 
-- **Agenting contracts plane**: Added `src/qyl.contracts/Agenting/` with immutable run/governance
+- **Agenting contracts plane**: Added `packages/Qyl.Contracts/Agenting/` with immutable run/governance
   contracts for V2 work, including run phases/statuses, capability descriptors, approval records,
   artifact/evidence records, validation/policy checkpoints, ledger events, and canonical
   `AutofixRunState`.
 - **qyl.codexversion repo scaffold**: Added `qyl.codexversion/` as a fresh nested TypeScript/Zod
   orchestration prototype repo centered on `delegate-task`, `call-omo-agent`, background manager,
   spawn limits, concurrency, prompt metadata, model requirements, and plugin-config control-plane behavior.
-- **Collector evidence substrate**: Added `src/qyl.collector/Intelligence/Evidence/` with structured
+- **Collector evidence substrate**: Added `services/qyl.collector/Intelligence/Evidence/` with structured
   issue/regression/deployment evidence records plus a deterministic evidence-pack builder that emits
   `AgentRunEvidencePack` payloads as ordered JSON facts instead of prose summaries.
-- **Collector autofix V2 ledger substrate**: Added `src/qyl.collector/Autofix/V2/` with storage-agnostic
+- **Collector autofix V2 ledger substrate**: Added `services/qyl.collector/Autofix/V2/` with storage-agnostic
   ledger contracts, immutable ledger records, and explicit run/artifact/approval/validation projections
   for the governance boundary.
 - **Loom runtime tool bridge**: Added descriptor-driven `AIFunction` catalog helpers under
-  `src/qyl.instrumentation/Instrumentation/Loom/` so `LoomGeneratedRegistry.Tools` can be converted
+  `internal/qyl.instrumentation/Instrumentation/Loom/` so `LoomGeneratedRegistry.Tools` can be converted
   directly into `Microsoft.Extensions.AI` tool instances and catalog lists without reflection-based
   discovery.
 - **Loom compiler surface in instrumentation**: Added new Loom runtime declarations under
-  `src/qyl.instrumentation/Instrumentation/Loom/` (`LoomToolAttribute`, `LoomContractAttribute`,
+  `internal/qyl.instrumentation/Instrumentation/Loom/` (`LoomToolAttribute`, `LoomContractAttribute`,
   `LoomStepAttribute`, `LoomWorkflowAttribute`, capability/policy attributes, descriptors, and schema writer)
-  plus a new incremental generator slice under `src/qyl.instrumentation.generators/Loom/` that follows the
+  plus a new incremental generator slice under `internal/qyl.instrumentation.generators/Loom/` that follows the
   `extractor -> immutable model -> emitter -> registry` pattern. This emits generated tool descriptors,
   contract descriptors, step/workflow manifests, and a central `LoomGeneratedRegistry` without adding qyl host glue.
 - **Loom telemetry/policy manifest slice**: Extended the Loom generator with explicit telemetry, policy, and unified
@@ -45,7 +45,7 @@
   remain descriptor-emitted, infrastructure-bound parameters stay out of model-visible schema, the registry
   emits a capability manifest, and generated manifest output reuses runtime descriptor types instead of
   re-declaring them.
-- **Loom Dockerfile**: `src/qyl.loom/Dockerfile` — standalone container for the Loom intelligence plane.
+- **Loom Dockerfile**: `services/qyl.loom/Dockerfile` — standalone container for the Loom intelligence plane.
 - **Root docker-compose.yml**: Orchestrates `collector` and `loom` services for local dev with
   `QYL_OTLP_AUTH_MODE=Unsecured`.
 - **BitNet agent demo**: `samples/bitnet-agent-demo/` — 3-agent BitNet tracing demo with BitNet server and its own
@@ -56,7 +56,7 @@
 - **Dedicated qyl.mcp test project**: Added `tests/qyl.mcp.tests/` with focused HTTP-bound tests for
   collector client registration and `HttpTelemetryStore`, plus `InternalsVisibleTo` wiring so MCP DI and
   telemetry seams are covered directly without depending on collector tests.
-- **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `src/qyl.collector/Autofix/`
+- **Loom worker polling endpoints**: New `LoomWorkerEndpoints.cs` in `services/qyl.collector/Autofix/`
   exposes REST endpoints for standalone Loom background workers: `GET /api/v1/fix-runs` (pending query),
   `GET /api/v1/fix-runs/{runId}`, `POST /api/v1/fix-runs/{runId}/steps`,
   `PATCH /api/v1/fix-runs/{runId}/steps/{stepId}`,
@@ -81,14 +81,14 @@
   UI/protocol, and compiler responsibilities.
 
 - **Loom spec docs moved under qyl.loom**: Moved the primary Loom spec from `specs/loom.md` to
-  `src/qyl.loom/specs/loom.md` and the reverse-engineered Loom design reference from `eng/build/loom.md`
-  to `src/qyl.loom/docs/reference/sentry-loom-design.md`. Updated repo references so Loom-owned docs now
+  `services/qyl.loom/specs/loom.md` and the reverse-engineered Loom design reference from `eng/build/loom.md`
+  to `services/qyl.loom/docs/reference/sentry-loom-design.md`. Updated repo references so Loom-owned docs now
   live with the standalone Loom product instead of the repo-root specs/build folders.
 - **qyl.mcp MCP SDK baseline bumped to 1.2.0**: `ModelContextProtocolVersion` in
-  `Version.props` is now `1.2.0`, so `src/qyl.mcp` runs against the 1.2.0 SDK line.
+  `Version.props` is now `1.2.0`, so `services/qyl.mcp` runs against the 1.2.0 SDK line.
   Startup wiring and docs now document Streamable HTTP-first routing and legacy-SSE-by-default-off behavior
   from MCP 1.2.0.
-- **qyl.mcp transport migration notes added**: `src/qyl.mcp/Program.cs` now documents that
+- **qyl.mcp transport migration notes added**: `services/qyl.mcp/Program.cs` now documents that
   MCP 1.2.0 maps Streamable HTTP on the configured path by default and does not expose legacy `/mcp/sse`
   or `/mcp/message` endpoints.
 
@@ -106,18 +106,18 @@
   record the observed `qyl-api` Railway variables from production (`ASPNETCORE_URLS=http://+:8080`,
   `QYL_PORT=8080`, `QYL_OTLP_AUTH_MODE=ApiKey`, `QYL_RETENTION_DAYS=7`, secrets omitted) and explicitly
   note that `QYL_MCP_TRANSPORT` appearing on `qyl-api` does not mean the MCP server is deployed there.
-- **qyl.mcp gets its own Railway config**: Added `src/qyl.mcp/railway.toml` and updated `src/qyl.mcp/README.md`
+- **qyl.mcp gets its own Railway config**: Added `services/qyl.mcp/railway.toml` and updated `services/qyl.mcp/README.md`
   plus `specs/mcp.md` to make the monorepo split explicit: repo-root `railway.toml` is collector-only,
-  while MCP must use `/src/qyl.mcp/railway.toml`.
+  while MCP must use `/services/qyl.mcp/railway.toml`.
 - **Shared Loom types moved to qyl.contracts**: Moved `FixPolicy`, `PolicyGate`, `FixRunRecord`,
   `AutofixStepRecord`, `ConfidenceResult`, `TriageResult`, `LlmTriageResponse`, `IssueSummary`,
   `IssueStatus`, and `IssueEvent` from `qyl.collector` to `Qyl.Contracts.Loom` namespace in
-  `src/qyl.contracts/Loom/`. This enables both collector and standalone Loom to share these types
+  `packages/Qyl.Contracts/Loom/`. This enables both collector and standalone Loom to share these types
   without a ProjectReference dependency between them.
 
 ### Removed
 
-- **Dead `impl/` and `CodingAgent/` dirs from loom**: Deleted 10 stale markdown docs from `src/qyl.loom/impl/` and
+- **Dead `impl/` and `CodingAgent/` dirs from loom**: Deleted 10 stale markdown docs from `services/qyl.loom/impl/` and
   already-deleted `CodingAgent/` directory references.
 - **Unused central MAF package versions**: Deleted dead central package-management entries for
   `Microsoft.Agents.AI.Abstractions`, `Microsoft.Agents.AI.GitHub.Copilot`,
@@ -164,11 +164,11 @@
   healthcheck and static file serving.
 - **Unsecured auth for local dev compose**: Both root `docker-compose.yml` and sample compose files set
   `QYL_OTLP_AUTH_MODE=Unsecured` so local OTLP ingest works without API keys.
-- **Railway Docker builds no longer depend on service-specific cache IDs**: `src/qyl.collector/Dockerfile`
-  and `src/qyl.mcp/Dockerfile` no longer use Railway cache mounts. This removes both the old
+- **Railway Docker builds no longer depend on service-specific cache IDs**: `services/qyl.collector/Dockerfile`
+  and `services/qyl.mcp/Dockerfile` no longer use Railway cache mounts. This removes both the old
   hardcoded-service-ID failure and the invalid generic-cache-mount failure when the repo is built from
   different Railway services.
-- **qyl.mcp Railway publish path now matches collector deploy behavior**: `src/qyl.mcp/Dockerfile` now uses
+- **qyl.mcp Railway publish path now matches collector deploy behavior**: `services/qyl.mcp/Dockerfile` now uses
   generic NuGet cache mounts and disables warnings-as-errors/analyzer execution during container publish,
   matching the existing collector deployment strategy so Railway can produce the MCP binary from the same repo.
 - **qyl.mcp startup crash fixed for nullable bool tool args**: `AnalyticsJsonContext` now includes
@@ -245,13 +245,13 @@
 - **ServicesPage**: New `/services` route with sortable service table showing span counts, error counts, version,
   health status (healthy/degraded based on recent errors).
 - **Telemetry Intelligence types**: TypeSpec definitions in `core/specs/intelligence/` (8 files) + C# types in
-  `src/qyl.contracts/Intelligence/` (7 types, 3 static registries). 10 diagnostic patterns, 6 causal rules,
+  `packages/Qyl.Contracts/Intelligence/` (7 types, 3 static registries). 10 diagnostic patterns, 6 causal rules,
   4 investigation strategies — all seed data from spec §5. Compile-time collections, zero I/O.
-- **Pattern engine**: `IPatternEngine` + `PatternEngine` in `src/qyl.collector/Intelligence/`. Pure computation:
+- **Pattern engine**: `IPatternEngine` + `PatternEngine` in `services/qyl.collector/Intelligence/`. Pure computation:
   `Evaluate()` matches observed signals against diagnostic patterns via type-coerced comparison, `BuildCausalGraph()`
   traverses causal rules to identify root causes, `SelectStrategy()` resolves investigation strategies by pattern ID
   then category fallback. No I/O, no LLM, no DI — deterministic same-input-same-output.
-- **Intelligence REST API**: 4 endpoints in `src/qyl.collector/Intelligence/IntelligenceEndpoints.cs` —
+- **Intelligence REST API**: 4 endpoints in `services/qyl.collector/Intelligence/IntelligenceEndpoints.cs` —
   `GET /api/v1/intelligence/evaluate` (extract signals from trace/issue spans, run pattern matching),
   `/causal-chain` (build causal graph from pattern IDs), `/strategy` (select investigation strategy),
   `/execute-step` (execute strategy step DuckDB query with template substitution). `IPatternEngine` registered
@@ -261,7 +261,7 @@
   identification, strategy selection. CostComputationTests (10): pricing lookup, cost formula verification,
   unknown model handling, batch enrichment. InvestigationQueryValidationTests (21): validates all DuckDB queries
   from investigation strategies against live schema — caught `code_filepath` column missing from spans.
-- **MCP intelligence tools**: 5 new tools in `src/qyl.mcp/Tools/Intelligence/IntelligenceTools.cs` —
+- **MCP intelligence tools**: 5 new tools in `services/qyl.mcp/Tools/Intelligence/IntelligenceTools.cs` —
   `list_diagnostic_patterns` (static registry), `evaluate_patterns`, `explain_causal_chain`,
   `suggest_investigation`, `execute_investigation_step`. All ReadOnly, structured output.
 - **MCP structured output**: `StructuredResponse` envelope in `ResponseFormatter.cs` — separates `facts`,
@@ -332,7 +332,7 @@
   `TypedResults.*`. Added explicit `Task<IResult>` return type annotations to inline lambdas with mixed result types
   to satisfy delegate inference. `TypedResults.Accepted((string?)null)` used where `Results.Accepted()` had no args.
 - **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from
-  `src/qyl.loom/Identity/GlobalUsings.cs`.
+  `services/qyl.loom/Identity/GlobalUsings.cs`.
   Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
   its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped
   per policy.
@@ -369,7 +369,7 @@
 - Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
 - Browser SDK `transport.ts` constructor accepts `sessionId` parameter
 - **qyl.loom compile blocker**: Removed stale `Qyl.Collector.ConsoleBridge` global using from
-  `src/qyl.loom/Identity/GlobalUsings.cs` after the MCP console bridge cleanup, restoring solution compile.
+  `services/qyl.loom/Identity/GlobalUsings.cs` after the MCP console bridge cleanup, restoring solution compile.
 - **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
   that produced zero matchers. Azure.AI.OpenAI's new pattern uses `OpenAI.Chat.ChatClient` via `GetChatClient()` and
   is already covered by the OpenAI SDK entries.
@@ -398,7 +398,7 @@
   `Sidebar.tsx`, exports from `pages/index.ts`. AI nav section removed entirely.
 - **DomainContracts.g.cs**: Deleted unreferenced generated file and empty `Generated/` directory from
   `qyl.instrumentation.generators`. The `Qyl.Contracts.Generated` namespace had zero consumers.
-- **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —
+- **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `services/qyl.collector/Endpoints/` —
   `McpApiKeyEndpoints.cs`, `McpLogEndpoints.cs`, `McpMetricEndpoints.cs`, `McpSessionEndpoints.cs`,
   `McpTraceEndpoints.cs`, `McpQueryBuilder.cs`. None were registered in endpoint routing. Directory removed.
 - **qyl.agents project**: Deleted. `QylAgentBuilder`, `QylCopilotAdapter`, `CopilotAdapterFactory`,
@@ -410,7 +410,7 @@
 - **Collector kill-list directories**: `Copilot/`, `ClaudeCode/`, `CodingAgent/`, `Workflow/` removed from
   server per v2 architecture. Server has zero LLM dependencies.
 - **DuckDbStore.ClaudeCode.cs**: Orphaned storage partial (no surviving consumer).
-- **Dead MCP tools**: Deleted `BuildTools.cs`, `ConsoleTools.cs`, `AgentHandoffTools.cs` from `src/qyl.mcp/Tools/`.
+- **Dead MCP tools**: Deleted `BuildTools.cs`, `ConsoleTools.cs`, `AgentHandoffTools.cs` from `services/qyl.mcp/Tools/`.
   Removed service registrations from `Program.cs`, tool entries from `McpToolRegistry.cs`, and skill wiring from
   `SkillRegistrationExtensions.cs`. JSON serializer contexts (`BuildJsonContext`, `ConsoleJsonContext`) removed from
   resolver chain.

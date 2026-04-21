@@ -20,7 +20,7 @@
 **/npm-debug.log
 # Prevent local dashboard dist from being embedded in the .NET assembly during Docker build.
 # The collector Dockerfile builds the dashboard in a separate stage and copies to wwwroot.
-src/qyl.dashboard/dist
+services/qyl.dashboard/dist
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml

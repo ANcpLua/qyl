@@ -3,11 +3,11 @@
 #
 # Pinned inputs:  open-telemetry/semantic-conventions v1.40.0 (cloned by bootstrap)
 # Output targets:
-#   - src/qyl.dashboard/src/lib/semconv.ts          (TypeScript const keys)
-#   - src/qyl.collector/Storage/promoted-columns.g.sql  (DuckDB columns)
+#   - services/qyl.dashboard/src/lib/semconv.ts          (TypeScript const keys)
+#   - services/qyl.collector/Storage/promoted-columns.g.sql  (DuckDB columns)
 #
 # Still hand-maintained:
-#   - src/qyl.contracts/Attributes/*Attributes.cs   (facades with qyl extensions)
+#   - packages/Qyl.Contracts/Attributes/*Attributes.cs   (facades with qyl extensions)
 #
 # Bootstrap once per clone: ./eng/semconv/bootstrap-weaver.sh
 
@@ -29,8 +29,8 @@ UPSTREAM_REGISTRY="${REPO_ROOT}/.tools/semconv-upstream/model"
 TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
 STAGING_DIR="${REPO_ROOT}/eng/semconv/out"
 
-TS_DEST="${REPO_ROOT}/src/qyl.dashboard/src/lib/semconv.ts"
-SQL_DEST="${REPO_ROOT}/src/qyl.collector/Storage/promoted-columns.g.sql"
+TS_DEST="${REPO_ROOT}/services/qyl.dashboard/src/lib/semconv.ts"
+SQL_DEST="${REPO_ROOT}/services/qyl.collector/Storage/promoted-columns.g.sql"
 
 if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   echo "Weaver or upstream registry missing." >&2

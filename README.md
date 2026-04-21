@@ -72,7 +72,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 **Docker**
 
 ```bash
-docker build -f src/qyl.collector/Dockerfile -t qyl .
+docker build -f services/qyl.collector/Dockerfile -t qyl .
 docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 ```
 
@@ -81,7 +81,7 @@ docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 ```bash
 git clone --recurse-submodules https://github.com/ANcpLua/qyl.git
 cd qyl
-dotnet run --project src/qyl.collector
+dotnet run --project services/qyl.collector
 ```
 
 If you cloned without `--recurse-submodules`, initialize the OpenTelemetry
@@ -94,13 +94,13 @@ git submodule update --init .tools/semconv-upstream
 **Dashboard**
 
 ```bash
-cd src/qyl.dashboard && npm install && npm run dev
+cd services/qyl.dashboard && npm install && npm run dev
 ```
 
 **MCP Server**
 
 ```bash
-QYL_COLLECTOR_URL=http://localhost:5100 dotnet run --project src/qyl.mcp
+QYL_COLLECTOR_URL=http://localhost:5100 dotnet run --project services/qyl.mcp
 ```
 
 ## Instrument Your .NET App
@@ -190,7 +190,7 @@ nuke Generate --force-generate
 dotnet test
 
 # Dashboard dev server (hot reload)
-cd src/qyl.dashboard && npm run dev
+cd services/qyl.dashboard && npm run dev
 ```
 
 ## Project Structure

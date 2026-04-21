@@ -2,7 +2,7 @@
 
 Status: **SCAFFOLD**. This directory documents what ops must do to make `mcp.qyl.info` live. No Terraform / Pulumi / Bicep has been committed yet — that is a separate spec once the host is chosen.
 
-The container image is built from `src/qyl.mcp/Dockerfile` (Alpine-based, native-AOT-capable, non-root user).
+The container image is built from `services/qyl.mcp/Dockerfile` (Alpine-based, native-AOT-capable, non-root user).
 
 ## Pick a host
 

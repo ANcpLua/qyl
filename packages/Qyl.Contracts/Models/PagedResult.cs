@@ -1,4 +1,4 @@
-// src/qyl.contracts/Models/PagedResult.cs
+// packages/Qyl.Contracts/Models/PagedResult.cs
 
 using System.Text.Json.Serialization;
 

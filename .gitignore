@@ -135,7 +135,9 @@ coverage/
 !core/CLAUDE.md
 !eng/CLAUDE.md
 !tests/CLAUDE.md
-!src/qyl.*/CLAUDE.md
+!services/qyl.*/CLAUDE.md
+!internal/qyl.*/CLAUDE.md
+!packages/Qyl.*/CLAUDE.md
 !core/qyl.*/CLAUDE.md
 .mcp.json
 tmp/

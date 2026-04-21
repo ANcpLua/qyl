@@ -1,4 +1,4 @@
-// src/qyl.mcp/Errors/QylDataException.cs
+// services/qyl.mcp/Errors/QylDataException.cs
 
 namespace qyl.mcp.Errors;
 

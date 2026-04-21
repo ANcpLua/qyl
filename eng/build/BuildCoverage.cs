@@ -180,7 +180,7 @@ interface ICoverage : IQylTest
             static p => p.Name,
             p => CoverageDirectory / $"{p.Name}.coverage-issues.xml");
 
-        CoverageSummaryConverter.ConvertPerProject(mergedCobertura, SourceDirectory, projectOutputs);
+        CoverageSummaryConverter.ConvertPerProject(mergedCobertura, RootDirectory, projectOutputs);
     }
 }
 

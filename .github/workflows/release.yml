@@ -52,7 +52,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: src/qyl.dashboard/package-lock.json
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
       - name: Get version
         id: version
@@ -80,19 +80,19 @@ jobs:
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Install frontend dependencies
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm ci
 
       - name: Run frontend type check
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run typecheck
 
       - name: Run frontend lint
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run lint
 
       - name: Run frontend tests
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: |
           if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
             npm run test -- --run
@@ -101,12 +101,12 @@ jobs:
           fi
 
       - name: Build frontend
-        working-directory: src/qyl.dashboard
+        working-directory: services/qyl.dashboard
         run: npm run build
 
       - name: Publish qyl.collector
         run: |
-          dotnet publish src/qyl.collector/qyl.collector.csproj \
+          dotnet publish services/qyl.collector/qyl.collector.csproj \
             --configuration Release \
             --no-restore \
             --output ./publish/collector \
@@ -125,7 +125,7 @@ jobs:
           tar -czvf ../../release/qyl-collector-linux-x64-${{ steps.version.outputs.version }}.tar.gz .
           cd ../..
 
-          cd ./src/qyl.dashboard/dist
+          cd ./services/qyl.dashboard/dist
           tar -czvf ../../../release/qyl-dashboard-${{ steps.version.outputs.version }}.tar.gz .
           cd ../../..
 
@@ -233,7 +233,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: src/qyl.collector/Dockerfile
+          file: services/qyl.collector/Dockerfile
           push: true
           tags: |
             ancplua/qyl:${{ steps.version.outputs.version }}

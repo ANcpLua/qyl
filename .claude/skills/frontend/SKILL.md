@@ -7,7 +7,7 @@ description: Contract for qyl frontend work. Base UI only, operator-grade densit
 
 ## When to use
 
-Any work touching `src/qyl.dashboard/**` — pages, components, hooks, charts, tables.
+Any work touching `services/qyl.dashboard/**` — pages, components, hooks, charts, tables.
 
 ## Stack contract
 

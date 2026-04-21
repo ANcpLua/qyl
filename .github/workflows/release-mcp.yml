@@ -1,7 +1,7 @@
 # =============================================================================
 # Qyl.Mcp NuGet Release
 # -----------------------------------------------------------------------------
-# Packs src/qyl.mcp as a dotnet-tool .nupkg and publishes to nuget.org.
+# Packs services/qyl.mcp as a dotnet-tool .nupkg and publishes to nuget.org.
 # Triggered only by tag pushes of the form 'mcp-v*' (e.g. mcp-v0.1.0-beta).
 # The main qyl product tags 'v*' are handled by release.yml — this workflow
 # is strictly scoped to the Qyl.Mcp package so each component can ship on

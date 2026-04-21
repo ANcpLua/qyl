@@ -82,10 +82,10 @@
 
   <!-- Source generator: compile-time tool manifest -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.mcp.generators\qyl.mcp.generators.csproj"
+    <ProjectReference Include="..\..\internal\qyl.mcp.generators\qyl.mcp.generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
-    <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
 </Project>

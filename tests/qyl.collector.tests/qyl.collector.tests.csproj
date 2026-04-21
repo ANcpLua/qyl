@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\qyl.collector\qyl.collector.csproj"/>
-    <ProjectReference Include="..\..\src\qyl.contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\services\qyl.collector\qyl.collector.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
