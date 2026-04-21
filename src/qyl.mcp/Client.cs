@@ -1,6 +1,6 @@
-namespace qyl.mcp;
+using qyl.contracts.Attributes;
 
-using contracts.Attributes;
+namespace qyl.mcp;
 
 internal static class TelemetryConstants
 {

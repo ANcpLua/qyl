@@ -1,6 +1,6 @@
-namespace qyl.mcp.Formatting;
-
 using System.Net;
+
+namespace qyl.mcp.Formatting;
 
 /// <summary>
 ///     Formats errors for LLM consumption with transport-aware detail levels.

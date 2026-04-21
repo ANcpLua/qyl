@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Storage;
+using Qyl.Collector.Provisioning;
 
-using Provisioning;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with provisioning operations:

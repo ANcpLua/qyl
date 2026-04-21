@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Applies an LSP <c>WorkspaceEdit</c> to disk. Edits per file are applied bottom-up so earlier

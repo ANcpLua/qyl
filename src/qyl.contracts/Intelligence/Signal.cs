@@ -1,6 +1,6 @@
-namespace Qyl.Contracts.Intelligence;
-
 using System.Text.Json.Serialization;
+
+namespace Qyl.Contracts.Intelligence;
 
 /// <summary>
 ///     Atomic telemetry observation — a single attribute condition.

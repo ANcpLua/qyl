@@ -1,10 +1,10 @@
 // src/qyl.mcp/Formatting/ResponseFormatter.cs
 
-namespace qyl.mcp.Formatting;
-
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Formatting;
 
 /// <summary>
 ///     Formats collector API responses for AI consumption.

@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Sessions;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Tools.Sessions;
 
 /// <summary>
 ///     Searches debugging sessions by query, returning a paginated list with status, service, and span count.

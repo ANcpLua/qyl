@@ -1,7 +1,7 @@
-namespace qyl.mcp.Apps.TraceExplorer;
-
 using System.Reflection;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Apps.TraceExplorer;
 
 /// <summary>
 ///     MCP resource serving the Trace Explorer HTML at <c>ui://qyl/trace-viewer</c>.

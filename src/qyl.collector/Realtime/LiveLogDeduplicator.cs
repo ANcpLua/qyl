@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Realtime;
-
 using Qyl.Contracts.Primitives;
+
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     Quern-inspired live log deduplicator.

@@ -1,9 +1,9 @@
-namespace qyl.mcp.Agents;
-
 using ANcpLua.Agents.Factory;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     qyl-flavored entry point that preserves the <c>QYL_AGENT_API_KEY</c> /

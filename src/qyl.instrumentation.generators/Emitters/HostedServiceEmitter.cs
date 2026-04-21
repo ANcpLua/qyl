@@ -1,7 +1,7 @@
-namespace Qyl.Instrumentation.Generators.Emitters;
-
 using Microsoft.CodeAnalysis.CSharp;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators.Emitters;
 
 /// <summary>
 ///     Emits <c>QylGeneratedRegistry.g.cs</c>, the single class that houses every

@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Intelligence;
-
 using Qyl.Contracts.Intelligence;
+
+namespace Qyl.Collector.Intelligence;
 
 internal static class IntelligenceEndpoints
 {

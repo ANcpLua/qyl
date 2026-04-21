@@ -1,6 +1,6 @@
-namespace Qyl.Contracts.Primitives;
-
 using System.Runtime.CompilerServices;
+
+namespace Qyl.Contracts.Primitives;
 
 /// <summary>
 ///     Nanosecond / millisecond / DateTimeOffset conversions used across the platform.

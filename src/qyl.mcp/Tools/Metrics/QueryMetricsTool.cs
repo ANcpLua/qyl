@@ -1,9 +1,9 @@
-namespace qyl.mcp.Tools.Metrics;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Metrics;
 
 /// <summary>
 ///     Queries time-series data for a specific metric with optional filtering and time range.

@@ -1,6 +1,6 @@
-namespace Qyl.Loom.Tools;
+using Qyl.Instrumentation.Instrumentation.Loom;
 
-using Instrumentation.Instrumentation.Loom;
+namespace Qyl.Loom.Tools;
 
 /// <summary>
 ///     Detect-phase tools. Pure functions — no LLM, no side effects.

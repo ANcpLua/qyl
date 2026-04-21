@@ -1,7 +1,7 @@
-namespace Qyl.Collector.Hosting;
-
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Telemetry;
+using Qyl.Collector.Telemetry;
+
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorTelemetryExtensions
 {

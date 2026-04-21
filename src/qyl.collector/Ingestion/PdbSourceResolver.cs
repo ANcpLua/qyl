@@ -1,7 +1,7 @@
-namespace Qyl.Collector.Ingestion;
-
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
+
+namespace Qyl.Collector.Ingestion;
 
 [QylService(QylLifetime.Singleton)]
 public sealed partial class PdbSourceResolver

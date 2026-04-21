@@ -1,6 +1,6 @@
-namespace qyl.mcp.Metadata;
-
 using Qyl.Generated;
+
+namespace qyl.mcp.Metadata;
 
 /// <summary>
 ///     Thin filter wrapper around the generator-produced <c>QylToolManifest.ToolDescriptors</c>.

@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Storage;
+using Qyl.Collector.Identity;
 
-using Identity;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with workspace identity operations,

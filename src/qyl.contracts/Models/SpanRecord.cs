@@ -5,11 +5,11 @@
 // It is a flattened view optimized for database storage, not the OTel wire format.
 // =============================================================================
 
-namespace Qyl.Contracts.Models;
-
 using System.Text.Json.Serialization;
-using Common;
-using Enums;
+using Qyl.Common;
+using Qyl.Contracts.Enums;
+
+namespace Qyl.Contracts.Models;
 
 /// <summary>
 ///     Span record for storage and query operations.

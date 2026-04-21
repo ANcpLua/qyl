@@ -1,8 +1,8 @@
-namespace Qyl.Instrumentation.Generators.CallSites;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Discovers <c>public static</c> extension methods tagged with

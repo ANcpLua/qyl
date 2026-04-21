@@ -1,11 +1,11 @@
-namespace qyl.mcp.Apps.QueryStudio;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using Tools;
+using qyl.mcp.Tools;
+
+namespace qyl.mcp.Apps.QueryStudio;
 
 /// <summary>
 ///     MCP tools for the Query Studio ext-app.

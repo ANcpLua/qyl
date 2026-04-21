@@ -1,6 +1,6 @@
-namespace Qyl.Loom.Exploration;
+using Qyl.Contracts.Copilot;
 
-using Contracts.Copilot;
+namespace Qyl.Loom.Exploration;
 
 public sealed record ExplorationInsight
 {

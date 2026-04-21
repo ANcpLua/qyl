@@ -1,12 +1,12 @@
-namespace qyl.mcp.Apps.ErrorExplorer;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Tools;
+using qyl.mcp.Tools;
+
+namespace qyl.mcp.Apps.ErrorExplorer;
 
 /// <summary>
 ///     MCP ext-app tool that returns error groups with a UI resource link.

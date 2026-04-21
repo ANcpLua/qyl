@@ -1,7 +1,7 @@
-namespace Qyl.Loom.Exploration;
-
-using Contracts.Copilot;
+using Qyl.Contracts.Copilot;
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Bounded sub-agent responsible only for root-cause investigation.

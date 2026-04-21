@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Triage;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
 ///     Sets the priority level (P0-P4) on an error issue for triage.

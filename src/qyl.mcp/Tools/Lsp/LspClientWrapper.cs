@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Per-workspace client pool. Lazily starts one <see cref="LspClient" /> per

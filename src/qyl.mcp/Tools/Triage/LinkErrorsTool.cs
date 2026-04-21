@@ -1,12 +1,12 @@
-namespace qyl.mcp.Tools.Triage;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
 ///     Links two related error issues together for cross-referencing without merging.

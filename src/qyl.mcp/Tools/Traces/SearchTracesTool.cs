@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Traces;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Tools.Traces;
 
 /// <summary>
 ///     Searches distributed traces by query, returning a paginated list with duration, status, and root span.

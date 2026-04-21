@@ -1,6 +1,6 @@
-namespace Qyl.Instrumentation.Instrumentation.Loom;
-
 using System.Text.Json;
+
+namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static class LoomJsonSchemaWriter
 {

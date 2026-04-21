@@ -1,7 +1,7 @@
-namespace Qyl.Collector.Identity;
-
 using System.Net;
 using System.Net.Http.Headers;
+
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     GitHub identity integration with runtime-updatable tokens (ADR-002).

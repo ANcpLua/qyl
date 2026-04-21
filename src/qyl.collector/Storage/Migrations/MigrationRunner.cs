@@ -13,9 +13,9 @@
 // ALTER TABLE migrations execute.
 // =============================================================================
 
-namespace Qyl.Collector.Storage.Migrations;
-
 using System.Text.RegularExpressions;
+
+namespace Qyl.Collector.Storage.Migrations;
 
 /// <summary>
 ///     Applies pending DuckDB schema migrations on startup.

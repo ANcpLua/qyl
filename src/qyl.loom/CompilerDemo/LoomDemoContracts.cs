@@ -1,6 +1,6 @@
-namespace Qyl.Loom.CompilerDemo;
+using Qyl.Instrumentation.Instrumentation.Loom;
 
-using Instrumentation.Instrumentation.Loom;
+namespace Qyl.Loom.CompilerDemo;
 
 [LoomContract("loom_demo_analyze_regression_input")]
 public sealed partial record LoomDemoAnalyzeRegressionInput(

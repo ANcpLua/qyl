@@ -1,7 +1,7 @@
-namespace qyl.mcp.Scoping;
-
 using System.Collections.Frozen;
 using System.Text.Json;
+
+namespace qyl.mcp.Scoping;
 
 /// <summary>
 ///     Auto-injects scoped parameters into MCP tool call arguments.

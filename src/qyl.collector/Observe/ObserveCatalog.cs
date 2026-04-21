@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Observe;
-
 using Qyl.Contracts.Generated;
+
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 ///     Builds the observability catalog: available domains, their generated attribute manifests,

@@ -1,10 +1,10 @@
-namespace Qyl.Instrumentation.Generators.Loom;
-
-using Extraction;
-using Generation;
+using Qyl.Instrumentation.Generators.Loom.Extraction;
+using Qyl.Instrumentation.Generators.Loom.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+
+namespace Qyl.Instrumentation.Generators.Loom;
 
 [Generator]
 public sealed class LoomSourceGenerator : IIncrementalGenerator

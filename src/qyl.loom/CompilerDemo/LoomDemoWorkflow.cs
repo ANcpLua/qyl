@@ -1,7 +1,7 @@
-namespace Qyl.Loom.CompilerDemo;
-
-using Instrumentation.Instrumentation.Loom;
+using Qyl.Instrumentation.Instrumentation.Loom;
 using Microsoft.Agents.AI.Workflows;
+
+namespace Qyl.Loom.CompilerDemo;
 
 [LoomStep("loom.demo.detect", Phase = LoomPhase.Detect, Description = "Detect regression and localize evidence.")]
 internal sealed partial class LoomDemoDetectExecutor() : Executor("loom.demo.detect")

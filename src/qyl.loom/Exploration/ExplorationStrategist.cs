@@ -1,6 +1,6 @@
-namespace Qyl.Loom.Exploration;
-
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Bounded sub-agent responsible for turning the investigation

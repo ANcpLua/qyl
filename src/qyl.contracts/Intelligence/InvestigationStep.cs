@@ -1,6 +1,6 @@
-namespace Qyl.Contracts.Intelligence;
-
 using System.Text.Json.Serialization;
+
+namespace Qyl.Contracts.Intelligence;
 
 /// <summary>Single step in an investigation strategy.</summary>
 public sealed record InvestigationStep

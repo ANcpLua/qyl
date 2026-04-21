@@ -1,8 +1,8 @@
-namespace qyl.mcp.Tools.Debug;
-
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+
+namespace qyl.mcp.Tools.Debug;
 
 /// <summary>
 ///     Discovers JetBrains Rider MCP endpoints by parsing the IDE's log file.

@@ -2,9 +2,9 @@
 // SessionQueryService - Pure DuckDB queries with SpanQueryBuilder
 // =============================================================================
 
-namespace Qyl.Collector.Query;
-
 using Qyl.Contracts.Primitives;
+
+namespace Qyl.Collector.Query;
 
 /// <summary>
 ///     Session query service using SpanQueryBuilder for type-safe query construction.

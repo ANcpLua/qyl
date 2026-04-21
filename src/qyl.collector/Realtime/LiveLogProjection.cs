@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Realtime;
-
 using Qyl.Contracts.Primitives;
+
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     Shared projection helpers for streaming/searching log rows as UI-friendly DTOs.

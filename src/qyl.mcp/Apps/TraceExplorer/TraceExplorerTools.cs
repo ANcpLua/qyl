@@ -1,12 +1,12 @@
-namespace qyl.mcp.Apps.TraceExplorer;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
-using Tools;
+using qyl.mcp.Tools;
+
+namespace qyl.mcp.Apps.TraceExplorer;
 
 /// <summary>
 ///     MCP tools for the Trace Explorer ext-app.

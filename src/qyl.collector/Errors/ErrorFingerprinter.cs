@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Errors;
-
 using System.Text.RegularExpressions;
+
+namespace Qyl.Collector.Errors;
 
 public static partial class ErrorFingerprinter
 {

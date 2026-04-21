@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Management;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Management;
 
 /// <summary>
 ///     MCP tool that creates a new team for organizing projects and members.

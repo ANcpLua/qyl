@@ -1,14 +1,14 @@
-namespace Qyl.Instrumentation.Generators;
-
-using CallSites;
-using Emitters;
+using Qyl.Instrumentation.Generators.CallSites;
+using Qyl.Instrumentation.Generators.Emitters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators;
 
 /// <summary>
 ///     Intercepts WebApplicationBuilder.Build() calls to auto-register Qyl service defaults.
@@ -684,6 +684,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string PragmaDisableAll = "#pragma warning disable";
 
         public const string InterceptsLocationAttribute = """
+                                                          using Qyl.Instrumentation;
+
                                                           namespace System.Runtime.CompilerServices
                                                           {
                                                               [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
@@ -694,8 +696,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string InterceptorsNamespaceOpen = """
                                                         namespace Qyl.Instrumentation.Generators
                                                         {
-                                                            using Qyl.Instrumentation;
-
                                                             file static partial class Interceptors
                                                             {
                                                         """;

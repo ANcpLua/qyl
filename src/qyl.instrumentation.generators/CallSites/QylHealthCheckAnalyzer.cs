@@ -1,8 +1,8 @@
-namespace Qyl.Instrumentation.Generators.CallSites;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Discovers classes tagged with <c>[QylHealthCheck(name, tags...)]</c> for auto-registration

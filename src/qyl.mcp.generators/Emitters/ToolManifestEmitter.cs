@@ -1,6 +1,6 @@
-namespace Qyl.Mcp.Generators.Emitters;
+using Qyl.Mcp.Generators.Models;
 
-using Models;
+namespace Qyl.Mcp.Generators.Emitters;
 
 internal static class ToolManifestEmitter
 {

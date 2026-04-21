@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Search;
-
 using Microsoft.AspNetCore.Mvc;
+
+namespace Qyl.Collector.Search;
 
 /// <summary>
 ///     Minimal API endpoints for document-indexed search.

@@ -1,7 +1,7 @@
-namespace Qyl.Loom.Exploration;
-
 using ANcpLua.Roslyn.Utilities;
-using Contracts.Agenting;
+using Qyl.Contracts.Agenting;
+
+namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Keeps active exploration sessions and issues continuation tokens

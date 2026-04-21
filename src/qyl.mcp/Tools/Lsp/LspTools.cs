@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.ComponentModel;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     MCP facade for six LSP-backed code-intelligence tools. Gated behind

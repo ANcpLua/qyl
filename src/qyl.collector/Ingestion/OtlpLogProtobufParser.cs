@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Ingestion;
+using Qyl.Collector.Grpc;
 
-using Grpc;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Parses OTLP ExportLogsServiceRequest from HTTP protobuf payloads.

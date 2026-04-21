@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Hosting;
+using Qyl.Collector.Auth;
 
-using Auth;
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorAuthExtensions
 {

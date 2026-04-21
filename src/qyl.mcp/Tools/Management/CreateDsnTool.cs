@@ -1,12 +1,12 @@
-namespace qyl.mcp.Tools.Management;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Management;
 
 /// <summary>
 ///     MCP tool that creates a new DSN (Data Source Name) for a project.

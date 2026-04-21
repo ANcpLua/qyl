@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.Runtime.InteropServices;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Resolves an LSP server binary location on disk using PATH and well-known

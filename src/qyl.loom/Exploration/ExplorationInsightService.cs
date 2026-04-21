@@ -1,7 +1,7 @@
-namespace Qyl.Loom.Exploration;
-
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Generates pre-investigation insights for the sidebar panel.

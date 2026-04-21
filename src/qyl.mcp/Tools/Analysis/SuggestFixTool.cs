@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Analysis;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Analysis;
 
 /// <summary>
 ///     MCP tool that suggests fixes for errors in a trace by analyzing error spans and proposing remediation steps.

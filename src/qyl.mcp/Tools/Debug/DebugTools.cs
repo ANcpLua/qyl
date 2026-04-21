@@ -1,8 +1,8 @@
-namespace qyl.mcp.Tools.Debug;
-
 using System.ComponentModel;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Debug;
 
 /// <summary>
 ///     MCP tools for debugging via Rider's Debugger MCP plugin.

@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Insights;
-
 using Qyl.Contracts.Primitives;
+
+namespace Qyl.Collector.Insights;
 
 /// <summary>
 ///     Computes latency percentiles, token spend, WoW trends, and error rates

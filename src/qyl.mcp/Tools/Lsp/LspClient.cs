@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.Text.Json.Nodes;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Typed LSP method layer over <see cref="LspClientConnection" />. One instance per open

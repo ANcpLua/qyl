@@ -1,8 +1,8 @@
-namespace Qyl.Collector.Hosting;
+using Qyl.Collector.Cost;
+using Qyl.Collector.Identity;
+using Qyl.Collector.Telemetry;
 
-using Cost;
-using Identity;
-using Telemetry;
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorInitializationExtensions
 {

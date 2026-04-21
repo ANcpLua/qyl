@@ -1,13 +1,13 @@
-namespace Qyl.Collector;
-
-using Artifacts;
-using Cost;
-using Dashboards;
-using Health;
-using Insights;
-using Meta;
+using Qyl.Collector.Artifacts;
+using Qyl.Collector.Cost;
+using Qyl.Collector.Dashboards;
+using Qyl.Collector.Health;
+using Qyl.Collector.Insights;
+using Qyl.Collector.Meta;
 using Qyl.Contracts.Copilot;
-using Search;
+using Qyl.Collector.Search;
+
+namespace Qyl.Collector;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

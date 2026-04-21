@@ -1,11 +1,11 @@
-namespace Qyl.Instrumentation.Instrumentation.Loom;
-
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 /// <summary>
 ///     Converts <see cref="LoomRuntimeMetadataDescriptor" /> into <see cref="AIFunction" /> instances

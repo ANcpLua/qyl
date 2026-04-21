@@ -1,7 +1,7 @@
-namespace Qyl.Loom.CompilerDemo;
-
 using System.ComponentModel;
-using Instrumentation.Instrumentation.Loom;
+using Qyl.Instrumentation.Instrumentation.Loom;
+
+namespace Qyl.Loom.CompilerDemo;
 
 public static partial class LoomDemoTools
 {

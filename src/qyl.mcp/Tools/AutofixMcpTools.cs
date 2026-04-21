@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for managing autofix fix runs:

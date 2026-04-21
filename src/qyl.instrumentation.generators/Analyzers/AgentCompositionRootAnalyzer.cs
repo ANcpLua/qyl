@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
-
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
+namespace Qyl.Instrumentation.Generators.Analyzers;
 
 /// <summary>
 ///     QYL0135 — Warns when an <c>AIAgent</c> / <c>ChatClientAgent</c> is invoked from an inline
@@ -49,8 +49,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         {
             var agents = SAgentTypes
                 .Select(start.Compilation.GetTypeByMetadataName)
-                .Where(symbol => symbol is not null)
-                .Select(symbol => symbol!)
+                .OfType<INamedTypeSymbol>()
                 .ToImmutableArray();
 
             if (agents.Length is 0)

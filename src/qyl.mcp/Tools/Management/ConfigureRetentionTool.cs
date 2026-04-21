@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Management;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Management;
 
 /// <summary>
 ///     MCP tool that sets the data retention period for a project.

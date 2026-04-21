@@ -1,6 +1,6 @@
-namespace Qyl.Contracts.Loom;
-
 using System.Text.Json.Serialization;
+
+namespace Qyl.Contracts.Loom;
 
 /// <summary>
 ///     Request body for creating a new Loom autofix run.

@@ -1,8 +1,8 @@
-namespace qyl.mcp.Tools.Debug;
-
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+
+namespace qyl.mcp.Tools.Debug;
 
 /// <summary>
 ///     Lazily connects to Rider's debugger MCP server and proxies tool calls.

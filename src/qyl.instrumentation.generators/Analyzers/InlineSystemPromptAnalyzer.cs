@@ -1,11 +1,11 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
-
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
+namespace Qyl.Instrumentation.Generators.Analyzers;
 
 /// <summary>
 ///     QYL0136 — Flags inline string literals supplied as a <c>ChatClientAgentOptions.Instructions</c>

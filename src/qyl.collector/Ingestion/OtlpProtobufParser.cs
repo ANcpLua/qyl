@@ -3,9 +3,9 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
-namespace Qyl.Collector.Ingestion;
+using Qyl.Collector.Grpc;
 
-using Grpc;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Parses OTLP ExportTraceServiceRequest from HTTP protobuf payloads.

@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace Qyl.Collector.Tests.Instrumentation;
-
 using System.Diagnostics;
 using ANcpLua.Agents.Testing.ChatClients;
 using ANcpLua.Agents.Testing.Diagnostics;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Xunit;
+
+namespace Qyl.Collector.Tests.Instrumentation;
 
 /// <summary>
 ///     End-to-end span-emission smoke test for

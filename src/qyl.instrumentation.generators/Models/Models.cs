@@ -1,6 +1,6 @@
-namespace Qyl.Instrumentation.Generators.Models;
-
 using Microsoft.CodeAnalysis.CSharp;
+
+namespace Qyl.Instrumentation.Generators.Models;
 
 #region Provider Types
 

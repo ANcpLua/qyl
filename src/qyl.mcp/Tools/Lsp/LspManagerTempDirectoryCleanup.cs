@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Prunes stale LSP workspace temp directories on startup. csharp-ls creates per-workspace

@@ -1,8 +1,8 @@
-namespace qyl.mcp;
-
-using Auth;
+using qyl.mcp.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+
+namespace qyl.mcp;
 
 internal enum McpTransportMode
 {

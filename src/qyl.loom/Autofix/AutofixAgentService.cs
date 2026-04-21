@@ -1,7 +1,7 @@
-namespace Qyl.Loom;
-
-using Contracts.Observability;
+using Qyl.Contracts.Observability;
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Loom;
 
 /// <summary>
 ///     Background service that autonomously picks up pending fix runs and executes

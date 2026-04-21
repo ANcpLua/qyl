@@ -1,7 +1,7 @@
-namespace qyl.mcp.Apps.QueryStudio;
-
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace qyl.mcp.Apps.QueryStudio;
 
 internal static class QueryStudioRegistration
 {

@@ -3,9 +3,9 @@
 // Automatically adds context to all log entries
 // =============================================================================
 
-namespace Qyl.Collector.Telemetry;
-
 using Microsoft.Extensions.Diagnostics.Enrichment;
+
+namespace Qyl.Collector.Telemetry;
 
 public sealed class QylLogEnricher : ILogEnricher
 {

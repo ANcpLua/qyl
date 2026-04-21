@@ -1,8 +1,8 @@
-namespace Qyl.Instrumentation.Instrumentation.Loom;
-
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static partial class LoomGeneratedRegistry
 {

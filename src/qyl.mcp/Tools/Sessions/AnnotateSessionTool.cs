@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Sessions;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Sessions;
 
 /// <summary>
 ///     Adds an annotation with optional tags to a debugging session.

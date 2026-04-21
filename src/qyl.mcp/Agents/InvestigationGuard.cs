@@ -1,6 +1,6 @@
-namespace qyl.mcp.Agents;
-
 using ANcpLua.Agents.Governance;
+
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     qyl-flavored entry point that preserves the <c>QYL_AGENT_MAX_TOOL_CALLS</c>

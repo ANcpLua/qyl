@@ -1,8 +1,8 @@
-namespace Qyl.Instrumentation.Instrumentation.Loom;
-
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static class LoomToolServiceExtensions
 {

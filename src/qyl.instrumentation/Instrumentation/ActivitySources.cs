@@ -4,9 +4,9 @@
 // Based on: opentelemetry-dotnet-contrib patterns
 // =============================================================================
 
-namespace Qyl.Instrumentation.Instrumentation;
-
 using System.Reflection;
+
+namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
 ///     Single source of truth for qyl activity sources and meters.

@@ -1,7 +1,7 @@
-namespace qyl.mcp.Hosting;
-
-using Metadata;
+using qyl.mcp.Metadata;
 using Microsoft.AspNetCore.Http;
+
+namespace qyl.mcp.Hosting;
 
 internal static class QylMcpLlmsTextBuilder
 {

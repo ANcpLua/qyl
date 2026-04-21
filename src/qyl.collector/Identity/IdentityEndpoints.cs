@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Identity;
-
 using Microsoft.AspNetCore.Mvc;
+
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     Minimal API endpoints for workspace identity, project management, and onboarding.

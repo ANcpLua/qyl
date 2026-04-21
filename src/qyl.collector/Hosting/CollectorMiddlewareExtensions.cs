@@ -1,9 +1,9 @@
-namespace Qyl.Collector.Hosting;
-
-using Auth;
-using Dashboard;
+using Qyl.Collector.Auth;
+using Qyl.Collector.Dashboard;
 using Microsoft.AspNetCore.Diagnostics;
-using Telemetry;
+using Qyl.Collector.Telemetry;
+
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorMiddlewareExtensions
 {

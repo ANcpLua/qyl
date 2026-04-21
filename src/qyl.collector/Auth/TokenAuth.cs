@@ -1,8 +1,8 @@
-namespace Qyl.Collector.Auth;
-
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+
+namespace Qyl.Collector.Auth;
 
 // ── Keycloak JWKS validation ──────────────────────────────────────────────────
 

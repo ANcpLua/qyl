@@ -1,7 +1,7 @@
-namespace qyl.mcp.Apps.TraceExplorer;
-
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace qyl.mcp.Apps.TraceExplorer;
 
 /// <summary>
 ///     Registers Trace Explorer tools and resources on an MCP server builder.

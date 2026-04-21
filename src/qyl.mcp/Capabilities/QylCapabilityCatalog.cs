@@ -1,6 +1,6 @@
-namespace qyl.mcp.Capabilities;
-
 using Qyl.Generated;
+
+namespace qyl.mcp.Capabilities;
 
 /// <summary>
 ///     Thin filter wrapper around the generator-produced capability list in

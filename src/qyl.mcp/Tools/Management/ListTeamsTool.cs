@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Management;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Tools.Management;
 
 /// <summary>
 ///     MCP tool that lists teams with optional name search and pagination.

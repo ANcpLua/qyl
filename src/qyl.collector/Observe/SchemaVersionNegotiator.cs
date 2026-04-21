@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Observe;
-
 using Qyl.Contracts.Generated;
+
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 ///     Negotiates schema version compatibility between a subscriber's declared semconv pin

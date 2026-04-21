@@ -1,7 +1,7 @@
-namespace Qyl.Instrumentation.Discovery;
-
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+namespace Qyl.Instrumentation.Discovery;
 
 /// <summary>
 ///     Logs the collector discovery result once at application startup.

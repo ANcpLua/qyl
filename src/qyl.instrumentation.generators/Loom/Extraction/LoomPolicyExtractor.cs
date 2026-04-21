@@ -1,7 +1,7 @@
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
-
 using Microsoft.CodeAnalysis;
-using Models;
+using Qyl.Instrumentation.Generators.Loom.Models;
+
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 
 internal static class LoomPolicyExtractor
 {

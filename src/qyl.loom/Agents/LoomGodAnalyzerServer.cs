@@ -1,10 +1,10 @@
-namespace Qyl.Loom.Agents;
-
 using System.ComponentModel;
 using ANcpLua.Roslyn.Utilities;
-using CodeReview;
-using Exploration;
+using Qyl.Loom.CodeReview;
+using Qyl.Loom.Exploration;
 using ModelContextProtocol.Server;
+
+namespace Qyl.Loom.Agents;
 
 /// <summary>
 ///     Seer-grade MCP surface for qyl Loom. Exposes three tools — issue insight,

@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Hosting;
+using Qyl.Collector.Grpc;
 
-using Grpc;
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorCoreExtensions
 {

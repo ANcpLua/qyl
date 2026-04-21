@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Net;
-using Agents;
+using qyl.mcp.Agents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool for generating test code from error context.

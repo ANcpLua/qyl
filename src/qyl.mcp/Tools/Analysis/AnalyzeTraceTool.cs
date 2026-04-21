@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Analysis;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Analysis;
 
 /// <summary>
 ///     MCP tool that analyzes a distributed trace returning span, error, service, and latency details.

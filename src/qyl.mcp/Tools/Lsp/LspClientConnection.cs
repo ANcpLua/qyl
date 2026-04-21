@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace qyl.mcp.Tools.Lsp;
-
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+
+namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     Owns a single LSP server connection: process + transport + real

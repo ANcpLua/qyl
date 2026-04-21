@@ -1,7 +1,7 @@
-namespace Qyl.Instrumentation.Discovery;
-
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
+
+namespace Qyl.Instrumentation.Discovery;
 
 /// <summary>
 ///     Discovers a qyl collector endpoint at startup using environment variables

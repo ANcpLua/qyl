@@ -1,9 +1,9 @@
-namespace qyl.mcp.Tools.Management;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Management;
 
 /// <summary>
 ///     MCP tool that creates a new API key for programmatic access.

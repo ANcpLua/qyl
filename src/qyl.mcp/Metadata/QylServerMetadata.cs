@@ -1,6 +1,6 @@
-namespace qyl.mcp.Metadata;
-
 using System.Reflection;
+
+namespace qyl.mcp.Metadata;
 
 internal static class QylServerMetadata
 {

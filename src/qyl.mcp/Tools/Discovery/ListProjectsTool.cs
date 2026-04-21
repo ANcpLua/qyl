@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Discovery;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Tools.Discovery;
 
 /// <summary>
 ///     MCP tool that lists available projects with pagination support.

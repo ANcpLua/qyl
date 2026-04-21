@@ -1,6 +1,6 @@
-namespace qyl.mcp.Agents;
-
 using Microsoft.Extensions.Configuration;
+
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     HTTP delegating handler that limits concurrent requests to the qyl collector.

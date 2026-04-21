@@ -1,8 +1,8 @@
-namespace Qyl.Loom;
-
 using ANcpLua.Roslyn.Utilities;
-using Contracts.Observability;
+using Qyl.Contracts.Observability;
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Loom;
 
 /// <summary>
 ///     Background service that periodically scans for untriaged error issues,

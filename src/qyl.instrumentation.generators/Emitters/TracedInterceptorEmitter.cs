@@ -1,7 +1,7 @@
-namespace Qyl.Instrumentation.Generators.Emitters;
-
 using Microsoft.CodeAnalysis.CSharp;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators.Emitters;
 
 internal static class TracedInterceptorEmitter
 {

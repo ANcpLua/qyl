@@ -1,6 +1,6 @@
-namespace Qyl.Instrumentation.Generators.Loom.Generation;
+using Qyl.Instrumentation.Generators.Loom.Models;
 
-using Models;
+namespace Qyl.Instrumentation.Generators.Loom.Generation;
 
 internal static class LoomToolOutputGenerator
 {

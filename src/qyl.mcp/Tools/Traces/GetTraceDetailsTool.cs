@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Traces;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Traces;
 
 /// <summary>
 ///     Retrieves the full span tree for a trace, returning all spans with timing, status, and attributes.

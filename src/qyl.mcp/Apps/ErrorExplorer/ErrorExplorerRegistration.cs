@@ -1,7 +1,7 @@
-namespace qyl.mcp.Apps.ErrorExplorer;
-
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace qyl.mcp.Apps.ErrorExplorer;
 
 internal static class ErrorExplorerRegistration
 {

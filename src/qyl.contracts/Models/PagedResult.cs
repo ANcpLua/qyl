@@ -1,8 +1,8 @@
 // src/qyl.contracts/Models/PagedResult.cs
 
-namespace Qyl.Contracts.Models;
-
 using System.Text.Json.Serialization;
+
+namespace Qyl.Contracts.Models;
 
 /// <summary>
 ///     Cursor-paginated response wrapper for MCP tool consumption.

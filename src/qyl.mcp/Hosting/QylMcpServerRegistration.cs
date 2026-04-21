@@ -1,16 +1,16 @@
-namespace qyl.mcp.Hosting;
-
 using System.Text.Json;
-using Apps.ErrorExplorer;
-using Apps.QueryStudio;
-using Apps.TraceExplorer;
-using Auth;
-using contracts.Attributes;
-using Metadata;
+using qyl.mcp.Apps.ErrorExplorer;
+using qyl.mcp.Apps.QueryStudio;
+using qyl.mcp.Apps.TraceExplorer;
+using qyl.mcp.Auth;
+using qyl.contracts.Attributes;
+using qyl.mcp.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
 using Qyl.Generated;
-using Scoping;
+using qyl.mcp.Scoping;
+
+namespace qyl.mcp.Hosting;
 
 internal static class QylMcpServerRegistration
 {

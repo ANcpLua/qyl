@@ -3,9 +3,9 @@
 // QYL-specific constants only - OTel semconv attributes are in Qyl.Contracts
 // =============================================================================
 
-namespace Qyl.Instrumentation.Instrumentation;
-
 using qyl.contracts.Attributes;
+
+namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
 ///     QYL-specific GenAI configuration constants.

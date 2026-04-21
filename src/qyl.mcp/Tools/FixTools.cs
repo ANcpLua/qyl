@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that submits and tracks Loom fix jobs at the collector boundary.

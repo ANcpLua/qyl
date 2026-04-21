@@ -1,6 +1,6 @@
-namespace Qyl.Loom.Exploration;
+using Qyl.Contracts.Copilot;
 
-using Contracts.Copilot;
+namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Facade for the interactive exploration flow. Chains diagnostician → strategist

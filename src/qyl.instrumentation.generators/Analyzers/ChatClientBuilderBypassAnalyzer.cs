@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 ancplua
 
-namespace Qyl.Instrumentation.Generators.Analyzers;
-
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
+namespace Qyl.Instrumentation.Generators.Analyzers;
 
 /// <summary>
 ///     QYL0137 — Flags direct instantiation of provider SDK clients
@@ -48,8 +48,8 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
             var builder = ImmutableHashSet.CreateBuilder<INamedTypeSymbol>(SymbolEqualityComparer.Default);
             foreach (var symbol in SProviderClients
                          .Select(start.Compilation.GetTypeByMetadataName)
-                         .Where(s => s is not null))
-                builder.Add(symbol!);
+                         .OfType<INamedTypeSymbol>())
+                builder.Add(symbol);
 
             if (builder.Count is 0)
                 return;

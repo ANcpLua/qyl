@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Logs;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+
+namespace qyl.mcp.Tools.Logs;
 
 /// <summary>
 ///     MCP tool that searches structured logs by query with pagination support.

@@ -1,12 +1,12 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
-using Agents;
-using Formatting;
+using qyl.mcp.Agents;
+using qyl.mcp.Formatting;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that performs AI-powered multi-step root cause analysis.

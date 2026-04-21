@@ -27,7 +27,7 @@ dotnet_separate_import_directive_groups = false
 # existing code doesn't nag. Explicit "Reformat Code" / "Code Cleanup" will
 # steer toward the preferred direction; passive editing leaves files alone.
 csharp_using_directive_placement = outside_namespace # modern C# 10+ convention with file-scoped namespaces
-dotnet_diagnostic.IDE0065.severity = none
+dotnet_diagnostic.IDE0065.severity = warning
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = none
 csharp_prefer_braces = when_multiline

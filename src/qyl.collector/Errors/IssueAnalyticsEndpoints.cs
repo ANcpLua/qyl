@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Errors;
-
 using Microsoft.AspNetCore.Mvc;
+
+namespace Qyl.Collector.Errors;
 
 /// <summary>
 ///     Minimal API endpoints for error issue timeline and similarity search.

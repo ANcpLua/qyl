@@ -1,7 +1,7 @@
-namespace Qyl.Loom;
-
 using System.Net;
 using System.Net.Http.Json;
+
+namespace Qyl.Loom;
 
 /// <summary>
 ///     Typed HTTP client for the qyl collector REST API.

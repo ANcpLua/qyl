@@ -16,9 +16,9 @@
 //   5. Persist assignments to span_clusters via DuckDbStore.
 // =============================================================================
 
-namespace Qyl.Collector.Analytics;
-
 using Microsoft.Extensions.AI;
+
+namespace Qyl.Collector.Analytics;
 
 /// <summary>
 ///     Background service that enriches gen_ai spans with semantic cluster labels.

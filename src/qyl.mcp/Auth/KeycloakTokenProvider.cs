@@ -1,11 +1,11 @@
-namespace qyl.mcp.Auth;
-
 using System.Collections.Frozen;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
+namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Fetches and caches a Keycloak JWT via OAuth2 client-credentials flow.

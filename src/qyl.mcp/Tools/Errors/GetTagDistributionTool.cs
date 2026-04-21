@@ -1,11 +1,11 @@
-namespace qyl.mcp.Tools.Errors;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using mcp.Errors;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Errors;
 
 /// <summary>
 ///     MCP tool that retrieves the distribution of a tag's values for an error issue.

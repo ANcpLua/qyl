@@ -1,10 +1,10 @@
-namespace qyl.mcp.Capabilities;
-
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Metadata;
+using qyl.mcp.Metadata;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Capabilities;
 
 [McpServerToolType]
 internal sealed class CapabilityTools(SkillConfiguration skills)

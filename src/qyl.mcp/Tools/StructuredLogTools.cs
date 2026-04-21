@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for accessing OTLP structured logs stored by qyl.collector.

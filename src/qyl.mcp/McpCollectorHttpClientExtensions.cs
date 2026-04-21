@@ -1,11 +1,11 @@
-namespace qyl.mcp;
-
-using Agents;
-using Auth;
+using qyl.mcp.Agents;
+using qyl.mcp.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
-using Scoping;
+using qyl.mcp.Scoping;
+
+namespace qyl.mcp;
 
 internal static class McpCollectorHttpClientExtensions
 {

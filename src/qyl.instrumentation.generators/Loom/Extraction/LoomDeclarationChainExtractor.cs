@@ -1,9 +1,9 @@
-namespace Qyl.Instrumentation.Generators.Loom.Extraction;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Models;
+using Qyl.Instrumentation.Generators.Loom.Models;
+
+namespace Qyl.Instrumentation.Generators.Loom.Extraction;
 
 internal static class LoomDeclarationChainExtractor
 {

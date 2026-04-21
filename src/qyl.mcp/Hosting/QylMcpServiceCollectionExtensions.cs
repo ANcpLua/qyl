@@ -12,12 +12,10 @@ using TelemetryJsonContext = qyl.mcp.Tools.TelemetryJsonContext;
 using TelemetryToolsJsonContext = qyl.mcp.Tools.TelemetryToolsJsonContext;
 using LoomMcpJsonContext = Qyl.Contracts.Loom.LoomMcpJsonContext;
 
-namespace qyl.mcp.Hosting;
-
 using System.Text.Json;
-using Apps.ErrorExplorer;
-using Auth;
-using Metadata;
+using qyl.mcp.Apps.ErrorExplorer;
+using qyl.mcp.Auth;
+using qyl.mcp.Metadata;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -26,10 +24,12 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using Qyl.Generated;
-using Scoping;
-using Tools;
-using Tools.Debug;
-using Tools.Lsp;
+using qyl.mcp.Scoping;
+using qyl.mcp.Tools;
+using qyl.mcp.Tools.Debug;
+using qyl.mcp.Tools.Lsp;
+
+namespace qyl.mcp.Hosting;
 
 internal static partial class QylMcpServiceCollectionExtensions
 {

@@ -1,6 +1,6 @@
-namespace qyl.mcp.Tools;
+using qyl.mcp.Formatting;
 
-using Formatting;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     Shared helper for MCP tool methods that call qyl.collector via HTTP.

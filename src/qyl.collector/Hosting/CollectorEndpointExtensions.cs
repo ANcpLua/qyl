@@ -1,10 +1,10 @@
-namespace Qyl.Collector.Hosting;
+using Qyl.Collector.Cost;
+using Qyl.Collector.Dashboard;
+using Qyl.Collector.Grpc;
+using Qyl.Instrumentation.Generators;
+using Qyl.Collector.Meta;
 
-using Cost;
-using Dashboard;
-using Grpc;
-using Instrumentation.Generators;
-using Meta;
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorEndpointExtensions
 {

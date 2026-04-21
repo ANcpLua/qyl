@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Intelligence.Evidence;
-
 using Qyl.Contracts.Agenting;
+
+namespace Qyl.Collector.Intelligence.Evidence;
 
 public sealed record EvidenceFact(
     string Category,

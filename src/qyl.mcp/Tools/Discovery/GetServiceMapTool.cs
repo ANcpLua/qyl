@@ -1,9 +1,9 @@
-namespace qyl.mcp.Tools.Discovery;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Discovery;
 
 /// <summary>
 ///     MCP tool that retrieves the service dependency map showing nodes and edges between services.

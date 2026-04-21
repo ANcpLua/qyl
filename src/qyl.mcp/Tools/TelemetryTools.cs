@@ -1,9 +1,9 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for high-level agent run telemetry.

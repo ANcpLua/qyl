@@ -1,7 +1,7 @@
-namespace Qyl.Collector.Storage;
-
 using Qyl.Contracts.Primitives;
-using Services;
+using Qyl.Collector.Services;
+
+namespace Qyl.Collector.Storage;
 
 public sealed partial class DuckDbStore
 {

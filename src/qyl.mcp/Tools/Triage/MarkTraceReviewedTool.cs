@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools.Triage;
-
 using System.ComponentModel;
 using System.Net;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Triage;
 
 /// <summary>
 ///     Marks a trace as reviewed during triage.

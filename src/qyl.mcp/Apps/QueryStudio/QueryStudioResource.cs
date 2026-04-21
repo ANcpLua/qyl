@@ -1,6 +1,6 @@
-namespace qyl.mcp.Apps.QueryStudio;
-
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Apps.QueryStudio;
 
 /// <summary>
 ///     MCP resource serving the Query Studio HTML UI at <c>ui://qyl/query-studio</c>.

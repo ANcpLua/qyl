@@ -1,10 +1,10 @@
-namespace Qyl.Instrumentation.Generators.CallSites;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using Models;
+using Qyl.Instrumentation.Generators.Models;
+
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Analyzes syntax to find ADO.NET DbCommand method invocations to intercept.

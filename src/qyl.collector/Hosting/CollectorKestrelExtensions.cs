@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Hosting;
-
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+
+namespace Qyl.Collector.Hosting;
 
 public static class CollectorKestrelExtensions
 {

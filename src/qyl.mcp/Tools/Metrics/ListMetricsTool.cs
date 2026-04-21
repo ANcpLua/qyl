@@ -1,9 +1,9 @@
-namespace qyl.mcp.Tools.Metrics;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
-using Formatting;
+using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Metrics;
 
 /// <summary>
 ///     Lists all available metrics, optionally filtered by project, showing name, type, unit, and description.

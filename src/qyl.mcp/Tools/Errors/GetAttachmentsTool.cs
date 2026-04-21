@@ -1,12 +1,12 @@
-namespace qyl.mcp.Tools.Errors;
-
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Formatting;
-using mcp.Errors;
+using qyl.mcp.Formatting;
+using qyl.mcp.Errors;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools.Errors;
 
 /// <summary>
 ///     MCP tool that lists attachments (screenshots, logs, minidumps) for an error event.

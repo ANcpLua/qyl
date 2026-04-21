@@ -1,10 +1,10 @@
-namespace qyl.mcp.Tools;
-
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for system health and storage status.

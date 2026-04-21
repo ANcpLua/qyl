@@ -1,6 +1,6 @@
-namespace Qyl.Collector.Insights;
-
 using Qyl.Contracts.Primitives;
+
+namespace Qyl.Collector.Insights;
 
 /// <summary>
 ///     Detects error spikes, cost drift, and slow operations in the last hour.

@@ -3,11 +3,11 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
-namespace Qyl.Collector.Ingestion;
-
-using Grpc;
+using Qyl.Collector.Grpc;
 using Qyl.Contracts.Primitives;
-using Services;
+using Qyl.Collector.Services;
+
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Converts OTLP protobuf/JSON to SpanStorageRow.

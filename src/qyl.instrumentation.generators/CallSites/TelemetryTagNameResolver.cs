@@ -1,6 +1,6 @@
-namespace Qyl.Instrumentation.Generators.CallSites;
-
 using Microsoft.CodeAnalysis;
+
+namespace Qyl.Instrumentation.Generators.CallSites;
 
 /// <summary>
 ///     Centralized name resolution for telemetry tags.
