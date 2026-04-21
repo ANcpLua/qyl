@@ -28,6 +28,7 @@ global using Qyl.Common;
 global using Qyl.OTel.Enums;
 global using qyl.contracts.Attributes;
 global using Qyl.Models;
+global using Qyl.Storage;
 global using Qyl.Collector.Errors;
 global using Qyl.Collector.Mapping;
 global using Qyl.Contracts.Loom;
