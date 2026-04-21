@@ -20,6 +20,7 @@
     "@typespec/sse": "0.78.0",
     "@typespec/streams": "0.78.0",
     "@typespec/versioning": "0.78.0",
-    "openapi-typescript": "^7.10.1"
+    "openapi-typescript": "^7.10.1",
+    "@qyl/typespec-emit-csharp": "file:./emitters/csharp"
   }
 }

@@ -1,0 +1,25 @@
+{
+  "name": "@qyl/typespec-emit-csharp",
+  "version": "0.1.0",
+  "description": "qyl-native TypeSpec emitter for C# records/enums with @csharpNamespace routing",
+  "type": "module",
+  "main": "dist/index.js",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "echo \"(smoke tested via core/specs compile)\""
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.11.0"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "1.11.0",
+    "typescript": "~5.6.0"
+  }
+}

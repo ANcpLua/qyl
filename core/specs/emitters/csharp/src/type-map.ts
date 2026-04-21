@@ -1,0 +1,104 @@
+import type { Program, Scalar, Type } from "@typespec/compiler";
+import { isArrayModelType, isRecordModelType, getFormat } from "@typespec/compiler";
+import { getCsharpNamespace } from "./decorators.js";
+import { reportDiagnostic } from "./lib.js";
+
+const SCALAR_MAP: Record<string, string> = {
+  "int8": "sbyte",
+  "int16": "short",
+  "int32": "int",
+  "int64": "long",
+  "uint8": "byte",
+  "uint16": "ushort",
+  "uint32": "uint",
+  "uint64": "ulong",
+  "float32": "float",
+  "float64": "double",
+  "decimal": "decimal",
+  "decimal128": "decimal",
+  "boolean": "bool",
+  "bytes": "ReadOnlyMemory<byte>",
+  "utcDateTime": "DateTimeOffset",
+  "offsetDateTime": "DateTimeOffset",
+  "plainDate": "DateOnly",
+  "plainTime": "TimeOnly",
+  "duration": "TimeSpan",
+  "url": "Uri",
+};
+
+export function mapType(program: Program, type: Type): string {
+  switch (type.kind) {
+    case "Scalar":
+      return mapScalar(program, type as Scalar);
+    case "Model":
+      if (isArrayModelType(type)) {
+        const inner = mapType(program, type.indexer!.value);
+        return `IReadOnlyList<${inner}>`;
+      }
+      if (isRecordModelType(type)) {
+        const inner = mapType(program, type.indexer!.value);
+        return `IReadOnlyDictionary<string, ${inner}>`;
+      }
+      return qualifyModelOrEnum(program, type);
+    case "Enum":
+      return qualifyModelOrEnum(program, type);
+    case "Union":
+      return qualifyUnion(program, type);
+    case "Boolean":
+      return "bool";
+    case "String":
+      return "string";
+    case "Number":
+      return "double";
+    case "Intrinsic":
+      if ((type as { name?: string }).name === "null") return "null";
+      if ((type as { name?: string }).name === "unknown") return "object";
+      if ((type as { name?: string }).name === "void") return "void";
+      if ((type as { name?: string }).name === "never") return "void";
+      reportDiagnostic(program, { code: "unmapped-type", target: type, format: { name: `intrinsic:${(type as { name?: string }).name ?? "?"}` } });
+      return "object";
+    default:
+      reportDiagnostic(program, { code: "unmapped-type", target: type, format: { name: type.kind } });
+      return "object";
+  }
+}
+
+function mapScalar(program: Program, scalar: Scalar): string {
+  if (scalar.name === "string") {
+    const format = getFormat(program, scalar as unknown as Parameters<typeof getFormat>[1]);
+    if (format === "uuid") return "Guid";
+    if (format === "url" || format === "uri") return "Uri";
+    return "string";
+  }
+  const direct = SCALAR_MAP[scalar.name];
+  if (direct) return direct;
+  if (scalar.baseScalar) return mapScalar(program, scalar.baseScalar);
+  reportDiagnostic(program, { code: "unmapped-type", target: scalar, format: { name: `scalar:${scalar.name}` } });
+  return "object";
+}
+
+function qualifyModelOrEnum(program: Program, type: Type): string {
+  const name = (type as { name?: string }).name ?? "object";
+  const ownNs = getCsharpNamespace(program, type);
+  if (ownNs) return `${ownNs}.${name}`;
+  const parentNs = climbForNamespace(program, type);
+  return parentNs ? `${parentNs}.${name}` : name;
+}
+
+function qualifyUnion(program: Program, type: Type): string {
+  const name = (type as { name?: string }).name;
+  if (!name) return "object";
+  return qualifyModelOrEnum(program, type);
+}
+
+function climbForNamespace(program: Program, type: Type): string | undefined {
+  let cursor: { namespace?: { name?: string } & { namespace?: unknown } } | undefined =
+    type as { namespace?: { name?: string } & { namespace?: unknown } };
+  while (cursor?.namespace) {
+    const ns = cursor.namespace as unknown as Type;
+    const mapped = getCsharpNamespace(program, ns);
+    if (mapped) return mapped;
+    cursor = ns as unknown as typeof cursor;
+  }
+  return undefined;
+}
