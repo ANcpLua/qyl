@@ -38,6 +38,8 @@ If any version no longer resolves from npm during Commit 6, bump forward to the 
 - `cd core/specs && npm run compile` exits 0 after every commit from Commit 2 onward.
 - `git blame --follow` traces every moved file back through Commit 1.
 - Every public type exposed via `packages/*` has a stable `Qyl.*` or `@qyl/*` namespace. `services/*` and `internal/*` never leak types outward.
+- From Commit 14 onward, every `qyl.*` telemetry key literal in `src/`/`services/` has a matching `@qylAttr` site in `core/specs/**/*.tsp`. The semconv-lint library (Commit 12) catches drift; the annotation step (Commit 14) establishes the baseline.
+- Commit 15 is the ONLY commit allowed to reduce the `docs/planned/` tree — every other commit that touches planning docs must only add or update, never delete.
 
 ---
 
@@ -456,6 +458,345 @@ find eng/build -maxdepth 1 -name '*Generator.cs' -o -name '*Table.cs'
 
 ---
 
+## Commit 11 — Weaver registry snapshot for qyl-semconv-lint
+
+A new TypeSpec library `@qyl/typespec-qyl-semconv-lint` (Commits 12-14) consumes a flat JSON of upstream OTel attribute names to catch qyl-owned telemetry names that collide with semconv, drift in type, or violate naming rules. Weaver is the only semconv parser — do not introduce a second one. This commit extends Weaver's template set to emit one additional artifact.
+
+### Template
+
+Add `eng/semconv/templates/registry/qyl/otel-attribute-registry.json.j2` (MiniJinja):
+
+```jinja
+[
+{%- for attr in ctx | selectattr("type", "eq", "attribute_group") | list -%}
+  {%- for m in attr.attributes -%}
+  {
+    "name": "{{ m.name }}",
+    "type": "{{ m.type | string }}",
+    "stability": "{{ m.stability | default('experimental') }}",
+    "deprecated": {{ (m.deprecated is not none) | tojson }},
+    "group": "{{ attr.id }}"
+  }{%- if not loop.last -%},{%- endif %}
+  {%- endfor -%}
+  {%- if not loop.last -%},{%- endif %}
+{%- endfor -%}
+]
+```
+
+Field names MUST match Weaver's semconv model exactly — consult `.tools/semconv-upstream/model/**/*.yaml` and Weaver's JSON schema before finalizing. If upstream uses `stability_level` vs `stability` or `members` vs `attributes`, conform — do not invent.
+
+### Runner wiring
+
+Update `eng/semconv/run-weaver.sh`. After the existing `install -m 0644` lines:
+
+```bash
+REGISTRY_DEST="${REPO_ROOT}/core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json"
+mkdir -p "$(dirname "${REGISTRY_DEST}")"
+install -m 0644 "${STAGING_DIR}/otel-attribute-registry.json" "${REGISTRY_DEST}"
+```
+
+Extend the final `echo` summary to include the new file. Add it to `.gitattributes` as `linguist-generated=true` so it doesn't inflate review diffs.
+
+### Verify
+
+```bash
+./eng/semconv/run-weaver.sh
+jq 'length' core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json
+# expect: > 500 entries (semconv 1.40 attribute registry surface)
+jq '.[] | select(.name == "gen_ai.system")' core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json
+# expect: single hit, type "string"
+```
+
+`nuke Generate` exits 0.
+
+---
+
+## Commit 12 — `@qyl/typespec-qyl-semconv-lint` library scaffold
+
+Mirror the csharp emitter's shape from Commit 2.
+
+`core/specs/emitters/qyl-semconv-lint/package.json`:
+
+```json
+{
+  "name": "@qyl/typespec-qyl-semconv-lint",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": { "build": "tsc -p .", "test": "vitest run" },
+  "peerDependencies": { "@typespec/compiler": "^1.11.0" },
+  "devDependencies": {
+    "@typespec/compiler": "1.11.0",
+    "typescript": "~5.6.0",
+    "vitest": "~2.1.0"
+  }
+}
+```
+
+`core/specs/emitters/qyl-semconv-lint/lib/main.tsp`:
+
+```tsp
+import "../dist/index.js";
+
+namespace Qyl.Semconv;
+
+model QylAttrOptions {
+  cardinality?: "low" | "medium" | "high";
+  stability?: "experimental" | "stable" | "deprecated";
+  required?: boolean;
+}
+
+extern dec qylAttr(
+  target: ModelProperty | Operation,
+  key: valueof string,
+  type: valueof "string" | "int" | "long" | "double" | "boolean" | "string[]",
+  options?: valueof QylAttrOptions
+);
+```
+
+`core/specs/emitters/qyl-semconv-lint/src/index.ts` — library definition with 6 diagnostic codes (`QYL-LINT-001..006`) and a single state key `qylAttr`:
+
+```ts
+import { createTypeSpecLibrary, paramMessage, Program, Type } from "@typespec/compiler";
+import { runAllRules } from "./rules.js";
+
+export const $lib = createTypeSpecLibrary({
+  name: "@qyl/typespec-qyl-semconv-lint",
+  diagnostics: {
+    "upstream-collision": { severity: "error",
+      messages: { default: paramMessage`QYL-LINT-001: attribute '${"key"}' collides with upstream OTel namespace '${"prefix"}' — qyl attributes must live under 'qyl.'` } },
+    "bad-namespace":      { severity: "error",
+      messages: { default: paramMessage`QYL-LINT-002: attribute '${"key"}' must start with 'qyl.' — project-owned namespaces are forbidden outside that prefix` } },
+    "bad-naming":         { severity: "error",
+      messages: { default: paramMessage`QYL-LINT-003: attribute '${"key"}' violates OTel naming: lowercase letters, digits, underscores, dot-separated segments, no leading/trailing/doubled dots` } },
+    "type-drift":         { severity: "error",
+      messages: { default: paramMessage`QYL-LINT-004: attribute '${"key"}' declared as '${"typeA"}' here but as '${"typeB"}' at ${"otherSite"}` } },
+    "stability-regression": { severity: "error",
+      messages: { default: paramMessage`QYL-LINT-005: attribute '${"key"}' stability regressed from '${"prior"}' to '${"current"}' — 'stable' is a one-way ratchet` } },
+    "cardinality-drift":  { severity: "warning",
+      messages: { default: paramMessage`QYL-LINT-006: attribute '${"key"}' cardinality differs across sites: '${"a"}' vs '${"b"}'` } },
+  },
+  state: { qylAttr: { description: "Collected qyl attribute declarations" } },
+} as const);
+
+export const { reportDiagnostic, stateKeys } = $lib;
+
+export interface QylAttrRecord {
+  key: string;
+  type: "string" | "int" | "long" | "double" | "boolean" | "string[]";
+  cardinality?: "low" | "medium" | "high";
+  stability?: "experimental" | "stable" | "deprecated";
+  required?: boolean;
+  target: Type;
+}
+
+export function $qylAttr(
+  context: { program: Program },
+  target: Type,
+  key: string,
+  type: QylAttrRecord["type"],
+  options?: Partial<Omit<QylAttrRecord, "key" | "type" | "target">>,
+): void {
+  const map = context.program.stateMap(stateKeys.qylAttr);
+  const bucket = (map.get(target) as QylAttrRecord[] | undefined) ?? [];
+  bucket.push({ key, type, ...(options ?? {}), target });
+  map.set(target, bucket);
+}
+
+export function $onValidate(program: Program): void {
+  runAllRules(program);
+}
+```
+
+`src/registry.ts` — loads `../data/otel-attribute-registry.json` with `with { type: "json" }` and builds a `Map<string, OtelAttr>`. Declares `RESERVED_PREFIXES` (semconv 1.40 top-level groups: `gen_ai.`, `http.`, `db.`, `rpc.`, `network.`, `server.`, `client.`, `url.`, `user_agent.`, `code.`, `exception.`, `event.`, `log.`, `messaging.`, `faas.`, `cloud.`, `aws.`, `azure.`, `gcp.`, `k8s.`, `container.`, `host.`, `os.`, `process.`, `thread.`, `service.`, `deployment.`, `telemetry.`, `otel.`, `session.`, `enduser.`, `feature_flag.`, `error.`, `file.`, `peer.`, `source.`, `destination.`, `device.`, `browser.`, `disk.`, `hw.`, `jvm.`, `nodejs.`, `dotnet.`, `aspnetcore.`, `signalr.`, `v8js.`, `webengine.`, `android.`, `ios.`). When Weaver advances past 1.40, add new top-level groups here — don't let the list drift silently.
+
+Add `tsconfig.json` targeting `ES2022` / `Node16` / `rootDir: src` / `outDir: dist` / `strict: true` / `resolveJsonModule: true`.
+
+### Verify
+
+```bash
+cd core/specs/emitters/qyl-semconv-lint && npm install && npm run build
+# expect: clean tsc, dist/index.js + dist/rules.js + dist/registry.js emitted
+```
+
+### Design choice — `$onValidate` + decorator, NOT `extern fn`
+
+`extern fn` is for pure transforms that return TypeSpec values/types; it re-runs on every alias site (documented footgun in the functions doc). Side-effecting validation belongs in `$onValidate` which runs exactly once per compile. Do not "refactor" this to `extern fn` in a future session — the rejection is deliberate and the same as the Pattern-4 rejection in root `CLAUDE.md`'s 2026-04 collapse note.
+
+---
+
+## Commit 13 — Rule implementations + vitest fixtures
+
+`core/specs/emitters/qyl-semconv-lint/src/rules.ts` — one function per rule, all driven from the stateMap populated in Commit 12:
+
+- **`checkNamespace`** — `QYL-LINT-001` (starts with any `RESERVED_PREFIXES` entry) and `QYL-LINT-002` (does not start with `qyl.`).
+- **`checkNaming`** — `QYL-LINT-003` against the regex `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`.
+- **`checkTypeConsistency`** — `QYL-LINT-004` by grouping records by `key`, reporting when the `Set<type>` has size > 1; also cross-check against upstream registry as defense-in-depth even though `checkNamespace` should have caught upstream shadowing.
+- **`checkStabilityConsistency`** — `QYL-LINT-005` as a one-way ratchet: once any site declares `stable`, no later site may regress to `experimental` or `deprecated`. Rank map: `experimental: 0, stable: 1, deprecated: 2`; `deprecated` is allowed after `stable` (that's how deprecation works), `experimental` is not.
+- **`checkCardinalityConsistency`** — `QYL-LINT-006` by grouping on `key`, reporting when the set of `cardinality` values across sites has size > 1.
+
+`runAllRules(program)` calls them in order. `collectAll(program)` flattens the stateMap buckets into a single `QylAttrRecord[]`. Map upstream OTel types (`int`, `double`, `boolean`, `string[]`, `string`) to the library's canonical types via a small switch; `int` upstream → `long` canonical because OTel attribute ints are 64-bit.
+
+### Tests
+
+`test/rules.test.ts` via `@typespec/compiler/testing`'s `createTester`. One `describe` per rule, each with at least one positive (clean input) and one negative (triggers diagnostic) case. Baseline count: ≥ 10 tests.
+
+```ts
+import { describe, it, expect } from "vitest";
+import { createTester } from "@typespec/compiler/testing";
+
+const tester = createTester({ libraries: ["@qyl/typespec-qyl-semconv-lint"] });
+
+describe("QYL-LINT-001 upstream-collision", () => {
+  it("rejects gen_ai.* as qyl attr", async () => {
+    const { diagnostics } = await tester.compile(`
+      import "@qyl/typespec-qyl-semconv-lint";
+      using Qyl.Semconv;
+      model X {
+        @qylAttr("gen_ai.foo", "string")
+        foo: string;
+      }
+    `);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe("@qyl/typespec-qyl-semconv-lint/upstream-collision");
+  });
+});
+```
+
+### Verify
+
+```bash
+cd core/specs/emitters/qyl-semconv-lint && npm test
+# expect: all green
+```
+
+---
+
+## Commit 14 — Wire-up + annotate every existing `qyl.*` telemetry name
+
+### tspconfig + main.tsp
+
+`core/specs/package.json` — add to `devDependencies`:
+
+```json
+"@qyl/typespec-qyl-semconv-lint": "file:./emitters/qyl-semconv-lint"
+```
+
+`core/specs/main.tsp` — add near the top:
+
+```tsp
+import "@qyl/typespec-qyl-semconv-lint";
+using Qyl.Semconv;
+```
+
+No `emit:` entry needed — `$onValidate` runs on any compile that imports the library.
+
+### Annotate every real qyl.* attribute
+
+Ground-truth grep first — anything hard-coded in runtime code must appear as `@qylAttr` in TypeSpec:
+
+```bash
+grep -rE '"qyl\.[a-z]+\.[a-z_.]+"' src/qyl.collector/ src/qyl.instrumentation/ src/qyl.mcp/ src/qyl.loom/ \
+  | grep -Ev 'McpServerTool|SourceName|RequiresCapability|Dockerfile|app\.' \
+  | sort -u
+```
+
+Expected (verify against current sources; do not copy blind):
+
+- `qyl.capability.id`, `qyl.capability.kind` (resource attrs) — source: `services/qyl.collector/Ingestion/OtlpConverter.cs` (post-Commit-1 path)
+- `qyl.storage.size`, `qyl.duckdb.dropped_jobs_total`, `qyl.duckdb.dropped_spans_total` (meter names) — sources: `QylTelemetry.cs`, `DuckDbStore.cs`
+- `qyl.keycloak.claims` (auth claim key) — source: `TokenAuth.cs`
+- `qyl.instance_id` (log enrichment) — source: `QylLogEnricher.cs`
+
+Attach each to the TypeSpec model where it belongs. For names with no existing TypeSpec home (meter names, log enrichment), create a marker registry:
+
+```tsp
+// core/specs/telemetry/qyl-attrs.tsp
+import "@qyl/typespec-qyl-semconv-lint";
+using Qyl.Semconv;
+
+namespace Qyl.Telemetry.Attrs;
+
+// Marker model. Not emitted. Exists only so @qylAttr annotations have a
+// ModelProperty target for accurate diagnostic location. Do NOT add a
+// @csharpNamespace decorator here — that would route it into Qyl.Contracts.
+@doc("qyl-owned telemetry attribute registry — names only, not a runtime shape.")
+model QylTelemetryRegistry {
+  @qylAttr("qyl.storage.size",                "long",   #{ cardinality: "low",  stability: "experimental" }) storageSize: int64;
+  @qylAttr("qyl.duckdb.dropped_jobs_total",   "long",   #{ cardinality: "low",  stability: "experimental" }) droppedJobsTotal: int64;
+  @qylAttr("qyl.duckdb.dropped_spans_total",  "long",   #{ cardinality: "low",  stability: "experimental" }) droppedSpansTotal: int64;
+  @qylAttr("qyl.keycloak.claims",             "string", #{ cardinality: "high", stability: "experimental" }) keycloakClaims: string;
+  @qylAttr("qyl.instance_id",                 "string", #{ cardinality: "high", stability: "experimental" }) instanceId: string;
+}
+```
+
+For capability attrs that do have a TypeSpec home (Qyl.Capabilities), attach inline:
+
+```tsp
+model CapabilityResourceAttributes {
+  @qylAttr("qyl.capability.id",   "string", #{ cardinality: "low", stability: "experimental" }) id: string;
+  @qylAttr("qyl.capability.kind", "string", #{ cardinality: "low", stability: "experimental" }) kind: "Starting" | "FollowUp";
+}
+```
+
+### Verify
+
+```bash
+cd core/specs && npm install && npm run compile
+# expect: 0 diagnostics — every real qyl.* attr is legal
+
+# Inject a deliberate bug — change one annotation to "qyl.storage..size"
+npm run compile   # expect: QYL-LINT-003 on the exact line
+
+# Change another to "gen_ai.storage.size"
+npm run compile   # expect: QYL-LINT-001 on the exact line
+
+# Revert before finishing the commit.
+```
+
+### Diagnostics catalog
+
+| Code           | Severity | Rule                                                                                       |
+|----------------|----------|--------------------------------------------------------------------------------------------|
+| `QYL-LINT-001` | error    | Attribute starts with an upstream OTel prefix.                                             |
+| `QYL-LINT-002` | error    | Attribute does not start with `qyl.`.                                                      |
+| `QYL-LINT-003` | error    | Attribute violates OTel naming (`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`).                  |
+| `QYL-LINT-004` | error    | Same attribute key declared with different primitive types across sites.                   |
+| `QYL-LINT-005` | error    | Attribute stability regressed from `stable` back to `experimental` (one-way ratchet).      |
+| `QYL-LINT-006` | warning  | Same attribute key declared with different cardinality hints across sites.                 |
+
+---
+
+## Commit 15 — Plan cleanup (self-deletion)
+
+Delete both planning artifacts now that the plan has executed to completion. Planning docs are not long-lived artifacts — the code and tests are the authoritative record of what shipped.
+
+```bash
+git rm docs/planned/2026-04-21-typespec-native-emitters.md
+git rm docs/planned/2026-04-21-typespec-qyl-semconv-lint.md
+git commit -m "chore(planned): delete executed TypeSpec-native-emitters + semconv-lint mandates"
+```
+
+Verify:
+
+```bash
+ls docs/planned/2026-04-21-typespec*.md 2>&1
+# expect: "No such file or directory"
+grep -rn '2026-04-21-typespec-native-emitters\|2026-04-21-typespec-qyl-semconv-lint' docs/ .github/ eng/ services/ internal/ packages/ core/ 2>&1 | grep -v '^Binary' || true
+# expect: 0 lingering references
+```
+
+If any doc or CI file referenced the planning artifacts by path (usually none do — planning docs are one-shot execution inputs), drop those references in the same commit. Do NOT replace with "see commit history" pointers — the PR description and the commits themselves are the record.
+
+---
+
 ## Merge gate
 
 - `dotnet build qyl.slnx --tl:off` → 0 errors
@@ -470,6 +811,10 @@ find eng/build -maxdepth 1 -name '*Generator.cs' -o -name '*Table.cs'
 - `packages/qyl-client/schemas/` — JSON Schema bundle from `@typespec/json-schema` exists and is non-empty.
 - Every file in `packages/*` has a stable public namespace. No `internal/*` types leak upward.
 - REST API at `:5100` returns byte-identical response shapes pre- vs post-Commit-7 for every TypeSpec-modeled route (spot-check `/api/traces`, `/api/spans`, `/api/services`, `/api/agent-runs`, `/api/capabilities`). Any shape drift is a Commit-7 regression, not an acceptable evolution.
+- `cd core/specs/emitters/qyl-semconv-lint && npm test` — all vitest fixtures green (≥ 10 cases across rules QYL-LINT-001..006).
+- `core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json` — present, > 500 entries, `gen_ai.system` resolvable.
+- `grep -rE '"qyl\.[a-z]+\.[a-z_.]+"' src/ services/ internal/` vs `grep -rE '@qylAttr\("qyl\.' core/specs/` — the left set is a subset of the right set. Every runtime `qyl.*` key has a matching `@qylAttr` annotation.
+- `ls docs/planned/2026-04-21-typespec*.md 2>&1 | grep -c "No such"` → 2 (Commit 15 executed — both planning docs deleted).
 - All CI checks on the PR green.
 
 ---
@@ -486,6 +831,19 @@ find eng/build -maxdepth 1 -name '*Generator.cs' -o -name '*Table.cs'
 - No publishing without a version tag. CI pack-and-push triggers exclusively on `tags/v*`.
 - No per-finding rollback PRs after merge. Post-merge regressions → forward-fix commit, not revert.
 - No re-pinning back down to `@typespec/compiler@1.7.x` to "avoid bleeding edge" — 1.11 is current stable, 1.7 is already obsolete on npm-dist-tags.
+
+### Semconv-lint anti-goals (Commits 11-14)
+
+- No TypeSpec `extern fn` as a validator. `$onValidate` is the correct tool for side-effecting validation; `extern fn` is for pure transforms. See Commit 12 design-choice note.
+- No type synthesis from the semconv registry. The library emits diagnostics only — no `.g.cs`, no `.g.ts`, no synthesized TypeSpec types. The Pattern-4 "derive telemetry from API surface" variant is rejected — same reasoning as the 2026-04 `[AgentTraced]` collapse note in root `CLAUDE.md`.
+- No second semconv parser. Weaver is the only tool that reads `.tools/semconv-upstream/model/**/*.yaml`. Commit 11 extends Weaver; it does not replace it.
+- No runtime validation in `qyl.instrumentation` derived from this library. Compile-time only.
+- No span-name / metric-name / event-name linting in these commits. Scope is attribute names and shapes. File a follow-up if that value materializes — do not scope-creep.
+- No `@@suppress("@qyl/typespec-qyl-semconv-lint/...")` escape hatch. Per root `CLAUDE.md` Suppression Policy — fix the attribute or fix the rule.
+
+### Documentation anti-goals (Commit 15)
+
+- No planning-doc hoarding. Executed mandates are deleted — their record lives in commits, tests, and the code itself. Do not preserve as "archive" or move to `docs/history/`.
 
 ---
 
@@ -507,11 +865,13 @@ Record of every new/upgraded TypeSpec feature evaluated for this mandate and the
 | `FilterVisibility` template (1.11, replaces `@withVisibilityFilter`) | **NOT ADOPTED** | The TypeSpec models we emit do not currently use visibility filters. If a visibility-aware contract appears later, use `FilterVisibility` from day one — do not reach for the deprecated `@withVisibilityFilter`. |
 | `EmitContext.perf` PerfReporter (1.9) | **OPTIONAL** — adopt only if Commits 2/3/4 emitters get slow | Wrap `navigateProgram` loops in `context.perf.time("walk", () => ...)` if `nuke Generate` regresses past 10 s. Not required on day one. |
 | OpenAPI 3.2 output via `openapi-versions: [3.2.0]` | **NOT ADOPTED** (we removed the OpenAPI intermediate) | Commit 10 deletes `core/openapi/` entirely. External consumers who want OpenAPI can generate it from `@typespec/http-server-csharp`'s Swagger-UI feature (disabled by default in Commit 7 — re-enable per-env if needed). |
+| `@qyl/typespec-qyl-semconv-lint` library (Commits 11-14) | **INCLUDED** | User directive 2026-04-21 — absorb into this mandate to avoid hoarding a second planning doc. Compile-time-only diagnostic library for qyl-owned telemetry attribute names. Consumes one new Weaver artifact (`otel-attribute-registry.json`). Zero runtime impact; zero new `.g.*` files. |
+| Planning-doc self-deletion (Commit 15) | **INCLUDED** | User directive 2026-04-21 — "goal is not to hoard markdownfiles, instead cleanup the drift in code". Both mandates delete themselves at the end of execution. The code and commits are the record. |
 
-If a future session wants to flip a DEFERRED item to INCLUDED, insert it as a new commit (renumber subsequent commits, update the merge gate) and append a row to this table with the flip reason.
+If a future session wants to flip a DEFERRED item to INCLUDED, insert it as a new commit (renumber subsequent commits, update the merge gate) and append a row to this table with the flip reason. If Commit 15 has already executed and this file is gone, that means the plan shipped — open a new mandate rather than resurrecting this one.
 
 ---
 
-**PR title:** `refactor: TypeSpec-native emitters + ASP.NET server emitter + public SDK packages + repo tier layout`
+**PR title:** `refactor: TypeSpec-native emitters + ASP.NET server emitter + public SDKs + qyl-semconv-lint + repo tier layout`
 
 Execute.
