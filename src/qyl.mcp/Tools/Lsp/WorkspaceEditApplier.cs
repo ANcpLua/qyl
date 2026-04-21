@@ -12,7 +12,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     Resource operations (create/rename/delete files) are out of scope; csharp-ls does not emit
 ///     them for <c>textDocument/rename</c>.
 /// </summary>
-internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
+internal sealed partial class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
 {
     /// <summary>Applies a <c>WorkspaceEdit</c>.</summary>
     public async Task<ApplySummary> ApplyAsync(JsonNode workspaceEdit, CancellationToken ct)
@@ -104,9 +104,12 @@ internal sealed class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
             return 0;
 
         await File.WriteAllTextAsync(filePath, updated, ct).ConfigureAwait(false);
-        logger.LogInformation("Applied {Count} LSP edit(s) to {File}", ordered.Count, filePath);
+        LogApplied(logger, ordered.Count, filePath);
         return ordered.Count;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Applied {Count} LSP edit(s) to {File}")]
+    private static partial void LogApplied(ILogger logger, int count, string file);
 
     private static Edit ParseEdit(JsonObject edit)
     {

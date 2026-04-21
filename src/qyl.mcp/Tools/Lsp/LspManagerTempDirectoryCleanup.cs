@@ -10,7 +10,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     temp state under <c>$TMPDIR/csharp-ls-*</c>; left over from prior crashes, they can eat
 ///     gigabytes over time. Removes directories older than <see cref="MaxAge" />.
 /// </summary>
-internal sealed class LspManagerTempDirectoryCleanup(
+internal sealed partial class LspManagerTempDirectoryCleanup(
     TimeProvider time,
     ILogger<LspManagerTempDirectoryCleanup> logger) : IHostedService
 {
@@ -50,15 +50,24 @@ internal sealed class LspManagerTempDirectoryCleanup(
                 return;
 
             info.Delete(true);
-            logger.LogInformation("Pruned stale LSP temp dir {Directory}", directory);
+            LogPrunedStaleDir(logger, directory);
         }
         catch (IOException ex)
         {
-            logger.LogDebug(ex, "Skipped LSP temp dir {Directory}: in use or locked", directory);
+            LogSkippedDirIoLocked(logger, ex, directory);
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger.LogDebug(ex, "Skipped LSP temp dir {Directory}: access denied", directory);
+            LogSkippedDirAccessDenied(logger, ex, directory);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pruned stale LSP temp dir {Directory}")]
+    private static partial void LogPrunedStaleDir(ILogger logger, string directory);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipped LSP temp dir {Directory}: in use or locked")]
+    private static partial void LogSkippedDirIoLocked(ILogger logger, Exception ex, string directory);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Skipped LSP temp dir {Directory}: access denied")]
+    private static partial void LogSkippedDirAccessDenied(ILogger logger, Exception ex, string directory);
 }

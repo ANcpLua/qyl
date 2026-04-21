@@ -10,7 +10,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     LSP processes don't leak. Start is a no-op — clients are started lazily by
 ///     <see cref="LspClientWrapper.OpenAsync" />.
 /// </summary>
-internal sealed class LspManagerProcessCleanup(
+internal sealed partial class LspManagerProcessCleanup(
     LspClientWrapper wrapper,
     ILogger<LspManagerProcessCleanup> logger) : IHostedService
 {
@@ -20,7 +20,10 @@ internal sealed class LspManagerProcessCleanup(
     /// <inheritdoc />
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Shutting down LSP client pool");
+        LogShuttingDownClientPool(logger);
         await wrapper.DisposeAsync().ConfigureAwait(false);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Shutting down LSP client pool")]
+    private static partial void LogShuttingDownClientPool(ILogger logger);
 }

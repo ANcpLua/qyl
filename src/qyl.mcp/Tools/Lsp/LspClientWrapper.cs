@@ -11,7 +11,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     document, and converts the 1-based user coordinate system to the 0-based LSP wire format
 ///     at this boundary.
 /// </summary>
-internal sealed class LspClientWrapper(
+internal sealed partial class LspClientWrapper(
     LspServerResolution resolution,
     ILogger<LspClientWrapper> logger) : IAsyncDisposable
 {
@@ -33,11 +33,11 @@ internal sealed class LspClientWrapper(
             }
             catch (OperationCanceledException cancelled)
             {
-                logger.LogDebug(cancelled, "LSP client {Key} start was cancelled; nothing to dispose", kv.Key);
+                LogStartCancelled(logger, cancelled, kv.Key);
             }
             catch (IOException ex)
             {
-                logger.LogWarning(ex, "LSP client {Key} disposal encountered an IO error", kv.Key);
+                LogDisposalIoError(logger, ex, kv.Key);
             }
         }
 
@@ -97,9 +97,7 @@ internal sealed class LspClientWrapper(
 
     private async Task<LspClient> StartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
     {
-        logger.LogInformation(
-            "Starting LSP server {ServerId} for workspace {WorkspaceRoot}",
-            resolved.Definition.Id, resolved.WorkspaceRoot);
+        LogStartingServer(logger, resolved.Definition.Id, resolved.WorkspaceRoot);
         var connection = await LspClientConnection.OpenAsync(resolved, ct).ConfigureAwait(false);
         try
         {
@@ -148,6 +146,15 @@ internal sealed class LspClientWrapper(
         };
 
     private sealed record DocumentState(string Text, int Version);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP client {Key} start was cancelled; nothing to dispose")]
+    private static partial void LogStartCancelled(ILogger logger, Exception ex, string key);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "LSP client {Key} disposal encountered an IO error")]
+    private static partial void LogDisposalIoError(ILogger logger, Exception ex, string key);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting LSP server {ServerId} for workspace {WorkspaceRoot}")]
+    private static partial void LogStartingServer(ILogger logger, string serverId, string workspaceRoot);
 }
 
 /// <summary>A handle to an opened document.</summary>

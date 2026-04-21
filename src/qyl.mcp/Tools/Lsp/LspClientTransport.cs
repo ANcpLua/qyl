@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     dozen methods do not justify the <c>StreamJsonRpc</c> dependency. See the skill's
 ///     "JSON-RPC framing" rule.
 /// </summary>
-internal sealed class LspClientTransport : IAsyncDisposable
+internal sealed partial class LspClientTransport : IAsyncDisposable
 {
     // LSP base protocol: "Content-Length: N\r\n\r\n" header, UTF-8 JSON body.
     private const string HeaderPrefix = "Content-Length: ";
@@ -64,11 +64,11 @@ internal sealed class LspClientTransport : IAsyncDisposable
         }
         catch (OperationCanceledException cancelled)
         {
-            _logger?.LogDebug(cancelled, "LSP transport reader loop cancelled during disposal.");
+            if (_logger is not null) LogReaderLoopCancelled(_logger, cancelled);
         }
         catch (IOException ex)
         {
-            _logger?.LogDebug(ex, "LSP transport reader loop terminated with IO exception during disposal.");
+            if (_logger is not null) LogReaderLoopIoError(_logger, ex);
         }
 
         _readerCts.Dispose();
@@ -236,4 +236,10 @@ internal sealed class LspClientTransport : IAsyncDisposable
             offset += read;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport reader loop cancelled during disposal.")]
+    private static partial void LogReaderLoopCancelled(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport reader loop terminated with IO exception during disposal.")]
+    private static partial void LogReaderLoopIoError(ILogger logger, Exception ex);
 }

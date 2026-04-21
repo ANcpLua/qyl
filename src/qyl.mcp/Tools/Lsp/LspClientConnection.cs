@@ -13,7 +13,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     <c>initialize</c> / <c>initialized</c> / <c>shutdown</c> / <c>exit</c> handshake.
 ///     No fixed sleeps — see skill's "JSON-RPC framing" hard rule.
 /// </summary>
-internal sealed class LspClientConnection : IAsyncDisposable
+internal sealed partial class LspClientConnection : IAsyncDisposable
 {
     private readonly CancellationTokenSource _dispatcherCts = new();
     private readonly Task _dispatcherTask;
@@ -55,19 +55,19 @@ internal sealed class LspClientConnection : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("LSP server did not acknowledge shutdown within 2s; falling through to process kill.");
+            LogShutdownTimeout(_logger);
         }
         catch (LspProtocolException ex)
         {
-            _logger.LogDebug(ex, "LSP server rejected shutdown; falling through to process kill.");
+            LogShutdownRejected(_logger, ex);
         }
         catch (IOException ex)
         {
-            _logger.LogDebug(ex, "LSP transport pipe broken during shutdown; falling through to process kill.");
+            LogShutdownPipeBroken(_logger, ex);
         }
         catch (ObjectDisposedException ex)
         {
-            _logger.LogDebug(ex, "LSP transport already disposed during shutdown.");
+            LogShutdownTransportDisposed(_logger, ex);
         }
 
         await _dispatcherCts.CancelAsync().ConfigureAwait(false);
@@ -77,7 +77,7 @@ internal sealed class LspClientConnection : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("LSP dispatcher task observed cancellation during disposal.");
+            LogDispatcherCancelledDuringDispose(_logger);
         }
 
         _dispatcherCts.Dispose();
@@ -224,7 +224,7 @@ internal sealed class LspClientConnection : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("LSP dispatcher loop cancelled during disposal.");
+            LogDispatcherLoopCancelled(_logger);
         }
         finally
         {
@@ -236,6 +236,24 @@ internal sealed class LspClientConnection : IAsyncDisposable
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP server did not acknowledge shutdown within 2s; falling through to process kill.")]
+    private static partial void LogShutdownTimeout(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP server rejected shutdown; falling through to process kill.")]
+    private static partial void LogShutdownRejected(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport pipe broken during shutdown; falling through to process kill.")]
+    private static partial void LogShutdownPipeBroken(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport already disposed during shutdown.")]
+    private static partial void LogShutdownTransportDisposed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP dispatcher task observed cancellation during disposal.")]
+    private static partial void LogDispatcherCancelledDuringDispose(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP dispatcher loop cancelled during disposal.")]
+    private static partial void LogDispatcherLoopCancelled(ILogger logger);
 }
 
 /// <summary>Thrown when a JSON-RPC response carries an <c>error</c> object.</summary>
