@@ -10,13 +10,8 @@ emit:
   - "@qyl/typespec-emit-ts-types"
   - "@typespec/http-client-csharp"
   - "@typespec/http-client-js"
+  - "@typespec/http-server-csharp"
   - "@typespec/json-schema"
-  # "@typespec/http-server-csharp" is installed (core/specs/package.json devDep) but NOT
-  # activated. The alpha emits model types into the same TypeSpec-declared namespaces
-  # that @qyl/typespec-emit-csharp already owns (e.g. `Qyl.OTel.Traces.SpanEvent`),
-  # producing duplicate-definition compile errors. The alpha also emits syntactically
-  # invalid C# (CS1009 escape-sequence errors in JSON-Schema pattern strings).
-  # Activation is blocked on docs/planned/2026-04-21-http-server-csharp-cutover.md.
 
 options:
   "@qyl/typespec-emit-csharp":
@@ -44,6 +39,21 @@ options:
     emitter-output-dir: "{project-root}/../../packages/qyl-client/schemas"
     file-type: json
     bundleId: qyl-api
+
+  "@typespec/http-server-csharp":
+    # Staged under services/qyl.collector/Generated/; the models subtree is excluded
+    # from the csproj Compile glob (the canonical models come from @qyl/typespec-emit-csharp
+    # into packages/Qyl.Contracts/). Only the controllers under Generated/generated/
+    # controllers/ are compiled — they forward to hand-written `*Endpoints.cs` via
+    # partial-class impl. See core/specs/scripts/patch-emitted-csharp-server.mjs for
+    # post-emit fixes against alpha-0.58.0-alpha.27 defects.
+    emitter-output-dir: "{project-root}/../../services/qyl.collector/Generated"
+    output-type: all
+    emit-mocks: none
+    skip-format: false
+    use-swaggerui: false
+    overwrite: true
+    collection-type: array
 
 linter:
   extends:

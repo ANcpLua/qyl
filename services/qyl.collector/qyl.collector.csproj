@@ -26,6 +26,14 @@
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
+  <!-- @typespec/http-server-csharp emits controllers + interfaces + support types into
+       Generated/generated/{controllers,operations,lib}/. The parallel `models/` subtree
+       duplicates the canonical types from @qyl/typespec-emit-csharp → Qyl.Contracts; keep
+       it on disk for emitter idempotency but exclude from Compile. -->
+  <ItemGroup>
+    <Compile Remove="Generated/generated/models/**/*.cs"/>
+  </ItemGroup>
+
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>

@@ -85,17 +85,27 @@ function mapScalar(program: Program, scalar: Scalar): string {
 }
 
 function qualifyModelOrEnum(program: Program, type: Type): string {
-  const name = (type as { name?: string }).name ?? "object";
+  const asModel = type as { name?: string; templateMapper?: { args: readonly Type[] } };
+  let name = asModel.name ?? "object";
+  if (asModel.templateMapper?.args?.length) {
+    // Templated model: use the instantiated name (`CursorPageTrace`) so it matches the
+    // name the emitter produces for the type declaration.
+    const parts = [name];
+    for (const arg of asModel.templateMapper.args) {
+      if ("name" in arg && typeof (arg as { name?: string }).name === "string") {
+        parts.push(pascal((arg as { name: string }).name));
+      }
+    }
+    name = parts.join("");
+  }
   const ownNs = getCsharpNamespace(program, type);
   if (ownNs) return `${ownNs}.${name}`;
   const parentNs = climbForNamespace(program, type);
   return parentNs ? `${parentNs}.${name}` : name;
 }
 
-function qualifyUnion(program: Program, type: Type): string {
-  const name = (type as { name?: string }).name;
-  if (!name) return "object";
-  return qualifyModelOrEnum(program, type);
+function pascal(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
 }
 
 function climbForNamespace(program: Program, type: Type): string | undefined {

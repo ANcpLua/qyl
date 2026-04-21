@@ -14,7 +14,9 @@ import { dirname, resolve, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../..");
-const TARGET = resolve(ROOT, "packages/Qyl.Client/Generated/src/Generated");
+
+const CLIENT_TARGET = resolve(ROOT, "packages/Qyl.Client/Generated/src/Generated");
+const SERVER_TARGET = resolve(ROOT, "services/qyl.collector/Generated/generated");
 
 /**
  * Each patch is a function that takes (content, filePath) and returns the updated
@@ -120,13 +122,132 @@ function addBclDisambiguationAliases(content) {
     return lines.join("\n");
 }
 
-const patches = [
+// Patch 7 — http-server-csharp omits cross-namespace `using` directives in controller +
+//   operation files. Add a blanket set of Qyl.* usings so any referenced type resolves.
+//   Only applies to files under `operations/` or `controllers/` (the domain models already
+//   know their own namespaces). Unused usings are harmless warnings.
+const QYL_UMBRELLA_USINGS = [
+    "using Qyl.Api;",
+    "using Qyl.Common;",
+    "using Qyl.Common.Errors;",
+    "using Qyl.Common.Pagination;",
+    "using Qyl.Domains.AI.GenAi;",
+    "using Qyl.Domains.Agent.Checkpoint;",
+    "using Qyl.Domains.Agent.Run;",
+    "using Qyl.Domains.Agent.ToolCall;",
+    "using Qyl.Domains.Agent.Workflow;",
+    "using Qyl.Domains.Alerting;",
+    "using Qyl.Domains.Configurator;",
+    "using Qyl.Domains.Data.Db;",
+    "using Qyl.Domains.Identity;",
+    "using Qyl.Domains.Issues;",
+    "using Qyl.Domains.Loom.Triage;",
+    "using Qyl.Domains.Observe.Error;",
+    "using Qyl.Domains.Observe.Log;",
+    "using Qyl.Domains.Observe.Otel;",
+    "using Qyl.Domains.Observe.Session;",
+    "using Qyl.Domains.Observe.Test;",
+    "using Qyl.Domains.Ops.Deployment;",
+    "using Qyl.Domains.Ops.Retention;",
+    "using Qyl.Domains.Runtime.System;",
+    "using Qyl.Domains.Search;",
+    "using Qyl.Domains.Transport.Http;",
+    "using Qyl.Domains.Transport.Messaging;",
+    "using Qyl.Domains.Transport.Rpc;",
+    "using Qyl.Domains.Workflow;",
+    "using Qyl.Domains.Workspace;",
+    "using Qyl.Intelligence;",
+    "using Qyl.OTel.Enums;",
+    "using Qyl.OTel.Logs;",
+    "using Qyl.OTel.Metrics;",
+    "using Qyl.OTel.Profiles;",
+    "using Qyl.OTel.Resource;",
+    "using Qyl.OTel.Traces;",
+    "using Qyl.Storage;",
+];
+
+function addServerSideUsings(content, filePath) {
+    if (!/\/(operations|controllers)\//.test(filePath)) return content;
+    const lines = content.split("\n");
+    let lastUsing = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (/^using\s+[\w.=]+(\s*=\s*[\w.]+)?;/.test(lines[i])) lastUsing = i;
+    }
+    if (lastUsing === -1) return content;
+    const existing = new Set(
+        lines.filter((l) => /^using\s+Qyl\./.test(l)).map((l) => l.trim()),
+    );
+    const missing = QYL_UMBRELLA_USINGS.filter((u) => !existing.has(u));
+    if (missing.length === 0) return content;
+    lines.splice(lastUsing + 1, 0, ...missing);
+    return lines.join("\n");
+}
+
+// Patch 8 — CS1009 on raw regex patterns. http-server-csharp interpolates JSON-Schema
+//   `pattern` strings into regular C# string literals (`"..."`), producing invalid
+//   escape sequences like `\d`, `\-`, `\_`. Convert to verbatim string literals (`@"..."`)
+//   where the pattern contains a backslash. Any embedded double-quotes get doubled per
+//   verbatim-literal rules — our semconv patterns don't contain `"`, so the simple
+//   transform is safe.
+function fixRegexPatterns(content) {
+    return content.replace(
+        /(\[StringConstraint\(Pattern = )"([^"]*\\[^"]*)"(\)\])/g,
+        (_, prefix, body, suffix) => `${prefix}@"${body}"${suffix}`,
+    );
+}
+
+// Patch 9 — server-side BCL disambiguation for ambiguous types across multiple domain
+//   namespaces. `ErrorStats` exists in both `Qyl.Collector.Errors.ErrorStats` (hand-written)
+//   and `Qyl.Domains.Observe.Error.ErrorStats` (emitted); `IssueStatus` exists in both
+//   `Qyl.Domains.Issues.IssueStatus` and `Qyl.Contracts.Loom.IssueStatus`. In both cases
+//   the emitted interface wants the TypeSpec-emitted one. Add a using alias.
+function addServerSideDisambiguation(content, filePath) {
+    if (!/\/(operations|controllers)\//.test(filePath)) return content;
+
+    const aliases = [];
+    // Trace: collides with System.Diagnostics.Trace on operations referencing OTel traces.
+    if (/\bTrace\b/.test(content) && !/^using Trace\s*=/m.test(content)
+        && /TracesApi|CursorPageTrace/.test(content)) {
+        aliases.push("using Trace = Qyl.OTel.Traces.Trace;");
+    }
+    // IssueStatus: collides between Qyl.Domains.Issues (canonical) and Qyl.Contracts.Loom.
+    if (/IssuesApi/.test(filePath) && !/^using IssueStatus\s*=/m.test(content)) {
+        aliases.push("using IssueStatus = Qyl.Domains.Issues.IssueStatus;");
+    }
+    // ErrorStats: collides between hand-written Qyl.Collector.Errors and emitted Qyl.Domains.Observe.Error.
+    if (/ErrorsApi/.test(filePath) && !/^using ErrorStats\s*=/m.test(content)) {
+        aliases.push("using ErrorStats = Qyl.Domains.Observe.Error.ErrorStats;");
+    }
+    // LogStats: two TypeSpec models with the same name; the operation references the OTel one.
+    if (/LogsApi/.test(filePath) && !/^using LogStats\s*=/m.test(content)
+        && /\bLogStats\b/.test(content)) {
+        aliases.push("using LogStats = Qyl.OTel.Logs.LogStats;");
+    }
+    if (!aliases.length) return content;
+
+    const lines = content.split("\n");
+    let lastUsing = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (/^using\s+[\w.=]+(\s*=\s*[\w.]+)?;/.test(lines[i])) lastUsing = i;
+    }
+    if (lastUsing === -1) return content;
+    lines.splice(lastUsing + 1, 0, ...aliases);
+    return lines.join("\n");
+}
+
+const clientPatches = [
     patchNullableEnumCast,
     stripExperimentalAttribute,
     fixWrongQualification,
     addMissingUsings,
     patchRestClientNullableParams,
     addBclDisambiguationAliases,
+];
+
+const serverPatches = [
+    fixRegexPatterns,
+    addServerSideUsings,
+    addServerSideDisambiguation,
 ];
 
 function walk(dir, out = []) {
@@ -138,24 +259,24 @@ function walk(dir, out = []) {
     return out;
 }
 
-if (!existsSync(TARGET)) {
-    console.log(`patch-emitted-csharp: ${TARGET} not present, skipping`);
-    process.exit(0);
+function applyPatches(target, patches) {
+    if (!existsSync(target)) {
+        console.log(`patch-emitted-csharp: ${target} not present, skipping`);
+        return;
+    }
+    const files = walk(target);
+    let edits = 0;
+    for (const file of files) {
+        const original = readFileSync(file, "utf8");
+        let updated = original;
+        for (const p of patches) updated = p(updated, file);
+        if (updated !== original) {
+            writeFileSync(file, updated);
+            edits += 1;
+        }
+    }
+    console.log(`patch-emitted-csharp: patched ${edits} / ${files.length} file(s) under ${target}`);
 }
 
-const files = walk(TARGET);
-let totalEdits = 0;
-
-for (const file of files) {
-    const original = readFileSync(file, "utf8");
-    let updated = original;
-    for (const p of patches) {
-        updated = p(updated, file);
-    }
-    if (updated !== original) {
-        writeFileSync(file, updated);
-        totalEdits += 1;
-    }
-}
-
-console.log(`patch-emitted-csharp: patched ${totalEdits} / ${files.length} file(s) under ${TARGET}`);
+applyPatches(CLIENT_TARGET, clientPatches);
+applyPatches(SERVER_TARGET, serverPatches);
