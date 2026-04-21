@@ -351,8 +351,10 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
 // =============================================================================
 
 /// <summary>
-///     Span table columns using snake_case names matching the generated schema.
-///     Column names must match DuckDbSchema.SpansDdl exactly.
+///     Typed column references for the <c>spans</c> table. Not a complete schema mirror —
+///     only the columns actually referenced by live queries are exposed as typed properties.
+///     Use <see cref="Column"/> for any column not represented here, and for computed expressions
+///     like <c>duration_ns / 1000000.0</c>.
 /// </summary>
 public readonly struct SpanColumn
 {
@@ -366,68 +368,15 @@ public readonly struct SpanColumn
 
     public override string ToString() => _name;
 
-    // =========================================================================
-    // Identity columns
-    // =========================================================================
-    public static SpanColumn SpanId => new("span_id");
     public static SpanColumn TraceId => new("trace_id");
-    public static SpanColumn ParentSpanId => new("parent_span_id");
     public static SpanColumn SessionId => new("session_id");
-
-    // =========================================================================
-    // Core span columns
-    // =========================================================================
-    public static SpanColumn Name => new("name");
-    public static SpanColumn Kind => new("kind");
-
-    // =========================================================================
-    // Temporal columns (UBIGINT in schema)
-    // =========================================================================
     public static SpanColumn StartTimeUnixNano => new("start_time_unix_nano");
-    public static SpanColumn EndTimeUnixNano => new("end_time_unix_nano");
-    public static SpanColumn DurationNs => new("duration_ns");
-
-    // =========================================================================
-    // Status columns
-    // =========================================================================
-    public static SpanColumn StatusCode => new("status_code");
-    public static SpanColumn StatusMessage => new("status_message");
-
-    // =========================================================================
-    // Resource columns
-    // =========================================================================
-    public static SpanColumn ServiceName => new("service_name");
-
-    // =========================================================================
-    // GenAI columns (OTel 1.40 semantic conventions)
-    // =========================================================================
     public static SpanColumn GenAiProviderName => new("gen_ai_provider_name");
     public static SpanColumn GenAiRequestModel => new("gen_ai_request_model");
-    public static SpanColumn GenAiResponseModel => new("gen_ai_response_model");
     public static SpanColumn GenAiInputTokens => new("gen_ai_input_tokens");
     public static SpanColumn GenAiOutputTokens => new("gen_ai_output_tokens");
-    public static SpanColumn GenAiTemperature => new("gen_ai_temperature");
-    public static SpanColumn GenAiStopReason => new("gen_ai_stop_reason");
-    public static SpanColumn GenAiToolName => new("gen_ai_tool_name");
-    public static SpanColumn GenAiToolCallId => new("gen_ai_tool_call_id");
-    public static SpanColumn GenAiCostUsd => new("gen_ai_cost_usd");
 
-    // =========================================================================
-    // Flexible storage (JSON columns)
-    // =========================================================================
-    public static SpanColumn AttributesJson => new("attributes_json");
-    public static SpanColumn ResourceJson => new("resource_json");
-
-    // =========================================================================
-    // Metadata
-    // =========================================================================
-    public static SpanColumn CreatedAt => new("created_at");
-
-    // =========================================================================
-    // Factory for custom/dynamic columns
-    // =========================================================================
-
-    /// <summary>Create column for arbitrary column name.</summary>
+    /// <summary>Create column reference for an arbitrary column name or computed expression.</summary>
     public static SpanColumn Column(string name) => new(name);
 }
 
