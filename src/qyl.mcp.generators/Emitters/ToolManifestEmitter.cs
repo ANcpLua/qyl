@@ -323,9 +323,9 @@ internal static class ToolManifestEmitter
             return "null";
 
         return "\"" + value
-            .ReplaceOrdinal("\\", "\\\\")!
-            .ReplaceOrdinal("\"", "\\\"")!
-            .ReplaceOrdinal("\r", "\\r")!
-            .ReplaceOrdinal("\n", "\\n")! + "\"";
+            .ReplaceOrdinal("\\", "\\\\")
+            .ReplaceOrdinal("\"", "\\\"")
+            .ReplaceOrdinal("\r", "\\r")
+            .ReplaceOrdinal("\n", "\\n") + "\"";
     }
 }

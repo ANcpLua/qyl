@@ -17,7 +17,7 @@
     <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills + Testing).
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
     <ANcpLuaRoslynUtilitiesVersion>1.56.1</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAnalyzersVersion>1.26.1</ANcpLuaAnalyzersVersion>
+    <ANcpLuaAnalyzersVersion>1.26.2</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.4.0-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.4.0</ANcpLuaAgentsVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>

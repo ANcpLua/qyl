@@ -40,7 +40,7 @@ public static class ActivitySources
         var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                             ?? assembly.GetName().Version?.ToString()
                             ?? "0.0.0";
-        var plus = informational.IndexOf('+', System.StringComparison.Ordinal);
+        var plus = informational.IndexOfOrdinal('+');
         return plus > 0 ? informational.Substring(0, plus) : informational;
     }
 
