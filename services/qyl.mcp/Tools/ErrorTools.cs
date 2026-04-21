@@ -51,13 +51,9 @@ public sealed class ErrorTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/issues?limit={limit}";
-            if (!string.IsNullOrEmpty(status))
-                url += $"&status={Uri.EscapeDataString(status)}";
-            if (!string.IsNullOrEmpty(priority))
-                url += $"&priority={Uri.EscapeDataString(priority)}";
-            if (!string.IsNullOrEmpty(level))
-                url += $"&level={Uri.EscapeDataString(level)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/issues?limit={limit}",
+                ("status", status), ("priority", priority), ("level", level));
 
             var response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
                 url, ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);

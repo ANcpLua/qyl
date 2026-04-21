@@ -119,9 +119,9 @@ internal sealed class TraceExplorerTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/genai/spans?limit={limit}&hours={hours}";
-            if (!string.IsNullOrEmpty(status))
-                url += $"&status={Uri.EscapeDataString(status)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/genai/spans?limit={limit}&hours={hours}",
+                ("status", status));
 
             var response = await client.GetFromJsonAsync(
                 url, TraceExplorerJsonContext.Default.SpanSearchApiResponse).ConfigureAwait(false);
@@ -200,12 +200,11 @@ internal sealed class TraceExplorerTools(HttpClient client)
 
     private async Task<List<TraceSpanDto>> FetchSpansAsync(string? traceId, string? sessionId, int limit)
     {
-        var url = !string.IsNullOrEmpty(sessionId)
+        var basePath = !string.IsNullOrEmpty(sessionId)
             ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans?limit={limit}"
             : $"/api/v1/genai/spans?limit={limit}";
 
-        if (!string.IsNullOrEmpty(traceId))
-            url += $"&traceId={Uri.EscapeDataString(traceId)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(basePath, ("traceId", traceId));
 
         var response = await client.GetFromJsonAsync(
             url, TraceExplorerJsonContext.Default.SpanSearchApiResponse).ConfigureAwait(false);

@@ -34,9 +34,8 @@ public sealed class ListTeamsTool(HttpClient client)
     {
         limit = Math.Clamp(limit, 1, 100);
 
-        var url = $"/api/v1/mcp/teams?limit={limit}";
-        if (query is not null)
-            url += $"&q={Uri.EscapeDataString(query)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/teams?limit={limit}", ("q", query));
 
         var result = await client.GetFromJsonAsync<PagedResult<TeamDto>>(url, ct).ConfigureAwait(false);
 

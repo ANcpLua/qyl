@@ -58,11 +58,9 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Filter: by model name")] string? model = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url =
-                $"/api/v1/analytics/conversations?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}";
-            if (hasErrors.HasValue) url += $"&hasErrors={hasErrors.Value}";
-            if (!string.IsNullOrEmpty(userId)) url += $"&userId={Uri.EscapeDataString(userId)}";
-            if (!string.IsNullOrEmpty(model)) url += $"&model={Uri.EscapeDataString(model)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/analytics/conversations?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}",
+                ("hasErrors", hasErrors?.ToString()), ("userId", userId), ("model", model));
 
             var response = await client.GetFromJsonAsync<ConversationListDto>(
                 url, AnalyticsJsonContext.Default.ConversationListDto).ConfigureAwait(false);

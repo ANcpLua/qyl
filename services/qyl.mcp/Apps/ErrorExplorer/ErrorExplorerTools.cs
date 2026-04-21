@@ -43,11 +43,9 @@ public sealed class ErrorExplorerTools(HttpClient client)
     {
         var text = await CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/issues?limit={limit}";
-            if (!string.IsNullOrEmpty(status))
-                url += $"&status={Uri.EscapeDataString(status)}";
-            if (!string.IsNullOrEmpty(service))
-                url += $"&service={Uri.EscapeDataString(service)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/issues?limit={limit}",
+                ("status", status), ("service", service));
 
             var response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
                 url, ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);

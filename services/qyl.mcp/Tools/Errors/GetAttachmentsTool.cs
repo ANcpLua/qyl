@@ -33,9 +33,9 @@ public sealed class GetAttachmentsTool(HttpClient client)
         string? eventId = null,
         CancellationToken ct = default)
     {
-        var url = $"/api/v1/mcp/errors/{Uri.EscapeDataString(issueId)}/attachments";
-        if (!string.IsNullOrEmpty(eventId))
-            url += $"?eventId={Uri.EscapeDataString(eventId)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/errors/{Uri.EscapeDataString(issueId)}/attachments",
+            ("eventId", eventId));
 
         var response = await client.GetAsync(url, ct).ConfigureAwait(false);
 

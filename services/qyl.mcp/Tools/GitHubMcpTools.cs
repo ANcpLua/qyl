@@ -91,11 +91,9 @@ internal sealed class GitHubMcpTools(HttpClient http)
         await CollectorHelper.ExecuteAsync(async () =>
         {
             var take = Math.Clamp(limit ?? 20, 1, 100);
-            var url = $"/api/v1/github/events?limit={take}";
-            if (eventType is not null)
-                url += $"&eventType={Uri.EscapeDataString(eventType)}";
-            if (repoFullName is not null)
-                url += $"&repoFullName={Uri.EscapeDataString(repoFullName)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/github/events?limit={take}",
+                ("eventType", eventType), ("repoFullName", repoFullName));
 
             using var resp = await http.GetAsync(new Uri(url, UriKind.Relative), ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();

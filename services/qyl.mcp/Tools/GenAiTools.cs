@@ -41,9 +41,8 @@ public sealed class GenAiTools(HttpClient client)
         int hours = 24) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/genai/stats?hours={hours}";
-            if (!string.IsNullOrEmpty(sessionId))
-                url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/genai/stats?hours={hours}", ("sessionId", sessionId));
 
             if (await client.GetFromJsonAsync<GenAiStatsDto>(url, GenAiJsonContext.Default.GenAiStatsDto)
                     .ConfigureAwait(false) is not { } stats)
@@ -108,15 +107,10 @@ public sealed class GenAiTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/genai/spans?limit={limit}";
-            if (!string.IsNullOrEmpty(provider))
-                url += $"&provider={Uri.EscapeDataString(provider)}";
-            if (!string.IsNullOrEmpty(model))
-                url += $"&model={Uri.EscapeDataString(model)}";
-            if (!string.IsNullOrEmpty(status))
-                url += $"&status={Uri.EscapeDataString(status)}";
-            if (!string.IsNullOrEmpty(sessionId))
-                url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/genai/spans?limit={limit}",
+                ("provider", provider), ("model", model),
+                ("status", status), ("sessionId", sessionId));
 
             var response = await client.GetFromJsonAsync<GenAiSpansResponse>(
                 url, GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);

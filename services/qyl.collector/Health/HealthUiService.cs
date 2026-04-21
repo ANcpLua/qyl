@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities.Text;
 using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Health;
@@ -65,7 +66,7 @@ public sealed class HealthUiService(
                     ["sessionCount"] = stats.SessionCount,
                     ["logCount"] = stats.LogCount,
                     ["storageSizeBytes"] = sizeBytes,
-                    ["storageSizeMb"] = Math.Round(sizeBytes / (1024.0 * 1024.0), 2)
+                    ["storageSizeMb"] = ByteSize.Megabytes(sizeBytes)
                 }
             };
         }
@@ -120,8 +121,8 @@ public sealed class HealthUiService(
                     ["totalBytes"] = totalBytes,
                     ["freeBytes"] = freeBytes,
                     ["usedPercent"] = usedPercent,
-                    ["totalGb"] = Math.Round(totalBytes / (1024.0 * 1024.0 * 1024.0), 2),
-                    ["freeGb"] = Math.Round(freeBytes / (1024.0 * 1024.0 * 1024.0), 2)
+                    ["totalGb"] = ByteSize.Gigabytes(totalBytes),
+                    ["freeGb"] = ByteSize.Gigabytes(freeBytes)
                 }
             };
         }
@@ -175,10 +176,10 @@ public sealed class HealthUiService(
                 Message = message,
                 Data = new Dictionary<string, object>
                 {
-                    ["workingSetMb"] = Math.Round(workingSetBytes / (1024.0 * 1024.0), 2),
-                    ["privateMemoryMb"] = Math.Round(privateMemoryBytes / (1024.0 * 1024.0), 2),
-                    ["heapSizeMb"] = Math.Round(heapSizeBytes / (1024.0 * 1024.0), 2),
-                    ["totalAvailableMb"] = Math.Round(totalAvailableBytes / (1024.0 * 1024.0), 2),
+                    ["workingSetMb"] = ByteSize.Megabytes(workingSetBytes),
+                    ["privateMemoryMb"] = ByteSize.Megabytes(privateMemoryBytes),
+                    ["heapSizeMb"] = ByteSize.Megabytes(heapSizeBytes),
+                    ["totalAvailableMb"] = ByteSize.Megabytes(totalAvailableBytes),
                     ["memoryPressurePercent"] = memoryPressure,
                     ["gcGen0Collections"] = GC.CollectionCount(0),
                     ["gcGen1Collections"] = GC.CollectionCount(1),

@@ -60,17 +60,11 @@ public sealed class StructuredLogTools(HttpClient client)
         int limit = 100) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/logs?limit={limit}";
-            if (!string.IsNullOrEmpty(sessionId))
-                url += $"&session={Uri.EscapeDataString(sessionId)}";
-            if (!string.IsNullOrEmpty(traceId))
-                url += $"&trace={Uri.EscapeDataString(traceId)}";
-            if (!string.IsNullOrEmpty(level))
-                url += $"&level={Uri.EscapeDataString(level)}";
-            if (minSeverity.HasValue)
-                url += $"&minSeverity={minSeverity.Value}";
-            if (!string.IsNullOrEmpty(search))
-                url += $"&search={Uri.EscapeDataString(search)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/logs?limit={limit}",
+                ("session", sessionId), ("trace", traceId), ("level", level),
+                ("minSeverity", minSeverity?.ToString(CultureInfo.InvariantCulture)),
+                ("search", search));
 
             var response = await client.GetFromJsonAsync<LogsResponse>(
                 url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);

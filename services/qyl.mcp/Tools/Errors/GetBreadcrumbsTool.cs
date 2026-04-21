@@ -33,9 +33,9 @@ public sealed class GetBreadcrumbsTool(HttpClient client)
         string? eventId = null,
         CancellationToken ct = default)
     {
-        var url = $"/api/v1/mcp/errors/{Uri.EscapeDataString(issueId)}/breadcrumbs";
-        if (eventId is not null)
-            url += $"?eventId={Uri.EscapeDataString(eventId)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/errors/{Uri.EscapeDataString(issueId)}/breadcrumbs",
+            ("eventId", eventId));
 
         var response = await client.GetAsync(url, ct).ConfigureAwait(false);
 
