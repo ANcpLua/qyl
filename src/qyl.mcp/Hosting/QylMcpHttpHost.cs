@@ -14,7 +14,7 @@ internal static class QylMcpHttpHost
     public static async Task RunAsync(string[] args, SkillConfiguration skills, QylScope scope)
     {
         var builder = WebApplication.CreateBuilder(args);
-        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging);
+        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, stdioTransport: false);
 
         var hostOptions = McpHostOptions.FromConfiguration(builder.Configuration, McpTransportMode.Http);
         QylMcpServiceCollectionExtensions.ApplyPortFallback(builder.WebHost, builder.Configuration);

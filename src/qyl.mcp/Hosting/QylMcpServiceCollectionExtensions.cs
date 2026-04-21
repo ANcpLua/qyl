@@ -33,8 +33,18 @@ namespace qyl.mcp.Hosting;
 
 internal static partial class QylMcpServiceCollectionExtensions
 {
-    public static void ConfigureLogging(ILoggingBuilder logging) =>
-        logging.AddConsole(static options => options.LogToStandardErrorThreshold = LogLevel.Trace);
+    public static void ConfigureLogging(ILoggingBuilder logging, bool stdioTransport) =>
+        logging.AddConsole(options =>
+        {
+            // Stdio transport: stdout carries the MCP JSON-RPC protocol, so every log
+            // must land on stderr or we corrupt the frame. HTTP transport: keep the
+            // default (Errors+Critical on stderr, rest on stdout) so container hosts
+            // like Railway don't tag every "info: ..." line as error severity.
+            if (stdioTransport)
+            {
+                options.LogToStandardErrorThreshold = LogLevel.Trace;
+            }
+        });
 
     public static JsonSerializerOptions AddQylMcpCommonServices(
         this IServiceCollection services,
