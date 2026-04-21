@@ -6,7 +6,10 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// </summary>
 public static class ActivityExceptionTelemetry
 {
-    // OTel semconv 1.40 — stable
+    // OTel semconv 1.40 — stable keys from the `error.*` and `exception.*` prefixes.
+    // No qyl facade covers these namespaces (qyl.contracts.Attributes only wraps
+    // gen_ai / db / mcp). Inlined here rather than behind a facade that doesn't exist;
+    // promote to ErrorAttributes / ExceptionAttributes if a second consumer appears.
     private const string ErrorType = "error.type";
     private const string ExceptionType = "exception.type";
     private const string ExceptionMessage = "exception.message";
