@@ -6,6 +6,7 @@
         <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj"/>
         <Project Path="packages/Qyl.Client/Qyl.Client.csproj"/>
         <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj"/>
+        <Project Path="packages/Qyl.Aspire.Hosting/Qyl.Aspire.Hosting.csproj"/>
     </Folder>
     <Folder Name="/services/">
         <Project Path="services/qyl.collector/qyl.collector.csproj"/>
