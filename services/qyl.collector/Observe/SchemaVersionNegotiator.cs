@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities.OTel;
 using Qyl.Contracts.Generated;
 
 namespace Qyl.Collector.Observe;
@@ -25,16 +26,15 @@ internal static class SchemaVersionNegotiator
         if (string.Equals(requestedVersion, CollectorVersion, StringComparison.OrdinalIgnoreCase))
             return new NegotiationResult.Accept(CollectorVersion, requestedVersion);
 
-        // Parse both versions. Expected format: "semconv-{major}.{minor}.{patch}"
-        if (!TryParseSemconv(CollectorVersion, out var collectorParsed) ||
-            !TryParseSemconv(requestedVersion, out var requestedParsed))
+        // SemconvVersion returns true with majors==0 on unknown shapes — IsMajorCompatible
+        // is permissive in that case (both unparseable → compatible), matching prior behaviour.
+        if (!SemconvVersion.TryParse(CollectorVersion, out var cMajor, out _, out _) ||
+            !SemconvVersion.TryParse(requestedVersion, out var rMajor, out _, out _))
         {
-            // Unrecognised format: accept permissively (do not block unknown version strings)
             return new NegotiationResult.Accept(CollectorVersion, requestedVersion);
         }
 
-        // Major version mismatch → Reject
-        if (collectorParsed.Major != requestedParsed.Major)
+        if (cMajor != rMajor)
         {
             return new NegotiationResult.Reject(
                 $"Incompatible semconv major version: collector={CollectorVersion}, requested={requestedVersion}",
@@ -44,30 +44,6 @@ internal static class SchemaVersionNegotiator
 
         // Minor/patch delta → Accept (potentially with schema drift, but not blocking)
         return new NegotiationResult.Accept(CollectorVersion, requestedVersion);
-    }
-
-    // ── Version parsing ───────────────────────────────────────────────────────
-
-    private static bool TryParseSemconv(string version, out (int Major, int Minor, int Patch) parsed)
-    {
-        // Expected: "semconv-1.40.0"
-        const string prefix = "semconv-";
-        parsed = default;
-
-        if (!version.StartsWithIgnoreCase(prefix))
-            return false;
-
-        var parts = version[prefix.Length..].Split('.');
-        if (parts.Length < 2)
-            return false;
-
-        if (!int.TryParse(parts[0], out var major) ||
-            !int.TryParse(parts[1], out var minor))
-            return false;
-
-        var patch = parts.Length >= 3 && int.TryParse(parts[2], out var p) ? p : 0;
-        parsed = (major, minor, patch);
-        return true;
     }
 
     // ── Result DU ─────────────────────────────────────────────────────────────

@@ -62,8 +62,7 @@ public static partial class ErrorFingerprinter
             }
         }
 
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexStringLower(hash)[..16]; // 64-bit fingerprint
+        return ANcpLua.Roslyn.Utilities.Security.Sha256Hex.Hash(input)[..16]; // 64-bit fingerprint
     }
 
     private static string NormalizeStackTrace(string? stackTrace)

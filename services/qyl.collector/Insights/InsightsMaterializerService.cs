@@ -51,7 +51,7 @@ public sealed partial class InsightsMaterializerService(
         var content = await materialize().ConfigureAwait(false);
         sw.Stop();
 
-        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+        var hash = ANcpLua.Roslyn.Utilities.Security.Sha256Hex.Hash(content);
         var existing = await store.GetInsightHashAsync(tier, ct).ConfigureAwait(false);
 
         if (hash == existing)
