@@ -83,7 +83,7 @@ azure_cosmosdb_operation_contacted_regions VARCHAR,
 azure_cosmosdb_operation_request_charge VARCHAR,
 
 -- azure.cosmosdb.request.body attributes
-azure_cosmosdb_request_body_size VARCHAR,
+azure_cosmosdb_request_body_size BIGINT,
 
 -- azure.cosmosdb.response attributes
 azure_cosmosdb_response_sub_status_code VARCHAR,
@@ -280,7 +280,7 @@ db_namespace VARCHAR,
 db_operation VARCHAR,
 
 -- db.operation.batch attributes
-db_operation_batch_size VARCHAR,
+db_operation_batch_size BIGINT,
 
 -- db.operation attributes
 db_operation_name VARCHAR,
@@ -436,7 +436,7 @@ file_owner_name VARCHAR,
 
 -- file attributes
 file_path VARCHAR,
-file_size VARCHAR,
+file_size BIGINT,
 
 -- file.symbolic_link attributes
 file_symbolic_link_target_path VARCHAR,
@@ -457,7 +457,7 @@ gen_ai_conversation_id VARCHAR,
 gen_ai_data_source_id VARCHAR,
 
 -- gen_ai.embeddings.dimension attributes
-gen_ai_embeddings_dimension_count VARCHAR,
+gen_ai_embeddings_dimension_count BIGINT,
 
 -- gen_ai.evaluation attributes
 gen_ai_evaluation_explanation VARCHAR,
@@ -472,7 +472,7 @@ gen_ai_input_messages VARCHAR,
 
 -- gen_ai.openai.request attributes
 gen_ai_openai_request_response_format VARCHAR,
-gen_ai_openai_request_seed VARCHAR,
+gen_ai_openai_request_seed BIGINT,
 gen_ai_openai_request_service_tier VARCHAR,
 
 -- gen_ai.openai.response attributes
@@ -496,19 +496,19 @@ gen_ai_prompt_name VARCHAR,
 gen_ai_provider_name VARCHAR,
 
 -- gen_ai.request.choice attributes
-gen_ai_request_choice_count VARCHAR,
+gen_ai_request_choice_count BIGINT,
 
 -- gen_ai.request attributes
 gen_ai_request_encoding_formats VARCHAR,
-gen_ai_request_frequency_penalty VARCHAR,
+gen_ai_request_frequency_penalty DOUBLE,
 gen_ai_request_max_tokens BIGINT,
 gen_ai_request_model VARCHAR,
-gen_ai_request_presence_penalty VARCHAR,
-gen_ai_request_seed VARCHAR,
+gen_ai_request_presence_penalty DOUBLE,
+gen_ai_request_seed BIGINT,
 gen_ai_request_stop_sequences VARCHAR,
-gen_ai_request_temperature VARCHAR,
-gen_ai_request_top_k VARCHAR,
-gen_ai_request_top_p VARCHAR,
+gen_ai_request_temperature DOUBLE,
+gen_ai_request_top_k BIGINT,
+gen_ai_request_top_p DOUBLE,
 
 -- gen_ai.response attributes
 gen_ai_response_finish_reasons VARCHAR,
@@ -574,7 +574,7 @@ geo_region_iso_code VARCHAR,
 host_arch VARCHAR,
 
 -- host.cpu.cache.l2 attributes
-host_cpu_cache_l2_size VARCHAR,
+host_cpu_cache_l2_size BIGINT,
 
 -- host.cpu attributes
 host_cpu_family VARCHAR,
@@ -615,25 +615,25 @@ http_host VARCHAR,
 http_method VARCHAR,
 
 -- http.request.body attributes
-http_request_body_size VARCHAR,
+http_request_body_size BIGINT,
 
 -- http.request attributes
 http_request_header VARCHAR,
 http_request_method VARCHAR,
 http_request_method_original VARCHAR,
 http_request_resend_count BIGINT,
-http_request_size VARCHAR,
+http_request_size BIGINT,
 
 -- http attributes
 http_request_content_length VARCHAR,
 http_request_content_length_uncompressed VARCHAR,
 
 -- http.response.body attributes
-http_response_body_size VARCHAR,
+http_response_body_size BIGINT,
 
 -- http.response attributes
 http_response_header VARCHAR,
-http_response_size VARCHAR,
+http_response_size BIGINT,
 http_response_status_code VARCHAR,
 
 -- http attributes
@@ -693,7 +693,7 @@ k8s_hpa_scaletargetref_name VARCHAR,
 k8s_hpa_uid VARCHAR,
 
 -- k8s.hugepage attributes
-k8s_hugepage_size VARCHAR,
+k8s_hugepage_size BIGINT,
 
 -- k8s.job attributes
 k8s_job_annotation VARCHAR,
@@ -847,13 +847,13 @@ messaging_kafka_message_tombstone VARCHAR,
 messaging_kafka_offset VARCHAR,
 
 -- messaging.message.body attributes
-messaging_message_body_size VARCHAR,
+messaging_message_body_size BIGINT,
 
 -- messaging.message attributes
 messaging_message_conversation_id VARCHAR,
 
 -- messaging.message.envelope attributes
-messaging_message_envelope_size VARCHAR,
+messaging_message_envelope_size BIGINT,
 
 -- messaging.message attributes
 messaging_message_id VARCHAR,
