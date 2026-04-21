@@ -101,7 +101,15 @@ internal sealed class LspClientWrapper(
             "Starting LSP server {ServerId} for workspace {WorkspaceRoot}",
             resolved.Definition.Id, resolved.WorkspaceRoot);
         var connection = await LspClientConnection.OpenAsync(resolved, ct).ConfigureAwait(false);
-        return new LspClient(connection);
+        try
+        {
+            return new LspClient(connection);
+        }
+        catch
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async Task EnsureDocumentAsync(

@@ -32,7 +32,7 @@ public static partial class LoomDemoTools
     [RequiresCapability("qyl.fix.plan")]
     [ToolSideEffect(ToolSideEffect.None)]
     [EmitsStructuredOutput(typeof(LoomDemoFixPlan))]
-    public static LoomDemoFixPlan ProposeFix(LoomDemoRootCauseReport report) =>
+    public static LoomDemoFixPlan ProposeFix(LoomDemoRootCauseReport _) =>
         new(
             "Rollback the suspect optimization and add a bounded guard.",
             ["disable risky path", "restore previous plan", "add regression check"],
@@ -45,8 +45,8 @@ public static partial class LoomDemoTools
     [ToolSideEffect(ToolSideEffect.ReadsExternalState)]
     [EmitsStructuredOutput(typeof(LoomDemoVerificationResult))]
     public static LoomDemoVerificationResult VerifyFix(
-        LoomDemoPatchProposal proposal,
-        CancellationToken cancellationToken = default) =>
+        LoomDemoPatchProposal _,
+        CancellationToken _1 = default) =>
         new(
             true,
             "Replay and smoke checks passed.",

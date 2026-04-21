@@ -73,6 +73,7 @@ internal sealed class LspClientTransport : IAsyncDisposable
 
         _readerCts.Dispose();
         _writeLock.Dispose();
+        await _writer.DisposeAsync().ConfigureAwait(false);
     }
 
     /// <summary>Allocate a monotonic request id for a JSON-RPC <c>id</c> field.</summary>

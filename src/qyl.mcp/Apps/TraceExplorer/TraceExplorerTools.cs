@@ -229,7 +229,9 @@ internal sealed class TraceExplorerTools(HttpClient client)
     }
 
     private static double ParseMs(string ts) =>
-        new DateTimeOffset(DateTime.Parse(ts, null, DateTimeStyles.RoundtripKind)).ToUnixTimeMilliseconds();
+        DateTime.TryParse(ts, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
+            ? new DateTimeOffset(parsed).ToUnixTimeMilliseconds()
+            : 0d;
 
     private static TraceSpanDto MapToViewSpan(SpanApiDto raw)
     {

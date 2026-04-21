@@ -20,8 +20,7 @@ internal sealed record LspServerResolutionResult(
 /// </summary>
 internal sealed class LspServerResolution(
     LspServerDefinitions definitions,
-    LspLanguageMappings mappings,
-    LspServerInstallation installation)
+    LspLanguageMappings mappings)
 {
     /// <summary>
     ///     Resolve launch parameters for an absolute file path.
@@ -56,7 +55,7 @@ internal sealed class LspServerResolution(
                 $"Known ids: {known}");
         }
 
-        var binaryPath = installation.Locate(definition);
+        var binaryPath = LspServerInstallation.Locate(definition);
         var workspaceRoot = WorkspaceRootWalker.FindRoot(filePath);
         return new LspServerResolutionResult(definition, binaryPath, workspaceRoot);
     }

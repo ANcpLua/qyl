@@ -213,12 +213,12 @@ internal sealed class QueryStudioTools(HttpClient client)
     };
 
     private static string? GetStringValue(Dictionary<string, object?> row, string key) =>
-        row.TryGetValue(key, out var val)
+        row.TryGetValue(key, out var val) && val is not null
             ? val switch
             {
                 string s => s,
                 JsonElement { ValueKind: JsonValueKind.String } el => el.GetString(),
-                _ => val?.ToString()
+                _ => val.ToString()
             }
             : null;
 }

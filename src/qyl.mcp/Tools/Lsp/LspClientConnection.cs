@@ -96,28 +96,33 @@ internal sealed class LspClientConnection : IAsyncDisposable
         ILogger? logger = null)
     {
         var process = LspProcess.Start(resolution);
-        LspClientTransport? transport = null;
-        LspClientConnection? connection = null;
         try
         {
-            transport = new LspClientTransport(process.Stdout, process.Stdin, logger);
-            connection = new LspClientConnection(process, transport, resolution, logger);
+            return await CreateAndInitializeAsync(process, resolution, logger, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            await process.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static async Task<LspClientConnection> CreateAndInitializeAsync(
+        LspProcess process,
+        LspServerResolutionResult resolution,
+        ILogger? logger,
+        CancellationToken ct)
+    {
+        var transport = new LspClientTransport(process.Stdout, process.Stdin, logger);
+        try
+        {
+            var connection = new LspClientConnection(process, transport, resolution, logger);
             await connection.InitializeAsync(ct).ConfigureAwait(false);
             return connection;
         }
         catch
         {
-            if (connection is not null)
-            {
-                await connection.DisposeAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                if (transport is not null)
-                    await transport.DisposeAsync().ConfigureAwait(false);
-                await process.DisposeAsync().ConfigureAwait(false);
-            }
-
+            await transport.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }

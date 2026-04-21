@@ -8,7 +8,7 @@ namespace qyl.mcp.Tools.Lsp;
 ///     Resolves an LSP server binary location on disk using PATH and well-known
 ///     .NET global-tool install paths.
 /// </summary>
-internal sealed class LspServerInstallation
+internal static class LspServerInstallation
 {
     /// <summary>
     ///     Locates the binary for a known server definition.
@@ -19,7 +19,7 @@ internal sealed class LspServerInstallation
     ///     Thrown with the install command embedded when the binary cannot be located on PATH or in
     ///     the dotnet global-tool directory.
     /// </exception>
-    public string Locate(LspServerDefinition definition)
+    public static string Locate(LspServerDefinition definition)
     {
         var executableName = ResolveExecutableName(definition.Executable);
 

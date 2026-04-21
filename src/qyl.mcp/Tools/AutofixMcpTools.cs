@@ -233,8 +233,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
             if (doc.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
                 return error.GetString() ?? fallback;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            System.Diagnostics.Debug.WriteLine(ex);
         }
 
         return errorBody.Trim();

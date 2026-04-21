@@ -25,7 +25,7 @@ public sealed class IntelligenceTools(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description(
         "List all available diagnostic patterns from the static registry. Returns pattern IDs, categories, hypotheses, and required signals.")]
-    public Task<string> ListDiagnosticPatternsAsync(
+    public static Task<string> ListDiagnosticPatternsAsync(
         [Description("Filter by category (genai, error, performance, infrastructure)")]
         string? category = null)
     {

@@ -64,7 +64,6 @@ internal static partial class QylMcpServiceCollectionExtensions
             // LSP runtime — singletons for pure lookup/state services.
             services.AddSingleton<LspServerDefinitions>();
             services.AddSingleton<LspLanguageMappings>();
-            services.AddSingleton<LspServerInstallation>();
             services.AddSingleton<LspServerResolution>();
             services.AddSingleton<LspClientWrapper>();
             services.AddSingleton<WorkspaceEditApplier>();

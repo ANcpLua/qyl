@@ -172,10 +172,11 @@ internal static class QylMcpServerRegistration
     }
 }
 
+// Attribute names per OTel schema v1.39.0+ (rpc.system / rpc.jsonrpc.* were deprecated).
 file static class Rpc
 {
-    public const string System = "rpc.system";
+    public const string System = "rpc.system.name";
     public const string Method = "rpc.method";
-    public const string JsonrpcVersion = "rpc.jsonrpc.version";
-    public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+    public const string JsonrpcVersion = "jsonrpc.protocol.version";
+    public const string JsonrpcRequestId = "jsonrpc.request.id";
 }
