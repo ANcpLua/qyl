@@ -13,11 +13,13 @@ UPSTREAM_DIR="${TOOLS_DIR}/semconv-upstream"
 WEAVER_VERSION="v0.22.1"
 SEMCONV_TAG="v1.40.0"
 
+UNAME_S="$(uname -s)"
 UNAME_M="$(uname -m)"
-case "${UNAME_M}" in
-  arm64|aarch64) WEAVER_ARCH="aarch64-apple-darwin" ;;
-  x86_64)        WEAVER_ARCH="x86_64-apple-darwin" ;;
-  *) echo "Unsupported arch: ${UNAME_M}" >&2; exit 1 ;;
+case "${UNAME_S}:${UNAME_M}" in
+  Darwin:arm64|Darwin:aarch64) WEAVER_ARCH="aarch64-apple-darwin" ;;
+  Darwin:x86_64)               WEAVER_ARCH="x86_64-apple-darwin" ;;
+  Linux:x86_64)                WEAVER_ARCH="x86_64-unknown-linux-gnu" ;;
+  *) echo "Unsupported platform: ${UNAME_S}/${UNAME_M}" >&2; exit 1 ;;
 esac
 
 mkdir -p "${WEAVER_DIR}"
