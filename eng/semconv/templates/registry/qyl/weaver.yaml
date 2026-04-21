@@ -86,3 +86,8 @@ templates:
     filter: semconv_grouped_attributes
     application_mode: single
     file_name: "promoted-columns.g.sql"
+
+  - template: otel-attribute-registry.json.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "otel-attribute-registry.json"

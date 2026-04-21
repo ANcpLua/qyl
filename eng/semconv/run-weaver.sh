@@ -3,8 +3,9 @@
 #
 # Pinned inputs:  open-telemetry/semantic-conventions v1.40.0 (cloned by bootstrap)
 # Output targets:
-#   - services/qyl.dashboard/src/lib/semconv.ts          (TypeScript const keys)
-#   - services/qyl.collector/Storage/promoted-columns.g.sql  (DuckDB columns)
+#   - services/qyl.dashboard/src/lib/semconv.ts                                  (TypeScript const keys)
+#   - services/qyl.collector/Storage/promoted-columns.g.sql                      (DuckDB columns)
+#   - core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json     (flat attr registry for lint)
 #
 # Still hand-maintained:
 #   - packages/Qyl.Contracts/Attributes/*Attributes.cs   (facades with qyl extensions)
@@ -31,6 +32,7 @@ STAGING_DIR="${REPO_ROOT}/eng/semconv/out"
 
 TS_DEST="${REPO_ROOT}/services/qyl.dashboard/src/lib/semconv.ts"
 SQL_DEST="${REPO_ROOT}/services/qyl.collector/Storage/promoted-columns.g.sql"
+REGISTRY_DEST="${REPO_ROOT}/core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json"
 
 if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   echo "Weaver or upstream registry missing." >&2
@@ -45,10 +47,13 @@ rm -rf "${STAGING_DIR}"
   qyl \
   "${STAGING_DIR}"
 
-install -m 0644 "${STAGING_DIR}/semconv.ts"               "${TS_DEST}"
-install -m 0644 "${STAGING_DIR}/promoted-columns.g.sql"   "${SQL_DEST}"
+install -m 0644 "${STAGING_DIR}/semconv.ts"                    "${TS_DEST}"
+install -m 0644 "${STAGING_DIR}/promoted-columns.g.sql"        "${SQL_DEST}"
+mkdir -p "$(dirname "${REGISTRY_DEST}")"
+install -m 0644 "${STAGING_DIR}/otel-attribute-registry.json"  "${REGISTRY_DEST}"
 
 echo ""
 echo "Wrote:"
 echo "  ${TS_DEST} ($(wc -l < "${TS_DEST}") lines)"
 echo "  ${SQL_DEST} ($(wc -l < "${SQL_DEST}") lines)"
+echo "  ${REGISTRY_DEST} ($(jq 'length' "${REGISTRY_DEST}" 2>/dev/null || echo '?') attributes)"
