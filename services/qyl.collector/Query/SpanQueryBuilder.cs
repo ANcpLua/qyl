@@ -74,34 +74,12 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Select with alias.</summary>
-    public SpanQueryBuilder SelectAs(SpanColumn col, string alias) => Select($"{col.ToSql()} AS {alias}");
-
-    /// <summary>Select with alias.</summary>
-    public SpanQueryBuilder SelectAs(string expr, string alias) => Select($"{expr} AS {alias}");
-
     /// <summary>Select COUNT(*).</summary>
     public SpanQueryBuilder SelectCount(string alias = "count") => Select($"COUNT(*) AS {alias}");
-
-    /// <summary>Select COUNT(DISTINCT col).</summary>
-    public SpanQueryBuilder SelectCountDistinct(SpanColumn col, string alias)
-        => Select($"COUNT(DISTINCT {col.ToSql()}) AS {alias}");
 
     /// <summary>Select SUM(col).</summary>
     public SpanQueryBuilder SelectSum(SpanColumn col, string alias)
         => Select($"COALESCE(SUM({col.ToSql()}), 0) AS {alias}");
-
-    /// <summary>Select AVG(col).</summary>
-    public SpanQueryBuilder SelectAvg(SpanColumn col, string alias)
-        => Select($"AVG({col.ToSql()}) AS {alias}");
-
-    /// <summary>Select MIN(col).</summary>
-    public SpanQueryBuilder SelectMin(SpanColumn col, string alias)
-        => Select($"MIN({col.ToSql()}) AS {alias}");
-
-    /// <summary>Select MAX(col).</summary>
-    public SpanQueryBuilder SelectMax(SpanColumn col, string alias)
-        => Select($"MAX({col.ToSql()}) AS {alias}");
 
     /// <summary>Select PERCENTILE_CONT.</summary>
     public SpanQueryBuilder SelectPercentile(SpanColumn col, double percentile, string alias)
@@ -130,59 +108,10 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE col >= value.</summary>
-    public SpanQueryBuilder WhereGte(SpanColumn col, object? value)
-    {
-        var newParams = new List<object?>(_parameters) { value };
-        var clause = new WhereClause(col.ToSql(), CompareOp.Gte, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
-    /// <summary>Add WHERE col > value.</summary>
-    public SpanQueryBuilder WhereGt(SpanColumn col, object? value)
-    {
-        var newParams = new List<object?>(_parameters) { value };
-        var clause = new WhereClause(col.ToSql(), CompareOp.Gt, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
-    /// <summary>Add WHERE col &lt;= value.</summary>
-    public SpanQueryBuilder WhereLte(SpanColumn col, object? value)
-    {
-        var newParams = new List<object?>(_parameters) { value };
-        var clause = new WhereClause(col.ToSql(), CompareOp.Lte, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
-    /// <summary>Add WHERE col &lt; value.</summary>
-    public SpanQueryBuilder WhereLt(SpanColumn col, object? value)
-    {
-        var newParams = new List<object?>(_parameters) { value };
-        var clause = new WhereClause(col.ToSql(), CompareOp.Lt, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
     /// <summary>Add WHERE col IS NOT NULL.</summary>
     public SpanQueryBuilder WhereNotNull(SpanColumn col)
     {
         var clause = new WhereClause(col.ToSql(), CompareOp.IsNotNull, null);
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
-    /// <summary>Add WHERE col IS NULL.</summary>
-    public SpanQueryBuilder WhereNull(SpanColumn col)
-    {
-        var clause = new WhereClause(col.ToSql(), CompareOp.IsNull, null);
         var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
@@ -213,18 +142,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE with raw SQL and parameter.</summary>
-    public SpanQueryBuilder WhereRawWithParam(string sqlTemplate, object? value)
-    {
-        var idx = NextParamIndex;
-        var newParams = new List<object?>(_parameters) { value };
-        var sql = sqlTemplate.ReplaceOrdinal("{p}", $"${idx}")!;
-        var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses) { clause };
-        return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
-            _distinct, _limitIsParam, _offsetIsParam);
-    }
-
     /// <summary>Add WHERE with fallback (col = value OR (col IS NULL AND other = value)).</summary>
     public SpanQueryBuilder WhereWithFallback(SpanColumn primary, SpanColumn fallback, object? value)
     {
@@ -252,12 +169,6 @@ public sealed class SpanQueryBuilder
 
     /// <summary>Add WHERE col = $paramIndex (index-based).</summary>
     public SpanQueryBuilder WhereEq(SpanColumn col, int paramIndex) => Where(col, CompareOp.Eq, paramIndex);
-
-    /// <summary>Add WHERE col >= $paramIndex (index-based).</summary>
-    public SpanQueryBuilder WhereGte(SpanColumn col, int paramIndex) => Where(col, CompareOp.Gte, paramIndex);
-
-    /// <summary>Add WHERE col > $paramIndex (index-based).</summary>
-    public SpanQueryBuilder WhereGt(SpanColumn col, int paramIndex) => Where(col, CompareOp.Gt, paramIndex);
 
     /// <summary>Add WHERE ($paramIndex IS NULL OR col = $paramIndex) - optional filter (index-based).</summary>
     public SpanQueryBuilder WhereOptional(SpanColumn col, int paramIndex)
@@ -334,36 +245,10 @@ public sealed class SpanQueryBuilder
         => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, limit, _offset, _distinct, false,
             _offsetIsParam);
 
-    /// <summary>Set LIMIT with value (adds parameter).</summary>
-    public SpanQueryBuilder LimitValue(int limit)
-    {
-        var newParams = new List<object?>(_parameters) { limit };
-        return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, _orderByCols, newParams, NextParamIndex,
-            _offset, _distinct, true, _offsetIsParam);
-    }
-
-    /// <summary>Set OFFSET with literal value.</summary>
-    public SpanQueryBuilder Offset(int offset)
-        => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, _limit, offset, _distinct,
-            _limitIsParam, false);
-
-    /// <summary>Set OFFSET with value (adds parameter).</summary>
-    public SpanQueryBuilder OffsetValue(int offset)
-    {
-        var newParams = new List<object?>(_parameters) { offset };
-        return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, _orderByCols, newParams, _limit,
-            NextParamIndex, _distinct, _limitIsParam, true);
-    }
-
     /// <summary>Set LIMIT via parameter index (1-based).</summary>
     public SpanQueryBuilder LimitParam(int paramIndex)
         => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, paramIndex, _offset, _distinct,
             true, _offsetIsParam);
-
-    /// <summary>Set OFFSET via parameter index (1-based).</summary>
-    public SpanQueryBuilder OffsetParam(int paramIndex)
-        => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, _limit, paramIndex, _distinct,
-            _limitIsParam, true);
 
     // =========================================================================
     // BUILD
@@ -544,9 +429,6 @@ public readonly struct SpanColumn
 
     /// <summary>Create column for arbitrary column name.</summary>
     public static SpanColumn Column(string name) => new(name);
-
-    /// <summary>Access non-promoted attribute via JSON extraction.</summary>
-    public static string JsonExtract(string attributeKey) => $"attributes_json->'{attributeKey}'";
 }
 
 // =============================================================================

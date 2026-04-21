@@ -77,33 +77,6 @@ public sealed class SessionQueryService(DuckDbStore store)
     // Session Spans - Using SpanQueryBuilder
     // =========================================================================
 
-    public async Task<IReadOnlyList<SpanStorageRow>> GetSessionSpansAsync(
-        string sessionId,
-        int limit = 1000,
-        CancellationToken ct = default)
-    {
-        var sql = SpanQueryBuilder.Create()
-            .SelectAll()
-            .WhereWithFallback(SpanColumn.SessionId, SpanColumn.TraceId, 1)
-            .OrderBy(SpanColumn.StartTimeUnixNano)
-            .LimitParam(2)
-            .Build();
-
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var spans = new List<SpanStorageRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        while (await reader.ReadAsync(ct))
-            spans.Add(MapSpan(reader));
-
-        return spans;
-    }
-
     // =========================================================================
     // GenAI Stats - Using SpanQueryBuilder
     // =========================================================================
@@ -146,98 +119,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         }
 
         return new SessionGenAiStats();
-    }
-
-    // =========================================================================
-    // Top Models - Using SpanQueryBuilder
-    // =========================================================================
-
-    public async Task<IReadOnlyList<ModelUsage>> GetTopModelsAsync(
-        int limit = 10,
-        DateTime? after = null,
-        CancellationToken ct = default)
-    {
-        var sql = SpanQueryBuilder.Create()
-            .Select(SpanColumn.GenAiProviderName)
-            .Select(SpanColumn.GenAiRequestModel)
-            .SelectCount("call_count")
-            .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
-            .SelectSum(SpanColumn.GenAiOutputTokens, "output_tokens")
-            .Select("COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost")
-            .Select("AVG(duration_ns / 1000000.0) AS avg_latency_ms")
-            .SelectPercentile(SpanColumn.Column("duration_ns / 1000000.0"), 0.95, "p95_latency_ms")
-            .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
-            .WhereNotNull(SpanColumn.GenAiProviderName)
-            .WhereRaw("($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)")
-            .GroupBy(SpanColumn.GenAiProviderName)
-            .GroupBy(SpanColumn.GenAiRequestModel)
-            .OrderByDesc("call_count")
-            .LimitParam(2)
-            .Build();
-
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        AddAfterParam(cmd, after);
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var models = new List<ModelUsage>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        while (await reader.ReadAsync(ct))
-        {
-            models.Add(new ModelUsage
-            {
-                Provider = reader.Col(0).AsString,
-                Model = reader.Col(1).AsString,
-                CallCount = reader.Col(2).GetInt64(0),
-                InputTokens = reader.Col(3).GetInt64(0),
-                OutputTokens = reader.Col(4).GetInt64(0),
-                TotalCostUsd = reader.Col(5).GetDouble(0),
-                AvgLatencyMs = reader.Col(6).GetDouble(0),
-                P95LatencyMs = reader.Col(7).GetDouble(0),
-                ErrorRate = reader.Col(8).GetDouble(0)
-            });
-        }
-
-        return models;
-    }
-
-    // =========================================================================
-    // Error Summary - Using SpanQueryBuilder
-    // =========================================================================
-
-    public async Task<ErrorSummary> GetErrorSummaryAsync(
-        string? sessionId = null,
-        DateTime? after = null,
-        CancellationToken ct = default)
-    {
-        var sql = SpanQueryBuilder.Create()
-            .SelectCount("total_spans")
-            .Select("SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count")
-            .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
-            .WhereOptional(SpanColumn.SessionId, 1)
-            .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
-            .Build();
-
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        AddParams(cmd, sessionId, after);
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        if (await reader.ReadAsync(ct))
-        {
-            return new ErrorSummary
-            {
-                TotalSpans = reader.Col(0).GetInt64(0),
-                ErrorCount = reader.Col(1).GetInt64(0),
-                ErrorRate = reader.Col(2).GetDouble(0)
-            };
-        }
-
-        return new ErrorSummary();
     }
 
     // =========================================================================
@@ -434,22 +315,3 @@ public sealed record SessionGenAiStats
     public IReadOnlyList<string> Models { get; init; } = [];
 }
 
-public sealed record ModelUsage
-{
-    public string? Provider { get; init; }
-    public string? Model { get; init; }
-    public long CallCount { get; init; }
-    public long InputTokens { get; init; }
-    public long OutputTokens { get; init; }
-    public double TotalCostUsd { get; init; }
-    public double AvgLatencyMs { get; init; }
-    public double P95LatencyMs { get; init; }
-    public double ErrorRate { get; init; }
-}
-
-public sealed record ErrorSummary
-{
-    public long TotalSpans { get; init; }
-    public long ErrorCount { get; init; }
-    public double ErrorRate { get; init; }
-}
