@@ -41,7 +41,7 @@ public static class ActivitySources
                             ?? assembly.GetName().Version?.ToString()
                             ?? "0.0.0";
         var plus = informational.IndexOfOrdinal('+');
-        return plus > 0 ? informational.Substring(0, plus) : informational;
+        return plus > 0 ? informational[..plus] : informational;
     }
 
     // Lazy-initialized ActivitySource instances
