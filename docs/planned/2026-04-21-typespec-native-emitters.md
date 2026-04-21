@@ -4,6 +4,26 @@
 **Baseline:** `main` at or after `ad71ecdb` (PR #143 merged). No known blockers.
 **Execution:** atomic commits 1→9, no checkpoints, no interactive approval, no partial merges. Per `~/.claude/CLAUDE.md` "Whole-System Thinking" and "Decision Discipline": finish in one session.
 
+## Preconditions (verify before Commit 1)
+
+1. **Submodule init** (if fresh worktree): `git submodule update --init .tools/semconv-upstream`
+2. **npm scope `@qyl` owned by the release principal** on npmjs.com. Verify: `npm access list packages @qyl 2>&1`. If the scope is unclaimed, run `npm org create qyl` or publish the first `@qyl/client` under a personal scope claim before Commit 8. This is the only step that *might* require user action — if the scope is not ownable, rename the npm package to `qyl-client` (unscoped) across Commits 6/7/8 and proceed.
+3. **GitHub Actions secrets** present on the repo: `NUGET_API_KEY`, `NPM_TOKEN`. Verify: `gh secret list | grep -E 'NUGET_API_KEY|NPM_TOKEN'`. If missing, the Commit 8 release workflow will still land but its first tag-triggered run fails until secrets are provisioned — not a blocker for the branch merging.
+
+## Pinned tool versions
+
+Add to `core/specs/package.json` devDependencies (Commit 6 rewrites this block — use these exact versions, do not resolve to `latest`):
+
+```json
+"@typespec/compiler":         "1.7.0",
+"@typespec/http":             "1.7.0",
+"@typespec/rest":             "1.7.0",
+"@typespec/http-client-csharp": "0.9.0",
+"@typespec/http-client-js":   "0.1.0"
+```
+
+If any version no longer resolves from npm during Commit 6, bump forward to the nearest stable and record the bump in the commit body. Do not pin `latest`.
+
 ---
 
 ## Invariants
@@ -123,7 +143,12 @@ Verify: `npm install` resolves. Smoke: one `@duckdbTable` model emits DDL.
 
 Scaffold under `core/specs/emitters/ts-types/`.
 
-Decorators: `@tsBrand` on scalars that represent opaque string IDs (TraceId, SpanId, SessionId, etc.).
+Decorators: `@tsBrand` on scalars that represent opaque string IDs. Exact list — apply to **exactly** these TypeSpec scalars and no others:
+
+- `TraceId`, `SpanId`, `SessionId`, `ProjectId`, `UserId`, `ApiKey`, `TeamId`, `FixRunId`, `TriageId`, `IssueId`
+- Any scalar in `core/specs/common/types.tsp` whose `extends string` is accompanied by an `x-csharp-struct` extension → mark `@tsBrand` on the corresponding TypeSpec source scalar during Commit 5.
+
+If a new scalar appears after Commit 5 that clearly represents an opaque ID (matches the shape `<Something>Id` or has `@pattern` / `@minLength` constraints indicating an ID), extend the list in the same commit that introduces it. Do not mint brands for numeric or enum-backed types.
 
 Type map:
 - `int32/int64 → number` · `float32/float64 → number` · `boolean → boolean`
@@ -172,11 +197,11 @@ options:
   "@qyl/typespec-emit-ts-types":
     emitter-output-dir: "{project-root}/packages/qyl-client/src/generated"
   "@typespec/http-client-csharp":
-    emitter-output-dir: "{project-root}/packages/Qyl.Client"
+    emitter-output-dir: "{project-root}/packages/Qyl.Client/Generated"
     package-name: "Qyl.Client"
     namespace: "Qyl.Client"
   "@typespec/http-client-js":
-    emitter-output-dir: "{project-root}/packages/qyl-client/src/client"
+    emitter-output-dir: "{project-root}/packages/qyl-client/src/generated"
     package-name: "@qyl/client"
 ```
 
@@ -202,16 +227,34 @@ Verify: all five output directories populated; `dotnet build qyl.slnx` exits 0; 
 
 `packages/qyl-client/package.json`:
 - `name: "@qyl/client"`, `type: "module"`
-- `exports` pointing at TypeScript-emitter output
+- `exports.".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }`
 - `files: ["dist/**", "src/**"]`
-- TSConfig building `src/` → `dist/`
+- TSConfig builds both `src/generated/` (from `@qyl/typespec-emit-ts-types`) and `src/client/` (from `@typespec/http-client-js`) into `dist/`. Entrypoint `src/index.ts` re-exports from both: `export * from "./generated/api"; export * from "./client";`
 
 `packages/Qyl.Contracts/Qyl.Contracts.csproj`: update metadata — `PackageId=Qyl.Contracts`, public license/repo metadata, `GeneratePackageOnBuild=false`.
 
-`packages/Qyl.OpenTelemetry.Extensions/` — new hand-written convenience package:
-- `AddQylOpenTelemetry(this IServiceCollection, Action<QylOtelOptions>)` — configures `OTEL_EXPORTER_OTLP_ENDPOINT`, service resource attributes, propagators
-- `QylOtelOptions` — Endpoint, ServiceName, ApiKey, SampleRate
-- ~200 LoC, no codegen.
+`packages/Qyl.OpenTelemetry.Extensions/` — new hand-written convenience package. Exact API (no variations):
+
+```csharp
+namespace Qyl.OpenTelemetry.Extensions;
+
+public sealed class QylOtelOptions
+{
+    public required Uri Endpoint { get; init; }
+    public required string ServiceName { get; init; }
+    public string? ApiKey { get; init; }
+    public double SampleRate { get; init; } = 1.0;
+}
+
+public static class QylOpenTelemetryServiceCollectionExtensions
+{
+    public static IServiceCollection AddQylOpenTelemetry(
+        this IServiceCollection services,
+        Action<QylOtelOptions> configure);
+}
+```
+
+Implementation: call `services.AddOpenTelemetry()`, set `OTEL_EXPORTER_OTLP_ENDPOINT` via options.Endpoint, add W3C trace-context + baggage propagators, register a `TraceIdRatioBasedSampler(SampleRate)`, configure resource builder with `service.name = ServiceName`. If `ApiKey` is non-null, set `OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer <key>`. No other behavior.
 
 Add all four `packages/*` projects to `qyl.slnx`.
 
@@ -274,7 +317,13 @@ Delete without replacement:
 - `eng/build/NamespaceRoutingTable.cs`
 - `eng/build/TypeMappingTable.cs`
 - `eng/build/ContractGenerator.cs`
-- `eng/build/BuildApiDiff.cs` (OpenAPI intermediate is gone; port to TypeSpec program diff as a follow-up issue)
+- `eng/build/BuildApiDiff.cs` (OpenAPI intermediate is gone). Before deletion, file the follow-up tracking issue — do not hand this back to the user:
+  ```
+  gh issue create \
+    --title "Port BuildApiDiff to TypeSpec program diff" \
+    --body "BuildApiDiff.cs was deleted in the TypeSpec-native-emitters cutover because its input (openapi.yaml) no longer exists. Re-implement breaking-change detection against \`weaver registry diff\` or \`tsp resolve\` output between git revisions. Priority: low; the TypeSpec compiler emits breaking-change diagnostics on @added/@removed API surface already." \
+    --label "chore,ci"
+  ```
 - `core/openapi/` (entire directory)
 
 `eng/build/BuildPipeline.cs`:
