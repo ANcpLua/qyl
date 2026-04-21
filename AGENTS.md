@@ -54,6 +54,9 @@ dotnet test --project tests/qyl.collector.tests \
 # Generators + full pipeline (release / CI parity)
 nuke Generate                                       # Regenerate TypeSpec + Roslyn outputs
 nuke Build
+
+# One-time setup on a fresh clone (if not cloned with --recurse-submodules)
+git submodule update --init .tools/semconv-upstream
 ```
 
 Rules:

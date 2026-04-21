@@ -79,9 +79,16 @@ docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 **From Source**
 
 ```bash
-git clone https://github.com/ANcpLua/qyl.git
+git clone --recurse-submodules https://github.com/ANcpLua/qyl.git
 cd qyl
 dotnet run --project src/qyl.collector
+```
+
+If you cloned without `--recurse-submodules`, initialize the OpenTelemetry
+semantic-conventions pin once:
+
+```bash
+git submodule update --init .tools/semconv-upstream
 ```
 
 **Dashboard**
