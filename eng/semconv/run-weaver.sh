@@ -5,7 +5,6 @@
 # Output targets:
 #   - src/qyl.dashboard/src/lib/semconv.ts          (TypeScript const keys)
 #   - src/qyl.collector/Storage/promoted-columns.g.sql  (DuckDB columns)
-#   - core/specs/generated/semconv.g.tsp            (TypeSpec scalars + Keys + unions + domain models)
 #
 # Still hand-maintained:
 #   - src/qyl.contracts/Attributes/*Attributes.cs   (facades with qyl extensions)
@@ -32,7 +31,6 @@ STAGING_DIR="${REPO_ROOT}/eng/semconv/out"
 
 TS_DEST="${REPO_ROOT}/src/qyl.dashboard/src/lib/semconv.ts"
 SQL_DEST="${REPO_ROOT}/src/qyl.collector/Storage/promoted-columns.g.sql"
-TSP_DEST="${REPO_ROOT}/core/specs/generated/semconv.g.tsp"
 
 if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   echo "Weaver or upstream registry missing." >&2
@@ -47,13 +45,10 @@ rm -rf "${STAGING_DIR}"
   qyl \
   "${STAGING_DIR}"
 
-mkdir -p "$(dirname "${TSP_DEST}")"
 install -m 0644 "${STAGING_DIR}/semconv.ts"               "${TS_DEST}"
 install -m 0644 "${STAGING_DIR}/promoted-columns.g.sql"   "${SQL_DEST}"
-install -m 0644 "${STAGING_DIR}/semconv.g.tsp"            "${TSP_DEST}"
 
 echo ""
 echo "Wrote:"
 echo "  ${TS_DEST} ($(wc -l < "${TS_DEST}") lines)"
 echo "  ${SQL_DEST} ($(wc -l < "${SQL_DEST}") lines)"
-echo "  ${TSP_DEST} ($(wc -l < "${TSP_DEST}") lines)"
