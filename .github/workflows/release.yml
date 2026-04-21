@@ -208,6 +208,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Get version
         id: version
         run: |
@@ -218,15 +223,20 @@ jobs:
           fi
           echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
 
+      - name: Install TypeSpec deps + compile emitters
+        working-directory: core/specs
+        run: |
+          npm install --legacy-peer-deps
+          npm run compile
+
       - name: Pack Qyl.Contracts
         run: dotnet pack packages/Qyl.Contracts/qyl.contracts.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
 
       - name: Pack Qyl.OpenTelemetry.Extensions
         run: dotnet pack packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
 
-      # Qyl.Client is intentionally omitted until the Commit-7 alpha-emitter stabilization lands.
-      # See packages/Qyl.Client/DEFERRED.md. Re-add with:
-      #   dotnet pack packages/Qyl.Client/Qyl.Client.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
+      - name: Pack Qyl.Client
+        run: dotnet pack packages/Qyl.Client/Qyl.Client.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
 
       - name: Push to nuget.org
         run: |

@@ -11,7 +11,6 @@ emit:
   - "@typespec/http-client-csharp"
   - "@typespec/http-client-js"
   - "@typespec/json-schema"
-  - "@typespec/openapi3"
 
 options:
   "@qyl/typespec-emit-csharp":
@@ -39,13 +38,6 @@ options:
     emitter-output-dir: "{project-root}/../../packages/qyl-client/schemas"
     file-type: json
     bundleId: qyl-api
-
-  "@typespec/openapi3":
-    output-file: openapi.yaml
-    emitter-output-dir: "{project-root}/../openapi"
-    file-type: yaml
-    openapi-versions:
-      - "3.0.0"
 
 linter:
   extends:

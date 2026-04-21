@@ -16,10 +16,16 @@
     <!-- Emitter output is pre-formatted and carries its own #nullable directives. -->
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Emitter output declares every using directive explicitly; implicit usings drag in
+         System.Diagnostics (via the SDK's transitive set) and collide with Qyl.OTel.Traces.Trace. -->
+    <ImplicitUsings>disable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Suppress CS1591 (missing XML) on emitter output — the emitter provides partial coverage. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CS1591: missing XML docs on emitter output — the emitter provides partial coverage.
+         SCME0002: System.ClientModel's documented experimental-API opt-in; consumers of
+         `AuthenticationPolicy.Create` + `ClientPipelineOptions(IConfigurationSection)` are
+         expected to acknowledge the experimental status this way. The emitted stubs sit on
+         these surfaces; stripping them would break the public client entry points. -->
+    <NoWarn>$(NoWarn);CS1591;SCME0002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
