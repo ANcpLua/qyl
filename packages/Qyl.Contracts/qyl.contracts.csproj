@@ -1,18 +1,18 @@
 <Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
-    <!-- LEAF project - shared contracts between all qyl components -->
-    <Description>Shared contracts for the qyl.loom AI observability platform</Description>
+    <!-- LEAF project - shared contracts between all qyl components, also published as a NuGet package -->
+    <Description>Shared contract types (requests, responses, enums) for the qyl observability platform.</Description>
     <PackageId>Qyl.Contracts</PackageId>
     <RootNamespace>Qyl.Contracts</RootNamespace>
-    <Authors>ANcpLua</Authors>
-
-    <!-- SDK injection features (Guard.NotNull from Roslyn.Utilities used in consuming projects) -->
-    <!-- Note: Inject*OnLegacy properties removed - not needed for net10.0 single-TFM -->
-
-    <!-- CLAUDE.md v2 generation available - enable with GenerateClaudeMd=true -->
-    <!-- Currently using hand-written CLAUDE.md (richer content) -->
+    <Authors>ancplua</Authors>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
 
   <!-- BCL only - LEAF project has no external dependencies -->
 

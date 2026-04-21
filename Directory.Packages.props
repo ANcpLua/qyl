@@ -72,6 +72,8 @@
     <!-- OpenAI -->
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>
+    <!-- TypeSpec http-client-csharp runtime dep -->
+    <PackageVersion Include="System.ClientModel" Version="$(SystemClientModelVersion)"/>
     <!-- MCP -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="$(ModelContextProtocolVersion)"/>
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)"/>

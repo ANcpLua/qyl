@@ -4,6 +4,10 @@
 
     <Folder Name="/packages/">
         <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj"/>
+        <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj"/>
+        <!-- packages/Qyl.Client/Qyl.Client.csproj is intentionally NOT in the solution;
+             it is gated on the Commit-7 alpha-emitter stabilization work.
+             See packages/Qyl.Client/DEFERRED.md for the blocker list. -->
     </Folder>
     <Folder Name="/services/">
         <Project Path="services/qyl.collector/qyl.collector.csproj"/>
