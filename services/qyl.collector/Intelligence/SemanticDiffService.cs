@@ -1,5 +1,4 @@
-using DistributionComparer = Qyl.Collector.Analytics.DistributionComparer;
-using StatisticalMath = Qyl.Collector.Analytics.StatisticalMath;
+using Qyl.Collector.Analytics;
 
 namespace Qyl.Collector.Intelligence;
 

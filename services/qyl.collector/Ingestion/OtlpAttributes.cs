@@ -15,10 +15,7 @@ namespace Qyl.Collector.Ingestion;
 /// </summary>
 public static class SchemaNormalizer
 {
-    /// <summary>
-    ///     Complete mapping of deprecated attribute names to their 1.40 equivalents.
-    /// </summary>
-    public static readonly FrozenDictionary<string, string> DeprecatedMappings =
+    private static readonly FrozenDictionary<string, string> DeprecatedMappings =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // GenAI deprecated (pre-1.38)
@@ -53,10 +50,6 @@ public static class SchemaNormalizer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Normalize(string attributeName) =>
         DeprecatedMappings.GetValueOrDefault(attributeName, attributeName);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey) =>
-        DeprecatedMappings.TryGetValue(deprecatedKey, out currentKey);
 }
 
 // =============================================================================
