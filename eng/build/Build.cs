@@ -28,7 +28,6 @@ sealed class Build : NukeBuild,
     IDocker,
     IPipeline,
     IVerify,
-    IApiDiff,
     IInstrument,
     IPackMcp
 {

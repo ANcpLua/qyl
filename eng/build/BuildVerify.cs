@@ -161,7 +161,7 @@ interface IVerify : IHazSourcePaths
     /// </summary>
     Target VerifySchemaConventions => d => d
         .Description("Verify generated TypeScript uses OTel snake_case property names")
-        .DependsOn<IPipeline>(static x => x.GenerateTypeScript)
+        .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -216,7 +216,7 @@ interface IVerify : IHazSourcePaths
     /// </summary>
     Target VerifyFrontendTypes => d => d
         .Description("Verify frontend TypeScript types compile")
-        .DependsOn<IPipeline>(static x => x.GenerateTypeScript)
+        .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
