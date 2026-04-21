@@ -165,39 +165,33 @@ partial interface IPipeline : IHazSourcePaths
     // Semconv Targets (OTel Semantic Conventions)
     // ════════════════════════════════════════════════════════════════════════
 
-    Target SemconvInstall => d => d
-        .Description("Install semconv-generator npm dependencies")
-        .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
-        .Executes(() =>
-        {
-            Log.Information("Installing semconv-generator dependencies...");
-
-            NpmTasks.NpmInstall(s => s
-                .SetProcessWorkingDirectory<NpmInstallSettings>(SemconvDirectory));
-
-            Log.Information("Semconv dependencies installed");
-        });
-
     Target GenerateSemconv => d => d
-        .Description("Generate OTel Semantic Conventions (C#, TypeScript, TypeSpec, DuckDB)")
-        .DependsOn(SemconvInstall)
+        .Description("Generate OTel Semantic Conventions via Weaver (TypeScript + DuckDB)")
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
         .Executes(() =>
         {
-            Log.Information("Generating OTel Semantic Conventions...");
+            Log.Information("Running Weaver for OTel Semantic Conventions...");
 
-            NpmTasks.NpmRun(s => s
-                .SetProcessWorkingDirectory<NpmRunSettings>(SemconvDirectory)
-                .SetCommand("generate"));
+            var script = SemconvDirectory / "run-weaver.sh";
+            var bootstrap = SemconvDirectory / "bootstrap-weaver.sh";
 
-            Log.Information("Semconv generated to final destinations:");
-            Log.Information("  TypeSpec: core/specs/generated/semconv.g.tsp");
-            Log.Information("  C#: src/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs");
-            Log.Information("  C# UTF-8: src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs");
+            if (!script.FileExists())
+            {
+                Log.Error("Missing {Script}. Run {Bootstrap} first.", script, bootstrap);
+                throw new FileNotFoundException("run-weaver.sh not found", script);
+            }
+
+            // Ensure the .tools/ toolchain is present. bootstrap-weaver.sh is
+            // idempotent and exits quickly when binaries + upstream clone are
+            // already cached.
+            ProcessTasks.StartProcess("bash", bootstrap, logOutput: true).AssertZeroExitCode();
+            ProcessTasks.StartProcess("bash", script,    logOutput: true).AssertZeroExitCode();
+
+            Log.Information("Semconv written to:");
             Log.Information("  TypeScript: src/qyl.dashboard/src/lib/semconv.ts");
-            Log.Information("  DuckDB: src/qyl.collector/Storage/promoted-columns.g.sql");
-            Log.Information("  Protocol: src/qyl.contracts/Attributes/GenAiAttributes.g.cs");
-            Log.Information("  Protocol: src/qyl.contracts/Attributes/DbAttributes.g.cs");
+            Log.Information("  DuckDB:     src/qyl.collector/Storage/promoted-columns.g.sql");
+            Log.Information("Facades under src/qyl.contracts/Attributes/*.cs are hand-maintained.");
+            Log.Information("TypeSpec at core/specs/generated/semconv.g.tsp is pinned at v1.40.0 (no generator yet).");
         });
 
     // ════════════════════════════════════════════════════════════════════════

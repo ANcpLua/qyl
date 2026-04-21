@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Run qyl's Weaver template pipeline against the upstream semconv v1.40.0 registry.
+# Generate qyl's semconv outputs into the final src/ destinations via Weaver.
 #
-# Proof-of-pipeline invocation for the in-flight `generate-semconv.ts` → Weaver migration.
-# Emits draft outputs to eng/semconv/out/ (gitignored) for side-by-side diff against
-# the live outputs committed under src/.
+# Pinned inputs:  open-telemetry/semantic-conventions v1.40.0 (cloned by bootstrap)
+# Output targets:
+#   - src/qyl.dashboard/src/lib/semconv.ts          (TypeScript const keys)
+#   - src/qyl.collector/Storage/promoted-columns.g.sql  (DuckDB columns)
 #
-# Prerequisites (one-time setup):
-#   ./eng/semconv/bootstrap-weaver.sh    # downloads weaver + upstream semconv clone
+# Not emitted by Weaver yet (committed files stay as-is until templated):
+#   - core/specs/generated/semconv.g.tsp            (TypeSpec — huge, future work)
+#   - src/qyl.contracts/Attributes/*Attributes.cs   (hand-maintained facades)
+#
+# Bootstrap once per clone: ./eng/semconv/bootstrap-weaver.sh
 
 set -euo pipefail
 
@@ -14,27 +18,28 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WEAVER_BIN="${REPO_ROOT}/.tools/weaver/weaver-aarch64-apple-darwin/weaver"
 UPSTREAM_REGISTRY="${REPO_ROOT}/.tools/semconv-upstream/model"
 TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
-OUT_DIR="${REPO_ROOT}/eng/semconv/out"
+STAGING_DIR="${REPO_ROOT}/eng/semconv/out"
 
-if [ ! -x "${WEAVER_BIN}" ]; then
-  echo "Weaver binary not found at ${WEAVER_BIN}" >&2
+TS_DEST="${REPO_ROOT}/src/qyl.dashboard/src/lib/semconv.ts"
+SQL_DEST="${REPO_ROOT}/src/qyl.collector/Storage/promoted-columns.g.sql"
+
+if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
+  echo "Weaver or upstream registry missing." >&2
   echo "Run: ./eng/semconv/bootstrap-weaver.sh" >&2
   exit 1
 fi
 
-if [ ! -d "${UPSTREAM_REGISTRY}" ]; then
-  echo "Upstream registry not found at ${UPSTREAM_REGISTRY}" >&2
-  echo "Run: ./eng/semconv/bootstrap-weaver.sh" >&2
-  exit 1
-fi
-
-rm -rf "${OUT_DIR}"
+rm -rf "${STAGING_DIR}"
 "${WEAVER_BIN}" registry generate \
   --registry "${UPSTREAM_REGISTRY}" \
   --templates "${TEMPLATES_ROOT}" \
   qyl \
-  "${OUT_DIR}"
+  "${STAGING_DIR}"
+
+install -m 0644 "${STAGING_DIR}/semconv.ts"               "${TS_DEST}"
+install -m 0644 "${STAGING_DIR}/promoted-columns.g.sql"   "${SQL_DEST}"
 
 echo ""
-echo "Weaver outputs:"
-ls -la "${OUT_DIR}"
+echo "Wrote:"
+echo "  ${TS_DEST} ($(wc -l < "${TS_DEST}") lines)"
+echo "  ${SQL_DEST} ($(wc -l < "${SQL_DEST}") lines)"
