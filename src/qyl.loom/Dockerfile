@@ -14,8 +14,11 @@ WORKDIR /src
 COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Version.props global.json nuget.config ./
 COPY eng/ eng/
 
-# Copy project files for restore (layer caching)
+# Copy project files for restore (layer caching). qyl.loom references qyl.instrumentation
+# for WithQylTelemetry, which itself pulls in qyl.instrumentation.generators.
 COPY src/qyl.contracts/*.csproj src/qyl.contracts/
+COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
+COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
 COPY src/qyl.loom/*.csproj src/qyl.loom/
 
 # Restore dependencies
@@ -25,6 +28,8 @@ RUN dotnet restore
 # Copy source files
 WORKDIR /src
 COPY src/qyl.contracts/ src/qyl.contracts/
+COPY src/qyl.instrumentation/ src/qyl.instrumentation/
+COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
 COPY src/qyl.loom/ src/qyl.loom/
 
 # Publish
