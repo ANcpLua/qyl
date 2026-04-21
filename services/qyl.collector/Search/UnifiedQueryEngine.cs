@@ -138,7 +138,7 @@ internal static class UnifiedQueryEngine
         var entityTypes = ResolveEntityTypes(query.EntityTypes);
         var (startNano, endNano) = ResolveTimeWindow(query.StartTime, query.EndTime);
         var clampedLimit = Math.Clamp(query.Limit, 1, 200);
-        var searchText = $"%{EscapeLike(query.Text)}%";
+        var searchText = $"%{SqlLikeEscape.Escape(query.Text)}%";
 
         var parameters = new List<DuckDBParameter>
         {
@@ -202,6 +202,4 @@ internal static class UnifiedQueryEngine
         return (TimeConversions.ToUnixNanoUnsigned(startDto), TimeConversions.ToUnixNanoUnsigned(endDto));
     }
 
-    private static string EscapeLike(string input) =>
-        input.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }

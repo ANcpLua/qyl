@@ -126,28 +126,10 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
     // PKCE Helpers
     // ==========================================================================
 
-    /// <summary>
-    ///     Validates that SHA256(code_verifier) base64url-encoded matches the stored code_challenge.
-    /// </summary>
-    private static bool ValidatePkce(string codeVerifier, string codeChallenge)
-    {
-        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
-        var computed = Convert.ToBase64String(hash)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-        return string.Equals(computed, codeChallenge, StringComparison.Ordinal);
-    }
+    private static bool ValidatePkce(string codeVerifier, string codeChallenge) =>
+        Pkce.ValidateS256(codeVerifier, codeChallenge);
 
-    private static string GenerateToken()
-    {
-        Span<byte> bytes = stackalloc byte[32];
-        RandomNumberGenerator.Fill(bytes);
-        return Convert.ToBase64String(bytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-    }
+    private static string GenerateToken() => Base64Url.NewRandom(32);
 
     private async Task TransitionToExpiredAsync(string workspaceId, CancellationToken ct)
     {

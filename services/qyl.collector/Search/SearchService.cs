@@ -29,11 +29,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        var escapedQuery = queryText
-            .Replace("\\", "\\\\")
-            .Replace("%", "\\%")
-            .Replace("_", "\\_");
-        var likePattern = $"%{escapedQuery}%";
+        var likePattern = $"%{SqlLikeEscape.Escape(queryText)}%";
 
         var conditions = new List<string>();
         var parameters = new List<DuckDBParameter> { new() { Value = likePattern } };
@@ -116,11 +112,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        var escapedPrefix = prefix
-            .Replace("\\", "\\\\")
-            .Replace("%", "\\%")
-            .Replace("_", "\\_");
-        var likePattern = $"{escapedPrefix}%";
+        var likePattern = $"{SqlLikeEscape.Escape(prefix)}%";
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """

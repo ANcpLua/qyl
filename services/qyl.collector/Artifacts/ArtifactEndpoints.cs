@@ -2,18 +2,8 @@ namespace Qyl.Collector.Artifacts;
 
 public static class ArtifactEndpoints
 {
-    /// <summary>
-    ///     Generates a URL-safe 12-character artifact ID (72 bits of entropy).
-    /// </summary>
-    private static string NewArtifactId()
-    {
-        Span<byte> bytes = stackalloc byte[9];
-        RandomNumberGenerator.Fill(bytes);
-        return Convert.ToBase64String(bytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
-    }
+    /// <summary>URL-safe 12-char artifact id (72 bits of entropy).</summary>
+    private static string NewArtifactId() => Base64Url.NewRandom(9);
 
     [QylMapEndpoints]
     public static void MapArtifactEndpoints(this WebApplication app)

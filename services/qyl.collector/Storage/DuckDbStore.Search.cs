@@ -52,11 +52,7 @@ public sealed partial class DuckDbStore
 
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        var escapedPrefix = prefix
-            .Replace("\\", "\\\\")
-            .Replace("%", "\\%")
-            .Replace("_", "\\_");
-        var likePattern = $"{escapedPrefix}%";
+        var likePattern = $"{SqlLikeEscape.Escape(prefix)}%";
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """

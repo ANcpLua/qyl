@@ -1155,8 +1155,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("status = $N", status);
         if (!string.IsNullOrEmpty(serviceName))
         {
-            var escaped = serviceName.Replace("%", "\\%").Replace("_", "\\_");
-            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\'", $"%,{escaped},%");
+            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\'", $"%,{SqlLikeEscape.Escape(serviceName)},%");
         }
 
         await using var cmd = lease.Connection.CreateCommand();

@@ -246,17 +246,12 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         return expr;
     }
 
-    private static long ComputeCutoffNano(int hours)
-    {
-        var cutoff = TimeProvider.System.GetUtcNow().AddHours(-hours);
-        return cutoff.ToUnixTimeMilliseconds() * 1_000_000;
-    }
+    private static long ComputeCutoffNano(int hours) =>
+        ANcpLua.Roslyn.Utilities.Time.TimeConversions.ToUnixNano(
+            TimeProvider.System.GetUtcNow().AddHours(-hours));
 
-    private static long DateTimeToUnixNano(DateTime dt)
-    {
-        DateTimeOffset dto = new(dt, TimeSpan.Zero);
-        return dto.ToUnixTimeMilliseconds() * 1_000_000;
-    }
+    private static long DateTimeToUnixNano(DateTime dt) =>
+        ANcpLua.Roslyn.Utilities.Time.TimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
 
     // ==========================================================================
     // Structured Log Messages
