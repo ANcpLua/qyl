@@ -22,6 +22,7 @@
     "@typespec/versioning": "0.78.0",
     "openapi-typescript": "^7.10.1",
     "@qyl/typespec-emit-duckdb": "file:./emitters/duckdb",
+    "@qyl/typespec-emit-ts-types": "file:./emitters/ts-types",
     "@qyl/typespec-emit-csharp": "file:./emitters/csharp"
   }
 }
