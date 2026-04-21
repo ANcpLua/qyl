@@ -2,6 +2,7 @@
 
 using System.ComponentModel;
 using System.Text.Json.Nodes;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Lsp;
@@ -18,7 +19,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_goto_definition", Title = "Go to Definition",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Go to the definition of the symbol at the given 1-based line/column in a source file.")]
     public Task<string> GotoDefinitionAsync(
         [Description("Absolute path to the source file")]
@@ -38,7 +40,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_find_references", Title = "Find References",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Find all references to the symbol at the given 1-based line/column across the workspace.")]
     public Task<string> FindReferencesAsync(
         [Description("Absolute path to the source file")]
@@ -65,7 +68,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_symbols", Title = "Symbols",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "List symbols in a document, or query workspace symbols when 'query' is provided. A source file is always required to anchor the workspace.")]
     public Task<string> SymbolsAsync(
@@ -92,7 +96,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_diagnostics", Title = "Diagnostics",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Return compiler/analyzer diagnostics for a source file.")]
     public Task<string> DiagnosticsAsync(
         [Description("Absolute path to the source file")]
@@ -131,7 +136,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [QylCapability("lsp_code_intelligence", QylCapabilityRole.FollowUp)]
     [McpServerTool(
         Name = "lsp_rename", Title = "Rename Symbol",
-        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Rename the symbol at the given 1-based line/column across the workspace. Writes the WorkspaceEdit to disk.")]
     public Task<string> RenameAsync(

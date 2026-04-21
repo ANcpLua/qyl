@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -22,7 +23,8 @@ public sealed class AnomalyTools(HttpClient client)
     [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
     [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Detect anomalous metric spikes or drops using z-score analysis.
 
@@ -160,7 +162,8 @@ public sealed class AnomalyTools(HttpClient client)
     /// <returns>Side-by-side comparison with delta and percentage change.</returns>
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.compare_periods", Title = "Compare Periods",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Compare metrics between two time periods (e.g., before/after deploy).
 

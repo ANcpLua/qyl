@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
 using qyl.mcp.Errors;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Analysis;
@@ -27,7 +28,8 @@ public sealed class SuggestFixTool(HttpClient client)
         Title = "Suggest Fix",
         ReadOnly = false,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Suggest fixes for errors in a trace. Analyzes error spans and proposes remediation steps.")]
     public async Task<string> SuggestFixAsync(
         [Description("Trace ID containing errors to analyze")]

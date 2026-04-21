@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -119,7 +120,8 @@ public sealed class StorageHealthTools(HttpClient client)
     /// <returns>Markdown system context with topology, performance profile, and alerts.</returns>
     [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get pre-computed system context from qyl's insights materializer.
 

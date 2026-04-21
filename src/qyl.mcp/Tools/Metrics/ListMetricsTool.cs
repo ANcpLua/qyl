@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Metrics;
@@ -18,7 +19,8 @@ public sealed class ListMetricsTool(HttpClient client)
         Title = "List Metrics",
         ReadOnly = true,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
     public async Task<string> ListMetrics(

@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom.CodeReview;
 
@@ -56,7 +58,15 @@ public sealed partial class CodeReviewService(
 
         try
         {
-            var response = await llm.GetResponseAsync(prompt, cancellationToken: ct).ConfigureAwait(false);
+            var agent = llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "CodeReviewAgent",
+                Description = "Reviews a pull request diff and emits structured JSON comments.",
+                // No Instructions: CodeReviewPrompt.Build(...) is an MCP prompt resource that already
+                // contains the system-role preamble + output contract, delivered as a single turn.
+            }).AsBuilder().UseQylAgentTelemetry().Build();
+
+            var response = await agent.RunAsync(prompt, cancellationToken: ct).ConfigureAwait(false);
             var comments = ParseReviewComments(response.Text ?? "[]");
             LogReviewComplete(comments.Length);
 

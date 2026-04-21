@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -16,7 +17,8 @@ internal sealed class GitHubMcpTools(HttpClient http)
 {
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.trigger_code_review", Title = "Trigger Code Review",
-        ReadOnly = false, Destructive = false, Idempotent = true)]
+        ReadOnly = false, Destructive = false, Idempotent = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Trigger an AI-powered code review for a GitHub pull request.
                  Fetches the PR diff, analyzes it with an LLM, and returns
@@ -71,7 +73,8 @@ internal sealed class GitHubMcpTools(HttpClient http)
         });
 
     [McpServerTool(Name = "qyl.list_github_events", Title = "List GitHub Webhook Events",
-        ReadOnly = true, Destructive = false, Idempotent = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List recent GitHub webhook events received by the platform.
                  Shows push, pull_request, deployment, and other events.
@@ -94,7 +97,7 @@ internal sealed class GitHubMcpTools(HttpClient http)
             if (repoFullName is not null)
                 url += $"&repoFullName={Uri.EscapeDataString(repoFullName)}";
 
-            using var resp = await http.GetAsync(url, ct).ConfigureAwait(false);
+            using var resp = await http.GetAsync(new Uri(url, UriKind.Relative), ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
             var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatEventList(json);

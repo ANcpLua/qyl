@@ -48,7 +48,8 @@ builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .WithTools<LoomGodAnalyzerServer>();
+    .WithTools<LoomGodAnalyzerServer>()
+    .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>();
 
 var app = builder.Build();
 

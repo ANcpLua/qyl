@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
 
@@ -29,8 +30,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
         CancellationToken ct = default)
     {
         var take = Math.Clamp(limit ?? 10, 1, 100);
-        using var resp = await http.GetAsync(
-            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", ct).ConfigureAwait(false);
+        var uri = new Uri(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", UriKind.Relative);
+        using var resp = await http.GetAsync(uri, ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
             return LoomToolEnvelope.Fail<LoomFixRunList>($"Issue '{issueId}' not found.");
@@ -64,9 +66,10 @@ internal sealed class AutofixMcpTools(HttpClient http)
         [Description("The fix run ID")] string runId,
         CancellationToken ct = default)
     {
-        using var resp = await http.GetAsync(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
-            .ConfigureAwait(false);
+        var uri = new Uri(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
+            UriKind.Relative);
+        using var resp = await http.GetAsync(uri, ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
         {
@@ -102,9 +105,10 @@ internal sealed class AutofixMcpTools(HttpClient http)
         [Description("The fix run ID")] string runId,
         CancellationToken ct = default)
     {
-        using var resp = await http.GetAsync(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
-            .ConfigureAwait(false);
+        var uri = new Uri(
+            $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps",
+            UriKind.Relative);
+        using var resp = await http.GetAsync(uri, ct).ConfigureAwait(false);
 
         if (resp.StatusCode == HttpStatusCode.NotFound)
         {
@@ -130,7 +134,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
 
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
-        ReadOnly = false, Destructive = false, Idempotent = true)]
+        ReadOnly = false, Destructive = false, Idempotent = true,
+        TaskSupport = ToolTaskSupport.Required)]
     [Description("""
                  Approve a fix run that is in 'review' status.
                  This transitions the fix run to 'applied' status.
@@ -141,9 +146,10 @@ internal sealed class AutofixMcpTools(HttpClient http)
         string runId,
         CancellationToken ct = default)
     {
-        using var resp = await http.PostAsync(
+        var uri = new Uri(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
-            null, ct).ConfigureAwait(false);
+            UriKind.Relative);
+        using var resp = await http.PostAsync(uri, content: null, ct).ConfigureAwait(false);
 
         switch (resp.StatusCode)
         {
@@ -187,10 +193,10 @@ internal sealed class AutofixMcpTools(HttpClient http)
         string? reason = null,
         CancellationToken ct = default)
     {
-        using var resp = await http.PostAsJsonAsync(
+        var uri = new Uri(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/reject",
-            new { reason },
-            ct).ConfigureAwait(false);
+            UriKind.Relative);
+        using var resp = await http.PostAsJsonAsync(uri, new { reason }, ct).ConfigureAwait(false);
 
         switch (resp.StatusCode)
         {

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
 
@@ -25,7 +26,8 @@ public sealed class SearchLogsTool(HttpClient client)
     /// <returns>A formatted paginated list of matching log entries.</returns>
     [QylCapability("log_investigation")]
     [McpServerTool(Name = "search_logs", Title = "Search Logs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]
     public async Task<string> SearchLogsAsync(
         [Description("Search query (required)")]

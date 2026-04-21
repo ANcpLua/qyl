@@ -6,6 +6,7 @@
 
 using System.Runtime.CompilerServices;
 using ANcpLua.Agents.Instrumentation;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using qyl.contracts.Attributes;
 
@@ -74,8 +75,14 @@ public static class GenAiInstrumentation
         inner is TracedAIFunction ? inner : new TracedAIFunction(inner, ActivitySources.GenAiSource);
 
     /// <summary>
-    ///     Extension for ChatClientBuilder pipeline - preferred approach.
+    ///     Extension for ChatClientBuilder pipeline — chat-client-layer qyl telemetry triple:
+    ///     OTel spans + ILogger log records + qyl tool-execution decoration.
     /// </summary>
+    /// <remarks>
+    ///     Pairs with <see cref="UseQylAgentTelemetry"/> at the agent layer. Both are needed for
+    ///     full observability: chat-layer handles per-completion spans/logs (via MAF's built-in
+    ///     decorators), agent-layer wraps the enclosing <c>RunAsync</c> boundary.
+    /// </remarks>
     public static ChatClientBuilder UseQylTelemetry(
         this ChatClientBuilder builder,
         string? sourceName = null,
@@ -86,9 +93,37 @@ public static class GenAiInstrumentation
         builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,
             configure: configure);
+        builder.UseLogging();
         builder.Use(static inner => new ToolDecoratingChatClient(inner, WrapTool));
         return builder;
     }
+
+    /// <summary>
+    ///     Extension for <see cref="AIAgentBuilder"/> — agent-layer qyl telemetry pair:
+    ///     <c>UseOpenTelemetry("qyl.agent")</c> for <c>gen_ai.*</c> spans scoped to the agent's
+    ///     <c>RunAsync</c> boundary, plus <c>UseLogging()</c> for Debug-level invocation breadcrumbs
+    ///     (and Trace-level sensitive payload dumps when <c>Logging:LogLevel:Default</c> is set to Trace).
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This is the enforcement point for the 2026-04 collapse note in <c>CLAUDE.md</c>: every
+    ///         qyl composition root that constructs an <see cref="AIAgent"/> must chain
+    ///         <c>.AsBuilder().UseQylAgentTelemetry().Build()</c>. The analyzer <c>QYL0135</c> flags
+    ///         construction sites that miss this wrap.
+    ///     </para>
+    ///     <para>
+    ///         Passing <c>EnableSensitiveData = null</c> on the OpenTelemetry configure callback defers
+    ///         the sensitive-data gate to the standard
+    ///         <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c> environment variable — never
+    ///         hard-code <c>true</c> in prod.
+    ///     </para>
+    /// </remarks>
+    public static AIAgentBuilder UseQylAgentTelemetry(
+        this AIAgentBuilder builder,
+        string sourceName = "qyl.agent") =>
+        Guard.NotNull(builder)
+            .UseOpenTelemetry(sourceName)
+            .UseLogging();
 
     /// <summary>
     ///     Creates a span for tool execution (execute_tool operation).

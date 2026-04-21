@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
 using qyl.mcp.Errors;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Analysis;
@@ -27,7 +28,8 @@ public sealed class AnalyzeSessionTool(HttpClient client)
         Title = "Analyze Session",
         ReadOnly = false,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Analyze a session. Returns structured analysis of span count, status, service, and trace breakdown.")]
     public async Task<string> AnalyzeSessionAsync(
         [Description("Session ID to analyze")] string sessionId,

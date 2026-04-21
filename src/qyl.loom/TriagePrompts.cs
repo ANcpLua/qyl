@@ -21,7 +21,5 @@ internal static class TriagePrompts
                                             - 0.5-0.79 (assisted): Likely fixable but needs human review, multi-file change
                                             - 0.2-0.49 (manual): Complex issue, unclear root cause, architectural change needed
                                             - 0.0-0.19 (skip): Not actionable, environmental issue, or insufficient context
-
-                                            Error details:
                                             """;
 }

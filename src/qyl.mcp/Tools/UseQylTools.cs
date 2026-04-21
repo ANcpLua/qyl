@@ -1,19 +1,31 @@
 using System.ComponentModel;
 using qyl.mcp.Agents;
 using qyl.mcp.Formatting;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 using Microsoft.Extensions.Configuration;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP meta-tool that gives an embedded LLM agent access to ALL qyl tools.
-///     Follows the Sentry "use_sentry" pattern: the calling agent (Claude/Cursor)
-///     sends a natural language query, the embedded agent autonomously calls
-///     the right tools, and returns the results.
+///     MCP meta-tool that gives an embedded <c>ChatClientAgent</c> access to ALL qyl tools.
+///     Follows the Sentry <c>use_sentry</c> pattern: the calling agent (Claude/Cursor)
+///     sends a natural-language query, the embedded agent autonomously calls the right
+///     tools under an <see cref="InvestigationLineage"/> guard, and returns the result.
 /// </summary>
+/// <remarks>
+///     Mirrors the Apex three-builder pattern: the agent is built via
+///     <c>IChatClient.AsAIAgent(ChatClientAgentOptions)</c> with tools fixed at
+///     construction time. <c>UseFunctionInvocation</c> is applied at the chat-client
+///     layer first because <c>ChatClientAgent</c> only inserts a default
+///     <c>FunctionInvokingChatClient</c> when none is present — qyl needs non-default
+///     <c>MaximumIterationsPerRequest</c> and <c>AllowConcurrentInvocation</c> for
+///     lineage-safe sequential tool dispatch.
+/// </remarks>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)
@@ -22,7 +34,8 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
 
     [QylCapability("agentic_investigation")]
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Ask qyl's AI agent to answer complex observability questions.
                  The agent has access to ALL qyl tools and will autonomously
@@ -63,32 +76,38 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
 
         var guardedTools = QylToolManifest
             .CreateTools(services, static type => type != typeof(UseQylTools))
-            .Select(tool => (AITool)investigation.Wrap(tool))
-            .ToList();
+            .Select(tool => (AITool)investigation.Wrap(tool));
 
-        var client = new ChatClientBuilder(_agentClient)
+        var agent = new ChatClientBuilder(_agentClient)
             .UseFunctionInvocation(configure: invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 10;
                 invoker.AllowConcurrentInvocation = false;
             })
+            .Build()
+            .AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "UseQylAgent",
+                Description = "Orchestrates qyl MCP tools under InvestigationLineage guard to answer observability questions.",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = UseQylSystemPrompt.Prompt,
+                    Tools = [.. guardedTools],
+                    ToolMode = ChatToolMode.Auto,
+                },
+            })
+            .AsBuilder()
+            .UseQylAgentTelemetry()
             .Build();
 
         var userMessage = context is not null
             ? $"{question}\n\nContext: {context}"
             : question;
 
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.System, UseQylSystemPrompt.Prompt), new(ChatRole.User, userMessage)
-        };
-
-        var options = new ChatOptions { Tools = [.. guardedTools] };
-
         try
         {
-            var response = await client.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
-            var output = response.Text ?? "Agent completed with no output. Try rephrasing your question.";
+            var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+            var output = response.Text;
 
             output += ResponseFormatter.FormatToolCallTrace(
                 investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);

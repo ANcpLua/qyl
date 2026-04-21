@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Loom;
 
@@ -15,7 +16,8 @@ namespace qyl.mcp.Tools;
 internal sealed class FixTools(HttpClient http)
 {
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Required)]
     [Description("""
                  Enqueue the Loom autofix job in the collector.
 

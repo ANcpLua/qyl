@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
 
@@ -76,7 +77,8 @@ public sealed class GenAiTools(HttpClient client)
     /// <returns>A list of GenAI spans with provider, model, tokens, cost, and status.</returns>
     [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List GenAI spans (LLM calls) with filtering.
 
@@ -159,7 +161,8 @@ public sealed class GenAiTools(HttpClient client)
     /// <returns>A table of models ranked by cost with request counts and token usage.</returns>
     // TODO: Endpoint /api/v1/genai/models missing in collector — see docs/mcp-tool-audit.md
     [McpServerTool(Name = "qyl.list_models", Title = "List Models",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get usage breakdown by AI model.
 
@@ -205,7 +208,8 @@ public sealed class GenAiTools(HttpClient client)
     // TODO: Endpoint /api/v1/genai/usage/timeseries missing in collector — see docs/mcp-tool-audit.md
     [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get token usage over time for trend analysis.
 

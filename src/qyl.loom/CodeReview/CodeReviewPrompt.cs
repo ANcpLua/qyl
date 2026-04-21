@@ -1,11 +1,23 @@
+using System.ComponentModel;
+using ModelContextProtocol.Server;
+
 namespace Qyl.Loom.CodeReview;
 
 /// <summary>
 ///     Prompt builder for LLM-based pull request code review.
+///     Exposed via MCP <c>prompts/list</c> so clients can fetch the structured review template.
 /// </summary>
-internal static class CodeReviewPrompt
+[McpServerPromptType]
+internal sealed class CodeReviewPrompt
 {
-    public static string Build(string prTitle, string diffContent, string? knownErrorPatterns = null) =>
+    [McpServerPrompt(Name = "qyl.code_review", Title = "Code Review")]
+    [Description("Generates a structured JSON review of a pull request diff against known error patterns.")]
+    public static string Build(
+        [Description("Pull request title")] string prTitle,
+        [Description("Unified diff content of the PR")]
+        string diffContent,
+        [Description("Known error patterns in this service (optional markdown list)")]
+        string? knownErrorPatterns = null) =>
         $$"""
           You are a code reviewer for an observability platform. Analyze this PR diff and provide structured feedback.
 

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Metrics;
@@ -18,7 +19,8 @@ public sealed class QueryMetricsTool(HttpClient client)
         Title = "Query Metrics",
         ReadOnly = true,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Query time-series data for a specific metric with optional filtering and time range.")]
     public async Task<string> QueryMetrics(
         [Description("Metric name (e.g. 'http.server.request.duration')")]

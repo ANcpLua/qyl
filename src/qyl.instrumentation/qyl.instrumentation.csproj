@@ -29,6 +29,9 @@
     <!-- Microsoft.Extensions.AI for IChatClient instrumentation -->
     <PackageReference Include="Microsoft.Extensions.AI"/>
 
+    <!-- Microsoft.Agents.AI for AIAgentBuilder + UseLogging + UseOpenTelemetry (agent-layer) -->
+    <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
+
     <!-- .NET 10 Telemetry (Enrichment, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>

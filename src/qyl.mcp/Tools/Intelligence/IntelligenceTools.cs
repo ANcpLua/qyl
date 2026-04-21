@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using qyl.mcp.Formatting;
 using qyl.mcp.Errors;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Intelligence;
 
@@ -70,7 +71,8 @@ public sealed class IntelligenceTools(HttpClient client)
     [McpServerTool(
         Name = "qyl.evaluate_patterns",
         Title = "Evaluate Patterns",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Given a trace or issue ID, extract signals from telemetry and evaluate all diagnostic patterns. Returns matched patterns with confidence scores.")]
     public async Task<string> EvaluatePatternsAsync(
@@ -127,7 +129,8 @@ public sealed class IntelligenceTools(HttpClient client)
     [McpServerTool(
         Name = "qyl.explain_causal_chain",
         Title = "Explain Causal Chain",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Given matched pattern IDs, build a causal graph identifying root causes and causal relationships between patterns.")]
     public async Task<string> ExplainCausalChainAsync(
@@ -174,7 +177,8 @@ public sealed class IntelligenceTools(HttpClient client)
     [McpServerTool(
         Name = "qyl.suggest_investigation",
         Title = "Suggest Investigation",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("Given a pattern ID, return the recommended investigation strategy with ordered steps.")]
     public async Task<string> SuggestInvestigationAsync(
         [Description("Pattern ID to investigate")]
@@ -227,7 +231,8 @@ public sealed class IntelligenceTools(HttpClient client)
     [McpServerTool(
         Name = "qyl.execute_investigation_step",
         Title = "Execute Investigation Step",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Execute a single investigation strategy step (runs a DuckDB query against telemetry) and return structured results.")]
     public async Task<string> ExecuteInvestigationStepAsync(

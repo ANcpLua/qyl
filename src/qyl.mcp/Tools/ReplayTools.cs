@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
 
@@ -19,7 +20,8 @@ public sealed class ReplayTools(HttpClient client)
     /// <param name="serviceName">Optional filter by service/application name.</param>
     /// <returns>Session IDs with span counts, error counts, token usage, and costs.</returns>
     [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List AI sessions captured by qyl for replay or analysis.
 
@@ -80,7 +82,8 @@ public sealed class ReplayTools(HttpClient client)
     /// <returns>A formatted transcript with timing, tokens, costs, and errors.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get a human-readable transcript of an AI session.
 
@@ -163,7 +166,8 @@ public sealed class ReplayTools(HttpClient client)
     /// <returns>Span hierarchy with timing, status, and GenAI attributes.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get the complete span tree for a distributed trace.
 
@@ -218,7 +222,8 @@ public sealed class ReplayTools(HttpClient client)
     /// <returns>Error details grouped by span with full context.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.analyze_session_errors", Title = "Analyze Session Errors",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Analyze all errors in a session.
 

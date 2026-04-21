@@ -2,16 +2,22 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using qyl.mcp.Agents;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP tools that fetch observability data via HTTP then feed it to an LLM
-///     for structured summarization. Combines the HTTP-delegating pattern from
-///     <see cref="GenAiTools" /> with the IChatClient pattern from <see cref="UseQylTools" />.
+///     MCP tools that fetch observability data via HTTP, then feed it to a
+///     <c>ChatClientAgent</c> for structured summarization. Combines the HTTP-delegating
+///     pattern from <see cref="GenAiTools"/> with the Apex-aligned agent construction
+///     (<c>_llm.AsAIAgent(new ChatClientAgentOptions { ChatOptions = { Instructions = ... } })</c>).
+///     No tools are attached — these are pure LLM-as-summarizer calls, so the default
+///     <c>FunctionInvokingChatClient</c> inserted by <c>AsAIAgent</c> is a no-op passthrough.
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
@@ -21,7 +27,8 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
 
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Generate an AI-powered summary of an error issue.
 
@@ -78,19 +85,22 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             if (_llm is null)
                 return $"# Error Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            List<ChatMessage> messages =
-            [
-                new(ChatRole.System, ErrorSummaryPrompt.Prompt),
-                new(ChatRole.User, sb.ToString())
-            ];
+            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "ErrorSummaryAgent",
+                Description = "Produces a structured AI summary of a qyl error issue.",
+                ChatOptions = new ChatOptions { Instructions = ErrorSummaryPrompt.Prompt },
+            })
+            .AsBuilder().UseQylAgentTelemetry().Build();
 
-            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
-            return response.Text ?? "Summary generation produced no output.";
+            var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
+            return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
         });
 
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_trace", Title = "Summarize Trace",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Generate an AI-powered summary of a distributed trace.
 
@@ -151,18 +161,21 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             if (_llm is null)
                 return $"# Trace Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            List<ChatMessage> messages =
-            [
-                new(ChatRole.System, TraceSummaryPrompt.Prompt),
-                new(ChatRole.User, sb.ToString())
-            ];
+            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "TraceSummaryAgent",
+                Description = "Produces a structured AI summary of a distributed trace.",
+                ChatOptions = new ChatOptions { Instructions = TraceSummaryPrompt.Prompt },
+            })
+            .AsBuilder().UseQylAgentTelemetry().Build();
 
-            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
-            return response.Text ?? "Summary generation produced no output.";
+            var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
+            return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
         });
 
     [McpServerTool(Name = "qyl.summarize_session", Title = "Summarize Session",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Generate an AI-powered summary of a session.
 
@@ -230,14 +243,16 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             if (_llm is null)
                 return $"# Session Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            List<ChatMessage> messages =
-            [
-                new(ChatRole.System, SessionSummaryPrompt.Prompt),
-                new(ChatRole.User, sb.ToString())
-            ];
+            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "SessionSummaryAgent",
+                Description = "Produces a structured AI summary of a session's spans and lifecycle.",
+                ChatOptions = new ChatOptions { Instructions = SessionSummaryPrompt.Prompt },
+            })
+            .AsBuilder().UseQylAgentTelemetry().Build();
 
-            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
-            return response.Text ?? "Summary generation produced no output.";
+            var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
+            return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
         });
 
     private static string Truncate(string value, int maxLength) =>

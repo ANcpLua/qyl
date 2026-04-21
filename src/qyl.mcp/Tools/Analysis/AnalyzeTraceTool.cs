@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
 using qyl.mcp.Errors;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Analysis;
@@ -27,7 +28,8 @@ public sealed class AnalyzeTraceTool(HttpClient client)
         Title = "Analyze Trace",
         ReadOnly = false,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Analyze a distributed trace. Returns structured analysis of spans, errors, services, and latency patterns.")]
     public async Task<string> AnalyzeTraceAsync(

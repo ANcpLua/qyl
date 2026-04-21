@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -21,7 +22,8 @@ public sealed class ErrorTools(HttpClient client)
     /// <returns>A table of error issues with status, priority, and occurrence counts.</returns>
     [QylCapability("error_investigation")]
     [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List fingerprinted error groups (issues) with optional filtering.
 
@@ -184,7 +186,8 @@ public sealed class ErrorTools(HttpClient client)
     /// <returns>A list of similar spans with cluster labels and similarity scores.</returns>
     [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.find_similar_errors", Title = "Find Similar Errors",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Find errors similar to a given span using embedding clusters.
 
@@ -231,7 +234,8 @@ public sealed class ErrorTools(HttpClient client)
     /// <returns>Time-bucketed occurrence counts with an ASCII sparkline.</returns>
     [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_error_timeline", Title = "Get Error Timeline",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get error occurrence frequency over time for trend analysis.
 

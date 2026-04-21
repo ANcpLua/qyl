@@ -1,9 +1,12 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Agents;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace qyl.mcp.Tools;
 
@@ -19,7 +22,8 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.assisted_query", Title = "Assisted Query",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Ask a question about your observability data in natural language.
                  Translates your question to DuckDB SQL, executes it, and returns formatted results.
@@ -38,10 +42,15 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
                 return "Assisted query requires an LLM. Set QYL_AGENT_API_KEY to enable.";
 
             var take = Math.Clamp(limit ?? 50, 1, 500);
-            var prompt = BuildSqlPrompt(question, take);
 
-            var response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
-                .ConfigureAwait(false);
+            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "AssistedQueryAgent",
+                Description = "Translates natural-language observability questions into DuckDB SELECT queries.",
+                ChatOptions = new ChatOptions { Instructions = BuildSqlSystemPrompt(take) },
+            }).AsBuilder().UseQylAgentTelemetry().Build();
+
+            var response = await agent.RunAsync(question, cancellationToken: ct).ConfigureAwait(false);
 
             var sql = ExtractSql(response.Text ?? "");
             if (string.IsNullOrWhiteSpace(sql))
@@ -62,9 +71,9 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
             return $"## Query Results\n\n**SQL:**\n```sql\n{sql}\n```\n\n**Results:**\n```json\n{json}\n```";
         });
 
-    private static string BuildSqlPrompt(string question, int limit) =>
+    private static string BuildSqlSystemPrompt(int limit) =>
         $$"""
-          You are a DuckDB SQL expert for an observability platform. Generate a single SELECT query.
+          You are a DuckDB SQL expert for an observability platform. Generate a single SELECT query for the user's question.
 
           ## Available tables (key columns only)
           - spans: trace_id, span_id, service_name, span_name, duration_ms, status, start_time
@@ -81,9 +90,6 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
           - LIMIT {{limit}} maximum
           - Use now() for current time, interval for time ranges
           - Output ONLY the SQL in a ```sql code block, nothing else
-
-          ## Question
-          {{question}}
           """;
 
     private static string ExtractSql(string text)

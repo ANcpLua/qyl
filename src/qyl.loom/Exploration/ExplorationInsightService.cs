@@ -1,5 +1,7 @@
 using ANcpLua.Roslyn.Utilities;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom.Exploration;
 
@@ -51,8 +53,15 @@ public sealed partial class ExplorationInsightService(
 
         try
         {
-            var response = await llm!.GetResponseAsync(
-                $"{ExplorationPrompts.InsightGeneration}\n\nError details:\n{context}",
+            var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "ExplorationInsightAgent",
+                Description = "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
+                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.InsightGeneration },
+            }).AsBuilder().UseQylAgentTelemetry().Build();
+
+            var response = await agent.RunAsync(
+                $"Error details:\n{context}",
                 cancellationToken: ct).ConfigureAwait(false);
 
             var parsed = TryParseInsight(response.Text ?? "{}", issueId);

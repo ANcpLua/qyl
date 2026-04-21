@@ -216,6 +216,17 @@ internal static class ToolManifestEmitter
         }
     }
 
+    /// <summary>
+    ///     Emits <c>QylToolManifest.RegisterTools(IMcpServerBuilder, SkillConfiguration, JsonSerializerOptions)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Moved to explicit <c>McpServerTool.Create(...)</c> with <c>McpServerToolCreateOptions.Meta</c>
+    ///     because <c>WithTools&lt;T&gt;()</c> has no per-tool <c>Meta</c> attachment point. Reflection/trim
+    ///     is not the driver; Meta attachment is. The emitter mirrors the SDK's internal dispatch in
+    ///     <c>McpServerBuilderExtensions.WithTools&lt;T&gt;</c> — a factory that resolves the owning type
+    ///     from DI per invocation, wrapping each method in an <c>ActivatorUtilities.CreateInstance</c>
+    ///     lambda. Skill-gating is one <c>if</c> per owning class, not per method.
+    /// </remarks>
     private static void EmitRegisterToolsMethod(IndentedStringBuilder sb, ToolTypeEntry[] sorted)
     {
         sb.AppendLine("public static void RegisterTools(");
@@ -232,12 +243,88 @@ internal static class ToolManifestEmitter
                 {
                     foreach (var entry in group.Value)
                     {
-                        sb.AppendLine(
-                            $"global::Microsoft.Extensions.DependencyInjection.McpServerBuilderExtensions.WithTools<{entry.FullyQualifiedTypeName}>(mcpBuilder, jsonOptions);");
+                        foreach (var method in entry.Methods)
+                            EmitToolRegistration(sb, entry, method);
                     }
                 }
             }
         }
+    }
+
+    private static void EmitToolRegistration(
+        IndentedStringBuilder sb,
+        ToolTypeEntry entry,
+        ToolMethodEntry method)
+    {
+        // Analyzer filters on IsStatic:false today, so every method here is an instance method.
+        // Target factory resolves the owning type from DI per invocation, matching WithTools<T>() dispatch.
+        // Static-extension form is required here because the generated file has no using directives
+        // (it relies on global:: qualification only).
+        sb.AppendLine(
+            "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<global::ModelContextProtocol.Server.McpServerTool>(");
+        sb.AppendLine("    mcpBuilder.Services,");
+        sb.AppendLine(
+            "    (global::System.IServiceProvider sp) => global::ModelContextProtocol.Server.McpServerTool.Create(");
+        sb.AppendLine(
+            $"        typeof({entry.FullyQualifiedTypeName}).GetMethod(nameof({entry.FullyQualifiedTypeName}.{method.MethodName}), global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!,");
+        sb.AppendLine(
+            $"        static r => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance(r.Services!, typeof({entry.FullyQualifiedTypeName})),");
+        sb.AppendLine("        new global::ModelContextProtocol.Server.McpServerToolCreateOptions");
+        sb.AppendLine("        {");
+        sb.AppendLine("            Services = sp,");
+        sb.AppendLine("            SerializerOptions = jsonOptions,");
+        EmitMetaIfPresent(sb, entry, method, baseIndent: "            ");
+        sb.AppendLine("        }));");
+    }
+
+    private static void EmitMetaIfPresent(
+        IndentedStringBuilder sb,
+        ToolTypeEntry entry,
+        ToolMethodEntry method,
+        string baseIndent)
+    {
+        // Omit Meta entirely when no skill/capability attribution is present, rather than emitting Meta = null.
+        if (entry.SkillKindName is null && method.Capabilities.IsEmpty)
+            return;
+
+        sb.AppendLine($"{baseIndent}Meta = new global::System.Text.Json.Nodes.JsonObject");
+        sb.AppendLine($"{baseIndent}{{");
+
+        if (entry.SkillKindName is not null)
+            sb.AppendLine($"{baseIndent}    [\"qyl.skill\"] = {StringLiteral(entry.SkillKindName)},");
+
+        EmitCapabilityRole(sb, "qyl.capabilities.starting", method, CapabilityRoleKind.Starting, baseIndent);
+        EmitCapabilityRole(sb, "qyl.capabilities.followUp", method, CapabilityRoleKind.FollowUp, baseIndent);
+
+        sb.AppendLine($"{baseIndent}}},");
+    }
+
+    private static void EmitCapabilityRole(
+        IndentedStringBuilder sb,
+        string metaKey,
+        ToolMethodEntry method,
+        CapabilityRoleKind role,
+        string baseIndent)
+    {
+        var ids = method.Capabilities
+            .Where(c => c.Role == role)
+            .Select(c => c.CapabilityId)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (ids.Count is 0)
+        {
+            sb.AppendLine(
+                $"{baseIndent}    [{StringLiteral(metaKey)}] = new global::System.Text.Json.Nodes.JsonArray(),");
+            return;
+        }
+
+        sb.AppendLine(
+            $"{baseIndent}    [{StringLiteral(metaKey)}] = new global::System.Text.Json.Nodes.JsonArray");
+        sb.AppendLine($"{baseIndent}    {{");
+        foreach (var id in ids)
+            sb.AppendLine($"{baseIndent}        {StringLiteral(id)},");
+        sb.AppendLine($"{baseIndent}    }},");
     }
 
     private static void EmitRegisterServicesMethod(IndentedStringBuilder sb, ToolTypeEntry[] sorted)
@@ -323,7 +410,7 @@ internal static class ToolManifestEmitter
             return "null";
 
         return "\"" + value
-            .ReplaceOrdinal("\\", "\\\\")
+            .ReplaceOrdinal("\\", @"\\")
             .ReplaceOrdinal("\"", "\\\"")
             .ReplaceOrdinal("\r", "\\r")
             .ReplaceOrdinal("\n", "\\n") + "\"";

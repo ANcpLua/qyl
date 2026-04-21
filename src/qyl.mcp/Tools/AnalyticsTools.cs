@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -25,7 +26,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <returns>A formatted paginated list of conversations with metadata.</returns>
     [QylCapability("analytics")]
     [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List AI conversations captured by qyl.
 
@@ -97,7 +99,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <returns>A formatted conversation timeline with turns, tokens, and errors.</returns>
     [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_conversation", Title = "Get Conversation",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get the full detail of a single AI conversation.
 
@@ -158,7 +161,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <returns>A list of coverage gaps with findings and recommendations.</returns>
     [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_coverage_gaps", Title = "Get Coverage Gaps",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Identify topics where the AI assistant fails to help users.
 
@@ -221,7 +225,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <returns>Topic clusters ranked by conversation count.</returns>
     [QylCapability("analytics")]
     [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Identify the most common topics users ask about.
 
@@ -275,7 +280,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
     /// <returns>Sources ranked by citation frequency.</returns>
     [McpServerTool(Name = "qyl.get_source_analytics", Title = "Get Source Analytics",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Show which knowledge sources are most cited by the AI.
 
@@ -322,7 +328,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="offset">Period offset where 0 is current and 1 is previous.</param>
     /// <returns>Satisfaction rate, feedback counts, and breakdowns by model and topic.</returns>
     [McpServerTool(Name = "qyl.get_satisfaction", Title = "Get Satisfaction",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Track user satisfaction with AI answers.
 
@@ -386,7 +393,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <param name="pageSize">Results per page.</param>
     /// <returns>A paginated list of users with activity summaries.</returns>
     [McpServerTool(Name = "qyl.list_users", Title = "List Users",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List users who have interacted with the AI assistant.
 
@@ -438,7 +446,8 @@ public sealed class AnalyticsTools(HttpClient client)
     /// <returns>User journey with conversation history, tokens, and retention data.</returns>
     [QylCapability("analytics", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_user_journey", Title = "Get User Journey",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get an individual user's conversation history and journey.
 

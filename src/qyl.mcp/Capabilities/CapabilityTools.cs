@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using qyl.mcp.Metadata;
 using ModelContextProtocol.Server;
+using Qyl.Generated;
 
 namespace qyl.mcp.Capabilities;
 
@@ -75,7 +76,8 @@ internal sealed class CapabilityTools(SkillConfiguration skills)
             return JsonSerializer.Serialize(notFound, CapabilityToolsJsonContext.Default.CapabilityGuideResponseDto);
         }
 
-        var enabledToolMap = QylMcpMetadataCatalog.GetEnabledTools(skills)
+        var enabledToolMap = QylToolManifest.ToolDescriptors
+            .Where(tool => tool.SkillKind is null || skills.IsEnabled(tool.SkillKind.Value))
             .ToDictionary(tool => tool.Name, StringComparer.OrdinalIgnoreCase);
 
         var response = new CapabilityGuideResponseDto

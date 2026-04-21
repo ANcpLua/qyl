@@ -1,9 +1,12 @@
 using System.ComponentModel;
 using System.Net;
 using qyl.mcp.Agents;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace qyl.mcp.Tools;
 
@@ -19,7 +22,8 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Generate a regression test based on an error issue.
                  Fetches the error's stack trace, context, and events,
@@ -62,17 +66,36 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
                 ? await eventsResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : "[]";
 
-            var prompt = BuildTestPrompt(issueJson, eventsJson, targetFramework);
+            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "TestGenerationAgent",
+                Description = "Generates regression tests that would catch a qyl error issue if it reoccurs.",
+                ChatOptions = new ChatOptions { Instructions = TestGenerationSystemPrompt },
+            }).AsBuilder().UseQylAgentTelemetry().Build();
 
-            var response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
-                .ConfigureAwait(false);
+            var userMessage = BuildTestUserMessage(issueJson, eventsJson, targetFramework);
+
+            var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
 
             return $"## Generated Test for Issue {issueId}\n\n{response.Text}";
         });
 
-    private static string BuildTestPrompt(string issueJson, string eventsJson, string framework) =>
+    private const string TestGenerationSystemPrompt = """
+                                                      You are a test engineer. Generate a regression test that would catch the given error if it reoccurs.
+
+                                                      Requirements:
+                                                      - Write the test in the framework the user requests.
+                                                      - Verify the specific behavior that caused the error.
+                                                      - Include arrange/act/assert structure.
+                                                      - Add comments explaining what the test validates.
+                                                      - If the error is in a specific method, test that method's edge cases.
+                                                      - Include setup code (mocks, fixtures) as needed.
+                                                      - Output the complete test file in a single code block.
+                                                      """;
+
+    private static string BuildTestUserMessage(string issueJson, string eventsJson, string framework) =>
         $$"""
-          You are a test engineer. Generate a regression test that would catch this error if it reoccurs.
+          Target framework: {{framework}}
 
           ## Error Details
           ```json
@@ -83,14 +106,5 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
           ```json
           {{eventsJson}}
           ```
-
-          ## Requirements
-          - Write the test in {{framework}}
-          - The test should verify the specific behavior that caused this error
-          - Include arrange/act/assert structure
-          - Add comments explaining what the test validates
-          - If the error is in a specific method, test that method's edge cases
-          - Include setup code (mocks, fixtures) as needed
-          - Output the complete test file in a code block
           """;
 }

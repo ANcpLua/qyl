@@ -148,7 +148,7 @@ internal static class ToolManifestAnalyzer
 
         foreach (var attr in method.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, capabilityAttrType))
+            if (!attr.AttributeClass.IsEqualTo(capabilityAttrType))
                 continue;
 
             if (attr.ConstructorArguments.Length is 0 ||
@@ -175,7 +175,7 @@ internal static class ToolManifestAnalyzer
 
         foreach (var attr in typeSymbol.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, skillAttrType))
+            if (!attr.AttributeClass.IsEqualTo(skillAttrType))
                 continue;
 
             if (attr.ConstructorArguments is [{ Value: int skillValue } _, ..])
@@ -209,7 +209,7 @@ internal static class ToolManifestAnalyzer
 
         foreach (var attr in method.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, attrType))
+            if (attr.AttributeClass.IsEqualTo(attrType))
                 return attr;
         }
 
@@ -267,7 +267,7 @@ internal static class ToolManifestAnalyzer
 
         foreach (var attr in method.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attr.AttributeClass, attrType))
+            if (!attr.AttributeClass.IsEqualTo(attrType))
                 continue;
 
             if (attr.ConstructorArguments is [{ Value: string description }])

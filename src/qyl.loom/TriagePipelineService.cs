@@ -1,6 +1,8 @@
 using ANcpLua.Roslyn.Utilities;
 using Qyl.Contracts.Observability;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom;
 
@@ -107,20 +109,25 @@ public sealed partial class TriagePipelineService(
 
     private async Task<TriageResult> ScoreWithLlmAsync(IssueSummary issue, CancellationToken ct)
     {
-        var prompt = $"""
-                      {TriagePrompts.FixabilityScoring}
-                      Type: {issue.ErrorType}
-                      Message: {issue.ErrorMessage ?? "N/A"}
-                      Occurrences: {issue.EventCount}
-                      First seen: {issue.FirstSeen:O}
-                      Last seen: {issue.LastSeen:O}
-                      Status: {issue.Status}
-                      """;
+        var userMessage = $"""
+                           Type: {issue.ErrorType}
+                           Message: {issue.ErrorMessage ?? "N/A"}
+                           Occurrences: {issue.EventCount}
+                           First seen: {issue.FirstSeen:O}
+                           Last seen: {issue.LastSeen:O}
+                           Status: {issue.Status}
+                           """;
+
+        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+        {
+            Name = "TriageScoringAgent",
+            Description = "Scores the fixability of a qyl error issue and proposes an automation level.",
+            ChatOptions = new ChatOptions { Instructions = TriagePrompts.FixabilityScoring },
+        }).AsBuilder().UseQylAgentTelemetry().Build();
 
         try
         {
-            var response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
-                .ConfigureAwait(false);
+            var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
 
             var text = response.Text ?? "";
             var parsed = TryParseResponse(text);

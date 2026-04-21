@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -15,7 +16,8 @@ internal sealed class RegressionTools(HttpClient http)
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.check_regressions", Title = "Check Regressions for Service",
-        ReadOnly = false, Destructive = false, Idempotent = true)]
+        ReadOnly = false, Destructive = false, Idempotent = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Trigger a regression check for a specific service.
                  Detects resolved errors that have re-appeared and transitions
@@ -60,7 +62,8 @@ internal sealed class RegressionTools(HttpClient http)
         });
 
     [McpServerTool(Name = "qyl.list_regressions", Title = "List Regression Events",
-        ReadOnly = true, Destructive = false, Idempotent = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List recent regression events across all issues.
                  Shows which issues regressed, when, and why.

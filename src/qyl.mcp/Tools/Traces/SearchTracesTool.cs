@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
 
@@ -17,7 +18,8 @@ public sealed class SearchTracesTool(HttpClient client)
     [QylCapability("trace_investigation")]
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "search_traces", Title = "Search Traces",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Search distributed traces by query. Returns a paginated list of matching traces with duration, status, and root span.")]
     public async Task<string> SearchTracesAsync(

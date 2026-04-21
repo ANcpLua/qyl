@@ -1,5 +1,7 @@
 using Qyl.Contracts.Observability;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom;
 
@@ -245,26 +247,28 @@ public sealed partial class AutofixAgentService(
                            {contextJson}{instructionBlock}
                            """;
 
-        var response = await llm!.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, AutofixPrompts.RootCauseAnalysis),
-                new ChatMessage(ChatRole.User, userMessage)
-            ],
-            cancellationToken: ct).ConfigureAwait(false);
+        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+        {
+            Name = "AutofixRcaAgent",
+            Description = "Root-cause analysis for a qyl error issue using gathered context.",
+            ChatOptions = new ChatOptions { Instructions = AutofixPrompts.RootCauseAnalysis },
+        }).AsBuilder().UseQylAgentTelemetry().Build();
 
-        return response.Text;
+        var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+        return response.Text is { Length: > 0 } text ? text : string.Empty;
     }
 
     private async Task<string> RunSolutionPlanAsync(string rcaReport, CancellationToken ct)
     {
-        var response = await llm!.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, AutofixPrompts.SolutionPlanning),
-                new ChatMessage(ChatRole.User, rcaReport)
-            ],
-            cancellationToken: ct).ConfigureAwait(false);
+        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+        {
+            Name = "AutofixSolutionPlanAgent",
+            Description = "Converts an RCA report into a structured JSON solution plan.",
+            ChatOptions = new ChatOptions { Instructions = AutofixPrompts.SolutionPlanning },
+        }).AsBuilder().UseQylAgentTelemetry().Build();
 
-        return ExtractJson(response.Text);
+        var response = await agent.RunAsync(rcaReport, cancellationToken: ct).ConfigureAwait(false);
+        return ExtractJson(response.Text ?? string.Empty);
     }
 
     private async Task<string> RunDiffGenerationAsync(
@@ -278,14 +282,15 @@ public sealed partial class AutofixAgentService(
                            {solutionPlan}
                            """;
 
-        var response = await llm!.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, AutofixPrompts.DiffGeneration),
-                new ChatMessage(ChatRole.User, userMessage)
-            ],
-            cancellationToken: ct).ConfigureAwait(false);
+        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+        {
+            Name = "AutofixDiffGenAgent",
+            Description = "Emits a structured JSON diff for the autofix pipeline.",
+            ChatOptions = new ChatOptions { Instructions = AutofixPrompts.DiffGeneration },
+        }).AsBuilder().UseQylAgentTelemetry().Build();
 
-        return ExtractJson(response.Text);
+        var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+        return ExtractJson(response.Text ?? string.Empty);
     }
 
     private async Task<ConfidenceResult> RunConfidenceScoringAsync(
@@ -299,14 +304,15 @@ public sealed partial class AutofixAgentService(
                            {changesJson}
                            """;
 
-        var response = await llm!.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, AutofixPrompts.ConfidenceScoring),
-                new ChatMessage(ChatRole.User, userMessage)
-            ],
-            cancellationToken: ct).ConfigureAwait(false);
+        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
+        {
+            Name = "AutofixConfidenceAgent",
+            Description = "Scores autofix confidence and returns a structured recommendation.",
+            ChatOptions = new ChatOptions { Instructions = AutofixPrompts.ConfidenceScoring },
+        }).AsBuilder().UseQylAgentTelemetry().Build();
 
-        var json = ExtractJson(response.Text);
+        var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+        var json = ExtractJson(response.Text ?? string.Empty);
         try
         {
             return JsonSerializer.Deserialize(json, AutofixJsonContext.Default.ConfidenceResult)

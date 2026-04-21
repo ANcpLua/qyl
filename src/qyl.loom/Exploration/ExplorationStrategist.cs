@@ -1,4 +1,6 @@
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom.Exploration;
 
@@ -24,7 +26,14 @@ public sealed partial class ExplorationStrategist(
 
         try
         {
-            var response = await llm.GetResponseAsync(BuildPrompt(session), cancellationToken: ct)
+            var agent = llm.AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "ExplorationStrategistAgent",
+                Description = "Converts an exploration root-cause analysis into a minimal implementation plan.",
+                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.SolutionPlanning },
+            }).AsBuilder().UseQylAgentTelemetry().Build();
+
+            var response = await agent.RunAsync(BuildUserMessage(session), cancellationToken: ct)
                 .ConfigureAwait(false);
             return ExplorationResponseParser.TryParseSolution(response.Text ?? "{}");
         }
@@ -35,15 +44,13 @@ public sealed partial class ExplorationStrategist(
         }
     }
 
-    private static string BuildPrompt(ExplorationSessionState session)
+    private static string BuildUserMessage(ExplorationSessionState session)
     {
         var rootCauseJson = session.RootCause is null
             ? session.DiagnosticTranscript ?? session.ContextBlock ?? string.Empty
             : JsonSerializer.Serialize(session.RootCause, ExplorationJsonContext.Default.ExplorationRootCause);
 
         return $"""
-                {ExplorationPrompts.SolutionPlanning}
-
                 Root cause analysis:
                 {rootCauseJson}
                 """;

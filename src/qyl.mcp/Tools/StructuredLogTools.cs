@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
 
@@ -23,7 +24,8 @@ public sealed class StructuredLogTools(HttpClient client)
     /// <param name="limit">Maximum number of logs to return.</param>
     /// <returns>Formatted list of structured logs with timestamps, severity, and attributes.</returns>
     [McpServerTool(Name = "qyl.list_structured_logs", Title = "List Structured Logs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List OTLP structured log records captured by qyl.
 
@@ -120,7 +122,8 @@ public sealed class StructuredLogTools(HttpClient client)
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [QylCapability("log_investigation")]
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get all structured logs associated with a distributed trace.
 
@@ -185,7 +188,8 @@ public sealed class StructuredLogTools(HttpClient client)
     /// <returns>Matching logs with service name, trace ID, and context.</returns>
     [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_logs", Title = "Search Logs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Search structured logs by text pattern.
 

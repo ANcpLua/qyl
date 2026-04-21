@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -15,7 +16,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 {
     [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_agent_runs", Title = "Search Agent Runs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Search for AI agent run records.
 
@@ -76,7 +78,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
     [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get aggregated token usage statistics.
 
@@ -105,7 +108,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         });
 
     [McpServerTool(Name = "qyl.list_errors", Title = "List Errors",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  List recent errors from agent runs.
 
@@ -132,7 +136,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         });
 
     [McpServerTool(Name = "qyl.get_latency_stats", Title = "Get Latency Stats",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Get latency percentiles for agent operations.
 

@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using qyl.mcp.Agents;
 using qyl.mcp.Formatting;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 using Microsoft.Extensions.Configuration;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
 
@@ -22,7 +25,8 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.root_cause_analysis", Title = "Root Cause Analysis",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Perform AI-powered root cause analysis on an error issue.
 
@@ -66,8 +70,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                 typeof(AnomalyTools),
                 typeof(SpanQueryTools),
                 typeof(StructuredLogTools))
-            .Select(tool => (AITool)investigation.Wrap(tool))
-            .ToList();
+            .Select(tool => (AITool)investigation.Wrap(tool));
 
         var agent = new ChatClientBuilder(_llm)
             .UseFunctionInvocation(configure: static invoker =>
@@ -75,24 +78,30 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                 invoker.MaximumIterationsPerRequest = 10;
                 invoker.AllowConcurrentInvocation = false;
             })
+            .Build()
+            .AsAIAgent(new ChatClientAgentOptions
+            {
+                Name = "RcaAgent",
+                Description = "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = RcaPrompt.Prompt,
+                    Tools = [.. guardedTools],
+                    ToolMode = ChatToolMode.Auto,
+                },
+            })
+            .AsBuilder()
+            .UseQylAgentTelemetry()
             .Build();
 
         var userMessage = $"Investigate error issue ID: {issueId}";
         if (context is not null)
             userMessage += $"\n\nAdditional context: {context}";
 
-        List<ChatMessage> messages =
-        [
-            new(ChatRole.System, RcaPrompt.Prompt),
-            new(ChatRole.User, userMessage)
-        ];
-
-        ChatOptions options = new() { Tools = [.. guardedTools] };
-
         try
         {
-            var response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
-            var output = response.Text ?? "RCA completed with no output.";
+            var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+            var output = response.Text is { Length: > 0 } text ? text : "RCA completed with no output.";
 
             output += ResponseFormatter.FormatToolCallTrace(
                 investigation.ToolCallCounts, investigation.TotalCalls, investigation.MaxToolCalls);

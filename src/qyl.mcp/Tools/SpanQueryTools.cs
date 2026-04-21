@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
 
@@ -23,7 +24,8 @@ public sealed class SpanQueryTools(HttpClient client)
     /// <returns>A list of matching spans with timing and attributes.</returns>
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_spans", Title = "Search Spans",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description("""
                  Search spans with flexible filtering.
 

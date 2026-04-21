@@ -42,21 +42,9 @@ internal static class QylMcpHttpHost
             app.UseAuthorization();
         }
 
-        app.MapGet("/", (HttpRequest request) =>
-        {
-            var accept = request.Headers.Accept.ToString();
-            if (accept.ContainsIgnoreCase("text/html"))
-            {
-                return Results.Content(
-                    LandingPage.GetHtml(hostOptions.ResolvePublicMcpUrl(request)),
-                    "text/html; charset=utf-8");
-            }
-
-            return Results.Json(QylMcpManifestBuilder.Create(request, hostOptions, skills));
-        });
-
-        app.MapGet("/mcp.json", (HttpRequest request) =>
-            Results.Json(QylMcpManifestBuilder.Create(request, hostOptions, skills)));
+        app.MapGet("/", (HttpRequest request) => Results.Content(
+            LandingPage.GetHtml(hostOptions.ResolvePublicMcpUrl(request)),
+            "text/html; charset=utf-8"));
 
         app.MapGet("/llms.txt", (HttpRequest request) =>
             Results.Text(QylMcpLlmsTextBuilder.Create(hostOptions, skills, request), "text/plain; charset=utf-8"));

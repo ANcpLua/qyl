@@ -18,6 +18,10 @@
     <PackageVersion>0.1.0-beta</PackageVersion>
     <PackageTags>AI;MCP;server;stdio;http;streamable-http;observability</PackageTags>
     <Description>An MCP server for qyl observability via stdio or Streamable HTTP.</Description>
+
+    <!-- MCPEXP001: experimental MCP Tasks feature (ToolTaskSupport) consumed per-tool.
+         Upstream-experimental API; acknowledged project-wide until the MCP spec ratifies it. -->
+    <NoWarn>$(NoWarn);MCPEXP001</NoWarn>
   </PropertyGroup>
 
   <!-- RIDs only when publishing self-contained binaries (release artifacts,

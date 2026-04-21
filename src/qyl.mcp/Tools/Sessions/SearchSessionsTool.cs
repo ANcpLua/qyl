@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using qyl.mcp.Formatting;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
 
@@ -19,7 +20,8 @@ public sealed class SearchSessionsTool(HttpClient client)
         Title = "Search Sessions",
         ReadOnly = true,
         Destructive = false,
-        OpenWorld = true)]
+        OpenWorld = true,
+        TaskSupport = ToolTaskSupport.Optional)]
     [Description(
         "Search debugging sessions by query. Returns paginated list of sessions with status, service, and span count.")]
     public async Task<string> SearchSessions(
