@@ -16,7 +16,7 @@
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
     <ANcpLuaRoslynUtilitiesVersion>1.54.1</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaRoslynUtilitiesBaseVersion>1.54.1</ANcpLuaRoslynUtilitiesBaseVersion>
-    <ANcpLuaAnalyzersVersion>1.25.0</ANcpLuaAnalyzersVersion>
+    <ANcpLuaAnalyzersVersion>1.26.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.3.1-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.3.1</ANcpLuaAgentsVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>
