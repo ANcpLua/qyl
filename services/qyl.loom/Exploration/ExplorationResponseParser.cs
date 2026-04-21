@@ -1,3 +1,4 @@
+using ANcpLua.Agents;
 using ANcpLua.Roslyn.Utilities;
 
 namespace Qyl.Loom.Exploration;
@@ -24,14 +25,7 @@ internal static class ExplorationResponseParser
         if (json == "{}")
             return null;
 
-        try
-        {
-            return JsonSerializer.Deserialize(json, ExplorationJsonContext.Default.ExplorationRootCause);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return JsonHelper.TryDeserialize(json, ExplorationJsonContext.Default.ExplorationRootCause);
     }
 
     internal static ExplorationSolution? TryParseSolution(string text)
@@ -44,14 +38,7 @@ internal static class ExplorationResponseParser
         if (json == "{}")
             return null;
 
-        try
-        {
-            return JsonSerializer.Deserialize(json, ExplorationJsonContext.Default.ExplorationSolution);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return JsonHelper.TryDeserialize(json, ExplorationJsonContext.Default.ExplorationSolution);
     }
 
     private static string ExtractJsonObject(string text, int start)

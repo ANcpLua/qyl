@@ -1,3 +1,4 @@
+using ANcpLua.Agents;
 using Qyl.Contracts.Observability;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -313,15 +314,8 @@ public sealed partial class AutofixAgentService(
 
         var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
         var json = ExtractJson(response.Text ?? string.Empty);
-        try
-        {
-            return JsonSerializer.Deserialize(json, AutofixJsonContext.Default.ConfidenceResult)
-                   ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
-        }
-        catch (JsonException)
-        {
-            return new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
-        }
+        return JsonHelper.TryDeserialize(json, AutofixJsonContext.Default.ConfidenceResult)
+               ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
     }
 
     private static string ExtractJson(string text)

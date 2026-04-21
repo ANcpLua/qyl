@@ -113,7 +113,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             typeDecl is RecordDeclarationSyntax ? "record" : "class",
             tableName,
             onConflict,
-            [..columns]);
+            columns.ToArray().ToEquatableArray());
     }
 
     private static DuckDbColumnInfo? ExtractColumnInfo(IPropertySymbol prop, int defaultOrdinal)
@@ -196,7 +196,7 @@ internal readonly record struct DuckDbTableInfo(
     string TypeKind,
     string TableName,
     string? OnConflict,
-    ImmutableArray<DuckDbColumnInfo> Columns);
+    EquatableArray<DuckDbColumnInfo> Columns);
 
 internal readonly record struct DuckDbColumnInfo(
     string PropertyName,

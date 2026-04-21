@@ -1,3 +1,5 @@
+using ANcpLua.Agents;
+
 namespace Qyl.Collector.Errors;
 
 public static class ErrorExtractor
@@ -61,13 +63,6 @@ public static class ErrorExtractor
     internal static Dictionary<string, string> ParseAttributesJson(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
-        try
-        {
-            return JsonSerializer.Deserialize(json, QylSerializerContext.Default.DictionaryStringString) ?? [];
-        }
-        catch (JsonException)
-        {
-            return [];
-        }
+        return JsonHelper.TryDeserialize(json, QylSerializerContext.Default.DictionaryStringString) ?? [];
     }
 }
