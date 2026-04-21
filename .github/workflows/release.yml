@@ -194,6 +194,96 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  pack-nuget:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION_NUMBER="${{ inputs.version }}"
+          else
+            VERSION_NUMBER="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Pack Qyl.Contracts
+        run: dotnet pack packages/Qyl.Contracts/qyl.contracts.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
+
+      - name: Pack Qyl.OpenTelemetry.Extensions
+        run: dotnet pack packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
+
+      # Qyl.Client is intentionally omitted until the Commit-7 alpha-emitter stabilization lands.
+      # See packages/Qyl.Client/DEFERRED.md. Re-add with:
+      #   dotnet pack packages/Qyl.Client/Qyl.Client.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
+
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push "nupkg/*.nupkg" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+  pack-npm:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION_NUMBER="${{ inputs.version }}"
+          else
+            VERSION_NUMBER="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Install TypeSpec deps + compile emitters
+        working-directory: core/specs
+        run: |
+          npm install --legacy-peer-deps
+          npm run compile
+
+      - name: Install @qyl/client deps
+        working-directory: packages/qyl-client
+        run: npm install
+
+      - name: Stamp version
+        working-directory: packages/qyl-client
+        run: npm version ${{ steps.version.outputs.version_number }} --no-git-tag-version --allow-same-version
+
+      - name: Build @qyl/client
+        working-directory: packages/qyl-client
+        run: npm run build
+
+      - name: Publish @qyl/client
+        working-directory: packages/qyl-client
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
   build-docker:
     runs-on: ubuntu-latest
     needs: build-and-release
