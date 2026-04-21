@@ -10,6 +10,21 @@ stay aligned with upstream .NET patterns — read the `microsoft-agent-framework
 at <https://github.com/microsoft/agent-framework/tree/main/dotnet> for anything the skill doesn't cover. Never paste a
 qyl-specific shortcut over a MAF rule.
 
+## Reference implementation — Apex
+
+`~/Apex.AgenticEntityExtractor/Apex.AgenticEntityExtractor/` is the canonical shape for how qyl consumer code looks.
+Mirror it. Key files: `Agents/ExtractorAgentsBuilder.cs`, `Clients/ExtractorChatClientBuilder.cs`,
+`Workflows/ExtractorWorkflowBuilder.cs`, `Program.cs`. Every qyl service that constructs MAF agents must follow the
+three-builder-interface + fluent-middleware pattern documented in the `microsoft-agent-framework-qyl` skill overlay.
+
+## Collapse note (2026-04)
+
+The attribute+generator stack for **agent/chat-level telemetry** was collapsed to MAF's fluent middleware pipeline:
+`[AgentTraced]` + `AgentCallSiteAnalyzer` + `AgentInterceptorEmitter` + `AgentInterceptors.g.cs` + `GenAiCallSiteAnalyzer`
+are gone. Replacement is `.AsBuilder().UseOpenTelemetry("qyl.agent").Build()` at the composition root. Attribute-based
+instrumentation remains **only** for arbitrary non-chat methods/metrics (`[Traced]`/`[Meter]`/`[Counter]`/etc.) where
+no builder surface exists.
+
 ## Execution style
 
 - Source code is truth. Read `.cs` files before docs, plans, or summaries from previous sessions. Previous agents' plans
@@ -91,8 +106,11 @@ hook. Read it at the start of every session and do not enumerate ghost projects 
 - `AgentSession` (MAF): multi-turn conversation state. Obtain via `agent.CreateSessionAsync(ct)`. Each bounded agent
   owns its own session; do not pretend a shared conversation id unifies them.
 - `ChatClientAgent` (MAF): `AIAgent` implementation over an `IChatClient`.
-- `IChatClient` (`Microsoft.Extensions.AI`): provider-agnostic chat surface. Decorate via
-  `.AsBuilder().UseFunctionInvocation().UseOpenTelemetry(...).Build()`.
+- `IChatClient` (`Microsoft.Extensions.AI`): provider-agnostic chat surface. Build behind `IXxxChatClientBuilder`
+  (Apex pattern — enum-switch over `ChatProvider`, returns raw `IChatClient`). Decorate at the composition root via
+  `.AsBuilder().UseQylTelemetry("qyl.genai").Build()` (the qyl wrapper over `UseFunctionInvocation` +
+  `UseOpenTelemetry` + `ToolDecoratingChatClient`). Pair with `.AsBuilder().UseOpenTelemetry("qyl.agent").Build()` on
+  the `AIAgent` layer.
 - `AITool` / `AIFunction` / `AIFunctionFactory.Create(delegate, name, description)`: tool registration surface.
 - `LoomToolEnvelope<T>`: qyl's tool-result wrapper. Construct via the **non-generic companion** —
   `LoomToolEnvelope.Ok(data)` / `LoomToolEnvelope.Fail<T>(error)`. NEVER `LoomToolEnvelope<T>.Ok/Fail`.
@@ -189,25 +207,31 @@ var resource = ResourceBuilder.CreateDefault()
 
 ### Chat client + agent instrumentation
 
-Wrap every `IChatClient` AND the `AIAgent` with the telemetry pipeline — both layers, not one:
+Wrap every `IChatClient` AND the `AIAgent` with the telemetry pipeline — both layers, not one. Use
+`UseQylTelemetry` (the qyl wrapper) on the chat client, not a hand-rolled
+`UseFunctionInvocation().UseOpenTelemetry(...)` chain — the wrapper includes `ToolDecoratingChatClient` and
+refuses to double-wrap:
 
 ```csharp
 using IChatClient instrumented = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
     .GetChatClient(deploymentName)
     .AsIChatClient()
     .AsBuilder()
-    .UseFunctionInvocation()
-    .UseOpenTelemetry(sourceName: SourceName, configure: cfg => cfg.EnableSensitiveData = true)
+    .UseQylTelemetry(sourceName: "qyl.genai", configure: cfg => cfg.EnableSensitiveData = null /* env */)
     .Build();
 
 var agent = new ChatClientAgent(instrumented, name: "...", instructions: "...", tools: [...])
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: SourceName, configure: cfg => cfg.EnableSensitiveData = true)
+    .UseOpenTelemetry(sourceName: "qyl.agent", configure: cfg => cfg.EnableSensitiveData = null)
     .Build();
 ```
 
-- `EnableSensitiveData = true` captures prompts and completions. **Dev/test only.**
-- `SourceName` is the **application's own** `ActivitySource` name, not the framework's.
+- `EnableSensitiveData = null` defers to `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. Never pass `true`
+  as a literal in prod.
+- `sourceName` is the **application's own** `ActivitySource` name, not the framework's. qyl-owned names are
+  enumerated below.
+- Both layers live at the composition root, never scattered through call sites. No attribute-based agent tracing
+  — `[AgentTraced]` was removed in the 2026-04 collapse.
 
 ### Environment variables (standard OTel, not qyl-invented)
 
@@ -376,6 +400,8 @@ Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBo
 
 ## Reference docs
 
+- `~/Apex.AgenticEntityExtractor/` — canonical qyl consumer-code shape (three builder interfaces + fluent middleware
+  + three orchestration strategies). Mirror this pattern; do not invent a bespoke composition.
 - `docs/ARCHITECTURE.md` — C4 Context / Container / Component diagrams
 - `docs/THREAT_MODEL.md` — 20 attacker stories with P0–P3 prioritization
 - `docs/OPEN_WORK.md` — consolidated open work items (from the former specs/ tree)
