@@ -1,3 +1,5 @@
+using ANcpLua.Roslyn.Utilities.Text;
+
 namespace qyl.mcp.Scoping;
 
 /// <summary>
@@ -22,14 +24,10 @@ public sealed class QylScope
     public bool HasScope => ServiceName is not null || SessionId is not null;
 
     /// <summary>Reads QYL_SERVICE and QYL_SESSION from the process environment.</summary>
-    public static QylScope FromEnvironment() => new(
-        NullIfEmpty(Environment.GetEnvironmentVariable("QYL_SERVICE")),
-        NullIfEmpty(Environment.GetEnvironmentVariable("QYL_SESSION")));
+    public static QylScope FromEnvironment() =>
+        new(EnvConfig.ReadString("QYL_SERVICE"), EnvConfig.ReadString("QYL_SESSION"));
 
     /// <summary>Creates a scope for testing without environment variable access.</summary>
     internal static QylScope ForTest(string? serviceName = null, string? sessionId = null) =>
         new(serviceName, sessionId);
-
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

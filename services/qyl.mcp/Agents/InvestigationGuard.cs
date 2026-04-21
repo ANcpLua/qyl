@@ -1,4 +1,5 @@
 using ANcpLua.Agents.Governance;
+using ANcpLua.Roslyn.Utilities.Text;
 
 namespace qyl.mcp.Agents;
 
@@ -9,12 +10,6 @@ namespace qyl.mcp.Agents;
 /// </summary>
 internal static class InvestigationGuard
 {
-    public static AgentCallGuard FromEnvironment(int defaultMax = 200)
-    {
-        var raw = Environment.GetEnvironmentVariable("QYL_AGENT_MAX_TOOL_CALLS");
-        var max = raw is not null && int.TryParse(raw, out var parsed) && parsed > 0
-            ? parsed
-            : defaultMax;
-        return new AgentCallGuard(max);
-    }
+    public static AgentCallGuard FromEnvironment(int defaultMax = 200) =>
+        new(EnvConfig.ReadInt("QYL_AGENT_MAX_TOOL_CALLS", defaultMax, min: 1));
 }

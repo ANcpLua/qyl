@@ -31,9 +31,9 @@ internal sealed class RegressionTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}";
-            if (version is not null)
-                url += $"?version={Uri.EscapeDataString(version)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}",
+                ("version", version));
 
             using var resp = await http
                 .PostAsync(url, null, ct)
@@ -78,9 +78,8 @@ internal sealed class RegressionTools(HttpClient http)
         await CollectorHelper.ExecuteAsync(async () =>
         {
             var take = Math.Clamp(limit ?? 20, 1, 100);
-            var url = $"/api/v1/regressions?limit={take}";
-            if (since is not null)
-                url += $"&since={Uri.EscapeDataString(since)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/regressions?limit={take}", ("since", since));
 
             using var resp = await http
                 .GetAsync(url, ct)

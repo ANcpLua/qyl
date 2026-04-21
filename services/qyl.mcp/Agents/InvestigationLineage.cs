@@ -1,4 +1,5 @@
 using ANcpLua.Agents.Governance;
+using ANcpLua.Roslyn.Utilities.Text;
 
 namespace qyl.mcp.Agents;
 
@@ -11,13 +12,6 @@ internal static class InvestigationLineage
 {
     public static AgentCallLineageResult TryEnter() =>
         AgentCallLineage.TryEnter(
-            ParseEnv("QYL_AGENT_MAX_DEPTH", 3),
-            ParseEnv("QYL_AGENT_MAX_SPAWNS", 10));
-
-    private static int ParseEnv(string name, int defaultValue) =>
-        Environment.GetEnvironmentVariable(name) is { } raw
-        && int.TryParse(raw, out var parsed)
-        && parsed > 0
-            ? parsed
-            : defaultValue;
+            EnvConfig.ReadInt("QYL_AGENT_MAX_DEPTH", defaultValue: 3, min: 1),
+            EnvConfig.ReadInt("QYL_AGENT_MAX_SPAWNS", defaultValue: 10, min: 1));
 }

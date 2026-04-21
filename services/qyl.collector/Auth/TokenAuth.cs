@@ -286,8 +286,8 @@ public sealed class TokenAuthMiddleware(
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            var bearerToken = authHeader.StartsWithIgnoreCase("Bearer ")
-                ? authHeader[7..]
+            var bearerToken = ANcpLua.Roslyn.Utilities.Http.BearerHeader.TryExtract(authHeader, out var t)
+                ? t!
                 : authHeader;
 
             if (ValidateToken(bearerToken))

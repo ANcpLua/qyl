@@ -54,10 +54,9 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url =
-                $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}";
-            if (!string.IsNullOrEmpty(service))
-                url += $"&service={Uri.EscapeDataString(service)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}",
+                ("service", service));
 
             var response = await client.GetFromJsonAsync<AnomalyDetectionResponse>(
                 url, AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
@@ -129,9 +128,9 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}";
-            if (!string.IsNullOrEmpty(service))
-                url += $"&service={Uri.EscapeDataString(service)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}",
+                ("service", service));
 
             var response = await client.GetFromJsonAsync<BaselineResponse>(
                 url, AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
@@ -197,13 +196,11 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}"
-                      + $"&period1Start={Uri.EscapeDataString(period1Start)}"
-                      + $"&period1End={Uri.EscapeDataString(period1End)}"
-                      + $"&period2Start={Uri.EscapeDataString(period2Start)}"
-                      + $"&period2End={Uri.EscapeDataString(period2End)}";
-            if (!string.IsNullOrEmpty(service))
-                url += $"&service={Uri.EscapeDataString(service)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}",
+                ("period1Start", period1Start), ("period1End", period1End),
+                ("period2Start", period2Start), ("period2End", period2End),
+                ("service", service));
 
             var response = await client.GetFromJsonAsync<PeriodComparisonResponse>(
                 url, AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);

@@ -35,16 +35,9 @@ public sealed class QueryMetricsTool(HttpClient client)
         string? interval = null,
         CancellationToken ct = default)
     {
-        var url = $"/api/v1/mcp/metrics/{Uri.EscapeDataString(name)}/query";
-        var queryParts = new List<string>();
-
-        if (filter is not null) queryParts.Add($"filter={Uri.EscapeDataString(filter)}");
-        if (from is not null) queryParts.Add($"from={Uri.EscapeDataString(from)}");
-        if (to is not null) queryParts.Add($"to={Uri.EscapeDataString(to)}");
-        if (interval is not null) queryParts.Add($"interval={Uri.EscapeDataString(interval)}");
-
-        if (queryParts.Count > 0)
-            url += "?" + string.Join("&", queryParts);
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/metrics/{Uri.EscapeDataString(name)}/query",
+            ("filter", filter), ("from", from), ("to", to), ("interval", interval));
 
         var series = await client.GetFromJsonAsync<TimeSeriesDto>(url, ct).ConfigureAwait(false);
 
