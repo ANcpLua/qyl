@@ -7,22 +7,28 @@
 ## Preconditions (verify before Commit 1)
 
 1. **Submodule init** (if fresh worktree): `git submodule update --init .tools/semconv-upstream`
-2. **npm scope `@qyl` owned by the release principal** on npmjs.com. Verify: `npm access list packages @qyl 2>&1`. If the scope is unclaimed, run `npm org create qyl` or publish the first `@qyl/client` under a personal scope claim before Commit 8. This is the only step that *might* require user action — if the scope is not ownable, rename the npm package to `qyl-client` (unscoped) across Commits 6/7/8 and proceed.
-3. **GitHub Actions secrets** present on the repo: `NUGET_API_KEY`, `NPM_TOKEN`. Verify: `gh secret list | grep -E 'NUGET_API_KEY|NPM_TOKEN'`. If missing, the Commit 8 release workflow will still land but its first tag-triggered run fails until secrets are provisioned — not a blocker for the branch merging.
+2. **npm scope `@qyl` owned by the release principal** on npmjs.com. Verify: `npm access list packages @qyl 2>&1`. If the scope is unclaimed, run `npm org create qyl` or publish the first `@qyl/client` under a personal scope claim before Commit 9. This is the only step that *might* require user action — if the scope is not ownable, rename the npm package to `qyl-client` (unscoped) across Commits 6/8/9 and proceed.
+3. **GitHub Actions secrets** present on the repo: `NUGET_API_KEY`, `NPM_TOKEN`. Verify: `gh secret list | grep -E 'NUGET_API_KEY|NPM_TOKEN'`. If missing, the Commit 9 release workflow will still land but its first tag-triggered run fails until secrets are provisioned — not a blocker for the branch merging.
+4. **npm peer-dep policy**: Commit 6 writes `core/specs/.npmrc` with `legacy-peer-deps=true`. This is mandatory because `@typespec/http-client-js@0.14.1` peer-demands `@typespec/rest ^0.80.0` while `@typespec/http-client-csharp@1.0.0-alpha.*` peer-demands `@typespec/rest >=0.81.0 <0.82.0`. The two emitters therefore cannot co-exist under strict peer resolution until Microsoft realigns one of the ranges. Do not pin rest down to 0.80.x to avoid the flag — that breaks the C# emitter entirely.
 
 ## Pinned tool versions
 
-Add to `core/specs/package.json` devDependencies (Commit 6 rewrites this block — use these exact versions, do not resolve to `latest`):
+Add to `core/specs/package.json` devDependencies (Commit 6 rewrites this block — use these exact versions, do not resolve to `latest`). These are the resolved latest-stable as of 2026-04-21. Breaking-change audit against the previous 1.7.0 pin set (`@typespec/compiler` 1.8.0 → 1.11.0 release notes): `$onEmit(context: EmitContext<TOptions>)`, `navigateProgram`, `createTypeSpecLibrary` surface unchanged; `createStateSymbol` is no longer a top-level compiler export but `$lib.createStateSymbol(name)` and the `state:` field on `createTypeSpecLibrary` both remain (see Commit 2 notes). 1.11.0 is explicitly a no-breaking-changes release.
 
 ```json
-"@typespec/compiler":         "1.7.0",
-"@typespec/http":             "1.7.0",
-"@typespec/rest":             "1.7.0",
-"@typespec/http-client-csharp": "0.9.0",
-"@typespec/http-client-js":   "0.1.0"
+"@typespec/compiler":           "1.11.0",
+"@typespec/http":               "1.11.0",
+"@typespec/rest":               "0.81.0",
+"@typespec/openapi3":           "1.11.0",
+"@typespec/json-schema":        "1.11.0",
+"@typespec/http-client-csharp": "1.0.0-alpha.20260420.8",
+"@typespec/http-client-js":     "0.14.1",
+"@typespec/http-server-csharp": "0.58.0-alpha.27"
 ```
 
-If any version no longer resolves from npm during Commit 6, bump forward to the nearest stable and record the bump in the commit body. Do not pin `latest`.
+Transitive constraint (do not pin, but expect in the lockfile): `@azure-tools/typespec-client-generator-core ~0.67.1` is a peer of `http-client-csharp`. It pulls in the Azure SDK's client-generator tooling; that's unavoidable and the reason the C# client emitter exists at all.
+
+If any version no longer resolves from npm during Commit 6, bump forward to the nearest stable and record the bump in the commit body. Do not pin `latest`. If a future rest release (0.82.x) removes the peer conflict, drop the `.npmrc` `legacy-peer-deps=true` in a follow-up — not in this branch.
 
 ---
 
@@ -92,13 +98,38 @@ Scaffold under `core/specs/emitters/csharp/`:
 
 ```
 package.json   name: @qyl/typespec-emit-csharp, type: module,
-                dependencies: @typespec/compiler
+                peerDependencies: @typespec/compiler ^1.11.0
 lib/main.tsp   decorators: @csharpNamespace(ns: string), @csharpRecord, @csharpEnum
 src/
-  index.ts     $onEmit(context)
+  index.ts     $onEmit(context: EmitContext<CsharpEmitterOptions>)
   emitter.ts   navigateProgram walker, type-map switch
-  $lib.ts      decorator state registration
+  $lib.ts      createTypeSpecLibrary({ state: { csharpNamespace, csharpRecord, csharpEnum } })
 ```
+
+`$lib.ts` — use the modern 1.10+ library definition (state declared in the library def, accessed via `$lib.stateKeys.<name>` — confirmed against `node_modules/@typespec/compiler/dist/src/core/library.d.ts` and `types.d.ts:1788-1930`):
+
+```ts
+import { createTypeSpecLibrary, paramMessage } from "@typespec/compiler";
+
+export const $lib = createTypeSpecLibrary({
+  name: "@qyl/typespec-emit-csharp",
+  diagnostics: {
+    "unmapped-type": {
+      severity: "error",
+      messages: { default: paramMessage`QYL-EMIT-001: unmapped type ${"name"}` },
+    },
+  },
+  state: {
+    csharpNamespace: { description: "C# namespace override on a model/namespace" },
+    csharpRecord:    { description: "Emit the target model as a C# record" },
+    csharpEnum:      { description: "Emit the target union/enum as a C# enum" },
+  },
+} as const);
+
+export const { reportDiagnostic, createDiagnostic, stateKeys } = $lib;
+```
+
+Decorator implementations then use `program.stateMap($lib.stateKeys.csharpNamespace).set(target, ns)` — do **not** call a standalone `createStateSymbol` (no longer a top-level export from `@typespec/compiler` as of 1.10+).
 
 Type map (exact):
 - `int32 → int` · `int64 → long` · `float32 → float` · `float64 → double`
@@ -179,7 +210,7 @@ Verify: `npm run compile` still produces the existing `openapi.yaml` (old emitte
 
 ## Commit 6 — `tspconfig.yaml` cutover
 
-Replace the entire `emit:` + `options:` block:
+Replace the entire `emit:` + `options:` block. Note: `@typespec/http-client-csharp`'s `CSharpEmitterOptions` (verified in `node_modules/@typespec/http-client-csharp/dist/emitter/src/options.d.ts`) has **no `namespace` option** — namespace derives from the TypeSpec `@service` namespace plus optional `@clientName` decorators from `@azure-tools/typespec-client-generator-core`. `@typespec/http-client-js`'s `JsClientEmitterOptions` only exposes `package-name`. Do not invent options; the `.d.ts` is the authority.
 
 ```yaml
 emit:
@@ -188,6 +219,7 @@ emit:
   - "@qyl/typespec-emit-ts-types"
   - "@typespec/http-client-csharp"
   - "@typespec/http-client-js"
+  - "@typespec/json-schema"
 
 options:
   "@qyl/typespec-emit-csharp":
@@ -199,24 +231,98 @@ options:
   "@typespec/http-client-csharp":
     emitter-output-dir: "{project-root}/packages/Qyl.Client/Generated"
     package-name: "Qyl.Client"
-    namespace: "Qyl.Client"
+    generate-protocol-methods: true
+    generate-convenience-methods: true
+    disable-xml-docs: false
+    new-project: false
   "@typespec/http-client-js":
     emitter-output-dir: "{project-root}/packages/qyl-client/src/generated"
     package-name: "@qyl/client"
+  "@typespec/json-schema":
+    emitter-output-dir: "{project-root}/packages/qyl-client/schemas"
+    file-type: json
+    bundleId: qyl-api
 ```
 
+(`@typespec/http-server-csharp` is intentionally absent here — Commit 7 adds it atomically with the controller swap to avoid route ambiguity between hand-written and emitted controllers.)
+
+`core/specs/.npmrc` (new file, Commit 6 creates it):
+
+```
+legacy-peer-deps=true
+```
+
+Justification: `@typespec/http-client-js@0.14.1` peer range is `@typespec/rest ^0.80.0`; `@typespec/http-client-csharp@1.0.0-alpha.*` peer range is `@typespec/rest >=0.81.0 <0.82.0`. Strict peer resolution refuses the union. Upstream (microsoft/typespec) has not yet realigned — verified via `npm info` on 2026-04-21. Drop this `.npmrc` in a follow-up branch once both emitters converge on the same rest major.
+
 `core/specs/package.json`:
-- Remove `@typespec/openapi3`, `openapi-typescript` from devDependencies.
+- Remove `@typespec/openapi3`, `openapi-typescript`, `@typespec/events`, `@typespec/sse`, `@typespec/streams`, `@typespec/versioning`, `@typespec/openapi` from devDependencies (the retired OpenAPI intermediate is gone; any surviving `sse`/`streams` usage moves into model-level decorators on the relevant operations — no separate compile-time imports needed).
 - Add the three local emitters as `"file:./emitters/<name>"` deps.
-- Add `@typespec/http-client-csharp` + `@typespec/http-client-js` as devDependencies.
+- Add `@typespec/http-client-csharp` + `@typespec/http-client-js` + `@typespec/json-schema` as devDependencies at the versions pinned in "Pinned tool versions" above. (`@typespec/http-server-csharp` is added by Commit 7, not here.)
 
-`npm install && npm run compile` emits all five target sets into their final destinations.
+`npm install && npm run compile` emits all six target sets into their final destinations.
 
-Verify: all five output directories populated; `dotnet build qyl.slnx` exits 0; `npm run build` in `services/qyl.dashboard` exits 0.
+Verify: all six output directories populated (`packages/Qyl.Contracts/Generated/`, `services/qyl.collector/Storage/`, `packages/qyl-client/src/generated/` (TS types + JS client share the directory), `packages/Qyl.Client/Generated/`, `packages/qyl-client/schemas/`); `dotnet build qyl.slnx` exits 0; `npm run build` in `services/qyl.dashboard` exits 0.
 
 ---
 
-## Commit 7 — Package scaffolds for public SDKs
+## Commit 7 — ASP.NET controller cutover via `@typespec/http-server-csharp`
+
+Atomic replacement of hand-written controllers in `services/qyl.collector/` with the `@typespec/http-server-csharp` alpha emitter's output. This commit accepts the architectural breakage: existing `Controllers/*.cs` are deleted, emitted controllers take over routing, and new hand-written implementations satisfy the emitted operation interfaces.
+
+**Scope that stays hand-written**:
+- OTLP gRPC receiver (`Services/Grpc/` under qyl.collector) — NOT TypeSpec-modeled; gRPC surface is owned by OTel upstream, keep hand-written.
+- DuckDB storage layer, auth middleware, ring buffers, MCP deep-link handlers — hand-written.
+- Any controller whose TypeSpec model is not in `core/specs/**/*.tsp` stays hand-written (verify by enumerating `@route` / `@service` coverage in `core/specs/api/routes.tsp` before the swap).
+
+**Scope that is emitted**:
+- Every controller that today corresponds to a TypeSpec-modeled route in `core/specs/api/routes.tsp` — namely the REST API at `:5100` (traces, spans, services, agent runs, capability catalog).
+
+### Steps (all in one commit)
+
+1. `cd core/specs && npm install --save-dev @typespec/http-server-csharp@0.58.0-alpha.27`
+2. Append to `tspconfig.yaml` `emit:` list: `- "@typespec/http-server-csharp"`.
+3. Append to `tspconfig.yaml` `options:` block:
+   ```yaml
+     "@typespec/http-server-csharp":
+       emitter-output-dir: "{project-root}/services/qyl.collector/Generated"
+       output-type: all
+       emit-mocks: none
+       skip-format: false
+       overwrite: true
+       project-name: "Qyl.Collector.Generated"
+       collection-type: array
+       use-swaggerui: false
+   ```
+   Option meanings verified against `node_modules/@typespec/http-server-csharp/dist/src/lib/lib.d.ts`:
+   - `output-type: all` — emit controllers + models + project scaffolding (vs `models` only)
+   - `emit-mocks: none` — do NOT emit mock business-logic stubs; we write real ones
+   - `skip-format: false` — run `dotnet format` on output (default)
+   - `use-swaggerui: false` — we already expose Scalar/Swagger UI via the dashboard; avoid the emitter's opinionated Swagger-UI middleware
+   - `collection-type: array` — emitted collection params as arrays (matches the existing controller shape)
+4. Run `nuke Generate` (runs `npm run compile`). `services/qyl.collector/Generated/` is populated with controllers, models, and a project file. The emitted project file is a scaffold — do **not** add it to `qyl.slnx`; `.csproj` inclusion happens through step 5.
+5. Update `services/qyl.collector/qyl.collector.csproj`:
+   - Add `<Compile Include="Generated/**/*.cs" />` (glob-pick-up of emitted controllers).
+   - Add `<Compile Remove="Generated/Program.cs" />` if the emitter drops a program entry — qyl.collector already owns its `Program.cs`.
+   - Verify no `<PackageReference Include="Swashbuckle.*" />` remain; the emitter doesn't need them.
+6. Delete the hand-written `Controllers/` directory contents that the emitter now covers. Leave any controller outside the TypeSpec surface (OTLP HTTP endpoints at `/v1/traces`, `/v1/metrics`, `/v1/logs` are OTel-protocol-owned — keep hand-written if they aren't in TypeSpec).
+7. For every emitted `interface I<Name>Controller`, create a partial class implementation under `services/qyl.collector/Controllers/Impl/` that wires the real business logic (DuckDB reads via the existing storage layer, auth via existing middleware, etc.). Name pattern: `TracesController.Impl.cs`, etc.
+8. Register the emitted controllers in DI — typically `builder.Services.AddControllers()` already discovers them via the compile-glob; confirm no hand-written `AddSingleton<IXxxController, XxxController>()` remains if the emitter produces `abstract` base classes.
+
+### Verify
+
+- `dotnet build qyl.slnx --tl:off` exits 0.
+- `dotnet test tests/qyl.collector.tests` — all green. Integration tests that hit the REST API at `:5100` must still pass without modification (route shape is byte-identical; TypeSpec → controller is deterministic).
+- `curl -s localhost:5100/api/traces?limit=1 | jq` returns the same schema as before the cutover. Any shape drift = emitter bug; fix the emitter or the TypeSpec source, not the hand-written impl.
+- Compare `git diff HEAD~1 -- services/qyl.collector/Controllers/`: expected to be "most files deleted, a few `.Impl.cs` added under `Controllers/Impl/`".
+- `grep -rn 'class .*Controller' services/qyl.collector/Controllers/ services/qyl.collector/Generated/` — emitted controllers are under `Generated/`, impls under `Controllers/Impl/`, no duplicates.
+
+### Rollback
+
+If the alpha emitter produces unusable output (ambiguous routes, wrong auth attributes, broken async signatures), the rollback is this commit alone — revert Commit 7 and the tree returns to Commit 6's green state with hand-written controllers intact. Do NOT try to patch the emitted output; fix the TypeSpec source or file an issue against `microsoft/typespec` and re-run Commit 7 once upstream ships the fix.
+
+---
+
+## Commit 8 — Package scaffolds for public SDKs
 
 `packages/Qyl.Client/Qyl.Client.csproj`:
 - `TargetFrameworks=net10.0;netstandard2.0`
@@ -262,7 +368,7 @@ Verify: `dotnet build qyl.slnx` exits 0; `dotnet pack packages/Qyl.Client --no-b
 
 ---
 
-## Commit 8 — Release automation
+## Commit 9 — Release automation
 
 `.github/workflows/release.yml`:
 
@@ -309,7 +415,7 @@ Verify: workflow dry-run via `act` or `gh workflow run` on a throwaway branch.
 
 ---
 
-## Commit 9 — Deletes + NUKE consolidation
+## Commit 10 — Deletes + NUKE consolidation
 
 Delete without replacement:
 - `eng/build/SchemaGenerator.cs`
@@ -360,8 +466,10 @@ find eng/build -maxdepth 1 -name '*Generator.cs' -o -name '*Table.cs'
 - `dotnet pack packages/Qyl.Contracts -c Release` → valid `.nupkg`
 - `dotnet pack packages/Qyl.OpenTelemetry.Extensions -c Release` → valid `.nupkg`
 - `npm run build --workspace packages/qyl-client` → `dist/` populated
-- `git diff main -- packages/Qyl.Contracts/Generated/ services/qyl.collector/Storage/DuckDbSchema.g.cs packages/qyl-client/src/generated/` → only header, formatting, or order-within-file differences. Any semantic shape drift = emitter bug; fix the emitter.
+- `git diff main -- packages/Qyl.Contracts/Generated/ services/qyl.collector/Storage/DuckDbSchema.g.cs packages/qyl-client/src/generated/ services/qyl.collector/Generated/` → only header, formatting, or order-within-file differences. Any semantic shape drift = emitter bug; fix the emitter. (`services/qyl.collector/Generated/` is the http-server-csharp emitter's output from Commit 7.)
+- `packages/qyl-client/schemas/` — JSON Schema bundle from `@typespec/json-schema` exists and is non-empty.
 - Every file in `packages/*` has a stable public namespace. No `internal/*` types leak upward.
+- REST API at `:5100` returns byte-identical response shapes pre- vs post-Commit-7 for every TypeSpec-modeled route (spot-check `/api/traces`, `/api/spans`, `/api/services`, `/api/agent-runs`, `/api/capabilities`). Any shape drift is a Commit-7 regression, not an acceptable evolution.
 - All CI checks on the PR green.
 
 ---
@@ -374,11 +482,36 @@ find eng/build -maxdepth 1 -name '*Generator.cs' -o -name '*Table.cs'
 - No synchronized parallel registries — `@csharpNamespace` on the model is single source.
 - No manual `qyl-extensions.json`-style config. Decorators on models.
 - No hand-written client SDKs. All language clients via `@typespec/http-client-*`.
+- No hand-written REST controllers for TypeSpec-modeled routes (Commit 7 delta). OTel-protocol-owned surfaces (OTLP gRPC/HTTP) stay hand-written — that is an intentional carve-out, not a loophole.
 - No publishing without a version tag. CI pack-and-push triggers exclusively on `tags/v*`.
 - No per-finding rollback PRs after merge. Post-merge regressions → forward-fix commit, not revert.
+- No re-pinning back down to `@typespec/compiler@1.7.x` to "avoid bleeding edge" — 1.11 is current stable, 1.7 is already obsolete on npm-dist-tags.
 
 ---
 
-**PR title:** `refactor: TypeSpec-native emitters + public SDK packages + repo tier layout`
+## Bleeding-edge decisions (2026-04-21 refresh)
+
+Record of every new/upgraded TypeSpec feature evaluated for this mandate and the disposition. If a later session wants to challenge a deferral, the reason must still apply.
+
+| Feature | Disposition | Reason |
+|---|---|---|
+| `@typespec/compiler` 1.8 → 1.11 bump | **INCLUDED** (mandatory — all pins) | 1.11 is no-breaking-changes. `$onEmit`, `navigateProgram`, `createTypeSpecLibrary`, `EmitContext` surface unchanged. `createStateSymbol` moved off top-level exports; use `$lib.stateKeys` via library def (Commit 2 reflects this). |
+| `.npmrc` `legacy-peer-deps=true` | **INCLUDED** (Commit 6) | `http-client-js@0.14.1` peer `rest^0.80.0` vs `http-client-csharp@1.0.0-alpha.*` peer `rest>=0.81.0` is a real peer conflict. Waiting for upstream to realign would block the whole mandate indefinitely. |
+| `@typespec/json-schema` emit | **INCLUDED** (Commit 6) | Three lines of `tspconfig.yaml`. Outputs JSON Schema bundle into `packages/qyl-client/schemas/` — useful for MCP tool-manifest validation and dashboard form generation. Zero runtime cost. |
+| `@typespec/http-server-csharp` 0.58.0-alpha.27 | **INCLUDED** (new Commit 7) | User directive 2026-04-21 — "breaking doesn't matter". Atomic controller-swap in qyl.collector; non-TypeSpec surfaces (OTLP gRPC, DuckDB, auth, MCP deep links) stay hand-written. Alpha quality accepted because rollback is a single-commit revert. |
+| `@typespec/protobuf` 0.81.0 preview | **DEFERRED** | qyl's only gRPC surface is OTLP ingress, which is owned by OTel semconv upstream — not ours to model in TypeSpec. No first-party gRPC surface exists to emit. Revisit when/if qyl exposes a custom gRPC API. |
+| `@typespec/http-client-java` 0.8.1 | **DEFERRED** | Near-empty option surface (`license`, `dev-options` only). Maven publish infra = new workflow + new secret (`MAVEN_CENTRAL_TOKEN`) + Sonatype account. Cost > demand (no known Java consumer). Re-evaluate when a Java consumer appears. |
+| `@typespec/http-client-python` 0.28.3 | **DEFERRED** | Mature option surface, but no known Python consumer. PyPI publish infra exists but is additional maintenance. Revisit when a Python consumer appears. |
+| TypeSpec `extern fn` functions (1.10, experimental) | **NOT ADOPTED** | `extern fn` is for TypeSpec-language users declaring type-level transforms on the `.tsp` side. Our three custom emitters (`csharp`, `duckdb`, `ts-types`) are TypeScript-side walkers — functions do not simplify them. |
+| TypeSpec `internal` modifiers (1.10, experimental) | **NOT ADOPTED** | Marginal payoff for the custom emitters; `core/specs/**/*.tsp` does not expose cross-package types that need access gates. |
+| `FilterVisibility` template (1.11, replaces `@withVisibilityFilter`) | **NOT ADOPTED** | The TypeSpec models we emit do not currently use visibility filters. If a visibility-aware contract appears later, use `FilterVisibility` from day one — do not reach for the deprecated `@withVisibilityFilter`. |
+| `EmitContext.perf` PerfReporter (1.9) | **OPTIONAL** — adopt only if Commits 2/3/4 emitters get slow | Wrap `navigateProgram` loops in `context.perf.time("walk", () => ...)` if `nuke Generate` regresses past 10 s. Not required on day one. |
+| OpenAPI 3.2 output via `openapi-versions: [3.2.0]` | **NOT ADOPTED** (we removed the OpenAPI intermediate) | Commit 10 deletes `core/openapi/` entirely. External consumers who want OpenAPI can generate it from `@typespec/http-server-csharp`'s Swagger-UI feature (disabled by default in Commit 7 — re-enable per-env if needed). |
+
+If a future session wants to flip a DEFERRED item to INCLUDED, insert it as a new commit (renumber subsequent commits, update the merge gate) and append a row to this table with the flip reason.
+
+---
+
+**PR title:** `refactor: TypeSpec-native emitters + ASP.NET server emitter + public SDK packages + repo tier layout`
 
 Execute.
