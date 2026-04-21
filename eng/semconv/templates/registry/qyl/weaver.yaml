@@ -81,3 +81,8 @@ templates:
     filter: semconv_grouped_attributes
     application_mode: single
     file_name: "semconv.ts"
+
+  - template: promoted_columns.g.sql.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "promoted-columns.g.sql"
