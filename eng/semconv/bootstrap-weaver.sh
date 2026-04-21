@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-time setup for the Weaver-based semconv pipeline.
-# Downloads the Weaver CLI and clones the upstream semconv v1.40.0 registry.
-# Artifacts land under .tools/ (gitignored).
+# Downloads the Weaver CLI and clones the upstream semconv registry at the
+# version declared in the Weaver template config. Artifacts land under .tools/.
 
 set -euo pipefail
 
@@ -9,9 +9,17 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TOOLS_DIR="${REPO_ROOT}/.tools"
 WEAVER_DIR="${TOOLS_DIR}/weaver"
 UPSTREAM_DIR="${TOOLS_DIR}/semconv-upstream"
+WEAVER_YAML="${REPO_ROOT}/eng/semconv/templates/registry/qyl/weaver.yaml"
 
+# Single-source semconv version from weaver.yaml params so bootstrap + templates
+# can't drift apart. `semconv_version: "1.40.0"` → `v1.40.0` as the git tag.
 WEAVER_VERSION="v0.22.1"
-SEMCONV_TAG="v1.40.0"
+SEMCONV_TAG="v$(sed -n 's/^[[:space:]]*semconv_version:[[:space:]]*"\(.*\)"/\1/p' "${WEAVER_YAML}")"
+
+if [ -z "${SEMCONV_TAG}" ] || [ "${SEMCONV_TAG}" = "v" ]; then
+  echo "Could not read semconv_version from ${WEAVER_YAML}" >&2
+  exit 1
+fi
 
 UNAME_S="$(uname -s)"
 UNAME_M="$(uname -m)"
@@ -39,7 +47,7 @@ if [ ! -d "${UPSTREAM_DIR}" ]; then
 fi
 
 echo ""
-echo "Weaver:   ${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver ($(${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver --version))"
+echo "Weaver:   ${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver ($("${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver" --version))"
 echo "Upstream: ${UPSTREAM_DIR} (semconv ${SEMCONV_TAG})"
 echo ""
 echo "Next: ./eng/semconv/run-weaver.sh"
