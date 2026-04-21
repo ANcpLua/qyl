@@ -74,7 +74,7 @@ public static class SpanMapper
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     private static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null) =>
         ToDtoCore(
-            record.TraceId.Value, record.SpanId.Value, record.ParentSpanId?.Value, record.SessionId?.Value,
+            record.TraceId, record.SpanId, record.ParentSpanId, record.SessionId,
             record.Name, record.Kind.ToString().ToLowerInvariant(), record.StatusCode.ToString().ToLowerInvariant(),
             record.StatusMessage,
             (ulong)record.StartTimeUnixNano, (ulong)record.EndTimeUnixNano, (ulong)record.DurationNs,

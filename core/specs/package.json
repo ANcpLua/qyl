@@ -10,19 +10,26 @@
     "lint": "tsp compile main.tsp --warn-as-error"
   },
   "devDependencies": {
-    "@typespec/compiler": "1.8.0",
-    "@typespec/events": "0.78.0",
-    "@typespec/http": "1.8.0",
-    "@typespec/json-schema": "1.8.0",
-    "@typespec/openapi": "1.8.0",
-    "@typespec/openapi3": "1.8.0",
-    "@typespec/rest": "0.78.0",
-    "@typespec/sse": "0.78.0",
-    "@typespec/streams": "0.78.0",
-    "@typespec/versioning": "0.78.0",
-    "openapi-typescript": "^7.10.1",
+    "@qyl/typespec-emit-csharp": "file:./emitters/csharp",
     "@qyl/typespec-emit-duckdb": "file:./emitters/duckdb",
     "@qyl/typespec-emit-ts-types": "file:./emitters/ts-types",
-    "@qyl/typespec-emit-csharp": "file:./emitters/csharp"
+    "@typespec/compiler": "1.11.0",
+    "@typespec/events": "0.81.0",
+    "@typespec/http": "1.11.0",
+    "@typespec/json-schema": "1.11.0",
+    "@typespec/openapi": "1.11.0",
+    "@typespec/openapi3": "1.11.0",
+    "@typespec/rest": "0.81.0",
+    "@typespec/sse": "0.81.0",
+    "@typespec/streams": "0.81.0",
+    "@typespec/versioning": "0.81.0",
+    "openapi-typescript": "^7.10.1"
+  },
+  "dependencies": {
+    "@azure-tools/typespec-azure-core": "^0.67.0",
+    "@azure-tools/typespec-client-generator-core": "^0.67.2",
+    "@typespec/http-client-csharp": "^1.0.0-alpha.20260420.8",
+    "@typespec/http-client-js": "^0.14.1",
+    "@typespec/xml": "^0.81.0"
   }
 }

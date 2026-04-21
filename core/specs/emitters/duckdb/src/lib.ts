@@ -18,9 +18,11 @@ export const $lib = createTypeSpecLibrary({
   },
   state: {
     duckdbTable: { description: "DuckDB table name on a model" },
-    duckdbColumn: { description: "DuckDB column type override on a property" },
+    duckdbColumn: { description: "DuckDB column name override on a property" },
+    duckdbType: { description: "DuckDB column type override on a property or scalar" },
     duckdbPrimaryKey: { description: "Marks property as DuckDB PRIMARY KEY" },
     duckdbIndex: { description: "DuckDB index declaration on a property" },
+    duckdbRowTimestamp: { description: "Opt-in auto-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP column" },
   },
 } as const);
 

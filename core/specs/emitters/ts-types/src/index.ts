@@ -103,6 +103,11 @@ function mapType(program: import("@typespec/compiler").Program, type: Type): str
       return (type as { name?: string }).name ?? "unknown";
     case "Enum":
       return (type as Enum).name;
+    case "EnumMember": {
+      const m = type as { value?: string | number; name: string };
+      const v = m.value ?? m.name;
+      return typeof v === "number" ? String(v) : `"${v}"`;
+    }
     case "Union":
       return (type as { name?: string }).name ?? "unknown";
     case "Boolean":

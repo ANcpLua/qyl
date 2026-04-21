@@ -37,10 +37,11 @@ import "./common/errors.tsp";
 import "./common/pagination.tsp";
 
 // =============================================================================
-// qyl-native emit routing (Commit 5 decoration)
+// qyl-native emit routing (Commit 5 decoration + Commit 6 duckdb tuple mapping)
 // =============================================================================
 
 import "./qyl-emit-config.tsp";
+import "./qyl-emit-duckdb.tsp";
 
 // =============================================================================
 // OTel Core Types

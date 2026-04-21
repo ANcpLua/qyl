@@ -15,14 +15,20 @@ export async function $onEmit(context: EmitContext): Promise<void> {
 
   navigateProgram(program, {
     model: (m) => {
-      if (m.namespace?.name === "TypeSpec") return;
+      if (isInTypeSpec(m)) return;
       if (!m.name) return;
+      // Skip template instantiations: navigateProgram visits each CursorPage<T> realization
+      // as a separate Model with the same name, which would emit duplicate classes. We only
+      // emit concrete (non-generic) models. Template definitions are not navigated; if a
+      // downstream C# consumer needs a generic shape, it references Qyl.Contracts handwritten
+      // helpers (e.g. PagedResult<T>), not a TypeSpec-emitted generic.
+      if (m.templateMapper?.args.length) return;
       const ns = resolveNamespace(program, m);
       if (!ns) return;
       getBucket(buckets, ns).models.push(m);
     },
     enum: (e) => {
-      if (e.namespace?.name === "TypeSpec") return;
+      if (isInTypeSpec(e)) return;
       const ns = resolveNamespace(program, e);
       if (!ns) return;
       getBucket(buckets, ns).enums.push(e);
@@ -33,6 +39,15 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     const path = `${context.emitterOutputDir}/${ns.replace(/\./g, "/")}.cs`;
     await emitFile(program, { path, content: renderBucket(program, bucket) });
   }
+}
+
+function isInTypeSpec(type: { namespace?: { name?: string; namespace?: unknown } }): boolean {
+  let cursor: { name?: string; namespace?: unknown } | undefined = type.namespace;
+  while (cursor) {
+    if (cursor.name === "TypeSpec") return true;
+    cursor = cursor.namespace as typeof cursor;
+  }
+  return false;
 }
 
 function getBucket(buckets: Map<string, Bucket>, namespace: string): Bucket {
@@ -82,16 +97,16 @@ function renderModel(program: Program, model: Model): string {
 }
 
 function renderEnum(program: Program, enm: Enum): string {
-  const useEnumKeyword = hasCsharpEnum(program, enm);
-  if (!useEnumKeyword) {
-    // default: emit as string-const static class (friendlier to JSON)
-    const members = [...enm.members.values()]
-      .map((m) => `    public const string ${pascal(m.name)} = "${escapeLiteral(String(m.value ?? m.name))}";`)
-      .join("\n");
-    return `public static class ${enm.name}\n{\n${members}\n}\n`;
-  }
-  const body = [...enm.members.values()].map((m) => `    ${pascal(m.name)}`).join(",\n");
-  return `public enum ${enm.name}\n{\n${body}\n}\n`;
+  // Always emit as real C# enum. Static-const-string classes can't be used as property types
+  // (CS0722), and modern System.Text.Json handles string↔enum with JsonStringEnumConverter.
+  // Numeric member values are preserved; string member values are discarded — JSON emits the
+  // C# member name via JsonStringEnumConverter. If string-value preservation is needed in a
+  // specific case, @csharpEnum can still tune behavior, but the default is real enum.
+  const members = [...enm.members.values()].map((m) => {
+    const valueSuffix = typeof m.value === "number" ? ` = ${m.value}` : "";
+    return `    ${pascal(m.name)}${valueSuffix}`;
+  }).join(",\n");
+  return `public enum ${enm.name}\n{\n${members}\n}\n`;
 }
 
 function pascal(s: string): string {

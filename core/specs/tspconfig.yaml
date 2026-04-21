@@ -1,24 +1,51 @@
 # QYL TypeSpec Configuration
-# Source: core/specs/*.tsp
-# Output: core/openapi/openapi.yaml, core/schemas/*.json
-# Post-process: Kiota → C#, Python, TypeScript clients
+# Source: core/specs/main.tsp
+# Post-Commit-6 cutover: native @qyl emitters + @typespec/http-client-* ship
+# C# records, DuckDB schema, TS types, C# client, JS client, JSON schemas.
+# openapi3 + openapi.yaml retained until Commit 10 atomic removal.
 
 emit:
-  - "@typespec/openapi3"
+  - "@qyl/typespec-emit-csharp"
+  - "@qyl/typespec-emit-duckdb"
+  - "@qyl/typespec-emit-ts-types"
+  - "@typespec/http-client-csharp"
+  - "@typespec/http-client-js"
   - "@typespec/json-schema"
+  - "@typespec/openapi3"
 
 options:
+  "@qyl/typespec-emit-csharp":
+    emitter-output-dir: "{project-root}/../../packages/Qyl.Contracts/Generated"
+
+  "@qyl/typespec-emit-duckdb":
+    emitter-output-dir: "{project-root}/../../services/qyl.collector/Storage"
+
+  "@qyl/typespec-emit-ts-types":
+    emitter-output-dir: "{project-root}/../../packages/qyl-client/src/generated"
+
+  "@typespec/http-client-csharp":
+    emitter-output-dir: "{project-root}/../../packages/Qyl.Client/Generated"
+    package-name: "Qyl.Client"
+    generate-protocol-methods: true
+    generate-convenience-methods: true
+    disable-xml-docs: false
+    new-project: false
+
+  "@typespec/http-client-js":
+    emitter-output-dir: "{project-root}/../../packages/qyl-client/src/generated"
+    package-name: "@qyl/client"
+
+  "@typespec/json-schema":
+    emitter-output-dir: "{project-root}/../../packages/qyl-client/schemas"
+    file-type: json
+    bundleId: qyl-api
+
   "@typespec/openapi3":
     output-file: openapi.yaml
     emitter-output-dir: "{project-root}/../openapi"
     file-type: yaml
     openapi-versions:
       - "3.0.0"
-
-  "@typespec/json-schema":
-    emitter-output-dir: "{project-root}/../schemas"
-    file-type: json
-    bundleId: qyl-telemetry
 
 linter:
   extends:
