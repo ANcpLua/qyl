@@ -59,7 +59,7 @@
         <File Path="packages\qyl-client\src\generated\tsconfig.json" />
         <File Path="packages\qyl-client\src\index.ts" />
         <File Path="packages\qyl-client\tsconfig.json" />
-        <Project Path="packages/Qyl.Fleet/Qyl.Fleet.csproj" />
+        <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
     </Folder>
     <Folder Name="/services/">
         <Project Path="services/qyl.collector/qyl.collector.csproj" />
