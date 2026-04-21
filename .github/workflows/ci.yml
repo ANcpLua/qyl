@@ -173,7 +173,7 @@ jobs:
           cache-dependency-path: core/specs/package-lock.json
 
       - name: Cache Weaver binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .tools/weaver
           key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh') }}
