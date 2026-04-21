@@ -1,0 +1,4 @@
+[submodule ".tools/semconv-upstream"]
+	path = .tools/semconv-upstream
+	url = https://github.com/open-telemetry/semantic-conventions
+	branch = main

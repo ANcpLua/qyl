@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
-# One-time setup for the Weaver-based semconv pipeline.
-# Downloads the Weaver CLI and clones the upstream semconv registry at the
-# version declared in the Weaver template config. Artifacts land under .tools/.
+# Prepare the Weaver-based semconv pipeline.
+#
+# semconv-upstream: git submodule at .tools/semconv-upstream pinned to a semconv
+#   tag. Initialize with `git submodule update --init .tools/semconv-upstream`
+#   (or clone with `--recurse-submodules`). This script refuses to proceed if
+#   the submodule is absent — never shell out to `git clone`.
+# Weaver binary: downloaded per platform into .tools/weaver/ (gitignored).
+#   CI caches this path via `actions/cache` keyed on this script's hash.
+#
+# Version bump:
+#   cd .tools/semconv-upstream && git fetch && git checkout vX.Y.Z
+#   cd ../.. && sed -i '' 's/semconv_version: "..*"/semconv_version: "X.Y.Z"/' \
+#       eng/semconv/templates/registry/qyl/weaver.yaml
+#   git add .tools/semconv-upstream eng/semconv/templates/registry/qyl/weaver.yaml
+#   git commit -m "chore(semconv): bump to vX.Y.Z"
 
 set -euo pipefail
 
@@ -11,15 +23,23 @@ WEAVER_DIR="${TOOLS_DIR}/weaver"
 UPSTREAM_DIR="${TOOLS_DIR}/semconv-upstream"
 WEAVER_YAML="${REPO_ROOT}/eng/semconv/templates/registry/qyl/weaver.yaml"
 
-# Single-source semconv version from weaver.yaml params so bootstrap + templates
-# can't drift apart. `semconv_version: "1.40.0"` → `v1.40.0` as the git tag.
 WEAVER_VERSION="v0.22.1"
-SEMCONV_TAG="v$(sed -n 's/^[[:space:]]*semconv_version:[[:space:]]*"\(.*\)"/\1/p' "${WEAVER_YAML}")"
+SEMCONV_VERSION="$(sed -n 's/^[[:space:]]*semconv_version:[[:space:]]*"\(.*\)"/\1/p' "${WEAVER_YAML}")"
 
-if [ -z "${SEMCONV_TAG}" ] || [ "${SEMCONV_TAG}" = "v" ]; then
+if [ -z "${SEMCONV_VERSION}" ]; then
   echo "Could not read semconv_version from ${WEAVER_YAML}" >&2
   exit 1
 fi
+
+# ── semconv-upstream (submodule) ────────────────────────────────────────────
+
+if [ ! -f "${UPSTREAM_DIR}/model/attributes/registry.yaml" ] && [ ! -d "${UPSTREAM_DIR}/model" ]; then
+  echo "semconv-upstream submodule missing at ${UPSTREAM_DIR}" >&2
+  echo "Run: git submodule update --init .tools/semconv-upstream" >&2
+  exit 1
+fi
+
+# ── Weaver binary (downloaded, gitignored, CI-cached) ───────────────────────
 
 UNAME_S="$(uname -s)"
 UNAME_M="$(uname -m)"
@@ -30,8 +50,10 @@ case "${UNAME_S}:${UNAME_M}" in
   *) echo "Unsupported platform: ${UNAME_S}/${UNAME_M}" >&2; exit 1 ;;
 esac
 
+WEAVER_BIN="${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver"
+
 mkdir -p "${WEAVER_DIR}"
-if [ ! -x "${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver" ]; then
+if [ ! -x "${WEAVER_BIN}" ]; then
   echo "Downloading Weaver ${WEAVER_VERSION} (${WEAVER_ARCH})..."
   curl -sL \
     "https://github.com/open-telemetry/weaver/releases/download/${WEAVER_VERSION}/weaver-${WEAVER_ARCH}.tar.xz" \
@@ -40,14 +62,8 @@ if [ ! -x "${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver" ]; then
   rm "${WEAVER_DIR}/weaver.tar.xz"
 fi
 
-if [ ! -d "${UPSTREAM_DIR}" ]; then
-  echo "Cloning open-telemetry/semantic-conventions@${SEMCONV_TAG}..."
-  git clone --depth 1 --branch "${SEMCONV_TAG}" \
-    https://github.com/open-telemetry/semantic-conventions.git "${UPSTREAM_DIR}"
-fi
-
 echo ""
-echo "Weaver:   ${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver ($("${WEAVER_DIR}/weaver-${WEAVER_ARCH}/weaver" --version))"
-echo "Upstream: ${UPSTREAM_DIR} (semconv ${SEMCONV_TAG})"
+echo "Weaver:   ${WEAVER_BIN} ($("${WEAVER_BIN}" --version))"
+echo "Upstream: ${UPSTREAM_DIR} (semconv v${SEMCONV_VERSION})"
 echo ""
 echo "Next: ./eng/semconv/run-weaver.sh"

@@ -155,7 +155,9 @@ images/
 # Local agent scratchpads (objective.json etc.) — not repo content
 .blackboard/
 
-# Local tool downloads (weaver, semconv upstream clone)
-.tools/
+# Local tool downloads — platform-specific weaver binary only; the
+# semconv-upstream tree is a git submodule pinned to a semconv tag and
+# therefore NOT ignored.
+.tools/weaver/
 # Weaver output scratchpad
 eng/semconv/out/
