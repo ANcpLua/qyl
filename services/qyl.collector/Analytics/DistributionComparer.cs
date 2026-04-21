@@ -8,58 +8,6 @@ namespace Qyl.Collector.Analytics;
 public static class DistributionComparer
 {
     /// <summary>
-    ///     KL-score a multi-dimensional distribution. Returns keys sorted by descending KL divergence.
-    /// </summary>
-    public static List<KeyScore> KeyedKlScore(
-        KeyedValueCount[] baseline,
-        KeyedValueCount[] outliers,
-        int totalBaseline,
-        int totalOutliers)
-    {
-        var results = new List<KeyScore>();
-        foreach (var (key, a, b) in GenNormalizedDistributions(baseline, outliers, totalBaseline, totalOutliers))
-            results.Add(new KeyScore(key, StatisticalMath.KlDivergence(a, b)));
-
-        results.Sort(static (x, y) => y.Score.CompareTo(x.Score));
-        return results;
-    }
-
-    /// <summary>
-    ///     RRF-score a multi-dimensional distribution combining entropy and KL rankings.
-    /// </summary>
-    public static List<KeyScore> KeyedRrfScore(
-        KeyedValueCount[] baseline,
-        KeyedValueCount[] outliers,
-        int totalBaseline,
-        int totalOutliers,
-        double entropyAlpha = 0.2,
-        double klAlpha = 0.8,
-        int offset = 60)
-    {
-        List<string> keys = [];
-        List<double> entropyScores = [];
-        List<double> klScores = [];
-
-        foreach (var (key, a, b) in GenNormalizedDistributions(baseline, outliers, totalBaseline, totalOutliers))
-        {
-            keys.Add(key);
-            entropyScores.Add(StatisticalMath.Entropy(b));
-            klScores.Add(StatisticalMath.KlDivergence(a, b));
-        }
-
-        double[] eArr = [.. entropyScores];
-        double[] klArr = [.. klScores];
-        var rrfScores = StatisticalMath.RrfScore(eArr, klArr, entropyAlpha, klAlpha, offset);
-
-        var results = new List<KeyScore>(keys.Count);
-        for (var i = 0; i < keys.Count; i++)
-            results.Add(new KeyScore(keys[i], rrfScores[i]));
-
-        results.Sort(static (x, y) => y.Score.CompareTo(x.Score));
-        return results;
-    }
-
-    /// <summary>
     ///     RRF-score with Box-Cox + Z-score filtering. Keys below the Z threshold
     ///     on both entropy and KL are marked as filtered.
     /// </summary>
@@ -176,9 +124,6 @@ public static class DistributionComparer
 
     /// <summary>Key, value, count triple representing one observation.</summary>
     public readonly record struct KeyedValueCount(string Key, string Value, double Count);
-
-    /// <summary>Key with its score.</summary>
-    public readonly record struct KeyScore(string Key, double Score);
 
     /// <summary>Key with score and filter flag.</summary>
     public readonly record struct KeyScoreFiltered(string Key, double Score, bool Filtered);

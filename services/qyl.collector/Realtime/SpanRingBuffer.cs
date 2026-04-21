@@ -32,18 +32,6 @@ public sealed class SpanRingBuffer
 
     public ulong Generation => Volatile.Read(ref _generation);
 
-    public void Push(SpanRecord span)
-    {
-        Guard.NotNull(span);
-        lock (_lock)
-        {
-            _buffer[_head] = span;
-            _head = (_head + 1) % Capacity;
-            if (_count < Capacity) _count++;
-            Volatile.Write(ref _generation, _generation + 1);
-        }
-    }
-
     public void PushRange(IEnumerable<SpanRecord> spans)
     {
         Guard.NotNull(spans);
@@ -124,25 +112,6 @@ public sealed class SpanRingBuffer
         }
 
         return Query(s => s.SessionId == sid, maxCount, out generation);
-    }
-
-    public SpanRecord[] GetAllOldestFirst(out ulong generation)
-    {
-        lock (_lock)
-        {
-            generation = _generation;
-            if (_count is 0) return [];
-            var result = new SpanRecord[_count];
-            var startIdx = _count < Capacity ? 0 : _head;
-            for (var i = 0; i < _count; i++)
-            {
-                var idx = (startIdx + i) % Capacity;
-                if (_buffer[idx] is { } span)
-                    result[i] = span;
-            }
-
-            return result;
-        }
     }
 
     public void Clear()

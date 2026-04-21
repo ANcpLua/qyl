@@ -69,24 +69,6 @@ internal sealed class LiveLogDeduplicator
         return output;
     }
 
-    /// <summary>
-    ///     Flushes all pending buckets (used when the caller needs final summaries).
-    /// </summary>
-    public IReadOnlyList<DeduplicatedLiveLog> FlushAll()
-    {
-        var output = new List<DeduplicatedLiveLog>(_buckets.Count);
-        var keys = _buckets.Keys.ToArray();
-
-        foreach (var key in keys)
-        {
-            var bucket = _buckets[key];
-            EmitSummary(bucket, output);
-            _buckets.Remove(key);
-        }
-
-        return output;
-    }
-
     private static string BuildKey(LogStorageRow log)
     {
         var service = log.ServiceName ?? "unknown";

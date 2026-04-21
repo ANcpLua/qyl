@@ -14,7 +14,7 @@ public static class StatisticalMath
     /// <summary>
     ///     Elementwise function for computing entropy: <c>-x * ln(x)</c>.
     /// </summary>
-    public static double Entr(double x) =>
+    private static double Entr(double x) =>
         double.IsNaN(x) ? x :
         x > 0 ? -x * Math.Log(x) :
         x is 0 ? 0 :
@@ -73,7 +73,7 @@ public static class StatisticalMath
     /// <summary>
     ///     Elementwise relative entropy between two distributions.
     /// </summary>
-    public static double[] RelativeEntropy(ReadOnlySpan<double> a, ReadOnlySpan<double> b)
+    private static double[] RelativeEntropy(ReadOnlySpan<double> a, ReadOnlySpan<double> b)
     {
         if (a.Length != b.Length)
             throw new ArgumentException("Mismatched distribution lengths");
@@ -137,7 +137,7 @@ public static class StatisticalMath
     /// <summary>
     ///     Assign dense ranks to values using min-rank strategy.
     /// </summary>
-    public static int[] RankMin(ReadOnlySpan<double> xs, bool ascending = false)
+    private static int[] RankMin(ReadOnlySpan<double> xs, bool ascending = false)
     {
         var sorted = new SortedSet<double>(xs.ToArray());
         var ranks = new Dictionary<double, int>();

@@ -4,9 +4,6 @@ namespace Qyl.Collector.Errors;
 
 public static partial class ErrorFingerprinter
 {
-    /// <summary>Fingerprint algorithm version. Increment when changing the hash inputs.</summary>
-    public const int Version = 2;
-
     public static string Compute(
         string exceptionType,
         string message,
