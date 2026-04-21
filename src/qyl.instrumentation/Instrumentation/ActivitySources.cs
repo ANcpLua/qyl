@@ -32,8 +32,17 @@ public static class ActivitySources
     /// <summary>Assembly containing the instrumentation.</summary>
     internal static readonly Assembly Assembly = typeof(ActivitySources).Assembly;
 
-    /// <summary>Package version extracted from assembly metadata.</summary>
-    internal static readonly string Version = Assembly.GetPackageVersion();
+    /// <summary>Package version extracted from assembly metadata, with git SHA stripped for stable span tags.</summary>
+    internal static readonly string Version = GetVersion(Assembly);
+
+    private static string GetVersion(Assembly assembly)
+    {
+        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                            ?? assembly.GetName().Version?.ToString()
+                            ?? "0.0.0";
+        var plus = informational.IndexOf('+', System.StringComparison.Ordinal);
+        return plus > 0 ? informational.Substring(0, plus) : informational;
+    }
 
     // Lazy-initialized ActivitySource instances
     private static ActivitySource? s_genAi;

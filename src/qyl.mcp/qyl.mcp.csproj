@@ -81,6 +81,7 @@
     <ProjectReference Include="..\qyl.mcp.generators\qyl.mcp.generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
 </Project>
