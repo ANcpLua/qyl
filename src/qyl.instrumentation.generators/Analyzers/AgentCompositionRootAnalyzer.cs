@@ -1,6 +1,9 @@
+// Copyright (c) 2025-2026 ancplua
+
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -44,15 +47,15 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(static start =>
         {
-            var builder = ImmutableArray.CreateBuilder<INamedTypeSymbol>(SAgentTypes.Length);
-            foreach (var name in SAgentTypes)
-                if (start.Compilation.GetTypeByMetadataName(name) is { } symbol)
-                    builder.Add(symbol);
+            var agents = SAgentTypes
+                .Select(start.Compilation.GetTypeByMetadataName)
+                .Where(symbol => symbol is not null)
+                .Select(symbol => symbol!)
+                .ToImmutableArray();
 
-            if (builder.Count is 0)
+            if (agents.Length is 0)
                 return;
 
-            var agents = builder.ToImmutable();
             start.RegisterOperationAction(ctx => Analyze(ctx, agents), OperationKind.Invocation);
         });
     }
@@ -75,9 +78,8 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
     private static bool IsAgentType(ITypeSymbol type, ImmutableArray<INamedTypeSymbol> agents)
     {
         for (var t = type; t is not null; t = t.BaseType)
-            foreach (var agent in agents)
-                if (SymbolEqualityComparer.Default.Equals(t, agent))
-                    return true;
+            if (agents.Any(agent => SymbolEqualityComparer.Default.Equals(t, agent)))
+                return true;
 
         return false;
     }
@@ -113,11 +115,10 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         while (op is IConversionOperation conv)
             op = conv.Operand;
 
-        if (op is IObjectCreationOperation)
-            return true;
-
-        // Fluent chain? If `UseOpenTelemetry` appears anywhere, construction is wrapped.
-        // If it doesn't but the chain is opaque (factory/DI), trust it — don't warn.
-        return false;
+        // Conservative design: only flag direct `new *Agent(...)` constructions. Any fluent
+        // chain, factory call, or DI resolution is trusted — the composition root is assumed
+        // to apply `.AsBuilder().UseOpenTelemetry(...).Build()`. Prefers false-negatives over
+        // false-positives; fluent chains that forget the wrap are not caught here.
+        return op is IObjectCreationOperation;
     }
 }

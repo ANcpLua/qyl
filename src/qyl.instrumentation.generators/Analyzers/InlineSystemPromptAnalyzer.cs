@@ -1,3 +1,5 @@
+// Copyright (c) 2025-2026 ancplua
+
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
 using System.Collections.Immutable;

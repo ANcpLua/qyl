@@ -1,6 +1,9 @@
+// Copyright (c) 2025-2026 ancplua
+
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -43,9 +46,10 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationStartAction(static start =>
         {
             var builder = ImmutableHashSet.CreateBuilder<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-            foreach (var name in SProviderClients)
-                if (start.Compilation.GetTypeByMetadataName(name) is { } symbol)
-                    builder.Add(symbol);
+            foreach (var symbol in SProviderClients
+                         .Select(start.Compilation.GetTypeByMetadataName)
+                         .Where(s => s is not null))
+                builder.Add(symbol!);
 
             if (builder.Count is 0)
                 return;
@@ -77,9 +81,9 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
             normalized.Contains("/samples/", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        return (normalized.Contains("/Clients/", StringComparison.Ordinal) &&
-                normalized.EndsWithOrdinal("ChatClientBuilder.cs")) ||
-               (normalized.Contains("/Factories/", StringComparison.Ordinal) &&
-                normalized.EndsWithOrdinal("ChatClientFactory.cs"));
+        return (normalized.ContainsIgnoreCase("/Clients/") &&
+                normalized.EndsWithIgnoreCase("ChatClientBuilder.cs")) ||
+               (normalized.ContainsIgnoreCase("/Factories/") &&
+                normalized.EndsWithIgnoreCase("ChatClientFactory.cs"));
     }
 }

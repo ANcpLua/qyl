@@ -1,3 +1,5 @@
+// Copyright (c) 2025-2026 ancplua
+
 namespace qyl.instrumentation.generators.tests.Analyzers;
 
 using System.Collections.Immutable;
@@ -54,8 +56,8 @@ internal static class AnalyzerTestHarness
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
         };
-        TryAddReference(references, Path.Combine(runtimeDir, "System.Runtime.dll"));
-        TryAddReference(references, Path.Combine(runtimeDir, "netstandard.dll"));
+        TryAddReference(references, Path.Join(runtimeDir, "System.Runtime.dll"));
+        TryAddReference(references, Path.Join(runtimeDir, "netstandard.dll"));
 
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
