@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-04-09T04:24:58.5992140+00:00
+//     Generated: 2026-04-21T00:08:47.9399790+00:00
 //     Enumeration types for Qyl.Models
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -37,6 +37,7 @@ public enum DoraPerformanceLevel
     Low = 3,
 }
 
+/// <summary>Health status for component-level reporting (HealthUiResponse, dashboard).</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HealthStatus>))]
 public enum HealthStatus
 {
