@@ -211,9 +211,9 @@ public sealed class CollectorClient(HttpClient http)
     public async Task<List<string>> DetectRegressionsAsync(
         string serviceName, string? version = null, CancellationToken ct = default)
     {
-        var url = $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}";
-        if (version is not null)
-            url += $"?version={Uri.EscapeDataString(version)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}",
+            ("version", version));
 
         var response = await http.PostAsync(url, null, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();

@@ -43,9 +43,8 @@ public sealed class ReplayTools(HttpClient client)
         string? serviceName = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/sessions?limit={limit}";
-            if (!string.IsNullOrEmpty(serviceName))
-                url += $"&serviceName={Uri.EscapeDataString(serviceName)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/sessions?limit={limit}", ("serviceName", serviceName));
 
             var response = await client.GetFromJsonAsync<SessionListResponse>(
                 url, ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);

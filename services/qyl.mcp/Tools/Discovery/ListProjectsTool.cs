@@ -33,9 +33,8 @@ public sealed class ListProjectsTool(HttpClient client)
     {
         limit = Math.Clamp(limit, 1, 100);
 
-        var url = $"/api/v1/mcp/projects?limit={limit}";
-        if (cursor is not null)
-            url += $"&cursor={Uri.EscapeDataString(cursor)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/projects?limit={limit}", ("cursor", cursor));
 
         var result = await client.GetFromJsonAsync<PagedResult<ProjectInfoDto>>(url, ct).ConfigureAwait(false);
 

@@ -34,11 +34,9 @@ public sealed class SearchTracesTool(HttpClient client)
     {
         limit = Math.Clamp(limit, 1, 100);
 
-        var url = $"/api/v1/mcp/traces?q={Uri.EscapeDataString(query)}&limit={limit}";
-        if (projectSlug is not null)
-            url += $"&project={Uri.EscapeDataString(projectSlug)}";
-        if (cursor is not null)
-            url += $"&cursor={Uri.EscapeDataString(cursor)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/traces?q={Uri.EscapeDataString(query)}&limit={limit}",
+            ("project", projectSlug), ("cursor", cursor));
 
         var result = await client.GetFromJsonAsync<PagedResult<TraceSummaryDto>>(url, ct).ConfigureAwait(false);
 

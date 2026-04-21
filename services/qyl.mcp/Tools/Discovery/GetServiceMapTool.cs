@@ -28,9 +28,8 @@ public sealed class GetServiceMapTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = "/api/v1/mcp/services/map";
-        if (projectSlug is not null)
-            url += $"?project={Uri.EscapeDataString(projectSlug)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            "/api/v1/mcp/services/map", ("project", projectSlug));
 
         var map = await client.GetFromJsonAsync<ServiceMapDto>(url, ct).ConfigureAwait(false);
 

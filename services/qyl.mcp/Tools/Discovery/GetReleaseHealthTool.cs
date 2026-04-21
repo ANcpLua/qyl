@@ -35,9 +35,9 @@ public sealed class GetReleaseHealthTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = $"/api/v1/mcp/releases/{Uri.EscapeDataString(version)}/health";
-        if (projectSlug is not null)
-            url += $"?projectSlug={Uri.EscapeDataString(projectSlug)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/mcp/releases/{Uri.EscapeDataString(version)}/health",
+            ("projectSlug", projectSlug));
 
         var response = await client.GetAsync(url, ct).ConfigureAwait(false);
 

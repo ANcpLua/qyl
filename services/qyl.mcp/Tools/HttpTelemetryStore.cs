@@ -35,9 +35,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = "/api/v1/sessions?limit=100";
-            if (!string.IsNullOrEmpty(provider))
-                url += $"&provider={Uri.EscapeDataString(provider)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                "/api/v1/sessions?limit=100", ("provider", provider));
 
             var response = await client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
@@ -103,9 +102,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = $"/api/v1/sessions?limit={limit}";
-            if (!string.IsNullOrEmpty(agentName))
-                url += $"&serviceName={Uri.EscapeDataString(agentName)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                $"/api/v1/sessions?limit={limit}", ("serviceName", agentName));
 
             var response = await client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
@@ -134,9 +132,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = "/api/v1/sessions?limit=1000";
-            if (!string.IsNullOrEmpty(agentName))
-                url += $"&serviceName={Uri.EscapeDataString(agentName)}";
+            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+                "/api/v1/sessions?limit=1000", ("serviceName", agentName));
 
             var response = await client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);

@@ -244,12 +244,9 @@ public sealed class IntelligenceTools(HttpClient client)
         string? service = null,
         CancellationToken ct = default)
     {
-        var url =
-            $"/api/v1/intelligence/execute-step?strategyId={Uri.EscapeDataString(strategyId)}&stepIndex={stepIndex}";
-        if (traceId is not null)
-            url += $"&traceId={Uri.EscapeDataString(traceId)}";
-        if (service is not null)
-            url += $"&service={Uri.EscapeDataString(service)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"/api/v1/intelligence/execute-step?strategyId={Uri.EscapeDataString(strategyId)}&stepIndex={stepIndex}",
+            ("traceId", traceId), ("service", service));
 
         var response = await client.GetAsync(url, ct).ConfigureAwait(false);
 

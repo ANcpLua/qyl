@@ -59,16 +59,12 @@ public sealed class SpanQueryTools(HttpClient client)
         [Description("Maximum spans to return (default: 100)")]
         int limit = 100) => CollectorHelper.ExecuteAsync(async () =>
     {
-        var url = !string.IsNullOrEmpty(sessionId)
+        var basePath = !string.IsNullOrEmpty(sessionId)
             ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans"
             : "/api/v1/genai/spans";
 
-        var queryParams = new List<string> { $"limit={limit}", $"hours={hours}" };
-        if (!string.IsNullOrEmpty(status))
-            queryParams.Add($"status={Uri.EscapeDataString(status)}");
-
-        if (queryParams.Count > 0)
-            url += "?" + string.Join("&", queryParams);
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            $"{basePath}?limit={limit}&hours={hours}", ("status", status));
 
         var response = await client.GetFromJsonAsync<SpanSearchResponse>(
             url, SpanQueryJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);

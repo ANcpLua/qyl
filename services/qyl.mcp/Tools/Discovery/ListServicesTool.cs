@@ -28,9 +28,8 @@ public sealed class ListServicesTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = "/api/v1/mcp/services";
-        if (projectSlug is not null)
-            url += $"?project={Uri.EscapeDataString(projectSlug)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            "/api/v1/mcp/services", ("project", projectSlug));
 
         var services = await client.GetFromJsonAsync<IReadOnlyList<ServiceInfoDto>>(url, ct).ConfigureAwait(false);
 

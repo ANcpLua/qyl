@@ -28,9 +28,8 @@ public sealed class ListMetricsTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = "/api/v1/mcp/metrics";
-        if (projectSlug is not null)
-            url += $"?project={Uri.EscapeDataString(projectSlug)}";
+        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            "/api/v1/mcp/metrics", ("project", projectSlug));
 
         var metrics = await client.GetFromJsonAsync<IReadOnlyList<MetricInfoDto>>(url, ct).ConfigureAwait(false);
 
