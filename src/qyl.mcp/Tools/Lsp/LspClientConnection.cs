@@ -148,6 +148,76 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
     public Task SendNotificationAsync(string method, JsonNode? parameters, CancellationToken ct) =>
         _transport.SendNotificationAsync(method, parameters, ct);
 
+    // ── Typed LSP method layer (one-per-open-workspace; positions are 0-based LSP-wire format;
+    //    callers translate from 1-based user positions at the LspClientWrapper boundary) ────────
+
+    /// <summary>Notifies the server that a document has been opened with the given contents.</summary>
+    public Task DidOpenAsync(string uri, string languageId, int version, string text, CancellationToken ct) =>
+        SendNotificationAsync("textDocument/didOpen", new JsonObject
+        {
+            ["textDocument"] = new JsonObject
+            {
+                ["uri"] = uri, ["languageId"] = languageId, ["version"] = version, ["text"] = text
+            }
+        }, ct);
+
+    /// <summary>
+    ///     Notifies the server that a document has changed. Sends the full document (LSP allows
+    ///     this when incremental sync is not registered).
+    /// </summary>
+    public Task DidChangeAsync(string uri, int version, string text, CancellationToken ct) =>
+        SendNotificationAsync("textDocument/didChange", new JsonObject
+        {
+            ["textDocument"] = new JsonObject { ["uri"] = uri, ["version"] = version },
+            ["contentChanges"] = new JsonArray { new JsonObject { ["text"] = text } }
+        }, ct);
+
+    /// <summary><c>textDocument/definition</c>. Returns Location | Location[] | LocationLink[].</summary>
+    public Task<JsonNode?> GotoDefinitionAsync(string uri, int line0, int character0, CancellationToken ct) =>
+        SendRequestAsync("textDocument/definition", BuildTextDocumentPosition(uri, line0, character0), ct);
+
+    /// <summary><c>textDocument/references</c>.</summary>
+    public Task<JsonNode?> FindReferencesAsync(string uri, int line0, int character0, bool includeDeclaration,
+        CancellationToken ct)
+    {
+        var parameters = BuildTextDocumentPosition(uri, line0, character0);
+        parameters["context"] = new JsonObject { ["includeDeclaration"] = includeDeclaration };
+        return SendRequestAsync("textDocument/references", parameters, ct);
+    }
+
+    /// <summary><c>textDocument/documentSymbol</c>. Returns DocumentSymbol[] or SymbolInformation[].</summary>
+    public Task<JsonNode?> DocumentSymbolsAsync(string uri, CancellationToken ct) =>
+        SendRequestAsync("textDocument/documentSymbol",
+            new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri } }, ct);
+
+    /// <summary><c>workspace/symbol</c>.</summary>
+    public Task<JsonNode?> WorkspaceSymbolsAsync(string query, CancellationToken ct) =>
+        SendRequestAsync("workspace/symbol", new JsonObject { ["query"] = query }, ct);
+
+    /// <summary><c>textDocument/diagnostic</c> (pull-model diagnostics, LSP 3.17+).</summary>
+    public Task<JsonNode?> DiagnosticsAsync(string uri, CancellationToken ct) =>
+        SendRequestAsync("textDocument/diagnostic",
+            new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri } }, ct);
+
+    /// <summary><c>textDocument/prepareRename</c>.</summary>
+    public Task<JsonNode?> PrepareRenameAsync(string uri, int line0, int character0, CancellationToken ct) =>
+        SendRequestAsync("textDocument/prepareRename", BuildTextDocumentPosition(uri, line0, character0), ct);
+
+    /// <summary><c>textDocument/rename</c>. Returns a <c>WorkspaceEdit</c>.</summary>
+    public Task<JsonNode?> RenameAsync(string uri, int line0, int character0, string newName, CancellationToken ct)
+    {
+        var parameters = BuildTextDocumentPosition(uri, line0, character0);
+        parameters["newName"] = newName;
+        return SendRequestAsync("textDocument/rename", parameters, ct);
+    }
+
+    private static JsonObject BuildTextDocumentPosition(string uri, int line0, int character0) =>
+        new()
+        {
+            ["textDocument"] = new JsonObject { ["uri"] = uri },
+            ["position"] = new JsonObject { ["line"] = line0, ["character"] = character0 }
+        };
+
     private Task InitializeAsync(CancellationToken ct)
     {
         using var initCts = CancellationTokenSource.CreateLinkedTokenSource(ct);

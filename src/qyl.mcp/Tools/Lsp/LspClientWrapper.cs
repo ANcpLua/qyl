@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
-///     Per-workspace client pool. Lazily starts one <see cref="LspClient" /> per
+///     Per-workspace client pool. Lazily starts one <see cref="LspClientConnection" /> per
 ///     <c>(workspaceRoot, serverId)</c> pair, tracks <c>didOpen</c> / <c>didChange</c> state per
 ///     document, and converts the 1-based user coordinate system to the 0-based LSP wire format
 ///     at this boundary.
@@ -15,7 +15,7 @@ internal sealed partial class LspClientWrapper(
     LspServerResolution resolution,
     ILogger<LspClientWrapper> logger) : IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, Lazy<Task<LspClient>>> _clients = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Lazy<Task<LspClientConnection>>> _clients = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DocumentState> _documents = new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -28,8 +28,8 @@ internal sealed partial class LspClientWrapper(
 
             try
             {
-                var client = await kv.Value.Value.ConfigureAwait(false);
-                await client.Connection.DisposeAsync().ConfigureAwait(false);
+                var connection = await kv.Value.Value.ConfigureAwait(false);
+                await connection.DisposeAsync().ConfigureAwait(false);
             }
             catch (OperationCanceledException cancelled)
             {
@@ -52,10 +52,10 @@ internal sealed partial class LspClientWrapper(
             throw new FileNotFoundException($"LSP tools require an existing file. Not found: {filePath}", filePath);
 
         var resolved = resolution.Resolve(filePath);
-        var client = await GetOrStartClientAsync(resolved, ct).ConfigureAwait(false);
+        var connection = await GetOrStartClientAsync(resolved, ct).ConfigureAwait(false);
         var uri = new Uri(filePath).AbsoluteUri;
-        await EnsureDocumentAsync(client, filePath, uri, resolved, ct).ConfigureAwait(false);
-        return new OpenedDocument(client, uri, resolved);
+        await EnsureDocumentAsync(connection, filePath, uri, resolved, ct).ConfigureAwait(false);
+        return new OpenedDocument(connection, uri, resolved);
     }
 
     /// <summary>Converts 1-based user line/column to 0-based LSP line/character.</summary>
@@ -76,10 +76,10 @@ internal sealed partial class LspClientWrapper(
     public static string UriToPath(string uri) =>
         Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri;
 
-    private async Task<LspClient> GetOrStartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
+    private async Task<LspClientConnection> GetOrStartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
     {
         var key = ClientKey(resolved);
-        var lazy = _clients.GetOrAdd(key, _ => new Lazy<Task<LspClient>>(
+        var lazy = _clients.GetOrAdd(key, _ => new Lazy<Task<LspClientConnection>>(
             () => StartClientAsync(resolved, ct),
             LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -90,28 +90,19 @@ internal sealed partial class LspClientWrapper(
         catch
         {
             // Start failed — evict the failed lazy so the next call retries.
-            _clients.TryRemove(new KeyValuePair<string, Lazy<Task<LspClient>>>(key, lazy));
+            _clients.TryRemove(new KeyValuePair<string, Lazy<Task<LspClientConnection>>>(key, lazy));
             throw;
         }
     }
 
-    private async Task<LspClient> StartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
+    private async Task<LspClientConnection> StartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
     {
         LogStartingServer(logger, resolved.Definition.Id, resolved.WorkspaceRoot);
-        var connection = await LspClientConnection.OpenAsync(resolved, ct).ConfigureAwait(false);
-        try
-        {
-            return new LspClient(connection);
-        }
-        catch
-        {
-            await connection.DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
+        return await LspClientConnection.OpenAsync(resolved, ct).ConfigureAwait(false);
     }
 
     private async Task EnsureDocumentAsync(
-        LspClient client, string filePath, string uri, LspServerResolutionResult resolved, CancellationToken ct)
+        LspClientConnection client, string filePath, string uri, LspServerResolutionResult resolved, CancellationToken ct)
     {
         var text = await File.ReadAllTextAsync(filePath, ct).ConfigureAwait(false);
         var languageId = LanguageIdFor(resolved.Definition.Id, filePath);
@@ -161,4 +152,4 @@ internal sealed partial class LspClientWrapper(
 /// <param name="Client">The typed LSP client.</param>
 /// <param name="Uri">The document's <c>file://</c> URI.</param>
 /// <param name="Resolution">Resolved server + binary + workspace metadata.</param>
-internal sealed record OpenedDocument(LspClient Client, string Uri, LspServerResolutionResult Resolution);
+internal sealed record OpenedDocument(LspClientConnection Client, string Uri, LspServerResolutionResult Resolution);
