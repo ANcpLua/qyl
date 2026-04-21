@@ -23,7 +23,6 @@
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.10.0</SystemClientModelVersion>
-    <AspireHostingVersion>13.2.2</AspireHostingVersion>
     <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>
     <MicrosoftIdentityModelVersion>8.17.0</MicrosoftIdentityModelVersion>
     <NukeVersion>10.1.0</NukeVersion>

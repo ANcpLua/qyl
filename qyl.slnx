@@ -198,6 +198,7 @@
 
     <Folder Name="/docs/">
         <File Path="docs/mcp-oauth-runbook.md" />
+        <File Path="docs\contract-drift-architecture.md" />
     </Folder>
     <Folder Name="/docs/planned/">
         <File Path="docs/planned/2026-04-18-lsp-phase2-typescript.md" />

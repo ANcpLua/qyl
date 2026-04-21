@@ -3,13 +3,14 @@
 namespace Qyl.Fleet.Hosting;
 
 /// <summary>
-/// Declarative metadata describing one <c>qyl.collector</c> backend in the dashboard's fleet.
-/// Declared at the AppHost layer so the aggregator doesn't have to probe each backend to build
-/// the fleet listing.
+/// Metadata for one <c>qyl.collector</c> backend in the dashboard's fleet. Returned on the
+/// <c>/api/v1/fleet</c> endpoint so the dashboard can build a collector picker without
+/// probing each backend.
 /// </summary>
-/// <param name="Id">The stable identifier. Defaults to the resource name when left blank.</param>
+/// <param name="Id">The stable identifier used as the URL prefix (<c>/api/v1/{id}/...</c>).</param>
+/// <param name="Endpoint">The collector's base URL. Reads + writes are forwarded to it.</param>
 /// <param name="Description">Human-readable description surfaced in the fleet picker.</param>
-public record QylCollectorInfo(string Id, string? Description = null)
+public sealed record QylCollectorInfo(string Id, Uri Endpoint, string? Description = null)
 {
     /// <summary>Display name for the collector. Defaults to <see cref="Id"/>.</summary>
     public string Name { get; init; } = Id;

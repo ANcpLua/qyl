@@ -1,118 +1,83 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Net.Sockets;
-using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
+using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Qyl.Fleet.Hosting;
 
-/// <summary>Extension methods for wiring the qyl dashboard aggregator into a distributed-app host.</summary>
-public static partial class QylFleetExtensions
+/// <summary>Registers the qyl dashboard aggregator on a plain ASP.NET host.</summary>
+public static class QylFleetExtensions
 {
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Error,
-        Message = "qyl dashboard aggregator failed to bind (port in use / network unavailable)")]
-    static partial void LogBindFailure(ILogger logger, Exception ex);
-
     /// <summary>
-    /// Registers an in-process reverse proxy that fans dashboard REST + SSE requests out to one
-    /// or more <c>qyl.collector</c> backends and serves the unified dashboard surface.
+    /// Registers an <see cref="IHostedService"/> that runs an in-process reverse proxy routing
+    /// dashboard REST + SSE across the configured <c>qyl.collector</c> backends.
     /// </summary>
     /// <example>
     /// <code>
-    /// var collectorDev  = builder.AddProject&lt;Projects.Qyl_Collector&gt;("collector-dev");
-    /// var collectorProd = builder.AddProject&lt;Projects.Qyl_Collector&gt;("collector-prod");
-    ///
-    /// builder.AddQylDashboard("dashboard")
-    ///        .WithCollector(collectorDev,  new QylCollectorInfo("dev",  "Local dev")  { Environment = "dev" })
-    ///        .WithCollector(collectorProd, new QylCollectorInfo("prod", "Production") { Environment = "prod" })
-    ///        .WaitFor(collectorDev)
-    ///        .WaitFor(collectorProd);
+    /// var host = Host.CreateApplicationBuilder(args);
+    /// host.Services.AddQylFleet(fleet =>
+    /// {
+    ///     fleet.Port = 5050;
+    ///     fleet.WithCollector("dev",  new Uri("http://localhost:5100"), description: "Local dev");
+    ///     fleet.WithCollector("prod", new Uri("https://collector.prod"),
+    ///                         description: "Production", environment: "prod");
+    /// });
+    /// host.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<QylDashboardResource> AddQylDashboard(
-        this IDistributedApplicationBuilder builder,
-        string name,
-        int? port = null)
+    public static IServiceCollection AddQylFleet(this IServiceCollection services, Action<QylFleetBuilder> configure)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
 
-        var resource = new QylDashboardResource(name, port);
-        var resourceBuilder = builder.AddResource(resource).ExcludeFromManifest();
+        var options = new QylFleetOptions();
+        configure(new QylFleetBuilder(options));
 
-        builder.Eventing.Subscribe<InitializeResourceEvent>(resource, async (e, ct) =>
-        {
-            var logger = e.Services.GetRequiredService<ILoggerFactory>().CreateLogger<QylDashboardAggregatorHostedService>();
-            var aggregator = new QylDashboardAggregatorHostedService(resource, logger);
+        services.AddHttpClient("qyl-fleet-proxy")
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        services.AddSingleton(Options.Create(options));
+        services.AddHostedService<QylDashboardAggregatorHostedService>();
 
-            try
-            {
-                await e.Eventing.PublishAsync(new BeforeResourceStartedEvent(resource, e.Services), ct).ConfigureAwait(false);
-
-                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Starting }).ConfigureAwait(false);
-
-                await aggregator.StartAsync(ct).ConfigureAwait(false);
-
-                var endpoint = resource.Annotations
-                    .OfType<EndpointAnnotation>()
-                    .First(a => a.Name == QylDashboardResource.PrimaryEndpointName);
-                endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", aggregator.AllocatedPort);
-
-                var url = $"http://localhost:{aggregator.AllocatedPort}/dashboard/";
-                await e.Notifications.PublishUpdateAsync(resource, s => s with
-                {
-                    State = KnownResourceStates.Running,
-                    Urls = [new UrlSnapshot("Dashboard", url, IsInternal: false)],
-                }).ConfigureAwait(false);
-
-                var lifetime = e.Services.GetRequiredService<IHostApplicationLifetime>();
-                lifetime.ApplicationStopping.Register(() =>
-                {
-                    e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Finished }).GetAwaiter().GetResult();
-                    aggregator.StopAsync(CancellationToken.None).GetAwaiter().GetResult();
-                    aggregator.DisposeAsync().AsTask().GetAwaiter().GetResult();
-                });
-            }
-            // OperationCanceledException propagates — it's the AppHost shutting the aggregator
-            // down, not a startup failure. Everything outside the three bind-level failure
-            // types below is a programmer bug and must surface with a full stack trace.
-            catch (SocketException ex) { await FailStartAsync(ex).ConfigureAwait(false); }
-            catch (IOException ex) { await FailStartAsync(ex).ConfigureAwait(false); }
-            catch (HttpRequestException ex) { await FailStartAsync(ex).ConfigureAwait(false); }
-
-            async Task FailStartAsync(Exception ex)
-            {
-                LogBindFailure(logger, ex);
-                await aggregator.DisposeAsync().ConfigureAwait(false);
-                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
-            }
-        });
-
-        return resourceBuilder;
+        return services;
     }
+}
+
+/// <summary>Fluent builder for <see cref="QylFleetOptions"/>.</summary>
+public sealed class QylFleetBuilder
+{
+    private readonly QylFleetOptions _options;
+
+    internal QylFleetBuilder(QylFleetOptions options) => _options = options;
+
+    /// <summary>Port the aggregator listens on. <c>0</c> picks a free port.</summary>
+    public int Port { get => _options.Port; set => _options.Port = value; }
+
+    /// <summary>Bind host. Defaults to loopback.</summary>
+    public string Host { get => _options.Host; set => _options.Host = value; }
 
     /// <summary>
-    /// Wires a <c>qyl.collector</c> resource as a backend of the dashboard. The aggregator fans
-    /// reads to every registered collector and routes writes by the collector id prefix.
+    /// Registers a collector backend. The <paramref name="id"/> becomes the URL prefix for
+    /// routed requests (e.g. <c>/api/v1/traces/{id}/...</c>).
     /// </summary>
-    public static IResourceBuilder<QylDashboardResource> WithCollector<TSource>(
-        this IResourceBuilder<QylDashboardResource> builder,
-        IResourceBuilder<TSource> collector,
-        QylCollectorInfo? info = null,
-        string? idPrefix = null)
-        where TSource : IResourceWithEndpoints
+    public QylFleetBuilder WithCollector(
+        string id,
+        Uri endpoint,
+        string? description = null,
+        string? name = null,
+        string environment = "dev",
+        string? region = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(collector);
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentNullException.ThrowIfNull(endpoint);
 
-        info ??= new QylCollectorInfo(collector.Resource.Name);
-
-        builder.WithAnnotation(new QylCollectorAnnotation(collector.Resource, idPrefix, info));
-        builder.WithRelationship(collector.Resource, "qyl-collector");
-
-        return builder;
+        _options.Collectors.Add(new QylCollectorInfo(id, endpoint, description)
+        {
+            Name = name ?? id,
+            Environment = environment,
+            Region = region,
+        });
+        return this;
     }
 }

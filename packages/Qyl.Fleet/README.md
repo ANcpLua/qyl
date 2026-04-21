@@ -1,10 +1,15 @@
 # Qyl.Fleet
 
-Distributed-app hosting for the [qyl](https://github.com/ancplua/qyl) observability platform.
+Dashboard fleet hosting for the [qyl](https://github.com/ancplua/qyl) observability platform.
 
-One `QylDashboardResource` per dashboard instance, a fluent `.WithCollector(...)` to declare
-each backend, and an in-process reverse proxy that routes the dashboard REST + SSE surface
-across the collector fleet by a `{backendPrefix}/{tail}` path convention.
+Registers an in-process reverse proxy (`IHostedService`) that routes the dashboard REST + SSE
+surface across one or more `qyl.collector` backends by a `{collectorId}/{tail}` path convention.
+
+## Weight
+
+**Zero third-party NuGets.** Ships on the shared `Microsoft.AspNetCore.App` framework reference
+only — no Aspire, no Kubernetes client, no gRPC runtime, no Humanizer. Total package surface is
+four C# files under 300 LoC.
 
 ## Install
 
@@ -15,21 +20,19 @@ dotnet add package Qyl.Fleet
 ## Usage
 
 ```csharp
-using Aspire.Hosting;
 using Qyl.Fleet.Hosting;
 
-var builder = DistributedApplication.CreateBuilder(args);
+var host = Host.CreateApplicationBuilder(args);
 
-var collectorDev  = builder.AddProject<Projects.Qyl_Collector>("collector-dev");
-var collectorProd = builder.AddProject<Projects.Qyl_Collector>("collector-prod");
+host.Services.AddQylFleet(fleet =>
+{
+    fleet.Port = 5050;
+    fleet.WithCollector("dev",  new Uri("http://localhost:5100"), description: "Local dev");
+    fleet.WithCollector("prod", new Uri("https://collector.prod"),
+                        description: "Production", environment: "prod");
+});
 
-builder.AddQylDashboard("dashboard", port: 5050)
-       .WithCollector(collectorDev,  new QylCollectorInfo("dev",  "Local dev") { Environment = "dev" })
-       .WithCollector(collectorProd, new QylCollectorInfo("prod", "Production") { Environment = "prod" })
-       .WaitFor(collectorDev)
-       .WaitFor(collectorProd);
-
-builder.Build().Run();
+host.Build().Run();
 ```
 
 ## Routing contract
@@ -37,16 +40,11 @@ builder.Build().Run();
 | Route                       | Behavior                                                                |
 |-----------------------------|-------------------------------------------------------------------------|
 | `GET  /health`              | `{ status: "healthy" }` — liveness probe.                               |
-| `GET  /api/v1/fleet`        | Fans out metadata across all registered collectors; tagged `_backend`.  |
-| `*    /api/v1/{**path}`     | Routes by first path segment (e.g. `/api/v1/traces/dev/<id>` → `dev`). SSE inherits the same prefix rule; `Accept: text/event-stream` switches to streamed proxy. |
+| `GET  /api/v1/fleet`        | Lists every registered collector with its metadata and endpoint.        |
+| `*    /api/v1/{**path}`     | Routes by first path segment (e.g. `/api/v1/traces/dev/<id>` → `dev`). `Accept: text/event-stream` switches to streamed proxy (SSE). |
 
-Writes are deterministic: every non-GET must carry a collector prefix as the first path segment
-so the aggregator can target exactly one backend.
-
-## Why no fan-out writes
-
-Writing to multiple backends from one aggregator call silently doubles state mutations. Callers
-pass a collector prefix in the URL so the aggregator targets exactly one backend.
+Writes are deterministic: every non-GET must carry a collector id as the first path segment so
+the aggregator targets exactly one backend. No silent fan-out.
 
 ## License
 

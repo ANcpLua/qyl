@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Qyl.Fleet.Hosting</RootNamespace>
     <PackageId>Qyl.Fleet</PackageId>
-    <Description>qyl distributed-app hosting: `AddQylDashboard()` spins up an in-process aggregator that routes dashboard REST + SSE across a fleet of qyl.collector backends.</Description>
+    <Description>qyl fleet hosting: `AddQylFleet()` registers an in-process reverse proxy that routes dashboard REST + SSE across multiple qyl.collector backends. Zero third-party deps — ships on the shared Microsoft.AspNetCore.App framework.</Description>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -13,8 +13,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Framework reference is shared runtime — no NuGet download, gives us WebApplication,
+       IHostedService, IServiceCollection, HttpClientFactory, routing, etc. -->
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting"/>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
   <ItemGroup>
