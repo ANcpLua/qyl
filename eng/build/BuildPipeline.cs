@@ -204,7 +204,6 @@ partial interface IPipeline : IHazSourcePaths
         .Executes(() =>
         {
             var paths = CodegenPaths.From(this);
-            var extensionsJson = SemconvDirectory / "qyl-extensions.json";
             var guard = IsServerBuild
                 ? GenerationGuard.ForCi()
                 : DryRunGenerate ?? false
@@ -212,7 +211,6 @@ partial interface IPipeline : IHazSourcePaths
                     : GenerationGuard.ForLocal(ForceGenerate ?? false);
 
             ContractGenerator.Generate(
-                extensionsJson,
                 paths.InstrumentationGenerator,
                 paths.CollectorObserve,
                 guard);

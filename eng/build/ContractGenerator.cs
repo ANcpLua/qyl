@@ -1,40 +1,96 @@
 // eng/build/ContractGenerator.cs
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using Nuke.Common.IO;
 using Serilog;
 
 /// <summary>
-///     Generates DomainContracts.g.cs from qyl-extensions.json into compile-time and runtime consumers.
-///     Single entry point: <see cref="Generate" />.
+///     Generates DomainContracts.g.cs for the instrumentation generator + collector from a
+///     compile-time domain table inlined below. Previously read eng/semconv/qyl-extensions.json;
+///     that JSON was deleted in the Weaver cutover (PR #141). The attribute lists that survived
+///     the migration now live here as the single source of truth.
 /// </summary>
 public static class ContractGenerator
 {
     private const string SchemaVersion = "semconv-1.40.0";
 
+    // Attribute lists extracted from the former qyl-extensions.json facades. Each domain's
+    // `required` set marks attributes that MUST be present on every emitted span/metric of
+    // that signal; the rest are recommended. Bumping semconv = edit these lists.
+    private static readonly string[] GenAiAttributes =
+    [
+        "gen_ai.provider.name",
+        "gen_ai.operation.name",
+        "gen_ai.request.model",
+        "gen_ai.request.temperature",
+        "gen_ai.request.max_tokens",
+        "gen_ai.request.top_p",
+        "gen_ai.request.top_k",
+        "gen_ai.request.stop_sequences",
+        "gen_ai.request.frequency_penalty",
+        "gen_ai.request.presence_penalty",
+        "gen_ai.request.choice.count",
+        "gen_ai.request.seed",
+        "gen_ai.request.encoding_formats",
+        "gen_ai.response.model",
+        "gen_ai.response.finish_reasons",
+        "gen_ai.response.id",
+        "gen_ai.usage.input_tokens",
+        "gen_ai.usage.output_tokens",
+        "gen_ai.usage.cache_read.input_tokens",
+        "gen_ai.usage.cache_creation.input_tokens",
+        "gen_ai.token.type",
+        "gen_ai.tool.name",
+        "gen_ai.tool.call.id",
+        "gen_ai.tool.description",
+        "gen_ai.tool.type",
+        "gen_ai.tool.call.arguments",
+        "gen_ai.tool.call.result",
+        "gen_ai.tool.definitions",
+        "gen_ai.input.messages",
+        "gen_ai.output.messages",
+        "gen_ai.output.type",
+        "gen_ai.system_instructions",
+        "gen_ai.agent.version",
+        "gen_ai.conversation.id",
+        "gen_ai.prompt.name",
+        "gen_ai.embeddings.dimension.count",
+        "gen_ai.evaluation.name",
+        "gen_ai.evaluation.score.value",
+        "gen_ai.evaluation.score.label",
+        "gen_ai.evaluation.explanation",
+        "gen_ai.data_source.id"
+    ];
+
+    private static readonly string[] DbAttributes =
+    [
+        "db.system.name",
+        "db.operation.name",
+        "db.query.text",
+        "db.query.summary",
+        "db.namespace",
+        "db.collection.name",
+        "db.response.status_code",
+        "db.response.returned_rows",
+        "db.client.connection.pool.name",
+        "db.client.connection.state",
+        "db.operation.batch.size",
+        "db.stored_procedure.name"
+    ];
+
     /// <summary>
-    ///     Reads qyl-extensions.json, emits DomainContracts.g.cs to the instrumentation generator and collector.
+    ///     Emits DomainContracts.g.cs to the instrumentation generator and collector.
     /// </summary>
     public static void Generate(
-        AbsolutePath extensionsJsonPath,
         AbsolutePath instrumentationGeneratorDir,
         AbsolutePath collectorObserveDir,
         GenerationGuard guard)
     {
-        if (!extensionsJsonPath.FileExists())
-        {
-            Log.Error("qyl-extensions.json not found at {Path}", extensionsJsonPath);
-            throw new FileNotFoundException("qyl-extensions.json not found", extensionsJsonPath);
-        }
-
-        var domains = LoadDomains(extensionsJsonPath);
-        Log.Information("Loaded {Count} domain(s) from qyl-extensions.json", domains.Count);
+        var domains = BuildDomains();
+        Log.Information("Emitting {Count} domain contract(s)", domains.Count);
 
         var content = EmitDomainContracts(domains);
 
@@ -45,109 +101,50 @@ public static class ContractGenerator
         guard.WriteIfAllowed(collectorDest, content, "DomainContracts.g.cs → qyl.collector/Observe");
     }
 
-    // ── Domain loading ────────────────────────────────────────────────────────
-
-    private static List<DomainSpec> LoadDomains(AbsolutePath extensionsJsonPath)
-    {
-        using var stream = File.OpenRead(extensionsJsonPath);
-        using var doc = JsonDocument.Parse(stream);
-        var root = doc.RootElement;
-
-        var domains = new List<DomainSpec>();
-
-        // gen_ai domain — lookup by upstreamPrefix, not positional index
-        var genAiFacade = FindFacade(root, "gen_ai");
-        domains.Add(new DomainSpec(
-            "gen_ai",
-            "qyl.genai",
-            ["traces", "metrics"],
-            ExtractAttributes(genAiFacade, ["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model"]),
+    private static List<DomainSpec> BuildDomains() =>
+    [
+        new("gen_ai", "qyl.genai", ["traces", "metrics"],
+            BuildAttributeSpecs(GenAiAttributes,
+                ["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model"]),
             [
                 new MetricSpec("gen_ai.client.token.usage", "histogram", "token"),
                 new MetricSpec("gen_ai.client.operation.duration", "histogram", "s")
-            ]));
-
-        // db domain — lookup by upstreamPrefix, not positional index
-        var dbFacade = FindFacade(root, "db");
-        domains.Add(new DomainSpec(
-            "db",
-            "qyl.db",
-            ["traces"],
-            ExtractAttributes(dbFacade, ["db.system.name", "db.operation.name"]),
-            []));
-
-        // traced domain — open schema, no fixed attributes
-        domains.Add(new DomainSpec(
-            "traced",
-            "qyl.traced",
-            ["traces"],
-            [],
-            []));
-
-        // agent domain — subset of gen_ai attributes
-        domains.Add(new DomainSpec(
-            "agent",
-            "qyl.agent",
-            ["traces", "metrics"],
+            ]),
+        new("db", "qyl.db", ["traces"],
+            BuildAttributeSpecs(DbAttributes, ["db.system.name", "db.operation.name"]),
+            []),
+        new("traced", "qyl.traced", ["traces"], [], []),
+        new("agent", "qyl.agent", ["traces", "metrics"],
             [
                 new AttributeSpec("gen_ai.agent.name", "string", false),
                 new AttributeSpec("gen_ai.operation.name", "string", true)
             ],
-            []));
+            [])
+    ];
 
-        return domains;
-    }
-
-    private static JsonElement FindFacade(JsonElement root, string upstreamPrefix)
-    {
-        foreach (var facade in root.GetProperty("facades").EnumerateArray())
-        {
-            if (string.Equals(facade.GetProperty("upstreamPrefix").GetString(),
-                    upstreamPrefix, StringComparison.Ordinal))
-                return facade;
-        }
-
-        throw new InvalidOperationException(
-            $"Facade with upstreamPrefix '{upstreamPrefix}' not found in qyl-extensions.json");
-    }
-
-    private static List<AttributeSpec> ExtractAttributes(
-        JsonElement facade,
-        string[] requiredNames)
-    {
-        var attrs = new List<AttributeSpec>();
-
-        foreach (var nameElem in facade.GetProperty("attributes").EnumerateArray())
-        {
-            var name = nameElem.GetString()!;
-            var type = InferType(name);
-            var required = requiredNames.Contains(name);
-            attrs.Add(new AttributeSpec(name, type, required));
-        }
-
-        return attrs;
-    }
+    private static List<AttributeSpec> BuildAttributeSpecs(string[] names, string[] requiredNames) =>
+        [.. names.Select(n => new AttributeSpec(n, InferType(n), requiredNames.Contains(n)))];
 
     private static string InferType(string attributeName)
     {
         var suffix = attributeName.Split('.')[^1];
 
         if (suffix is "tokens" or "count" or "size" or "max_tokens" or "returned_rows"
-            || suffix.EndsWith("_tokens", StringComparison.Ordinal)
-            || suffix.EndsWith("_count", StringComparison.Ordinal)
-            || suffix.EndsWith("_size", StringComparison.Ordinal))
+            || suffix.EndsWith("_tokens", System.StringComparison.Ordinal)
+            || suffix.EndsWith("_count", System.StringComparison.Ordinal)
+            || suffix.EndsWith("_size", System.StringComparison.Ordinal))
             return "int";
 
         if (suffix is "temperature" or "top_p" or "top_k"
-            || suffix.EndsWith("_penalty", StringComparison.Ordinal)
-            || attributeName.EndsWith("score.value", StringComparison.Ordinal))
+            || suffix.EndsWith("_penalty", System.StringComparison.Ordinal)
+            || attributeName.EndsWith("score.value", System.StringComparison.Ordinal))
             return "double";
 
-        if (suffix.EndsWith("_reasons", StringComparison.Ordinal)
-            || suffix.EndsWith("_sequences", StringComparison.Ordinal)
-            || suffix.EndsWith("_formats", StringComparison.Ordinal)
-            || attributeName.EndsWith("input.messages", StringComparison.Ordinal)
-            || attributeName.EndsWith("output.messages", StringComparison.Ordinal))
+        if (suffix.EndsWith("_reasons", System.StringComparison.Ordinal)
+            || suffix.EndsWith("_sequences", System.StringComparison.Ordinal)
+            || suffix.EndsWith("_formats", System.StringComparison.Ordinal)
+            || attributeName.EndsWith("input.messages", System.StringComparison.Ordinal)
+            || attributeName.EndsWith("output.messages", System.StringComparison.Ordinal))
             return "string[]";
 
         return "string";
