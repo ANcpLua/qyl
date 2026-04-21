@@ -154,3 +154,8 @@ images/
 
 # Local agent scratchpads (objective.json etc.) — not repo content
 .blackboard/
+
+# Local tool downloads (weaver, semconv upstream clone)
+.tools/
+# Weaver output scratchpad
+eng/semconv/out/

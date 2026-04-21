@@ -2,9 +2,20 @@ namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
 ///     Shared OpenTelemetry exception recording for qyl instrumentation.
+///     Semconv keys inlined as literals — OTel semconv 1.40 stable section for exception.* / error.type.
 /// </summary>
 public static class ActivityExceptionTelemetry
 {
+    // OTel semconv 1.40 — stable keys from the `error.*` and `exception.*` prefixes.
+    // No qyl facade covers these namespaces (qyl.contracts.Attributes only wraps
+    // gen_ai / db / mcp). Inlined here rather than behind a facade that doesn't exist;
+    // promote to ErrorAttributes / ExceptionAttributes if a second consumer appears.
+    private const string ErrorType = "error.type";
+    private const string ExceptionType = "exception.type";
+    private const string ExceptionMessage = "exception.message";
+    private const string ExceptionStacktrace = "exception.stacktrace";
+    private const string ExceptionEscaped = "exception.escaped";
+
     public static void Record(
         Activity? activity,
         Exception exception,
@@ -27,16 +38,16 @@ public static class ActivityExceptionTelemetry
             return;
 
         activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-        activity.SetTag(ErrorTypeAttributes.Type, ResolveErrorType(exception, errorType));
+        activity.SetTag(ErrorType, ResolveErrorType(exception, errorType));
     }
 
     public static ActivityTagsCollection CreateTags(Exception exception, bool escaped = true) =>
         new()
         {
-            { ExceptionTypeAttributes.Type, exception.GetType().FullName },
-            { ExceptionMessageAttributes.Message, exception.Message },
-            { ExceptionStacktraceAttributes.Stacktrace, exception.ToString() },
-            { ExceptionEscapedAttributes.Escaped, escaped }
+            { ExceptionType, exception.GetType().FullName },
+            { ExceptionMessage, exception.Message },
+            { ExceptionStacktrace, exception.ToString() },
+            { ExceptionEscaped, escaped }
         };
 
     public static string ResolveErrorType(Exception exception, string? errorType = null) =>

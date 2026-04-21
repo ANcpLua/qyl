@@ -1,0 +1,88 @@
+# Weaver template config for qyl's semconv outputs.
+# Upstream prefixes + qyl extensions are centralized in params below so every
+# template can read them via `params.<key>`.
+
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+
+params:
+  semconv_version: "1.40.0"
+
+  # Upstream OTel prefixes to surface in qyl's generated outputs. Everything
+  # else in the upstream registry is ignored to keep generated files lean.
+  include_prefixes:
+    # AI
+    - gen_ai
+    - code
+    # Transport
+    - http
+    - rpc
+    - messaging
+    - url
+    - user_agent
+    - signalr
+    - kestrel
+    # Data
+    - db
+    - file
+    - vcs
+    - artifact
+    - elasticsearch
+    # Infra
+    - cloud
+    - container
+    - k8s
+    - host
+    - os
+    - faas
+    - webengine
+    # Security
+    - network
+    - tls
+    - dns
+    # Runtime
+    - process
+    - thread
+    - system
+    - dotnet
+    - aspnetcore
+    # Identity
+    - user
+    - enduser
+    - geo
+    - client
+    - server
+    - service
+    - telemetry
+    # Observe
+    - browser
+    - session
+    - exception
+    - error
+    - log
+    - feature_flag
+    - otel
+    - test
+    # Profiling
+    - profile
+    - pprof
+    # Ops
+    - cicd
+    - deployment
+    # Vendor
+    - openai
+    - azure
+    - oracle
+    - oracle_cloud
+
+templates:
+  - template: semconv.ts.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "semconv.ts"
+
+  - template: promoted_columns.g.sql.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "promoted-columns.g.sql"

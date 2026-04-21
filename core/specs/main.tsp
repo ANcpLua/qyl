@@ -49,18 +49,12 @@ import "./otel/profiles.tsp";
 import "./otel/storage.tsp";
 
 // =============================================================================
-// Generated Semantic Conventions (OTel 1.40)
-// =============================================================================
-// Type-safe attribute keys from @opentelemetry/semantic-conventions NPM package.
-// Contains Keys.GenAi, Keys.Db, Keys.Http, etc. for all OTel semconv attributes (v1.40).
-import "./generated/semconv.g.tsp";
-// =============================================================================
-
-// =============================================================================
 // QYL Domain Models
 // =============================================================================
-// These files contain qyl-specific models (stats, entities, aggregations).
-// OTel attribute definitions now come from generated/semconv.g.tsp.
+// qyl-specific models (stats, entities, aggregations). Semconv attribute keys
+// are used directly as string literals on @encodedName — the earlier typed
+// Keys.* TSP bridge was imported but never referenced, so dropped with its
+// 6953-line generated semconv.g.tsp.
 // =============================================================================
 
 // AI Domain - GenAI stats and cost models
