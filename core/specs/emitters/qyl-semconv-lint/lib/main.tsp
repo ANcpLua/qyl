@@ -1,5 +1,7 @@
 import "../dist/index.js";
 
+using TypeSpec.Reflection;
+
 namespace Qyl.Semconv;
 
 /**
@@ -13,9 +15,7 @@ model QylAttrOptions {
 
 /**
  * Declares that a model property (or operation parameter) emits a qyl-owned
- * telemetry attribute under the given key and primitive type. The library's
- * `$onValidate` hook cross-checks every annotation against OTel semconv and
- * fires the QYL-LINT-00x diagnostics when rules are violated.
+ * telemetry attribute under the given key and primitive type.
  */
 extern dec qylAttr(
   target: ModelProperty | Operation,

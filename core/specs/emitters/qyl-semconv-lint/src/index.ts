@@ -4,6 +4,7 @@
 import {
     createTypeSpecLibrary,
     paramMessage,
+    setTypeSpecNamespace,
     type DecoratorContext,
     type Program,
     type Type,
@@ -100,6 +101,11 @@ export function $qylAttr(
     });
     map.set(target, bucket);
 }
+
+// Bind the decorator implementation to the `Qyl.Semconv` namespace declared in lib/main.tsp.
+// Without this, TypeSpec auto-registers `$qylAttr` at global scope and the fixture's
+// `using Qyl.Semconv;` then finds the decorator in two scopes → `ambiguous-symbol`.
+setTypeSpecNamespace("Qyl.Semconv", $qylAttr);
 
 /**
  * Compiler-invoked validator. Runs AFTER all decorators have applied, so the
