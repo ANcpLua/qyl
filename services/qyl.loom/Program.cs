@@ -8,6 +8,15 @@ using Qyl.Loom.Exploration;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway / PaaS convention: respect $PORT when provided, fall back to the qyl default.
+// Matches qyl.collector's CollectorPortOptions and qyl.mcp's QylMcpServiceCollectionExtensions.
+// WebApplicationBuilder doesn't expose UseUrls directly; UseSetting("urls", ...) is the
+// minimal-API equivalent and runs before Kestrel bind.
+if (int.TryParse(builder.Configuration["PORT"], out var port) && port > 0)
+{
+    builder.WebHost.UseSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
+}
+
 builder.AddQylServiceDefaults(options =>
 {
     options.AdditionalActivitySources.Add("Qyl.Loom");

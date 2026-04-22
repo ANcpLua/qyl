@@ -1,0 +1,28 @@
+# Railway deployment config for qyl.collector.
+# Point your Railway service's "Root Directory" at `services/qyl.collector/` and it will
+# pick this file up automatically; the build context is still the repo root because
+# `dockerfilePath` is relative to it (the Dockerfile COPYs from `packages/`, `internal/`,
+# etc.).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/qyl.collector/Dockerfile"
+
+[deploy]
+startCommand = "dotnet qyl.collector.dll"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# --- Variables to set in Railway UI ---
+#
+# PORT                           Injected automatically by Railway; qyl.collector reads it
+#                                via CollectorPortOptions.FromConfiguration (Http tier).
+# QYL_DATA_PATH                  Mount a Railway volume at /data and set this to
+#                                `/data/qyl.duckdb` for DuckDB persistence across deploys.
+# QYL_GRPC_PORT                  OTLP/gRPC ingestion port — unset to disable, or expose a
+#                                second Railway TCP endpoint for it (Railway supports
+#                                multiple ports per service since 2025-Q3).
+# OTEL_EXPORTER_OTLP_ENDPOINT    If you want qyl.collector to fan-forward its own
+#                                telemetry somewhere else. Usually left unset in prod.

@@ -33,9 +33,11 @@ LABEL org.opencontainers.image.licenses="MIT"
 # Copy built assets
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY services/qyl.dashboard/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx template — Railway / PaaS hosts set $PORT at runtime; nginx:alpine's default
+# entrypoint runs envsubst over /etc/nginx/templates/*.conf.template before starting, so
+# the rendered /etc/nginx/conf.d/default.conf picks up $PORT live. Plain `docker run`
+# falls back to the 80 default below.
+COPY services/qyl.dashboard/nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV PORT=80
 
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
