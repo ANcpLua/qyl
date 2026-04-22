@@ -1,0 +1,6 @@
+file_format: 1.1.0
+schema_url: https://qyl.dev/schemas/1.0.0
+versions:
+  1.0.0:
+    all:
+      changes: []

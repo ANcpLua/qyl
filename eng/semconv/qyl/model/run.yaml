@@ -1,0 +1,47 @@
+groups:
+  - id: registry.qyl.run
+    type: attribute_group
+    brief: 'Attributes for qyl agent run tracking'
+    prefix: qyl.run
+    attributes:
+      - id: id
+        type: string
+        stability: experimental
+        brief: 'Agent run identifier'
+        examples: ['run_01hzv8x']
+      - id: kind
+        type:
+          members:
+            - id: autofix
+              value: 'autofix'
+              brief: 'Automated fix run triggered by a diagnostic'
+              stability: experimental
+            - id: review
+              value: 'review'
+              brief: 'Code review run'
+              stability: experimental
+            - id: triage
+              value: 'triage'
+              brief: 'Issue triage run'
+        stability: experimental
+        brief: 'Kind of agent run'
+      - id: status
+        type:
+          members:
+            - id: pending
+              value: 'pending'
+              brief: 'Run is queued'
+              stability: experimental
+            - id: running
+              value: 'running'
+              brief: 'Run is executing'
+              stability: experimental
+            - id: succeeded
+              value: 'succeeded'
+              brief: 'Run completed successfully'
+              stability: experimental
+            - id: failed
+              value: 'failed'
+              brief: 'Run completed with failure'
+        stability: experimental
+        brief: 'Final or current status of the run'

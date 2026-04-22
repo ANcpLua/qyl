@@ -1,0 +1,47 @@
+groups:
+  - id: registry.qyl.fix_run
+    type: attribute_group
+    brief: 'Attributes for qyl automated fix runs'
+    prefix: qyl.fix_run
+    attributes:
+      - id: id
+        type: string
+        stability: experimental
+        brief: 'Fix run identifier'
+        examples: ['fixrun_01hzv8x']
+      - id: status
+        type:
+          members:
+            - id: pending
+              value: 'pending'
+              brief: 'Fix run is queued'
+              stability: experimental
+            - id: running
+              value: 'running'
+              brief: 'Fix run is in progress'
+              stability: experimental
+            - id: succeeded
+              value: 'succeeded'
+              brief: 'Fix applied and verified'
+              stability: experimental
+            - id: failed
+              value: 'failed'
+              brief: 'Fix attempt failed'
+              stability: experimental
+            - id: rejected
+              value: 'rejected'
+              brief: 'Fix was rejected by reviewer'
+        stability: experimental
+        brief: 'Current status of the fix run'
+      - id: trigger
+        type:
+          members:
+            - id: manual
+              value: 'manual'
+              brief: 'Manually triggered by a user'
+              stability: experimental
+            - id: automatic
+              value: 'automatic'
+              brief: 'Triggered automatically by a diagnostic rule'
+        stability: experimental
+        brief: 'What initiated this fix run'

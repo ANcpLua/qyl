@@ -1,0 +1,13 @@
+groups:
+  - id: registry.qyl.api_key
+    type: attribute_group
+    brief: 'Attributes for qyl API key tracking (masked for security)'
+    prefix: qyl.api_key
+    attributes:
+      - id: id
+        type: string
+        stability: experimental
+        brief: >
+          First 8 characters of the API key hash (sha256[:8]).
+          Never log the full key. Used for audit trails only.
+        examples: ['a1b2c3d4']
