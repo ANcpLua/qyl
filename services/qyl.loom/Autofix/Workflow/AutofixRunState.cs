@@ -36,6 +36,11 @@ public sealed record AutofixRunState
     public string? ChangesJson { get; init; }
     public ConfidenceResult? Confidence { get; init; }
 
+    // Advisory fan-out outputs — written by sidecar executors off RCA. Not read downstream;
+    // persisted to the autofix_steps ledger for dashboard consumption.
+    public ImpactAssessmentResult? Impact { get; init; }
+    public AutofixTriageInfo? Triage { get; init; }
+
     public bool IsEarlyStop { get; init; }
     public string? EarlyStopReason { get; init; }
 

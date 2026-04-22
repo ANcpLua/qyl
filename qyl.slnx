@@ -84,6 +84,7 @@
     <!-- BUILD -->
 
     <Folder Name="/eng/">
+        <File Path="eng\skill.md" />
         <Project Path="eng/build/build.csproj" />
         <File Path="eng/build.sh" />
         <File Path="eng/compose.yaml" />
@@ -193,18 +194,6 @@
     <Folder Name="/plugins/qyl-mcp/">
         <File Path="plugins/qyl-mcp/mcp.json" />
         <File Path="plugins/qyl-mcp/agents/qyl-mcp.md" />
-    </Folder>
-
-    <!-- DOCS -->
-
-    <Folder Name="/docs/">
-        <File Path="docs/mcp-oauth-runbook.md" />
-        <File Path="docs\contract-drift-architecture.md" />
-    </Folder>
-    <Folder Name="/docs/planned/">
-        <File Path="docs/planned/2026-04-18-lsp-phase2-typescript.md" />
-        <File Path="docs/planned/2026-04-18-lsp-phase3-loom-bridge.md" />
-        <File Path="docs/planned/2026-04-18-oauth-playwright-e2e.md" />
     </Folder>
 
     <!-- CI/CD -->

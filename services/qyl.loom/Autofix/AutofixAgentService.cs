@@ -64,7 +64,12 @@ public sealed partial class AutofixAgentService(
         try
         {
             var streamingRun = await InProcessExecution
-                .RunStreamingAsync(workflow, new StartAutofix(run.RunId), cancellationToken: ct)
+                .RunStreamingAsync(
+                    workflow,
+                    new StartAutofix(run.RunId),
+                    CheckpointManager.Default,
+                    sessionId: run.RunId,
+                    cancellationToken: ct)
                 .ConfigureAwait(false);
 
             await using (streamingRun.ConfigureAwait(false))

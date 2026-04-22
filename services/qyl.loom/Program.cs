@@ -58,7 +58,8 @@ builder.Services
     .AddMcpServer()
     .WithHttpTransport()
     .WithTools<LoomGodAnalyzerServer>()
-    .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>();
+    .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>()
+    .WithPrompts<Qyl.Loom.Autofix.LoomHandoffPrompts>();
 
 var app = builder.Build();
 

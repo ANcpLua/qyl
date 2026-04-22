@@ -5,7 +5,10 @@ namespace Qyl.Loom.Exploration;
 
 /// <summary>
 ///     Bounded sub-agent responsible only for root-cause investigation.
-///     Streams LLM reasoning to the caller via StreamUpdate.
+///     Streams LLM reasoning chunks to an optional per-chunk callback as they arrive, then returns the
+///     accumulated monologue plus parsed root cause. The callback exists so the workflow diagnose executor
+///     can republish chunks as <c>ExplorationStreamEvent</c>s in real time rather than after the LLM has
+///     finished producing tokens.
 /// </summary>
 public sealed class ExplorationDiagnostician(IChatClient? llm = null)
 {
@@ -13,6 +16,7 @@ public sealed class ExplorationDiagnostician(IChatClient? llm = null)
 
     public async Task<ExplorationDiagnosisResult> DiagnoseAsync(
         ExplorationContext context,
+        Func<StreamUpdate, ValueTask>? onChunk = null,
         CancellationToken ct = default)
     {
         if (llm is null)
@@ -37,12 +41,16 @@ public sealed class ExplorationDiagnostician(IChatClient? llm = null)
                     continue;
 
                 fullText.Append(chunk.Text);
-                updates.Add(new StreamUpdate
+                var update = new StreamUpdate
                 {
                     Kind = StreamUpdateKind.Content,
                     Content = chunk.Text,
-                    Timestamp = TimeProvider.System.GetUtcNow()
-                });
+                    Timestamp = TimeProvider.System.GetUtcNow(),
+                };
+                updates.Add(update);
+
+                if (onChunk is not null)
+                    await onChunk(update).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
