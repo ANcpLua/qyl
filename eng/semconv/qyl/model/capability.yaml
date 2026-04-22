@@ -1,0 +1,25 @@
+groups:
+  - id: registry.qyl.capability
+    type: attribute_group
+    brief: 'Attributes for qyl capability tracking on spans'
+    prefix: qyl.capability
+    attributes:
+      - id: id
+        type: string
+        stability: experimental
+        brief: >
+          Unique capability identifier declared via [QylCapability] at compile time.
+          Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
+        examples: ['qyl.triage.score', 'qyl.fix.plan']
+      - id: kind
+        type:
+          members:
+            - id: starting
+              value: 'Starting'
+              brief: 'Entry-point capability in a workflow'
+              stability: experimental
+            - id: follow_up
+              value: 'FollowUp'
+              brief: 'Capability that follows another in a workflow'
+        stability: experimental
+        brief: 'Capability kind: Starting or FollowUp'
