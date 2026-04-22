@@ -4,6 +4,7 @@
 // TypeSpec native emitters + Weaver (OTel semconv). One command: nuke Generate.
 // =============================================================================
 
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Nuke.Common;
@@ -88,7 +89,8 @@ partial interface IPipeline : IHazSourcePaths
             var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
             if (((string)schemaSource).Length > 0 && File.Exists(schemaSource))
             {
-                foreach (var pkg in new[] { "Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating" })
+                ReadOnlySpan<string> otelPackages = ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"];
+                foreach (var pkg in otelPackages)
                 {
                     var schemasDir = RootDirectory / "packages" / pkg / "schemas";
                     Directory.CreateDirectory(schemasDir);
