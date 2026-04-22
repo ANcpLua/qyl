@@ -1,4 +1,6 @@
-using ANcpLua.Roslyn.Utilities.OTel;
+// Alias the library's parser to dodge the collision with the qyl.collector record struct of
+// the same name (Qyl.Collector.Ingestion.SemconvVersion — the version record, not the parser).
+using SemconvVersionParser = ANcpLua.Roslyn.Utilities.OTel.SemconvVersion;
 using Qyl.Contracts.Generated;
 
 namespace Qyl.Collector.Observe;
@@ -28,8 +30,8 @@ internal static class SchemaVersionNegotiator
 
         // SemconvVersion returns true with majors==0 on unknown shapes — IsMajorCompatible
         // is permissive in that case (both unparseable → compatible), matching prior behaviour.
-        if (!SemconvVersion.TryParse(CollectorVersion, out var cMajor, out _, out _) ||
-            !SemconvVersion.TryParse(requestedVersion, out var rMajor, out _, out _))
+        if (!SemconvVersionParser.TryParse(CollectorVersion, out var cMajor, out _, out _) ||
+            !SemconvVersionParser.TryParse(requestedVersion, out var rMajor, out _, out _))
         {
             return new NegotiationResult.Accept(CollectorVersion, requestedVersion);
         }
