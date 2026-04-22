@@ -101,6 +101,6 @@ ENV QYL_GRPC_PORT=4317 \
     DOTNET_gcServer=1
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD curl -sf http://localhost:5100/health || exit 1
+    CMD curl -sf "http://localhost:${PORT:-5100}/health" || exit 1
 
 ENTRYPOINT ["dotnet", "qyl.collector.dll"]

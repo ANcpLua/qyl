@@ -2,6 +2,7 @@ namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public enum LoomPhase
 {
+    Explore,
     Detect,
     Plan,
     Fix,
