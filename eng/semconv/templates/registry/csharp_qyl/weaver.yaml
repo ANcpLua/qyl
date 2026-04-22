@@ -1,0 +1,22 @@
+# Weaver template config for Qyl.SemanticConventions (qyl custom attrs).
+# Registry: eng/semconv/qyl/model/ (qyl-owned, not upstream OTel).
+# No stability filter — all qyl attributes are included.
+
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+
+params:
+  schema_version: "1.0.0"
+  package_namespace: "Qyl.SemanticConventions"
+
+templates:
+  - template: attributes.cs.j2
+    filter: semconv_grouped_attributes
+    application_mode: each
+    file_name: "Attributes/{{ ctx.root_namespace | pascal_case }}/{{ ctx.root_namespace | pascal_case }}Attributes.g.cs"
+
+  - template: schema_version.cs.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "SchemaVersion.g.cs"

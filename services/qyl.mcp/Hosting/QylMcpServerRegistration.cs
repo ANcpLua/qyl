@@ -1,6 +1,7 @@
 using System.Text.Json;
 
-using qyl.contracts.Attributes;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+
 using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
@@ -156,11 +157,11 @@ internal static class QylMcpServerRegistration
                     }
 
                     using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        $"{GenAiAttributes.Operations.ExecuteTool} {toolName}");
+                        $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
 
-                    activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+                    activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
                     activity?.SetTag(GenAiAttributes.ToolName, toolName);
-                    activity?.SetTag(GenAiAttributes.ToolType, GenAiAttributes.ToolTypes.Extension);
+                    activity?.SetTag(GenAiAttributes.ToolType, "extension");
                     activity?.SetTag(Rpc.Method, "tools/call");
 
                     try

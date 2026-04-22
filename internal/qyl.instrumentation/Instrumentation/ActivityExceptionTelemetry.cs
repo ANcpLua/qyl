@@ -1,19 +1,19 @@
+using ErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
+using ExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
+
 namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
 ///     Shared OpenTelemetry exception recording for qyl instrumentation.
-///     Semconv keys inlined as literals — OTel semconv 1.40 stable section for exception.* / error.type.
 /// </summary>
 public static class ActivityExceptionTelemetry
 {
-    // OTel semconv 1.40 — stable keys from the `error.*` and `exception.*` prefixes.
-    // No qyl facade covers these namespaces (qyl.contracts.Attributes only wraps
-    // gen_ai / db / mcp). Inlined here rather than behind a facade that doesn't exist;
-    // promote to ErrorAttributes / ExceptionAttributes if a second consumer appears.
-    private const string ErrorType = "error.type";
-    private const string ExceptionType = "exception.type";
-    private const string ExceptionMessage = "exception.message";
-    private const string ExceptionStacktrace = "exception.stacktrace";
+    private const string ErrorType = ErrorAttributes.Type;
+    private const string ExceptionType = ExceptionAttributes.Type;
+    private const string ExceptionMessage = ExceptionAttributes.Message;
+    private const string ExceptionStacktrace = ExceptionAttributes.Stacktrace;
+    // exception.escaped was removed from upstream OTel semconv with no replacement;
+    // kept as an inline literal to preserve qyl telemetry consumers.
     private const string ExceptionEscaped = "exception.escaped";
 
     public static void Record(

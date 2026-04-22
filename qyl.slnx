@@ -6,6 +6,9 @@
         <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj" />
         <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj" />
+        <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj" />
         <File Path="packages\qyl-client\package.json" />

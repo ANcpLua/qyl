@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.instrumentation - GenAI Instrumentation
 // Leverages Microsoft.Extensions.AI.OpenTelemetryChatClient for OTel compliance
-// Uses qyl.contracts.Attributes for OTel 1.40 semantic conventions
+// Uses Qyl.OpenTelemetry.SemanticConventions.Incubating for OTel 1.40 semantic conventions
 // =============================================================================
 
 using System.Runtime.CompilerServices;
@@ -11,7 +11,8 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using qyl.contracts.Attributes;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+using ErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
@@ -144,14 +145,14 @@ public static class GenAiInstrumentation
     public static Activity? StartToolExecutionSpan(
         string toolName,
         string? callId = null,
-        string? toolType = GenAiAttributes.ToolTypes.Function)
+        string? toolType = "function")
     {
         var activity = ActivitySources.GenAiSource.StartActivity(
-            $"{GenAiAttributes.Operations.ExecuteTool} {toolName}");
+            $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
 
         if (activity is not null)
         {
-            activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+            activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
             activity.SetTag(GenAiAttributes.ToolName, toolName);
 
             if (callId is not null)
@@ -178,7 +179,7 @@ public static class GenAiInstrumentation
         if (!success && error is not null)
         {
             activity.SetStatus(ActivityStatusCode.Error, error);
-            activity.SetTag(GenAiAttributes.ErrorType, "tool_execution_error");
+            activity.SetTag(ErrorAttributes.Type, "tool_execution_error");
         }
     }
 
@@ -194,11 +195,11 @@ public static class GenAiInstrumentation
 
     private static Histogram<long> TokenUsageHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
-            GenAiAttributes.Metrics.ClientTokenUsage, "{token}", "Token usage");
+            "gen_ai.client.token.usage", "{token}", "Token usage");
 
     private static Histogram<double> OperationDurationHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
-            GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
+            "gen_ai.client.operation.duration", "s", "Operation duration");
 
     /// <summary>
     ///     Executes an async GenAI operation with full OTel instrumentation.
@@ -357,7 +358,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
         OperationDurationHistogram.Record(duration,
@@ -379,7 +380,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(inputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Input));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Input));
         }
 
         if (outputTokens > 0)
@@ -388,7 +389,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
         OperationDurationHistogram.Record(durationSeconds,
@@ -426,7 +427,7 @@ public static class GenAiInstrumentation
         OperationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-            new KeyValuePair<string, object?>(GenAiAttributes.ErrorType, errorType));
+            new KeyValuePair<string, object?>(ErrorAttributes.Type, errorType));
     }
 
     #endregion
