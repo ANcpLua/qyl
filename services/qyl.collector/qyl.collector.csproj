@@ -34,6 +34,11 @@
     <Compile Remove="Generated/generated/models/**/*.cs"/>
   </ItemGroup>
 
+  <!-- CS1573 / CS1591 scoping for the emitter's Generated subtree lives in
+       services/qyl.collector/Generated/.editorconfig (file-scoped severity overrides
+       beat csproj item metadata for analyzer diagnostics and keep the suppression
+       discoverable at the offending file's location). -->
+
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
