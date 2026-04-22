@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-
 using Qyl.Generated;
 
 namespace qyl.mcp.Hosting;
