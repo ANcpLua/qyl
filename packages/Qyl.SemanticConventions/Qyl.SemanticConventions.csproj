@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="schemas/1.0.0.yaml" LogicalName="qyl-semconv-1.0.0.yaml" Condition="Exists('schemas/1.0.0.yaml')"/>
+    <EmbeddedResource Include="schemas/**" />
   </ItemGroup>
 
 </Project>

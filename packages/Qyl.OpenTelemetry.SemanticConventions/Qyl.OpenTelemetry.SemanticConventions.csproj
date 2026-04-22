@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="schemas/1.40.0.yaml" LogicalName="otel-semconv-1.40.0.yaml" Condition="Exists('schemas/1.40.0.yaml')"/>
+    <EmbeddedResource Include="schemas/**" />
   </ItemGroup>
 
 </Project>
