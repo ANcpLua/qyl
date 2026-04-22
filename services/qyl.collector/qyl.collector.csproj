@@ -82,6 +82,7 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
