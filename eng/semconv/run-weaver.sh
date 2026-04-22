@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Generate qyl's semconv outputs into the final src/ destinations via Weaver.
 #
-# Pinned inputs:  open-telemetry/semantic-conventions v1.40.0 (cloned by bootstrap)
-# Output targets:
+# Pass 1 — upstream OTel registry:
 #   - services/qyl.dashboard/src/lib/semconv.ts                                  (TypeScript const keys)
 #   - services/qyl.collector/Storage/promoted-columns.g.sql                      (DuckDB columns)
 #   - core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json     (flat attr registry for lint)
 #
-# Still hand-maintained:
-#   - packages/Qyl.Contracts/Attributes/*Attributes.cs   (facades with qyl extensions)
+# Pass 2 — qyl-owned attribute registry (eng/semconv/model/qyl/):
+#   - packages/Qyl.Telemetry/Conventions/Qyl.g.cs                                (C# static constants)
+#   - packages/qyl-client/src/conventions.ts                                     (TS string constants)
+#   - docs/attributes/qyl.*.md                                                   (per-namespace docs)
 #
 # Bootstrap once per clone: ./eng/semconv/bootstrap-weaver.sh
 
@@ -27,12 +28,16 @@ esac
 
 WEAVER_BIN="${REPO_ROOT}/.tools/weaver/weaver-${WEAVER_ARCH}/weaver"
 UPSTREAM_REGISTRY="${REPO_ROOT}/.tools/semconv-upstream/model"
+QYL_REGISTRY="${REPO_ROOT}/eng/semconv/model/qyl"
 TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
 STAGING_DIR="${REPO_ROOT}/eng/semconv/out"
 
 TS_DEST="${REPO_ROOT}/services/qyl.dashboard/src/lib/semconv.ts"
 SQL_DEST="${REPO_ROOT}/services/qyl.collector/Storage/promoted-columns.g.sql"
 REGISTRY_DEST="${REPO_ROOT}/core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json"
+CS_DEST="${REPO_ROOT}/packages/Qyl.Telemetry/Conventions/Qyl.g.cs"
+CONVENTIONS_TS_DEST="${REPO_ROOT}/packages/qyl-client/src/conventions.ts"
+DOCS_DEST="${REPO_ROOT}/docs/attributes"
 
 if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   echo "Weaver or upstream registry missing." >&2
@@ -40,20 +45,47 @@ if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   exit 1
 fi
 
-rm -rf "${STAGING_DIR}"
+# ── Pass 1: upstream OTel registry ──────────────────────────────────────────
+STAGING_UPSTREAM="${STAGING_DIR}/upstream"
+rm -rf "${STAGING_UPSTREAM}"
 "${WEAVER_BIN}" registry generate \
   --registry "${UPSTREAM_REGISTRY}" \
   --templates "${TEMPLATES_ROOT}" \
   qyl \
-  "${STAGING_DIR}"
+  "${STAGING_UPSTREAM}"
 
-install -m 0644 "${STAGING_DIR}/semconv.ts"                    "${TS_DEST}"
-install -m 0644 "${STAGING_DIR}/promoted-columns.g.sql"        "${SQL_DEST}"
+install -m 0644 "${STAGING_UPSTREAM}/semconv.ts"                    "${TS_DEST}"
+install -m 0644 "${STAGING_UPSTREAM}/promoted-columns.g.sql"        "${SQL_DEST}"
 mkdir -p "$(dirname "${REGISTRY_DEST}")"
-install -m 0644 "${STAGING_DIR}/otel-attribute-registry.json"  "${REGISTRY_DEST}"
+install -m 0644 "${STAGING_UPSTREAM}/otel-attribute-registry.json"  "${REGISTRY_DEST}"
+
+# ── Pass 2: qyl-owned attribute registry ────────────────────────────────────
+STAGING_QYL="${STAGING_DIR}/qyl"
+rm -rf "${STAGING_QYL}"
+"${WEAVER_BIN}" registry generate \
+  --registry "${QYL_REGISTRY}" \
+  --templates "${TEMPLATES_ROOT}" \
+  qyl \
+  "${STAGING_QYL}"
+
+mkdir -p "$(dirname "${CS_DEST}")"
+install -m 0644 "${STAGING_QYL}/Qyl.g.cs"          "${CS_DEST}"
+
+mkdir -p "$(dirname "${CONVENTIONS_TS_DEST}")"
+install -m 0644 "${STAGING_QYL}/conventions.ts"     "${CONVENTIONS_TS_DEST}"
+
+mkdir -p "${DOCS_DEST}"
+for f in "${STAGING_QYL}"/qyl.*.md; do
+  [ -f "$f" ] && install -m 0644 "$f" "${DOCS_DEST}/$(basename "$f")"
+done
 
 echo ""
-echo "Wrote:"
+echo "Wrote (upstream OTel pass):"
 echo "  ${TS_DEST} ($(wc -l < "${TS_DEST}") lines)"
 echo "  ${SQL_DEST} ($(wc -l < "${SQL_DEST}") lines)"
 echo "  ${REGISTRY_DEST} ($(jq 'length' "${REGISTRY_DEST}" 2>/dev/null || echo '?') attributes)"
+echo ""
+echo "Wrote (qyl attrs pass):"
+echo "  ${CS_DEST} ($(wc -l < "${CS_DEST}") lines)"
+echo "  ${CONVENTIONS_TS_DEST} ($(wc -l < "${CONVENTIONS_TS_DEST}") lines)"
+echo "  ${DOCS_DEST}/qyl.*.md ($(ls "${DOCS_DEST}"/qyl.*.md 2>/dev/null | wc -l) files)"
