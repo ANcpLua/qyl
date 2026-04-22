@@ -12,7 +12,7 @@ namespace Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception;
 public static class ExceptionAttributes
 {
     /// <summary>Indicates that the exception is escaping the scope of the span..</summary>
-    [System.Obsolete("Removed, no replacement.", false)]
+    [global::System.Obsolete("Removed, no replacement.", false)]
     public const string Escaped = "exception.escaped";
 
     /// <summary>The exception message..</summary>

@@ -1,0 +1,29 @@
+# Weaver template config for Qyl.OpenTelemetry.SemanticConventions.Incubating.
+# Outputs one .g.cs per root_namespace, plus SchemaUrl.g.cs and SchemaVersion.g.cs.
+# Stability filter: development + experimental only (stable → Stable package).
+
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+
+params:
+  schema_url: "https://opentelemetry.io/schemas/1.40.0"
+  schema_version: "1.40.0"
+  semconv_commit: "7fe537301d17919af7d7eb65b32e9be35da2c497"
+  package_namespace: "Qyl.OpenTelemetry.SemanticConventions.Incubating"
+
+templates:
+  - template: attributes.cs.j2
+    filter: semconv_grouped_attributes
+    application_mode: each
+    file_name: "Attributes/{{ ctx.root_namespace | pascal_case }}/{{ ctx.root_namespace | pascal_case }}Attributes.g.cs"
+
+  - template: schema_url.cs.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "SchemaUrl.g.cs"
+
+  - template: schema_version.cs.j2
+    filter: semconv_grouped_attributes
+    application_mode: single
+    file_name: "SchemaVersion.g.cs"
