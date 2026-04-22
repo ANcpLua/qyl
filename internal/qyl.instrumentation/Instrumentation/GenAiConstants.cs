@@ -3,7 +3,7 @@
 // QYL-specific constants only - OTel semconv attributes are in Qyl.Contracts
 // =============================================================================
 
-using qyl.contracts.Attributes;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -11,7 +11,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 ///     QYL-specific GenAI configuration constants.
 ///     <para>
 ///         Note: OTel semantic convention attributes and values are in
-///         <c>qyl.contracts.Attributes.GenAiAttributes</c>.
+///         <c>Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes</c>.
 ///     </para>
 /// </summary>
 internal static class GenAiConstants
@@ -26,7 +26,7 @@ internal static class GenAiConstants
     public const string CaptureMessageContentEnvVar = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
 
     /// <summary>Canonical provider name for Azure AI Inference.</summary>
-    public const string AzureAiInferenceProvider = GenAiAttributes.Providers.AzureAiInference;
+    public const string AzureAiInferenceProvider = GenAiAttributes.ProviderNameValues.AzureAiInference;
 
     /// <summary>
     ///     Returns the default <c>gen_ai.output.type</c> for a known operation.
@@ -35,13 +35,13 @@ internal static class GenAiConstants
     public static string? TryGetDefaultOutputType(string operation) =>
         operation switch
         {
-            GenAiAttributes.Operations.Chat => GenAiAttributes.OutputTypes.Text,
-            GenAiAttributes.Operations.GenerateContent => GenAiAttributes.OutputTypes.Text,
-            GenAiAttributes.Operations.InvokeAgent => GenAiAttributes.OutputTypes.Text,
-            GenAiAttributes.Operations.TextCompletion => GenAiAttributes.OutputTypes.Text,
-            GenAiAttributes.Operations.Embeddings => GenAiAttributes.OutputTypes.Json,
-            "image_generation" => GenAiAttributes.OutputTypes.Image,
-            "speech" => GenAiAttributes.OutputTypes.Speech,
+            GenAiAttributes.OperationNameValues.Chat => GenAiAttributes.OutputTypeValues.Text,
+            GenAiAttributes.OperationNameValues.GenerateContent => GenAiAttributes.OutputTypeValues.Text,
+            GenAiAttributes.OperationNameValues.InvokeAgent => GenAiAttributes.OutputTypeValues.Text,
+            GenAiAttributes.OperationNameValues.TextCompletion => GenAiAttributes.OutputTypeValues.Text,
+            GenAiAttributes.OperationNameValues.Embeddings => GenAiAttributes.OutputTypeValues.Json,
+            "image_generation" => GenAiAttributes.OutputTypeValues.Image,
+            "speech" => GenAiAttributes.OutputTypeValues.Speech,
             _ => null
         };
 }
