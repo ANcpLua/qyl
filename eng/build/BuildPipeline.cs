@@ -53,8 +53,10 @@ partial interface IPipeline : IHazSourcePaths
             ProcessTasks.StartProcess("bash", bootstrap, logOutput: true).AssertZeroExitCode();
             ProcessTasks.StartProcess("bash", script, logOutput: true).AssertZeroExitCode();
 
-            // 3. Determine Weaver binary (bootstrap ensures it exists)
-            var weaverArch = RuntimeInformation.OSDescription.Contains("Darwin")
+            // 3. Determine Weaver binary (bootstrap ensures it exists).
+            // Use IsOSPlatform over OSDescription.Contains("Darwin") — OSDescription
+            // on newer macOS (26+) may not include the "Darwin" substring.
+            var weaverArch = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? (RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                     ? "aarch64-apple-darwin" : "x86_64-apple-darwin")
                 : "x86_64-unknown-linux-gnu";
