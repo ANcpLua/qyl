@@ -8,6 +8,9 @@ using System.Runtime.CompilerServices;
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using qyl.contracts.Attributes;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
@@ -25,6 +28,16 @@ public readonly record struct TokenUsage(int InputTokens, int OutputTokens);
 /// </summary>
 public static class GenAiInstrumentation
 {
+    // One-shot extension-method callers don't have a host-wired IServiceProvider, but
+    // `UseLogging()` in MAF's ChatClientBuilder resolves ILoggerFactory from the services
+    // passed to .Build(). When nothing is passed it throws. Cache a minimal provider with
+    // NullLoggerFactory so the extension form works out of the box; the `UseQylTelemetry`
+    // ChatClientBuilder form (used at composition roots) still honors the real IServiceProvider
+    // the host passes through AddChatClient().
+    private static readonly IServiceProvider s_defaultServices = new ServiceCollection()
+        .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
+        .BuildServiceProvider();
+
     /// <summary>
     ///     Wraps an IChatClient with OpenTelemetry instrumentation.
     ///     Uses M.E.AI.OpenTelemetryChatClient which is fully OTel GenAI SemConv compliant.
@@ -67,7 +80,7 @@ public static class GenAiInstrumentation
                 ? openTelemetryChatClient => openTelemetryChatClient.EnableSensitiveData = enableSensitiveData.Value
                 : null);
 
-        return builder.Build();
+        return builder.Build(s_defaultServices);
     }
 
     /// <summary>Wraps an <see cref="AIFunction" /> with qyl-tagged tool-execution telemetry.</summary>
