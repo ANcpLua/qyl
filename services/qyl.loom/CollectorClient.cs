@@ -149,6 +149,7 @@ public sealed class CollectorClient(HttpClient http)
         }
 
         PrCreationFailureResponse? failure = null;
+        string? parseErrorDetail = null;
         var contentType = response.Content.Headers.ContentType?.MediaType;
         if (contentType is not null && contentType.Contains("json", StringComparison.OrdinalIgnoreCase))
         {
@@ -158,11 +159,15 @@ public sealed class CollectorClient(HttpClient http)
                     .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationFailureResponse, ct)
                     .ConfigureAwait(false);
             }
-            catch (JsonException) { }
+            catch (JsonException ex)
+            {
+                parseErrorDetail = $" Failed to parse collector error payload: {ex.Message}";
+            }
         }
 
         return new PrCreationResponse(false, null,
-            failure?.Error ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.");
+            failure?.Error
+            ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.{parseErrorDetail ?? string.Empty}");
     }
 
     // ── Autofix Steps ─────────────────────────────────────────────────────────
