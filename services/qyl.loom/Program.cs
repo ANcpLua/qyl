@@ -89,7 +89,7 @@ app.MapPost("/api/v1/loom/{issueId}/explore", (
 
 app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     string issueId,
-    ExplorationCodeItUpRequest _,
+    ExplorationCodeItUpRequest request,
     AutofixOrchestrator autofixOrchestrator,
     CollectorClient collector,
     CancellationToken ct) =>
@@ -101,7 +101,14 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
 
-    return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
+    if (string.IsNullOrWhiteSpace(request.Repo))
+        return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
+
+    var pr = await collector
+        .CreatePullRequestAsync(issueId, run.RunId, request.Repo, request.BaseBranch, ct)
+        .ConfigureAwait(false);
+
+    return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, pr.PrUrl, pr.Error));
 });
 
 // ── Code review endpoints ───────────────────────────────────────────────────
