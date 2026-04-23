@@ -49,7 +49,7 @@ public static class QylMetrics
     /// <summary>Storage size gauge (approximate).</summary>
     public static readonly ObservableGauge<long> StorageSize =
         QylTelemetry.Meter.CreateObservableGauge(
-            QylAttributes.StorageSize,
+            QylAttr.Storage.Size,
             GetStorageSizeBytes,
             "By",
             "Approximate storage size in bytes");

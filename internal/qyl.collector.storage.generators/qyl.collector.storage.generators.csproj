@@ -31,4 +31,10 @@
     <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Shipped.md"/>
     <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Unshipped.md"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="..\..\artifacts\">
+      <Link>qyl\artifacts</Link>
+    </Folder>
+  </ItemGroup>
 </Project>

@@ -5,8 +5,8 @@ Instructions for AI coding agents working in the qyl codebase.
 ## Priority of conventions
 
 When MAF (Microsoft Agent Framework) conventions conflict with qyl conventions, **MAF wins**. qyl consumes MAF and must
-stay aligned with upstream .NET patterns — read the `microsoft-agent-framework` skill (global) plus the
-`microsoft-agent-framework-qyl` overlay in `.claude/skills/`, and go to upstream
+stay aligned with upstream .NET patterns — read the `microsoft-agent-framework` skill plus the
+`microsoft-agent-framework-qyl` overlay (both global skills), and go to upstream
 at <https://github.com/microsoft/agent-framework/tree/main/dotnet> for anything the skill doesn't cover. Never paste a
 qyl-specific shortcut over a MAF rule.
 
@@ -304,7 +304,7 @@ as a hosted-agents demo.
 | You want to learn                                                                                                                                              | Go to                                                                           |
 |----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | MAF fundamentals (agents, sessions, tools, streaming, structured output, RAG)                                                                                  | `~/AgentFrameworkBook/` or upstream `microsoft/agent-framework/dotnet/samples/` |
-| qyl-specific MAF delta (`WithQylTelemetry`, `LoomRunState`, hosted `AddAIAgent`)                                                                               | `.claude/skills/microsoft-agent-framework/SKILL.md` (qyl overlay)               |
+| qyl-specific MAF delta (`WithQylTelemetry`, `LoomRunState`, hosted `AddAIAgent`)                                                                               | `microsoft-agent-framework-qyl` skill (global)                                  |
 | qyl's production autofix pipeline (real LLM chain, collector-integrated)                                                                                       | `services/qyl.loom/Autofix/AutofixAgentService.cs`                                   |
 | qyl's interactive exploration (SSE streaming, diagnostician + strategist)                                                                                      | `services/qyl.loom/Exploration/ExplorationOrchestrator.cs`                           |
 | Loom generator attributes (`[LoomContract]` / `[LoomStep]` / `[LoomTool]` / `[LoomWorkflow]`) with real MAF `Executor` + `ProtocolBuilder` + `WorkflowBuilder` | `services/qyl.loom/CompilerDemo/LoomDemoWorkflow.cs`                                 |
@@ -409,8 +409,8 @@ Anything that just teaches MAF basics belongs upstream or in `~/AgentFrameworkBo
 - `docs/THREAT_MODEL.md` — 20 attacker stories with P0–P3 prioritization
 - `docs/OPEN_WORK.md` — consolidated open work items (from the former specs/ tree)
 - `docs/aot-assessment.md`, `docs/attribute.md`, `docs/generator.md`, `docs/emitters.md` — generator ecosystem reference
-- `.claude/skills/microsoft-agent-framework/SKILL.md` — qyl MAF overlay (delta only; core MAF via the global skill +
-  upstream <https://github.com/microsoft/agent-framework/tree/main/dotnet>)
+- `microsoft-agent-framework-qyl` global skill — qyl MAF overlay (delta only; core MAF via the `microsoft-agent-framework`
+  global skill + upstream <https://github.com/microsoft/agent-framework/tree/main/dotnet>)
 - `docs/planned/*` — execute-ready prompts for LSP Phase 2/3 and OAuth E2E (indexed from OPEN_WORK.md §11)
 
 ## A note to the agent

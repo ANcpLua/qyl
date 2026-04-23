@@ -65,7 +65,7 @@ partial interface IPipeline : IHazSourcePaths
 
             var templatesDir = SemconvDirectory / "templates" / "registry";
             var upstreamModel = RootDirectory / ".tools" / "semconv-upstream" / "model";
-            var qylModel = SemconvDirectory / "qyl" / "model";
+            var qylModel = SemconvDirectory / "model" / "qyl";
 
             // 4. Generate C# packages
             static void RunWeaver(AbsolutePath weaver, AbsolutePath registry,

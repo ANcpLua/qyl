@@ -107,7 +107,13 @@ public static class GenAiInstrumentation
         builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,
             configure: configure);
-        builder.UseLogging();
+        // UseLogging() requires ILoggerFactory in DI; fall back to NullLoggerFactory
+        // so WithQylTelemetry works outside a DI container (e.g. direct test usage).
+        builder.Use(static (inner, services) =>
+        {
+            var loggerFactory = services?.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
+            return new LoggingChatClient(inner, loggerFactory.CreateLogger(nameof(GenAiInstrumentation)));
+        });
         builder.Use(static inner => new ToolDecoratingChatClient(inner, WrapTool));
         return builder;
     }

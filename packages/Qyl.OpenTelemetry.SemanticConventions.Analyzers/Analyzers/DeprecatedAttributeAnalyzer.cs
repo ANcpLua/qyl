@@ -73,9 +73,21 @@ public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
             if (ns is null || !ns.StartsWith("Qyl.OpenTelemetry.SemanticConventions", StringComparison.Ordinal))
                 return;
 
-            // Check for [Obsolete] attribute
-            bool isObsolete = symbol.GetAttributes().Any(static a =>
-                a.AttributeClass?.Name is "ObsoleteAttribute" or "Obsolete");
+            // Check for [Obsolete] attribute.
+            var obsoleteAttributeType = ctx.Compilation.GetTypeByMetadataName("System.ObsoleteAttribute");
+            if (obsoleteAttributeType is null)
+                return;
+
+            var isObsolete = false;
+            foreach (var attribute in symbol.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, obsoleteAttributeType))
+                {
+                    isObsolete = true;
+                    break;
+                }
+            }
+
             if (!isObsolete)
                 return;
 

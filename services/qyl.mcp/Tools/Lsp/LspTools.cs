@@ -9,7 +9,7 @@ namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
 ///     MCP facade for six LSP-backed code-intelligence tools. Gated behind
-///     <see cref="QylSkillKind.Debug" /> — opt-in via <c>QYL_SKILLS=debug</c>.
+///     <see cref="Debug" /> — opt-in via <c>QYL_SKILLS=debug</c>.
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Debug)]

@@ -1,5 +1,6 @@
 // Alias the library's parser to dodge the collision with the qyl.collector record struct of
 // the same name (Qyl.Collector.Ingestion.SemconvVersion — the version record, not the parser).
+
 using SemconvVersionParser = ANcpLua.Roslyn.Utilities.OTel.SemconvVersion;
 using Qyl.Contracts.Generated;
 

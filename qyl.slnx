@@ -4,6 +4,7 @@
 
     <Folder Name="/packages/">
         <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj" />
+        <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
         <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj" />
@@ -111,11 +112,9 @@
     <!-- TYPESPEC -->
 
     <Folder Name="/core/">
-        <File Path="core/openapi/openapi.yaml" />
         <File Path="core/specs/main.tsp" />
         <File Path="core/specs/tspconfig.yaml" />
         <File Path="core/specs/package.json" />
-        <File Path="core/specs/generated/semconv.g.tsp" />
     </Folder>
     <Folder Name="/core/specs/" />
     <Folder Name="/core/specs/api/">
@@ -183,22 +182,6 @@
         <File Path="services/qyl.loom/Dockerfile" />
         <File Path="services/qyl.dashboard/Dockerfile" />
         <File Path="eng/compose.yaml" />
-    </Folder>
-    <Folder Name="/plugins/" />
-
-    <!-- PLUGINS -->
-
-    <Folder Name="/plugins/qyl-for-ai/">
-        <File Path="plugins/qyl-for-ai/mcp.json" />
-        <File Path="plugins/qyl-for-ai/SKILL_TREE.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-code-review/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-fix-issues/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-setup-monitoring/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-workflow/SKILL.md" />
-    </Folder>
-    <Folder Name="/plugins/qyl-mcp/">
-        <File Path="plugins/qyl-mcp/mcp.json" />
-        <File Path="plugins/qyl-mcp/agents/qyl-mcp.md" />
     </Folder>
 
     <!-- CI/CD -->

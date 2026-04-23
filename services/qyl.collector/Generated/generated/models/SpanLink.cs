@@ -39,7 +39,7 @@ namespace Qyl.OTel.Traces
         ///<summary>
         /// Link attributes
         ///</summary>
-        public Attribute[] Attributes { get; set; }
+        public OtelAttribute[] Attributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count

@@ -8,7 +8,6 @@ using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.OTel.Enums;
 using Qyl.Common;
-using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Logs
 {
@@ -51,7 +50,7 @@ namespace Qyl.OTel.Logs
         ///<summary>
         /// Log attributes
         ///</summary>
-        public Attribute[] Attributes { get; set; }
+        public OtelAttribute[] Attributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count
@@ -81,7 +80,7 @@ namespace Qyl.OTel.Logs
         ///<summary>
         /// Resource describing the entity that produced this log
         ///</summary>
-        public Resource Resource { get; set; }
+        public Qyl.OTel.Resource.Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope

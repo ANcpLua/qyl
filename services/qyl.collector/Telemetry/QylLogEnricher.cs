@@ -14,7 +14,7 @@ public sealed class QylLogEnricher : ILogEnricher
     public void Enrich(IEnrichmentTagCollector collector)
     {
         // Instance identification
-        collector.Add(QylAttributes.InstanceId, _instanceId);
+        collector.Add(QylAttr.Auth.InstanceId, _instanceId);
 
         // Add current activity context if available
         var activity = Activity.Current;

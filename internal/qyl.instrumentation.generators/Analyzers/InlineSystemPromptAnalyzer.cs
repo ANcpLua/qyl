@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;

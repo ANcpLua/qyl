@@ -26,12 +26,14 @@
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
-  <!-- @typespec/http-server-csharp emits controllers + interfaces + support types into
-       Generated/generated/{controllers,operations,lib}/. The parallel `models/` subtree
-       duplicates the canonical types from @qyl/typespec-emit-csharp → Qyl.Contracts; keep
-       it on disk for emitter idempotency but exclude from Compile. -->
+  <!-- @typespec/http-server-csharp emits controllers + operations (MVC stubs) + lib + models.
+       The collector uses minimal-API (MapQylCollectorEndpoints) — generated MVC controllers
+       and operations interfaces are placeholder mocks, not the real routing. Exclude them.
+       lib/ (TypeSpec.Helpers) and models/ (Qyl.OTel.*, Qyl.Storage, Qyl.Domains.*, Qyl.Api)
+       are needed by collector code and auto-included by the SDK. -->
   <ItemGroup>
-    <Compile Remove="Generated/generated/models/**/*.cs"/>
+    <Compile Remove="Generated/generated/controllers/**/*.cs"/>
+    <Compile Remove="Generated/generated/operations/**/*.cs"/>
   </ItemGroup>
 
   <!-- CS1573 / CS1591 scoping for the emitter's Generated subtree lives in
@@ -85,6 +87,7 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions\Qyl.OpenTelemetry.SemanticConventions.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Incubating\Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj"/>

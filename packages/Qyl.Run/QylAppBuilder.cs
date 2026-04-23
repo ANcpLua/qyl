@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.ObjectModel;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qyl.Run.Internal;
