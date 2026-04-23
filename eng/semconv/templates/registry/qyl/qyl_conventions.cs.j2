@@ -38,7 +38,7 @@ public static class {{ class_name }}
 {
 {% set ns.current_class = class_name %}
 {% endif %}
-    /// <summary>{{ attr.brief }}</summary>
+    /// <summary>{{ attr.brief | replace('\n', ' ') | trim }}</summary>
     public const string {{ const_name }} = "{{ attr.name }}";
 {% endfor %}
 {% if ns.current_class != '' %}

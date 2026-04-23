@@ -10,16 +10,14 @@ namespace QylAttr;
 /// <summary>ApiKey attributes</summary>
 public static class ApiKey
 {
-    /// <summary>First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only.
-</summary>
+    /// <summary>First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only.</summary>
     public const string Id = "qyl.api_key.id";
 }
 
 /// <summary>Capability attributes</summary>
 public static class Capability
 {
-    /// <summary>Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
-</summary>
+    /// <summary>Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'</summary>
     public const string Id = "qyl.capability.id";
     /// <summary>Capability kind: Starting or FollowUp</summary>
     public const string Kind = "qyl.capability.kind";
@@ -66,8 +64,7 @@ public static class Issue
 /// <summary>Keycloak attributes</summary>
 public static class Keycloak
 {
-    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.
-</summary>
+    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.</summary>
     public const string Claims = "qyl.keycloak.claims";
 }
 
