@@ -29,6 +29,20 @@ there.
 
 ## The Apex fluent pattern — qyl's shape
 
+> **Canonical `Program.cs` composition root** (with `file:line` citations for every MAF API — `AddAIAgent`,
+> `AddWorkflow`, `.AddAsAIAgent`, `AddDevUI`, `AddOpenAIResponses`, `AddOpenAIConversations`, `MapDevUI`,
+> `MapOpenAIResponses`, `MapOpenAIConversations`) lives in
+> `~/RiderProjects/Kochrezepte/Workflowfluentapi.md` → section *"Canonical `Program.cs` — the composition
+> root"*. That is the single source of truth — all other docs reference it rather than duplicating the code.
+>
+> **qyl current state (2026-04-23):** only two of the three builder interfaces exist —
+> `services/qyl.loom.patterns/Clients/IQylLoomPatternsChatClientBuilder.cs` and
+> `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs`. No `IQylLoomPatternsWorkflowBuilder` yet;
+> workflows are built inline in `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs` and
+> `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs` via `new WorkflowBuilder(start)`. No
+> `Program.cs` in qyl today uses `AddAIAgent`/`AddDevUI`/`AddOpenAIResponses` — standalone `.AsAIAgent(options)
+> .AsBuilder().UseQylAgentTelemetry().Build()` at every call-site (17 sites — see overlay §"17 call-sites").
+
 ### 1. Three dedicated builder interfaces
 
   ```csharp
