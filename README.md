@@ -26,6 +26,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 | Schema   | TypeSpec -> OpenAPI -> C# / DuckDB / TypeScript |
 | Build    | NUKE 10.1.0, MSBuild, ANcpLua.NET.Sdk           |
 | MCP      | ModelContextProtocol C# SDK 1.2.0               |
+| Agents   | Microsoft Agent Framework 1.1.0                 |
 
 ## Projects
 
@@ -147,6 +148,57 @@ qyl.mcp exposes 77 tools across 9 skill families:
 | Debug     | Rider MCP proxy, JetBrains discovery                  |
 
 Transports: stdio (local) and Streamable HTTP (remote, Claude Web UI, API connectors).
+
+## Agent Runtime (MAF)
+
+`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.1.0 consumer. Triage, RCA,
+fix generation, and code review agents share one composition shape:
+
+```csharp
+var agent = llm.AsAIAgent(new ChatClientAgentOptions
+    {
+        Name = "AutofixRcaAgent",
+        Description = "Root-cause analysis for a qyl error issue.",
+        ChatOptions = new ChatOptions { Instructions = AutofixPrompts.RootCauseAnalysis },
+    })
+    .AsBuilder()
+    .UseQylAgentTelemetry()            // emits on 'qyl.agent' ActivitySource
+    .Build();
+
+var response = await agent.RunAsync(userMessage, cancellationToken: ct);
+```
+
+Multi-step flows use `WorkflowBuilder` with fan-out edges and are observed via `InProcessExecution.RunStreamingAsync`
++ `WatchStreamAsync`:
+
+```csharp
+var workflow = new WorkflowBuilder(start)
+    .AddEdge(start, gatherContext)
+    .AddEdge(gatherContext, rca)
+    .AddFanOutEdge(rca, [impact, issueTriage, solutionPlan])
+    .AddEdge(solutionPlan, diffGen)
+    .AddEdge(diffGen, confidence)
+    .AddEdge(confidence, policyGate)
+    .WithOutputFrom(policyGate)
+    .Build();
+
+await foreach (var evt in (await InProcessExecution.RunStreamingAsync(workflow, input)).WatchStreamAsync(ct))
+{
+    // observe per-executor completions, emit SSE, update LoomRunState
+}
+```
+
+| Surface                   | qyl usage                                                                   |
+|---------------------------|-----------------------------------------------------------------------------|
+| Standalone agent          | `llm.AsAIAgent(options)` — every executor under `services/qyl.loom/Autofix/Workflow/Executors/` |
+| Streaming                 | `AutofixAgentService`, `ExplorationOrchestrator`                            |
+| Workflow graph            | `AutofixWorkflowFactory`, `ExplorationWorkflowFactory`                      |
+| Tool factory              | `AIFunctionFactory.Create` via `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs` |
+| MCP tool registration     | `[QylSkill]` + `[QylCapability]` — emitted by `internal/qyl.mcp.generators/`|
+| Telemetry (`IChatClient`) | `innerClient.WithQylTelemetry("qyl.genai")`                                 |
+| Telemetry (`AIAgent`)     | `agent.AsBuilder().UseQylAgentTelemetry().Build()`                          |
+
+Full entry-point catalogue and rules live in [`CLAUDE.md`](CLAUDE.md) under "MAF agent composition".
 
 ## TypeSpec-First Design
 
