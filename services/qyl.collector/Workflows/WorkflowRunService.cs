@@ -184,17 +184,21 @@ public sealed class WorkflowRunService(DuckDbStore store)
 
     public async Task<WorkflowRunEntity?> ResumeRunAsync(string runId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_runs
-                          SET status = 'running',
-                              started_at = COALESCE(started_at, $1)
-                          WHERE id = $2 AND status IN ('paused', 'pending')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(
+            async (connection, token) =>
+            {
+                await using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                                  UPDATE workflow_runs
+                                  SET status = 'running',
+                                      started_at = COALESCE(started_at, $1)
+                                  WHERE id = $2 AND status IN ('paused', 'pending')
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+                cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+                await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            },
+            ct).ConfigureAwait(false);
 
         return await GetRunAsync(runId, ct).ConfigureAwait(false);
     }
@@ -204,20 +208,24 @@ public sealed class WorkflowRunService(DuckDbStore store)
         string nodeId,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_nodes
-                          SET status = 'running',
-                              started_at = COALESCE(started_at, $1)
-                          WHERE run_id = $2
-                            AND node_id = $3
-                            AND status IN ('pending', 'paused', 'awaiting_approval')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(
+            async (connection, token) =>
+            {
+                await using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                                  UPDATE workflow_nodes
+                                  SET status = 'running',
+                                      started_at = COALESCE(started_at, $1)
+                                  WHERE run_id = $2
+                                    AND node_id = $3
+                                    AND status IN ('pending', 'paused', 'awaiting_approval')
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+                cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
+                await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            },
+            ct).ConfigureAwait(false);
 
         return await GetNodeAsync(runId, nodeId, ct).ConfigureAwait(false);
     }
@@ -225,7 +233,7 @@ public sealed class WorkflowRunService(DuckDbStore store)
     public async Task<WorkflowRunEntity?> CancelRunAsync(string runId, CancellationToken ct = default)
     {
         await store.ExecuteWriteAsync(
-            async connection =>
+            async (connection, token) =>
             {
                 await using var cmd = connection.CreateCommand();
                 cmd.CommandText = """
@@ -236,7 +244,7 @@ public sealed class WorkflowRunService(DuckDbStore store)
                                   """;
                 cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
                 cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             },
             ct).ConfigureAwait(false);
 

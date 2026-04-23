@@ -148,9 +148,18 @@ public sealed class CollectorClient(HttpClient http)
             return new PrCreationResponse(true, success?.PrUrl, null);
         }
 
-        var failure = await response.Content
-            .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationFailureResponse, ct)
-            .ConfigureAwait(false);
+        PrCreationFailureResponse? failure = null;
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (contentType is not null && contentType.Contains("json", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                failure = await response.Content
+                    .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationFailureResponse, ct)
+                    .ConfigureAwait(false);
+            }
+            catch (JsonException) { }
+        }
 
         return new PrCreationResponse(false, null,
             failure?.Error ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.");
