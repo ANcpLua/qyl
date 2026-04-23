@@ -136,11 +136,16 @@ For anything under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `serv
   in `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs` — **one `Build*Agent()` factory method per
   bounded agent**, not a fluent chain. Each returned `AIAgent` is already wrapped with telemetry at the construction
   site.
-- Decorate at composition root. Two distinct middleware names — do not confuse them:
-    - `IChatClient` side: `innerClient.WithQylTelemetry(sourceName: "qyl.genai")` — direct extension on the raw client,
-      **no** `AsBuilder()`. See `tests/qyl.collector.tests/Instrumentation/WithQylTelemetryEmissionTests.cs:36`.
-    - `AIAgent` side: `agent.AsBuilder().UseQylAgentTelemetry().Build()` — wraps the agent via fluent middleware. See
-      `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:40` for the canonical shape.
+- Decorate at composition root. Three distinct middleware helpers in
+  `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs` — do not confuse them:
+    - `IChatClient` direct (short form): `innerClient.WithQylTelemetry(sourceName: "qyl.genai")` — no `AsBuilder()`
+      wrapping. Line 53. See `tests/qyl.collector.tests/Instrumentation/WithQylTelemetryEmissionTests.cs:36`.
+    - `ChatClientBuilder` fluent form: `new ChatClientBuilder(innerClient).UseQylTelemetry(sourceName: "qyl.genai")
+      .UseFunctionInvocation(...).Build()` — prefer this when composing a pipeline. Line 100. See
+      `services/qyl.loom.patterns/Clients/QylLoomPatternsChatClientBuilder.cs:62`.
+    - `AIAgentBuilder` fluent form: `agent.AsBuilder().UseQylAgentTelemetry().Build()` — wraps the agent. Line 141.
+      See `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:40` for the canonical shape.
+- Both layers are mandatory — `IChatClient` **and** `AIAgent`. Wrapping only one loses half the OTel attributes.
 - Do not instantiate `ActivitySource` directly in agent code. `[AgentTraced]` is **removed**. Do not reintroduce it.
 
 ### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.1.0 and live qyl call-sites
@@ -157,7 +162,7 @@ Reach for these before hand-rolling. Every row has a concrete qyl call-site — 
 | **Tools — local**             | `AIFunctionFactory.Create(methodInfo, instanceFactory, new AIFunctionFactoryOptions { Name, ... })`                                                                           | `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs:99-119`                                               |
 | **Workflow — build**          | `new WorkflowBuilder(start).AddEdge(a, b).AddFanOutEdge(src, [t1, t2, t3]).WithOutputFrom(last).Build()`                                                                      | `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs:44-51`, `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs:23-28` |
 | **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                          | `AutofixAgentService.cs:66`, `ExplorationOrchestrator.cs:37`                                                                      |
-| **Observability**             | `innerClient.WithQylTelemetry("qyl.genai")` on `IChatClient` **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap **both** or half the OTel attributes vanish. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/`                                                             |
+| **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap **both** or half the OTel attributes vanish. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                            |
 
 ### Not used in qyl — if you reach for these, justify first
 
