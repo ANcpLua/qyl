@@ -130,7 +130,7 @@ In `services/qyl.mcp/`:
 
 For anything under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `services/qyl.mcp/Agents/`.
 
-**Authoritative overlay:** `/Users/ancplua/RiderProjects/Kochrezepte/microsoft-agent-framework-SKILL-qyl-overlay.md` — qyl MAF consumer patterns (Apex-aligned fluent pattern, three-builder trichotomy, `.AsBuilder().Use(...).Build()` composition, file-based instructions, `ChatToolMode` decisions, `ChatOptions` surface, `LoomRunState` session discipline, 2026-04 `[AgentTraced]` collapse). Read it before touching agent/workflow code. Core MAF surface lives in `~/.claude/skills/microsoft-agent-framework/SKILL.md`.
+**Authoritative overlay:** `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.md` — qyl MAF consumer patterns (Apex-aligned fluent shape, three-builder trichotomy, `.AsBuilder().Use(...).Build()` composition, file-based instructions, `LoomRunState` session discipline, `WithQylTelemetry`/`UseQylTelemetry` + agent-layer `UseOpenTelemetry("qyl.agent")`). Read it before touching agent/workflow code. Core MAF surface lives in `~/.claude/skills/microsoft-agent-framework/SKILL.md`.
 
 ### Rules
 
