@@ -14,6 +14,20 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      'no-restricted-imports': ['error', {
+        patterns: ['@radix-ui/*', 'radix-ui'],
+      }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name="asChild"]',
+          message: 'Use Base UI render composition instead of Radix-style asChild.',
+        },
+        {
+          selector: 'JSXIdentifier[name="Slot"]',
+          message: 'Use Base UI render composition instead of Slot.',
+        },
+      ],
     },
   },
 );

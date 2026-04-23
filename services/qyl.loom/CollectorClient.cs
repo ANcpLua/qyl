@@ -124,6 +124,38 @@ public sealed class CollectorClient(HttpClient http)
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<PrCreationResponse> CreatePullRequestAsync(
+        string issueId,
+        string runId,
+        string repo,
+        string? baseBranch,
+        CancellationToken ct = default)
+    {
+        var request = new PrCreationRequest(repo, baseBranch);
+        var response = await http
+            .PostAsJsonAsync(
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/pr",
+                request,
+                CollectorClientJsonContext.Default.PrCreationRequest,
+                ct)
+            .ConfigureAwait(false);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var success = await response.Content
+                .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationSuccessResponse, ct)
+                .ConfigureAwait(false);
+            return new PrCreationResponse(true, success?.PrUrl, null);
+        }
+
+        var failure = await response.Content
+            .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationFailureResponse, ct)
+            .ConfigureAwait(false);
+
+        return new PrCreationResponse(false, null,
+            failure?.Error ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.");
+    }
+
     // ── Autofix Steps ─────────────────────────────────────────────────────────
 
     public async Task InsertAutofixStepAsync(AutofixStepRecord step, CancellationToken ct = default)
@@ -276,6 +308,21 @@ public sealed record FixRunPatchRequest(
     double? Confidence = null,
     string? ChangesJson = null);
 
+public sealed record PrCreationRequest(
+    [property: JsonPropertyName("repo")] string Repo,
+    [property: JsonPropertyName("baseBranch")] string? BaseBranch);
+
+public sealed record PrCreationSuccessResponse(
+    [property: JsonPropertyName("prUrl")] string? PrUrl);
+
+public sealed record PrCreationFailureResponse(
+    [property: JsonPropertyName("error")] string? Error);
+
+public sealed record PrCreationResponse(
+    bool Success,
+    string? PrUrl,
+    string? Error);
+
 public sealed record AutofixStepPatchRequest(
     string? Status = null,
     string? OutputJson = null,
@@ -312,6 +359,9 @@ public sealed record IssueListResponse(List<IssueSummary> Items, int Total);
 [JsonSerializable(typeof(FixRunListResponse))]
 [JsonSerializable(typeof(FixRunCreateRequest))]
 [JsonSerializable(typeof(FixRunPatchRequest))]
+[JsonSerializable(typeof(PrCreationRequest))]
+[JsonSerializable(typeof(PrCreationSuccessResponse))]
+[JsonSerializable(typeof(PrCreationFailureResponse))]
 [JsonSerializable(typeof(AutofixStepRecord))]
 [JsonSerializable(typeof(AutofixStepPatchRequest))]
 [JsonSerializable(typeof(TriageResult))]
