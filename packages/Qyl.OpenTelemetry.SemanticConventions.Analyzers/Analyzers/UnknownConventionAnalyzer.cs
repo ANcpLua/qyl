@@ -26,7 +26,7 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor s_otelUnknown = new(
         id: OtelUnknownId,
         title: "Unknown OTel-namespaced attribute",
-        messageFormat: "Unknown OTel attribute '{0}'. Did you mean '{1}'?",
+        messageFormat: "Unknown OTel attribute '{0}', did you mean '{1}'",
         category: "QylSemanticConventions",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,

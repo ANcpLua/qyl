@@ -63,7 +63,7 @@ public static class ArtifactEndpoints
             if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
                 return TypedResults.NotFound();
 
-            ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
 
             // If the client accepts JSON, return structured response
             var accept = ctx.Request.Headers.Accept.ToString();

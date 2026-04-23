@@ -12,6 +12,12 @@ public static class QylAttributes
     /// <summary>First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only..</summary>
     public const string ApiKeyId = "qyl.api_key.id";
 
+    /// <summary>Stable instance identifier for log correlation (typically hostname).</summary>
+    public const string AuthInstanceId = "qyl.auth.instance_id";
+
+    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set..</summary>
+    public const string AuthKeycloakClaims = "qyl.auth.keycloak_claims";
+
     /// <summary>Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'.</summary>
     public const string CapabilityId = "qyl.capability.id";
 
@@ -66,9 +72,6 @@ public static class QylAttributes
         public const string Manual = "manual";
     }
 
-    /// <summary>Stable instance identifier for log correlation (typically hostname).</summary>
-    public const string InstanceId = "qyl.instance_id";
-
     /// <summary>Error issue identifier.</summary>
     public const string IssueId = "qyl.issue.id";
 
@@ -101,9 +104,6 @@ public static class QylAttributes
         /// <summary>Issue has been fixed.</summary>
         public const string Resolved = "resolved";
     }
-
-    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set..</summary>
-    public const string KeycloakClaims = "qyl.keycloak.claims";
 
     /// <summary>Project identifier (UUID or slug).</summary>
     public const string ProjectId = "qyl.project.id";
