@@ -2,41 +2,47 @@ groups:
   - id: registry.qyl.issue
     type: attribute_group
     brief: 'Attributes for qyl error issue tracking'
-    prefix: qyl.issue
     attributes:
-      - id: id
+      - id: qyl.issue.id
         type: string
         stability: experimental
         brief: 'Error issue identifier'
         examples: ['issue_01hzv8x']
-      - id: severity
+      - id: qyl.issue.severity
         type:
           members:
             - id: low
               value: 'low'
+              stability: experimental
               brief: 'Low severity — cosmetic or rare impact'
             - id: medium
               value: 'medium'
+              stability: experimental
               brief: 'Medium severity — notable but not blocking'
             - id: high
               value: 'high'
+              stability: experimental
               brief: 'High severity — significant user impact'
             - id: critical
               value: 'critical'
+              stability: experimental
               brief: 'Critical severity — service-breaking'
         stability: experimental
         brief: 'Issue severity level'
-      - id: status
+      - id: qyl.issue.status
         type:
           members:
             - id: open
               value: 'open'
+              stability: experimental
               brief: 'Issue is active and unresolved'
             - id: resolved
               value: 'resolved'
+              stability: experimental
               brief: 'Issue has been fixed'
             - id: ignored
               value: 'ignored'
+              stability: experimental
               brief: 'Issue has been acknowledged and dismissed'
         stability: experimental
         brief: 'Current resolution status'

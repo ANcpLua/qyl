@@ -6,16 +6,21 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
-| `qyl.api_key.id` | `string` | development | First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only.
- |
+| `qyl.api_key.id` | `string` | development | First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only. |
+
+## `qyl.auth`
+
+| Attribute | Type | Stability | Description |
+|-----------|------|-----------|-------------|
+| `qyl.auth.instance_id` | `string` | development | Stable instance identifier for log correlation (typically hostname) |
+| `qyl.auth.keycloak_claims` | `string` | development | Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set. |
 
 ## `qyl.capability`
 
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
-| `qyl.capability.id` | `string` | development | Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
- |
-| `qyl.capability.kind` | `{"members": [{"brief": "Entry-point capability in a workflow", "id": "starting", "value": "Starting"}, {"brief": "Capability that follows another in a workflow", "id": "follow_up", "value": "FollowUp"}]}` | development | Capability kind: Starting or FollowUp |
+| `qyl.capability.id` | `string` | development | Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze' |
+| `qyl.capability.kind` | `enum` (2 values) | development | Capability kind: Starting or FollowUp |
 
 ## `qyl.duckdb`
 
@@ -29,29 +34,16 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
 | `qyl.fix_run.id` | `string` | development | Fix run identifier |
-| `qyl.fix_run.status` | `{"members": [{"brief": "Fix run is queued", "id": "pending", "value": "pending"}, {"brief": "Fix run is in progress", "id": "running", "value": "running"}, {"brief": "Fix applied and verified", "id": "succeeded", "value": "succeeded"}, {"brief": "Fix attempt failed", "id": "failed", "value": "failed"}, {"brief": "Fix was rejected by reviewer", "id": "rejected", "value": "rejected"}]}` | development | Current status of the fix run |
-| `qyl.fix_run.trigger` | `{"members": [{"brief": "Manually triggered by a user", "id": "manual", "value": "manual"}, {"brief": "Triggered automatically by a diagnostic rule", "id": "automatic", "value": "automatic"}]}` | development | What initiated this fix run |
-
-## `qyl.instance_id`
-
-| Attribute | Type | Stability | Description |
-|-----------|------|-----------|-------------|
-| `qyl.instance_id` | `string` | development | Stable instance identifier for log correlation (typically hostname) |
+| `qyl.fix_run.status` | `enum` (5 values) | development | Current status of the fix run |
+| `qyl.fix_run.trigger` | `enum` (2 values) | development | What initiated this fix run |
 
 ## `qyl.issue`
 
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
 | `qyl.issue.id` | `string` | development | Error issue identifier |
-| `qyl.issue.severity` | `{"members": [{"brief": "Low severity — cosmetic or rare impact", "id": "low", "value": "low"}, {"brief": "Medium severity — notable but not blocking", "id": "medium", "value": "medium"}, {"brief": "High severity — significant user impact", "id": "high", "value": "high"}, {"brief": "Critical severity — service-breaking", "id": "critical", "value": "critical"}]}` | development | Issue severity level |
-| `qyl.issue.status` | `{"members": [{"brief": "Issue is active and unresolved", "id": "open", "value": "open"}, {"brief": "Issue has been fixed", "id": "resolved", "value": "resolved"}, {"brief": "Issue has been acknowledged and dismissed", "id": "ignored", "value": "ignored"}]}` | development | Current resolution status |
-
-## `qyl.keycloak`
-
-| Attribute | Type | Stability | Description |
-|-----------|------|-----------|-------------|
-| `qyl.keycloak.claims` | `string` | development | Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.
- |
+| `qyl.issue.severity` | `enum` (4 values) | development | Issue severity level |
+| `qyl.issue.status` | `enum` (3 values) | development | Current resolution status |
 
 ## `qyl.project`
 
@@ -65,8 +57,8 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
 | `qyl.run.id` | `string` | development | Agent run identifier |
-| `qyl.run.kind` | `{"members": [{"brief": "Automated fix run triggered by a diagnostic", "id": "autofix", "value": "autofix"}, {"brief": "Code review run", "id": "review", "value": "review"}, {"brief": "Issue triage run", "id": "triage", "value": "triage"}]}` | development | Kind of agent run |
-| `qyl.run.status` | `{"members": [{"brief": "Run is queued", "id": "pending", "value": "pending"}, {"brief": "Run is executing", "id": "running", "value": "running"}, {"brief": "Run completed successfully", "id": "succeeded", "value": "succeeded"}, {"brief": "Run completed with failure", "id": "failed", "value": "failed"}]}` | development | Final or current status of the run |
+| `qyl.run.kind` | `enum` (3 values) | development | Kind of agent run |
+| `qyl.run.status` | `enum` (4 values) | development | Final or current status of the run |
 
 ## `qyl.storage`
 

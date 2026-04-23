@@ -2,14 +2,13 @@ groups:
   - id: registry.qyl.project
     type: attribute_group
     brief: 'Attributes identifying the qyl project scope'
-    prefix: qyl.project
     attributes:
-      - id: id
+      - id: qyl.project.id
         type: string
         stability: experimental
         brief: 'Project identifier (UUID or slug)'
         examples: ['proj_01hzv8x', 'my-service']
-      - id: name
+      - id: qyl.project.name
         type: string
         stability: experimental
         brief: 'Human-readable project name'

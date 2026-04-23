@@ -2,18 +2,17 @@ groups:
   - id: registry.qyl.triage
     type: attribute_group
     brief: 'Attributes for qyl automated triage operations'
-    prefix: qyl.triage
     attributes:
-      - id: id
+      - id: qyl.triage.id
         type: string
         stability: experimental
         brief: 'Triage record identifier'
         examples: ['triage_01hzv8x']
-      - id: score
+      - id: qyl.triage.score
         type: double
         stability: experimental
         brief: 'Triage priority score (0.0 = lowest, 1.0 = highest)'
-      - id: category
+      - id: qyl.triage.category
         type: string
         stability: experimental
         brief: 'Classified error category from triage analysis'

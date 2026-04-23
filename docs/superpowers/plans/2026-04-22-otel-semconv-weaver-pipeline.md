@@ -1,18 +1,26 @@
 # OTel Semantic Conventions Weaver Pipeline — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:
+> executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a donation-ready, Weaver-driven OTel Semantic Conventions generation pipeline that produces three NuGet packages: stable OTel attrs, incubating OTel attrs, and qyl custom attrs — all generated at build time from upstream YAML, with zero hand-maintained constants.
+**Goal:** Build a donation-ready, Weaver-driven OTel Semantic Conventions generation pipeline that produces three NuGet
+packages: stable OTel attrs, incubating OTel attrs, and qyl custom attrs — all generated at build time from upstream
+YAML, with zero hand-maintained constants.
 
-**Architecture:** Two Weaver registry runs (upstream OTel model → two NuGet packages, qyl model → one NuGet package) using `application_mode: each` (one C# file per root namespace, confirmed working). `attr.deprecated` is natively structured by Weaver (`reason`/`renamed_to`/`note`) — no external YAML lookup needed in templates. The existing `qyl` template set (TS, SQL, JSON) is untouched throughout.
+**Architecture:** Two Weaver registry runs (upstream OTel model → two NuGet packages, qyl model → one NuGet package)
+using `application_mode: each` (one C# file per root namespace, confirmed working). `attr.deprecated` is natively
+structured by Weaver (`reason`/`renamed_to`/`note`) — no external YAML lookup needed in templates. The existing `qyl`
+template set (TS, SQL, JSON) is untouched throughout.
 
-**Tech Stack:** Weaver v0.22.1, Jinja2, C# 14, .NET 10, ANcpLua.NET.Sdk, NUKE 10.1.0, open-telemetry/semantic-conventions v1.40.0 submodule at `.tools/semconv-upstream`
+**Tech Stack:** Weaver v0.22.1, Jinja2, C# 14, .NET 10, ANcpLua.NET.Sdk, NUKE 10.1.0,
+open-telemetry/semantic-conventions v1.40.0 submodule at `.tools/semconv-upstream`
 
 ---
 
 ## File Map
 
 ### Create
+
 - `packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj`
 - `packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj`
 - `packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj`
@@ -42,11 +50,13 @@
 - `Makefile` (new or add target to existing)
 
 ### Modify
+
 - `qyl.slnx` — add three new package `<Project>` entries
 - `eng/build/BuildPipeline.cs` — add `GenerateSemconvCsharp` target, update `Generate`
 - `eng/semconv/run-weaver.sh` — add three new Weaver runs (or delegate to new script)
 
 ### Generated (never hand-edit)
+
 - `packages/Qyl.OpenTelemetry.SemanticConventions/Attributes/**/*.g.cs`
 - `packages/Qyl.OpenTelemetry.SemanticConventions/SchemaUrl.g.cs`
 - `packages/Qyl.OpenTelemetry.SemanticConventions/SchemaVersion.g.cs`
@@ -57,6 +67,7 @@
 - `packages/Qyl.SemanticConventions/SchemaUrl.g.cs`
 
 ### Runtime cutover (later phases)
+
 - `packages/Qyl.Contracts/Attributes/GenAiAttributes.cs` — deleted, callers updated
 - `packages/Qyl.Contracts/Attributes/DbAttributes.cs` — deleted, callers updated
 - `packages/Qyl.Contracts/Attributes/McpAttributes.cs` — deleted, callers updated
@@ -92,8 +103,10 @@ Expected output: `7fe537301d17919af7d7eb65b32e9be35da2c497`
 ### Task 2: Scaffold three package directories and csproj files
 
 **Files:**
+
 - Create: `packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj`
-- Create: `packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj`
+- Create:
+  `packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj`
 - Create: `packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj`
 
 - [ ] **Step 1: Create package directory for stable**
@@ -135,7 +148,8 @@ mkdir -p packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Attributes \
          packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/schemas
 ```
 
-Create `packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj`:
+Create
+`packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj`:
 
 ```xml
 <Project Sdk="ANcpLua.NET.Sdk">
@@ -193,11 +207,13 @@ Create `packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj`:
 ### Task 3: Add all three packages to qyl.slnx
 
 **Files:**
+
 - Modify: `qyl.slnx`
 
 - [ ] **Step 1: Open qyl.slnx and add the three package entries**
 
-In `qyl.slnx`, find the block containing the existing package entries (currently lines 6-8 list `Qyl.Contracts`, `Qyl.Client`, `Qyl.OpenTelemetry.Extensions`). Add the three new packages immediately after:
+In `qyl.slnx`, find the block containing the existing package entries (currently lines 6-8 list `Qyl.Contracts`,
+`Qyl.Client`, `Qyl.OpenTelemetry.Extensions`). Add the three new packages immediately after:
 
 ```xml
         <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj" />
@@ -218,6 +234,7 @@ Expected: the three new packages appear in the list.
 ### Task 4: Create csharp_stable Weaver template set
 
 **Files:**
+
 - Create: `eng/semconv/templates/registry/csharp_stable/weaver.yaml`
 - Create: `eng/semconv/templates/registry/csharp_stable/schema_url.cs.j2`
 - Create: `eng/semconv/templates/registry/csharp_stable/schema_version.cs.j2`
@@ -325,9 +342,11 @@ public static partial class SchemaVersion
 ### Task 5: Write csharp_stable attributes.cs.j2 template
 
 **Files:**
+
 - Create: `eng/semconv/templates/registry/csharp_stable/attributes.cs.j2`
 
-The template produces one file per root_namespace containing ONLY `stability: stable` attributes. Empty namespaces (no stable attrs) produce an empty file but still compile — they're skipped by a guard at the top.
+The template produces one file per root_namespace containing ONLY `stability: stable` attributes. Empty namespaces (no
+stable attrs) produce an empty file but still compile — they're skipped by a guard at the top.
 
 - [ ] **Step 1: Write attributes.cs.j2**
 
@@ -422,6 +441,7 @@ cat packages/Qyl.OpenTelemetry.SemanticConventions/Attributes/Http/HttpAttribute
 ```
 
 Expected output contains:
+
 - Auto-generated header with schema URL
 - `namespace Qyl.OpenTelemetry.SemanticConventions.Attributes.Http;`
 - `public static class HttpAttributes`
@@ -523,7 +543,10 @@ EOF
 
 Expected: `All reserved attrs present.`
 
-If any are missing, add the failing namespace to the template's `selectattr("stability", "equalto", "stable")` check — the attr may be marked `development`. For `service.instance.id` check: it might be `experimental`. If so, include it explicitly by adding an `include_override` param in weaver.yaml and a `{% if attr.name in params.force_include_attrs %}` branch in the template.
+If any are missing, add the failing namespace to the template's `selectattr("stability", "equalto", "stable")` check —
+the attr may be marked `development`. For `service.instance.id` check: it might be `experimental`. If so, include it
+explicitly by adding an `include_override` param in weaver.yaml and a `{% if attr.name in params.force_include_attrs %}`
+branch in the template.
 
 - [ ] **Step 3: Full solution build check**
 
@@ -538,13 +561,15 @@ Expected: `Build succeeded. 0 Error(s)`
 ### Task 9: Copy deprecated-lookup files to eng/semconv/deprecated-lookup/
 
 **Files:**
+
 - Create: `eng/semconv/deprecated-lookup/semconv-v1.40.0-attributes.yaml`
 - Create: `eng/semconv/deprecated-lookup/semconv-v1.40.0-metrics.yaml`
 - Create: `eng/semconv/deprecated-lookup/semconv-v1.40.0-events.yaml`
 - Create: `eng/semconv/deprecated-lookup/semconv-v1.40.0-enum-members.yaml`
 - Create: `eng/semconv/deprecated-lookup/semconv-v1.40.0-entities.yaml`
 
-Note: The Jinja templates use `attr.deprecated` (natively from Weaver) for `[Obsolete]` messages — no template file loading needed. These files serve as auditable reference data and as input for `bump-semconv` re-derivation.
+Note: The Jinja templates use `attr.deprecated` (natively from Weaver) for `[Obsolete]` messages — no template file
+loading needed. These files serve as auditable reference data and as input for `bump-semconv` re-derivation.
 
 - [ ] **Step 1: Create the directory and copy files**
 
@@ -564,7 +589,8 @@ cp ~/Documents/Codex/2026-04-22-spawn-18-codex-spark-agents-that/semconv_mapped_
    eng/semconv/deprecated-lookup/
 ```
 
-Note: The enum-members file may be named `semconv-v1.40.0-enum-members.yaml` — check the actual filename with `ls ~/Documents/Codex/2026-04-22-spawn-18-codex-spark-agents-that/semconv_mapped_template/`.
+Note: The enum-members file may be named `semconv-v1.40.0-enum-members.yaml` — check the actual filename with
+`ls ~/Documents/Codex/2026-04-22-spawn-18-codex-spark-agents-that/semconv_mapped_template/`.
 
 - [ ] **Step 2: Verify [Obsolete] annotations in generated output**
 
@@ -575,6 +601,7 @@ grep -A1 "Obsolete" packages/Qyl.OpenTelemetry.SemanticConventions/Attributes/Ht
 ```
 
 Expected: Lines like:
+
 ```
     [System.Obsolete("Replaced by http.request.method.", false)]
     public const string Method = "http.method";
@@ -585,6 +612,7 @@ Expected: Lines like:
 ### Task 10: Copy OTel schema file as embedded resource
 
 **Files:**
+
 - Create: `packages/Qyl.OpenTelemetry.SemanticConventions/schemas/1.40.0.yaml`
 - Create: `packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/schemas/1.40.0.yaml`
 
@@ -604,11 +632,13 @@ dotnet build packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.Se
 ```
 
 If the schema YAML isn't found (doesn't exist in upstream at that path), check:
+
 ```bash
 ls .tools/semconv-upstream/schemas/
 ```
 
-Upstream schemas are at `.tools/semconv-upstream/schemas/v1.40.0.yaml` (with a `v` prefix) or similar — adjust the copy command to match the actual filename.
+Upstream schemas are at `.tools/semconv-upstream/schemas/v1.40.0.yaml` (with a `v` prefix) or similar — adjust the copy
+command to match the actual filename.
 
 ---
 
@@ -640,6 +670,7 @@ EOF
 ### Task 12: Create csharp_incubating template set
 
 **Files:**
+
 - Create: `eng/semconv/templates/registry/csharp_incubating/weaver.yaml`
 - Create: `eng/semconv/templates/registry/csharp_incubating/attributes.cs.j2`
 - Create: `eng/semconv/templates/registry/csharp_incubating/schema_url.cs.j2`
@@ -739,7 +770,8 @@ public static class {{ ctx.root_namespace | pascal_case }}Attributes
 
 - [ ] **Step 3: Write schema_url.cs.j2 and schema_version.cs.j2 (copy from stable, change package_namespace)**
 
-These are identical to the stable versions except the template uses `params.package_namespace` which is already set to the incubating value in weaver.yaml.
+These are identical to the stable versions except the template uses `params.package_namespace` which is already set to
+the incubating value in weaver.yaml.
 
 Copy `eng/semconv/templates/registry/csharp_stable/schema_url.cs.j2` → `csharp_incubating/schema_url.cs.j2`
 Copy `eng/semconv/templates/registry/csharp_stable/schema_version.cs.j2` → `csharp_incubating/schema_version.cs.j2`
@@ -757,7 +789,8 @@ WEAVER_BIN=".tools/weaver/weaver-aarch64-apple-darwin/weaver"
   packages/Qyl.OpenTelemetry.SemanticConventions.Incubating
 ```
 
-Expected: more files than stable (incubating has more attrs — everything with `development` or `experimental` stability).
+Expected: more files than stable (incubating has more attrs — everything with `development` or `experimental`
+stability).
 
 - [ ] **Step 5: Build incubating package**
 
@@ -803,13 +836,15 @@ grep -r '"qyl\.' services/ packages/ --include="*.cs" -h \
 wc -l /tmp/qyl-attrs-raw.txt
 ```
 
-Use this list to inform the YAML model content in Task 15. Group by first two segments (e.g., `qyl.capability.*`, `qyl.fix.*`, `qyl.run.*`).
+Use this list to inform the YAML model content in Task 15. Group by first two segments (e.g., `qyl.capability.*`,
+`qyl.fix.*`, `qyl.run.*`).
 
 ---
 
 ### Task 15: Create qyl attribute group YAML models
 
 **Files:**
+
 - Create: `eng/semconv/qyl/model/capability.yaml`
 - Create: `eng/semconv/qyl/model/run.yaml`
 - Create: `eng/semconv/qyl/model/project.yaml`
@@ -1141,6 +1176,7 @@ groups:
 ### Task 16: Create csharp_qyl template set
 
 **Files:**
+
 - Create: `eng/semconv/templates/registry/csharp_qyl/weaver.yaml`
 - Create: `eng/semconv/templates/registry/csharp_qyl/attributes.cs.j2`
 - Create: `eng/semconv/templates/registry/csharp_qyl/schema_url.cs.j2`
@@ -1241,6 +1277,7 @@ public static partial class SchemaUrl
 ### Task 17: Create qyl schema file and run Weaver for qyl package
 
 **Files:**
+
 - Create: `eng/semconv/qyl/schemas/1.0.0.yaml`
 - Create: `packages/Qyl.SemanticConventions/schemas/1.0.0.yaml`
 
@@ -1278,9 +1315,12 @@ WEAVER_BIN=".tools/weaver/weaver-aarch64-apple-darwin/weaver"
   packages/Qyl.SemanticConventions
 ```
 
-Expected: files like `packages/Qyl.SemanticConventions/Attributes/Qyl/QylAttributes.g.cs` — wait, the root_namespace for `qyl.capability.*` will be `qyl` (the first segment). That means ALL qyl attrs land in `QylAttributes.g.cs`. Check whether Weaver returns `root_namespace = "qyl"` or `"qyl.capability"`.
+Expected: files like `packages/Qyl.SemanticConventions/Attributes/Qyl/QylAttributes.g.cs` — wait, the root_namespace for
+`qyl.capability.*` will be `qyl` (the first segment). That means ALL qyl attrs land in `QylAttributes.g.cs`. Check
+whether Weaver returns `root_namespace = "qyl"` or `"qyl.capability"`.
 
-If root_namespace comes back as just "qyl" (all attrs collide into one file), the output is fine — one class `QylAttributes` with all nested classes. If sub-namespaces appear, even better.
+If root_namespace comes back as just "qyl" (all attrs collide into one file), the output is fine — one class
+`QylAttributes` with all nested classes. If sub-namespaces appear, even better.
 
 - [ ] **Step 4: Build qyl package**
 
@@ -1319,6 +1359,7 @@ EOF
 ### Task 19: Add GenerateSemconvCsharp target to NUKE build
 
 **Files:**
+
 - Modify: `eng/build/BuildPipeline.cs`
 - Modify: `eng/semconv/run-weaver.sh`
 
@@ -1365,7 +1406,8 @@ Target GenerateSemconvCsharp => d => d
     });
 ```
 
-Also add two default interface methods `GetWeaverBinaryPath()` and `VerifyReservedAttrs()` to the `IPipeline` interface body (non-static so they can access `RootDirectory` from `IHazSourcePaths`):
+Also add two default interface methods `GetWeaverBinaryPath()` and `VerifyReservedAttrs()` to the `IPipeline` interface
+body (non-static so they can access `RootDirectory` from `IHazSourcePaths`):
 
 ```csharp
 string GetWeaverBinaryPath()
@@ -1404,7 +1446,9 @@ void VerifyReservedAttrs(AbsolutePath stableOut)
 }
 ```
 
-These are default interface methods on `IPipeline` (C# 8+). `RootDirectory` resolves via `IHazSourcePaths` which `IPipeline` already extends. Call them as `GetWeaverBinaryPath()` and `VerifyReservedAttrs(stableOut)` inside the target lambda.
+These are default interface methods on `IPipeline` (C# 8+). `RootDirectory` resolves via `IHazSourcePaths` which
+`IPipeline` already extends. Call them as `GetWeaverBinaryPath()` and `VerifyReservedAttrs(stableOut)` inside the target
+lambda.
 
 - [ ] **Step 2: Update the Generate target to depend on GenerateSemconvCsharp**
 
@@ -1472,7 +1516,8 @@ echo "  ${QYL_PKG}/Attributes/ ($(find "${QYL_PKG}/Attributes" -name '*.g.cs' | 
 dotnet build eng/build/ --tl:off 2>&1 | tail -5
 ```
 
-Expected: NUKE build project compiles. If `WeaverBinaryPath` or `VerifyReservedAttrs` have compilation errors, fix them before proceeding.
+Expected: NUKE build project compiles. If `WeaverBinaryPath` or `VerifyReservedAttrs` have compilation errors, fix them
+before proceeding.
 
 - [ ] **Step 5: Run nuke GenerateSemconvCsharp**
 
@@ -1498,13 +1543,15 @@ git status --short packages/Qyl.OpenTelemetry.SemanticConventions/ \
 
 Expected: no output (git status clean after second run — files unchanged).
 
-If files show as modified on second run, Weaver is generating non-deterministic output (e.g., timestamp-based headers). Fix: remove any `{{ now() }}` or timestamp in templates; use `{{ params.semconv_commit }}` instead.
+If files show as modified on second run, Weaver is generating non-deterministic output (e.g., timestamp-based headers).
+Fix: remove any `{{ now() }}` or timestamp in templates; use `{{ params.semconv_commit }}` instead.
 
 ---
 
 ### Task 21: Add Makefile bump-semconv target
 
 **Files:**
+
 - Create or modify: `Makefile`
 
 - [ ] **Step 1: Create/update Makefile with bump-semconv target**
@@ -1636,17 +1683,21 @@ grep -r '"qyl\.' services/ packages/ --include="*.cs" -rn \
 wc -l /tmp/qyl-misc-usages.txt
 ```
 
-The first set maps to `Qyl.SemanticConventions.Attributes.*`. The second set (tool names, activity source names, etc.) should remain as magic strings — not all `"qyl.*"` literals are telemetry attribute keys.
+The first set maps to `Qyl.SemanticConventions.Attributes.*`. The second set (tool names, activity source names, etc.)
+should remain as magic strings — not all `"qyl.*"` literals are telemetry attribute keys.
 
 - [ ] **Step 2: Identify which are telemetry attribute keys vs. other identifiers**
 
-Review `/tmp/qyl-misc-usages.txt`. Filter to only lines that are used as `ActivityEvent`, `tag.Set`, `ActivityTagsCollection`, `AddTag`, span attribute keys, etc. The ones used as `ActivitySource` names (`"qyl.genai"`, `"qyl.agent"`) or tool names are NOT attribute keys — leave those as-is.
+Review `/tmp/qyl-misc-usages.txt`. Filter to only lines that are used as `ActivityEvent`, `tag.Set`,
+`ActivityTagsCollection`, `AddTag`, span attribute keys, etc. The ones used as `ActivitySource` names (`"qyl.genai"`,
+`"qyl.agent"`) or tool names are NOT attribute keys — leave those as-is.
 
 ---
 
 ### Task 24: Replace OTel stable magic strings (GenAi, Http, Db, Mcp)
 
 **Files:**
+
 - Modify: `packages/Qyl.Contracts/Attributes/GenAiAttributes.cs` (will be deleted at end)
 - Modify: all callers from grep results
 
@@ -1661,6 +1712,7 @@ For each project that needs the new constants, add to its `.csproj`:
 ```
 
 Or for incubating attrs:
+
 ```xml
 <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" />
 ```
@@ -1685,6 +1737,7 @@ tags.Add(GenAiAttributes.OperationName, operationName);
 ```
 
 Run build after each file change:
+
 ```bash
 dotnet build services/qyl.instrumentation/qyl.instrumentation.csproj --tl:off 2>&1 | tail -3
 ```
@@ -1767,6 +1820,7 @@ EOF
 ### Task 27: Shrink qyl-semconv-lint to one diagnostic
 
 **Files:**
+
 - Modify: `core/specs/emitters/qyl-semconv-lint/` (TypeSpec emitter)
 
 - [ ] **Step 1: Find existing diagnostics in lint emitter**
@@ -1777,17 +1831,21 @@ find core/specs/emitters/qyl-semconv-lint -name "*.ts" | xargs grep -l "diagnost
 
 - [ ] **Step 2: Delete 5 of the 6 diagnostics, keep only the overlap check**
 
-The only diagnostic to keep: "no qyl.* key in TSP overlaps with registry" — checks that TypeSpec models don't accidentally reuse attribute names that are already in the qyl registry.
+The only diagnostic to keep: "no qyl.* key in TSP overlaps with registry" — checks that TypeSpec models don't
+accidentally reuse attribute names that are already in the qyl registry.
 
 Delete (or comment out and remove from exports):
+
 - Any lint rule that checks OTel semconv conformance (now handled by generated constants)
 - Any lint rule that validates qyl attr naming conventions
 - Any lint rule that enforces attribute prefix format
 
 Keep:
+
 - The `noQylAttrOverlapWithRegistry` check (or equivalent name)
 
 Build the TypeSpec project after to confirm no compile errors:
+
 ```bash
 cd core/specs && npm run compile 2>&1 | tail -10
 ```
@@ -1797,11 +1855,13 @@ cd core/specs && npm run compile 2>&1 | tail -10
 ### Task 28: Remove TypeSpec devDeps no longer needed
 
 **Files:**
+
 - Modify: `core/specs/package.json`
 
 - [ ] **Step 1: Remove obsolete devDependencies**
 
 Remove from `core/specs/package.json` devDependencies:
+
 - `@typespec/events`
 - `@typespec/openapi`
 - `@typespec/openapi3`
@@ -1811,6 +1871,7 @@ Remove from `core/specs/package.json` devDependencies:
 - `openapi-typescript`
 
 **IMPORTANT**: Verify each is NOT used by TypeSpec Pipeline 2 (API shapes, routes, models) before removing. Search:
+
 ```bash
 grep -r "@typespec/events\|@typespec/sse\|@typespec/streams\|@typespec/versioning" core/specs/ --include="*.tsp" | head -20
 ```
@@ -1823,7 +1884,8 @@ Only remove those with zero usage.
 grep -r "qyl-attrs\|qylAttr" core/specs/ --include="*.tsp" | head -10
 ```
 
-If `core/specs/telemetry/qyl-attrs.tsp` exists and its content has been superseded by the generated Qyl.SemanticConventions package, delete it:
+If `core/specs/telemetry/qyl-attrs.tsp` exists and its content has been superseded by the generated
+Qyl.SemanticConventions package, delete it:
 
 ```bash
 rm -f core/specs/telemetry/qyl-attrs.tsp
@@ -1937,9 +1999,12 @@ EOF
 
 Discovered during plan research (do not re-test during implementation):
 
-- `semconv_grouped_attributes` returns **one group per `root_namespace`** (Weaver aggregates all `attribute_group` objects by root namespace). `application_mode: each` produces one file per namespace safely.
-- `attr.deprecated` is a structured object `{note, reason, renamed_to}` or `null`. `reason` values: `"renamed"`, `"obsoleted"`, `"uncategorized"`. No external lookup file needed in templates.
+- `semconv_grouped_attributes` returns **one group per `root_namespace`** (Weaver aggregates all `attribute_group`
+  objects by root namespace). `application_mode: each` produces one file per namespace safely.
+- `attr.deprecated` is a structured object `{note, reason, renamed_to}` or `null`. `reason` values: `"renamed"`,
+  `"obsoleted"`, `"uncategorized"`. No external lookup file needed in templates.
 - `attr.type.members` is available on enum-type attrs. Members have `id`, `value`, `stability`, `deprecated` fields.
-- String slicing works in Weaver's Jinja2: `attr.name[(ctx.root_namespace | length + 1):]` correctly strips the root namespace prefix.
+- String slicing works in Weaver's Jinja2: `attr.name[(ctx.root_namespace | length + 1):]` correctly strips the root
+  namespace prefix.
 - `replace(old, new, count)` does NOT work — 3-argument replace is unsupported. Use `replace(old, new)` only.
 - The `semconv_commit` for v1.40.0 is `7fe537301d17919af7d7eb65b32e9be35da2c497`.

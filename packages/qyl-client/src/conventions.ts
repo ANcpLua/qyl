@@ -6,6 +6,10 @@
 // qyl.api_key
 export const QYL_API_KEY_ID = "qyl.api_key.id";
 
+// qyl.auth
+export const QYL_AUTH_INSTANCE_ID = "qyl.auth.instance_id";
+export const QYL_AUTH_KEYCLOAK_CLAIMS = "qyl.auth.keycloak_claims";
+
 // qyl.capability
 export const QYL_CAPABILITY_ID = "qyl.capability.id";
 export const QYL_CAPABILITY_KIND = "qyl.capability.kind";
@@ -19,16 +23,10 @@ export const QYL_FIX_RUN_ID = "qyl.fix_run.id";
 export const QYL_FIX_RUN_STATUS = "qyl.fix_run.status";
 export const QYL_FIX_RUN_TRIGGER = "qyl.fix_run.trigger";
 
-// qyl.instance_id
-export const QYL_INSTANCE_ID = "qyl.instance_id";
-
 // qyl.issue
 export const QYL_ISSUE_ID = "qyl.issue.id";
 export const QYL_ISSUE_SEVERITY = "qyl.issue.severity";
 export const QYL_ISSUE_STATUS = "qyl.issue.status";
-
-// qyl.keycloak
-export const QYL_KEYCLOAK_CLAIMS = "qyl.keycloak.claims";
 
 // qyl.project
 export const QYL_PROJECT_ID = "qyl.project.id";

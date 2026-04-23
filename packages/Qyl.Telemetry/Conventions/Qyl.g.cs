@@ -14,6 +14,15 @@ public static class ApiKey
     public const string Id = "qyl.api_key.id";
 }
 
+/// <summary>Auth attributes</summary>
+public static class Auth
+{
+    /// <summary>Stable instance identifier for log correlation (typically hostname)</summary>
+    public const string InstanceId = "qyl.auth.instance_id";
+    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.</summary>
+    public const string KeycloakClaims = "qyl.auth.keycloak_claims";
+}
+
 /// <summary>Capability attributes</summary>
 public static class Capability
 {
@@ -43,13 +52,6 @@ public static class FixRun
     public const string Trigger = "qyl.fix_run.trigger";
 }
 
-/// <summary>Root attributes</summary>
-public static class Root
-{
-    /// <summary>Stable instance identifier for log correlation (typically hostname)</summary>
-    public const string InstanceId = "qyl.instance_id";
-}
-
 /// <summary>Issue attributes</summary>
 public static class Issue
 {
@@ -59,13 +61,6 @@ public static class Issue
     public const string Severity = "qyl.issue.severity";
     /// <summary>Current resolution status</summary>
     public const string Status = "qyl.issue.status";
-}
-
-/// <summary>Keycloak attributes</summary>
-public static class Keycloak
-{
-    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.</summary>
-    public const string Claims = "qyl.keycloak.claims";
 }
 
 /// <summary>Project attributes</summary>

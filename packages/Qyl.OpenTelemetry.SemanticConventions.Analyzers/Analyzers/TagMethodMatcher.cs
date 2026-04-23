@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;

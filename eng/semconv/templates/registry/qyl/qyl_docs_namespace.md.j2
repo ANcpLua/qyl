@@ -25,6 +25,6 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 |-----------|------|-----------|-------------|
 {% set ns.current_section = section %}
 {% endif %}
-| `{{ attr.name }}` | `{{ attr.type | string }}` | {{ attr.stability }} | {{ attr.brief }} |
+| `{{ attr.name }}` | {% if attr.type is mapping %}`enum` ({{ attr.type.members | length }} values){% else %}`{{ attr.type }}`{% endif %} | {{ attr.stability }} | {{ attr.brief | replace('\n', ' ') | trim }} |
 {% endfor %}
 {% endfor %}

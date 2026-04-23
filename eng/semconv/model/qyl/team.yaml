@@ -2,14 +2,13 @@ groups:
   - id: registry.qyl.team
     type: attribute_group
     brief: 'Attributes identifying the owning team'
-    prefix: qyl.team
     attributes:
-      - id: id
+      - id: qyl.team.id
         type: string
         stability: experimental
         brief: 'Team identifier'
         examples: ['team_01hzv8x', 'platform-eng']
-      - id: name
+      - id: qyl.team.name
         type: string
         stability: experimental
         brief: 'Human-readable team name'

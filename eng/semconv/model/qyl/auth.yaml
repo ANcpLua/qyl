@@ -2,15 +2,15 @@ groups:
   - id: registry.qyl.auth
     type: attribute_group
     brief: 'Attributes for qyl authentication context on spans'
-    prefix: qyl
     attributes:
-      - id: keycloak.claims
+      - id: qyl.auth.keycloak_claims
         type: string
         stability: experimental
         brief: >
           Serialized Keycloak JWT claims attached to a request span.
           High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.
-      - id: instance_id
+        examples: ['{"sub":"user_abc","groups":["admin"]}']
+      - id: qyl.auth.instance_id
         type: string
         stability: experimental
         brief: 'Stable instance identifier for log correlation (typically hostname)'

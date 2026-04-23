@@ -2,9 +2,8 @@ groups:
   - id: registry.qyl.api_key
     type: attribute_group
     brief: 'Attributes for qyl API key tracking (masked for security)'
-    prefix: qyl.api_key
     attributes:
-      - id: id
+      - id: qyl.api_key.id
         type: string
         stability: experimental
         brief: >

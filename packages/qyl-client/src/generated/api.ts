@@ -1672,12 +1672,6 @@ export interface AggregationParams {
   filter?: string;
 }
 
-export interface QylAttrOptions {
-  cardinality?: unknown;
-  stability?: unknown;
-  required?: boolean;
-}
-
 export interface AgentRunEntity {
   runId: string;
   traceId: TraceId;
@@ -4154,14 +4148,6 @@ export interface ProfileStackRecord {
   profileId: string;
   ordinal: number;
   locationOrdinalsJson?: string;
-}
-
-export interface QylTelemetryRegistry {
-  storageSize: number;
-  droppedJobsTotal: number;
-  droppedSpansTotal: number;
-  keycloakClaims: string;
-  instanceId: string;
 }
 
 export interface TraceQuery {

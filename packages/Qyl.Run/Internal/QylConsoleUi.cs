@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
