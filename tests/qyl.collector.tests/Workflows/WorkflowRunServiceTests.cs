@@ -8,7 +8,7 @@ namespace Qyl.Collector.Tests.Workflows;
 
 public sealed class WorkflowRunServiceTests : IAsyncDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.duckdb");
+    private readonly string _dbPath = Path.ChangeExtension(Path.GetTempFileName(), ".duckdb");
     private readonly DuckDbStore _store;
     private readonly WorkflowRunService _service;
 
