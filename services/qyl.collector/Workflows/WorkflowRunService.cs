@@ -224,17 +224,21 @@ public sealed class WorkflowRunService(DuckDbStore store)
 
     public async Task<WorkflowRunEntity?> CancelRunAsync(string runId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_runs
-                          SET status = 'cancelled',
-                              completed_at = COALESCE(completed_at, $1)
-                          WHERE id = $2 AND status IN ('pending', 'running', 'paused')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(
+            async connection =>
+            {
+                await using var cmd = connection.CreateCommand();
+                cmd.CommandText = """
+                                  UPDATE workflow_runs
+                                  SET status = 'cancelled',
+                                      completed_at = COALESCE(completed_at, $1)
+                                  WHERE id = $2 AND status IN ('pending', 'running', 'paused')
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+                cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            },
+            ct).ConfigureAwait(false);
 
         return await GetRunAsync(runId, ct).ConfigureAwait(false);
     }
