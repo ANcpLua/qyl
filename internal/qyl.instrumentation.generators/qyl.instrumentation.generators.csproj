@@ -19,10 +19,23 @@
     <UseInterceptors>true</UseInterceptors>
     <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!--
+      Self-describe the Roslyn reference instead of letting ANcpLua.NET.Sdk/SourceGenerators.props
+      inject it via name-matching ("*generator*"). The SDK's implicit injection is fragile under
+      IDE language servers: if the LSP evaluates Sdk.props before Common.props imports have run,
+      Microsoft.CodeAnalysis.* disappears from the whole compilation even though `dotnet build` works.
+      Opting out below + an explicit PackageReference makes this project self-contained.
+    -->
+    <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
+    <!-- VersionOverride bypasses Directory.Packages.props CPM (the package isn't centrally listed). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"
+                      VersionOverride="5.0.0"
+                      PrivateAssets="all"/>
   </ItemGroup>
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
