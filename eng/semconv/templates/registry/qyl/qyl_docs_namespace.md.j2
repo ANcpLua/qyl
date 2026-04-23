@@ -10,7 +10,7 @@
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
 {% for attr in ctx.attributes | sort(attribute="name") %}
-| `{{ attr.name }}` | `{{ attr.type | string | replace('{', '') | replace('}', '') | truncate(20) }}` | {{ attr.stability }} | {{ attr.brief }} |
+| `{{ attr.name }}` | `{{ attr.type | string }}` | {{ attr.stability }} | {{ attr.brief }} |
 {% endfor %}
 
 > **Source:** `eng/semconv/model/qyl/{{ ctx.id | replace('registry.qyl.', '') }}.yaml`
