@@ -19,7 +19,7 @@ namespace Qyl.Common.Pagination
         ///<summary>
         /// List of items in this page
         ///</summary>
-        public Trace[] Items { get; set; }
+        public Qyl.OTel.Traces.Trace[] Items { get; set; }
 
         ///<summary>
         /// Cursor for the next page (null if no more pages)

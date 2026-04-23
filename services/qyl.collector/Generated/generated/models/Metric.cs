@@ -7,7 +7,6 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.Common;
-using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Metrics
 {
@@ -41,12 +40,12 @@ namespace Qyl.OTel.Metrics
         ///<summary>
         /// Metric metadata attributes
         ///</summary>
-        public Attribute[] Metadata { get; set; }
+        public OtelAttribute[] Metadata { get; set; }
 
         ///<summary>
         /// Resource describing the entity that produced this metric
         ///</summary>
-        public Resource Resource { get; set; }
+        public Qyl.OTel.Resource.Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope

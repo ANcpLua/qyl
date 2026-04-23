@@ -237,7 +237,7 @@ namespace Qyl.OTel.Resource
         ///<summary>
         /// Additional resource attributes
         ///</summary>
-        public Attribute[] Attributes { get; set; }
+        public OtelAttribute[] Attributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count

@@ -25,7 +25,7 @@ namespace Qyl.Api.Streaming
         ///<summary>
         /// Trace data
         ///</summary>
-        public Trace Data { get; set; }
+        public Qyl.OTel.Traces.Trace Data { get; set; }
 
         ///<summary>
         /// Event timestamp

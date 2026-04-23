@@ -20,7 +20,7 @@ namespace Qyl.Api
         /// New status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
-        public IssueStatus? Status { get; set; }
+        public Qyl.Domains.Issues.IssueStatus? Status { get; set; }
 
         ///<summary>
         /// New priority

@@ -203,7 +203,7 @@ public sealed class TokenAuthOptions
     ///     <see cref="HttpContext.Items" /> key under which validated Keycloak claims are stored.
     ///     Value is an <see cref="IReadOnlyDictionary{TKey,TValue}" /> of claim type → value.
     /// </summary>
-    public const string KeycloakClaimsKey = QylAttributes.KeycloakClaims;
+    public const string KeycloakClaimsKey = QylAttr.Auth.KeycloakClaims;
 
     /// <summary>
     ///     Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
