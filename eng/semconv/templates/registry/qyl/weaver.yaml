@@ -106,5 +106,5 @@ templates:
 
   - template: qyl_docs_namespace.md.j2
     filter: semconv_grouped_attributes
-    application_mode: each
-    file_name: "qyl.{{ctx.prefix | replace('.', '-')}}.md"
+    application_mode: single
+    file_name: "qyl.attrs.md"

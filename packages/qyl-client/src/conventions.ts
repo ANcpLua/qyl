@@ -2,50 +2,51 @@
 // Generated from eng/semconv/model/qyl/ via Weaver
 // Do not edit manually - run 'nuke GenerateSemconv'
 
-// qyl.api_key — Attributes for qyl API key tracking (masked for security)
+
+// qyl.api_key
 export const QYL_API_KEY_ID = "qyl.api_key.id";
 
-// qyl.capability — Attributes for qyl capability tracking on spans
+// qyl.capability
 export const QYL_CAPABILITY_ID = "qyl.capability.id";
 export const QYL_CAPABILITY_KIND = "qyl.capability.kind";
 
-// qyl.duckdb — Counters for qyl DuckDB write pipeline
+// qyl.duckdb
 export const QYL_DUCKDB_DROPPED_JOBS_TOTAL = "qyl.duckdb.dropped_jobs_total";
 export const QYL_DUCKDB_DROPPED_SPANS_TOTAL = "qyl.duckdb.dropped_spans_total";
 
-// qyl.fix_run — Attributes for qyl automated fix runs
+// qyl.fix_run
 export const QYL_FIX_RUN_ID = "qyl.fix_run.id";
 export const QYL_FIX_RUN_STATUS = "qyl.fix_run.status";
 export const QYL_FIX_RUN_TRIGGER = "qyl.fix_run.trigger";
 
-// qyl.instance_id — Stable instance identifier for log correlation
+// qyl.instance_id
 export const QYL_INSTANCE_ID = "qyl.instance_id";
 
-// qyl.issue — Attributes for qyl error issue tracking
+// qyl.issue
 export const QYL_ISSUE_ID = "qyl.issue.id";
 export const QYL_ISSUE_SEVERITY = "qyl.issue.severity";
 export const QYL_ISSUE_STATUS = "qyl.issue.status";
 
-// qyl.keycloak — Authentication context
+// qyl.keycloak
 export const QYL_KEYCLOAK_CLAIMS = "qyl.keycloak.claims";
 
-// qyl.project — Attributes identifying the qyl project scope
+// qyl.project
 export const QYL_PROJECT_ID = "qyl.project.id";
 export const QYL_PROJECT_NAME = "qyl.project.name";
 
-// qyl.run — Attributes for qyl agent run tracking
+// qyl.run
 export const QYL_RUN_ID = "qyl.run.id";
 export const QYL_RUN_KIND = "qyl.run.kind";
 export const QYL_RUN_STATUS = "qyl.run.status";
 
-// qyl.storage — Attributes for qyl DuckDB storage instrumentation
+// qyl.storage
 export const QYL_STORAGE_SIZE = "qyl.storage.size";
 
-// qyl.team — Attributes identifying the owning team
+// qyl.team
 export const QYL_TEAM_ID = "qyl.team.id";
 export const QYL_TEAM_NAME = "qyl.team.name";
 
-// qyl.triage — Attributes for qyl automated triage operations
+// qyl.triage
 export const QYL_TRIAGE_CATEGORY = "qyl.triage.category";
 export const QYL_TRIAGE_ID = "qyl.triage.id";
 export const QYL_TRIAGE_SCORE = "qyl.triage.score";

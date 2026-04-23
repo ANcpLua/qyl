@@ -75,9 +75,7 @@ mkdir -p "$(dirname "${CONVENTIONS_TS_DEST}")"
 install -m 0644 "${STAGING_QYL}/conventions.ts"     "${CONVENTIONS_TS_DEST}"
 
 mkdir -p "${DOCS_DEST}"
-for f in "${STAGING_QYL}"/qyl.*.md; do
-  [ -f "$f" ] && install -m 0644 "$f" "${DOCS_DEST}/$(basename "$f")"
-done
+[ -f "${STAGING_QYL}/qyl.attrs.md" ] && install -m 0644 "${STAGING_QYL}/qyl.attrs.md" "${DOCS_DEST}/qyl.attrs.md"
 
 echo ""
 echo "Wrote (upstream OTel pass):"
@@ -88,4 +86,4 @@ echo ""
 echo "Wrote (qyl attrs pass):"
 echo "  ${CS_DEST} ($(wc -l < "${CS_DEST}") lines)"
 echo "  ${CONVENTIONS_TS_DEST} ($(wc -l < "${CONVENTIONS_TS_DEST}") lines)"
-echo "  ${DOCS_DEST}/qyl.*.md ($(ls "${DOCS_DEST}"/qyl.*.md 2>/dev/null | wc -l) files)"
+echo "  ${DOCS_DEST}/qyl.attrs.md (exists: $([ -f "${DOCS_DEST}/qyl.attrs.md" ] && echo yes || echo no))"

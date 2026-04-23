@@ -7,25 +7,25 @@
 
 namespace QylAttr;
 
-/// <summary>Attributes for qyl authentication context on spans</summary>
-public static class Auth
+/// <summary>ApiKey attributes</summary>
+public static class ApiKey
 {
-    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.</summary>
-    public const string KeycloakClaims = "qyl.keycloak.claims";
-    /// <summary>Stable instance identifier for log correlation (typically hostname)</summary>
-    public const string InstanceId = "qyl.instance_id";
+    /// <summary>First 8 characters of the API key hash (sha256[:8]). Never log the full key. Used for audit trails only.
+</summary>
+    public const string Id = "qyl.api_key.id";
 }
 
-/// <summary>Attributes for qyl capability tracking on spans</summary>
+/// <summary>Capability attributes</summary>
 public static class Capability
 {
-    /// <summary>Unique capability identifier declared via [QylCapability] at compile time.</summary>
+    /// <summary>Unique capability identifier declared via [QylCapability] at compile time. Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
+</summary>
     public const string Id = "qyl.capability.id";
     /// <summary>Capability kind: Starting or FollowUp</summary>
     public const string Kind = "qyl.capability.kind";
 }
 
-/// <summary>Counters for qyl DuckDB write pipeline</summary>
+/// <summary>Duckdb attributes</summary>
 public static class Duckdb
 {
     /// <summary>Cumulative count of background write jobs dropped (back-pressure)</summary>
@@ -34,7 +34,7 @@ public static class Duckdb
     public const string DroppedSpansTotal = "qyl.duckdb.dropped_spans_total";
 }
 
-/// <summary>Attributes for qyl automated fix runs</summary>
+/// <summary>FixRun attributes</summary>
 public static class FixRun
 {
     /// <summary>Fix run identifier</summary>
@@ -45,7 +45,14 @@ public static class FixRun
     public const string Trigger = "qyl.fix_run.trigger";
 }
 
-/// <summary>Attributes for qyl error issue tracking</summary>
+/// <summary>Root attributes</summary>
+public static class Root
+{
+    /// <summary>Stable instance identifier for log correlation (typically hostname)</summary>
+    public const string InstanceId = "qyl.instance_id";
+}
+
+/// <summary>Issue attributes</summary>
 public static class Issue
 {
     /// <summary>Error issue identifier</summary>
@@ -56,7 +63,15 @@ public static class Issue
     public const string Status = "qyl.issue.status";
 }
 
-/// <summary>Attributes identifying the qyl project scope</summary>
+/// <summary>Keycloak attributes</summary>
+public static class Keycloak
+{
+    /// <summary>Serialized Keycloak JWT claims attached to a request span. High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.
+</summary>
+    public const string Claims = "qyl.keycloak.claims";
+}
+
+/// <summary>Project attributes</summary>
 public static class Project
 {
     /// <summary>Project identifier (UUID or slug)</summary>
@@ -65,7 +80,7 @@ public static class Project
     public const string Name = "qyl.project.name";
 }
 
-/// <summary>Attributes for qyl agent run tracking</summary>
+/// <summary>Run attributes</summary>
 public static class Run
 {
     /// <summary>Agent run identifier</summary>
@@ -76,14 +91,14 @@ public static class Run
     public const string Status = "qyl.run.status";
 }
 
-/// <summary>Attributes for qyl DuckDB storage instrumentation</summary>
+/// <summary>Storage attributes</summary>
 public static class Storage
 {
     /// <summary>Current DuckDB database file size in bytes</summary>
     public const string Size = "qyl.storage.size";
 }
 
-/// <summary>Attributes identifying the owning team</summary>
+/// <summary>Team attributes</summary>
 public static class Team
 {
     /// <summary>Team identifier</summary>
@@ -92,20 +107,13 @@ public static class Team
     public const string Name = "qyl.team.name";
 }
 
-/// <summary>Attributes for qyl automated triage operations</summary>
+/// <summary>Triage attributes</summary>
 public static class Triage
 {
+    /// <summary>Classified error category from triage analysis</summary>
+    public const string Category = "qyl.triage.category";
     /// <summary>Triage record identifier</summary>
     public const string Id = "qyl.triage.id";
     /// <summary>Triage priority score (0.0 = lowest, 1.0 = highest)</summary>
     public const string Score = "qyl.triage.score";
-    /// <summary>Classified error category from triage analysis</summary>
-    public const string Category = "qyl.triage.category";
-}
-
-/// <summary>Attributes for qyl API key tracking (masked for security)</summary>
-public static class ApiKey
-{
-    /// <summary>First 8 characters of the API key hash (sha256[:8]). Never log the full key.</summary>
-    public const string Id = "qyl.api_key.id";
 }
