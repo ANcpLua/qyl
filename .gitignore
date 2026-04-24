@@ -166,3 +166,5 @@ images/
 .tools/weaver/
 # Weaver output scratchpad
 eng/semconv/out/
+.DS_Store
+*.bak
