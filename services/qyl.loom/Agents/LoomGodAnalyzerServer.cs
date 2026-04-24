@@ -7,7 +7,7 @@ using ModelContextProtocol.Server;
 namespace Qyl.Loom.Agents;
 
 /// <summary>
-///     Seer-grade MCP surface for qyl Loom. Exposes three tools — issue insight,
+///     Primary MCP surface for qyl Loom. Exposes three tools — issue insight,
 ///     autofix launch, pull-request review — backed by qyl collector services.
 ///     Tool dispatch, schema generation, and protocol handling come from the
 ///     official MCP C# SDK; this type only carries attributes and business logic.

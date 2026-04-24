@@ -9,8 +9,8 @@ namespace Qyl.Loom.Autofix.Workflow.Executors;
 /// <summary>
 ///     Fan-out sidecar: runs the impact-assessment prompt against the RCA output and persists the result
 ///     as an autofix_steps row. Advisory only — downstream executors do not read <c>state.Impact</c>; the
-///     dashboard surfaces it alongside the other steps. Matches the shape of Seer's "augment the issue
-///     alert with a helpful analysis about the problem" feature.
+///     dashboard surfaces it alongside the other steps. Augments the issue record with a blast-radius
+///     analysis (services, user-visible impact, severity) so operators can triage without re-running RCA.
 /// </summary>
 internal sealed class ImpactExecutor(CollectorClient collector, IChatClient llm)
     : AutofixPipelineExecutor("autofix.impact", stepNumber: 6, stepName: "impact_assessment", collector)

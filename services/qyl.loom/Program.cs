@@ -5,6 +5,8 @@ using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
+using Qyl.Loom.Workflows;
+using Qyl.Loom.Workflows.Prompts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,8 +60,14 @@ builder.Services
     .AddMcpServer()
     .WithHttpTransport()
     .WithTools<LoomGodAnalyzerServer>()
+    .WithTools<LoomWorkflowTools>()
     .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>()
-    .WithPrompts<Qyl.Loom.Autofix.LoomHandoffPrompts>();
+    .WithPrompts<Qyl.Loom.Autofix.LoomHandoffPrompts>()
+    .WithPrompts<LoomRouterPrompt>()
+    .WithPrompts<OnboardingPrompts>()
+    .WithPrompts<AiMonitoringPrompts>()
+    .WithPrompts<FixIssuePrompts>()
+    .WithPrompts<ReviewBotPrompts>();
 
 var app = builder.Build();
 
