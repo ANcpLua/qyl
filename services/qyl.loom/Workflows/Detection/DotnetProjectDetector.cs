@@ -33,12 +33,27 @@ public static partial class DotnetProjectDetector
     ///     Classify <paramref name="repoRoot" />. Returns a <see cref="DotnetProjectEvidence" />
     ///     with <see cref="DotnetFramework.Unknown" /> if no <c>*.csproj</c> was found; never throws.
     /// </summary>
+    /// <remarks>
+    ///     Path hardening: <paramref name="repoRoot" /> is normalised via
+    ///     <see cref="Path.GetFullPath(string)" /> before any IO, so caller-supplied
+    ///     <c>..</c> segments collapse into an absolute path. The detector never reads
+    ///     outside the normalised root except for <see cref="DetectSiblingFrontends" />
+    ///     which deliberately walks one directory up (scoped to a name allowlist).
+    ///     Reparse points (symlinks, junctions) are skipped so a hostile repo cannot
+    ///     escape via a link loop.
+    /// </remarks>
     public static DotnetProjectEvidence Detect(string repoRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repoRoot);
 
-        if (!Directory.Exists(repoRoot))
-            return Empty(repoRoot, notes: ["Repo root does not exist."]);
+        var normalised = Path.GetFullPath(repoRoot);
+        if (!Directory.Exists(normalised))
+            return Empty(normalised, notes: ["Repo root does not exist."]);
+
+        if (IsReparsePoint(normalised))
+            return Empty(normalised, notes: ["Repo root is a symlink / junction — refusing to scan to avoid loops."]);
+
+        repoRoot = normalised;
 
         var projectFiles = FindProjectFiles(repoRoot);
         if (projectFiles.Length is 0)
@@ -361,6 +376,8 @@ public static partial class DotnetProjectDetector
         return builder.ToImmutable();
     }
 
+    private const long MaxBackgroundServiceScanFileBytes = 1024 * 1024; // 1 MiB — any .cs file bigger is not a BackgroundService declaration.
+
     private static bool HasBackgroundServiceFile(string projectDir)
     {
         if (!Directory.Exists(projectDir)) return false;
@@ -374,6 +391,14 @@ public static partial class DotnetProjectDetector
                 {
                     continue;
                 }
+
+                FileInfo info;
+                try { info = new FileInfo(path); }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+
+                if (info.Length > MaxBackgroundServiceScanFileBytes) continue;
+                if ((info.Attributes & FileAttributes.ReparsePoint) != 0) continue;
 
                 string text;
                 try { text = File.ReadAllText(path); }
@@ -540,6 +565,16 @@ public static partial class DotnetProjectDetector
         var start = idx + needle.Length;
         var end = xml.IndexOf('"', start);
         return end > start ? xml.AsSpan(start, end - start).ToString() : "";
+    }
+
+    private static bool IsReparsePoint(string path)
+    {
+        try
+        {
+            return (new DirectoryInfo(path).Attributes & FileAttributes.ReparsePoint) != 0;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     private static string ExtractXmlValue(string xml, string tagName)
