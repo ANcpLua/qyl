@@ -5,7 +5,7 @@ groups:
     attributes:
       - id: qyl.capability.id
         type: string
-        stability: experimental
+        stability: development
         brief: >
           Unique capability identifier declared via [QylCapability] at compile time.
           Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
@@ -15,11 +15,11 @@ groups:
           members:
             - id: starting
               value: 'Starting'
-              stability: experimental
+              stability: development
               brief: 'Entry-point capability in a workflow'
             - id: follow_up
               value: 'FollowUp'
-              stability: experimental
+              stability: development
               brief: 'Capability that follows another in a workflow'
-        stability: experimental
+        stability: development
         brief: 'Capability kind: Starting or FollowUp'

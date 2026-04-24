@@ -1,6 +1,6 @@
 # Weaver template config for Qyl.OpenTelemetry.SemanticConventions.Incubating.
 # Outputs one .g.cs per root_namespace, plus SchemaUrl.g.cs and SchemaVersion.g.cs.
-# Stability filter: development + experimental only (stable → Stable package).
+# Stability filter: development only (stable → Stable package).
 
 whitespace_control:
   trim_blocks: true

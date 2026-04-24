@@ -5,7 +5,7 @@ groups:
     attributes:
       - id: qyl.fix_run.id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Fix run identifier'
         examples: ['fixrun_01hzv8x']
       - id: qyl.fix_run.status
@@ -13,36 +13,36 @@ groups:
           members:
             - id: pending
               value: 'pending'
-              stability: experimental
+              stability: development
               brief: 'Fix run is queued'
             - id: running
               value: 'running'
-              stability: experimental
+              stability: development
               brief: 'Fix run is in progress'
             - id: succeeded
               value: 'succeeded'
-              stability: experimental
+              stability: development
               brief: 'Fix applied and verified'
             - id: failed
               value: 'failed'
-              stability: experimental
+              stability: development
               brief: 'Fix attempt failed'
             - id: rejected
               value: 'rejected'
-              stability: experimental
+              stability: development
               brief: 'Fix was rejected by reviewer'
-        stability: experimental
+        stability: development
         brief: 'Current status of the fix run'
       - id: qyl.fix_run.trigger
         type:
           members:
             - id: manual
               value: 'manual'
-              stability: experimental
+              stability: development
               brief: 'Manually triggered by a user'
             - id: automatic
               value: 'automatic'
-              stability: experimental
+              stability: development
               brief: 'Triggered automatically by a diagnostic rule'
-        stability: experimental
+        stability: development
         brief: 'What initiated this fix run'

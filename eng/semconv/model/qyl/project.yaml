@@ -5,11 +5,11 @@ groups:
     attributes:
       - id: qyl.project.id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Project identifier (UUID or slug)'
         examples: ['proj_01hzv8x', 'my-service']
       - id: qyl.project.name
         type: string
-        stability: experimental
+        stability: development
         brief: 'Human-readable project name'
         examples: ['My Service', 'qyl collector']

@@ -5,11 +5,11 @@ groups:
     attributes:
       - id: qyl.team.id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Team identifier'
         examples: ['team_01hzv8x', 'platform-eng']
       - id: qyl.team.name
         type: string
-        stability: experimental
+        stability: development
         brief: 'Human-readable team name'
         examples: ['Platform Engineering', 'Backend']

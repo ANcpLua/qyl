@@ -5,7 +5,7 @@ groups:
     attributes:
       - id: qyl.issue.id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Error issue identifier'
         examples: ['issue_01hzv8x']
       - id: qyl.issue.severity
@@ -13,36 +13,36 @@ groups:
           members:
             - id: low
               value: 'low'
-              stability: experimental
+              stability: development
               brief: 'Low severity — cosmetic or rare impact'
             - id: medium
               value: 'medium'
-              stability: experimental
+              stability: development
               brief: 'Medium severity — notable but not blocking'
             - id: high
               value: 'high'
-              stability: experimental
+              stability: development
               brief: 'High severity — significant user impact'
             - id: critical
               value: 'critical'
-              stability: experimental
+              stability: development
               brief: 'Critical severity — service-breaking'
-        stability: experimental
+        stability: development
         brief: 'Issue severity level'
       - id: qyl.issue.status
         type:
           members:
             - id: open
               value: 'open'
-              stability: experimental
+              stability: development
               brief: 'Issue is active and unresolved'
             - id: resolved
               value: 'resolved'
-              stability: experimental
+              stability: development
               brief: 'Issue has been fixed'
             - id: ignored
               value: 'ignored'
-              stability: experimental
+              stability: development
               brief: 'Issue has been acknowledged and dismissed'
-        stability: experimental
+        stability: development
         brief: 'Current resolution status'

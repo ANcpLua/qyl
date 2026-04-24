@@ -1,6 +1,6 @@
 # Weaver template config for Qyl.OpenTelemetry.SemanticConventions (stable attrs only).
 # Outputs one .g.cs per root_namespace, plus SchemaUrl.g.cs and SchemaVersion.g.cs.
-# Stability filter: stability == "stable" only (development + experimental → Incubating package).
+# Stability filter: stability == "stable" only (development → Incubating package).
 #
 # Discovered invariants (do not change without re-testing):
 #   - semconv_grouped_attributes returns one synthetic group per root_namespace (Weaver aggregates).

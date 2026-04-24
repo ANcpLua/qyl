@@ -5,15 +5,15 @@ groups:
     attributes:
       - id: qyl.triage.id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Triage record identifier'
         examples: ['triage_01hzv8x']
       - id: qyl.triage.score
         type: double
-        stability: experimental
+        stability: development
         brief: 'Triage priority score (0.0 = lowest, 1.0 = highest)'
       - id: qyl.triage.category
         type: string
-        stability: experimental
+        stability: development
         brief: 'Classified error category from triage analysis'
         examples: ['null_reference', 'timeout', 'auth_failure']

@@ -5,13 +5,13 @@ groups:
     attributes:
       - id: qyl.auth.keycloak_claims
         type: string
-        stability: experimental
+        stability: development
         brief: >
           Serialized Keycloak JWT claims attached to a request span.
           High-cardinality — only emit when ENABLE_SENSITIVE_DATA is set.
         examples: ['{"sub":"user_abc","groups":["admin"]}']
       - id: qyl.auth.instance_id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Stable instance identifier for log correlation (typically hostname)'
         examples: ['qyl-collector-1', 'qyl-loom-prod-7']
