@@ -101,7 +101,7 @@ public static class LoomWorkflowRouter
             return Clarify(
                 "I need a starting point. Is this about: (1) fixing a live production issue, " +
                 "(2) resolving qyl review-bot PR comments, (3) installing a .NET telemetry SDK, " +
-                "or (4) configuring AI/LLM monitoring?");
+                "(4) configuring AI/LLM monitoring, or (5) running the headless autofix pipeline?");
         }
 
         var normalized = userRequest.ToLowerInvariant();
@@ -139,7 +139,8 @@ public static class LoomWorkflowRouter
             return Clarify(
                 "I can't tell which Loom workflow you want. Is this about: " +
                 "(1) fixing a live production issue, (2) resolving qyl review-bot PR comments, " +
-                "(3) installing a .NET telemetry SDK, or (4) configuring AI/LLM monitoring?");
+                "(3) installing a .NET telemetry SDK, (4) configuring AI/LLM monitoring, " +
+                "or (5) running the headless autofix pipeline?");
         }
 
         if (hits == 1)
