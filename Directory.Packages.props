@@ -33,6 +33,10 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
+
+
+
+
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)"/>
@@ -65,8 +69,15 @@
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Testing" Version="$(ANcpLuaAgentsTestingVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
-    <!-- Microsoft.Agents.AI -->
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsHostingVersion)"/>
+    <!-- Microsoft.Agents.AI (MAF 1.2) -->
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsAIDevUIVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="$(MicrosoftAgentsAIWorkflowsDeclarativeVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsAIAbstractionsVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsAIWorkflowsVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(MicrosoftAgentsAIOpenAIVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(MicrosoftAgentsAIHostingAGUIAspNetCoreVersion)"/>
     <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- OpenAI -->

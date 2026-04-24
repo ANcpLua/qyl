@@ -20,7 +20,21 @@
     <ANcpLuaAnalyzersVersion>1.26.5</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.4.0-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.4.0</ANcpLuaAgentsVersion>
-    <MicrosoftAgentsHostingVersion>1.0.0-preview.260402.1</MicrosoftAgentsHostingVersion>
+    <!-- MAF 1.2 — stable for core/abstractions/workflows/foundry/openai, preview for hosting/devui/agui/anthropic/a2a, rc1 for declarative/purview -->
+    <MicrosoftAgentsAIVersion>1.2.0</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIAbstractionsVersion>1.2.0</MicrosoftAgentsAIAbstractionsVersion>
+    <MicrosoftAgentsAIWorkflowsVersion>1.2.0</MicrosoftAgentsAIWorkflowsVersion>
+    <MicrosoftAgentsAIOpenAIVersion>1.2.0</MicrosoftAgentsAIOpenAIVersion>
+    <MicrosoftAgentsAIFoundryVersion>1.2.0</MicrosoftAgentsAIFoundryVersion>
+    <MicrosoftAgentsAIHostingVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIDevUIVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIDevUIVersion>
+    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
+    <MicrosoftAgentsAIAnthropicVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIAnthropicVersion>
+    <MicrosoftAgentsAIA2AVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIA2AVersion>
+    <MicrosoftAgentsAIFoundryHostingVersion>1.2.0-preview.260421.1</MicrosoftAgentsAIFoundryHostingVersion>
+    <MicrosoftAgentsAIWorkflowsDeclarativeVersion>1.2.0-rc1</MicrosoftAgentsAIWorkflowsDeclarativeVersion>
+
+
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.10.0</SystemClientModelVersion>
     <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>
