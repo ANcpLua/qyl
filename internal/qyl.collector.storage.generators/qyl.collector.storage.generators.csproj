@@ -17,10 +17,14 @@
 
     <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- self-describe the Roslyn reference; SDK name-matching injection is fragile under IDE LSPs -->
+    <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="5.3.0" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>
