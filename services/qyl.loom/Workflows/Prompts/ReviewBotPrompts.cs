@@ -6,17 +6,16 @@ using ModelContextProtocol.Server;
 namespace Qyl.Loom.Workflows.Prompts;
 
 /// <summary>
-///     MCP prompt for reviewing and resolving review-bot (<c>sentry[bot]</c>,
-///     <c>seer-by-sentry[bot]</c>) comments on GitHub pull requests. Encodes the exact
-///     parsing contract so the caller can filter / verify / fix each comment
-///     deterministically, without guessing.
+///     MCP prompt for reviewing and resolving qyl review-bot comments on GitHub pull
+///     requests. Encodes the parsing contract so the caller can filter, verify, and fix
+///     each comment deterministically.
 /// </summary>
 [McpServerPromptType]
 internal sealed class ReviewBotPrompts
 {
     [McpServerPrompt(Name = "qyl.loom.review_bot_pr",
-        Title = "Review sentry[bot] / seer-by-sentry[bot] PR comments")]
-    [Description("Processes review-bot PR comments. Caller provides the pre-parsed summary (from loom_parse_review_bot_comments).")]
+        Title = "Review qyl review-bot PR comments")]
+    [Description("Processes qyl review-bot PR comments. Caller provides the pre-parsed summary from loom_parse_review_bot_comments.")]
     public static string ReviewBotPr(
         [Description("GitHub repo in owner/repo format.")]
         string repoFullName,
@@ -28,10 +27,11 @@ internal sealed class ReviewBotPrompts
           You are driving Loom's **review-bot PR** workflow on `{{repoFullName}}#{{prNumber}}`.
 
           ## Scope
-          - **Only process comments authored by Sentry-family review bots.** Bot logins Loom
-            treats as review bots: `sentry[bot]`, `sentry-io[bot]`, `seer-by-sentry[bot]`, plus
-            any login starting with `sentry` or `seer-by-sentry`. Silently skip every other bot
-            (`cursor[bot]`, `dependabot[bot]`, `copilot[bot]`, etc.).
+          - **Only process comments authored by qyl review bots.** Default logins:
+            `qyl[bot]`, `qyl-review[bot]`, plus any login starting with `qyl` (case-insensitive).
+            Additional bot logins can be passed to the parser when processing PRs that also
+            carry comments from foreign review bots. Silently skip every other author
+            (`cursor[bot]`, `dependabot[bot]`, `copilot[bot]`, human reviewers).
           - Pre-parsed comment batch follows. Use it as the source of truth — Loom's parser
             already stripped HTML, extracted severity/confidence, and separated the
             <i>Detailed Analysis</i>, <i>Suggested Fix</i>, and <i>Prompt for AI Agent</i> sections.
@@ -48,7 +48,7 @@ internal sealed class ReviewBotPrompts
           - Read the referenced file at the referenced line.
           - Confirm the problematic code is still present — the PR may have been pushed again
             and already fixed the issue. Mark those "skipped (already fixed)" and move on.
-          - If the line number is null (Seer file-level comment), scan the file for the pattern
+          - If the line number is null (file-level comment), scan the file for the pattern
             the Detailed Analysis describes.
 
           ### 2. Classify by severity + confidence

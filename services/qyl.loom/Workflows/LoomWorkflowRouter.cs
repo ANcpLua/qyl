@@ -28,10 +28,9 @@ public static class LoomWorkflowRouter
 
     private static readonly string[] BotReviewTokens =
     [
-        "sentry[bot]", "seer-by-sentry[bot]", "sentry-io[bot]", "seer review",
-        "sentry bot", "seer bot", "bot comment", "pr comment", "pr comments",
-        "review comments", "address sentry review", "resolve sentry findings",
-        "sentry feedback", "seer feedback", "@sentry review",
+        "qyl[bot]", "qyl-review[bot]", "qyl review bot", "qyl bot comment",
+        "bot comment", "pr comment", "pr comments", "review comments",
+        "address qyl review", "resolve qyl findings", "qyl feedback", "@qyl review",
     ];
 
     private static readonly string[] SdkSetupTokens =
@@ -93,7 +92,7 @@ public static class LoomWorkflowRouter
         {
             return Clarify(
                 "I need a starting point. Is this about: (1) fixing a live production issue, " +
-                "(2) resolving review-bot PR comments, (3) installing the Sentry .NET SDK, " +
+                "(2) resolving qyl review-bot PR comments, (3) installing a .NET telemetry SDK, " +
                 "or (4) configuring AI/LLM monitoring?");
         }
 
@@ -113,8 +112,8 @@ public static class LoomWorkflowRouter
         {
             return Clarify(
                 "I can't tell which Loom workflow you want. Is this about: " +
-                "(1) fixing a live production issue, (2) resolving review-bot PR comments, " +
-                "(3) installing the Sentry .NET SDK, or (4) configuring AI/LLM monitoring?");
+                "(1) fixing a live production issue, (2) resolving qyl review-bot PR comments, " +
+                "(3) installing a .NET telemetry SDK, or (4) configuring AI/LLM monitoring?");
         }
 
         if (hits == 1)

@@ -3,8 +3,8 @@
 namespace Qyl.Loom.Workflows.ReviewBot;
 
 /// <summary>
-///     A single parsed review-bot comment. Field shape mirrors the markdown body posted by
-///     <c>sentry[bot]</c> and <c>seer-by-sentry[bot]</c> on GitHub pull requests:
+///     A single parsed review-bot comment. Field shape matches qyl's review-bot markdown
+///     body on GitHub pull requests:
 ///     <list type="bullet">
 ///         <item><c>**Bug:** [Issue description]</c></item>
 ///         <item><c>&lt;sub&gt;Severity: X | Confidence: X.XX&lt;/sub&gt;</c></item>
@@ -16,13 +16,13 @@ namespace Qyl.Loom.Workflows.ReviewBot;
 /// </summary>
 public sealed record ReviewBotComment
 {
-    /// <summary>Bot author login (e.g. <c>sentry[bot]</c>, <c>seer-by-sentry[bot]</c>).</summary>
+    /// <summary>Bot author login (e.g. <c>qyl[bot]</c>, <c>qyl-review[bot]</c>).</summary>
     public required string Author { get; init; }
 
     /// <summary>Source file path from the comment metadata. Repo-relative.</summary>
     public required string File { get; init; }
 
-    /// <summary>Line number (nullable — Seer emits file-level comments too).</summary>
+    /// <summary>Line number (nullable — review bots emit file-level comments too).</summary>
     public required int? Line { get; init; }
 
     /// <summary>Header <c>**Bug:**</c> text, trimmed. Empty if the body did not carry one.</summary>

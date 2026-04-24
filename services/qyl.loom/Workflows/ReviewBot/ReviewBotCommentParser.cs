@@ -6,16 +6,16 @@ using System.Text.RegularExpressions;
 namespace Qyl.Loom.Workflows.ReviewBot;
 
 /// <summary>
-///     Deterministic parser for <c>sentry[bot]</c> and <c>seer-by-sentry[bot]</c> PR review
-///     comments. Only processes comments whose author login starts with <c>sentry</c> or
-///     matches <c>seer-by-sentry[bot]</c>.
+///     Deterministic parser for qyl review-bot PR comments. Defaults to qyl's own bot
+///     logins; callers can pass additional bot logins via <see cref="Parse" /> when
+///     processing a PR that also carries comments from foreign review bots.
 /// </summary>
 /// <remarks>
-///     <para>Pure — no IO, no LLM, no Sentry SDK. Input is an already-fetched list of
-///     GitHub review comments (author / file / line / body). Output is a structured batch
-///     ready for either direct LLM consumption or deterministic triage.</para>
-///     <para>Unknown comment shapes are preserved best-effort: missing sections resolve to
-///     empty strings rather than exceptions, so a partial match still yields actionable data.</para>
+///     <para>Pure — no IO, no LLM. Input is an already-fetched list of GitHub review
+///     comments (author / file / line / body). Output is a structured batch ready for
+///     direct LLM consumption or deterministic triage.</para>
+///     <para>Unknown comment shapes resolve to empty strings rather than exceptions, so a
+///     partial match still yields actionable data.</para>
 /// </remarks>
 public static partial class ReviewBotCommentParser
 {
@@ -38,41 +38,43 @@ public static partial class ReviewBotCommentParser
     private static partial Regex CollapseSpaceRegex();
 
     /// <summary>
-    ///     Bot author logins Loom treats as review-bot comments. Case-insensitive match.
+    ///     Default bot author logins qyl treats as review bots. Case-insensitive. Callers
+    ///     that also want to process foreign review bots (Sentry, Seer, etc.) pass the
+    ///     extra logins to <see cref="Parse" /> / <see cref="IsReviewBot" />.
     /// </summary>
     public static readonly ImmutableArray<string> KnownBotLogins =
     [
-        "sentry[bot]",
-        "sentry-io[bot]",
-        "seer-by-sentry[bot]",
+        "qyl[bot]",
+        "qyl-review[bot]",
     ];
 
     /// <summary>
-    ///     True when <paramref name="login" /> is a review bot. Case-insensitive. The
-    ///     <c>startswith("sentry")</c> rule is intentionally broader than the exact-match
-    ///     list to tolerate bot-login evolution.
+    ///     True when <paramref name="login" /> matches a qyl review bot. Case-insensitive.
+    ///     Additional logins accepted via <paramref name="additionalBotLogins" />.
     /// </summary>
-    public static bool IsReviewBot(string? login)
+    public static bool IsReviewBot(string? login, IReadOnlyCollection<string>? additionalBotLogins = null)
     {
         if (string.IsNullOrWhiteSpace(login)) return false;
         if (KnownBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase)) return true;
-        return login.StartsWith("sentry", StringComparison.OrdinalIgnoreCase) ||
-               login.StartsWith("seer-by-sentry", StringComparison.OrdinalIgnoreCase);
+        if (additionalBotLogins is not null &&
+            additionalBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase)) return true;
+        return login.StartsWith("qyl", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    ///     Parse a batch of raw GitHub review comments. Non-review-bot authors are silently
-    ///     dropped (NOT errors — PRs often have <c>cursor[bot]</c>, <c>dependabot[bot]</c>,
-    ///     etc. alongside).
+    ///     Parse a batch of raw GitHub review comments. Authors not matching a qyl review
+    ///     bot (or <paramref name="additionalBotLogins" />) are silently dropped.
     /// </summary>
-    public static ImmutableArray<ReviewBotComment> Parse(IEnumerable<ReviewBotRawComment> comments)
+    public static ImmutableArray<ReviewBotComment> Parse(
+        IEnumerable<ReviewBotRawComment> comments,
+        IReadOnlyCollection<string>? additionalBotLogins = null)
     {
         ArgumentNullException.ThrowIfNull(comments);
 
         var builder = ImmutableArray.CreateBuilder<ReviewBotComment>();
         foreach (var raw in comments)
         {
-            if (!IsReviewBot(raw.Author)) continue;
+            if (!IsReviewBot(raw.Author, additionalBotLogins)) continue;
             builder.Add(ParseOne(raw));
         }
 

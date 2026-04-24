@@ -23,7 +23,7 @@ public sealed class LoomWorkflowTools
     public static LoomRouteDecision Route(
         [Description("User request in natural language.")] string userRequest,
         [Description("Optional PR number when caller is on a specific PR.")] int? pullRequestNumber = null,
-        [Description("Optional review-bot author login (e.g. 'sentry[bot]', 'seer-by-sentry[bot]').")] string? reviewBotAuthor = null,
+        [Description("Optional review-bot author login (e.g. 'qyl[bot]', 'qyl-review[bot]').")] string? reviewBotAuthor = null,
         [Description("Optional issue id when caller is on a specific issue.")] string? issueId = null)
     {
         var signals = new LoomRouteSignals
@@ -44,9 +44,9 @@ public sealed class LoomWorkflowTools
 
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Parse a JSON array of GitHub PR review comments. Filters to Sentry/Seer bots; returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
+    [Description("Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default; returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
     public static LoomReviewBotParseResult ParseReviewBotComments(
-        [Description("JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-Sentry bots are silently dropped.")]
+        [Description("JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless passed in additionalBotLogins.")]
         string commentsJson)
     {
         ArgumentException.ThrowIfNullOrEmpty(commentsJson);

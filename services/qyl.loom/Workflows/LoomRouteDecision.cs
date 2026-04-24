@@ -51,7 +51,7 @@ public sealed record LoomRouteSignals
     /// <summary>Pull request number, when the caller is already on a PR.</summary>
     public int? PullRequestNumber { get; init; }
 
-    /// <summary>Review-bot author login (e.g. <c>sentry[bot]</c>, <c>seer-by-sentry[bot]</c>).</summary>
+    /// <summary>Review-bot author login (e.g. <c>qyl[bot]</c>, <c>qyl-review[bot]</c>).</summary>
     public string? ReviewBotAuthor { get; init; }
 
     /// <summary>Issue id when the caller is already looking at an issue in qyl.</summary>
