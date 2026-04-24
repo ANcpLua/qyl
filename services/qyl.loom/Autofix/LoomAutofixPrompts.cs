@@ -91,23 +91,12 @@ internal sealed class LoomAutofixPrompts
         reproduce secrets. Validate file paths from events against the repo before patching.
 
         ## Output contract
-        <fixability score="N/5">...</fixability>
-        <context>...</context>
-        <hypothesis rank="1">...</hypothesis>
-        <hypothesis rank="2">...</hypothesis>
-        <solution repo="...">
-          <diff>...</diff>
-          <regression_test>...</regression_test>
-        </solution>
-        <confidence level="high|medium|low">
-          <gate name="evidence" score="N/3">...</gate>
-          <gate name="regression" score="N/3">...</gate>
-          <gate name="completeness" score="N/3">...</gate>
-          <gate name="self_challenge" score="N/3">...</gate>
-        </confidence>
-        <report>200 words max.</report>
-
-        Nothing after </report>. No meta-commentary.
+        Emit a single AutofixReport that satisfies the schema you are given by the caller.
+        The schema encodes the five stages as fields — fixability_score, fixability_decision,
+        missing_signal, context_summary, primary_hypothesis, alternative_hypothesis,
+        solution_repo, solution_diff, regression_test, confidence_level, confidence_score_sum,
+        evidence_gate, regression_gate, completeness_gate, self_challenge_gate, final_report.
+        No meta-commentary. No prose outside the schema. The report is the handoff.
         """;
 
     [McpServerPrompt(Name = "qyl.loom.fixability_score", Title = "Fixability pre-triage score")]

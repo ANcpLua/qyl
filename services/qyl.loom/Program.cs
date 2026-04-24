@@ -42,6 +42,7 @@ builder.Services.AddHttpClient("GitHub", client =>
 // RegressionDetectionService auto-register via [QylHostedService] through the
 // generator's QylGeneratedRegistry.RegisterQylHostedServices hook.
 builder.Services.AddSingleton<AutofixOrchestrator>();
+builder.Services.AddSingleton<Qyl.Loom.Autofix.LoomAutofixRunner>();
 
 // Exploration (interactive investigation)
 builder.Services.AddSingleton<ExplorationContextBuilder>();
