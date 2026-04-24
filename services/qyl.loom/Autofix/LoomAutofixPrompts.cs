@@ -11,10 +11,14 @@ namespace Qyl.Loom.Autofix;
 ///     undocumented <c>/v1/automation/autofix/start</c> agent.
 /// </summary>
 /// <remarks>
-///     <see cref="SystemPrompt" /> is a <c>const</c> agent directive consumed internally via
-///     <c>ChatOptions.Instructions</c> — not surfaced in <c>prompts/list</c>. The three MCP
-///     prompts on this type (fixability score, collaborate, setup check) are fetchable by
-///     external agents that want to drive the pipeline themselves.
+///     <see cref="SystemPrompt" /> is the agent directive the in-process runner loads via
+///     <c>ChatOptions.Instructions</c>. The same text is also surfaced as the MCP prompt
+///     <c>qyl.loom.autofix_system</c> (see <see cref="AutofixSystem" />) so external agents
+///     that drive the pipeline themselves — or the workflow router when it points at
+///     <c>PromptIds.Autofix</c> — can retrieve the identical contract. The other three
+///     prompts on this type are narrower-scoped aids: <see cref="FixabilityScore" /> for
+///     pre-triage only, <see cref="AutofixCollaborate" /> for mid-run peer feedback,
+///     <see cref="AutofixSetupCheck" /> for repo/scope pre-flight.
 /// </remarks>
 [McpServerPromptType]
 internal sealed class LoomAutofixPrompts
@@ -98,6 +102,10 @@ internal sealed class LoomAutofixPrompts
         evidence_gate, regression_gate, completeness_gate, self_challenge_gate, final_report.
         No meta-commentary. No prose outside the schema. The report is the handoff.
         """;
+
+    [McpServerPrompt(Name = "qyl.loom.autofix_system", Title = "Autofix five-stage agent directive")]
+    [Description("Full system prompt the headless autofix runner loads into ChatOptions.Instructions — the five-stage contract (fixability → context → root cause → solution → confidence), the security posture, and the output contract. External agents that drive their own autofix loop should fetch this to stay contract-compatible with LoomAutofixRunner.")]
+    public static string AutofixSystem() => SystemPrompt;
 
     [McpServerPrompt(Name = "qyl.loom.fixability_score", Title = "Fixability pre-triage score")]
     [Description("Standalone Stage-1 scoring rubric — decide whether an issue warrants the full autofix pipeline without running it.")]
