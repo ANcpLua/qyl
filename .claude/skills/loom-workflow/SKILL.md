@@ -1,20 +1,21 @@
 ---
 name: loom-workflow
-description: Route a user request across the four Loom workflow shapes (fix production issue, review sentry[bot]/seer-by-sentry[bot] PR comments, set up Sentry .NET SDK, set up AI monitoring). Use when the user mentions Sentry, seer, production errors, PR bot feedback, or setting up error/tracing/profiling/logging/metrics/crons/AI-monitoring in a .NET project. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
+description: Route a user request across the five Loom workflow shapes (fix production issue, review sentry[bot]/seer-by-sentry[bot] PR comments, set up Sentry .NET SDK, set up AI monitoring, run headless autofix pipeline). Use when the user mentions Sentry, seer, production errors, PR bot feedback, setting up error/tracing/profiling/logging/metrics/crons/AI-monitoring in a .NET project, or asking Loom to auto-generate a fix diff. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
 ---
 
-# loom-workflow — Router across Loom's four workflow shapes
+# loom-workflow — Router across Loom's five workflow shapes
 
-Loom (`services/qyl.loom`) exposes a deterministic workflow router over MCP that dispatches user requests to one of four specialised workflow skills. This skill is the entry point.
+Loom (`services/qyl.loom`) exposes a deterministic workflow router over MCP that dispatches user requests to one of five specialised workflow skills. This skill is the entry point.
 
 ## Invoke this skill when
 - The user mentions fixing Sentry / qyl errors, debugging production bugs, or investigating exceptions.
 - The user mentions `qyl[bot]`, `qyl-review[bot]`, or "review PR comments".
 - The user asks to install / configure Sentry in a .NET project (error monitoring, tracing, profiling, logging, metrics, crons).
 - The user asks to monitor LLM / OpenAI / Anthropic / `gen_ai` calls.
-- You are unsure which of the four workflows applies — **always route first, do not guess**.
+- The user asks Loom to auto-generate a fix diff / run the headless autofix pipeline on an issue.
+- You are unsure which of the five workflows applies — **always route first, do not guess**.
 
-## The four workflows this router dispatches to
+## The five workflows this router dispatches to
 
 | Workflow | Next skill | When |
 |---|---|---|
@@ -22,6 +23,7 @@ Loom (`services/qyl.loom`) exposes a deterministic workflow router over MCP that
 | Review bot PR comments | `loom-review-bot-pr` | "resolve qyl[bot] comments on PR #42", "qyl review feedback" |
 | Set up .NET SDK | `loom-sdk-onboarding` | "add Sentry to this .NET app", "install Sentry.AspNetCore" |
 | Set up AI monitoring | `loom-ai-monitoring` | "monitor LLM calls", "gen_ai spans", "track OpenAI usage" |
+| Headless autofix pipeline | `loom-autofix` | "auto-fix this issue", "run Loom on ABC-123", "generate a diff for this error" |
 
 ## How to run this skill
 
@@ -31,7 +33,7 @@ The qyl.loom MCP server exposes `loom_route`. Call it with the user's natural-la
 
 ```json
 {
-  "kind": "FixProductionIssue | ReviewBotPrComments | SetupDotnetSdk | SetupAiMonitoring | Clarify",
+  "kind": "FixProductionIssue | ReviewBotPrComments | SetupDotnetSdk | SetupAiMonitoring | Autofix | Clarify",
   "confidence": 1.0,
   "rationale": "...",
   "promptIds": ["qyl.loom.<picked>"],
@@ -43,7 +45,7 @@ The qyl.loom MCP server exposes `loom_route`. Call it with the user's natural-la
 ### Step 2 — Act on the decision
 
 - `Clarify` → ask the user the `clarifyingQuestion` verbatim, wait for the answer, then call `loom_route` again. Do **not** guess.
-- Any other kind → hand off to the named skill (`loom-fix-issues`, `loom-review-bot-pr`, `loom-sdk-onboarding`, `loom-ai-monitoring`) AND fetch the MCP prompt(s) listed in `promptIds`. The specialised skill will then drive the workflow.
+- Any other kind → hand off to the named skill (`loom-fix-issues`, `loom-review-bot-pr`, `loom-sdk-onboarding`, `loom-ai-monitoring`, `loom-autofix`) AND fetch the MCP prompt(s) listed in `promptIds`. The specialised skill will then drive the workflow.
 
 ### Step 3 — Chain detection / parsing explicitly
 

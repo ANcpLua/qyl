@@ -3,7 +3,9 @@
 namespace Qyl.Loom.Workflows;
 
 /// <summary>
-///     The four Loom workflow shapes <see cref="LoomWorkflowRouter" /> dispatches between.
+///     The five Loom workflow shapes <see cref="LoomWorkflowRouter" /> dispatches between
+///     (<see cref="FixProductionIssue" />, <see cref="ReviewBotPrComments" />,
+///     <see cref="SetupDotnetSdk" />, <see cref="SetupAiMonitoring" />, <see cref="Autofix" />).
 ///     <see cref="Clarify" /> is returned when the user request is ambiguous — the router
 ///     surfaces a focused question instead of silently guessing across workflows.
 /// </summary>
