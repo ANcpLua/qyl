@@ -17,6 +17,11 @@ namespace Qyl.Loom.Workflows;
 [McpServerToolType]
 public sealed class LoomWorkflowTools
 {
+    /// <summary>
+    ///     Route a user request across the Loom workflow shapes. Returns a
+    ///     <see cref="LoomRouteDecision" /> — inspect <c>Kind</c> for the workflow and
+    ///     <c>PromptIds</c> for the MCP prompts the caller should fetch next.
+    /// </summary>
     [McpServerTool(Name = "loom_route", Title = "Loom Workflow Router",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     [Description("Route a user request across the four Loom workflows (fix_issue / review_bot_pr / setup_dotnet / setup_ai_monitoring). Returns clarifying question when ambiguous.")]
@@ -35,6 +40,11 @@ public sealed class LoomWorkflowTools
         return LoomWorkflowRouter.Route(userRequest, signals);
     }
 
+    /// <summary>
+    ///     Scan <paramref name="repoRoot" /> and return structured detection evidence used
+    ///     by the setup-dotnet / setup-ai-monitoring prompts. Never guesses — empty fields
+    ///     mean "no evidence found".
+    /// </summary>
     [McpServerTool(Name = "loom_detect_dotnet", Title = "Detect .NET project shape",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = true)]
     [Description("Scan a repo root, classify the .NET app shape, surface Sentry/logging/scheduler/AI-SDK evidence, and produce the setup recommendations.")]
@@ -42,12 +52,19 @@ public sealed class LoomWorkflowTools
         [Description("Absolute path to the repo or folder root to scan.")] string repoRoot) =>
         DotnetProjectDetector.Detect(repoRoot);
 
+    /// <summary>
+    ///     Parse a JSON array of GitHub PR review comments through the deterministic
+    ///     <see cref="ReviewBotCommentParser" />. Non-bot authors are dropped; extra bot
+    ///     logins may be opted in via <paramref name="additionalBotLoginsJson" />.
+    /// </summary>
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default; returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
+    [Description("Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (Sentry, Seer, etc.). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
     public static LoomReviewBotParseResult ParseReviewBotComments(
-        [Description("JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless passed in additionalBotLogins.")]
-        string commentsJson)
+        [Description("JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless their login is listed in additionalBotLoginsJson.")]
+        string commentsJson,
+        [Description("Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"sentry[bot]\", \"seer-by-sentry[bot]\"]). Exact, case-insensitive match.")]
+        string? additionalBotLoginsJson = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(commentsJson);
 
@@ -55,7 +72,15 @@ public sealed class LoomWorkflowTools
             commentsJson,
             LoomWorkflowToolsJsonContext.Default.ReviewBotRawCommentArray) ?? [];
 
-        var parsed = ReviewBotCommentParser.Parse(raw);
+        IReadOnlyCollection<string>? additionalBotLogins = null;
+        if (!string.IsNullOrWhiteSpace(additionalBotLoginsJson))
+        {
+            additionalBotLogins = JsonSerializer.Deserialize(
+                additionalBotLoginsJson,
+                LoomWorkflowToolsJsonContext.Default.StringArray);
+        }
+
+        var parsed = ReviewBotCommentParser.Parse(raw, additionalBotLogins);
         var summary = ReviewBotCommentParser.BuildSummary(parsed);
 
         return new LoomReviewBotParseResult
@@ -63,50 +88,7 @@ public sealed class LoomWorkflowTools
             InputCount = raw.Length,
             ParsedCount = parsed.Length,
             Summary = summary,
-            Comments = parsed.ToArray(),
-        };
-    }
-
-    [McpServerTool(Name = "loom_plan_task", Title = "Plan a Loom workflow task end-to-end",
-        ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = true)]
-    [Description("One-shot orchestrator: routes the request, runs detection (for setup workflows) or accepts pre-fetched bot comments (for review), and returns the prompt ids the caller should fetch next.")]
-    public static LoomTaskPlan PlanTask(
-        [Description("User request in natural language.")] string userRequest,
-        [Description("Absolute path to the repo root. Used by setup workflows. Optional.")]
-        string? repoRoot = null,
-        [Description("Optional PR number for review-bot workflow.")] int? pullRequestNumber = null,
-        [Description("Optional review-bot author login.")] string? reviewBotAuthor = null,
-        [Description("Optional issue id for fix-production workflow.")] string? issueId = null,
-        [Description("Optional JSON array of review-bot comments. When provided together with a review-bot route, it is parsed into the plan.")]
-        string? reviewBotCommentsJson = null)
-    {
-        var decision = LoomWorkflowRouter.Route(userRequest, new LoomRouteSignals
-        {
-            PullRequestNumber = pullRequestNumber,
-            ReviewBotAuthor = reviewBotAuthor,
-            IssueId = issueId,
-        });
-
-        DotnetProjectEvidence? detection = null;
-        LoomReviewBotParseResult? reviewBot = null;
-
-        if (decision.Kind is LoomWorkflowKind.SetupDotnetSdk or LoomWorkflowKind.SetupAiMonitoring
-            && !string.IsNullOrWhiteSpace(repoRoot))
-        {
-            detection = DotnetProjectDetector.Detect(repoRoot);
-        }
-
-        if (decision.Kind is LoomWorkflowKind.ReviewBotPrComments
-            && !string.IsNullOrWhiteSpace(reviewBotCommentsJson))
-        {
-            reviewBot = ParseReviewBotComments(reviewBotCommentsJson);
-        }
-
-        return new LoomTaskPlan
-        {
-            Decision = decision,
-            Detection = detection,
-            ReviewBot = reviewBot,
+            Comments = [.. parsed],
         };
     }
 }
@@ -117,7 +99,7 @@ public sealed record LoomReviewBotParseResult
     /// <summary>Number of raw comments deserialised from the JSON input.</summary>
     public required int InputCount { get; init; }
 
-    /// <summary>Number of comments that passed the Sentry/Seer bot filter.</summary>
+    /// <summary>Number of comments that passed the bot-login filter.</summary>
     public required int ParsedCount { get; init; }
 
     /// <summary>Human-readable summary, ordered by severity/confidence.</summary>
@@ -128,27 +110,14 @@ public sealed record LoomReviewBotParseResult
 }
 
 /// <summary>
-///     End-to-end plan from <see cref="LoomWorkflowTools.PlanTask" />. Carries the router
-///     decision plus any workflow-specific payload (detection or parsed bot comments). The
-///     caller fetches the MCP prompt ids in <see cref="LoomRouteDecision.PromptIds" />.
+///     Source-gen JSON context for <see cref="LoomWorkflowTools" />. Emits camelCase
+///     property names so outputs align with the <c>loom-sdk-onboarding</c> skill and
+///     prompt contracts; avoids runtime reflection, satisfies trim / AOT analysis.
 /// </summary>
-public sealed record LoomTaskPlan
-{
-    /// <summary>Router decision. If <see cref="LoomWorkflowKind.Clarify" />, inspect <c>ClarifyingQuestion</c>.</summary>
-    public required LoomRouteDecision Decision { get; init; }
-
-    /// <summary>Detection evidence for setup workflows. Null otherwise.</summary>
-    public DotnetProjectEvidence? Detection { get; init; }
-
-    /// <summary>Parsed bot comments for review workflows. Null otherwise.</summary>
-    public LoomReviewBotParseResult? ReviewBot { get; init; }
-}
-
-/// <summary>
-///     Source-gen JSON context for <see cref="LoomWorkflowTools.ParseReviewBotComments" />.
-///     Avoids runtime reflection, satisfies trim/AOT analysis.
-/// </summary>
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ReviewBotRawComment[]))]
+[JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(LoomReviewBotParseResult))]
-[JsonSerializable(typeof(LoomTaskPlan))]
+[JsonSerializable(typeof(DotnetProjectEvidence))]
+[JsonSerializable(typeof(DotnetFeatureRecommendations))]
 internal sealed partial class LoomWorkflowToolsJsonContext : JsonSerializerContext;

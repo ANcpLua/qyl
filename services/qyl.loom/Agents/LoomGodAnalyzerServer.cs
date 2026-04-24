@@ -45,9 +45,9 @@ public sealed class LoomGodAnalyzerServer(
             .ConfigureAwait(false);
     }
 
-    [McpServerTool(Name = "loom_review_pull_request", Title = "Review Pull Request",
+    [McpServerTool(Name = "loom_generate_pr_review", Title = "Generate Pull Request Review",
         ReadOnly = false, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Run Loom code review against a GitHub owner/repo pull request.")]
+    [Description("Produces new PR review comments via qyl's LLM reviewer (distinct from `loom_parse_review_bot_comments` which consumes existing bot comments).")]
     public async Task<CodeReviewResult> ReviewPullRequestAsync(
         [Description("GitHub repo in `owner/repo` format.")] string repoFullName,
         [Description("Pull request number.")] int prNumber,

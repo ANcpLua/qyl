@@ -49,16 +49,17 @@ public static partial class ReviewBotCommentParser
     ];
 
     /// <summary>
-    ///     True when <paramref name="login" /> matches a qyl review bot. Case-insensitive.
-    ///     Additional logins accepted via <paramref name="additionalBotLogins" />.
+    ///     True when <paramref name="login" /> is an exact (case-insensitive) match against
+    ///     <see cref="KnownBotLogins" /> ∪ <paramref name="additionalBotLogins" />. There is
+    ///     no prefix / substring fallback — a login like <c>qylliance-user</c> is NOT a bot.
+    ///     Foreign review bots must be opted in explicitly via <paramref name="additionalBotLogins" />.
     /// </summary>
     public static bool IsReviewBot(string? login, IReadOnlyCollection<string>? additionalBotLogins = null)
     {
         if (string.IsNullOrWhiteSpace(login)) return false;
         if (KnownBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase)) return true;
-        if (additionalBotLogins is not null &&
-            additionalBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase)) return true;
-        return login.StartsWith("qyl", StringComparison.OrdinalIgnoreCase);
+        return additionalBotLogins is not null &&
+               additionalBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

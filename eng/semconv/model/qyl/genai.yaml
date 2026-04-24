@@ -1,0 +1,40 @@
+groups:
+  - id: registry.qyl.genai
+    type: attribute_group
+    brief: 'Attributes for qyl generative AI call instrumentation (LLM usage, cost, caching)'
+    attributes:
+      - id: qyl.genai.model
+        type: string
+        stability: development
+        brief: 'Model identifier for the generative AI call'
+        examples: ['gpt-5.4-mini', 'claude-opus-4-7']
+      - id: qyl.genai.provider
+        type: string
+        stability: development
+        brief: 'Upstream provider that served the completion'
+        examples: ['openai', 'anthropic', 'azure_openai', 'google', 'ollama']
+      - id: qyl.genai.input_tokens
+        type: int
+        stability: development
+        brief: 'Consumed input tokens for the call'
+      - id: qyl.genai.output_tokens
+        type: int
+        stability: development
+        brief: 'Generated output tokens for the call'
+      - id: qyl.genai.cost_usd
+        type: double
+        stability: development
+        brief: >
+          Computed USD cost for the call when per-token pricing is known.
+          Omit when pricing is unavailable; do not emit a zero placeholder.
+      - id: qyl.genai.cache_hit
+        type: boolean
+        stability: development
+        brief: 'Whether the response was served from prompt cache'
+      - id: qyl.genai.workflow_id
+        type: string
+        stability: development
+        brief: >
+          Qyl workflow id that produced the call.
+          Links generative AI spans to their enclosing autofix/exploration run.
+        examples: ['run_01hzv8x', 'fixrun_01hzv8x']

@@ -1,6 +1,6 @@
 ---
-name: loom-workflow
-description: Fix production issues, onboard .NET telemetry, and resolve qyl review-bot PR comments. Use when asked to fix a qyl issue, triage exceptions, review PR bot feedback, install a .NET SDK for qyl, or wire AI monitoring. Routes to the correct sub-skill; asks one clarifying question when signals conflict.
+name: loom
+description: Top-level index and router across qyl Loom skills. Dispatches to three workflow skills (loom-fix-issues, loom-review-bot-pr, loom-sdk-onboarding) and two feature-setup skills (loom-feature-setup, loom-create-alert). Use when asked to fix a qyl issue, triage exceptions, review PR bot feedback, install a .NET SDK for qyl, wire AI monitoring, configure a qyl feature, or create an alert. Routes deterministically; asks one clarifying question when signals conflict.
 license: Apache-2.0
 role: router
 ---
@@ -46,10 +46,9 @@ Each skill carries its own detection logic, prerequisites, and step-by-step inst
 | Tool | Purpose |
 |---|---|
 | `loom_route` | Deterministic routing; returns `Clarify` with one focused question when signals conflict |
-| `loom_plan_task` | One-shot: route + detect (for onboarding workflows) or route + parse (for PR-review workflow) |
 | `loom_detect_dotnet` | Scan a repo, classify .NET framework, surface Sentry/logging/scheduler/AI-SDK evidence |
 | `loom_parse_review_bot_comments` | Deterministic parser for qyl review-bot PR comments |
-| `loom_get_issue_insight`, `loom_start_fix_run`, `loom_review_pull_request` | On `LoomGodAnalyzerServer` — pre-investigation insight, autofix run creation, qyl-produced PR review |
+| `loom_get_issue_insight`, `loom_start_fix_run`, `loom_generate_pr_review` | On `LoomGodAnalyzerServer` — pre-investigation insight, autofix run creation, qyl-produced PR review |
 
 | Prompt | Purpose |
 |---|---|

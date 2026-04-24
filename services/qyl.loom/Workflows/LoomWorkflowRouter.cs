@@ -248,7 +248,11 @@ public static class LoomWorkflowRouter
         /// <summary>Headless autofix pipeline — fixability gate + structured artifact.</summary>
         public const string Autofix = "qyl.loom.autofix_system";
 
-        /// <summary>Router prompt — returns a routing directive the caller can act on.</summary>
+        /// <summary>
+        ///     Deprecated — the deterministic router is the source of truth; the LLM-side
+        ///     routing prompt was removed. Constant retained so callers that still reference
+        ///     <c>PromptIds.Router</c> keep compiling; nothing serves this id any more.
+        /// </summary>
         public const string Router = "qyl.loom.route";
     }
 }

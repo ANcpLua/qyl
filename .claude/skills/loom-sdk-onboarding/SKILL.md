@@ -86,7 +86,6 @@ Each prompt takes the detection JSON and returns the feature-specific directive 
 | Tool | Purpose |
 |---|---|
 | `loom_detect_dotnet` | Scans the repo, classifies framework, surfaces evidence + recommendations. |
-| `loom_plan_task` | One-shot route + detect — use when the user intent is clear. |
 
 | Prompt | Purpose |
 |---|---|

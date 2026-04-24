@@ -1,0 +1,50 @@
+groups:
+  - id: registry.qyl.check_in
+    type: attribute_group
+    brief: 'Attributes for qyl cron/monitor check-in telemetry'
+    attributes:
+      - id: qyl.check_in.monitor_slug
+        type: string
+        stability: development
+        brief: 'Slug of the cron/monitor that produced the check-in'
+        examples: ['nightly-backup', 'hourly-digest']
+      - id: qyl.check_in.status
+        type:
+          members:
+            - id: in_progress
+              value: 'in_progress'
+              stability: development
+              brief: 'Monitored job has started and is still running'
+            - id: ok
+              value: 'ok'
+              stability: development
+              brief: 'Monitored job completed successfully'
+            - id: error
+              value: 'error'
+              stability: development
+              brief: 'Monitored job completed with a failure'
+            - id: missed
+              value: 'missed'
+              stability: development
+              brief: 'Monitored job did not check in during its scheduled window'
+            - id: timeout
+              value: 'timeout'
+              stability: development
+              brief: 'Monitored job exceeded its allowed runtime'
+        stability: development
+        brief: 'Current status reported by the check-in'
+      - id: qyl.check_in.duration_ms
+        type: int
+        stability: development
+        brief: 'Observed runtime of the monitored job in milliseconds'
+      - id: qyl.check_in.schedule_cron
+        type: string
+        stability: development
+        brief: 'Crontab expression describing the monitor schedule, when applicable'
+        examples: ['0 */6 * * *', '*/15 * * * *']
+      - id: qyl.check_in.schedule_interval_minutes
+        type: int
+        stability: development
+        brief: >
+          Interval schedule in minutes, when the monitor uses a fixed-interval
+          schedule instead of a crontab expression.

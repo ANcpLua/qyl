@@ -51,9 +51,9 @@ internal sealed class OnboardingPrompts
           ## Your plan, in order
           1. Parse the detection JSON. If `framework == "Unknown"`, stop and ask the user which
              project to target — do not guess.
-          2. If `existing_sentry_packages` is non-empty, skip install. Jump to feature configuration.
-          3. Otherwise: run `dotnet add package <recommended_package> -v 6.1.0` in the project directory.
-          4. Open `recommended_init_file`. Add the initialisation block for the detected framework.
+          2. If `existingSentryPackages` is non-empty, skip install. Jump to feature configuration.
+          3. Otherwise: run `dotnet add package <recommendedPackage> -v 6.1.0` in the project directory.
+          4. Open `recommendedInitFile`. Add the initialisation block for the detected framework.
           5. For each feature the user agreed to, load the matching feature prompt:
              - `qyl.loom.setup_dotnet_error` — error monitoring (scopes, enrichment, filtering)
              - `qyl.loom.setup_dotnet_tracing` — tracing (sampling, propagation, OTel)
@@ -61,7 +61,7 @@ internal sealed class OnboardingPrompts
              - `qyl.loom.setup_dotnet_logging` — logging (ILogger / Serilog / NLog / log4net)
              - `qyl.loom.setup_dotnet_metrics` — metrics (EnableMetrics + SENTRY1001 analyzer)
              - `qyl.loom.setup_dotnet_crons` — crons (Hangfire auto, Quartz manual, heartbeat vs two-signal)
-          6. If `sibling_frontend_dirs` is non-empty, point the user at the matching frontend SDK.
+          6. If `siblingFrontendDirs` is non-empty, point the user at the matching frontend SDK.
              Same project = distributed tracing across frontend + .NET server.
           7. Verify end-to-end: throw a test exception, confirm it appears, confirm stack traces
              show file names + line numbers (requires PDB upload via MSBuild
@@ -112,7 +112,7 @@ internal sealed class OnboardingPrompts
           ```
 
           Apply the minimal change set for the detected framework. Quote concrete line numbers
-          when you edit `recommended_init_file`.
+          when you edit `recommendedInitFile`.
           """;
 
     [McpServerPrompt(Name = "qyl.loom.setup_dotnet_tracing", Title = "Tracing")]
@@ -163,7 +163,7 @@ internal sealed class OnboardingPrompts
           {{detectionJson}}
           ```
 
-          Apply the minimal change for the detected framework; if `requires_flush_on_completed_request`,
+          Apply the minimal change for the detected framework; if `requiresFlushOnCompletedRequest`,
           pair tracing with `FlushOnCompletedRequest = true` to avoid losing trailing events.
           """;
 
@@ -179,7 +179,7 @@ internal sealed class OnboardingPrompts
           1. **Tracing must already be enabled.** `options.TracesSampleRate > 0` (or a sampler
              returning >0 for this path). Profiling attaches to transactions — no transaction → no profile.
           2. **.NET 8+ is required.** .NET Framework, Blazor WebAssembly, Android, and non-iOS Native AOT
-             are NOT supported. Check `detection.supports_profiling` before proceeding — if false,
+             are NOT supported. Check `detection.supportsProfiling` before proceeding — if false,
              stop and tell the user why.
           3. **Install `Sentry.Profiling`** — but NOT on iOS / Mac Catalyst (built-in Mono AOT profiler
              inside `Sentry.Maui` already handles those targets).
@@ -208,7 +208,7 @@ internal sealed class OnboardingPrompts
           {{detectionJson}}
           ```
 
-          If `supports_profiling == false`, return: "Profiling unavailable for this target
+          If `supportsProfiling == false`, return: "Profiling unavailable for this target
           framework / platform combination." Do not install the package. Do not half-configure.
           """;
 
@@ -264,7 +264,7 @@ internal sealed class OnboardingPrompts
           {{detectionJson}}
           ```
 
-          If `logging_libraries` is empty, the project doesn't have a logger wired yet. Propose the
+          If `loggingLibraries` is empty, the project doesn't have a logger wired yet. Propose the
           MEL integration since that's the .NET default; do not add Serilog unless the user asked.
           """;
 
@@ -366,7 +366,7 @@ internal sealed class OnboardingPrompts
           {{detectionJson}}
           ```
 
-          Emit the minimal change per detected scheduler. If `scheduler_libraries` is empty, do not
+          Emit the minimal change per detected scheduler. If `schedulerLibraries` is empty, do not
           add crons — ask whether the project runs scheduled work at all before proceeding.
           """;
 }

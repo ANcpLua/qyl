@@ -14,14 +14,36 @@ export const QYL_AUTH_KEYCLOAK_CLAIMS = "qyl.auth.keycloak_claims";
 export const QYL_CAPABILITY_ID = "qyl.capability.id";
 export const QYL_CAPABILITY_KIND = "qyl.capability.kind";
 
+// qyl.check_in
+export const QYL_CHECK_IN_DURATION_MS = "qyl.check_in.duration_ms";
+export const QYL_CHECK_IN_MONITOR_SLUG = "qyl.check_in.monitor_slug";
+export const QYL_CHECK_IN_SCHEDULE_CRON = "qyl.check_in.schedule_cron";
+export const QYL_CHECK_IN_SCHEDULE_INTERVAL_MINUTES = "qyl.check_in.schedule_interval_minutes";
+export const QYL_CHECK_IN_STATUS = "qyl.check_in.status";
+
 // qyl.duckdb
 export const QYL_DUCKDB_DROPPED_JOBS_TOTAL = "qyl.duckdb.dropped_jobs_total";
 export const QYL_DUCKDB_DROPPED_SPANS_TOTAL = "qyl.duckdb.dropped_spans_total";
+
+// qyl.feedback
+export const QYL_FEEDBACK_CONTACT_EMAIL = "qyl.feedback.contact_email";
+export const QYL_FEEDBACK_EVENT_ID = "qyl.feedback.event_id";
+export const QYL_FEEDBACK_ID = "qyl.feedback.id";
+export const QYL_FEEDBACK_SOURCE = "qyl.feedback.source";
 
 // qyl.fix_run
 export const QYL_FIX_RUN_ID = "qyl.fix_run.id";
 export const QYL_FIX_RUN_STATUS = "qyl.fix_run.status";
 export const QYL_FIX_RUN_TRIGGER = "qyl.fix_run.trigger";
+
+// qyl.genai
+export const QYL_GENAI_CACHE_HIT = "qyl.genai.cache_hit";
+export const QYL_GENAI_COST_USD = "qyl.genai.cost_usd";
+export const QYL_GENAI_INPUT_TOKENS = "qyl.genai.input_tokens";
+export const QYL_GENAI_MODEL = "qyl.genai.model";
+export const QYL_GENAI_OUTPUT_TOKENS = "qyl.genai.output_tokens";
+export const QYL_GENAI_PROVIDER = "qyl.genai.provider";
+export const QYL_GENAI_WORKFLOW_ID = "qyl.genai.workflow_id";
 
 // qyl.issue
 export const QYL_ISSUE_ID = "qyl.issue.id";
@@ -31,6 +53,12 @@ export const QYL_ISSUE_STATUS = "qyl.issue.status";
 // qyl.project
 export const QYL_PROJECT_ID = "qyl.project.id";
 export const QYL_PROJECT_NAME = "qyl.project.name";
+
+// qyl.release
+export const QYL_RELEASE_CHANNEL = "qyl.release.channel";
+export const QYL_RELEASE_COMMIT_SHA = "qyl.release.commit_sha";
+export const QYL_RELEASE_ENVIRONMENT = "qyl.release.environment";
+export const QYL_RELEASE_VERSION = "qyl.release.version";
 
 // qyl.run
 export const QYL_RUN_ID = "qyl.run.id";

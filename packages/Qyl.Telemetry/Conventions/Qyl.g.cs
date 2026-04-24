@@ -32,6 +32,21 @@ public static class Capability
     public const string Kind = "qyl.capability.kind";
 }
 
+/// <summary>CheckIn attributes</summary>
+public static class CheckIn
+{
+    /// <summary>Observed runtime of the monitored job in milliseconds</summary>
+    public const string DurationMs = "qyl.check_in.duration_ms";
+    /// <summary>Slug of the cron/monitor that produced the check-in</summary>
+    public const string MonitorSlug = "qyl.check_in.monitor_slug";
+    /// <summary>Crontab expression describing the monitor schedule, when applicable</summary>
+    public const string ScheduleCron = "qyl.check_in.schedule_cron";
+    /// <summary>Interval schedule in minutes, when the monitor uses a fixed-interval schedule instead of a crontab expression.</summary>
+    public const string ScheduleIntervalMinutes = "qyl.check_in.schedule_interval_minutes";
+    /// <summary>Current status reported by the check-in</summary>
+    public const string Status = "qyl.check_in.status";
+}
+
 /// <summary>Duckdb attributes</summary>
 public static class Duckdb
 {
@@ -39,6 +54,19 @@ public static class Duckdb
     public const string DroppedJobsTotal = "qyl.duckdb.dropped_jobs_total";
     /// <summary>Cumulative count of span records dropped before persistence</summary>
     public const string DroppedSpansTotal = "qyl.duckdb.dropped_spans_total";
+}
+
+/// <summary>Feedback attributes</summary>
+public static class Feedback
+{
+    /// <summary>Optional contact email supplied with the feedback. High-cardinality PII — only emit when ENABLE_SENSITIVE_DATA is set.</summary>
+    public const string ContactEmail = "qyl.feedback.contact_email";
+    /// <summary>Associated error/trace event identifier</summary>
+    public const string EventId = "qyl.feedback.event_id";
+    /// <summary>Feedback record identifier</summary>
+    public const string Id = "qyl.feedback.id";
+    /// <summary>Channel the feedback was submitted through</summary>
+    public const string Source = "qyl.feedback.source";
 }
 
 /// <summary>FixRun attributes</summary>
@@ -50,6 +78,25 @@ public static class FixRun
     public const string Status = "qyl.fix_run.status";
     /// <summary>What initiated this fix run</summary>
     public const string Trigger = "qyl.fix_run.trigger";
+}
+
+/// <summary>Genai attributes</summary>
+public static class Genai
+{
+    /// <summary>Whether the response was served from prompt cache</summary>
+    public const string CacheHit = "qyl.genai.cache_hit";
+    /// <summary>Computed USD cost for the call when per-token pricing is known. Omit when pricing is unavailable; do not emit a zero placeholder.</summary>
+    public const string CostUsd = "qyl.genai.cost_usd";
+    /// <summary>Consumed input tokens for the call</summary>
+    public const string InputTokens = "qyl.genai.input_tokens";
+    /// <summary>Model identifier for the generative AI call</summary>
+    public const string Model = "qyl.genai.model";
+    /// <summary>Generated output tokens for the call</summary>
+    public const string OutputTokens = "qyl.genai.output_tokens";
+    /// <summary>Upstream provider that served the completion</summary>
+    public const string Provider = "qyl.genai.provider";
+    /// <summary>Qyl workflow id that produced the call. Links generative AI spans to their enclosing autofix/exploration run.</summary>
+    public const string WorkflowId = "qyl.genai.workflow_id";
 }
 
 /// <summary>Issue attributes</summary>
@@ -70,6 +117,19 @@ public static class Project
     public const string Id = "qyl.project.id";
     /// <summary>Human-readable project name</summary>
     public const string Name = "qyl.project.name";
+}
+
+/// <summary>Release attributes</summary>
+public static class Release
+{
+    /// <summary>Release track the deployment belongs to</summary>
+    public const string Channel = "qyl.release.channel";
+    /// <summary>Full 40-character git SHA for the release commit</summary>
+    public const string CommitSha = "qyl.release.commit_sha";
+    /// <summary>Deployment environment name</summary>
+    public const string Environment = "qyl.release.environment";
+    /// <summary>Semantic or calendar version identifier for the release</summary>
+    public const string Version = "qyl.release.version";
 }
 
 /// <summary>Run attributes</summary>

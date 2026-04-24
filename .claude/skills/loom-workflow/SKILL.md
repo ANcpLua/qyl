@@ -45,9 +45,9 @@ The qyl.loom MCP server exposes `loom_route`. Call it with the user's natural-la
 - `Clarify` → ask the user the `clarifyingQuestion` verbatim, wait for the answer, then call `loom_route` again. Do **not** guess.
 - Any other kind → hand off to the named skill (`loom-fix-issues`, `loom-review-bot-pr`, `loom-sdk-onboarding`, `loom-ai-monitoring`) AND fetch the MCP prompt(s) listed in `promptIds`. The specialised skill will then drive the workflow.
 
-### Step 3 — One-shot path (optional)
+### Step 3 — Chain detection / parsing explicitly
 
-For onboarding + AI-monitoring flows the router can do route-and-prep in one call via `loom_plan_task(userRequest, repoRoot, ...)`. It routes, runs `loom_detect_dotnet` when the workflow needs evidence, and returns `{ decision, detection, reviewBot }`. Prefer this over manual chaining when you have `repoRoot` in hand.
+Once `loom_route` returns a workflow, call the workflow-specific tool yourself: `loom_detect_dotnet(repoRoot)` for onboarding / AI-monitoring, or `loom_parse_review_bot_comments(commentsJson, additionalBotLoginsJson?)` for the PR-review workflow. One tool per step keeps the decision trail visible in the MCP call log — a single meta-tool that fanned out to both was removed to avoid schema drift across three tool descriptors.
 
 ## Hard rules
 
@@ -61,7 +61,6 @@ For onboarding + AI-monitoring flows the router can do route-and-prep in one cal
 | Tool | Purpose |
 |---|---|
 | `loom_route` | Route a request deterministically; returns `Clarify` when ambiguous. |
-| `loom_plan_task` | Router + detection (or bot-comment parsing) in one call; returns a ready plan. |
 
 | Prompt | Purpose |
 |---|---|
