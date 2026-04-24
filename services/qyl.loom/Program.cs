@@ -63,6 +63,7 @@ builder.Services
     .WithTools<LoomWorkflowTools>()
     .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>()
     .WithPrompts<Qyl.Loom.Autofix.LoomHandoffPrompts>()
+    .WithPrompts<Qyl.Loom.Autofix.LoomAutofixPrompts>()
     .WithPrompts<LoomRouterPrompt>()
     .WithPrompts<OnboardingPrompts>()
     .WithPrompts<AiMonitoringPrompts>()

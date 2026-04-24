@@ -24,6 +24,14 @@ public enum LoomWorkflowKind
     /// <summary>Configure AI agent monitoring for <c>gen_ai.*</c> traffic (LLM calls, agents, tools).</summary>
     SetupAiMonitoring = 4,
 
+    /// <summary>
+    ///     Run the headless five-stage autofix pipeline on a qyl issue. Emits a structured
+    ///     artifact (fixability score, context, hypothesis, diff, confidence audit). Distinct
+    ///     from <see cref="FixProductionIssue" />: that is a human-driven investigation, this
+    ///     is a background pipeline that produces a diff + confidence report.
+    /// </summary>
+    Autofix = 5,
+
     /// <summary>Ambiguous request — router is asking the caller to pick.</summary>
     Clarify = 99,
 }

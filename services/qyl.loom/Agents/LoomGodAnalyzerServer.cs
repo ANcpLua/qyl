@@ -54,6 +54,58 @@ public sealed class LoomGodAnalyzerServer(
         CancellationToken ct = default) =>
         await codeReviewService.ReviewPullRequestAsync(repoFullName, prNumber, ct).ConfigureAwait(false);
 
+    [McpServerTool(Name = "loom_autofix_setup_check", Title = "Autofix Pre-flight Check",
+        ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
+    [Description("Pre-flight check for an autofix run: verifies the issue exists and the fix policy parses. Returns partial status for prerequisites that need external state (repo connection, integration scopes, code mapping, quota) — fetch MCP prompt `qyl.loom.autofix_setup_check` for the full agent directive to resolve those.")]
+    public async Task<LoomAutofixSetupCheck> AutofixSetupCheckAsync(
+        [Description("Issue identifier.")] string issueId,
+        [Description("Fix policy: auto_apply, dry_run, or require_review. Defaults to require_review.")]
+        string? policy = null,
+        CancellationToken ct = default)
+    {
+        var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var parsedPolicy = ParseFixPolicy(policy);
+
+        LoomAutofixCheck issueCheck = issue is null
+            ? new(Name: "issue_exists", Status: "fail", Detail: $"Issue '{issueId}' not found in qyl collector.")
+            : new(Name: "issue_exists", Status: "pass", Detail: $"Issue '{issueId}' resolved: {issue.ErrorType}.");
+
+        LoomAutofixCheck policyCheck = new(
+            Name: "policy",
+            Status: "pass",
+            Detail: $"Policy resolved to {parsedPolicy}.");
+
+        LoomAutofixCheck repoCheck = new(
+            Name: "repo_connection",
+            Status: "unknown",
+            Detail: "qyl collector does not currently expose project-integration state. Verify via the LLM-driven `qyl.loom.autofix_setup_check` prompt.");
+
+        LoomAutofixCheck writeCheck = new(
+            Name: "write_access",
+            Status: "unknown",
+            Detail: "Integration-scope introspection not available. Verify via the GitHub App settings page.");
+
+        LoomAutofixCheck mappingCheck = new(
+            Name: "code_mapping",
+            Status: "unknown",
+            Detail: "Stack-trace-to-repo mapping is not yet exposed as a tool. Stage-4 solution generation will surface mapping failures at the hunk level.");
+
+        LoomAutofixCheck quotaCheck = new(
+            Name: "quota",
+            Status: "unknown",
+            Detail: "Per-org run quota introspection not available. If a policy run stalls with no events, check collector rate limits.");
+
+        var passed = issue is not null;
+        var decision = passed ? "proceed" : "cannot_proceed";
+
+        return new LoomAutofixSetupCheck(
+            IssueId: issueId,
+            Policy: parsedPolicy.ToString(),
+            Checks: [issueCheck, policyCheck, repoCheck, writeCheck, mappingCheck, quotaCheck],
+            Decision: decision,
+            AgentPromptId: "qyl.loom.autofix_setup_check");
+    }
+
     private static FixPolicy ParseFixPolicy(string? policy)
     {
         if (string.IsNullOrWhiteSpace(policy))
@@ -75,3 +127,27 @@ public sealed class LoomGodAnalyzerServer(
         };
     }
 }
+
+/// <summary>
+///     Structured result of <see cref="LoomGodAnalyzerServer.AutofixSetupCheckAsync" />.
+///     Combines tool-checkable prerequisites (issue existence, policy parse) with
+///     <c>unknown</c> placeholders for checks that require external state the collector
+///     does not currently expose.
+/// </summary>
+/// <param name="IssueId">The issue id the caller supplied.</param>
+/// <param name="Policy">Resolved fix policy string (result of <see cref="FixPolicy" /> parse).</param>
+/// <param name="Checks">Named checks: issue_exists, policy, repo_connection, write_access, code_mapping, quota.</param>
+/// <param name="Decision"><c>proceed</c> when all programmatic checks pass; <c>cannot_proceed</c> otherwise.</param>
+/// <param name="AgentPromptId">MCP prompt id carrying the full agent directive for resolving <c>unknown</c> checks.</param>
+public sealed record LoomAutofixSetupCheck(
+    string IssueId,
+    string Policy,
+    IReadOnlyList<LoomAutofixCheck> Checks,
+    string Decision,
+    string AgentPromptId);
+
+/// <summary>A single named check inside <see cref="LoomAutofixSetupCheck" />.</summary>
+/// <param name="Name">Check identifier (e.g. <c>issue_exists</c>, <c>policy</c>, <c>repo_connection</c>).</param>
+/// <param name="Status"><c>pass</c>, <c>fail</c>, or <c>unknown</c>.</param>
+/// <param name="Detail">Human-readable explanation of the status.</param>
+public sealed record LoomAutofixCheck(string Name, string Status, string Detail);

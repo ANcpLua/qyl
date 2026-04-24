@@ -53,6 +53,14 @@ public static class LoomWorkflowRouter
         "microsoft.extensions.ai monitoring", "mcp.extensions.ai monitoring",
     ];
 
+    private static readonly string[] AutofixTokens =
+    [
+        "autofix", "auto-fix", "run loom on", "run the loom pipeline",
+        "generate a pr for", "open a pr for the fix", "headless fix",
+        "fixability score", "autofix run", "autofix pipeline",
+        "autofix this issue", "autofix issue", "loom autofix",
+    ];
+
     /// <summary>
     ///     Route a user request. Case-insensitive token match against <paramref name="userRequest" />.
     ///     Structured signals in <paramref name="signals" /> (if provided) override keyword matches.
@@ -102,11 +110,29 @@ public static class LoomWorkflowRouter
         var botMatches = FindMatches(normalized, BotReviewTokens);
         var sdkMatches = FindMatches(normalized, SdkSetupTokens);
         var aiMatches = FindMatches(normalized, AiMonitoringTokens);
+        var autofixMatches = FindMatches(normalized, AutofixTokens);
+
+        // Autofix is more specific than FixProductionIssue — a request mentioning both
+        // "autofix" and generic fix tokens ("debug", "fix bug") routes to Autofix.
+        if (autofixMatches.Length > 0 && fixMatches.Length > 0)
+        {
+            return new LoomRouteDecision
+            {
+                Kind = LoomWorkflowKind.Autofix,
+                Confidence = 0.9,
+                Rationale =
+                    "Request mentions autofix-specific tokens alongside generic fix tokens. " +
+                    "Autofix is the specific shape — headless pipeline with structured artifact.",
+                PromptIds = [PromptIds.Autofix, PromptIds.FixProductionIssue],
+                MatchedSignals = [..autofixMatches, ..fixMatches],
+            };
+        }
 
         var hits = (fixMatches.Length > 0 ? 1 : 0)
                    + (botMatches.Length > 0 ? 1 : 0)
                    + (sdkMatches.Length > 0 ? 1 : 0)
-                   + (aiMatches.Length > 0 ? 1 : 0);
+                   + (aiMatches.Length > 0 ? 1 : 0)
+                   + (autofixMatches.Length > 0 ? 1 : 0);
 
         if (hits == 0)
         {
@@ -118,13 +144,15 @@ public static class LoomWorkflowRouter
 
         if (hits == 1)
         {
-            return fixMatches.Length > 0
-                ? Decision(LoomWorkflowKind.FixProductionIssue, PromptIds.FixProductionIssue, fixMatches)
-                : botMatches.Length > 0
-                    ? Decision(LoomWorkflowKind.ReviewBotPrComments, PromptIds.ReviewBotPrComments, botMatches)
-                    : sdkMatches.Length > 0
-                        ? Decision(LoomWorkflowKind.SetupDotnetSdk, PromptIds.SetupDotnetSdk, sdkMatches)
-                        : Decision(LoomWorkflowKind.SetupAiMonitoring, PromptIds.SetupAiMonitoring, aiMatches);
+            return autofixMatches.Length > 0
+                ? Decision(LoomWorkflowKind.Autofix, PromptIds.Autofix, autofixMatches)
+                : fixMatches.Length > 0
+                    ? Decision(LoomWorkflowKind.FixProductionIssue, PromptIds.FixProductionIssue, fixMatches)
+                    : botMatches.Length > 0
+                        ? Decision(LoomWorkflowKind.ReviewBotPrComments, PromptIds.ReviewBotPrComments, botMatches)
+                        : sdkMatches.Length > 0
+                            ? Decision(LoomWorkflowKind.SetupDotnetSdk, PromptIds.SetupDotnetSdk, sdkMatches)
+                            : Decision(LoomWorkflowKind.SetupAiMonitoring, PromptIds.SetupAiMonitoring, aiMatches);
         }
 
         // AI monitoring paired with SDK setup is not ambiguous: SDK is prerequisite, AI is the goal.
@@ -194,7 +222,7 @@ public static class LoomWorkflowRouter
         ImmutableArray<string> sdk,
         ImmutableArray<string> ai)
     {
-        var parts = new List<string>(4);
+        var parts = new List<string>(5);
         if (fix.Length > 0) parts.Add("fix-production");
         if (bot.Length > 0) parts.Add("bot-PR-review");
         if (sdk.Length > 0) parts.Add("SDK-setup");
@@ -216,6 +244,9 @@ public static class LoomWorkflowRouter
 
         /// <summary>Configure AI agent monitoring.</summary>
         public const string SetupAiMonitoring = "qyl.loom.setup_ai_monitoring";
+
+        /// <summary>Headless autofix pipeline — fixability gate + structured artifact.</summary>
+        public const string Autofix = "qyl.loom.autofix_system";
 
         /// <summary>Router prompt — returns a routing directive the caller can act on.</summary>
         public const string Router = "qyl.loom.route";
