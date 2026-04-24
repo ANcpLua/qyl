@@ -79,10 +79,11 @@ public static class AutofixEndpoints
             await store.UpdateFixRunAsync(
                 runId,
                 request.Status ?? run.Status,
-                request.Description,
-                request.Confidence,
-                request.ChangesJson,
-                ct);
+                description: request.Description,
+                confidence: request.Confidence,
+                changesJson: request.ChangesJson,
+                instructionAppend: request.Instruction,
+                ct: ct);
 
             return TypedResults.NoContent();
         });
@@ -148,6 +149,7 @@ public sealed record FixRunPatchRequest(
     string? Status = null,
     string? Description = null,
     double? Confidence = null,
-    string? ChangesJson = null);
+    string? ChangesJson = null,
+    string? Instruction = null);
 
 public sealed record FixRunRejectRequest(string? Reason = null);

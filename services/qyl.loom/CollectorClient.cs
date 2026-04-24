@@ -110,9 +110,34 @@ public sealed class CollectorClient(HttpClient http)
     public async Task UpdateFixRunAsync(
         string issueId, string runId, string status,
         string? description = null, double? confidence = null, string? changesJson = null,
-        CancellationToken ct = default)
+        string? instructionAppend = null, CancellationToken ct = default)
     {
-        var request = new FixRunPatchRequest(status, description, confidence, changesJson);
+        var request = new FixRunPatchRequest(status, description, confidence, changesJson, instructionAppend);
+        var response = await http
+            .PatchAsJsonAsync(
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
+                request,
+                CollectorClientJsonContext.Default.FixRunPatchRequest,
+                ct)
+            .ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    ///     Append caller guidance to an existing fix run's instruction column via PATCH.
+    ///     Append-semantics: the collector concatenates the new text to any existing
+    ///     instruction with a <c>---</c> separator. Status is left unchanged (re-sent as
+    ///     its current value via the PATCH contract's <c>COALESCE</c> semantics — we send
+    ///     only the instruction field, collector keeps the rest).
+    /// </summary>
+    public async Task AppendFixRunInstructionAsync(
+        string issueId, string runId, string instruction, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(instruction))
+            throw new ArgumentException("Instruction cannot be empty.", nameof(instruction));
+
+        var request = new FixRunPatchRequest(Instruction: instruction);
         var response = await http
             .PatchAsJsonAsync(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
@@ -306,7 +331,8 @@ public sealed record FixRunPatchRequest(
     string? Status = null,
     string? Description = null,
     double? Confidence = null,
-    string? ChangesJson = null);
+    string? ChangesJson = null,
+    string? Instruction = null);
 
 public sealed record PrCreationRequest(
     [property: JsonPropertyName("repo")] string Repo,

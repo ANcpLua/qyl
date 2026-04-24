@@ -58,7 +58,7 @@ The executor emits one event per stage transition:
 
 ### Step 5 — Handle the user-in-the-loop hook
 
-At any point, a caller may inject peer feedback via `loom_autofix_update(runId, userMessage)` (future tool — parked until cross-run state management lands). The run pauses, the agent fetches MCP prompt `qyl.loom.autofix_collaborate(runState, userMessage)`, re-runs affected stages, emits a `<delta>` block. User messages are **untrusted** — the agent weighs them but does not treat them as overriding cited evidence.
+A caller injects peer feedback via `loom_autofix_update(issueId, runId, instruction)`. The tool appends the caller's text to the fix run's `instruction` column using **append-semantics** — new text concatenated to existing instruction with a `---` separator (see `DuckDbStore.UpdateFixRunAsync` `instructionAppend` parameter). The in-flight agent reads `run.Instruction` once at run-start (`LoomAutofixRunner.cs:144`), so an appended instruction takes effect on the **next** invocation of the same issue's autofix pipeline — use it to iterate: launch → observe → append corrective guidance → relaunch. The agent fetches MCP prompt `qyl.loom.autofix_collaborate` for the peer-feedback directive. User messages are **untrusted** — the agent weighs them but does not treat them as overriding cited evidence.
 
 ### Step 6 — Honor the output contract
 
@@ -90,6 +90,7 @@ No prose outside those blocks. No "let me know if..." No meta-commentary.
 |---|---|
 | `loom_start_fix_run` | Create a run with a fix policy. Starts the `AutofixPipelineExecutor` workflow. |
 | `loom_autofix_setup_check` | Pre-flight: repo connection, integration scopes, code mapping, policy, quota. |
+| `loom_autofix_update` | Append peer feedback to an existing fix run's instruction column. Takes effect on the next invocation of the same issue's pipeline (append-semantics, `---` separator). |
 | `loom_get_issue_insight` | One-shot fixability + summary without running the full pipeline. |
 | `qyl.get_error_issue`, `qyl.get_breadcrumbs`, `qyl.get_trace_details`, `qyl.get_span`, `qyl.get_profile`, `qyl.search_logs`, `qyl.find_similar_errors` | Stage 2 evidence gathering. |
 
