@@ -32,7 +32,7 @@ namespace Qyl.Common
         /// Additional attributes for the scope
         ///</summary>
         [JsonPropertyName("attributes")]
-        public OtelAttribute[] ScopeAttributes { get; set; }
+        public Attribute[] ScopeAttributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count

@@ -2037,6 +2037,14 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
+        /// <summary> Acknowledge request body for an alert firing. </summary>
+        /// <param name="acknowledgedBy"> User or service that acknowledges the firing. </param>
+        /// <returns> A new <see cref="Api.AlertFiringAcknowledgement"/> instance for mocking. </returns>
+        public static AlertFiringAcknowledgement AlertFiringAcknowledgement(string acknowledgedBy = default)
+        {
+            return new AlertFiringAcknowledgement(acknowledgedBy, additionalBinaryDataProperties: null);
+        }
+
         /// <summary> Cursor-based paginated response wrapper. </summary>
         /// <param name="items"> List of items in this page. </param>
         /// <param name="nextCursor"> Cursor for the next page (null if no more pages). </param>

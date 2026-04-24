@@ -38,7 +38,7 @@ namespace Qyl.Domains.Observe.Error
         /// Common attributes
         ///</summary>
         [JsonPropertyName("common_attributes")]
-        public OtelAttribute[] CommonAttributes { get; set; }
+        public Attribute[] CommonAttributes { get; set; }
 
 
     }

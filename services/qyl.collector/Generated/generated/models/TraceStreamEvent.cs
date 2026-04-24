@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.OTel.Traces;
+using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Api.Streaming
 {
@@ -25,7 +26,7 @@ namespace Qyl.Api.Streaming
         ///<summary>
         /// Trace data
         ///</summary>
-        public Qyl.OTel.Traces.Trace Data { get; set; }
+        public Trace Data { get; set; }
 
         ///<summary>
         /// Event timestamp

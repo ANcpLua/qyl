@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.Common;
+using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Metrics
 {
@@ -40,7 +41,7 @@ namespace Qyl.OTel.Metrics
         ///<summary>
         /// Metric metadata attributes
         ///</summary>
-        public OtelAttribute[] Metadata { get; set; }
+        public Attribute[] Metadata { get; set; }
 
         ///<summary>
         /// Resource describing the entity that produced this metric

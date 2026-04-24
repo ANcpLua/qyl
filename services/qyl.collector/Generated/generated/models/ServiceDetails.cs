@@ -49,7 +49,7 @@ namespace Qyl.Api
         /// Resource attributes
         ///</summary>
         [JsonPropertyName("resource_attributes")]
-        public OtelAttribute[] ResourceAttributes { get; set; }
+        public Attribute[] ResourceAttributes { get; set; }
 
         ///<summary>
         /// Instrumentation libraries

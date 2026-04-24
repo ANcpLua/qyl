@@ -1,5 +1,5 @@
 import { type AlertsApiClientContext, type AlertsApiClientOptions, createAlertsApiClientContext } from "./api/alertsApiClient/alertsApiClientContext.js";
-import { getFixRun, type GetFixRunOptions, getRule, type GetRuleOptions, listFirings, type ListFiringsOptions, listFixRuns, type ListFixRunsOptions, listRules, type ListRulesOptions } from "./api/alertsApiClient/alertsApiClientOperations.js";
+import { acknowledgeFiring, type AcknowledgeFiringOptions, createRule, type CreateRuleOptions, deleteRule, type DeleteRuleOptions, getFixRun, type GetFixRunOptions, getRule, type GetRuleOptions, listFirings, type ListFiringsOptions, listFixRuns, type ListFixRunsOptions, listRules, type ListRulesOptions, resolveFiring, type ResolveFiringOptions, updateRule, type UpdateRuleOptions } from "./api/alertsApiClient/alertsApiClientOperations.js";
 import { type ApiClientContext, type ApiClientOptions, createApiClientContext } from "./api/apiClientContext.js";
 import { type ConfiguratorApiClientContext, type ConfiguratorApiClientOptions, createConfiguratorApiClientContext } from "./api/configuratorApiClient/configuratorApiClientContext.js";
 import { createJob, type CreateJobOptions, createProfile, type CreateProfileOptions, getJob, type GetJobOptions, getProfile, type GetProfileOptions, getSelections, type GetSelectionsOptions, listProfiles, type ListProfilesOptions, saveSelections, type SaveSelectionsOptions } from "./api/configuratorApiClient/configuratorApiClientOperations.js";
@@ -34,7 +34,7 @@ import { createWorkflowsApiClientContext, type WorkflowsApiClientContext, type W
 import { approveStep, type ApproveStepOptions, getRun, getRunEvents, type GetRunEventsOptions, getRunNodes, type GetRunNodesOptions, type GetRunOptions, listRuns, type ListRunsOptions, resumeRun, type ResumeRunOptions } from "./api/workflowsApiClient/workflowsApiClientOperations.js";
 import { createWorkspacesApiClientContext, type WorkspacesApiClientContext, type WorkspacesApiClientOptions } from "./api/workspacesApiClient/workspacesApiClientContext.js";
 import { createProject, type CreateProjectOptions, getCurrent, type GetCurrentOptions, getProject, type GetProjectOptions, heartbeat, type HeartbeatOptions, listEnvironments, type ListEnvironmentsOptions, listProjects, type ListProjectsOptions } from "./api/workspacesApiClient/workspacesApiClientOperations.js";
-import type { DeploymentCreate, DeploymentUpdate, ErrorUpdate, GenerationJobCreateRequest, GenerationProfileCreateRequest, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, IssueUpdateRequest, LogAggregationRequest, LogQuery, MetricQueryRequest, ProjectCreateRequest, SearchRequest, TraceQuery } from "./models/models.js";
+import type { AlertFiringAcknowledgement, AlertRuleEntity, DeploymentCreate, DeploymentUpdate, ErrorUpdate, GenerationJobCreateRequest, GenerationProfileCreateRequest, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, IssueUpdateRequest, LogAggregationRequest, LogQuery, MetricQueryRequest, ProjectCreateRequest, SearchRequest, TraceQuery } from "./models/models.js";
 
 export class ApiClient {
   #context: ApiClientContext
@@ -61,8 +61,31 @@ export class AlertsApiClient {
   async getRule(ruleId: string, options?: GetRuleOptions) {
     return getRule(this.#context, ruleId, options);
   };
+  async createRule(rule: AlertRuleEntity, options?: CreateRuleOptions) {
+    return createRule(this.#context, rule, options);
+  };
+  async updateRule(
+    ruleId: string,
+    rule: AlertRuleEntity,
+    options?: UpdateRuleOptions,
+  ) {
+    return updateRule(this.#context, ruleId, rule, options);
+  };
+  async deleteRule(ruleId: string, options?: DeleteRuleOptions) {
+    return deleteRule(this.#context, ruleId, options);
+  };
   listFirings(options?: ListFiringsOptions) {
     return listFirings(this.#context, options);
+  };
+  async acknowledgeFiring(
+    firingId: string,
+    acknowledgement: AlertFiringAcknowledgement,
+    options?: AcknowledgeFiringOptions,
+  ) {
+    return acknowledgeFiring(this.#context, firingId, acknowledgement, options);
+  };
+  async resolveFiring(firingId: string, options?: ResolveFiringOptions) {
+    return resolveFiring(this.#context, firingId, options);
   };
   listFixRuns(options?: ListFixRunsOptions) {
     return listFixRuns(this.#context, options);

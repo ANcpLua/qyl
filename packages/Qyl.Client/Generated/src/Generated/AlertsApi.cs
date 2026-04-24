@@ -176,6 +176,224 @@ namespace Qyl.Api
         }
 
         /// <summary>
+        /// [Protocol Method] Create a new alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="content"/> is null. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual ClientResult CreateRule(BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateCreateRuleRequest(content, options);
+            return ClientResult.FromResponse(Pipeline.ProcessMessage(message, options));
+        }
+
+        /// <summary>
+        /// [Protocol Method] Create a new alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="content"/> is null. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual async Task<ClientResult> CreateRuleAsync(BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateCreateRuleRequest(content, options);
+            return ClientResult.FromResponse(await Pipeline.ProcessMessageAsync(message, options).ConfigureAwait(false));
+        }
+
+        /// <summary> Create a new alert rule. </summary>
+        /// <param name="rule"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="rule"/> is null. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual ClientResult<AlertRuleEntity> CreateRule(AlertRuleEntity rule, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNull(rule, nameof(rule));
+
+            ClientResult result = CreateRule(rule, cancellationToken.ToRequestOptions());
+            return ClientResult.FromValue((AlertRuleEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary> Create a new alert rule. </summary>
+        /// <param name="rule"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="rule"/> is null. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual async Task<ClientResult<AlertRuleEntity>> CreateRuleAsync(AlertRuleEntity rule, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNull(rule, nameof(rule));
+
+            ClientResult result = await CreateRuleAsync(rule, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            return ClientResult.FromValue((AlertRuleEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary>
+        /// [Protocol Method] Update an existing alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> or <paramref name="content"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual ClientResult UpdateRule(string ruleId, BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateUpdateRuleRequest(ruleId, content, options);
+            return ClientResult.FromResponse(Pipeline.ProcessMessage(message, options));
+        }
+
+        /// <summary>
+        /// [Protocol Method] Update an existing alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> or <paramref name="content"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual async Task<ClientResult> UpdateRuleAsync(string ruleId, BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateUpdateRuleRequest(ruleId, content, options);
+            return ClientResult.FromResponse(await Pipeline.ProcessMessageAsync(message, options).ConfigureAwait(false));
+        }
+
+        /// <summary> Update an existing alert rule. </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="rule"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> or <paramref name="rule"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual ClientResult<AlertRuleEntity> UpdateRule(string ruleId, AlertRuleEntity rule, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+            Argument.AssertNotNull(rule, nameof(rule));
+
+            ClientResult result = UpdateRule(ruleId, rule, cancellationToken.ToRequestOptions());
+            return ClientResult.FromValue((AlertRuleEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary> Update an existing alert rule. </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="rule"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> or <paramref name="rule"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual async Task<ClientResult<AlertRuleEntity>> UpdateRuleAsync(string ruleId, AlertRuleEntity rule, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+            Argument.AssertNotNull(rule, nameof(rule));
+
+            ClientResult result = await UpdateRuleAsync(ruleId, rule, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            return ClientResult.FromValue((AlertRuleEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary>
+        /// [Protocol Method] Delete an alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual ClientResult DeleteRule(string ruleId, RequestOptions options)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+
+            using PipelineMessage message = CreateDeleteRuleRequest(ruleId, options);
+            return ClientResult.FromResponse(Pipeline.ProcessMessage(message, options));
+        }
+
+        /// <summary>
+        /// [Protocol Method] Delete an alert rule
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual async Task<ClientResult> DeleteRuleAsync(string ruleId, RequestOptions options)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+
+            using PipelineMessage message = CreateDeleteRuleRequest(ruleId, options);
+            return ClientResult.FromResponse(await Pipeline.ProcessMessageAsync(message, options).ConfigureAwait(false));
+        }
+
+        /// <summary> Delete an alert rule. </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual ClientResult DeleteRule(string ruleId, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+
+            return DeleteRule(ruleId, cancellationToken.ToRequestOptions());
+        }
+
+        /// <summary> Delete an alert rule. </summary>
+        /// <param name="ruleId"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="ruleId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="ruleId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual async Task<ClientResult> DeleteRuleAsync(string ruleId, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(ruleId, nameof(ruleId));
+
+            return await DeleteRuleAsync(ruleId, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// [Protocol Method] List alert firings
         /// <list type="bullet">
         /// <item>
@@ -249,6 +467,158 @@ namespace Qyl.Api
         {
             ClientResult result = await GetFiringsAsync(ruleId, status?.ToSerialString(), startTime, endTime, limit, cursor, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
             return ClientResult.FromValue((CursorPageAlertFiringEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary>
+        /// [Protocol Method] Acknowledge an alert firing
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="firingId"></param>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> or <paramref name="content"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual ClientResult AcknowledgeFiring(string firingId, BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateAcknowledgeFiringRequest(firingId, content, options);
+            return ClientResult.FromResponse(Pipeline.ProcessMessage(message, options));
+        }
+
+        /// <summary>
+        /// [Protocol Method] Acknowledge an alert firing
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="firingId"></param>
+        /// <param name="content"> The content to send as the body of the request. </param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> or <paramref name="content"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual async Task<ClientResult> AcknowledgeFiringAsync(string firingId, BinaryContent content, RequestOptions options = null)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+            Argument.AssertNotNull(content, nameof(content));
+
+            using PipelineMessage message = CreateAcknowledgeFiringRequest(firingId, content, options);
+            return ClientResult.FromResponse(await Pipeline.ProcessMessageAsync(message, options).ConfigureAwait(false));
+        }
+
+        /// <summary> Acknowledge an alert firing. </summary>
+        /// <param name="firingId"></param>
+        /// <param name="acknowledgement"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> or <paramref name="acknowledgement"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual ClientResult<AlertFiringEntity> AcknowledgeFiring(string firingId, AlertFiringAcknowledgement acknowledgement, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+            Argument.AssertNotNull(acknowledgement, nameof(acknowledgement));
+
+            ClientResult result = AcknowledgeFiring(firingId, acknowledgement, cancellationToken.ToRequestOptions());
+            return ClientResult.FromValue((AlertFiringEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary> Acknowledge an alert firing. </summary>
+        /// <param name="firingId"></param>
+        /// <param name="acknowledgement"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> or <paramref name="acknowledgement"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual async Task<ClientResult<AlertFiringEntity>> AcknowledgeFiringAsync(string firingId, AlertFiringAcknowledgement acknowledgement, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+            Argument.AssertNotNull(acknowledgement, nameof(acknowledgement));
+
+            ClientResult result = await AcknowledgeFiringAsync(firingId, acknowledgement, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            return ClientResult.FromValue((AlertFiringEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary>
+        /// [Protocol Method] Resolve an alert firing
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="firingId"></param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual ClientResult ResolveFiring(string firingId, RequestOptions options)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+
+            using PipelineMessage message = CreateResolveFiringRequest(firingId, options);
+            return ClientResult.FromResponse(Pipeline.ProcessMessage(message, options));
+        }
+
+        /// <summary>
+        /// [Protocol Method] Resolve an alert firing
+        /// <list type="bullet">
+        /// <item>
+        /// <description> This <see href="https://aka.ms/azsdk/net/protocol-methods">protocol method</see> allows explicit creation of the request and processing of the response for advanced scenarios. </description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="firingId"></param>
+        /// <param name="options"> The request options, which can override default behaviors of the client pipeline on a per-call basis. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        /// <returns> The response returned from the service. </returns>
+        public virtual async Task<ClientResult> ResolveFiringAsync(string firingId, RequestOptions options)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+
+            using PipelineMessage message = CreateResolveFiringRequest(firingId, options);
+            return ClientResult.FromResponse(await Pipeline.ProcessMessageAsync(message, options).ConfigureAwait(false));
+        }
+
+        /// <summary> Resolve an alert firing. </summary>
+        /// <param name="firingId"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual ClientResult<AlertFiringEntity> ResolveFiring(string firingId, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+
+            ClientResult result = ResolveFiring(firingId, cancellationToken.ToRequestOptions());
+            return ClientResult.FromValue((AlertFiringEntity)result, result.GetRawResponse());
+        }
+
+        /// <summary> Resolve an alert firing. </summary>
+        /// <param name="firingId"></param>
+        /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="firingId"/> is null. </exception>
+        /// <exception cref="ArgumentException"> <paramref name="firingId"/> is an empty string, and was expected to be non-empty. </exception>
+        /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
+        public virtual async Task<ClientResult<AlertFiringEntity>> ResolveFiringAsync(string firingId, CancellationToken cancellationToken = default)
+        {
+            Argument.AssertNotNullOrEmpty(firingId, nameof(firingId));
+
+            ClientResult result = await ResolveFiringAsync(firingId, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            return ClientResult.FromValue((AlertFiringEntity)result, result.GetRawResponse());
         }
 
         /// <summary>

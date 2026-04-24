@@ -8,6 +8,7 @@ using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.OTel.Enums;
 using Qyl.Common;
+using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Traces
 {
@@ -70,7 +71,7 @@ namespace Qyl.OTel.Traces
         ///<summary>
         /// Span attributes
         ///</summary>
-        public OtelAttribute[] Attributes { get; set; }
+        public Attribute[] Attributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count

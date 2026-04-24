@@ -201,6 +201,11 @@ public sealed class IssueUpdateRequest
     public string? AssignedTo { get; init; }
 }
 
+public sealed class AlertFiringAcknowledgement
+{
+    public required string AcknowledgedBy { get; init; }
+}
+
 public enum DoraPerformanceLevel
 {
     Elite,

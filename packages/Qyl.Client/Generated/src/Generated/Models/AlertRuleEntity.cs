@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Qyl.Client;
 
 namespace Qyl.Domains.Alerting
 {
@@ -26,8 +27,15 @@ namespace Qyl.Domains.Alerting
         /// <param name="triggerCount"> Total trigger count. </param>
         /// <param name="createdAt"> Creation timestamp. </param>
         /// <param name="updatedAt"> Last update timestamp. </param>
-        internal AlertRuleEntity(string id, string projectId, string name, AlertRuleType ruleType, string conditionJson, string targetType, AlertSeverity severity, int cooldownSeconds, bool enabled, long triggerCount, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        /// <exception cref="ArgumentNullException"> <paramref name="id"/>, <paramref name="projectId"/>, <paramref name="name"/>, <paramref name="conditionJson"/> or <paramref name="targetType"/> is null. </exception>
+        public AlertRuleEntity(string id, string projectId, string name, AlertRuleType ruleType, string conditionJson, string targetType, AlertSeverity severity, int cooldownSeconds, bool enabled, long triggerCount, DateTimeOffset createdAt, DateTimeOffset updatedAt)
         {
+            Argument.AssertNotNull(id, nameof(id));
+            Argument.AssertNotNull(projectId, nameof(projectId));
+            Argument.AssertNotNull(name, nameof(name));
+            Argument.AssertNotNull(conditionJson, nameof(conditionJson));
+            Argument.AssertNotNull(targetType, nameof(targetType));
+
             Id = id;
             ProjectId = projectId;
             Name = name;
@@ -84,54 +92,54 @@ namespace Qyl.Domains.Alerting
         }
 
         /// <summary> Rule ID. </summary>
-        public string Id { get; }
+        public string Id { get; set; }
 
         /// <summary> Owning project. </summary>
-        public string ProjectId { get; }
+        public string ProjectId { get; set; }
 
         /// <summary> Rule name. </summary>
-        public string Name { get; }
+        public string Name { get; set; }
 
         /// <summary> Rule description. </summary>
-        public string Description { get; }
+        public string Description { get; set; }
 
         /// <summary> Rule type. </summary>
-        public AlertRuleType RuleType { get; }
+        public AlertRuleType RuleType { get; set; }
 
         /// <summary> Condition definition. </summary>
-        public string ConditionJson { get; }
+        public string ConditionJson { get; set; }
 
         /// <summary> Threshold definition. </summary>
-        public string ThresholdJson { get; }
+        public string ThresholdJson { get; set; }
 
         /// <summary> Target type for evaluation. </summary>
-        public string TargetType { get; }
+        public string TargetType { get; set; }
 
         /// <summary> Target filter. </summary>
-        public string TargetFilterJson { get; }
+        public string TargetFilterJson { get; set; }
 
         /// <summary> Alert severity. </summary>
-        public AlertSeverity Severity { get; }
+        public AlertSeverity Severity { get; set; }
 
         /// <summary> Cooldown between firings in seconds. </summary>
-        public int CooldownSeconds { get; }
+        public int CooldownSeconds { get; set; }
 
         /// <summary> Notification channels. </summary>
-        public string NotificationChannelsJson { get; }
+        public string NotificationChannelsJson { get; set; }
 
         /// <summary> Whether rule is enabled. </summary>
-        public bool Enabled { get; }
+        public bool Enabled { get; set; }
 
         /// <summary> Last trigger timestamp. </summary>
-        public DateTimeOffset? LastTriggeredAt { get; }
+        public DateTimeOffset? LastTriggeredAt { get; set; }
 
         /// <summary> Total trigger count. </summary>
-        public long TriggerCount { get; }
+        public long TriggerCount { get; set; }
 
         /// <summary> Creation timestamp. </summary>
-        public DateTimeOffset CreatedAt { get; }
+        public DateTimeOffset CreatedAt { get; set; }
 
         /// <summary> Last update timestamp. </summary>
-        public DateTimeOffset UpdatedAt { get; }
+        public DateTimeOffset UpdatedAt { get; set; }
     }
 }

@@ -59,6 +59,16 @@ namespace Qyl.Domains.Alerting
         /// <param name="options"> The client options for reading and writing models. </param>
         string IPersistableModel<AlertRuleEntity>.GetFormatFromOptions(ModelReaderWriterOptions options) => "J";
 
+        /// <param name="alertRuleEntity"> The <see cref="AlertRuleEntity"/> to serialize into <see cref="BinaryContent"/>. </param>
+        public static implicit operator BinaryContent(AlertRuleEntity alertRuleEntity)
+        {
+            if (alertRuleEntity == null)
+            {
+                return null;
+            }
+            return BinaryContent.Create(alertRuleEntity, ModelSerializationExtensions.WireOptions);
+        }
+
         /// <param name="result"> The <see cref="ClientResult"/> to deserialize the <see cref="AlertRuleEntity"/> from. </param>
         public static explicit operator AlertRuleEntity(ClientResult result)
         {

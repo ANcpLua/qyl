@@ -83,6 +83,42 @@ namespace Qyl.Api.Controllers
         }
 
         ///<summary>
+        /// Create a new alert rule
+        ///</summary>
+        [HttpPost]
+        [Route("/api/v1/alerts/rules")]
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(AlertRuleEntity))]
+        public virtual async Task<IActionResult> CreateRule(AlertRuleEntity body)
+        {
+            var result = await AlertsApiImpl.CreateRuleAsync(body);
+            return Ok(result);
+        }
+
+        ///<summary>
+        /// Update an existing alert rule
+        ///</summary>
+        [HttpPut]
+        [Route("/api/v1/alerts/rules/{ruleId}")]
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(AlertRuleEntity))]
+        public virtual async Task<IActionResult> UpdateRule(string ruleId, AlertRuleEntity body)
+        {
+            var result = await AlertsApiImpl.UpdateRuleAsync(ruleId, body);
+            return Ok(result);
+        }
+
+        ///<summary>
+        /// Delete an alert rule
+        ///</summary>
+        [HttpDelete]
+        [Route("/api/v1/alerts/rules/{ruleId}")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent, Type = typeof(void))]
+        public virtual async Task<IActionResult> DeleteRule(string ruleId)
+        {
+            await AlertsApiImpl.DeleteRuleAsync(ruleId);
+            return NoContent();
+        }
+
+        ///<summary>
         /// List alert firings
         ///</summary>
         [HttpGet]
@@ -91,6 +127,30 @@ namespace Qyl.Api.Controllers
         public virtual async Task<IActionResult> ListFirings([FromQuery(Name = "ruleId")] string? ruleId, [FromQuery(Name = "status")] AlertFiringStatus? status, [FromQuery(Name = "startTime")] DateTimeOffset? startTime, [FromQuery(Name = "endTime")] DateTimeOffset? endTime, [FromQuery(Name = "limit")] int? limit, [FromQuery(Name = "cursor")] string? cursor)
         {
             var result = await AlertsApiImpl.ListFiringsAsync(ruleId, status, startTime, endTime, limit, cursor);
+            return Ok(result);
+        }
+
+        ///<summary>
+        /// Acknowledge an alert firing
+        ///</summary>
+        [HttpPost]
+        [Route("/api/v1/alerts/firings/{firingId}/acknowledge")]
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(AlertFiringEntity))]
+        public virtual async Task<IActionResult> AcknowledgeFiring(string firingId, AlertFiringAcknowledgement body)
+        {
+            var result = await AlertsApiImpl.AcknowledgeFiringAsync(firingId, body);
+            return Ok(result);
+        }
+
+        ///<summary>
+        /// Resolve an alert firing
+        ///</summary>
+        [HttpPost]
+        [Route("/api/v1/alerts/firings/{firingId}/resolve")]
+        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(AlertFiringEntity))]
+        public virtual async Task<IActionResult> ResolveFiring(string firingId)
+        {
+            var result = await AlertsApiImpl.ResolveFiringAsync(firingId);
             return Ok(result);
         }
 

@@ -13,7 +13,7 @@ namespace Qyl.Common
     ///<summary>
     /// Key-value attribute pair following OTel conventions
     ///</summary>
-    public partial class OtelAttribute
+    public partial class Attribute
     {
         ///<summary>
         /// Attribute key (dot-separated namespace)

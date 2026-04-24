@@ -4740,6 +4740,15 @@ export interface AlertFiringEntity {
   dedupKey?: string;
 }
 /**
+ * Acknowledge request body for an alert firing
+ */
+export interface AlertFiringAcknowledgement {
+  /**
+   * User or service that acknowledges the firing
+   */
+  acknowledgedBy: string;
+}
+/**
  * Fix run status
  */
 export enum FixRunStatus {

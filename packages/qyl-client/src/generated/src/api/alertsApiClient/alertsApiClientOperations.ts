@@ -4,8 +4,8 @@ import { AlertsApiClientContext } from "./alertsApiClientContext.js";
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { dateRfc3339Serializer, jsonAlertRuleEntityToApplicationTransform, jsonCursorPageToApplicationTransform_16 as jsonCursorPageToApplicationTransform, jsonCursorPageToApplicationTransform_17 as jsonCursorPageToApplicationTransform_2, jsonCursorPageToApplicationTransform_18 as jsonCursorPageToApplicationTransform_3, jsonFixRunEntityToApplicationTransform } from "../../models/internal/serializers.js";
-import { AlertFiringEntity, type AlertFiringStatus, AlertRuleEntity, FixRunEntity, type FixRunStatus } from "../../models/models.js";
+import { dateRfc3339Serializer, jsonAlertFiringAcknowledgementToTransportTransform, jsonAlertFiringEntityToApplicationTransform, jsonAlertRuleEntityToApplicationTransform, jsonAlertRuleEntityToTransportTransform, jsonCursorPageToApplicationTransform_16 as jsonCursorPageToApplicationTransform, jsonCursorPageToApplicationTransform_17 as jsonCursorPageToApplicationTransform_2, jsonCursorPageToApplicationTransform_18 as jsonCursorPageToApplicationTransform_3, jsonFixRunEntityToApplicationTransform } from "../../models/internal/serializers.js";
+import { AlertFiringAcknowledgement, AlertFiringEntity, type AlertFiringStatus, AlertRuleEntity, FixRunEntity, type FixRunStatus } from "../../models/models.js";
 
 export interface ListRulesOptions extends OperationOptions {
   projectId?: string
@@ -101,6 +101,99 @@ export async function getRule(
   throw createRestError(response);
 }
 ;
+export interface CreateRuleOptions extends OperationOptions {}
+/**
+ * Create a new alert rule
+ *
+ * @param {AlertsApiClientContext} client
+ * @param {AlertRuleEntity} rule
+ * @param {CreateRuleOptions} [options]
+ */
+export async function createRule(
+  client: AlertsApiClientContext,
+  rule: AlertRuleEntity,
+  options?: CreateRuleOptions,
+): Promise<AlertRuleEntity> {
+  const path = parse("/api/v1/alerts/rules").expand({});
+  const httpRequestOptions = {
+    headers: {},body: jsonAlertRuleEntityToTransportTransform(rule),
+  };
+  const response = await client.pathUnchecked(path).post(httpRequestOptions);
+
+
+  if (typeof options?.operationOptions?.onResponse === "function") {
+    options?.operationOptions?.onResponse(response);
+  }
+  if (+response.status === 200 && response.headers["content-type"]?.includes("application/json")) {
+    return jsonAlertRuleEntityToApplicationTransform(response.body)!;
+  }
+  throw createRestError(response);
+}
+;
+export interface UpdateRuleOptions extends OperationOptions {}
+/**
+ * Update an existing alert rule
+ *
+ * @param {AlertsApiClientContext} client
+ * @param {string} ruleId
+ * @param {AlertRuleEntity} rule
+ * @param {UpdateRuleOptions} [options]
+ */
+export async function updateRule(
+  client: AlertsApiClientContext,
+  ruleId: string,
+  rule: AlertRuleEntity,
+  options?: UpdateRuleOptions,
+): Promise<AlertRuleEntity> {
+  const path = parse("/api/v1/alerts/rules/{ruleId}").expand({
+    ruleId: ruleId
+  });
+  const httpRequestOptions = {
+    headers: {},body: jsonAlertRuleEntityToTransportTransform(rule),
+  };
+  const response = await client.pathUnchecked(path).put(httpRequestOptions);
+
+
+  if (typeof options?.operationOptions?.onResponse === "function") {
+    options?.operationOptions?.onResponse(response);
+  }
+  if (+response.status === 200 && response.headers["content-type"]?.includes("application/json")) {
+    return jsonAlertRuleEntityToApplicationTransform(response.body)!;
+  }
+  throw createRestError(response);
+}
+;
+export interface DeleteRuleOptions extends OperationOptions {}
+/**
+ * Delete an alert rule
+ *
+ * @param {AlertsApiClientContext} client
+ * @param {string} ruleId
+ * @param {DeleteRuleOptions} [options]
+ */
+export async function deleteRule(
+  client: AlertsApiClientContext,
+  ruleId: string,
+  options?: DeleteRuleOptions,
+): Promise<void> {
+  const path = parse("/api/v1/alerts/rules/{ruleId}").expand({
+    ruleId: ruleId
+  });
+  const httpRequestOptions = {
+    headers: {},
+  };
+  const response = await client.pathUnchecked(path).delete(httpRequestOptions);
+
+
+  if (typeof options?.operationOptions?.onResponse === "function") {
+    options?.operationOptions?.onResponse(response);
+  }
+  if (+response.status === 204 && !response.body) {
+    return;
+  }
+  throw createRestError(response);
+}
+;
 export interface ListFiringsOptions extends OperationOptions {
   ruleId?: string
   status?: AlertFiringStatus
@@ -168,6 +261,72 @@ export function listFirings(
   }
   return buildPagedAsyncIterator<AlertFiringEntity, ListFiringsPageResponse, ListFiringsPageSettings>({getElements, getPagedResponse: getPagedResponse as any});
 }
+export interface AcknowledgeFiringOptions extends OperationOptions {}
+/**
+ * Acknowledge an alert firing
+ *
+ * @param {AlertsApiClientContext} client
+ * @param {string} firingId
+ * @param {AlertFiringAcknowledgement} acknowledgement
+ * @param {AcknowledgeFiringOptions} [options]
+ */
+export async function acknowledgeFiring(
+  client: AlertsApiClientContext,
+  firingId: string,
+  acknowledgement: AlertFiringAcknowledgement,
+  options?: AcknowledgeFiringOptions,
+): Promise<AlertFiringEntity> {
+  const path = parse("/api/v1/alerts/firings/{firingId}/acknowledge").expand({
+    firingId: firingId
+  });
+  const httpRequestOptions = {
+    headers: {
+
+    },body: jsonAlertFiringAcknowledgementToTransportTransform(acknowledgement),
+  };
+  const response = await client.pathUnchecked(path).post(httpRequestOptions);
+
+
+  if (typeof options?.operationOptions?.onResponse === "function") {
+    options?.operationOptions?.onResponse(response);
+  }
+  if (+response.status === 200 && response.headers["content-type"]?.includes("application/json")) {
+    return jsonAlertFiringEntityToApplicationTransform(response.body)!;
+  }
+  throw createRestError(response);
+}
+;
+export interface ResolveFiringOptions extends OperationOptions {}
+/**
+ * Resolve an alert firing
+ *
+ * @param {AlertsApiClientContext} client
+ * @param {string} firingId
+ * @param {ResolveFiringOptions} [options]
+ */
+export async function resolveFiring(
+  client: AlertsApiClientContext,
+  firingId: string,
+  options?: ResolveFiringOptions,
+): Promise<AlertFiringEntity> {
+  const path = parse("/api/v1/alerts/firings/{firingId}/resolve").expand({
+    firingId: firingId
+  });
+  const httpRequestOptions = {
+    headers: {},
+  };
+  const response = await client.pathUnchecked(path).post(httpRequestOptions);
+
+
+  if (typeof options?.operationOptions?.onResponse === "function") {
+    options?.operationOptions?.onResponse(response);
+  }
+  if (+response.status === 200 && response.headers["content-type"]?.includes("application/json")) {
+    return jsonAlertFiringEntityToApplicationTransform(response.body)!;
+  }
+  throw createRestError(response);
+}
+;
 export interface ListFixRunsOptions extends OperationOptions {
   issueId?: string
   status?: FixRunStatus

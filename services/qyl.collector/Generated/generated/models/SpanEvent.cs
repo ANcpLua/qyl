@@ -31,7 +31,7 @@ namespace Qyl.OTel.Traces
         ///<summary>
         /// Event attributes
         ///</summary>
-        public OtelAttribute[] Attributes { get; set; }
+        public Attribute[] Attributes { get; set; }
 
         ///<summary>
         /// Dropped attributes count
