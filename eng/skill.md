@@ -1,5 +1,5 @@
 name: microsoft-agent-framework-qyl
-description: qyl MAF consumer patterns for **MAF 1.2** (2026-04-21 release). Apex-aligned fluent. Extends ~/.claude/skills/microsoft-agent-framework/SKILL.md with the Apex fluent pattern (IXxxBuilder abstractions + .AsBuilder().Use(middleware).Build() + provider-agnostic chat-client factory + file-based instructions + three-strategy orchestration trichotomy + custom-executor disciplines) plus qyl delta (WithQylTelemetry/UseQylTelemetry at composition root, AddQylServiceDefaults, LoomRunState session discipline, qyl.mcp generator-driven tool registration, InvestigationLineage bounded autonomy). DROPPED 2026-04 — [AgentTraced] + AgentCallSiteAnalyzer + AgentInterceptorEmitter + GenAiCallSiteAnalyzer — replaced by .AsBuilder().UseOpenTelemetry("qyl.agent").Build() at composition root. 1.2 highlights — Foundry Hosted Agents, Handoff HITL, Declarative resume-edge PortableValue handling, Foundry Evals .NET, duplicate-CallId fix. Triggers on qyl MAF code, Apex-pattern references, ExtractorAgentsBuilder, IExtractorChatClientBuilder, IExtractorWorkflowBuilder, UseQylTelemetry, WithQylTelemetry, LoomRunState, LoomToolEnvelope, InvestigationLineage, QylSkill, QylCapability.
+description: qyl MAF consumer patterns for **MAF 1.3** (2026-04-23 release, 2 days after 1.2 — MS ships on continuous-iteration cadence). Apex-aligned fluent. Extends ~/.claude/skills/microsoft-agent-framework/SKILL.md with the Apex fluent pattern (IXxxBuilder abstractions + .AsBuilder().Use(middleware).Build() + provider-agnostic chat-client factory + file-based instructions + three-strategy orchestration trichotomy + custom-executor disciplines) plus qyl delta (WithQylTelemetry/UseQylTelemetry at composition root, AddQylServiceDefaults, LoomRunState session discipline, qyl.mcp generator-driven tool registration, InvestigationLineage bounded autonomy). DROPPED 2026-04 — [AgentTraced] + AgentCallSiteAnalyzer + AgentInterceptorEmitter + GenAiCallSiteAnalyzer — replaced by .AsBuilder().UseOpenTelemetry("qyl.agent").Build() at composition root. 1.2/1.3 highlights — Foundry Hosted Agents, Handoff HITL, Declarative resume-edge PortableValue handling, Foundry Evals .NET, duplicate-CallId fix. Triggers on qyl MAF code, Apex-pattern references, ExtractorAgentsBuilder, IExtractorChatClientBuilder, IExtractorWorkflowBuilder, UseQylTelemetry, WithQylTelemetry, LoomRunState, LoomToolEnvelope, InvestigationLineage, QylSkill, QylCapability.
   ---
 
 # MAF — qyl overlay (Apex-aligned)
@@ -23,34 +23,54 @@ The attribute+generator stack for **agent/chat-level telemetry** was collapsed t
 Attribute-based instrumentation is kept **only** for arbitrary non-chat business-logic methods and metrics — `[Traced]` / `[Meter]` / `[Counter]` / `[Histogram]` / `[Gauge]` / `[UpDownCounter]` / `[Tag]` — because no builder surface exists
 there.
 
-## MAF 1.2 — decision tree (released 2026-04-21)
+## MAF 1.3 — decision tree (released 2026-04-23)
+
+1.2 shipped 2026-04-21, 1.3 shipped 2 days later. MS is on a continuous-iteration cadence — expect minor bumps every few days. Pin by exact version, not range.
 
 **Pinned versions** (see `Version.props` → `MicrosoftAgentsAI*Version`):
 
 | Train | Version | Packages |
 |---|---|---|
-| stable | `1.2.0` | `Microsoft.Agents.AI`, `.Abstractions`, `.Workflows`, `.OpenAI`, `.Foundry` |
-| preview | `1.2.0-preview.260421.1` | `.Hosting`, `.DevUI`, `.Hosting.AGUI.AspNetCore`, `.Anthropic`, `.A2A`, `.Foundry.Hosting` |
-| rc1 | `1.2.0-rc1` | `.Workflows.Declarative`, `.Workflows.Declarative.Foundry`, `.Purview` |
+| stable | `1.3.0` | `Microsoft.Agents.AI`, `.Abstractions`, `.Workflows`, `.OpenAI`, `.Foundry` |
+| preview | `1.3.0-preview.260423.1` | `.Hosting`, `.DevUI`, `.Hosting.AGUI.AspNetCore`, `.Anthropic`, `.A2A`, `.Foundry.Hosting` |
+| rc1 | `1.3.0-rc1` | `.Workflows.Declarative`, `.Workflows.Declarative.Foundry`, `.Purview` |
 
-> `Microsoft.Agents.AI.Hosting` is **preview-only** — no stable 1.2.0 exists. Bind it to `$(MicrosoftAgentsAIHostingVersion)`, never `$(MicrosoftAgentsAIVersion)`.
+> `Microsoft.Agents.AI.Hosting` is **preview-only** — no stable 1.3.0 exists. Bind it to `$(MicrosoftAgentsAIHostingVersion)`, never `$(MicrosoftAgentsAIVersion)`.
 
-### Triggers — when to reach for a 1.2 surface
+**Cleanup rule** — declare a `<PackageVersion>` only if a `.csproj` or transitive-pin chain actually consumes it. qyl today only directly references `Microsoft.Agents.AI.Hosting` (3 csprojs). Everything else in Directory.Packages.props is a pinned transitive (`.AI`, `.Abstractions`, `.Workflows`, `.OpenAI`) or held for a declared future use (`.DevUI`, `.Hosting.AGUI.AspNetCore`). No Anthropic / A2A / Foundry / Foundry.Hosting / Workflows.Declarative pins unless a consumer materializes.
+
+### Triggers — when to reach for a 1.2/1.3 surface
 
 ```
-Trigger (code or user request)                          → 1.2 surface                                   qyl action
+Trigger (code or user request)                          → Surface                                          qyl action
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 "hosted agent on Microsoft Foundry"                     → Microsoft.Agents.AI.Foundry + .Foundry.Hosting  Skip — qyl is self-hosted
 "handoff with human approval / HITL"                    → 1.2 handoff refactor + HITL session support    Candidate — replace Autofix approval eigenbau
-"declarative workflow + checkpoint + resume"            → .Workflows.Declarative 1.2-rc1                  Skip — qyl uses imperative WorkflowBuilder
-"run Foundry Eval suite against an agent"               → Foundry Evals .NET binding (new in 1.2)         Skip today
-"download files produced by code_interpreter"           → container-file sample (OpenAI provider, new)    Skip today
-diff shows duplicate CallIds in handoff filtering       → 1.2 fix (bug in 1.1)                            Upgrade-and-forget
-flaky checkpoint-restore race                           → 1.2 fix (bug in 1.1)                            Upgrade-and-forget
+"declarative workflow + checkpoint + resume"            → .Workflows.Declarative 1.3-rc1                  Evaluate — see "imperative vs declarative" below
+"run Foundry Eval suite against an agent"               → Foundry Evals .NET binding (1.2+)               Skip today
+"download files produced by code_interpreter"           → container-file sample (OpenAI provider, 1.2+)   Skip today
+diff shows duplicate CallIds in handoff filtering       → 1.2 fix                                         Upgrade-and-forget
+flaky checkpoint-restore race                           → 1.2 fix                                         Upgrade-and-forget
 Foundry agent missing description in handoff UI         → 1.2 fix                                         Upgrade-and-forget
 ```
 
-### Upgrade safety — is 1.1 → 1.2 breaking for qyl?
+### Imperative vs declarative workflows — when to flip
+
+Industry default for workflow orchestration IS declarative (GitHub Actions, K8s, Airflow, Step Functions). qyl stays imperative because the base-case doesn't fit YAML surface — `LoomRunState` + `InvestigationLineage` + DuckDB write-channel are Executor-state concerns that YAML can only fassadenize. Flip to declarative when:
+
+```
+Trigger                                                 → Pick
+─────────────────────────────────────────────────────────────────────
+non-dev or LLM-gen spec authors                         → declarative
+10+ workflow variants sharing structure                 → declarative
+runtime spec loading (hot-reload, DB-stored)            → declarative
+base-case expressible in YAML (80%+ fit)                → declarative
+all three conditions above                              → declarative (else imperative)
+
+qyl today: 0/3 conditions → imperative stays right
+```
+
+### Upgrade safety — 1.1 → 1.2 → 1.3
 
 ```
 Does qyl code use…                                      → Breaking risk
@@ -59,11 +79,11 @@ the Apex fluent pattern (.AsBuilder().Use(...).Build()) → No (pattern is 1.0-s
 WorkflowBuilder + Executor<TIn, TOut>                   → No (API stable)
 AddAIAgent + WithInMemorySessionStore + WithAITool      → No (hosted surface unchanged)
 AgentSession / CreateSessionAsync                       → No
-.Workflows.Declarative (rc6 → rc1)                      → N/A — qyl does not use declarative
-[AgentTraced] / AgentCallSiteAnalyzer                   → N/A — already dropped 2026-04 (see above)
+.Workflows.Declarative (any rc)                         → N/A — qyl does not use declarative
+[AgentTraced] / AgentCallSiteAnalyzer                   → N/A — already dropped 2026-04
 ```
 
-**Validation rule:** if `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` is clean after the Version.props bump, you are done — 1.2 adds features, does not redefine the consumer shape.
+**Validation rule:** if `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` is clean after the Version.props bump, you are done — 1.2/1.3 add features, do not redefine the consumer shape.
 
 ## The Apex fluent pattern — qyl's shape
 

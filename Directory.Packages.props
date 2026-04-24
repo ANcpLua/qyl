@@ -69,15 +69,14 @@
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Testing" Version="$(ANcpLuaAgentsTestingVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
-    <!-- Microsoft.Agents.AI (MAF 1.2) -->
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsAIDevUIVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="$(MicrosoftAgentsAIWorkflowsDeclarativeVersion)"/>
+    <!-- Microsoft.Agents.AI (MAF 1.3) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsAIAbstractionsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsAIWorkflowsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(MicrosoftAgentsAIOpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(MicrosoftAgentsAIHostingAGUIAspNetCoreVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsAIDevUIVersion)"/>
     <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- OpenAI -->
