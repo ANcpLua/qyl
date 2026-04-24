@@ -6,7 +6,7 @@ groups:
     attributes:
       - id: id
         type: string
-        stability: experimental
+        stability: development
         brief: >
           First 8 characters of the API key hash (sha256[:8]).
           Never log the full key. Used for audit trails only.

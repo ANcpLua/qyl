@@ -6,7 +6,7 @@ groups:
     attributes:
       - id: id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Fix run identifier'
         examples: ['fixrun_01hzv8x']
       - id: status
@@ -15,23 +15,23 @@ groups:
             - id: pending
               value: 'pending'
               brief: 'Fix run is queued'
-              stability: experimental
+              stability: development
             - id: running
               value: 'running'
               brief: 'Fix run is in progress'
-              stability: experimental
+              stability: development
             - id: succeeded
               value: 'succeeded'
               brief: 'Fix applied and verified'
-              stability: experimental
+              stability: development
             - id: failed
               value: 'failed'
               brief: 'Fix attempt failed'
-              stability: experimental
+              stability: development
             - id: rejected
               value: 'rejected'
               brief: 'Fix was rejected by reviewer'
-        stability: experimental
+        stability: development
         brief: 'Current status of the fix run'
       - id: trigger
         type:
@@ -39,9 +39,9 @@ groups:
             - id: manual
               value: 'manual'
               brief: 'Manually triggered by a user'
-              stability: experimental
+              stability: development
             - id: automatic
               value: 'automatic'
               brief: 'Triggered automatically by a diagnostic rule'
-        stability: experimental
+        stability: development
         brief: 'What initiated this fix run'

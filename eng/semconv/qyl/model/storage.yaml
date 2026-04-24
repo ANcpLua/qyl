@@ -6,7 +6,7 @@ groups:
     attributes:
       - id: size
         type: int
-        stability: experimental
+        stability: development
         brief: 'Current DuckDB database file size in bytes'
   - id: registry.qyl.duckdb
     type: attribute_group
@@ -15,9 +15,9 @@ groups:
     attributes:
       - id: dropped_jobs_total
         type: int
-        stability: experimental
+        stability: development
         brief: 'Cumulative count of background write jobs dropped (back-pressure)'
       - id: dropped_spans_total
         type: int
-        stability: experimental
+        stability: development
         brief: 'Cumulative count of span records dropped before persistence'

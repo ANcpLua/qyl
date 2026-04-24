@@ -6,7 +6,7 @@ groups:
     attributes:
       - id: id
         type: string
-        stability: experimental
+        stability: development
         brief: 'Error issue identifier'
         examples: ['issue_01hzv8x']
       - id: severity
@@ -15,19 +15,19 @@ groups:
             - id: low
               value: 'low'
               brief: 'Low severity — cosmetic or rare impact'
-              stability: experimental
+              stability: development
             - id: medium
               value: 'medium'
               brief: 'Medium severity — notable but not blocking'
-              stability: experimental
+              stability: development
             - id: high
               value: 'high'
               brief: 'High severity — significant user impact'
-              stability: experimental
+              stability: development
             - id: critical
               value: 'critical'
               brief: 'Critical severity — service-breaking'
-        stability: experimental
+        stability: development
         brief: 'Issue severity level'
       - id: status
         type:
@@ -35,13 +35,13 @@ groups:
             - id: open
               value: 'open'
               brief: 'Issue is active and unresolved'
-              stability: experimental
+              stability: development
             - id: resolved
               value: 'resolved'
               brief: 'Issue has been fixed'
-              stability: experimental
+              stability: development
             - id: ignored
               value: 'ignored'
               brief: 'Issue has been acknowledged and dismissed'
-        stability: experimental
+        stability: development
         brief: 'Current resolution status'
