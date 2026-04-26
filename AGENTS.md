@@ -121,57 +121,15 @@ In `services/qyl.mcp/`:
 
 ## MAF agent composition
 
-For anything under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `services/qyl.mcp/Agents/`.
+For agent/workflow code under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `services/qyl.mcp/Agents/`:
 
-**Authoritative overlay:** `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.md` — qyl MAF consumer patterns
-(Apex-aligned fluent shape, three-builder trichotomy, `.AsBuilder().Use(...).Build()` composition, file-based
-instructions, `LoomRunState` session discipline, `WithQylTelemetry`/`UseQylTelemetry` + agent-layer
-`UseOpenTelemetry("qyl.agent")`). Read it before touching agent/workflow code. Core MAF surface lives in
-`~/.claude/skills/microsoft-agent-framework/SKILL.md`.
-
-### Rules
-
-- Use the Apex three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow code. Concrete contract
-  in `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs` — **one `Build*Agent()` factory method per
-  bounded agent**, not a fluent chain. Each returned `AIAgent` is already wrapped with telemetry at the construction
-  site.
-- Decorate at composition root. Three distinct middleware helpers in
-  `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs` — do not confuse them:
-    - `IChatClient` direct (short form): `innerClient.WithQylTelemetry(sourceName: "qyl.genai")` — no `AsBuilder()`
-      wrapping. Line 53. See `tests/qyl.collector.tests/Instrumentation/WithQylTelemetryEmissionTests.cs:36`.
-    - `ChatClientBuilder` fluent form: `new ChatClientBuilder(innerClient).UseQylTelemetry(sourceName: "qyl.genai")
-      .UseFunctionInvocation(...).Build()` — prefer this when composing a pipeline. Line 100. See
-      `services/qyl.loom.patterns/Clients/QylLoomPatternsChatClientBuilder.cs:62`.
-    - `AIAgentBuilder` fluent form: `agent.AsBuilder().UseQylAgentTelemetry().Build()` — wraps the agent. Line 141.
-      See `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:40` for the canonical shape.
-- Both layers are mandatory — `IChatClient` **and** `AIAgent`. Wrapping only one loses half the OTel attributes.
-- Do not instantiate `ActivitySource` directly in agent code. `[AgentTraced]` is **removed**. Do not reintroduce it.
-
-### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.1.0 and live qyl call-sites
-
-Reach for these before hand-rolling. Every row has a concrete qyl call-site — grep it before writing a new variant.
-
-| Layer                         | Entry point                                                                                                                                                                                                                                   | qyl call-site                                                                                                                                      |
-|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Agent — standalone**        | `llm.AsAIAgent(new ChatClientAgentOptions { Name, Description, ChatOptions = new() { Instructions } }).AsBuilder().UseQylAgentTelemetry().Build()`                                                                                            | `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:35-40` and every sibling executor                                                     |
-| **Agent — non-streaming**     | `await agent.RunAsync(userMessage, cancellationToken: ct)`                                                                                                                                                                                    | `RcaExecutor.cs:42` — the universal shape across Autofix executors and `TriagePipelineService`                                                     |
-| **Agent — streaming**         | `await foreach (var evt in streamingRun.WatchStreamAsync(ct)) { … }`                                                                                                                                                                          | `services/qyl.loom/Autofix/AutofixAgentService.cs:66-77`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                            |
-| **Agent — structured output** | `await agent.RunAsync<T>(prompt)` → `AgentResponse<T>.Result`                                                                                                                                                                                 | Use when `T` is a `LoomToolEnvelope<TData>` verdict (see `services/qyl.mcp/Tools/`)                                                                |
-| **Session**                   | `agent.CreateSessionAsync()` • `SerializeSessionAsync` / `DeserializeSessionAsync`                                                                                                                                                            | Required when the same agent must preserve context across MCP tool calls — gate on `LoomRunState`                                                  |
-| **Tools — local**             | `AIFunctionFactory.Create(methodInfo, instanceFactory, new AIFunctionFactoryOptions { Name, ... })`                                                                                                                                           | `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs:99-119`                                                                |
-| **Workflow — build**          | `new WorkflowBuilder(start).AddEdge(a, b).AddFanOutEdge(src, [t1, t2, t3]).WithOutputFrom(last).Build()`                                                                                                                                      | `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs:44-51`, `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs:23-28` |
-| **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                                                                                          | `AutofixAgentService.cs:66`, `ExplorationOrchestrator.cs:37`                                                                                       |
-| **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap **both** or half the OTel attributes vanish. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                                            |
-
-### Not used in qyl — if you reach for these, justify first
-
-- `builder.AddAIAgent(...)` + `WithInMemorySessionStore` + `WithAITool` (hosted DI) — qyl uses the standalone
-  `AsAIAgent(options)` pattern. Switching to hosted requires coordinating agent lifetime with `LoomRunState`.
-- `TurnToken` — qyl workflows use custom `Executor<TIn, TOut>` subclasses, never agents-as-executors. `TurnToken` is
-  only mandatory when an `AIAgent` is itself a workflow node.
-- `McpClient.CreateAsync(...)` (client-side MCP consumption), `HostedMcpServerTool` (OpenAI-Responses hosted MCP),
-  `A2ACardResolver` (A2A protocol). No qyl code consumes remote MCP or A2A servers today. If you add one, put the
-  client behind an Apex builder under `services/qyl.loom.patterns/`.
+- Skill **`microsoft-agent-framework-qyl`** (qyl overlay) — Apex three-builder rules, live qyl call-site cheat
+  sheet, the `WithQylTelemetry` / `UseQylTelemetry` / `UseQylAgentTelemetry` trio, `LoomRunState` session
+  discipline, and the "Not used in qyl — justify first" list (`AddAIAgent`/`WithInMemorySessionStore`,
+  `TurnToken`, `McpClient.CreateAsync`, `HostedMcpServerTool`, `A2ACardResolver`). **Read before writing.**
+- Skill **`microsoft-agent-framework`** — upstream MAF 1.1 surface (agents, sessions, workflows, four pillars,
+  provider catalogue).
+- Both skills load on demand via the `Skill` tool — no auto-context cost.
 
 ## Test project conventions
 
