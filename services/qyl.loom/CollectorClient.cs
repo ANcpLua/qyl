@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using QueryString = ANcpLua.Roslyn.Utilities.Web.QueryString;
 
 namespace Qyl.Loom;
 
@@ -110,9 +111,9 @@ public sealed class CollectorClient(HttpClient http)
     public async Task UpdateFixRunAsync(
         string issueId, string runId, string status,
         string? description = null, double? confidence = null, string? changesJson = null,
-        CancellationToken ct = default)
+        string? instructionAppend = null, CancellationToken ct = default)
     {
-        var request = new FixRunPatchRequest(status, description, confidence, changesJson);
+        var request = new FixRunPatchRequest(status, description, confidence, changesJson, instructionAppend);
         var response = await http
             .PatchAsJsonAsync(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
@@ -122,6 +123,62 @@ public sealed class CollectorClient(HttpClient http)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    ///     Append caller guidance to an existing fix run's instruction column via PATCH.
+    ///     Append-semantics: the collector concatenates the new text to any existing
+    ///     instruction with a <c>---</c> separator. Status is left unchanged (re-sent as
+    ///     its current value via the PATCH contract's <c>COALESCE</c> semantics — we send
+    ///     only the instruction field, collector keeps the rest).
+    /// </summary>
+    public async Task AppendFixRunInstructionAsync(
+        string issueId, string runId, string instruction, CancellationToken ct = default)
+    {
+        Guard.NotNullOrWhiteSpace(instruction);
+
+        var request = new FixRunPatchRequest(Instruction: instruction);
+        var response = await http
+            .PatchAsJsonAsync(
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
+                request,
+                CollectorClientJsonContext.Default.FixRunPatchRequest,
+                ct)
+            .ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<PrCreationResponse> CreatePullRequestAsync(
+        string issueId,
+        string runId,
+        string repo,
+        string? baseBranch,
+        CancellationToken ct = default)
+    {
+        var request = new PrCreationRequest(repo, baseBranch);
+        var response = await http
+            .PostAsJsonAsync(
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/pr",
+                request,
+                CollectorClientJsonContext.Default.PrCreationRequest,
+                ct)
+            .ConfigureAwait(false);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var success = await response.Content
+                .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationSuccessResponse, ct)
+                .ConfigureAwait(false);
+            return new PrCreationResponse(true, success?.PrUrl, null);
+        }
+
+        var failure = await response.Content
+            .ReadFromJsonAsync(CollectorClientJsonContext.Default.PrCreationFailureResponse, ct)
+            .ConfigureAwait(false);
+
+        return new PrCreationResponse(false, null,
+            failure?.Error ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.");
     }
 
     // ── Autofix Steps ─────────────────────────────────────────────────────────
@@ -211,7 +268,7 @@ public sealed class CollectorClient(HttpClient http)
     public async Task<List<string>> DetectRegressionsAsync(
         string serviceName, string? version = null, CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}",
             ("version", version));
 
@@ -274,7 +331,24 @@ public sealed record FixRunPatchRequest(
     string? Status = null,
     string? Description = null,
     double? Confidence = null,
-    string? ChangesJson = null);
+    string? ChangesJson = null,
+    string? Instruction = null);
+
+public sealed record PrCreationRequest(
+    [property: JsonPropertyName("repo")] string Repo,
+    [property: JsonPropertyName("baseBranch")]
+    string? BaseBranch);
+
+public sealed record PrCreationSuccessResponse(
+    [property: JsonPropertyName("prUrl")] string? PrUrl);
+
+public sealed record PrCreationFailureResponse(
+    [property: JsonPropertyName("error")] string? Error);
+
+public sealed record PrCreationResponse(
+    bool Success,
+    string? PrUrl,
+    string? Error);
 
 public sealed record AutofixStepPatchRequest(
     string? Status = null,
@@ -312,6 +386,9 @@ public sealed record IssueListResponse(List<IssueSummary> Items, int Total);
 [JsonSerializable(typeof(FixRunListResponse))]
 [JsonSerializable(typeof(FixRunCreateRequest))]
 [JsonSerializable(typeof(FixRunPatchRequest))]
+[JsonSerializable(typeof(PrCreationRequest))]
+[JsonSerializable(typeof(PrCreationSuccessResponse))]
+[JsonSerializable(typeof(PrCreationFailureResponse))]
 [JsonSerializable(typeof(AutofixStepRecord))]
 [JsonSerializable(typeof(AutofixStepPatchRequest))]
 [JsonSerializable(typeof(TriageResult))]

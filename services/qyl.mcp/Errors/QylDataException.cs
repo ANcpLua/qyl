@@ -24,7 +24,9 @@ public sealed class QylNotFoundException : QylDataException
     public QylNotFoundException() { }
 
     public QylNotFoundException(string resourceType)
-        : base($"{resourceType} not found. Use the corresponding search tool to find valid IDs.") { }
+        : base($"{resourceType} not found. Use the corresponding search tool to find valid IDs.")
+    {
+    }
 
     public QylNotFoundException(string? message, Exception? innerException) : base(message, innerException) { }
 }

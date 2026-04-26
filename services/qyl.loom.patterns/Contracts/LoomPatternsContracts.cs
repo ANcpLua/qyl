@@ -24,7 +24,7 @@ public sealed partial record SolutionPlan(
     IReadOnlyList<string> Steps);
 
 /// <summary>
-///     Stage-3 output — final verdict. <see cref="Approved"/> drives the
+///     Stage-3 output — final verdict. <see cref="Approved" /> drives the
 ///     <c>ForwardMessage</c> fan-out in <c>Pattern06_AllCombined</c>.
 /// </summary>
 [LoomContract("loom.patterns.verdict")]

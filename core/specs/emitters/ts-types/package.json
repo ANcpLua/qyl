@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "prepare": "tsc -p ."
   },
   "peerDependencies": {
     "@typespec/compiler": "^1.11.0"

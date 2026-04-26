@@ -33,10 +33,14 @@ COPY eng/ eng/
 
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
 COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
+COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY services/qyl.collector/*.csproj services/qyl.collector/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
-COPY services/qyl.collector.storage.generators/*.csproj services/qyl.collector.storage.generators/
+COPY internal/qyl.collector.storage.generators/*.csproj internal/qyl.collector.storage.generators/
 
 # Restore dependencies
 WORKDIR /src/services/qyl.collector
@@ -45,10 +49,14 @@ RUN dotnet restore
 # Copy source files
 WORKDIR /src
 COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
+COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/ packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY services/qyl.collector/ services/qyl.collector/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
-COPY services/qyl.collector.storage.generators/ services/qyl.collector.storage.generators/
+COPY internal/qyl.collector.storage.generators/ internal/qyl.collector.storage.generators/
 
 # Publish
 WORKDIR /src/services/qyl.collector
@@ -101,6 +109,6 @@ ENV QYL_GRPC_PORT=4317 \
     DOTNET_gcServer=1
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD curl -sf http://localhost:5100/health || exit 1
+    CMD curl -sf "http://localhost:${PORT:-5100}/health" || exit 1
 
 ENTRYPOINT ["dotnet", "qyl.collector.dll"]

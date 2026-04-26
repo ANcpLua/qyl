@@ -61,7 +61,7 @@ public sealed partial class CodeReviewService(
             var agent = llm.AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "CodeReviewAgent",
-                Description = "Reviews a pull request diff and emits structured JSON comments.",
+                Description = "Reviews a pull request diff and emits structured JSON comments."
                 // No Instructions: CodeReviewPrompt.Build(...) is an MCP prompt resource that already
                 // contains the system-role preamble + output contract, delivered as a single turn.
             }).AsBuilder().UseQylAgentTelemetry().Build();

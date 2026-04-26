@@ -2,11 +2,12 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using qyl.mcp.Formatting;
-using qyl.mcp.Errors;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Intelligence;
+using qyl.mcp.Errors;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Intelligence;
 
@@ -244,7 +245,7 @@ public sealed class IntelligenceTools(HttpClient client)
         string? service = null,
         CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/intelligence/execute-step?strategyId={Uri.EscapeDataString(strategyId)}&stepIndex={stepIndex}",
             ("traceId", traceId), ("service", service));
 

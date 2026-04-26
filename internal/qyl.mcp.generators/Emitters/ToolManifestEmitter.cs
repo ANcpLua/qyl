@@ -1,6 +1,6 @@
-using Qyl.Mcp.Generators.Models;
+using qyl.mcp.generators.Models;
 
-namespace Qyl.Mcp.Generators.Emitters;
+namespace qyl.mcp.generators.Emitters;
 
 internal static class ToolManifestEmitter
 {
@@ -273,7 +273,7 @@ internal static class ToolManifestEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            Services = sp,");
         sb.AppendLine("            SerializerOptions = jsonOptions,");
-        EmitMetaIfPresent(sb, entry, method, baseIndent: "            ");
+        EmitMetaIfPresent(sb, entry, method, "            ");
         sb.AppendLine("        }));");
     }
 

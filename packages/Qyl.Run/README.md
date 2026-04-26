@@ -52,11 +52,11 @@ v0.1.0 — qyl distributed-app runner
 
 ## Weight
 
-| | Aspire | Qyl.Run |
-|---|---|---|
-| Third-party NuGets | 11 (KubernetesClient, Grpc.AspNetCore, Humanizer, …) | **1** (Spectre.Console) |
-| Framework refs | `Microsoft.AspNetCore.App` | `Microsoft.AspNetCore.App` |
-| LoC | ~80k | ~650 |
+|                    | Aspire                                               | Qyl.Run                    |
+|--------------------|------------------------------------------------------|----------------------------|
+| Third-party NuGets | 11 (KubernetesClient, Grpc.AspNetCore, Humanizer, …) | **1** (Spectre.Console)    |
+| Framework refs     | `Microsoft.AspNetCore.App`                           | `Microsoft.AspNetCore.App` |
+| LoC                | ~80k                                                 | ~650                       |
 
 ## Configuration
 

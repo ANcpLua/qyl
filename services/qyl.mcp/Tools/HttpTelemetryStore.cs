@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools;
@@ -35,7 +36,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 "/api/v1/sessions?limit=100", ("provider", provider));
 
             var response = await client.GetFromJsonAsync(
@@ -102,7 +103,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/sessions?limit={limit}", ("serviceName", agentName));
 
             var response = await client.GetFromJsonAsync(
@@ -132,7 +133,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     {
         try
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 "/api/v1/sessions?limit=1000", ("serviceName", agentName));
 
             var response = await client.GetFromJsonAsync(

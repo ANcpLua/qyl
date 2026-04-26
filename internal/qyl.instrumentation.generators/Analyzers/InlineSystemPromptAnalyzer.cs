@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -31,7 +30,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         "Move the prompt to `Data/Instructions/<agent>.md` and load via `LoadInstructions(\"<agent>.md\")`.",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
 

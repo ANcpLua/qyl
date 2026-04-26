@@ -4,8 +4,8 @@ using Qyl.Collector.Dashboards;
 using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
-using Qyl.Contracts.Copilot;
 using Qyl.Collector.Search;
+using Qyl.Contracts.Copilot;
 
 namespace Qyl.Collector;
 

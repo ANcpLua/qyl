@@ -153,24 +153,26 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
 
     /// <summary>Notifies the server that a document has been opened with the given contents.</summary>
     public Task DidOpenAsync(string uri, string languageId, int version, string text, CancellationToken ct) =>
-        SendNotificationAsync("textDocument/didOpen", new JsonObject
-        {
-            ["textDocument"] = new JsonObject
+        SendNotificationAsync("textDocument/didOpen",
+            new JsonObject
             {
-                ["uri"] = uri, ["languageId"] = languageId, ["version"] = version, ["text"] = text
-            }
-        }, ct);
+                ["textDocument"] = new JsonObject
+                {
+                    ["uri"] = uri, ["languageId"] = languageId, ["version"] = version, ["text"] = text
+                }
+            }, ct);
 
     /// <summary>
     ///     Notifies the server that a document has changed. Sends the full document (LSP allows
     ///     this when incremental sync is not registered).
     /// </summary>
     public Task DidChangeAsync(string uri, int version, string text, CancellationToken ct) =>
-        SendNotificationAsync("textDocument/didChange", new JsonObject
-        {
-            ["textDocument"] = new JsonObject { ["uri"] = uri, ["version"] = version },
-            ["contentChanges"] = new JsonArray { new JsonObject { ["text"] = text } }
-        }, ct);
+        SendNotificationAsync("textDocument/didChange",
+            new JsonObject
+            {
+                ["textDocument"] = new JsonObject { ["uri"] = uri, ["version"] = version },
+                ["contentChanges"] = new JsonArray { new JsonObject { ["text"] = text } }
+            }, ct);
 
     /// <summary><c>textDocument/definition</c>. Returns Location | Location[] | LocationLink[].</summary>
     public Task<JsonNode?> GotoDefinitionAsync(string uri, int line0, int character0, CancellationToken ct) =>
@@ -307,13 +309,15 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP server did not acknowledge shutdown within 2s; falling through to process kill.")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "LSP server did not acknowledge shutdown within 2s; falling through to process kill.")]
     private static partial void LogShutdownTimeout(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "LSP server rejected shutdown; falling through to process kill.")]
     private static partial void LogShutdownRejected(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport pipe broken during shutdown; falling through to process kill.")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "LSP transport pipe broken during shutdown; falling through to process kill.")]
     private static partial void LogShutdownPipeBroken(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport already disposed during shutdown.")]

@@ -6,7 +6,6 @@
 // =============================================================================
 
 using System.Runtime.CompilerServices;
-using qyl.contracts.Attributes;
 
 namespace Qyl.Instrumentation.Instrumentation.Db;
 
@@ -439,24 +438,26 @@ internal static class SqlOperationParser
     /// </summary>
     private static string? MatchOperation(ReadOnlySpan<char> sql)
     {
-        // Order by frequency in typical workloads
+        // Order by frequency in typical workloads.
+        // SQL op names are uppercase by qyl convention — upstream semconv db.operation.name
+        // is free-form; no generated value constants exist for these.
         if (StartsWithKeyword(sql, "SELECT"))
-            return DbAttributes.Operations.Select;
+            return "SELECT";
 
         if (StartsWithKeyword(sql, "INSERT"))
-            return DbAttributes.Operations.Insert;
+            return "INSERT";
 
         if (StartsWithKeyword(sql, "UPDATE"))
-            return DbAttributes.Operations.Update;
+            return "UPDATE";
 
         if (StartsWithKeyword(sql, "DELETE"))
-            return DbAttributes.Operations.Delete;
+            return "DELETE";
 
         if (StartsWithKeyword(sql, "CREATE"))
-            return DbAttributes.Operations.Create;
+            return "CREATE";
 
         if (StartsWithKeyword(sql, "DROP"))
-            return DbAttributes.Operations.Drop;
+            return "DROP";
 
         // Additional DDL/DML operations
         if (StartsWithKeyword(sql, "ALTER"))

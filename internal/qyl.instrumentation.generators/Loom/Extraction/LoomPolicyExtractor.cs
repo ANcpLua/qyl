@@ -13,10 +13,7 @@ internal static class LoomPolicyExtractor
 
     public static LoomToolBudgetModel ExtractBudget(IMethodSymbol method, INamedTypeSymbol containingType)
     {
-        if (TryGetBudget(method, out var budget))
-            return budget;
-
-        if (TryGetBudget(containingType, out budget))
+        if (TryGetBudget(method, out var budget) || TryGetBudget(containingType, out budget))
             return budget;
 
         return new LoomToolBudgetModel(1, 8, 16000);
@@ -84,8 +81,15 @@ internal static class LoomPolicyExtractor
     }
 
     private static AttributeData? GetAttribute(ISymbol symbol, string attributeName)
-        => symbol.GetAttributes().FirstOrDefault(attribute =>
-            string.Equals(attribute.AttributeClass?.Name, attributeName, StringComparison.Ordinal));
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (string.Equals(attribute.AttributeClass?.Name, attributeName, StringComparison.Ordinal))
+                return attribute;
+        }
+
+        return null;
+    }
 
     private static int GetNamedInt(AttributeData attribute, string name, int defaultValue = 0)
     {

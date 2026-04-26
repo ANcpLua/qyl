@@ -34,10 +34,7 @@ public sealed class DeterministicEvidencePackBuilder : IEvidencePackBuilder
             CreatedAtUtc = input.CreatedAtUtc,
             Artifacts = artifacts,
             ContextJson =
-                Serialize(new
-                {
-                    issue = input.Issue, regression = input.Regression, deployment = input.Deployment
-                }),
+                Serialize(new { issue = input.Issue, regression = input.Regression, deployment = input.Deployment }),
             SignalsSummaryJson = Serialize(new { issueFacts, regressionFacts, deploymentFacts, contextFacts }),
             CausalHintsJson = Serialize(causalFacts)
         };

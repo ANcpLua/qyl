@@ -43,11 +43,20 @@ public sealed partial class DuckDbStore
         }, ct).ConfigureAwait(false);
 
     /// <summary>
-    ///     Updates a fix run's status, description, confidence score, and changes.
+    ///     Updates a fix run's status, description, confidence score, changes, and instruction.
     /// </summary>
+    /// <remarks>
+    ///     <paramref name="instructionAppend" /> uses append-semantics: when supplied, the
+    ///     new text is concatenated to the existing <c>instruction</c> column separated
+    ///     by <c>---</c>. Pass <c>null</c> to leave the column untouched. This supports
+    ///     the <c>loom_autofix_update</c> MCP tool which accumulates caller guidance across
+    ///     invocations — the in-flight agent still reads <c>run.Instruction</c> once at
+    ///     startup, so the appended text takes effect on the next run.
+    /// </remarks>
     public async Task UpdateFixRunAsync(
         string runId, string status, string? description = null,
-        double? confidence = null, string? changesJson = null, CancellationToken ct = default) =>
+        double? confidence = null, string? changesJson = null,
+        string? instructionAppend = null, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
@@ -57,13 +66,19 @@ public sealed partial class DuckDbStore
                                   fix_description = COALESCE($2, fix_description),
                                   confidence_score = COALESCE($3, confidence_score),
                                   changes_json = COALESCE($4, changes_json),
+                                  instruction = CASE
+                                      WHEN $5 IS NULL THEN instruction
+                                      WHEN instruction IS NULL THEN $5
+                                      ELSE instruction || E'\n---\n' || $5
+                                  END,
                                   completed_at = CASE WHEN $1 IN ('applied', 'failed', 'rejected') THEN now() ELSE completed_at END
-                              WHERE run_id = $5
+                              WHERE run_id = $6
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = description ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = confidence ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = changesJson ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = instructionAppend ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);

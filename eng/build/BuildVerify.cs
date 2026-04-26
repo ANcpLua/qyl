@@ -232,8 +232,8 @@ interface IVerify : IHazSourcePaths
 
     /// <summary>
     ///     CI gate: verifies no generated files diverged from HEAD after regeneration.
-    ///     Belt-and-suspenders on top of <see cref="GenerationGuard" /> — catches any
-    ///     generated file that bypasses the guard (e.g. semconv, TypeScript, SQL).
+    ///     Belt-and-suspenders on top of the emitter's own guard — catches any generated
+    ///     file that bypasses it (e.g. semconv, TypeScript, SQL).
     /// </summary>
     Target VerifyGeneratedFilesClean => d => d
         .Description("CI gate: verify generated files match HEAD after regeneration")

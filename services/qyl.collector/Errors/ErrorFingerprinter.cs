@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ANcpLua.Roslyn.Utilities.Security;
 
 namespace Qyl.Collector.Errors;
 
@@ -62,7 +63,7 @@ public static partial class ErrorFingerprinter
             }
         }
 
-        return ANcpLua.Roslyn.Utilities.Security.Sha256Hex.Hash(input)[..16]; // 64-bit fingerprint
+        return Sha256Hex.Hash(input)[..16]; // 64-bit fingerprint
     }
 
     private static string NormalizeStackTrace(string? stackTrace)

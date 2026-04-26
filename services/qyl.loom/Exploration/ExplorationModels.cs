@@ -76,4 +76,4 @@ internal sealed record InsightLlmResponse
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(StreamUpdate))]
-internal partial class ExplorationJsonContext : JsonSerializerContext;
+internal sealed partial class ExplorationJsonContext : JsonSerializerContext;

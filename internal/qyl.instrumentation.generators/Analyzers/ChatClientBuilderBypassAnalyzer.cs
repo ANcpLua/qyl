@@ -1,7 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -35,7 +33,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         "Resolve `IXxxChatClientBuilder` from DI and call `.BuildChatClient(provider)` instead.",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
 

@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
@@ -28,7 +29,7 @@ public sealed class ListMetricsTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             "/api/v1/mcp/metrics", ("project", projectSlug));
 
         var metrics = await client.GetFromJsonAsync<IReadOnlyList<MetricInfoDto>>(url, ct).ConfigureAwait(false);

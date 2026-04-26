@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Qyl.Collector.Auth;
 using Qyl.Collector.Dashboard;
-using Microsoft.AspNetCore.Diagnostics;
 using Qyl.Collector.Telemetry;
 
 namespace Qyl.Collector.Hosting;

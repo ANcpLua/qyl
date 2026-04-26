@@ -107,7 +107,7 @@ public sealed partial class PrCreationService(
             $"PR: {prUrl}",
             run.ConfidenceScore,
             run.ChangesJson,
-            ct).ConfigureAwait(false);
+            ct: ct).ConfigureAwait(false);
 
         return new PrCreationResult(true, prUrl, null, null);
     }

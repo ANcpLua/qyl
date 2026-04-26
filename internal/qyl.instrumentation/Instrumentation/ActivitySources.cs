@@ -35,15 +35,6 @@ public static class ActivitySources
     /// <summary>Package version extracted from assembly metadata, with git SHA stripped for stable span tags.</summary>
     internal static readonly string Version = GetVersion(Assembly);
 
-    private static string GetVersion(Assembly assembly)
-    {
-        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                            ?? assembly.GetName().Version?.ToString()
-                            ?? "0.0.0";
-        var plus = informational.IndexOfOrdinal('+');
-        return plus > 0 ? informational[..plus] : informational;
-    }
-
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
     public static ActivitySource GenAiSource => field ??= new ActivitySource(GenAi, Version);
 
@@ -61,4 +52,13 @@ public static class ActivitySources
 
     /// <summary>Meter for agent metrics.</summary>
     public static Meter AgentMeter => field ??= new Meter(Agent, Version);
+
+    private static string GetVersion(Assembly assembly)
+    {
+        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                            ?? assembly.GetName().Version?.ToString()
+                            ?? "0.0.0";
+        var plus = informational.IndexOfOrdinal('+');
+        return plus > 0 ? informational[..plus] : informational;
+    }
 }

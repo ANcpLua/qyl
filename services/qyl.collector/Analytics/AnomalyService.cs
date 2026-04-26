@@ -1,3 +1,5 @@
+using ANcpLua.Roslyn.Utilities.Time;
+
 namespace Qyl.Collector.Analytics;
 
 /// <summary>
@@ -247,11 +249,11 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
     }
 
     private static long ComputeCutoffNano(int hours) =>
-        ANcpLua.Roslyn.Utilities.Time.TimeConversions.ToUnixNano(
+        TimeConversions.ToUnixNano(
             TimeProvider.System.GetUtcNow().AddHours(-hours));
 
     private static long DateTimeToUnixNano(DateTime dt) =>
-        ANcpLua.Roslyn.Utilities.Time.TimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
+        TimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
 
     // ==========================================================================
     // Structured Log Messages

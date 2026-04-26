@@ -63,6 +63,6 @@ public static class ErrorExtractor
     internal static Dictionary<string, string> ParseAttributesJson(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];
-        return JsonHelper.TryDeserialize(json, QylSerializerContext.Default.DictionaryStringString) ?? [];
+        return json.TryDeserialize(QylSerializerContext.Default.DictionaryStringString) ?? [];
     }
 }
