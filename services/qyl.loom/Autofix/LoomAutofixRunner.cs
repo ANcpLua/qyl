@@ -14,9 +14,9 @@ namespace Qyl.Loom.Autofix;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         MAF-first: lets <see cref="ChatResponseFormat.ForJsonSchema{T}()" /> drive schema
+///         MAF-first: lets <c>ChatResponseFormat.ForJsonSchema&lt;T&gt;()</c> drive schema
 ///         compliance at the LLM layer; no regex extraction, no fallback to <c>{}</c>. If the
-///         LLM fails to honour the schema, <see cref="AIAgent.RunAsync{T}" /> throws
+///         LLM fails to honour the schema, <c>AIAgent.RunAsync&lt;T&gt;</c> throws
 ///         <see cref="JsonException" /> and we mark the run failed.
 ///     </para>
 ///     <para>
@@ -39,7 +39,10 @@ public sealed partial class LoomAutofixRunner(
     IChatClient? llm = null)
 {
     /// <summary>Runs the full autofix pipeline for a single pending fix run.</summary>
-    /// <param name="runId">Run identifier returned by <c>loom_start_fix_run</c> / <see cref="AutofixOrchestrator.CreateFixRunAsync" />.</param>
+    /// <param name="runId">
+    ///     Run identifier returned by <c>loom_start_fix_run</c> /
+    ///     <see cref="AutofixOrchestrator.CreateFixRunAsync" />.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     public async Task RunAsync(string runId, CancellationToken ct = default)
     {
@@ -56,7 +59,7 @@ public sealed partial class LoomAutofixRunner(
             return;
         }
 
-        var policy = Enum.TryParse<FixPolicy>(run.Policy, ignoreCase: true, out var parsedPolicy)
+        var policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var parsedPolicy)
             ? parsedPolicy
             : FixPolicy.RequireReview;
 
@@ -123,8 +126,8 @@ public sealed partial class LoomAutofixRunner(
                 ChatOptions = new ChatOptions
                 {
                     Instructions = LoomAutofixPrompts.SystemPrompt,
-                    ResponseFormat = ChatResponseFormat.ForJsonSchema<AutofixReport>(),
-                },
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema<AutofixReport>()
+                }
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
@@ -134,7 +137,7 @@ public sealed partial class LoomAutofixRunner(
         return response.Result;
     }
 
-    private static string BuildUserMessage(FixRunRecord run, IssueSummary issue, IReadOnlyList<IssueEventDto> events)
+    private static string BuildUserMessage(FixRunRecord run, IssueSummary issue, List<IssueEventDto> events)
     {
         var eventLines = events.Count is 0
             ? "(no recent events)"
@@ -179,7 +182,7 @@ public sealed partial class LoomAutofixRunner(
             {
                 score = report.FixabilityScore,
                 decision = report.FixabilityDecision,
-                missing_signal = report.MissingSignal,
+                missing_signal = report.MissingSignal
             }), ct).ConfigureAwait(false);
 
         await InsertStepAsync(runId, 2, "context", "completed",
@@ -188,17 +191,14 @@ public sealed partial class LoomAutofixRunner(
         await InsertStepAsync(runId, 3, "hypothesis", "completed",
             JsonSerializer.Serialize(new
             {
-                primary = report.PrimaryHypothesis,
-                alternative = report.AlternativeHypothesis,
+                primary = report.PrimaryHypothesis, alternative = report.AlternativeHypothesis
             }), ct).ConfigureAwait(false);
 
         await InsertStepAsync(runId, 4, "solution",
             report.SolutionDiff is { Length: > 0 } ? "completed" : "skipped",
             JsonSerializer.Serialize(new
             {
-                repo = report.SolutionRepo,
-                diff = report.SolutionDiff,
-                regression_test = report.RegressionTest,
+                repo = report.SolutionRepo, diff = report.SolutionDiff, regression_test = report.RegressionTest
             }), ct).ConfigureAwait(false);
 
         await InsertStepAsync(runId, 5, "confidence", "completed",
@@ -209,7 +209,7 @@ public sealed partial class LoomAutofixRunner(
                 evidence = report.EvidenceGate,
                 regression = report.RegressionGate,
                 completeness = report.CompletenessGate,
-                self_challenge = report.SelfChallengeGate,
+                self_challenge = report.SelfChallengeGate
             }), ct).ConfigureAwait(false);
 
         await InsertStepAsync(runId, 6, "report", "completed",
@@ -218,15 +218,16 @@ public sealed partial class LoomAutofixRunner(
 
     private Task InsertStepAsync(string runId, int stepNumber, string stepName, string status, string outputJson,
         CancellationToken ct) =>
-        collector.InsertAutofixStepAsync(new AutofixStepRecord
-        {
-            StepId = Guid.NewGuid().ToString("N"),
-            RunId = runId,
-            StepNumber = stepNumber,
-            StepName = stepName,
-            Status = status,
-            OutputJson = outputJson,
-        }, ct);
+        collector.InsertAutofixStepAsync(
+            new AutofixStepRecord
+            {
+                StepId = Guid.NewGuid().ToString("N"),
+                RunId = runId,
+                StepNumber = stepNumber,
+                StepName = stepName,
+                Status = status,
+                OutputJson = outputJson
+            }, ct);
 
     private static string StepStatus(string value, string okValue) =>
         string.Equals(value, okValue, StringComparison.OrdinalIgnoreCase) ? "completed" : "stopped";
@@ -239,7 +240,7 @@ public sealed partial class LoomAutofixRunner(
             regression_test = report.RegressionTest,
             primary_hypothesis = report.PrimaryHypothesis,
             confidence_level = report.ConfidenceLevel,
-            final_report = report.FinalReport,
+            final_report = report.FinalReport
         });
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Loom autofix skipped for run {RunId}: no LLM configured")]

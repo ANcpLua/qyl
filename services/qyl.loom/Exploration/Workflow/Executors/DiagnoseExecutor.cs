@@ -34,9 +34,9 @@ internal sealed class DiagnoseExecutor(
         var diagnosis = await diagnostician
             .DiagnoseAsync(
                 state.Context!,
-                onChunk: update =>
+                update =>
                     context.AddEventAsync(new ExplorationStreamEvent(update), cancellationToken),
-                ct: cancellationToken)
+                cancellationToken)
             .ConfigureAwait(false);
 
         if (diagnosis.IsInterrupted)

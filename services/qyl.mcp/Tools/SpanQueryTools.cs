@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
@@ -63,7 +64,7 @@ public sealed class SpanQueryTools(HttpClient client)
             ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans"
             : "/api/v1/genai/spans";
 
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"{basePath}?limit={limit}&hours={hours}", ("status", status));
 
         var response = await client.GetFromJsonAsync<SpanSearchResponse>(

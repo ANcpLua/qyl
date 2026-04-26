@@ -7,12 +7,12 @@ groups:
         type: string
         stability: development
         brief: 'Model identifier for the generative AI call'
-        examples: ['gpt-5.4-mini', 'claude-opus-4-7']
+        examples: [ 'gpt-5.4-mini', 'claude-opus-4-7' ]
       - id: qyl.genai.provider
         type: string
         stability: development
         brief: 'Upstream provider that served the completion'
-        examples: ['openai', 'anthropic', 'azure_openai', 'google', 'ollama']
+        examples: [ 'openai', 'anthropic', 'azure_openai', 'google', 'ollama' ]
       - id: qyl.genai.input_tokens
         type: int
         stability: development
@@ -37,4 +37,4 @@ groups:
         brief: >
           Qyl workflow id that produced the call.
           Links generative AI spans to their enclosing autofix/exploration run.
-        examples: ['run_01hzv8x', 'fixrun_01hzv8x']
+        examples: [ 'run_01hzv8x', 'fixrun_01hzv8x' ]

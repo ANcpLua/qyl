@@ -7,9 +7,9 @@ namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests;
 internal static class RoslynTestHelper
 {
     /// <summary>
-    /// Builds a minimal C# compilation from <paramref name="code"/> and returns all diagnostics
-    /// emitted by <paramref name="analyzers"/>. Compilation errors are ignored — we only care
-    /// about analyzer diagnostics.
+    ///     Builds a minimal C# compilation from <paramref name="code" /> and returns all diagnostics
+    ///     emitted by <paramref name="analyzers" />. Compilation errors are ignored — we only care
+    ///     about analyzer diagnostics.
     /// </summary>
     public static async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(
         string code,
@@ -19,7 +19,7 @@ internal static class RoslynTestHelper
         var refs = new MetadataReference[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)
         };
 
         var compilation = CSharpCompilation.Create(

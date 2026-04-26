@@ -19,7 +19,8 @@ internal sealed class AiMonitoringPrompts
     public static string Setup(
         [Description("JSON payload produced by loom_detect_dotnet. Required — used to confirm base SDK + tracing.")]
         string detectionJson,
-        [Description("Comma-separated list of AI SDKs in use (e.g. 'openai,anthropic,Microsoft.Extensions.AI'). Leave empty to auto-derive from detection.")]
+        [Description(
+            "Comma-separated list of AI SDKs in use (e.g. 'openai,anthropic,Microsoft.Extensions.AI'). Leave empty to auto-derive from detection.")]
         string? installedAiSdks = null,
         [Description("Current tracesSampleRate if known (e.g. '0.1'). Drives the sampling-gate directive.")]
         string? currentTracesSampleRate = null,

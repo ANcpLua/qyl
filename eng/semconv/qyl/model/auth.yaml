@@ -14,4 +14,4 @@ groups:
         type: string
         stability: development
         brief: 'Stable instance identifier for log correlation (typically hostname)'
-        examples: ['qyl-collector-1', 'qyl-loom-prod-7']
+        examples: [ 'qyl-collector-1', 'qyl-loom-prod-7' ]

@@ -10,9 +10,9 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 /// <summary>
-/// QYL-SEMCONV-003 — Fires when a string literal in a tag-setter is not in any known registry:
-/// Warning if it starts with a known OTel prefix (likely a typo/drift), Info otherwise.
-/// Suggests the closest valid ID when Levenshtein distance ≤ 3.
+///     QYL-SEMCONV-003 — Fires when a string literal in a tag-setter is not in any known registry:
+///     Warning if it starts with a known OTel prefix (likely a typo/drift), Info otherwise.
+///     Suggests the closest valid ID when Levenshtein distance ≤ 3.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
@@ -24,28 +24,28 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
     public const string QylUnregisteredId = "QYLSC003B";
 
     private static readonly DiagnosticDescriptor s_otelUnknown = new(
-        id: OtelUnknownId,
-        title: "Unknown OTel-namespaced attribute",
-        messageFormat: "Unknown OTel attribute '{0}', did you mean '{1}'",
-        category: "QylSemanticConventions",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "The attribute ID starts with a known OTel namespace prefix but is not in the registry. This is likely a typo or a renamed/deprecated attribute.");
+        OtelUnknownId,
+        "Unknown OTel-namespaced attribute",
+        "Unknown OTel attribute '{0}', did you mean '{1}'",
+        "QylSemanticConventions",
+        DiagnosticSeverity.Warning,
+        true,
+        "The attribute ID starts with a known OTel namespace prefix but is not in the registry. This is likely a typo or a renamed/deprecated attribute.");
 
     private static readonly DiagnosticDescriptor s_qylUnregistered = new(
-        id: QylUnregisteredId,
-        title: "Unregistered qyl attribute",
-        messageFormat: "Unregistered qyl attribute '{0}'. Add it to eng/semconv/qyl/model/ before shipping.",
-        category: "QylSemanticConventions",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Attributes under 'qyl.' must be registered in the qyl semantic conventions model.");
+        QylUnregisteredId,
+        "Unregistered qyl attribute",
+        "Unregistered qyl attribute '{0}'. Add it to eng/semconv/qyl/model/ before shipping.",
+        "QylSemanticConventions",
+        DiagnosticSeverity.Warning,
+        true,
+        "Attributes under 'qyl.' must be registered in the qyl semantic conventions model.");
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(s_otelUnknown, s_qylUnregistered);
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();

@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
@@ -28,7 +29,7 @@ public sealed class GetServiceMapTool(HttpClient client)
         string? projectSlug = null,
         CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             "/api/v1/mcp/services/map", ("project", projectSlug));
 
         var map = await client.GetFromJsonAsync<ServiceMapDto>(url, ct).ConfigureAwait(false);

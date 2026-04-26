@@ -104,9 +104,9 @@ public sealed partial class PrCreationService(
         // Update fix run with PR URL in the description
         await store.UpdateFixRunAsync(
             runId, "applied",
-            description: $"PR: {prUrl}",
-            confidence: run.ConfidenceScore,
-            changesJson: run.ChangesJson,
+            $"PR: {prUrl}",
+            run.ConfidenceScore,
+            run.ChangesJson,
             ct: ct).ConfigureAwait(false);
 
         return new PrCreationResult(true, prUrl, null, null);

@@ -7,9 +7,9 @@ groups:
         type: string
         stability: development
         brief: 'Team identifier'
-        examples: ['team_01hzv8x', 'platform-eng']
+        examples: [ 'team_01hzv8x', 'platform-eng' ]
       - id: qyl.team.name
         type: string
         stability: development
         brief: 'Human-readable team name'
-        examples: ['Platform Engineering', 'Backend']
+        examples: [ 'Platform Engineering', 'Backend' ]

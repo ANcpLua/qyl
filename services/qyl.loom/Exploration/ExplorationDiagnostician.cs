@@ -1,5 +1,5 @@
-using Qyl.Contracts.Copilot;
 using Microsoft.Extensions.AI;
+using Qyl.Contracts.Copilot;
 
 namespace Qyl.Loom.Exploration;
 
@@ -45,7 +45,7 @@ public sealed class ExplorationDiagnostician(IChatClient? llm = null)
                 {
                     Kind = StreamUpdateKind.Content,
                     Content = chunk.Text,
-                    Timestamp = TimeProvider.System.GetUtcNow(),
+                    Timestamp = TimeProvider.System.GetUtcNow()
                 };
                 updates.Add(update);
 

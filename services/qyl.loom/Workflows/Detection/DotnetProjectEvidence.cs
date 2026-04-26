@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
-using System.Text.Json.Serialization;
 
 namespace Qyl.Loom.Workflows.Detection;
 
@@ -70,7 +69,10 @@ public sealed record DotnetProjectEvidence
     [JsonPropertyName("requiresFlushOnCompletedRequest")]
     public required bool RequiresFlushOnCompletedRequest { get; init; }
 
-    /// <summary>True if <see cref="Framework" /> supports CPU profiling via <c>Sentry.Profiling</c> (.NET 8+, non-WASM, non-Framework).</summary>
+    /// <summary>
+    ///     True if <see cref="Framework" /> supports CPU profiling via <c>Sentry.Profiling</c> (.NET 8+, non-WASM,
+    ///     non-Framework).
+    /// </summary>
     [JsonPropertyName("supportsProfiling")]
     public required bool SupportsProfiling { get; init; }
 

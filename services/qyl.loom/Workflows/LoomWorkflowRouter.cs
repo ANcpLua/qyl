@@ -23,14 +23,14 @@ public static class LoomWorkflowRouter
         "production issue", "production bug", "debug production", "investigate exception",
         "resolve bug", "fix bug", "fix the bug", "investigate bug", "stack trace",
         "issue id", "sentry issue", "sentry event", "sentry backlog", "triage",
-        "fix qyl issue", "qyl issue", "qyl error",
+        "fix qyl issue", "qyl issue", "qyl error"
     ];
 
     private static readonly string[] BotReviewTokens =
     [
         "qyl[bot]", "qyl-review[bot]", "qyl review bot", "qyl bot comment",
         "bot comment", "pr comment", "pr comments", "review comments",
-        "address qyl review", "resolve qyl findings", "qyl feedback", "@qyl review",
+        "address qyl review", "resolve qyl findings", "qyl feedback", "@qyl review"
     ];
 
     private static readonly string[] SdkSetupTokens =
@@ -40,7 +40,7 @@ public static class LoomWorkflowRouter
         "sentry.maui", "sentry.profiling", "sentry.extensions.logging",
         "sentry wizard", "sentry dsn", "sentrysdk.init", "usesentry",
         "error monitoring", "tracing setup", "logging setup", "metrics setup",
-        "enable profiling", "cron monitoring", "hangfire sentry", "quartz sentry",
+        "enable profiling", "cron monitoring", "hangfire sentry", "quartz sentry"
     ];
 
     private static readonly string[] AiMonitoringTokens =
@@ -50,7 +50,7 @@ public static class LoomWorkflowRouter
         "track anthropic", "token usage", "ai costs", "gen_ai", "gen ai",
         "tracessampler", "traces_sampler", "ai agent visibility", "openai span",
         "vercel ai sentry", "langchain sentry", "langgraph sentry",
-        "microsoft.extensions.ai monitoring", "mcp.extensions.ai monitoring",
+        "microsoft.extensions.ai monitoring", "mcp.extensions.ai monitoring"
     ];
 
     private static readonly string[] AutofixTokens =
@@ -58,7 +58,7 @@ public static class LoomWorkflowRouter
         "autofix", "auto-fix", "run loom on", "run the loom pipeline",
         "generate a pr for", "open a pr for the fix", "headless fix",
         "fixability score", "autofix run", "autofix pipeline",
-        "autofix this issue", "autofix issue", "loom autofix",
+        "autofix this issue", "autofix issue", "loom autofix"
     ];
 
     /// <summary>
@@ -79,7 +79,7 @@ public static class LoomWorkflowRouter
                     $"Signals include PR #{prNum} and bot author '{signals.ReviewBotAuthor}'. " +
                     "Bot-comment workflow is the only shape that consumes both.",
                 PromptIds = [PromptIds.ReviewBotPrComments],
-                MatchedSignals = ["signals.pull_request_number", "signals.review_bot_author"],
+                MatchedSignals = ["signals.pull_request_number", "signals.review_bot_author"]
             };
         }
 
@@ -92,7 +92,7 @@ public static class LoomWorkflowRouter
                 Rationale =
                     $"Signals include issue id '{issueId}'. Fix-production workflow is the only shape that consumes a qyl issue id.",
                 PromptIds = [PromptIds.FixProductionIssue],
-                MatchedSignals = ["signals.issue_id"],
+                MatchedSignals = ["signals.issue_id"]
             };
         }
 
@@ -124,7 +124,7 @@ public static class LoomWorkflowRouter
                     "Request mentions autofix-specific tokens alongside generic fix tokens. " +
                     "Autofix is the specific shape — headless pipeline with structured artifact.",
                 PromptIds = [PromptIds.Autofix, PromptIds.FixProductionIssue],
-                MatchedSignals = [..autofixMatches, ..fixMatches],
+                MatchedSignals = [..autofixMatches, ..fixMatches]
             };
         }
 
@@ -167,7 +167,7 @@ public static class LoomWorkflowRouter
                     "Request mentions both SDK setup and AI monitoring. AI monitoring requires the base SDK, " +
                     "so the AI monitoring prompt is the entry point — it references the SDK setup as prerequisite.",
                 PromptIds = [PromptIds.SetupAiMonitoring, PromptIds.SetupDotnetSdk],
-                MatchedSignals = [..aiMatches, ..sdkMatches],
+                MatchedSignals = [..aiMatches, ..sdkMatches]
             };
         }
 
@@ -183,7 +183,7 @@ public static class LoomWorkflowRouter
         var builder = ImmutableArray.CreateBuilder<string>();
         foreach (var token in tokens)
         {
-            if (normalizedText.Contains(token, StringComparison.Ordinal))
+            if (normalizedText.ContainsOrdinal(token))
                 builder.Add(token);
         }
 
@@ -202,7 +202,7 @@ public static class LoomWorkflowRouter
                 $"Matched {matches.Length} signal(s) for {kind}: " + string.Join(", ", matches) +
                 ". No other workflow signals detected.",
             PromptIds = [primaryPromptId],
-            MatchedSignals = matches,
+            MatchedSignals = matches
         };
 
     private static LoomRouteDecision Clarify(string question) =>
@@ -214,7 +214,7 @@ public static class LoomWorkflowRouter
                         "Router refuses to guess — asking a single clarifying question instead.",
             PromptIds = [],
             MatchedSignals = [],
-            ClarifyingQuestion = question,
+            ClarifyingQuestion = question
         };
 
     private static string DescribeHits(

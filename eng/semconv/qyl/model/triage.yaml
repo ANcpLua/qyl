@@ -8,7 +8,7 @@ groups:
         type: string
         stability: development
         brief: 'Triage record identifier'
-        examples: ['triage_01hzv8x']
+        examples: [ 'triage_01hzv8x' ]
       - id: score
         type: double
         stability: development
@@ -17,4 +17,4 @@ groups:
         type: string
         stability: development
         brief: 'Classified error category from triage analysis'
-        examples: ['null_reference', 'timeout', 'auth_failure']
+        examples: [ 'null_reference', 'timeout', 'auth_failure' ]

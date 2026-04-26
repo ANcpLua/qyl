@@ -12,6 +12,6 @@ internal static class InvestigationLineage
 {
     public static AgentCallLineageResult TryEnter() =>
         AgentCallLineage.TryEnter(
-            EnvConfig.ReadInt("QYL_AGENT_MAX_DEPTH", defaultValue: 3, min: 1),
-            EnvConfig.ReadInt("QYL_AGENT_MAX_SPAWNS", defaultValue: 10, min: 1));
+            EnvConfig.ReadInt("QYL_AGENT_MAX_DEPTH", 3, 1),
+            EnvConfig.ReadInt("QYL_AGENT_MAX_SPAWNS", 10, 1));
 }

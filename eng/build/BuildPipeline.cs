@@ -14,7 +14,7 @@ using Nuke.Common.Tools.Npm;
 using Serilog;
 
 [ParameterPrefix(nameof(IPipeline))]
-partial interface IPipeline : IHazSourcePaths
+interface IPipeline : IHazSourcePaths
 {
     AbsolutePath TypeSpecDirectory => RootDirectory / "core" / "specs";
     AbsolutePath TypeSpecEntry => TypeSpecDirectory / "main.tsp";
@@ -29,7 +29,8 @@ partial interface IPipeline : IHazSourcePaths
             .AddProcessAdditionalArguments("--legacy-peer-deps")));
 
     Target TypeSpecCompile => d => d
-        .Description("Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
+        .Description(
+            "Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
         .DependsOn(TypeSpecInstall)
         .DependsOn(GenerateSemconv)
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
@@ -44,7 +45,7 @@ partial interface IPipeline : IHazSourcePaths
         {
             // 1. Ensure submodule
             ProcessTasks.StartProcess("git", "submodule update --init .tools/semconv-upstream",
-                workingDirectory: RootDirectory, logOutput: true).AssertZeroExitCode();
+                RootDirectory, logOutput: true).AssertZeroExitCode();
 
             // 2. Bootstrap Weaver binary + legacy semconv outputs (semconv.ts, SQL, JSON)
             var bootstrap = SemconvDirectory / "bootstrap-weaver.sh";
@@ -58,8 +59,9 @@ partial interface IPipeline : IHazSourcePaths
             // Use IsOSPlatform over OSDescription.Contains("Darwin") — OSDescription
             // on newer macOS (26+) may not include the "Darwin" substring.
             var weaverArch = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? (RuntimeInformation.ProcessArchitecture == Architecture.Arm64
-                    ? "aarch64-apple-darwin" : "x86_64-apple-darwin")
+                ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                    ? "aarch64-apple-darwin"
+                    : "x86_64-apple-darwin"
                 : "x86_64-unknown-linux-gnu";
             var weaverBin = (AbsolutePath)(RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver");
 
@@ -89,12 +91,13 @@ partial interface IPipeline : IHazSourcePaths
             var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
             if (((string)schemaSource).Length > 0 && File.Exists(schemaSource))
             {
-                ReadOnlySpan<string> otelPackages = ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"];
+                ReadOnlySpan<string> otelPackages =
+                    ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"];
                 foreach (var pkg in otelPackages)
                 {
                     var schemasDir = RootDirectory / "packages" / pkg / "schemas";
                     Directory.CreateDirectory(schemasDir);
-                    File.Copy(schemaSource, schemasDir / "1.40.0.yaml", overwrite: true);
+                    File.Copy(schemaSource, schemasDir / "1.40.0.yaml", true);
                 }
             }
         });

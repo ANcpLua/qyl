@@ -12,21 +12,29 @@ namespace Qyl.Loom.Workflows.Detection;
 ///     evidence only.
 /// </summary>
 /// <remarks>
-///     <para>Detection-first is a non-negotiable invariant of the setup workflow. Callers
-///     must feed the <see cref="DotnetProjectEvidence" /> into the setup prompt; the prompt
-///     refuses to recommend without evidence.</para>
-///     <para>Static + file-IO-only so it can be unit-tested against a temp directory
-///     without any DI or hosting scaffolding.</para>
+///     <para>
+///         Detection-first is a non-negotiable invariant of the setup workflow. Callers
+///         must feed the <see cref="DotnetProjectEvidence" /> into the setup prompt; the prompt
+///         refuses to recommend without evidence.
+///     </para>
+///     <para>
+///         Static + file-IO-only so it can be unit-tested against a temp directory
+///         without any DI or hosting scaffolding.
+///     </para>
 /// </remarks>
 public static partial class DotnetProjectDetector
 {
     private const int MaxProjectScan = 50;
     private const int MaxProjectFileBytes = 256 * 1024;
 
-    [GeneratedRegex(@"<TargetFrameworks?>([^<]+)</TargetFrameworks?>", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 250)]
+    private const long
+        MaxBackgroundServiceScanFileBytes =
+            1024 * 1024; // 1 MiB — any .cs file bigger is not a BackgroundService declaration.
+
+    [GeneratedRegex(@"<TargetFrameworks?>([^<]+)</TargetFrameworks?>", RegexOptions.IgnoreCase, 250)]
     private static partial Regex TargetFrameworkRegex();
 
-    [GeneratedRegex(@"<PackageReference\s+Include=""([^""]+)""", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 250)]
+    [GeneratedRegex(@"<PackageReference\s+Include=""([^""]+)""", RegexOptions.IgnoreCase, 250)]
     private static partial Regex PackageReferenceRegex();
 
     /// <summary>
@@ -48,16 +56,16 @@ public static partial class DotnetProjectDetector
 
         var normalised = Path.GetFullPath(repoRoot);
         if (!Directory.Exists(normalised))
-            return Empty(normalised, notes: ["Repo root does not exist."]);
+            return Empty(normalised, ["Repo root does not exist."]);
 
         if (IsReparsePoint(normalised))
-            return Empty(normalised, notes: ["Repo root is a symlink / junction — refusing to scan to avoid loops."]);
+            return Empty(normalised, ["Repo root is a symlink / junction — refusing to scan to avoid loops."]);
 
         repoRoot = normalised;
 
         var projectFiles = FindProjectFiles(repoRoot);
         if (projectFiles.Length is 0)
-            return Empty(repoRoot, notes: ["No *.csproj files found under repo root."]);
+            return Empty(repoRoot, ["No *.csproj files found under repo root."]);
 
         var inspected = InspectProjects(repoRoot, projectFiles);
         var primary = ChoosePrimary(inspected);
@@ -65,10 +73,10 @@ public static partial class DotnetProjectDetector
         var framework = ClassifyFramework(primary);
         var supportsProfiling = SupportsProfiling(primary.TargetFrameworks, framework);
         var requiresGlobalMode = framework is DotnetFramework.Wpf
-                                              or DotnetFramework.WinForms
-                                              or DotnetFramework.ConsoleOrWorker;
+            or DotnetFramework.WinForms
+            or DotnetFramework.ConsoleOrWorker;
         var requiresFlush = framework is DotnetFramework.AwsLambda
-                                       or DotnetFramework.AzureFunctions;
+            or DotnetFramework.AzureFunctions;
 
         var loggingLibs = DetectLoggingLibraries(inspected);
         var schedulers = DetectSchedulers(inspected, repoRoot);
@@ -77,7 +85,7 @@ public static partial class DotnetProjectDetector
 
         var existingSentry = inspected
             .SelectMany(static p => p.PackageReferences)
-            .Where(static pkg => pkg.StartsWith("Sentry", StringComparison.OrdinalIgnoreCase))
+            .Where(static pkg => pkg.StartsWithIgnoreCase("Sentry"))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static s => s, StringComparer.OrdinalIgnoreCase)
             .ToImmutableArray();
@@ -101,7 +109,7 @@ public static partial class DotnetProjectDetector
             RequiresFlushOnCompletedRequest = requiresFlush,
             SupportsProfiling = supportsProfiling,
             Recommendations = recommended,
-            Notes = BuildNotes(framework, primary, existingSentry),
+            Notes = BuildNotes(framework, primary, existingSentry)
         };
     }
 
@@ -113,8 +121,8 @@ public static partial class DotnetProjectDetector
         {
             foreach (var path in Directory.EnumerateFiles(repoRoot, "*.csproj", SearchOption.AllDirectories))
             {
-                if (path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-                    path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                if (path.ContainsOrdinal($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") ||
+                    path.ContainsOrdinal($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
                 {
                     continue;
                 }
@@ -123,14 +131,21 @@ public static partial class DotnetProjectDetector
                 if (builder.Count >= MaxProjectScan) break;
             }
         }
-        catch (UnauthorizedAccessException) { }
-        catch (DirectoryNotFoundException) { }
+        catch (UnauthorizedAccessException)
+        {
+            // Unreadable subtree during enumeration — return whatever was collected.
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // repoRoot disappeared mid-scan (e.g. CI cleanup) — return partial results.
+        }
 
         builder.Sort(StringComparer.OrdinalIgnoreCase);
         return builder.ToImmutable();
     }
 
-    private static ImmutableArray<InspectedProject> InspectProjects(string repoRoot, ImmutableArray<string> projectFiles)
+    private static ImmutableArray<InspectedProject> InspectProjects(string repoRoot,
+        ImmutableArray<string> projectFiles)
     {
         var builder = ImmutableArray.CreateBuilder<InspectedProject>(projectFiles.Length);
         foreach (var relative in projectFiles)
@@ -169,12 +184,12 @@ public static partial class DotnetProjectDetector
         var startupFiles = DiscoverStartupFiles(Path.GetDirectoryName(absolute) ?? repoRoot);
 
         return new InspectedProject(
-            RelativePath: relative,
-            Sdk: sdk,
-            OutputType: outputType,
-            TargetFrameworks: tfms,
-            PackageReferences: packageBuilder.ToImmutable(),
-            StartupFiles: startupFiles);
+            relative,
+            sdk,
+            outputType,
+            tfms,
+            packageBuilder.ToImmutable(),
+            startupFiles);
     }
 
     private static ImmutableArray<string> DiscoverStartupFiles(string projectDir)
@@ -183,12 +198,7 @@ public static partial class DotnetProjectDetector
 
         var candidates = new[]
         {
-            "Program.cs",
-            "App.xaml.cs",
-            "MauiProgram.cs",
-            "Startup.cs",
-            "Global.asax.cs",
-            "LambdaEntryPoint.cs",
+            "Program.cs", "App.xaml.cs", "MauiProgram.cs", "Startup.cs", "Global.asax.cs", "LambdaEntryPoint.cs"
         };
 
         var builder = ImmutableArray.CreateBuilder<string>();
@@ -203,7 +213,7 @@ public static partial class DotnetProjectDetector
 
     private static InspectedProject ChoosePrimary(ImmutableArray<InspectedProject> inspected) =>
         inspected.FirstOrDefault(static p =>
-            p.Sdk.Contains("Microsoft.NET.Sdk.Web", StringComparison.OrdinalIgnoreCase)) ??
+            p.Sdk.ContainsIgnoreCase("Microsoft.NET.Sdk.Web")) ??
         inspected.FirstOrDefault(static p => p.StartupFiles.Contains("MauiProgram.cs")) ??
         inspected.FirstOrDefault(static p => p.StartupFiles.Contains("App.xaml.cs")) ??
         inspected.FirstOrDefault(static p => p.StartupFiles.Contains("Program.cs")) ??
@@ -215,48 +225,48 @@ public static partial class DotnetProjectDetector
         var packages = primary.PackageReferences;
         var startups = primary.StartupFiles;
 
-        if (sdk.Contains("Microsoft.NET.Sdk.Web", StringComparison.OrdinalIgnoreCase) ||
-            packages.Any(static p => p.StartsWith("Microsoft.AspNetCore", StringComparison.OrdinalIgnoreCase)))
+        if (sdk.ContainsIgnoreCase("Microsoft.NET.Sdk.Web") ||
+            packages.Any(static p => p.StartsWithIgnoreCase("Microsoft.AspNetCore")))
         {
-            if (packages.Any(static p => p.StartsWith("Amazon.Lambda", StringComparison.OrdinalIgnoreCase)))
+            if (packages.Any(static p => p.StartsWithIgnoreCase("Amazon.Lambda")))
                 return DotnetFramework.AwsLambda;
 
-            if (packages.Any(static p => p.Contains("Microsoft.Azure.Functions.Worker", StringComparison.OrdinalIgnoreCase)))
+            if (packages.Any(static p => p.ContainsIgnoreCase("Microsoft.Azure.Functions.Worker")))
                 return DotnetFramework.AzureFunctions;
 
-            if (packages.Any(static p => p.Equals("Microsoft.AspNetCore.Components.WebAssembly", StringComparison.OrdinalIgnoreCase)))
+            if (packages.Any(static p => p.EqualsIgnoreCase("Microsoft.AspNetCore.Components.WebAssembly")))
                 return DotnetFramework.BlazorWasm;
 
             return DotnetFramework.AspNetCore;
         }
 
         if (startups.Contains("MauiProgram.cs") ||
-            packages.Any(static p => p.StartsWith("Microsoft.Maui", StringComparison.OrdinalIgnoreCase)))
+            packages.Any(static p => p.StartsWithIgnoreCase("Microsoft.Maui")))
             return DotnetFramework.Maui;
 
         if (startups.Contains("App.xaml.cs") ||
-            primary.OutputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase))
+            primary.OutputType.EqualsIgnoreCase("WinExe"))
         {
             var isWpf = packages.Any(static p =>
-                p.StartsWith("Microsoft.Toolkit.Mvvm", StringComparison.OrdinalIgnoreCase) ||
-                p.Equals("CommunityToolkit.Mvvm", StringComparison.OrdinalIgnoreCase));
+                p.StartsWithIgnoreCase("Microsoft.Toolkit.Mvvm") ||
+                p.EqualsIgnoreCase("CommunityToolkit.Mvvm"));
             return isWpf || startups.Contains("App.xaml.cs")
                 ? DotnetFramework.Wpf
                 : DotnetFramework.WinForms;
         }
 
         if (startups.Contains("Global.asax.cs") ||
-            packages.Any(static p => p.Equals("Microsoft.AspNet.Mvc", StringComparison.OrdinalIgnoreCase)))
+            packages.Any(static p => p.EqualsIgnoreCase("Microsoft.AspNet.Mvc")))
             return DotnetFramework.ClassicAspNet;
 
-        if (packages.Any(static p => p.Equals("Microsoft.Azure.Functions.Worker", StringComparison.OrdinalIgnoreCase)))
+        if (packages.Any(static p => p.EqualsIgnoreCase("Microsoft.Azure.Functions.Worker")))
             return DotnetFramework.AzureFunctions;
 
-        if (packages.Any(static p => p.StartsWith("Amazon.Lambda", StringComparison.OrdinalIgnoreCase)))
+        if (packages.Any(static p => p.StartsWithIgnoreCase("Amazon.Lambda")))
             return DotnetFramework.AwsLambda;
 
-        if (primary.OutputType.Equals("Exe", StringComparison.OrdinalIgnoreCase) ||
-            packages.Any(static p => p.Equals("Microsoft.Extensions.Hosting", StringComparison.OrdinalIgnoreCase)))
+        if (primary.OutputType.EqualsIgnoreCase("Exe") ||
+            packages.Any(static p => p.EqualsIgnoreCase("Microsoft.Extensions.Hosting")))
             return DotnetFramework.ConsoleOrWorker;
 
         return DotnetFramework.Unknown;
@@ -273,7 +283,7 @@ public static partial class DotnetProjectDetector
         DotnetFramework.AwsLambda => "Sentry.AspNetCore",
         DotnetFramework.ClassicAspNet => "Sentry.AspNet",
         DotnetFramework.ConsoleOrWorker => "Sentry.Extensions.Logging",
-        _ => "Sentry",
+        _ => "Sentry"
     };
 
     private static string RecommendInitFile(DotnetFramework framework, InspectedProject primary)
@@ -286,7 +296,7 @@ public static partial class DotnetProjectDetector
             DotnetFramework.Wpf => "App.xaml.cs",
             DotnetFramework.Maui => "MauiProgram.cs",
             DotnetFramework.ClassicAspNet => "Global.asax.cs",
-            _ => "Program.cs",
+            _ => "Program.cs"
         };
 
         var projectDir = Path.GetDirectoryName(primary.RelativePath) ?? "";
@@ -303,7 +313,7 @@ public static partial class DotnetProjectDetector
 
         foreach (var tfm in tfms)
         {
-            if (tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase) && tfm.Length >= 4)
+            if (tfm.StartsWithIgnoreCase("net") && tfm.Length >= 4)
             {
                 var digits = tfm.AsSpan(3);
                 var dot = digits.IndexOf('.');
@@ -327,12 +337,12 @@ public static partial class DotnetProjectDetector
             {
                 var hit = pkg switch
                 {
-                    _ when pkg.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase) => "Serilog",
-                    _ when pkg.StartsWith("NLog", StringComparison.OrdinalIgnoreCase) => "NLog",
-                    _ when pkg.StartsWith("log4net", StringComparison.OrdinalIgnoreCase) => "log4net",
-                    _ when pkg.Equals("Microsoft.Extensions.Logging", StringComparison.OrdinalIgnoreCase)
-                          || pkg.StartsWith("Microsoft.Extensions.Logging.", StringComparison.OrdinalIgnoreCase) => "ILogger",
-                    _ => null,
+                    _ when pkg.StartsWithIgnoreCase("Serilog") => "Serilog",
+                    _ when pkg.StartsWithIgnoreCase("NLog") => "NLog",
+                    _ when pkg.StartsWithIgnoreCase("log4net") => "log4net",
+                    _ when pkg.EqualsIgnoreCase("Microsoft.Extensions.Logging")
+                           || pkg.StartsWithIgnoreCase("Microsoft.Extensions.Logging.") => "ILogger",
+                    _ => null
                 };
                 if (hit is not null && seen.Add(hit)) builder.Add(hit);
             }
@@ -352,9 +362,9 @@ public static partial class DotnetProjectDetector
             {
                 var hit = pkg switch
                 {
-                    _ when pkg.StartsWith("Hangfire", StringComparison.OrdinalIgnoreCase) => "Hangfire",
-                    _ when pkg.StartsWith("Quartz", StringComparison.OrdinalIgnoreCase) => "Quartz.NET",
-                    _ => null,
+                    _ when pkg.StartsWithIgnoreCase("Hangfire") => "Hangfire",
+                    _ when pkg.StartsWithIgnoreCase("Quartz") => "Quartz.NET",
+                    _ => null
                 };
                 if (hit is not null && seen.Add(hit)) builder.Add(hit);
             }
@@ -376,8 +386,6 @@ public static partial class DotnetProjectDetector
         return builder.ToImmutable();
     }
 
-    private const long MaxBackgroundServiceScanFileBytes = 1024 * 1024; // 1 MiB — any .cs file bigger is not a BackgroundService declaration.
-
     private static bool HasBackgroundServiceFile(string projectDir)
     {
         if (!Directory.Exists(projectDir)) return false;
@@ -386,8 +394,8 @@ public static partial class DotnetProjectDetector
         {
             foreach (var path in Directory.EnumerateFiles(projectDir, "*.cs", SearchOption.AllDirectories).Take(200))
             {
-                if (path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-                    path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                if (path.ContainsOrdinal($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") ||
+                    path.ContainsOrdinal($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
                 {
                     continue;
                 }
@@ -405,15 +413,21 @@ public static partial class DotnetProjectDetector
                 catch (IOException) { continue; }
                 catch (UnauthorizedAccessException) { continue; }
 
-                if (text.Contains(": BackgroundService", StringComparison.Ordinal) ||
-                    text.Contains("IHostedService", StringComparison.Ordinal))
+                if (text.ContainsOrdinal(": BackgroundService") ||
+                    text.ContainsOrdinal("IHostedService"))
                 {
                     return true;
                 }
             }
         }
-        catch (UnauthorizedAccessException) { }
-        catch (DirectoryNotFoundException) { }
+        catch (UnauthorizedAccessException)
+        {
+            // Unreadable subtree — assume no BackgroundService/IHostedService; best-effort detector.
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Directory vanished mid-scan — treat as "no hosted service detected".
+        }
 
         return false;
     }
@@ -431,14 +445,14 @@ public static partial class DotnetProjectDetector
                 {
                     "OpenAI" => "OpenAI",
                     "Azure.AI.OpenAI" => "Azure.AI.OpenAI",
-                    _ when pkg.StartsWith("Anthropic.", StringComparison.OrdinalIgnoreCase) => "Anthropic",
+                    _ when pkg.StartsWithIgnoreCase("Anthropic.") => "Anthropic",
                     "Microsoft.Extensions.AI" => "Microsoft.Extensions.AI",
-                    _ when pkg.StartsWith("Microsoft.Extensions.AI.", StringComparison.OrdinalIgnoreCase) => "Microsoft.Extensions.AI",
-                    _ when pkg.StartsWith("Microsoft.Agents.AI", StringComparison.OrdinalIgnoreCase) => "Microsoft.Agents.AI",
-                    _ when pkg.StartsWith("Microsoft.SemanticKernel", StringComparison.OrdinalIgnoreCase) => "SemanticKernel",
+                    _ when pkg.StartsWithIgnoreCase("Microsoft.Extensions.AI.") => "Microsoft.Extensions.AI",
+                    _ when pkg.StartsWithIgnoreCase("Microsoft.Agents.AI") => "Microsoft.Agents.AI",
+                    _ when pkg.StartsWithIgnoreCase("Microsoft.SemanticKernel") => "SemanticKernel",
                     "OllamaSharp" => "Ollama",
                     "Mscc.GenerativeAI.Microsoft" => "Google GenAI",
-                    _ => null,
+                    _ => null
                 };
                 if (hit is not null && seen.Add(hit)) builder.Add(hit);
             }
@@ -475,17 +489,17 @@ public static partial class DotnetProjectDetector
         {
             ErrorMonitoring = true,
             Tracing = framework is DotnetFramework.AspNetCore
-                                 or DotnetFramework.AzureFunctions
-                                 or DotnetFramework.AwsLambda
-                                 or DotnetFramework.BlazorWasm
-                                 or DotnetFramework.ClassicAspNet
-                                 or DotnetFramework.ConsoleOrWorker,
+                or DotnetFramework.AzureFunctions
+                or DotnetFramework.AwsLambda
+                or DotnetFramework.BlazorWasm
+                or DotnetFramework.ClassicAspNet
+                or DotnetFramework.ConsoleOrWorker,
             Logging = logging.Length > 0,
             Profiling = supportsProfiling &&
                         framework is not DotnetFramework.Maui
-                                   and not DotnetFramework.BlazorWasm,
+                            and not DotnetFramework.BlazorWasm,
             Metrics = false,
-            Crons = schedulers.Length > 0,
+            Crons = schedulers.Length > 0
         };
 
     private static ImmutableArray<string> BuildNotes(
@@ -501,24 +515,38 @@ public static partial class DotnetProjectDetector
         }
 
         if (framework is DotnetFramework.Wpf)
+        {
             notes.Add("WPF: initialise SentrySdk in the App() constructor, NOT OnStartup(). " +
                       "Hook DispatcherUnhandledException alongside the init call.");
+        }
+
         if (framework is DotnetFramework.WinForms)
+        {
             notes.Add("WinForms: call Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException) " +
                       "BEFORE SentrySdk.Init so unhandled exceptions surface.");
+        }
+
         if (framework is DotnetFramework.AwsLambda or DotnetFramework.AzureFunctions)
+        {
             notes.Add("Serverless: set options.FlushOnCompletedRequest = true so events ship before the " +
                       "container freezes. Omit and events are silently lost.");
+        }
+
         if (framework is DotnetFramework.ConsoleOrWorker)
+        {
             notes.Add("Console/Worker: set options.IsGlobalModeEnabled = true. Dispose the SentrySdk.Init " +
                       "result on exit to flush pending events (SDK 3.31.0+ handles this automatically).");
+        }
+
         if (framework is DotnetFramework.BlazorWasm)
+        {
             notes.Add("Blazor WASM: profiling is NOT supported. Use Sentry.AspNetCore.Blazor.WebAssembly " +
                       "and call builder.Logging.AddSentry(o => o.InitializeSdk = false).");
+        }
 
         if (primary.TargetFrameworks.Any(static t =>
-                t.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase) ||
-                t.StartsWith("net4", StringComparison.OrdinalIgnoreCase)))
+                t.StartsWithIgnoreCase("netstandard") ||
+                t.StartsWithIgnoreCase("net4")))
         {
             notes.Add("Target framework is older than .NET 8 — profiling (Sentry.Profiling) is unavailable. " +
                       "Error monitoring, tracing, logging, metrics, and crons still work.");
@@ -551,15 +579,15 @@ public static partial class DotnetProjectDetector
                 Logging = false,
                 Profiling = false,
                 Metrics = false,
-                Crons = false,
+                Crons = false
             },
-            Notes = notes,
+            Notes = notes
         };
 
     private static string ExtractAttribute(string xml, string attribute)
     {
         var needle = $"{attribute}=\"";
-        var idx = xml.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+        var idx = xml.IndexOfIgnoreCase(needle);
         if (idx < 0) return "";
 
         var start = idx + needle.Length;
@@ -581,7 +609,7 @@ public static partial class DotnetProjectDetector
     {
         var open = $"<{tagName}>";
         var close = $"</{tagName}>";
-        var i = xml.IndexOf(open, StringComparison.OrdinalIgnoreCase);
+        var i = xml.IndexOfIgnoreCase(open);
         if (i < 0) return "";
         var start = i + open.Length;
         var end = xml.IndexOf(close, start, StringComparison.OrdinalIgnoreCase);
@@ -596,7 +624,7 @@ public static partial class DotnetProjectDetector
         ImmutableArray<string> PackageReferences,
         ImmutableArray<string> StartupFiles = default)
     {
-        public ImmutableArray<string> StartupFiles { get; init; } =
+        public ImmutableArray<string> StartupFiles { get; } =
             StartupFiles.IsDefault ? ImmutableArray<string>.Empty : StartupFiles;
     }
 }

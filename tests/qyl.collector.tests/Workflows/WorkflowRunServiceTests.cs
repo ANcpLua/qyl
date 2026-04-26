@@ -1,21 +1,28 @@
 // Copyright (c) 2025-2026 ancplua
 
 using DuckDB.NET.Data;
-using Qyl.Collector.Workflows;
 using Qyl.Collector.Storage;
+using Qyl.Collector.Workflows;
 
 namespace Qyl.Collector.Tests.Workflows;
 
 public sealed class WorkflowRunServiceTests : IAsyncDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.duckdb");
-    private readonly DuckDbStore _store;
     private readonly WorkflowRunService _service;
+    private readonly DuckDbStore _store;
 
     public WorkflowRunServiceTests()
     {
         _store = new DuckDbStore(_dbPath);
         _service = new WorkflowRunService(_store);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _store.DisposeAsync();
+        if (File.Exists(_dbPath))
+            File.Delete(_dbPath);
     }
 
     [Fact]
@@ -27,20 +34,20 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
         await SeedWorkflowAsync(createdAt, ct);
 
         var runs = await _service.ListRunsAsync(
-            projectId: "project-a",
-            workflowId: "loom.autofix",
-            status: "pending",
-            startTime: createdAt.AddMinutes(-1),
-            endTime: createdAt.AddMinutes(1),
-            limit: 1,
-            cursor: null,
-            ct: ct);
+            "project-a",
+            "loom.autofix",
+            "pending",
+            createdAt.AddMinutes(-1),
+            createdAt.AddMinutes(1),
+            1,
+            null,
+            ct);
 
         runs.Items.Should().ContainSingle();
         runs.Items[0].Id.Should().Be("run-1");
         runs.HasMore.Should().BeFalse();
 
-        var events = await _service.GetRunEventsAsync("run-1", afterSequence: 1, limit: 10, ct);
+        var events = await _service.GetRunEventsAsync("run-1", 1, 10, ct);
         events.Should().ContainSingle();
         events[0].EventName.Should().Be("node.awaiting_approval");
 
@@ -61,15 +68,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
         cancelled.Status.Should().Be("cancelled");
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await _store.DisposeAsync();
-        if (File.Exists(_dbPath))
-            File.Delete(_dbPath);
-    }
-
-    private async Task SeedWorkflowAsync(DateTime createdAt, CancellationToken ct)
-    {
+    private async Task SeedWorkflowAsync(DateTime createdAt, CancellationToken ct) =>
         await _store.ExecuteWriteAsync(async (connection, ct) =>
         {
             await using (var run = connection.CreateCommand())
@@ -148,5 +147,4 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
             checkpoint.Parameters.Add(new DuckDBParameter { Value = createdAt.AddSeconds(2) });
             await checkpoint.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }, ct);
-    }
 }

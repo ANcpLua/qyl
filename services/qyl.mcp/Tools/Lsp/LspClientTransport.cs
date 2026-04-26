@@ -189,9 +189,11 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         {
             var read = await input.ReadAsync(scratch.AsMemory(0, 1), ct).ConfigureAwait(false);
             if (read is 0)
+            {
                 return buffer.Count is 0
                     ? -1
                     : throw new EndOfStreamException("LSP transport: stream ended inside header.");
+            }
 
             buffer.Add(scratch[0]);
 
@@ -240,6 +242,7 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport reader loop cancelled during disposal.")]
     private static partial void LogReaderLoopCancelled(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "LSP transport reader loop terminated with IO exception during disposal.")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "LSP transport reader loop terminated with IO exception during disposal.")]
     private static partial void LogReaderLoopIoError(ILogger logger, Exception ex);
 }

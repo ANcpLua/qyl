@@ -1,4 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
@@ -56,8 +55,9 @@ public sealed partial class ExplorationInsightService(
             var agent = llm!.AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "ExplorationInsightAgent",
-                Description = "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.InsightGeneration },
+                Description =
+                    "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
+                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.InsightGeneration }
             }).AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(

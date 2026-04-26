@@ -3,7 +3,7 @@
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
-namespace Qyl.Loom.Patterns;
+namespace Qyl.Loom.Patterns.Patterns;
 
 /// <summary>
 ///     Pattern 04 — <c>RequestPort.Create&lt;TReq, TResp&gt;</c> +
@@ -17,16 +17,16 @@ public static class Pattern04_HitlViaExternalCall
     /// <summary>Runs the HITL external-call demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
-        var rca      = new RcaExecutor("patterns/04/rca", agents.BuildRcaAgent());
+        var rca = new RcaExecutor("patterns/04/rca", agents.BuildRcaAgent());
         var solution = new SolutionExecutor("patterns/04/solution", agents.BuildSolutionAgent());
         var finalize = new FinalizeExecutor("patterns/04/finalize");
 
-        Workflow workflow = new WorkflowBuilder(rca)
+        var workflow = new WorkflowBuilder(rca)
             .AddEdge(rca, solution)
             // AddExternalCall wires the port bidirectionally (solution → port → solution).
             // ForwardMessage routes the typed response onward to the terminal executor —
             // no custom router executor required.
-            .AddExternalCall<SolutionPlan, ConfidenceVerdict>(solution, portId: "patterns/04/review")
+            .AddExternalCall<SolutionPlan, ConfidenceVerdict>(solution, "patterns/04/review")
             .ForwardMessage<ConfidenceVerdict>("patterns/04/review", [finalize])
             .WithOutputFrom(finalize)
             .WithName("LoomPatterns/04/HitlViaExternalCall")
@@ -43,8 +43,8 @@ public static class Pattern04_HitlViaExternalCall
                     Console.WriteLine($"   ? review    plan for {plan.SignalId}: \"{plan.Approach}\"");
                     Console.WriteLine("     (non-interactive demo → auto-approve)");
                     await run.SendResponseAsync(
-                        ri.Request.CreateResponse(
-                            new ConfidenceVerdict(plan.SignalId, Approved: true, Reason: "auto-approve for demo")))
+                            ri.Request.CreateResponse(
+                                new ConfidenceVerdict(plan.SignalId, true, "auto-approve for demo")))
                         .ConfigureAwait(false);
                     break;
 
@@ -65,7 +65,7 @@ public static class Pattern04_HitlViaExternalCall
         {
             var response = await agent.RunAsync(
                 $"{signal.Id}: {signal.Description}", cancellationToken: ct).ConfigureAwait(false);
-            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, Confidence: 0.78);
+            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, 0.78);
             Console.WriteLine($"   ⊢ rca       {hypothesis.Hypothesis}");
             return hypothesis;
         }
@@ -79,7 +79,7 @@ public static class Pattern04_HitlViaExternalCall
         {
             var response = await agent.RunAsync(
                 $"Plan: {rca.Hypothesis}", cancellationToken: ct).ConfigureAwait(false);
-            var plan = new SolutionPlan(rca.SignalId, response.Text, Steps: [response.Text]);
+            var plan = new SolutionPlan(rca.SignalId, response.Text, [response.Text]);
             Console.WriteLine($"   ⊢ solution  {plan.Approach}");
             return plan;
         }

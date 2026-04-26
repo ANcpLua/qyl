@@ -20,7 +20,8 @@ internal sealed class OnboardingPrompts
     public static string SetupWizard(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson,
-        [Description("Comma-separated feature list: error,tracing,logging,profiling,metrics,crons. Default: error,tracing,logging.")]
+        [Description(
+            "Comma-separated feature list: error,tracing,logging,profiling,metrics,crons. Default: error,tracing,logging.")]
         string? features = null) =>
         $$"""
           You are running the .NET SDK onboarding wizard for the user's project.

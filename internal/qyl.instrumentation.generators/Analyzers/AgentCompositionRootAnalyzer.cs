@@ -20,8 +20,8 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///         Detection is fully symbol-based. Every method the analyzer cares about — the
 ///         invocation entry points (<c>RunAsync</c> et al.), <c>AIAgentBuilder.Build</c>, the
 ///         <c>AsAIAgent</c> extension family, and the three telemetry extensions — is resolved
-///         once at compilation start via <see cref="Compilation.GetTypeByMetadataName"/> and
-///         compared through <see cref="SymbolEqualityComparer"/>. String-name matches are avoided
+///         once at compilation start via <see cref="Compilation.GetTypeByMetadataName" /> and
+///         compared through <see cref="SymbolEqualityComparer" />. String-name matches are avoided
 ///         throughout so renames, namespace collisions, and unrelated methods with the same name
 ///         cannot false-fire or silently disable the diagnostic.
 ///     </para>
@@ -39,8 +39,12 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
 
     private const string AgentBuilderMetadataName = "Microsoft.Agents.AI.AIAgentBuilder";
     private const string ChatClientExtensionsMetadataName = "Microsoft.Agents.AI.ChatClientExtensions";
-    private const string OpenTelemetryExtensionsMetadataName = "Microsoft.Agents.AI.OpenTelemetryAgentBuilderExtensions";
+
+    private const string OpenTelemetryExtensionsMetadataName =
+        "Microsoft.Agents.AI.OpenTelemetryAgentBuilderExtensions";
+
     private const string LoggingExtensionsMetadataName = "Microsoft.Agents.AI.LoggingAgentBuilderExtensions";
+
     private const string QylTelemetryExtensionsMetadataName =
         "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
 
@@ -62,7 +66,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         "(or resolve from a factory that applies the wrap).",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
 
@@ -114,7 +118,8 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
             var telemetryMethods =
                 ResolveStaticMethods(compilation, OpenTelemetryExtensionsMetadataName, "UseOpenTelemetry")
                     .AddRange(ResolveStaticMethods(compilation, LoggingExtensionsMetadataName, "UseLogging"))
-                    .AddRange(ResolveStaticMethods(compilation, QylTelemetryExtensionsMetadataName, "UseQylAgentTelemetry"));
+                    .AddRange(ResolveStaticMethods(compilation, QylTelemetryExtensionsMetadataName,
+                        "UseQylAgentTelemetry"));
 
             // Symbol-valued state is held in this closure's capture frame (compiler-generated,
             // not a qyl-authored named type) to satisfy AL0119. The analyzer runs once per
@@ -158,8 +163,10 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
     private static bool IsAgentType(ITypeSymbol type, ImmutableArray<INamedTypeSymbol> agents)
     {
         for (var t = type; t is not null; t = t.BaseType)
+        {
             if (agents.Any(agent => SymbolEqualityComparer.Default.Equals(t, agent)))
                 return true;
+        }
 
         return false;
     }
@@ -219,7 +226,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
             IInvocationOperation invocation when IsOneOf(invocation.TargetMethod, asAIAgentMethods) => true,
             IInvocationOperation invocation when IsOneOf(invocation.TargetMethod, buildMethods)
                 => !ChainHasAgentTelemetry(invocation.Instance, telemetryMethods),
-            _ => false,
+            _ => false
         };
     }
 
@@ -229,8 +236,10 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
 
         var definition = method.OriginalDefinition;
         foreach (var candidate in candidates)
+        {
             if (SymbolEqualityComparer.Default.Equals(definition, candidate.OriginalDefinition))
                 return true;
+        }
 
         return false;
     }

@@ -33,7 +33,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         "Resolve `IXxxChatClientBuilder` from DI and call `.BuildChatClient(provider)` instead.",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
 

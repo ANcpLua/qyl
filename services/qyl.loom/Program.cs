@@ -1,12 +1,15 @@
 using System.Net.ServerSentEvents;
+using Microsoft.AspNetCore.Hosting;
 using Qyl.Contracts.Copilot;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
+using Qyl.Loom.Autofix;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
 using Qyl.Loom.Workflows;
 using Qyl.Loom.Workflows.Prompts;
+using AutofixOrchestrator = Qyl.Loom.Autofix.AutofixOrchestrator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 // minimal-API equivalent and runs before Kestrel bind.
 if (int.TryParse(builder.Configuration["PORT"], out var port) && port > 0)
 {
-    builder.WebHost.UseSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
+    builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
 }
 
 builder.AddQylServiceDefaults(options =>
@@ -42,7 +45,7 @@ builder.Services.AddHttpClient("GitHub", client =>
 // RegressionDetectionService auto-register via [QylHostedService] through the
 // generator's QylGeneratedRegistry.RegisterQylHostedServices hook.
 builder.Services.AddSingleton<AutofixOrchestrator>();
-builder.Services.AddSingleton<Qyl.Loom.Autofix.LoomAutofixRunner>();
+builder.Services.AddSingleton<LoomAutofixRunner>();
 
 // Exploration (interactive investigation)
 builder.Services.AddSingleton<ExplorationContextBuilder>();
@@ -62,9 +65,9 @@ builder.Services
     .WithHttpTransport()
     .WithTools<LoomGodAnalyzerServer>()
     .WithTools<LoomWorkflowTools>()
-    .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>()
-    .WithPrompts<Qyl.Loom.Autofix.LoomHandoffPrompts>()
-    .WithPrompts<Qyl.Loom.Autofix.LoomAutofixPrompts>()
+    .WithPrompts<CodeReviewPrompt>()
+    .WithPrompts<LoomHandoffPrompts>()
+    .WithPrompts<LoomAutofixPrompts>()
     .WithPrompts<OnboardingPrompts>()
     .WithPrompts<AiMonitoringPrompts>()
     .WithPrompts<FixIssuePrompts>()

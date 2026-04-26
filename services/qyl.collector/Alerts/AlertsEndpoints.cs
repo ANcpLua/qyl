@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using Microsoft.AspNetCore.Mvc;
-using Qyl.Api;
-using Qyl.Collector.Storage;
 using Qyl.Common.Pagination;
 using Qyl.Domains.Alerting;
 
@@ -43,8 +41,7 @@ public static class AlertsEndpoints
             var rules = await store.ListAlertRulesAsync(projectId, enabled, limit ?? 20, ct);
             return TypedResults.Ok(new CursorPageAlertRuleEntity
             {
-                Items = [.. rules],
-                NextCursor = null,
+                Items = [.. rules], NextCursor = null, HasMore = false
             });
         });
 
@@ -65,7 +62,10 @@ public static class AlertsEndpoints
             if (string.IsNullOrWhiteSpace(rule.ProjectId) || string.IsNullOrWhiteSpace(rule.Name) ||
                 string.IsNullOrWhiteSpace(rule.ConditionJson) || string.IsNullOrWhiteSpace(rule.TargetType))
             {
-                return TypedResults.BadRequest(new { error = "projectId, name, conditionJson, and targetType are required." });
+                return TypedResults.BadRequest(new
+                {
+                    error = "projectId, name, conditionJson, and targetType are required."
+                });
             }
 
             var persisted = await store.InsertAlertRuleAsync(rule, ct);

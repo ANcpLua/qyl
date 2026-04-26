@@ -93,7 +93,7 @@ public static class GenAiInstrumentation
     ///     OTel spans + ILogger log records + qyl tool-execution decoration.
     /// </summary>
     /// <remarks>
-    ///     Pairs with <see cref="UseQylAgentTelemetry"/> at the agent layer. Both are needed for
+    ///     Pairs with <see cref="UseQylAgentTelemetry" /> at the agent layer. Both are needed for
     ///     full observability: chat-layer handles per-completion spans/logs (via MAF's built-in
     ///     decorators), agent-layer wraps the enclosing <c>RunAsync</c> boundary.
     /// </remarks>
@@ -119,7 +119,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    ///     Extension for <see cref="AIAgentBuilder"/> — agent-layer qyl telemetry pair:
+    ///     Extension for <see cref="AIAgentBuilder" /> — agent-layer qyl telemetry pair:
     ///     <c>UseOpenTelemetry("qyl.agent")</c> for <c>gen_ai.*</c> spans scoped to the agent's
     ///     <c>RunAsync</c> boundary, plus <c>UseLogging()</c> for Debug-level invocation breadcrumbs
     ///     (and Trace-level sensitive payload dumps when <c>Logging:LogLevel:Default</c> is set to Trace).
@@ -127,7 +127,7 @@ public static class GenAiInstrumentation
     /// <remarks>
     ///     <para>
     ///         This is the enforcement point for the 2026-04 collapse note in <c>CLAUDE.md</c>: every
-    ///         qyl composition root that constructs an <see cref="AIAgent"/> must chain
+    ///         qyl composition root that constructs an <see cref="AIAgent" /> must chain
     ///         <c>.AsBuilder().UseQylAgentTelemetry().Build()</c>. The analyzer <c>QYL0135</c> flags
     ///         construction sites that miss this wrap.
     ///     </para>

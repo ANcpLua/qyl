@@ -60,10 +60,12 @@ public sealed record AutofixReport
         "'low' implies a require_review policy regardless of the caller's requested policy.")]
     public required string ConfidenceLevel { get; init; }
 
-    [Description("Sum of the four confidence gates: evidence + regression + completeness + self_challenge. Range 0-12.")]
+    [Description(
+        "Sum of the four confidence gates: evidence + regression + completeness + self_challenge. Range 0-12.")]
     public required int ConfidenceScoreSum { get; init; }
 
-    [Description("Evidence gate score (0-3). Higher when the hypothesis cites multiple sources across telemetry layers.")]
+    [Description(
+        "Evidence gate score (0-3). Higher when the hypothesis cites multiple sources across telemetry layers.")]
     public required int EvidenceGate { get; init; }
 
     [Description("Regression gate score (0-3). 3 when the test fails pre-patch AND passes post-patch.")]
@@ -72,7 +74,8 @@ public sealed record AutofixReport
     [Description("Completeness gate score (0-3). 3 when the diff fixes root cause with no TODOs or scope-punts.")]
     public required int CompletenessGate { get; init; }
 
-    [Description("Self-challenge gate score (0-3). 3 when the agent argued against its own fix and addressed the strongest counter.")]
+    [Description(
+        "Self-challenge gate score (0-3). 3 when the agent argued against its own fix and addressed the strongest counter.")]
     public required int SelfChallengeGate { get; init; }
 
     [Description(

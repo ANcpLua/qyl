@@ -35,7 +35,8 @@ public static partial class LoomLspTools
     [RequiresCapability("qyl.loom.lsp.navigate")]
     [ToolSideEffect(ToolSideEffect.ReadsExternalState)]
     [EmitsStructuredOutput(typeof(LoomLspLocationList))]
-    public static LoomLspLocationList FindReferences(string filePath, int line, int column, bool includeDeclaration = true) =>
+    public static LoomLspLocationList FindReferences(string filePath, int line, int column,
+        bool includeDeclaration = true) =>
         throw new NotImplementedException(
             "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
 
@@ -76,7 +77,8 @@ public static partial class LoomLspTools
             "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
 
     [LoomTool("lsp_rename",
-        Description = "Rename the symbol at the given 1-based line/column across the workspace. Writes the WorkspaceEdit to disk.",
+        Description =
+            "Rename the symbol at the given 1-based line/column across the workspace. Writes the WorkspaceEdit to disk.",
         Phase = LoomPhase.Fix,
         UseOnlyWhen = "A Loom Fix phase is applying an approved rename identified during Plan.",
         DoNotUseWhen = "PrepareRename has not validated the symbol or approval has not been granted.")]

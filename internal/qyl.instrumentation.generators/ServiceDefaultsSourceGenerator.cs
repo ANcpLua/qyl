@@ -1,4 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -41,6 +42,32 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private const string TracedInterceptorsFile = "TracedIntercepts.g.cs";
     private const string MeterDiagnosticId = "QSG004";
     private const string TracedDiagnosticId = "QSG005";
+
+    // =========================================================================
+    // Template fragments
+    // =========================================================================
+
+    private const string InterceptsLocationAttributeDeclaration = """
+                                                                  using Qyl.Instrumentation;
+
+                                                                  namespace System.Runtime.CompilerServices
+                                                                  {
+                                                                      [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
+                                                                      file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute;
+                                                                  }
+                                                                  """;
+
+    private const string InterceptorsNamespaceOpen = """
+                                                     namespace Qyl.Instrumentation.Generators
+                                                     {
+                                                         file static partial class Interceptors
+                                                         {
+                                                     """;
+
+    private const string InterceptorsNamespaceClose = """
+                                                          }
+                                                      }
+                                                      """;
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -341,32 +368,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     }
 
     private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
-
-    // =========================================================================
-    // Template fragments
-    // =========================================================================
-
-    private const string InterceptsLocationAttributeDeclaration = """
-                                                                  using Qyl.Instrumentation;
-
-                                                                  namespace System.Runtime.CompilerServices
-                                                                  {
-                                                                      [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
-                                                                      file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute;
-                                                                  }
-                                                                  """;
-
-    private const string InterceptorsNamespaceOpen = """
-                                                     namespace Qyl.Instrumentation.Generators
-                                                     {
-                                                         file static partial class Interceptors
-                                                         {
-                                                     """;
-
-    private const string InterceptorsNamespaceClose = """
-                                                          }
-                                                      }
-                                                      """;
 
     private static class PipelineStage
     {

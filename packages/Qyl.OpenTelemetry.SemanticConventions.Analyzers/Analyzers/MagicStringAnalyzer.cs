@@ -10,8 +10,8 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 /// <summary>
-/// QYLSC002 — Reports an Info diagnostic when a string literal that matches a known (non-deprecated)
-/// OTel attribute ID is passed to a tag-setter method. A CodeFix offers to replace it with the typed constant.
+///     QYLSC002 — Reports an Info diagnostic when a string literal that matches a known (non-deprecated)
+///     OTel attribute ID is passed to a tag-setter method. A CodeFix offers to replace it with the typed constant.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
@@ -20,19 +20,19 @@ public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticId = "QYLSC002";
 
     private static readonly DiagnosticDescriptor s_rule = new(
-        id: DiagnosticId,
-        title: "Magic string for known OTel attribute",
-        messageFormat: "Attribute '{0}' is a known OTel semantic convention. Use the typed constant instead of a string literal.",
-        category: "QylSemanticConventions",
-        defaultSeverity: DiagnosticSeverity.Info,
-        isEnabledByDefault: true,
-        description: "Typed constants from Qyl.OpenTelemetry.SemanticConventions are refactor-safe and IDE-navigable.");
+        DiagnosticId,
+        "Magic string for known OTel attribute",
+        "Attribute '{0}' is a known OTel semantic convention. Use the typed constant instead of a string literal.",
+        "QylSemanticConventions",
+        DiagnosticSeverity.Info,
+        true,
+        "Typed constants from Qyl.OpenTelemetry.SemanticConventions are refactor-safe and IDE-navigable.");
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(s_rule);
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();

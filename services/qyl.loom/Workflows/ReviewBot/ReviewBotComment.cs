@@ -6,11 +6,21 @@ namespace Qyl.Loom.Workflows.ReviewBot;
 ///     A single parsed review-bot comment. Field shape matches qyl's review-bot markdown
 ///     body on GitHub pull requests:
 ///     <list type="bullet">
-///         <item><c>**Bug:** [Issue description]</c></item>
-///         <item><c>&lt;sub&gt;Severity: X | Confidence: X.XX&lt;/sub&gt;</c></item>
-///         <item><c>&lt;details&gt;&lt;summary&gt;🔍 &lt;b&gt;Detailed Analysis&lt;/b&gt;&lt;/summary&gt;...</c></item>
-///         <item><c>&lt;details&gt;&lt;summary&gt;💡 &lt;b&gt;Suggested Fix&lt;/b&gt;&lt;/summary&gt;...</c></item>
-///         <item><c>&lt;details&gt;&lt;summary&gt;🤖 &lt;b&gt;Prompt for AI Agent&lt;/b&gt;&lt;/summary&gt;...</c></item>
+///         <item>
+///             <c>**Bug:** [Issue description]</c>
+///         </item>
+///         <item>
+///             <c>&lt;sub&gt;Severity: X | Confidence: X.XX&lt;/sub&gt;</c>
+///         </item>
+///         <item>
+///             <c>&lt;details&gt;&lt;summary&gt;🔍 &lt;b&gt;Detailed Analysis&lt;/b&gt;&lt;/summary&gt;...</c>
+///         </item>
+///         <item>
+///             <c>&lt;details&gt;&lt;summary&gt;💡 &lt;b&gt;Suggested Fix&lt;/b&gt;&lt;/summary&gt;...</c>
+///         </item>
+///         <item>
+///             <c>&lt;details&gt;&lt;summary&gt;🤖 &lt;b&gt;Prompt for AI Agent&lt;/b&gt;&lt;/summary&gt;...</c>
+///         </item>
 ///     </list>
 ///     Every field is trimmed plain text. Parser never propagates raw HTML to callers.
 /// </summary>
@@ -69,7 +79,7 @@ public enum ReviewBotSeverity
     High = 4,
 
     /// <summary>CRITICAL severity.</summary>
-    Critical = 5,
+    Critical = 5
 }
 
 /// <summary>

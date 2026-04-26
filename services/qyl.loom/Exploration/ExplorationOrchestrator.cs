@@ -28,8 +28,8 @@ public sealed partial class ExplorationOrchestrator(
                 workflow,
                 new StartExplore(issueId, userContext),
                 CheckpointManager.Default,
-                sessionId: issueId,
-                cancellationToken: ct)
+                issueId,
+                ct)
             .ConfigureAwait(false);
 
         await using (streamingRun.ConfigureAwait(false))

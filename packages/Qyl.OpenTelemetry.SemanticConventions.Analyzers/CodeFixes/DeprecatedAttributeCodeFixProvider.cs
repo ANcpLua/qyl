@@ -12,27 +12,39 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.CodeFixes;
 
 /// <summary>
-/// Rewrites deprecated OTel semantic-convention string literals using the upstream replacement
-/// metadata. Fix strategy depends on the entry's <see cref="DeprecatedReplacementMode"/>:
-/// <list type="bullet">
-/// <item><term>Direct / FieldMapping / Integrate</term><description>1:1 literal replacement.</description></item>
-/// <item><term>Alternative</term><description>one code action per candidate replacement.</description></item>
-/// <item><term>Removed</term><description>removes the enclosing statement with a TODO note.</description></item>
-/// <item><term>Composite / Conditional / Contextual / Example / NoteOnly</term>
-///     <description>no auto-fix offered; requires manual review (diagnostic still fires).</description></item>
-/// </list>
+///     Rewrites deprecated OTel semantic-convention string literals using the upstream replacement
+///     metadata. Fix strategy depends on the entry's <see cref="DeprecatedReplacementMode" />:
+///     <list type="bullet">
+///         <item>
+///             <term>Direct / FieldMapping / Integrate</term><description>1:1 literal replacement.</description>
+///         </item>
+///         <item>
+///             <term>Alternative</term><description>one code action per candidate replacement.</description>
+///         </item>
+///         <item>
+///             <term>Removed</term><description>removes the enclosing statement with a TODO note.</description>
+///         </item>
+///         <item>
+///             <term>Composite / Conditional / Contextual / Example / NoteOnly</term>
+///             <description>no auto-fix offered; requires manual review (diagnostic still fires).</description>
+///         </item>
+///     </list>
 /// </summary>
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DeprecatedAttributeCodeFixProvider)), Shared]
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DeprecatedAttributeCodeFixProvider))]
+[Shared]
 public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
 {
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; } =
         DeprecatedDiagnostics.AllRuleIds;
 
-    /// <inheritdoc/>
-    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+    /// <inheritdoc />
+    public override FixAllProvider GetFixAllProvider()
+    {
+        return WellKnownFixAllProviders.BatchFixer;
+    }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
@@ -71,8 +83,6 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
                 break;
 
             // Composite / Conditional / Contextual / Example / NoteOnly — no auto-fix.
-            default:
-                break;
         }
     }
 
@@ -86,9 +96,9 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
         var replacement = explicitReplacement ?? entry.Replacements[0];
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: $"Replace '{entry.DeprecatedId}' with '{replacement}'",
-                createChangedDocument: ct => ReplaceLiteralAsync(context.Document, literal, replacement, ct),
-                equivalenceKey: $"{entry.RuleId}:replace:{replacement}"),
+                $"Replace '{entry.DeprecatedId}' with '{replacement}'",
+                ct => ReplaceLiteralAsync(context.Document, literal, replacement, ct),
+                $"{entry.RuleId}:replace:{replacement}"),
             diagnostic);
     }
 
@@ -100,9 +110,9 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
     {
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: $"Remove deprecated '{entry.DeprecatedId}' usage",
-                createChangedDocument: ct => RemoveEnclosingStatementAsync(context.Document, literal, entry.DeprecatedId, ct),
-                equivalenceKey: $"{entry.RuleId}:remove"),
+                $"Remove deprecated '{entry.DeprecatedId}' usage",
+                ct => RemoveEnclosingStatementAsync(context.Document, literal, entry.DeprecatedId, ct),
+                $"{entry.RuleId}:remove"),
             diagnostic);
     }
 
@@ -117,8 +127,8 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
             return document;
 
         var newLiteral = SyntaxFactory.LiteralExpression(
-            SyntaxKind.StringLiteralExpression,
-            SyntaxFactory.Literal(replacement))
+                SyntaxKind.StringLiteralExpression,
+                SyntaxFactory.Literal(replacement))
             .WithTriviaFrom(literal);
 
         var newRoot = root.ReplaceNode(literal, newLiteral);

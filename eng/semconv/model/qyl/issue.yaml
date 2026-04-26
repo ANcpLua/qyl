@@ -7,7 +7,7 @@ groups:
         type: string
         stability: development
         brief: 'Error issue identifier'
-        examples: ['issue_01hzv8x']
+        examples: [ 'issue_01hzv8x' ]
       - id: qyl.issue.severity
         type:
           members:

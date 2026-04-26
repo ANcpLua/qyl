@@ -16,7 +16,7 @@ internal static class ExplorationStreamUpdates
         Kind = StreamUpdateKind.Progress,
         Progress = percent,
         Content = message,
-        Timestamp = TimeProvider.System.GetUtcNow(),
+        Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     public static StreamUpdate Content(string content, string? toolName = null) => new()
@@ -24,19 +24,16 @@ internal static class ExplorationStreamUpdates
         Kind = StreamUpdateKind.Content,
         Content = content,
         ToolName = toolName,
-        Timestamp = TimeProvider.System.GetUtcNow(),
+        Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     public static StreamUpdate Error(string error) => new()
     {
-        Kind = StreamUpdateKind.Error,
-        Error = error,
-        Timestamp = TimeProvider.System.GetUtcNow(),
+        Kind = StreamUpdateKind.Error, Error = error, Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     public static StreamUpdate Completed() => new()
     {
-        Kind = StreamUpdateKind.Completed,
-        Timestamp = TimeProvider.System.GetUtcNow(),
+        Kind = StreamUpdateKind.Completed, Timestamp = TimeProvider.System.GetUtcNow()
     };
 }

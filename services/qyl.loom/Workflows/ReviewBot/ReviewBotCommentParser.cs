@@ -11,32 +11,18 @@ namespace Qyl.Loom.Workflows.ReviewBot;
 ///     processing a PR that also carries comments from foreign review bots.
 /// </summary>
 /// <remarks>
-///     <para>Pure — no IO, no LLM. Input is an already-fetched list of GitHub review
-///     comments (author / file / line / body). Output is a structured batch ready for
-///     direct LLM consumption or deterministic triage.</para>
-///     <para>Unknown comment shapes resolve to empty strings rather than exceptions, so a
-///     partial match still yields actionable data.</para>
+///     <para>
+///         Pure — no IO, no LLM. Input is an already-fetched list of GitHub review
+///         comments (author / file / line / body). Output is a structured batch ready for
+///         direct LLM consumption or deterministic triage.
+///     </para>
+///     <para>
+///         Unknown comment shapes resolve to empty strings rather than exceptions, so a
+///         partial match still yields actionable data.
+///     </para>
 /// </remarks>
 public static partial class ReviewBotCommentParser
 {
-    [GeneratedRegex(
-        @"<sub>\s*Severity\s*:\s*(?<sev>[A-Za-z0-9_ -]+?)(?:\s*\|\s*Confidence\s*:\s*(?<conf>[0-9.]+))?\s*</sub>",
-        RegexOptions.IgnoreCase,
-        matchTimeoutMilliseconds: 250)]
-    private static partial Regex SeverityRegex();
-
-    [GeneratedRegex(
-        @"\*\*Bug\s*:\s*\*\*\s*(?<bug>.+?)(?=\r?\n|$)",
-        RegexOptions.IgnoreCase,
-        matchTimeoutMilliseconds: 250)]
-    private static partial Regex BugRegex();
-
-    [GeneratedRegex(@"<[^>]+>", RegexOptions.None, matchTimeoutMilliseconds: 250)]
-    private static partial Regex HtmlTagRegex();
-
-    [GeneratedRegex(@"[ \t]+", RegexOptions.None, matchTimeoutMilliseconds: 250)]
-    private static partial Regex CollapseSpaceRegex();
-
     /// <summary>
     ///     Default bot author logins qyl treats as review bots. Case-insensitive. Callers
     ///     that also want to process foreign review bots (Sentry, Seer, etc.) pass the
@@ -45,8 +31,26 @@ public static partial class ReviewBotCommentParser
     public static readonly ImmutableArray<string> KnownBotLogins =
     [
         "qyl[bot]",
-        "qyl-review[bot]",
+        "qyl-review[bot]"
     ];
+
+    [GeneratedRegex(
+        @"<sub>\s*Severity\s*:\s*(?<sev>[A-Za-z0-9_ -]+?)(?:\s*\|\s*Confidence\s*:\s*(?<conf>[0-9.]+))?\s*</sub>",
+        RegexOptions.IgnoreCase,
+        250)]
+    private static partial Regex SeverityRegex();
+
+    [GeneratedRegex(
+        @"\*\*Bug\s*:\s*\*\*\s*(?<bug>.+?)(?=\r?\n|$)",
+        RegexOptions.IgnoreCase,
+        250)]
+    private static partial Regex BugRegex();
+
+    [GeneratedRegex(@"<[^>]+>", RegexOptions.None, 250)]
+    private static partial Regex HtmlTagRegex();
+
+    [GeneratedRegex(@"[ \t]+", RegexOptions.None, 250)]
+    private static partial Regex CollapseSpaceRegex();
 
     /// <summary>
     ///     True when <paramref name="login" /> is an exact (case-insensitive) match against
@@ -102,8 +106,8 @@ public static partial class ReviewBotCommentParser
 
             if (sevMatch.Groups["conf"].Success &&
                 double.TryParse(sevMatch.Groups["conf"].Value,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
                     out var parsedConf))
             {
                 confidence = parsedConf;
@@ -125,7 +129,7 @@ public static partial class ReviewBotCommentParser
             Confidence = confidence,
             DetailedAnalysis = analysis,
             SuggestedFix = fix,
-            AgentPrompt = prompt,
+            AgentPrompt = prompt
         };
     }
 
@@ -147,7 +151,7 @@ public static partial class ReviewBotCommentParser
         if (ordered.Length is 0)
             return "No review-bot comments parsed.";
 
-        var sb = new System.Text.StringBuilder(capacity: 1024);
+        var sb = new StringBuilder(1024);
         sb.Append("Parsed ").Append(ordered.Length).Append(" review-bot comment(s).\n");
 
         for (var i = 0; i < ordered.Length; i++)
@@ -158,7 +162,7 @@ public static partial class ReviewBotCommentParser
                 .Append("  (author=").Append(c.Author)
                 .Append(", severity=").Append(c.Severity).Append('/').Append(c.SeverityText);
             if (c.Confidence is double conf)
-                sb.Append(", confidence=").Append(conf.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+                sb.Append(", confidence=").Append(conf.ToString("0.00", CultureInfo.InvariantCulture));
             sb.Append(")\n  bug: ").Append(c.Bug.Length > 0 ? c.Bug : "(no header)");
             if (c.SuggestedFix.Length > 0)
                 sb.Append("\n  suggested fix: ").Append(Truncate(c.SuggestedFix, 240));
@@ -174,7 +178,7 @@ public static partial class ReviewBotCommentParser
         "MEDIUM" or "MED" => ReviewBotSeverity.Medium,
         "LOW" => ReviewBotSeverity.Low,
         "INFO" or "INFORMATIONAL" => ReviewBotSeverity.Info,
-        _ => ReviewBotSeverity.Unknown,
+        _ => ReviewBotSeverity.Unknown
     };
 
     private static string ExtractDetailsSection(string body, string summaryTitle)
@@ -192,7 +196,7 @@ public static partial class ReviewBotCommentParser
             if (detailsEnd < 0) return "";
 
             var block = lowerBody.AsSpan(detailsIdx, detailsEnd - detailsIdx);
-            if (block.ToString().Contains(lowerTitle, StringComparison.OrdinalIgnoreCase))
+            if (block.ToString().ContainsIgnoreCase(lowerTitle))
             {
                 var summaryCloseIdx = lowerBody.IndexOf("</summary>", detailsIdx, StringComparison.OrdinalIgnoreCase);
                 if (summaryCloseIdx < 0 || summaryCloseIdx > detailsEnd) return "";

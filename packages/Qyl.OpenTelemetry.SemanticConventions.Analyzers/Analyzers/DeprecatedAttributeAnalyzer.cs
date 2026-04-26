@@ -10,20 +10,20 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 /// <summary>
-/// Fires a Warning when a deprecated OTel semantic-convention ID is used as a string literal
-/// in a tag-setter call, or when an <c>[Obsolete]</c> constant from
-/// <c>Qyl.OpenTelemetry.SemanticConventions.*</c> is referenced. Each deprecated entry in
-/// the upstream OTel registry has its own rule id (QYLSC0001..QYLSC0245) so severity can be
-/// tuned per entry via <c>.editorconfig</c>.
+///     Fires a Warning when a deprecated OTel semantic-convention ID is used as a string literal
+///     in a tag-setter call, or when an <c>[Obsolete]</c> constant from
+///     <c>Qyl.OpenTelemetry.SemanticConventions.*</c> is referenced. Each deprecated entry in
+///     the upstream OTel registry has its own rule id (QYLSC0001..QYLSC0245) so severity can be
+///     tuned per entry via <c>.editorconfig</c>.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
 {
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         DeprecatedDiagnostics.AllDescriptors;
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();

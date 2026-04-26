@@ -9,15 +9,15 @@ public static class WorkflowEndpoints
             .WithTags("Workflows");
 
         group.MapGet("/", static async (
-            WorkflowRunService service,
-            string? projectId,
-            string? workflowId,
-            string? status,
-            DateTimeOffset? startTime,
-            DateTimeOffset? endTime,
-            int? limit,
-            string? cursor,
-            CancellationToken ct) =>
+                WorkflowRunService service,
+                string? projectId,
+                string? workflowId,
+                string? status,
+                DateTimeOffset? startTime,
+                DateTimeOffset? endTime,
+                int? limit,
+                string? cursor,
+                CancellationToken ct) =>
             TypedResults.Ok(await service.ListRunsAsync(
                 projectId, workflowId, status, startTime, endTime, limit, cursor, ct).ConfigureAwait(false)));
 
@@ -31,25 +31,25 @@ public static class WorkflowEndpoints
         });
 
         group.MapGet("/{runId}/nodes", static async (
-            string runId,
-            WorkflowRunService service,
-            int? limit,
-            string? cursor,
-            CancellationToken ct) =>
+                string runId,
+                WorkflowRunService service,
+                int? limit,
+                string? cursor,
+                CancellationToken ct) =>
             TypedResults.Ok(await service.GetRunNodesAsync(runId, limit, cursor, ct).ConfigureAwait(false)));
 
         group.MapGet("/{runId}/events", static async (
-            string runId,
-            WorkflowRunService service,
-            long? afterSequence,
-            int? limit,
-            CancellationToken ct) =>
+                string runId,
+                WorkflowRunService service,
+                long? afterSequence,
+                int? limit,
+                CancellationToken ct) =>
             TypedResults.Ok(await service.GetRunEventsAsync(runId, afterSequence, limit, ct).ConfigureAwait(false)));
 
         group.MapGet("/{runId}/checkpoints", static async (
-            string runId,
-            WorkflowRunService service,
-            CancellationToken ct) =>
+                string runId,
+                WorkflowRunService service,
+                CancellationToken ct) =>
             TypedResults.Ok(await service.GetRunCheckpointsAsync(runId, ct).ConfigureAwait(false)));
 
         group.MapPost("/{runId}/resume", static async Task<IResult> (

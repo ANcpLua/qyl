@@ -8,7 +8,7 @@ groups:
         type: string
         stability: development
         brief: 'Agent run identifier'
-        examples: ['run_01hzv8x']
+        examples: [ 'run_01hzv8x' ]
       - id: kind
         type:
           members:

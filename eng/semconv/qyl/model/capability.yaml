@@ -10,7 +10,7 @@ groups:
         brief: >
           Unique capability identifier declared via [QylCapability] at compile time.
           Examples: 'qyl.triage.score', 'qyl.fix.plan', 'qyl.regression.analyze'
-        examples: ['qyl.triage.score', 'qyl.fix.plan']
+        examples: [ 'qyl.triage.score', 'qyl.fix.plan' ]
       - id: kind
         type:
           members:

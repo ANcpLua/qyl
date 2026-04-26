@@ -30,7 +30,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         "Move the prompt to `Data/Instructions/<agent>.md` and load via `LoadInstructions(\"<agent>.md\")`.",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
 

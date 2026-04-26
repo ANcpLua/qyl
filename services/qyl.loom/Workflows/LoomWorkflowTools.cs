@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using Qyl.Loom.Workflows.Detection;
 using Qyl.Loom.Workflows.ReviewBot;
@@ -24,18 +22,21 @@ public sealed class LoomWorkflowTools
     /// </summary>
     [McpServerTool(Name = "loom_route", Title = "Loom Workflow Router",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Route a user request across the four Loom workflows (fix_issue / review_bot_pr / setup_dotnet / setup_ai_monitoring). Returns clarifying question when ambiguous.")]
+    [Description(
+        "Route a user request across the four Loom workflows (fix_issue / review_bot_pr / setup_dotnet / setup_ai_monitoring). Returns clarifying question when ambiguous.")]
     public static LoomRouteDecision Route(
-        [Description("User request in natural language.")] string userRequest,
-        [Description("Optional PR number when caller is on a specific PR.")] int? pullRequestNumber = null,
-        [Description("Optional review-bot author login (e.g. 'qyl[bot]', 'qyl-review[bot]').")] string? reviewBotAuthor = null,
-        [Description("Optional issue id when caller is on a specific issue.")] string? issueId = null)
+        [Description("User request in natural language.")]
+        string userRequest,
+        [Description("Optional PR number when caller is on a specific PR.")]
+        int? pullRequestNumber = null,
+        [Description("Optional review-bot author login (e.g. 'qyl[bot]', 'qyl-review[bot]').")]
+        string? reviewBotAuthor = null,
+        [Description("Optional issue id when caller is on a specific issue.")]
+        string? issueId = null)
     {
         var signals = new LoomRouteSignals
         {
-            PullRequestNumber = pullRequestNumber,
-            ReviewBotAuthor = reviewBotAuthor,
-            IssueId = issueId,
+            PullRequestNumber = pullRequestNumber, ReviewBotAuthor = reviewBotAuthor, IssueId = issueId
         };
         return LoomWorkflowRouter.Route(userRequest, signals);
     }
@@ -47,9 +48,11 @@ public sealed class LoomWorkflowTools
     /// </summary>
     [McpServerTool(Name = "loom_detect_dotnet", Title = "Detect .NET project shape",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = true)]
-    [Description("Scan a repo root, classify the .NET app shape, surface Sentry/logging/scheduler/AI-SDK evidence, and produce the setup recommendations.")]
+    [Description(
+        "Scan a repo root, classify the .NET app shape, surface Sentry/logging/scheduler/AI-SDK evidence, and produce the setup recommendations.")]
     public static DotnetProjectEvidence DetectDotnet(
-        [Description("Absolute path to the repo or folder root to scan.")] string repoRoot) =>
+        [Description("Absolute path to the repo or folder root to scan.")]
+        string repoRoot) =>
         DotnetProjectDetector.Detect(repoRoot);
 
     /// <summary>
@@ -59,11 +62,14 @@ public sealed class LoomWorkflowTools
     /// </summary>
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (Sentry, Seer, etc.). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
+    [Description(
+        "Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (Sentry, Seer, etc.). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
     public static LoomReviewBotParseResult ParseReviewBotComments(
-        [Description("JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless their login is listed in additionalBotLoginsJson.")]
+        [Description(
+            "JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless their login is listed in additionalBotLoginsJson.")]
         string commentsJson,
-        [Description("Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"sentry[bot]\", \"seer-by-sentry[bot]\"]). Exact, case-insensitive match.")]
+        [Description(
+            "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"sentry[bot]\", \"seer-by-sentry[bot]\"]). Exact, case-insensitive match.")]
         string? additionalBotLoginsJson = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(commentsJson);
@@ -85,10 +91,7 @@ public sealed class LoomWorkflowTools
 
         return new LoomReviewBotParseResult
         {
-            InputCount = raw.Length,
-            ParsedCount = parsed.Length,
-            Summary = summary,
-            Comments = [.. parsed],
+            InputCount = raw.Length, ParsedCount = parsed.Length, Summary = summary, Comments = [.. parsed]
         };
     }
 }

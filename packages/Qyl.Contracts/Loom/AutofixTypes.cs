@@ -67,7 +67,9 @@ public sealed record ConfidenceResult
 /// <summary>LLM impact assessment for an issue — advisory output from the autofix fan-out.</summary>
 public sealed record ImpactAssessmentResult
 {
-    [JsonPropertyName("one_line_description")] public string? OneLineDescription { get; init; }
+    [JsonPropertyName("one_line_description")]
+    public string? OneLineDescription { get; init; }
+
     [JsonPropertyName("impacts")] public ImpactEntry[]? Impacts { get; init; }
 }
 
@@ -75,7 +77,10 @@ public sealed record ImpactEntry
 {
     [JsonPropertyName("label")] public string? Label { get; init; }
     [JsonPropertyName("rating")] public string? Rating { get; init; }
-    [JsonPropertyName("impact_description")] public string? ImpactDescription { get; init; }
+
+    [JsonPropertyName("impact_description")]
+    public string? ImpactDescription { get; init; }
+
     [JsonPropertyName("evidence")] public string? Evidence { get; init; }
 }
 
@@ -83,7 +88,9 @@ public sealed record ImpactEntry
 public sealed record AutofixTriageInfo
 {
     [JsonPropertyName("suspect_commit")] public SuspectCommit? SuspectCommit { get; init; }
-    [JsonPropertyName("suggested_assignee")] public SuggestedAssignee? SuggestedAssignee { get; init; }
+
+    [JsonPropertyName("suggested_assignee")]
+    public SuggestedAssignee? SuggestedAssignee { get; init; }
 }
 
 public sealed record SuspectCommit

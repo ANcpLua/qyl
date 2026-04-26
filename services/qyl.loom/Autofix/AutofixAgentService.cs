@@ -1,9 +1,8 @@
 // Copyright (c) 2025-2026 ancplua
 
 using Qyl.Contracts.Observability;
-using Qyl.Loom.Autofix;
 
-namespace Qyl.Loom;
+namespace Qyl.Loom.Autofix;
 
 /// <summary>
 ///     Background scheduler: polls the collector for pending fix runs and dispatches each to

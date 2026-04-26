@@ -7,7 +7,7 @@ groups:
         type: string
         stability: development
         brief: 'Slug of the cron/monitor that produced the check-in'
-        examples: ['nightly-backup', 'hourly-digest']
+        examples: [ 'nightly-backup', 'hourly-digest' ]
       - id: qyl.check_in.status
         type:
           members:
@@ -41,7 +41,7 @@ groups:
         type: string
         stability: development
         brief: 'Crontab expression describing the monitor schedule, when applicable'
-        examples: ['0 */6 * * *', '*/15 * * * *']
+        examples: [ '0 */6 * * *', '*/15 * * * *' ]
       - id: qyl.check_in.schedule_interval_minutes
         type: int
         stability: development

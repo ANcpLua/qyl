@@ -7,9 +7,6 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Qyl.Contracts.Observability;
-using Qyl.Instrumentation.Discovery;
-using Qyl.Instrumentation.ErrorCapture;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +21,9 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Qyl.Contracts.Observability;
+using Qyl.Instrumentation.Discovery;
+using Qyl.Instrumentation.ErrorCapture;
 
 namespace Qyl.Instrumentation.Instrumentation;
 

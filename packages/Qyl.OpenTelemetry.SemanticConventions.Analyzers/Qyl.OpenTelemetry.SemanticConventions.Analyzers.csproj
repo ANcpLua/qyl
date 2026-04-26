@@ -24,17 +24,17 @@
 
   <ItemGroup>
     <!-- Roslyn compiler API — PrivateAssets=all so it doesn't leak to consumers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all"/>
     <!-- Workspaces required for CodeFixProvider (Document, CodeFixContext, etc.) -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- Exclude the Tests/ subdirectory from this library project -->
   <ItemGroup>
-    <Compile Remove="Tests/**" />
-    <EmbeddedResource Remove="Tests/**" />
-    <None Remove="Tests/**" />
+    <Compile Remove="Tests/**"/>
+    <EmbeddedResource Remove="Tests/**"/>
+    <None Remove="Tests/**"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -42,9 +42,9 @@
     <None Include="$(OutputPath)\$(AssemblyName).dll"
           Pack="true"
           PackagePath="analyzers/dotnet/cs"
-          Visible="false" />
+          Visible="false"/>
     <!-- deprecated-master.yaml kept for reference; data is baked into DeprecatedAttributeData.g.cs at codegen time -->
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>

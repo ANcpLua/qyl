@@ -5,29 +5,34 @@ using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.CodeFixes;
 
 /// <summary>
-/// For a magic-string that is a known attribute ID, offers to replace it with a
-/// TODO comment pointing to the appropriate constant.
-/// A full constant-name lookup requires the generated SemanticConventions package to be
-/// present; this provider records the intent as a structured TODO so a follow-up pass
-/// can resolve the exact type name.
+///     For a magic-string that is a known attribute ID, offers to replace it with a
+///     TODO comment pointing to the appropriate constant.
+///     A full constant-name lookup requires the generated SemanticConventions package to be
+///     present; this provider records the intent as a structured TODO so a follow-up pass
+///     can resolve the exact type name.
 /// </summary>
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MagicStringCodeFixProvider)), Shared]
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MagicStringCodeFixProvider))]
+[Shared]
 public sealed class MagicStringCodeFixProvider : CodeFixProvider
 {
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; } =
         ImmutableArray.Create(MagicStringAnalyzer.DiagnosticId);
 
-    /// <inheritdoc/>
-    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+    /// <inheritdoc />
+    public override FixAllProvider GetFixAllProvider()
+    {
+        return WellKnownFixAllProviders.BatchFixer;
+    }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
@@ -44,9 +49,9 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
 
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: $"Use typed constant for '{attrId}' (Qyl.OpenTelemetry.SemanticConventions)",
-                createChangedDocument: ct => AnnotateWithConstantHintAsync(context.Document, literal, attrId, ct),
-                equivalenceKey: $"MagicStringToConst:{attrId}"),
+                $"Use typed constant for '{attrId}' (Qyl.OpenTelemetry.SemanticConventions)",
+                ct => AnnotateWithConstantHintAsync(context.Document, literal, attrId, ct),
+                $"MagicStringToConst:{attrId}"),
             diagnostic);
     }
 
@@ -54,7 +59,7 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
         Document document,
         LiteralExpressionSyntax literal,
         string attrId,
-        System.Threading.CancellationToken ct)
+        CancellationToken ct)
     {
         var root = await document.GetSyntaxRootAsync(ct).ConfigureAwait(false);
         if (root is null)
@@ -77,17 +82,17 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
         if (statement is null)
             return document;
 
-        var todo = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Comment(
+        var todo = SyntaxFactory.Comment(
             $"// TODO QYL-SEMCONV-002: replace \"{attrId}\" with the typed constant from Qyl.OpenTelemetry.SemanticConventions");
         var newStatement = statement.WithLeadingTrivia(
             statement.GetLeadingTrivia().Add(todo)
-                .Add(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ElasticCarriageReturnLineFeed));
+                .Add(SyntaxFactory.ElasticCarriageReturnLineFeed));
         var updatedRoot = root.ReplaceNode(statement, newStatement);
         return document.WithSyntaxRoot(updatedRoot);
     }
 
-    /// <summary>Walks the compilation's global namespace to find a string const equal to <paramref name="attrId"/>.</summary>
-    private static Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax? TryResolveConstantExpression(
+    /// <summary>Walks the compilation's global namespace to find a string const equal to <paramref name="attrId" />.</summary>
+    private static ExpressionSyntax? TryResolveConstantExpression(
         SemanticModel model,
         string attrId)
     {
@@ -116,10 +121,11 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
             if (current is null)
                 return null;
         }
+
         return current;
     }
 
-    private static Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax? TryFindConstInType(
+    private static ExpressionSyntax? TryFindConstInType(
         INamedTypeSymbol type,
         string attrId)
     {
@@ -131,7 +137,7 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
             if (field.ConstantValue is string val && string.Equals(val, attrId, StringComparison.Ordinal))
             {
                 var access = $"{type.Name}.{field.Name}";
-                return Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseExpression(access);
+                return SyntaxFactory.ParseExpression(access);
             }
         }
 

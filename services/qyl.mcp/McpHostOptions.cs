@@ -1,6 +1,6 @@
-using qyl.mcp.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using qyl.mcp.Auth;
 
 namespace qyl.mcp;
 

@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -286,7 +287,7 @@ public sealed class TokenAuthMiddleware(
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            var bearerToken = ANcpLua.Roslyn.Utilities.Http.BearerHeader.TryExtract(authHeader, out var t)
+            var bearerToken = BearerHeader.TryExtract(authHeader, out var t)
                 ? t!
                 : authHeader;
 

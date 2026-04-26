@@ -10,4 +10,4 @@ groups:
         brief: >
           First 8 characters of the API key hash (sha256[:8]).
           Never log the full key. Used for audit trails only.
-        examples: ['a1b2c3d4']
+        examples: [ 'a1b2c3d4' ]

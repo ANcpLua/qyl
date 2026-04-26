@@ -7,8 +7,8 @@ public sealed class MagicStringAnalyzerTests
     private static readonly MagicStringAnalyzer s_analyzer = new();
 
     /// <summary>
-    /// Get a known-valid (replacement) ID from the deprecation index so the test
-    /// is data-driven and stays correct if the YAML changes.
+    ///     Get a known-valid (replacement) ID from the deprecation index so the test
+    ///     is data-driven and stays correct if the YAML changes.
     /// </summary>
     private static string AnyValidId()
     {
@@ -17,12 +17,12 @@ public sealed class MagicStringAnalyzerTests
     }
 
     [Fact]
-    public async Task Fires_on_known_valid_string_literal()
+    public async Task FiresOnKnownValidStringLiteral()
     {
         var validId = AnyValidId();
         var code = $$"""
-            class C { void M(object a) { a.SetTag("{{validId}}", "x"); } }
-            """;
+                     class C { void M(object a) { a.SetTag("{{validId}}", "x"); } }
+                     """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -32,12 +32,12 @@ public sealed class MagicStringAnalyzerTests
     }
 
     [Fact]
-    public async Task Does_not_fire_on_deprecated_string()
+    public async Task DoesNotFireOnDeprecatedString()
     {
         // Deprecated IDs are handled by QYL-SEMCONV-001, not 002
         const string code = """
-            class C { void M(object a) { a.SetTag("android.state", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("android.state", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -45,12 +45,12 @@ public sealed class MagicStringAnalyzerTests
     }
 
     [Fact]
-    public async Task Does_not_fire_on_unknown_string()
+    public async Task DoesNotFireOnUnknownString()
     {
         // Completely unknown IDs are handled by QYL-SEMCONV-003
         const string code = """
-            class C { void M(object a) { a.SetTag("totally.custom.attr", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("totally.custom.attr", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -59,11 +59,11 @@ public sealed class MagicStringAnalyzerTests
     }
 
     [Fact]
-    public async Task Does_not_fire_on_non_string_argument()
+    public async Task DoesNotFireOnNonStringArgument()
     {
         const string code = """
-            class C { static string Key = "android.app.state"; void M(object a) { a.SetTag(Key, "x"); } }
-            """;
+                            class C { static string Key = "android.app.state"; void M(object a) { a.SetTag(Key, "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 

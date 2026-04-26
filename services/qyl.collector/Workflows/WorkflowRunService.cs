@@ -368,10 +368,10 @@ public sealed class WorkflowRunService(DuckDbStore store)
 
     private static string? NormalizeStatus(string? status)
     {
-        if (status is not { } value || string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(status))
             return null;
 
-        var normalized = value.ReplaceOrdinal("-", "_").ToLowerInvariant();
+        var normalized = status.Replace('-', '_').ToLowerInvariant();
         return normalized switch
         {
             "pending" or "running" or "paused" or "completed" or "failed" or "cancelled" or "timed_out" => normalized,
@@ -382,9 +382,12 @@ public sealed class WorkflowRunService(DuckDbStore store)
 
 public sealed record CursorPage<T>(
     [property: JsonPropertyName("items")] IReadOnlyList<T> Items,
-    [property: JsonPropertyName("next_cursor")] string? NextCursor,
-    [property: JsonPropertyName("prev_cursor")] string? PrevCursor,
-    [property: JsonPropertyName("has_more")] bool HasMore);
+    [property: JsonPropertyName("next_cursor")]
+    string? NextCursor,
+    [property: JsonPropertyName("prev_cursor")]
+    string? PrevCursor,
+    [property: JsonPropertyName("has_more")]
+    bool HasMore);
 
 public sealed record WorkflowRunEntity
 {
@@ -444,8 +447,13 @@ public sealed record WorkflowEventEntity
 public sealed record WorkflowCheckpointEntity(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("run_id")] string RunId,
-    [property: JsonPropertyName("node_id")] string NodeId,
-    [property: JsonPropertyName("checkpoint_type")] string CheckpointType,
-    [property: JsonPropertyName("state_json")] string StateJson,
-    [property: JsonPropertyName("sequence_number")] long SequenceNumber,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("node_id")]
+    string NodeId,
+    [property: JsonPropertyName("checkpoint_type")]
+    string CheckpointType,
+    [property: JsonPropertyName("state_json")]
+    string StateJson,
+    [property: JsonPropertyName("sequence_number")]
+    long SequenceNumber,
+    [property: JsonPropertyName("created_at")]
+    DateTimeOffset CreatedAt);

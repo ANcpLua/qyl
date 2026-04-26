@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -58,7 +59,7 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Filter: by model name")] string? model = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/conversations?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}",
                 ("hasErrors", hasErrors?.ToString()), ("userId", userId), ("model", model));
 

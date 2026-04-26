@@ -1,7 +1,7 @@
-using Qyl.Instrumentation.Instrumentation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace Qyl.Instrumentation.ErrorCapture;
 

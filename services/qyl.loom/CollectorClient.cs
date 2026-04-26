@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using QueryString = ANcpLua.Roslyn.Utilities.Web.QueryString;
 
 namespace Qyl.Loom;
 
@@ -134,8 +135,7 @@ public sealed class CollectorClient(HttpClient http)
     public async Task AppendFixRunInstructionAsync(
         string issueId, string runId, string instruction, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(instruction))
-            throw new ArgumentException("Instruction cannot be empty.", nameof(instruction));
+        Guard.NotNullOrWhiteSpace(instruction);
 
         var request = new FixRunPatchRequest(Instruction: instruction);
         var response = await http
@@ -268,7 +268,7 @@ public sealed class CollectorClient(HttpClient http)
     public async Task<List<string>> DetectRegressionsAsync(
         string serviceName, string? version = null, CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}",
             ("version", version));
 
@@ -336,7 +336,8 @@ public sealed record FixRunPatchRequest(
 
 public sealed record PrCreationRequest(
     [property: JsonPropertyName("repo")] string Repo,
-    [property: JsonPropertyName("baseBranch")] string? BaseBranch);
+    [property: JsonPropertyName("baseBranch")]
+    string? BaseBranch);
 
 public sealed record PrCreationSuccessResponse(
     [property: JsonPropertyName("prUrl")] string? PrUrl);

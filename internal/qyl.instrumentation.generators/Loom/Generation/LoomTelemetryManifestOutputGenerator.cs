@@ -205,8 +205,10 @@ internal static class LoomTelemetryManifestOutputGenerator
                 AppendManifestEntry(sb, "contract", contract.Name, contract.FullyQualifiedTypeName, null, null, null);
 
             foreach (var step in steps.OrderBy(static step => step.Id, StringComparer.Ordinal))
+            {
                 AppendManifestEntry(sb, "step", step.Id, step.ExecutorTypeFullyQualified, null, step.Phase,
                     step.Description);
+            }
 
             foreach (var workflow in workflows.OrderBy(static workflow => workflow.Id, StringComparer.Ordinal))
             {

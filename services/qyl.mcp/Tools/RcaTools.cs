@@ -1,13 +1,13 @@
 using System.ComponentModel;
-using qyl.mcp.Agents;
-using qyl.mcp.Formatting;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
+using Qyl.Instrumentation.Instrumentation.GenAi;
+using qyl.mcp.Agents;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools;
 
@@ -82,13 +82,12 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
             .AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "RcaAgent",
-                Description = "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.",
+                Description =
+                    "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.",
                 ChatOptions = new ChatOptions
                 {
-                    Instructions = RcaPrompt.Prompt,
-                    Tools = [.. guardedTools],
-                    ToolMode = ChatToolMode.Auto,
-                },
+                    Instructions = RcaPrompt.Prompt, Tools = [.. guardedTools], ToolMode = ChatToolMode.Auto
+                }
             })
             .AsBuilder()
             .UseQylAgentTelemetry()

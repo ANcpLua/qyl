@@ -5,10 +5,14 @@ using System.ComponentModel.DataAnnotations;
 namespace Qyl.Run;
 
 /// <summary>
-/// Validated runtime options for <see cref="QylApp"/>. Bound via
-/// <c>AddOptionsWithValidateOnStart&lt;QylAppOptions&gt;().BindConfiguration(QylAppOptions.SectionName).ValidateDataAnnotations()</c>.
-/// Mirrors the <c>AbcOptions</c> idiom — every path that could misconfigure the runner fails
-/// fast on startup rather than later at a process-spawn attempt.
+///     Validated runtime options for <see cref="QylApp" />. Bound via
+///     <c>
+///         AddOptionsWithValidateOnStart&lt;QylAppOptions&gt;
+///         ().BindConfiguration(QylAppOptions.SectionName).ValidateDataAnnotations()
+///     </c>
+///     .
+///     Mirrors the <c>AbcOptions</c> idiom — every path that could misconfigure the runner fails
+///     fast on startup rather than later at a process-spawn attempt.
 /// </summary>
 public sealed class QylAppOptions
 {
@@ -23,10 +27,16 @@ public sealed class QylAppOptions
     [Required(ErrorMessage = $"{SectionName}:{nameof(RunnerHost)} is required")]
     public string RunnerHost { get; set; } = QylConstants.Network.Loopback;
 
-    /// <summary>Global startup timeout — the orchestrator gives up on a resource that doesn't reach <see cref="ResourceLifecycle.Ready"/> in this window.</summary>
+    /// <summary>
+    ///     Global startup timeout — the orchestrator gives up on a resource that doesn't reach
+    ///     <see cref="ResourceLifecycle.Ready" /> in this window.
+    /// </summary>
     [Range(1, 600, ErrorMessage = $"{SectionName}:{nameof(StartupTimeoutSeconds)} must be 1..600")]
     public int StartupTimeoutSeconds { get; set; } = QylConstants.Orchestrator.StartupTimeoutSeconds;
 
-    /// <summary>When <c>true</c>, child-process stdout is streamed into the Spectre UI's "Logs" pane instead of the parent console.</summary>
+    /// <summary>
+    ///     When <c>true</c>, child-process stdout is streamed into the Spectre UI's "Logs" pane instead of the parent
+    ///     console.
+    /// </summary>
     public bool CaptureChildOutput { get; set; } = true;
 }

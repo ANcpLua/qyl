@@ -1,8 +1,8 @@
 using System.ComponentModel;
-using ANcpLua.Roslyn.Utilities;
+using ModelContextProtocol.Server;
+using Qyl.Loom.Autofix;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
-using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Agents;
 
@@ -23,7 +23,8 @@ public sealed class LoomGodAnalyzerServer(
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     [Description("Generate pre-investigation Loom insight for an issue id.")]
     public async Task<ExplorationInsight?> GetIssueInsightAsync(
-        [Description("Issue identifier to analyze.")] string issueId,
+        [Description("Issue identifier to analyze.")]
+        string issueId,
         CancellationToken ct = default) =>
         await insightService.GenerateInsightAsync(issueId, ct).ConfigureAwait(false);
 
@@ -47,24 +48,30 @@ public sealed class LoomGodAnalyzerServer(
 
     [McpServerTool(Name = "loom_generate_pr_review", Title = "Generate Pull Request Review",
         ReadOnly = false, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Produces new PR review comments via qyl's LLM reviewer (distinct from `loom_parse_review_bot_comments` which consumes existing bot comments).")]
+    [Description(
+        "Produces new PR review comments via qyl's LLM reviewer (distinct from `loom_parse_review_bot_comments` which consumes existing bot comments).")]
     public async Task<CodeReviewResult> ReviewPullRequestAsync(
-        [Description("GitHub repo in `owner/repo` format.")] string repoFullName,
+        [Description("GitHub repo in `owner/repo` format.")]
+        string repoFullName,
         [Description("Pull request number.")] int prNumber,
         CancellationToken ct = default) =>
         await codeReviewService.ReviewPullRequestAsync(repoFullName, prNumber, ct).ConfigureAwait(false);
 
     [McpServerTool(Name = "loom_autofix_update", Title = "Append Instruction to Fix Run",
         ReadOnly = false, Idempotent = false, Destructive = false, OpenWorld = false)]
-    [Description("Append caller guidance to an existing fix run's instruction column. Append-semantics: new text is concatenated to the existing instruction with a `---` separator. The in-flight agent reads the instruction once at run-start, so the appended text takes effect on the next invocation of the same issue's autofix pipeline — use this to iterate: launch a run, observe the result, append corrective guidance, relaunch. Returns the updated snapshot of the fix run.")]
+    [Description(
+        "Append caller guidance to an existing fix run's instruction column. Append-semantics: new text is concatenated to the existing instruction with a `---` separator. The in-flight agent reads the instruction once at run-start, so the appended text takes effect on the next invocation of the same issue's autofix pipeline — use this to iterate: launch a run, observe the result, append corrective guidance, relaunch. Returns the updated snapshot of the fix run.")]
     public async Task<LoomAutofixUpdateResult> UpdateFixRunAsync(
-        [Description("Issue identifier the fix run belongs to.")] string issueId,
-        [Description("Fix run identifier returned by `loom_start_fix_run`.")] string runId,
-        [Description("New instruction text to append. Cannot be empty.")] string instruction,
+        [Description("Issue identifier the fix run belongs to.")]
+        string issueId,
+        [Description("Fix run identifier returned by `loom_start_fix_run`.")]
+        string runId,
+        [Description("New instruction text to append. Cannot be empty.")]
+        string instruction,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(instruction))
-            return new LoomAutofixUpdateResult(Success: false, RunId: runId, Error: "instruction is required and cannot be empty.");
+            return new LoomAutofixUpdateResult(false, runId, "instruction is required and cannot be empty.");
 
         try
         {
@@ -73,17 +80,18 @@ public sealed class LoomGodAnalyzerServer(
         catch (HttpRequestException ex)
         {
             return new LoomAutofixUpdateResult(
-                Success: false,
-                RunId: runId,
-                Error: $"Collector rejected the update: {ex.Message}");
+                false,
+                runId,
+                $"Collector rejected the update: {ex.Message}");
         }
 
-        return new LoomAutofixUpdateResult(Success: true, RunId: runId, Error: null);
+        return new LoomAutofixUpdateResult(true, runId, null);
     }
 
     [McpServerTool(Name = "loom_autofix_setup_check", Title = "Autofix Pre-flight Check",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Pre-flight check for an autofix run: verifies the issue exists and the fix policy parses. Returns partial status for prerequisites that need external state (repo connection, integration scopes, code mapping, quota) — fetch MCP prompt `qyl.loom.autofix_setup_check` for the full agent directive to resolve those.")]
+    [Description(
+        "Pre-flight check for an autofix run: verifies the issue exists and the fix policy parses. Returns partial status for prerequisites that need external state (repo connection, integration scopes, code mapping, quota) — fetch MCP prompt `qyl.loom.autofix_setup_check` for the full agent directive to resolve those.")]
     public async Task<LoomAutofixSetupCheck> AutofixSetupCheckAsync(
         [Description("Issue identifier.")] string issueId,
         [Description("Fix policy: auto_apply, dry_run, or require_review. Defaults to require_review.")]
@@ -94,43 +102,43 @@ public sealed class LoomGodAnalyzerServer(
         var parsedPolicy = ParseFixPolicy(policy);
 
         LoomAutofixCheck issueCheck = issue is null
-            ? new(Name: "issue_exists", Status: "fail", Detail: $"Issue '{issueId}' not found in qyl collector.")
-            : new(Name: "issue_exists", Status: "pass", Detail: $"Issue '{issueId}' resolved: {issue.ErrorType}.");
+            ? new LoomAutofixCheck("issue_exists", "fail", $"Issue '{issueId}' not found in qyl collector.")
+            : new LoomAutofixCheck("issue_exists", "pass", $"Issue '{issueId}' resolved: {issue.ErrorType}.");
 
         LoomAutofixCheck policyCheck = new(
-            Name: "policy",
-            Status: "pass",
-            Detail: $"Policy resolved to {parsedPolicy}.");
+            "policy",
+            "pass",
+            $"Policy resolved to {parsedPolicy}.");
 
         LoomAutofixCheck repoCheck = new(
-            Name: "repo_connection",
-            Status: "unknown",
-            Detail: "qyl collector does not currently expose project-integration state. Verify via the LLM-driven `qyl.loom.autofix_setup_check` prompt.");
+            "repo_connection",
+            "unknown",
+            "qyl collector does not currently expose project-integration state. Verify via the LLM-driven `qyl.loom.autofix_setup_check` prompt.");
 
         LoomAutofixCheck writeCheck = new(
-            Name: "write_access",
-            Status: "unknown",
-            Detail: "Integration-scope introspection not available. Verify via the GitHub App settings page.");
+            "write_access",
+            "unknown",
+            "Integration-scope introspection not available. Verify via the GitHub App settings page.");
 
         LoomAutofixCheck mappingCheck = new(
-            Name: "code_mapping",
-            Status: "unknown",
-            Detail: "Stack-trace-to-repo mapping is not yet exposed as a tool. Stage-4 solution generation will surface mapping failures at the hunk level.");
+            "code_mapping",
+            "unknown",
+            "Stack-trace-to-repo mapping is not yet exposed as a tool. Stage-4 solution generation will surface mapping failures at the hunk level.");
 
         LoomAutofixCheck quotaCheck = new(
-            Name: "quota",
-            Status: "unknown",
-            Detail: "Per-org run quota introspection not available. If a policy run stalls with no events, check collector rate limits.");
+            "quota",
+            "unknown",
+            "Per-org run quota introspection not available. If a policy run stalls with no events, check collector rate limits.");
 
         var passed = issue is not null;
         var decision = passed ? "proceed" : "cannot_proceed";
 
         return new LoomAutofixSetupCheck(
-            IssueId: issueId,
-            Policy: parsedPolicy.ToString(),
-            Checks: [issueCheck, policyCheck, repoCheck, writeCheck, mappingCheck, quotaCheck],
-            Decision: decision,
-            AgentPromptId: "qyl.loom.autofix_setup_check");
+            issueId,
+            parsedPolicy.ToString(),
+            [issueCheck, policyCheck, repoCheck, writeCheck, mappingCheck, quotaCheck],
+            decision,
+            "qyl.loom.autofix_setup_check");
     }
 
     private static FixPolicy ParseFixPolicy(string? policy)

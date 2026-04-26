@@ -3,7 +3,7 @@
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
-namespace Qyl.Loom.Patterns;
+namespace Qyl.Loom.Patterns.Patterns;
 
 /// <summary>
 ///     Pattern 03 — <c>CheckpointManager</c> + <c>SuperStepCompletedEvent.CompletionInfo.Checkpoint</c>
@@ -17,11 +17,11 @@ public static class Pattern03_CheckpointResume
     /// <summary>Runs the checkpoint/resume demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
-        var rca      = new RcaExecutor("patterns/03/rca", agents.BuildRcaAgent());
+        var rca = new RcaExecutor("patterns/03/rca", agents.BuildRcaAgent());
         var solution = new SolutionExecutor("patterns/03/solution", agents.BuildSolutionAgent());
-        var verdict  = new VerdictExecutor("patterns/03/verdict", agents.BuildConfidenceAgent());
+        var verdict = new VerdictExecutor("patterns/03/verdict", agents.BuildConfidenceAgent());
 
-        Workflow workflow = new WorkflowBuilder(rca)
+        var workflow = new WorkflowBuilder(rca)
             .AddEdge(rca, solution)
             .AddEdge(solution, verdict)
             .WithOutputFrom(verdict)
@@ -31,7 +31,8 @@ public static class Pattern03_CheckpointResume
         var cm = CheckpointManager.Default;
         var checkpoints = new List<CheckpointInfo>();
 
-        var signal = new IncidentSignal("S-3001", "payments-gateway", "critical", "TLS handshake errors on Stripe webhook");
+        var signal = new IncidentSignal("S-3001", "payments-gateway", "critical",
+            "TLS handshake errors on Stripe webhook");
 
         Console.WriteLine("── initial run ──");
         await using var run = await InProcessExecution.RunStreamingAsync(workflow, signal, cm, cancellationToken: ct);
@@ -57,7 +58,7 @@ public static class Pattern03_CheckpointResume
             return;
         }
 
-        int restoreIndex = checkpoints.Count / 2;
+        var restoreIndex = checkpoints.Count / 2;
         Console.WriteLine($"\n── restoring checkpoint #{restoreIndex + 1} and re-running from there ──");
         await run.RestoreCheckpointAsync(checkpoints[restoreIndex], ct).ConfigureAwait(false);
 
@@ -81,7 +82,7 @@ public static class Pattern03_CheckpointResume
         {
             var response = await agent.RunAsync(
                 $"Signal {signal.Id}: {signal.Description}", cancellationToken: ct).ConfigureAwait(false);
-            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, Confidence: 0.82);
+            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, 0.82);
             Console.WriteLine($"   ⊢ rca       {hypothesis.Hypothesis}");
             return hypothesis;
         }
@@ -95,7 +96,7 @@ public static class Pattern03_CheckpointResume
         {
             var response = await agent.RunAsync(
                 $"Plan fix for: {rca.Hypothesis}", cancellationToken: ct).ConfigureAwait(false);
-            var plan = new SolutionPlan(rca.SignalId, response.Text, Steps: [response.Text]);
+            var plan = new SolutionPlan(rca.SignalId, response.Text, [response.Text]);
             Console.WriteLine($"   ⊢ solution  {plan.Approach}");
             return plan;
         }

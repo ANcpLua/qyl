@@ -20,7 +20,10 @@ public enum LoomWorkflowKind
     /// <summary>Process and resolve review-bot PR comments (<c>sentry[bot]</c>, <c>seer-by-sentry[bot]</c>, qyl review bot).</summary>
     ReviewBotPrComments = 2,
 
-    /// <summary>Install and configure the Sentry .NET SDK features (error, tracing, profiling, logging, metrics, crons) in the user's app.</summary>
+    /// <summary>
+    ///     Install and configure the Sentry .NET SDK features (error, tracing, profiling, logging, metrics, crons) in the
+    ///     user's app.
+    /// </summary>
     SetupDotnetSdk = 3,
 
     /// <summary>Configure AI agent monitoring for <c>gen_ai.*</c> traffic (LLM calls, agents, tools).</summary>
@@ -35,5 +38,5 @@ public enum LoomWorkflowKind
     Autofix = 5,
 
     /// <summary>Ambiguous request — router is asking the caller to pick.</summary>
-    Clarify = 99,
+    Clarify = 99
 }

@@ -15,12 +15,12 @@ internal sealed class ReviewBotPrompts
 {
     [McpServerPrompt(Name = "qyl.loom.review_bot_pr",
         Title = "Review qyl review-bot PR comments")]
-    [Description("Processes qyl review-bot PR comments. Caller provides the pre-parsed summary from loom_parse_review_bot_comments.")]
+    [Description(
+        "Processes qyl review-bot PR comments. Caller provides the pre-parsed summary from loom_parse_review_bot_comments.")]
     public static string ReviewBotPr(
         [Description("GitHub repo in owner/repo format.")]
         string repoFullName,
-        [Description("Pull request number.")]
-        int prNumber,
+        [Description("Pull request number.")] int prNumber,
         [Description("Pre-parsed comment summary (from loom_parse_review_bot_comments). Required.")]
         string parsedSummary) =>
         $$"""

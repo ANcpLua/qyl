@@ -11,12 +11,12 @@ internal static class TagMethodMatcher
     private static readonly HashSet<string> s_tagMethods = new(StringComparer.Ordinal)
     {
         "SetTag", "AddTag", "SetCustomProperty", "SetAttribute", "AddAttribute",
-        "SetBaggage", "RecordException",
+        "SetBaggage", "RecordException"
     };
 
     /// <summary>
-    /// If <paramref name="invocation"/> is a call to a known tag-setter method,
-    /// returns the first string-literal argument; otherwise returns null.
+    ///     If <paramref name="invocation" /> is a call to a known tag-setter method,
+    ///     returns the first string-literal argument; otherwise returns null.
     /// </summary>
     public static LiteralExpressionSyntax? TryGetStringKeyArgument(InvocationExpressionSyntax invocation)
     {
@@ -36,8 +36,8 @@ internal static class TagMethodMatcher
         return invocation.Expression switch
         {
             MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
-            IdentifierNameSyntax id         => id.Identifier.Text,
-            _                               => null,
+            IdentifierNameSyntax id => id.Identifier.Text,
+            _ => null
         };
     }
 }

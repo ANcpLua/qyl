@@ -8,7 +8,7 @@ groups:
         type: string
         stability: development
         brief: 'Fix run identifier'
-        examples: ['fixrun_01hzv8x']
+        examples: [ 'fixrun_01hzv8x' ]
       - id: status
         type:
           members:

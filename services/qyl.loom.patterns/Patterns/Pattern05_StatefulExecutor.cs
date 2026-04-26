@@ -3,14 +3,14 @@
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
-namespace Qyl.Loom.Patterns;
+namespace Qyl.Loom.Patterns.Patterns;
 
 /// <summary>
 ///     Pattern 05 — <c>StatefulExecutor&lt;TState, TInput, TOutput&gt;</c> +
 ///     <c>InvokeWithStateAsync</c>. The intake executor owns mutable
-///     <see cref="RunState"/> scoped to <c>"loom/run"</c>, read &amp; queued around
+///     <see cref="RunState" /> scoped to <c>"loom/run"</c>, read &amp; queued around
 ///     every invocation by the base class. Also demonstrates
-///     <c>ctx.AddEventAsync</c> for lifecycle events as <see cref="WorkflowEvent"/>
+///     <c>ctx.AddEventAsync</c> for lifecycle events as <see cref="WorkflowEvent" />
 ///     subclasses — consumers pattern-match on type in <c>WatchStreamAsync</c>.
 /// </summary>
 public static class Pattern05_StatefulExecutor
@@ -20,10 +20,10 @@ public static class Pattern05_StatefulExecutor
     {
         var sessionId = Guid.NewGuid().ToString("N");
 
-        var intake   = new StatefulIntake("patterns/05/intake", sessionId);
+        var intake = new StatefulIntake("patterns/05/intake", sessionId);
         var solution = new SolutionNode("patterns/05/solution", agents.BuildSolutionAgent());
 
-        Workflow workflow = new WorkflowBuilder(intake)
+        var workflow = new WorkflowBuilder(intake)
             .AddEdge(intake, solution)
             .WithOutputFrom(solution)
             .WithName("LoomPatterns/05/StatefulExecutor")
@@ -32,8 +32,8 @@ public static class Pattern05_StatefulExecutor
         await using var run = await InProcessExecution.RunStreamingAsync(
             workflow,
             new IncidentSignal("S-5001", "auth-service", "critical", "JWKS cache stampede under load"),
-            sessionId: sessionId,
-            cancellationToken: ct);
+            sessionId,
+            ct);
 
         Console.WriteLine($"   session    {run.SessionId}");
 
@@ -58,11 +58,11 @@ public static class Pattern05_StatefulExecutor
     private sealed record RunState(int SignalsSeen);
 
     /// <summary>
-    ///     Lifecycle event — a <see cref="WorkflowEvent"/> subclass pattern-matched in
+    ///     Lifecycle event — a <see cref="WorkflowEvent" /> subclass pattern-matched in
     ///     <c>WatchStreamAsync</c>. Carries the running count so consumers can correlate.
     /// </summary>
     private sealed class StageObserved(string stage, int seenSoFar)
-        : WorkflowEvent(data: new { stage, seenSoFar })
+        : WorkflowEvent(new { stage, seenSoFar })
     {
         public string Stage { get; } = stage;
         public int SeenSoFar { get; } = seenSoFar;
@@ -72,14 +72,14 @@ public static class Pattern05_StatefulExecutor
 
     /// <summary>
     ///     Stateful intake — increments the per-run counter via <c>InvokeWithStateAsync</c>
-    ///     and emits a <see cref="StageObserved"/> lifecycle event before forwarding the
+    ///     and emits a <see cref="StageObserved" /> lifecycle event before forwarding the
     ///     signal downstream as a root-cause hypothesis.
     /// </summary>
     private sealed class StatefulIntake(string id, string sessionId)
         : StatefulExecutor<RunState, IncidentSignal, RootCauseHypothesis>(
             id,
-            initialStateFactory: static () => new RunState(SignalsSeen: 0),
-            options: new StatefulExecutorOptions { ScopeName = "loom/run" })
+            static () => new RunState(0),
+            new StatefulExecutorOptions { ScopeName = "loom/run" })
     {
         private RootCauseHypothesis _pending = null!;
 
@@ -94,7 +94,7 @@ public static class Pattern05_StatefulExecutor
                 _pending = new RootCauseHypothesis(
                     signal.Id,
                     $"Session {sessionId[..8]}: {signal.Description} — triaged #{updated.SignalsSeen}",
-                    Confidence: 0.91);
+                    0.91);
                 return updated;
             }, ctx, cancellationToken: ct).ConfigureAwait(false);
 
@@ -111,7 +111,7 @@ public static class Pattern05_StatefulExecutor
             var response = await agent.RunAsync(
                 $"Plan fix for: {rca.Hypothesis}", cancellationToken: ct).ConfigureAwait(false);
             await ctx.YieldOutputAsync(
-                new SolutionPlan(rca.SignalId, response.Text, Steps: [response.Text]), ct);
+                new SolutionPlan(rca.SignalId, response.Text, [response.Text]), ct);
         }
     }
 }

@@ -16,12 +16,12 @@ public sealed class DeprecatedAttributeCodeFixTests
     private static readonly DeprecatedAttributeCodeFixProvider s_fix = new();
 
     [Fact]
-    public async Task Direct_mode_replaces_literalAsync()
+    public async Task DirectModeReplacesLiteralAsync()
     {
         // android.state (mode=direct, replacements=[android.app.state])
         const string code = """
-            class C { void M(object a) { a.SetTag("android.state", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("android.state", "x"); } }
+                            """;
         var (after, title) = await ApplyFirstFixAsync(code).ConfigureAwait(true);
 
         Assert.Contains("\"android.app.state\"", after, StringComparison.Ordinal);
@@ -30,12 +30,12 @@ public sealed class DeprecatedAttributeCodeFixTests
     }
 
     [Fact]
-    public async Task Alternative_mode_offers_one_action_per_replacementAsync()
+    public async Task AlternativeModeOffersOneActionPerReplacementAsync()
     {
         // http.host (mode=alternative, 3 replacements)
         const string code = """
-            class C { void M(object a) { a.SetTag("http.host", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("http.host", "x"); } }
+                            """;
         var actions = await GetFixActionsAsync(code).ConfigureAwait(true);
 
         var entry = DeprecatedDiagnostics.ByDeprecatedId["http.host"];
@@ -45,7 +45,7 @@ public sealed class DeprecatedAttributeCodeFixTests
     }
 
     [Fact]
-    public async Task Field_mapping_mode_has_no_autofix_when_replacements_emptyAsync()
+    public async Task FieldMappingModeHasNoAutofixWhenReplacementsEmptyAsync()
     {
         // The only field_mapping entry in the registry (event.name) has no replacement target
         // because the migration is structural (value moves to LogRecord.EventName).
@@ -53,25 +53,25 @@ public sealed class DeprecatedAttributeCodeFixTests
             .Single(e => e.Mode == DeprecatedReplacementMode.FieldMapping);
         Assert.Empty(fmEntry.Replacements);
         var code = $$"""
-            class C { void M(object a) { a.SetTag("{{fmEntry.DeprecatedId}}", "x"); } }
-            """;
+                     class C { void M(object a) { a.SetTag("{{fmEntry.DeprecatedId}}", "x"); } }
+                     """;
         var actions = await GetFixActionsAsync(code).ConfigureAwait(true);
         Assert.Empty(actions);
     }
 
     [Fact]
-    public async Task Removed_mode_strips_statementAsync()
+    public async Task RemovedModeStripsStatementAsync()
     {
         // db.jdbc.driver_classname (mode=removed)
         const string code = """
-            class C
-            {
-                void M(object a)
-                {
-                    a.SetTag("db.jdbc.driver_classname", "x");
-                }
-            }
-            """;
+                            class C
+                            {
+                                void M(object a)
+                                {
+                                    a.SetTag("db.jdbc.driver_classname", "x");
+                                }
+                            }
+                            """;
         var (after, title) = await ApplyFirstFixAsync(code).ConfigureAwait(true);
 
         Assert.Contains("TODO:", after, StringComparison.Ordinal);
@@ -81,19 +81,19 @@ public sealed class DeprecatedAttributeCodeFixTests
     }
 
     [Fact]
-    public async Task Composite_mode_offers_no_fixAsync()
+    public async Task CompositeModeOffersNoFixAsync()
     {
         // db.connection_string (mode=composite)
         const string code = """
-            class C { void M(object a) { a.SetTag("db.connection_string", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("db.connection_string", "x"); } }
+                            """;
         var actions = await GetFixActionsAsync(code).ConfigureAwait(true);
 
         Assert.Empty(actions);
     }
 
     [Fact]
-    public void All_245_rule_ids_are_fixableAsync()
+    public void All245RuleIdsAreFixable()
     {
         // Guarantees that if the diagnostic fires, the codefix at least sees it — even when
         // the mode has no auto-action. This is the contract: every deprecated ID is routable.
@@ -140,7 +140,8 @@ public sealed class DeprecatedAttributeCodeFixTests
         return (text.ToString(), captured.Title);
     }
 
-    private static async Task<(Document Document, ImmutableArray<Diagnostic> Diagnostics)> PrepareDocumentAsync(string code)
+    private static async Task<(Document Document, ImmutableArray<Diagnostic> Diagnostics)>
+        PrepareDocumentAsync(string code)
     {
         var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
@@ -155,7 +156,7 @@ public sealed class DeprecatedAttributeCodeFixTests
             metadataReferences: new[]
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)
             },
             compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)));
 

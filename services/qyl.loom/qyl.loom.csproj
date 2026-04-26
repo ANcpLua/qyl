@@ -15,10 +15,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
     <PackageReference Include="ModelContextProtocol"/>
     <PackageReference Include="ModelContextProtocol.AspNetCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
   <ItemGroup>

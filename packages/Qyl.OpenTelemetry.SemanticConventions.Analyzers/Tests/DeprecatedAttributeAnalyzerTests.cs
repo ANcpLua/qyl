@@ -1,3 +1,4 @@
+using System.Globalization;
 using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 
@@ -5,31 +6,31 @@ namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests;
 
 public sealed class DeprecatedAttributeAnalyzerTests
 {
-    private static readonly DeprecatedAttributeAnalyzer s_analyzer = new();
-
     // android.state → android.app.state (status=renamed, mode=direct)
     private const string DeprecatedCode = """
-        class C
-        {
-            void M(object activity)
-            {
-                var x = activity.SetTag("android.state", "background");
-            }
-        }
-        """;
+                                          class C
+                                          {
+                                              void M(object activity)
+                                              {
+                                                  var x = activity.SetTag("android.state", "background");
+                                              }
+                                          }
+                                          """;
 
     private const string CurrentCode = """
-        class C
-        {
-            void M(object activity)
-            {
-                var x = activity.SetTag("android.app.state", "background");
-            }
-        }
-        """;
+                                       class C
+                                       {
+                                           void M(object activity)
+                                           {
+                                               var x = activity.SetTag("android.app.state", "background");
+                                           }
+                                       }
+                                       """;
+
+    private static readonly DeprecatedAttributeAnalyzer s_analyzer = new();
 
     [Fact]
-    public async Task Fires_on_deprecated_string_literal_with_per_entry_rule_idAsync()
+    public async Task FiresOnDeprecatedStringLiteralWithPerEntryRuleIdAsync()
     {
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(DeprecatedCode, s_analyzer);
 
@@ -41,17 +42,17 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Message_contains_old_and_new_idsAsync()
+    public async Task MessageContainsOldAndNewIdsAsync()
     {
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(DeprecatedCode, s_analyzer);
 
-        var msg = diags[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture);
+        var msg = diags[0].GetMessage(CultureInfo.InvariantCulture);
         Assert.Contains("android.state", msg, StringComparison.Ordinal);
         Assert.Contains("android.app.state", msg, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Does_not_fire_on_current_attributeAsync()
+    public async Task DoesNotFireOnCurrentAttributeAsync()
     {
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(CurrentCode, s_analyzer);
 
@@ -59,25 +60,25 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Fires_on_az_namespace_renamedAsync()
+    public async Task FiresOnAzNamespaceRenamedAsync()
     {
         const string code = """
-            class C { void M(object a) { a.SetTag("az.namespace", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("az.namespace", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
         Assert.Single(diags);
-        var msg = diags[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture);
+        var msg = diags[0].GetMessage(CultureInfo.InvariantCulture);
         Assert.Contains("azure.resource_provider.namespace", msg, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Fires_on_AddTag_as_wellAsync()
+    public async Task FiresOnAddTagAsWellAsync()
     {
         const string code = """
-            class C { void M(object a) { a.AddTag("android.state", "x"); } }
-            """;
+                            class C { void M(object a) { a.AddTag("android.state", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -86,11 +87,11 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Does_not_fire_on_non_tag_methodAsync()
+    public async Task DoesNotFireOnNonTagMethodAsync()
     {
         const string code = """
-            class C { void M() { var x = SomeHelper.Do("android.state"); } }
-            """;
+                            class C { void M() { var x = SomeHelper.Do("android.state"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -99,12 +100,12 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Fires_on_removed_attribute_with_per_entry_descriptorAsync()
+    public async Task FiresOnRemovedAttributeWithPerEntryDescriptorAsync()
     {
         // db.jdbc.driver_classname — status=obsoleted, mode=removed
         const string code = """
-            class C { void M(object a) { a.SetTag("db.jdbc.driver_classname", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("db.jdbc.driver_classname", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -115,12 +116,12 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Fires_on_uncategorized_entryAsync()
+    public async Task FiresOnUncategorizedEntryAsync()
     {
         // code.function — status=uncategorized, mode=integrate
         const string code = """
-            class C { void M(object a) { a.SetTag("code.function", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("code.function", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -131,12 +132,12 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task Fires_on_alternative_modeAsync()
+    public async Task FiresOnAlternativeModeAsync()
     {
         // http.host — mode=alternative, replacements=[server.address, client.address, http.request.header.host]
         const string code = """
-            class C { void M(object a) { a.SetTag("http.host", "x"); } }
-            """;
+                            class C { void M(object a) { a.SetTag("http.host", "x"); } }
+                            """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
@@ -148,7 +149,7 @@ public sealed class DeprecatedAttributeAnalyzerTests
     }
 
     [Fact]
-    public void Generated_table_contains_expected_bucket_countsAsync()
+    public void GeneratedTableContainsExpectedBucketCounts()
     {
         // Guard against drift: regenerate if these counts change.
         Assert.Equal(245, DeprecatedDiagnostics.ByDeprecatedId.Count);
@@ -166,10 +167,13 @@ public sealed class DeprecatedAttributeAnalyzerTests
     // http.request.header is tested above; entries for status-bucket naming aren't on
     // DeprecatedEntry directly (status isn't generated — only mode/kind/basis are). The
     // mode proxies status for the three required buckets.
-    private static string ExpectStatus(DeprecatedEntry entry) => entry.Mode switch
+    private static string ExpectStatus(DeprecatedEntry entry)
     {
-        DeprecatedReplacementMode.Removed => "obsoleted",
-        DeprecatedReplacementMode.Direct when entry.ResolutionBasis == "deprecated.renamed_to" => "renamed",
-        _ => "uncategorized",
-    };
+        return entry.Mode switch
+        {
+            DeprecatedReplacementMode.Removed => "obsoleted",
+            DeprecatedReplacementMode.Direct when entry.ResolutionBasis == "deprecated.renamed_to" => "renamed",
+            _ => "uncategorized"
+        };
+    }
 }

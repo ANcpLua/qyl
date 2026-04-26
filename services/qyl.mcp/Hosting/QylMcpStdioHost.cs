@@ -8,7 +8,7 @@ internal static class QylMcpStdioHost
     public static async Task RunAsync(string[] args, SkillConfiguration skills, QylScope scope)
     {
         var builder = Host.CreateApplicationBuilder(args);
-        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, stdioTransport: true);
+        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, true);
 
         var jsonOptions = builder.Services.AddQylMcpCommonServices(builder.Configuration, skills, scope);
 

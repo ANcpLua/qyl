@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -91,7 +92,7 @@ internal sealed class GitHubMcpTools(HttpClient http)
         await CollectorHelper.ExecuteAsync(async () =>
         {
             var take = Math.Clamp(limit ?? 20, 1, 100);
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/github/events?limit={take}",
                 ("eventType", eventType), ("repoFullName", repoFullName));
 

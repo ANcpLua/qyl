@@ -58,6 +58,33 @@ public sealed partial class DuckDbStore
                                             LIMIT $3
                                             """;
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // ALERT FIRINGS (ack + resolve)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private const string AlertFiringAcknowledgeSql = """
+                                                     UPDATE alert_firings SET
+                                                         status = 'acknowledged',
+                                                         acknowledged_at = $2,
+                                                         acknowledged_by = $3
+                                                     WHERE id = $1
+                                                     """;
+
+    private const string AlertFiringResolveSql = """
+                                                 UPDATE alert_firings SET
+                                                     status = 'resolved',
+                                                     resolved_at = $2
+                                                 WHERE id = $1
+                                                 """;
+
+    private const string AlertFiringSelectByIdSql = """
+                                                    SELECT id, rule_id, fingerprint, severity, title, message,
+                                                           trigger_value, threshold_value, context_json, status,
+                                                           acknowledged_at, acknowledged_by, resolved_at, fired_at, dedup_key
+                                                    FROM alert_firings
+                                                    WHERE id = $1
+                                                    """;
+
     /// <summary>Inserts a new alert rule. Returns the persisted entity.</summary>
     public async Task<AlertRuleEntity> InsertAlertRuleAsync(AlertRuleEntity rule, CancellationToken ct = default)
     {
@@ -81,7 +108,7 @@ public sealed partial class DuckDbStore
             LastTriggeredAt = rule.LastTriggeredAt,
             TriggerCount = rule.TriggerCount,
             CreatedAt = rule.CreatedAt == default ? now : rule.CreatedAt,
-            UpdatedAt = now,
+            UpdatedAt = now
         };
 
         await ExecuteWriteAsync(async (con, token) =>
@@ -99,9 +126,15 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = (object?)toPersist.TargetFilterJson ?? DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.Severity.ToString().ToLowerInvariant() });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.CooldownSeconds });
-            cmd.Parameters.Add(new DuckDBParameter { Value = (object?)toPersist.NotificationChannelsJson ?? DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = (object?)toPersist.NotificationChannelsJson ?? DBNull.Value
+            });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.Enabled });
-            cmd.Parameters.Add(new DuckDBParameter { Value = (object?)toPersist.LastTriggeredAt?.UtcDateTime ?? DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = (object?)toPersist.LastTriggeredAt?.UtcDateTime ?? DBNull.Value
+            });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.TriggerCount });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.CreatedAt.UtcDateTime });
             cmd.Parameters.Add(new DuckDBParameter { Value = toPersist.UpdatedAt.UtcDateTime });
@@ -111,8 +144,12 @@ public sealed partial class DuckDbStore
         return toPersist;
     }
 
-    /// <summary>Updates an existing alert rule. Returns the updated entity, or <c>null</c> when <paramref name="ruleId" /> does not exist.</summary>
-    public async Task<AlertRuleEntity?> UpdateAlertRuleAsync(string ruleId, AlertRuleEntity rule, CancellationToken ct = default)
+    /// <summary>
+    ///     Updates an existing alert rule. Returns the updated entity, or <c>null</c> when <paramref name="ruleId" />
+    ///     does not exist.
+    /// </summary>
+    public async Task<AlertRuleEntity?> UpdateAlertRuleAsync(string ruleId, AlertRuleEntity rule,
+        CancellationToken ct = default)
     {
         var existing = await GetAlertRuleAsync(ruleId, ct).ConfigureAwait(false);
         if (existing is null) return null;
@@ -179,10 +216,10 @@ public sealed partial class DuckDbStore
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = AlertRuleListSql;
         cmd.Parameters.Add(new DuckDBParameter { Value = (object?)projectId ?? DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (object?)enabled ?? DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = enabled is { } e ? e : DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 100) });
 
-        var results = new List<AlertRuleEntity>(capacity: limit);
+        var results = new List<AlertRuleEntity>(limit);
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
@@ -192,7 +229,7 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    private static AlertRuleEntity MapAlertRule(System.Data.Common.DbDataReader r) => new()
+    private static AlertRuleEntity MapAlertRule(DbDataReader r) => new()
     {
         Id = r.GetString(0),
         ProjectId = r.GetString(1),
@@ -210,38 +247,11 @@ public sealed partial class DuckDbStore
         LastTriggeredAt = r.IsDBNull(13) ? null : DateTime.SpecifyKind(r.GetDateTime(13), DateTimeKind.Utc),
         TriggerCount = r.GetInt64(14),
         CreatedAt = DateTime.SpecifyKind(r.GetDateTime(15), DateTimeKind.Utc),
-        UpdatedAt = DateTime.SpecifyKind(r.GetDateTime(16), DateTimeKind.Utc),
+        UpdatedAt = DateTime.SpecifyKind(r.GetDateTime(16), DateTimeKind.Utc)
     };
 
     private static T ParseEnum<T>(string value) where T : struct, Enum =>
-        Enum.TryParse<T>(value, ignoreCase: true, out var parsed) ? parsed : default;
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // ALERT FIRINGS (ack + resolve)
-    // ══════════════════════════════════════════════════════════════════════════
-
-    private const string AlertFiringAcknowledgeSql = """
-                                                     UPDATE alert_firings SET
-                                                         status = 'acknowledged',
-                                                         acknowledged_at = $2,
-                                                         acknowledged_by = $3
-                                                     WHERE id = $1
-                                                     """;
-
-    private const string AlertFiringResolveSql = """
-                                                 UPDATE alert_firings SET
-                                                     status = 'resolved',
-                                                     resolved_at = $2
-                                                 WHERE id = $1
-                                                 """;
-
-    private const string AlertFiringSelectByIdSql = """
-                                                    SELECT id, rule_id, fingerprint, severity, title, message,
-                                                           trigger_value, threshold_value, context_json, status,
-                                                           acknowledged_at, acknowledged_by, resolved_at, fired_at, dedup_key
-                                                    FROM alert_firings
-                                                    WHERE id = $1
-                                                    """;
+        Enum.TryParse<T>(value, true, out var parsed) ? parsed : default;
 
     /// <summary>Acknowledges an alert firing. Returns the updated entity, or <c>null</c> when the firing does not exist.</summary>
     public async Task<AlertFiringEntity?> AcknowledgeAlertFiringAsync(
@@ -302,11 +312,13 @@ public sealed partial class DuckDbStore
             ThresholdValue = reader.IsDBNull(7) ? null : reader.GetDouble(7),
             ContextJson = reader.IsDBNull(8) ? null : reader.GetString(8),
             Status = ParseEnum<AlertFiringStatus>(reader.GetString(9)),
-            AcknowledgedAt = reader.IsDBNull(10) ? null : DateTime.SpecifyKind(reader.GetDateTime(10), DateTimeKind.Utc),
+            AcknowledgedAt =
+                reader.IsDBNull(10) ? null : DateTime.SpecifyKind(reader.GetDateTime(10), DateTimeKind.Utc),
             AcknowledgedBy = reader.IsDBNull(11) ? null : reader.GetString(11),
-            ResolvedAt = reader.IsDBNull(12) ? null : DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
+            ResolvedAt =
+                reader.IsDBNull(12) ? null : DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
             FiredAt = DateTime.SpecifyKind(reader.GetDateTime(13), DateTimeKind.Utc),
-            DedupKey = reader.IsDBNull(14) ? null : reader.GetString(14),
+            DedupKey = reader.IsDBNull(14) ? null : reader.GetString(14)
         };
     }
 }

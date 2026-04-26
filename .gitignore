@@ -88,6 +88,10 @@ dist-extension/
 ehthumbs.db
 Thumbs.db
 
+# Nuke build temp / logs
+.nuke/temp/
+.nuke/build.schema.json
+
 # qyl data files
 *.duckdb
 *.duckdb.wal
@@ -168,3 +172,5 @@ images/
 eng/semconv/out/
 .DS_Store
 *.bak
+eng/semconv/out/
+eng/semconv/out/

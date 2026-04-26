@@ -169,6 +169,7 @@ var response = await agent.RunAsync(userMessage, cancellationToken: ct);
 ```
 
 Multi-step flows use `WorkflowBuilder` with fan-out edges and are observed via `InProcessExecution.RunStreamingAsync`
+
 + `WatchStreamAsync`:
 
 ```csharp
@@ -188,15 +189,15 @@ await foreach (var evt in (await InProcessExecution.RunStreamingAsync(workflow, 
 }
 ```
 
-| Surface                   | qyl usage                                                                   |
-|---------------------------|-----------------------------------------------------------------------------|
-| Standalone agent          | `llm.AsAIAgent(options)` — every executor under `services/qyl.loom/Autofix/Workflow/Executors/` |
-| Streaming                 | `AutofixAgentService`, `ExplorationOrchestrator`                            |
-| Workflow graph            | `AutofixWorkflowFactory`, `ExplorationWorkflowFactory`                      |
+| Surface                   | qyl usage                                                                                                   |
+|---------------------------|-------------------------------------------------------------------------------------------------------------|
+| Standalone agent          | `llm.AsAIAgent(options)` — every executor under `services/qyl.loom/Autofix/Workflow/Executors/`             |
+| Streaming                 | `AutofixAgentService`, `ExplorationOrchestrator`                                                            |
+| Workflow graph            | `AutofixWorkflowFactory`, `ExplorationWorkflowFactory`                                                      |
 | Tool factory              | `AIFunctionFactory.Create` via `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs` |
-| MCP tool registration     | `[QylSkill]` + `[QylCapability]` — emitted by `internal/qyl.mcp.generators/`|
-| Telemetry (`IChatClient`) | `innerClient.WithQylTelemetry("qyl.genai")`                                 |
-| Telemetry (`AIAgent`)     | `agent.AsBuilder().UseQylAgentTelemetry().Build()`                          |
+| MCP tool registration     | `[QylSkill]` + `[QylCapability]` — emitted by `internal/qyl.mcp.generators/`                                |
+| Telemetry (`IChatClient`) | `innerClient.WithQylTelemetry("qyl.genai")`                                                                 |
+| Telemetry (`AIAgent`)     | `agent.AsBuilder().UseQylAgentTelemetry().Build()`                                                          |
 
 Full entry-point catalogue and rules live in [`CLAUDE.md`](CLAUDE.md) under "MAF agent composition".
 

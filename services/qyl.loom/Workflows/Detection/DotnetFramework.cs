@@ -36,5 +36,5 @@ public enum DotnetFramework
     ClassicAspNet = 8,
 
     /// <summary>Console / worker service / generic host — <c>Sentry</c> or <c>Sentry.Extensions.Logging</c>.</summary>
-    ConsoleOrWorker = 9,
+    ConsoleOrWorker = 9
 }

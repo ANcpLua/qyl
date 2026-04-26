@@ -155,14 +155,12 @@ public static class SemanticDiffService
                 var rawNovelty = positiveKl + positiveDelta + (firstAppearance * 0.50) +
                                  (normalizedDimensionScore * 0.35);
                 var supportScore = options.SupportSaturationCount > 0
-                    ?
-                    Clamp01(cCount / options.SupportSaturationCount)
+                    ? Clamp01(cCount / options.SupportSaturationCount)
                     : cCount > 0
                         ? 1.0
                         : 0.0;
                 var concentrationScore = options.ConcentrationThreshold > 0
-                    ?
-                    Clamp01(cShare / options.ConcentrationThreshold)
+                    ? Clamp01(cShare / options.ConcentrationThreshold)
                     : cShare > 0
                         ? 1.0
                         : 0.0;
@@ -271,9 +269,12 @@ public static class SemanticDiffService
         if (causal >= o.MinimumCausalOverrideScore) r.Add("It aligns with external causal evidence.");
         if (actionability >= 0.65) r.Add("It is actionable enough to guide a targeted fix.");
         if (r.Count is 0)
+        {
             r.Add(novelty >= 0.50
                 ? "It represents a meaningful behavioral shift."
                 : "It is one of the least noisy surviving changes.");
+        }
+
         return string.Join(" ", r);
     }
 

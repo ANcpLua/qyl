@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.Hosting;
@@ -11,9 +12,9 @@ using Microsoft.Extensions.Options;
 namespace Qyl.Run.Internal;
 
 /// <summary>
-/// Spawns every declared resource's subprocess, allocates ports for port-0 resources, polls
-/// <see cref="QylLaunchSpec.HealthPath"/> on each, and publishes lifecycle events into the
-/// <see cref="QylResourceRegistry"/>. <see cref="QylConsoleUi"/> renders off that feed.
+///     Spawns every declared resource's subprocess, allocates ports for port-0 resources, polls
+///     <see cref="QylLaunchSpec.HealthPath" /> on each, and publishes lifecycle events into the
+///     <see cref="QylResourceRegistry" />. <see cref="QylConsoleUi" /> renders off that feed.
 /// </summary>
 internal sealed partial class QylOrchestrator(
     IReadOnlyList<QylResource> resources,
@@ -23,18 +24,22 @@ internal sealed partial class QylOrchestrator(
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
-    [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information, Message = "qyl.run orchestrator booting with {Count} resource(s)")]
-    private static partial void LogBoot(ILogger logger, int count);
-
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information, Message = "Resource '{Name}' ready on {Endpoint}")]
-    private static partial void LogReady(ILogger logger, string name, Uri endpoint);
-
-    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error, Message = "Resource '{Name}' failed to start: {Reason}")]
-    private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
-
-    private static readonly CompositeFormat s_urlFormat = CompositeFormat.Parse(QylConstants.Network.LocalhostUrlTemplate);
+    private static readonly CompositeFormat s_urlFormat =
+        CompositeFormat.Parse(QylConstants.Network.LocalhostUrlTemplate);
 
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
+
+    [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
+        Message = "qyl.run orchestrator booting with {Count} resource(s)")]
+    private static partial void LogBoot(ILogger logger, int count);
+
+    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,
+        Message = "Resource '{Name}' ready on {Endpoint}")]
+    private static partial void LogReady(ILogger logger, string name, Uri endpoint);
+
+    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error,
+        Message = "Resource '{Name}' failed to start: {Reason}")]
+    private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -47,9 +52,18 @@ internal sealed partial class QylOrchestrator(
         var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken)).ToArray();
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        try { await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) { /* expected on host shutdown */ }
-        finally { await StopAllAsync().ConfigureAwait(false); }
+        try
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            /* expected on host shutdown */
+        }
+        finally
+        {
+            await StopAllAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task StartResourceAsync(QylResource resource, CancellationToken stoppingToken)
@@ -67,7 +81,8 @@ internal sealed partial class QylOrchestrator(
                 ? PortAllocator.ClaimFreePort(options.Value.RunnerHost)
                 : resource.Port;
 
-            var endpoint = new Uri(string.Format(System.Globalization.CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost, port));
+            var endpoint =
+                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost, port));
 
             if (string.IsNullOrEmpty(resource.Launch.Executable))
             {
@@ -79,8 +94,10 @@ internal sealed partial class QylOrchestrator(
                 }
                 else
                 {
-                    registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out for external endpoint");
+                    registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
+                        "Health probe timed out for external endpoint");
                 }
+
                 return;
             }
 
@@ -91,13 +108,14 @@ internal sealed partial class QylOrchestrator(
                 RedirectStandardOutput = options.Value.CaptureChildOutput,
                 RedirectStandardError = options.Value.CaptureChildOutput,
                 UseShellExecute = false,
-                CreateNoWindow = true,
+                CreateNoWindow = true
             };
             foreach (var arg in resource.Launch.Args) startInfo.ArgumentList.Add(arg);
             foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
             startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
 
-            var process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Process.Start returned null for '{resource.Name}'");
+            var process = Process.Start(startInfo) ??
+                          throw new InvalidOperationException($"Process.Start returned null for '{resource.Name}'");
             _processes[resource.Name] = process;
 
             if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
@@ -114,10 +132,22 @@ internal sealed partial class QylOrchestrator(
         // outside this set is a programmer bug and must surface with a full stack trace.
         // SocketException : Win32Exception — keep the subclass first so port-claim failures
         // report as "port in use" rather than the generic Win32 message.
-        catch (SocketException ex) { FailResource(resource, ex); }           // port claim failure
-        catch (Win32Exception ex) { FailResource(resource, ex); }            // executable not found / permission denied
-        catch (FileNotFoundException ex) { FailResource(resource, ex); }     // project path wrong
-        catch (InvalidOperationException ex) { FailResource(resource, ex); } // Process.Start returned null or state error
+        catch (SocketException ex)
+        {
+            FailResource(resource, ex);
+        } // port claim failure
+        catch (Win32Exception ex)
+        {
+            FailResource(resource, ex);
+        } // executable not found / permission denied
+        catch (FileNotFoundException ex)
+        {
+            FailResource(resource, ex);
+        } // project path wrong
+        catch (InvalidOperationException ex)
+        {
+            FailResource(resource, ex);
+        } // Process.Start returned null or state error
     }
 
     private void FailResource(QylResource resource, Exception ex)
@@ -134,7 +164,9 @@ internal sealed partial class QylOrchestrator(
             {
                 return;
             }
-            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time, stoppingToken).ConfigureAwait(false);
+
+            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
+                stoppingToken).ConfigureAwait(false);
         }
     }
 
@@ -151,11 +183,19 @@ internal sealed partial class QylOrchestrator(
                 using var response = await client.GetAsync(probeUri, stoppingToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode) return true;
             }
-            catch (HttpRequestException) { /* probe again */ }
-            catch (TaskCanceledException) { /* probe again */ }
+            catch (HttpRequestException)
+            {
+                /* probe again */
+            }
+            catch (TaskCanceledException)
+            {
+                /* probe again */
+            }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time, stoppingToken).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
+                stoppingToken).ConfigureAwait(false);
         }
+
         return false;
     }
 
@@ -168,14 +208,19 @@ internal sealed partial class QylOrchestrator(
             {
                 if (!process.HasExited)
                 {
-                    process.Kill(entireProcessTree: true);
+                    process.Kill(true);
                     await process.WaitForExitAsync().ConfigureAwait(false);
                 }
             }
-            catch (InvalidOperationException) { /* already gone */ }
+            catch (InvalidOperationException)
+            {
+                /* already gone */
+            }
+
             registry.Publish(name, ResourceLifecycle.Stopped);
             process.Dispose();
         }
+
         registry.Complete();
     }
 }

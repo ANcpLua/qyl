@@ -11,7 +11,9 @@ public static class ActivityExceptionTelemetry
     private const string ErrorType = ErrorAttributes.Type;
     private const string ExceptionType = ExceptionAttributes.Type;
     private const string ExceptionMessage = ExceptionAttributes.Message;
+
     private const string ExceptionStacktrace = ExceptionAttributes.Stacktrace;
+
     // exception.escaped was removed from upstream OTel semconv with no replacement;
     // kept as an inline literal to preserve qyl telemetry consumers.
     private const string ExceptionEscaped = "exception.escaped";

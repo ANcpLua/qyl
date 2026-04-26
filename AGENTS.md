@@ -1,26 +1,14 @@
-# GitHub Copilot Instructions
+# qyl — Agent Instructions
 
-You are working in the qyl repository. When applying review feedback on a pull request, execute these rules without
-deviation.
-
-## How to apply PR feedback
-
-When invoked via `@copilot apply changes based on this feedback` or similar:
-
-1. Read every review comment in the thread — from Codex, CodeRabbit, Copilot AI review, GitHub Code Quality, and human
-   reviewers. Apply all of them in a single commit unless they conflict, in which case apply the stricter one.
-2. After applying, run `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` locally in your sandbox and confirm 0 errors
-   before pushing.
-3. Commit message format: `fix(pr): address review feedback — <one-line summary>`. Never squash semantic changes into "
-   apply review" commits; use a fresh commit per logical fix.
-4. Never push to a branch you did not create in this session without first running `git fetch` and
-   `git rebase origin/<branch>`. If merge conflicts occur, resolve them, rerun the build, and push. Do not abort and
-   leave the PR in a broken state.
+You are an AI coding agent (Claude Code, Codex, aider, Gemini CLI, …) operating on the qyl repository **locally**.
+Cloud GitHub Copilot has its own self-contained instructions at `.github/copilot-instructions.md` — do not edit that
+file as a side-effect of refactoring this one. `CLAUDE.md` is a symlink to this file (Claude Code convention).
 
 ## Hard rules — violations fail CI
 
-These mirror `.editorconfig`, `CLAUDE.md`, `AGENTS.md`, and the ruleset emitted by `eng/MSBuild/Shared.Claude.*`. Follow
-them on every file you touch:
+These mirror `.editorconfig`, `.github/copilot-instructions.md`, and the ruleset emitted by
+`eng/MSBuild/Shared.Claude.*`.
+Follow them on every file you touch:
 
 - **Encoding:** new `.cs` files are UTF-8 **with BOM**. Verify before committing.
 - **Copyright header** on every new `.cs` file: `// Copyright (c) 2025-2026 ancplua` as line 1.
@@ -41,6 +29,11 @@ them on every file you touch:
   for business logic. Tests use `FakeTimeProvider`.
 - **Environment variables:** `UPPER_SNAKE_CASE` only.
 
+## Build verification
+
+Before claiming a change is complete: `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` must report 0 errors. UI work
+must additionally be verified in a browser via Playwright with a screenshot — see the global communication-style rule.
+
 ## DuckDB store — read/write separation is non-negotiable
 
 `DuckDbStore` in `services/qyl.collector/Storage/` exposes two access paths:
@@ -51,30 +44,30 @@ them on every file you touch:
   channel. The lambda signature is **`Func<DuckDBConnection, CancellationToken, ValueTask>`** — two arguments, always.
   Single-arg lambdas will not compile against the real signature and are a sign the code was written blind.
 
-When reviewing or applying feedback on anything in `services/qyl.collector/Storage/`,
-`services/qyl.collector/Workflows/`, `services/qyl.collector/AgentRuns/`, `services/qyl.collector/Errors/`, or any other
-`services/qyl.collector/**/` file that touches the store: grep the diff for `UPDATE`, `INSERT`, `DELETE`, and confirm
-each one is inside an `ExecuteWriteAsync` call, not a `GetReadConnectionAsync` lease.
+When touching anything in `services/qyl.collector/Storage/`, `services/qyl.collector/Workflows/`,
+`services/qyl.collector/AgentRuns/`, `services/qyl.collector/Errors/`, or any other `services/qyl.collector/**/` file
+that talks to the store: grep the diff for `UPDATE`, `INSERT`, `DELETE` and confirm each one is inside an
+`ExecuteWriteAsync` call, not a `GetReadConnectionAsync` lease.
 
-## HTTP endpoints — contract is the source of truth
+## HTTP endpoints — TypeSpec contract is the source of truth
 
 Endpoint implementations under `services/qyl.collector/**Endpoints.cs` must match the TypeSpec contract at
 `core/specs/api/routes.tsp`:
 
 - If the spec declares `NotFoundError` for an operation, the implementation returns `TypedResults.NotFound()` when the
   resource is absent. Do not return `200 OK` with an empty array.
-- Pagination limits (`default`, `max`) come from the spec, not the implementation. When adding a list endpoint, copy the
-  `default` and `max` values verbatim from `routes.tsp`.
-- When review feedback cites `routes.tsp` line numbers, open that file and read the surrounding decorators before
-  changing the implementation.
+- Pagination limits (`default`, `max`) come from the spec, not the implementation. When adding a list endpoint, copy
+  the `default` and `max` values verbatim from `routes.tsp`.
+- When work touches a route, open `routes.tsp` and read the surrounding 20 lines of decorators before writing the C#.
+  The TypeSpec contract is authoritative in every case of disagreement.
 
 ## HTTP client error handling
 
 In `services/qyl.loom/CollectorClient.cs` and any other `HttpClient`-consuming code:
 
 - Before calling `ReadFromJsonAsync` on a non-success response, check `response.Content.Headers.ContentType?.MediaType`
-  is `application/json` and `response.Content.Headers.ContentLength > 0`. Otherwise, fall back to `response.StatusCode`
-  as the error signal.
+  is `application/json` and `response.Content.Headers.ContentLength > 0`. Otherwise, fall back to
+  `response.StatusCode` as the error signal.
 - Wrap `ReadFromJsonAsync` in `try { ... } catch (JsonException) { ... }` on non-success paths. Never let a
   deserialization exception propagate from an error path.
 - Return a structured failure DTO. Never throw on an expected HTTP error status.
@@ -94,18 +87,18 @@ To change generated output, edit the source and regenerate:
 | `services/qyl.collector/Generated/generated/**`                               | `core/specs/api/routes.tsp`    | `nuke Generate` (patched by `core/specs/scripts/patch-emitted-csharp.mjs`) |
 | `internal/*.generators/` outputs                                              | Roslyn source generators       | `dotnet build`                                                             |
 
-If review feedback asks for a change that lives in a `.g.*` file, change the source and regenerate. Commit both the
-source change and the regenerated output in the same commit.
+If a desired change lives in a `.g.*` file, change the source and regenerate. Commit both the source change and the
+regenerated output in the same commit.
 
 ## Semconv — no magic strings
 
 Never hard-code `"qyl.*"` or standard OTel attribute keys as string literals. Use:
- 
+
 - `QylAttr.<Namespace>.<Name>` for internal services (from `packages/Qyl.Telemetry/Conventions/Qyl.g.cs`).
 - `QylAttributes.<PascalName>` for the public NuGet surface (from
   `packages/Qyl.SemanticConventions/Attributes/Qyl/QylAttributes.g.cs`).
-- OTel upstream classes from `packages/Qyl.OpenTelemetry.SemanticConventions{,Incubating}` for standard attributes (
-  `ServiceAttributes.ServiceName`, `HttpAttributes.HttpRequestMethod`, etc.).
+- OTel upstream classes from `packages/Qyl.OpenTelemetry.SemanticConventions{,Incubating}` for standard attributes
+  (`ServiceAttributes.ServiceName`, `HttpAttributes.HttpRequestMethod`, etc.).
 
 If the attribute does not exist, add it to `eng/semconv/model/qyl/<namespace>.yaml`, run `./eng/semconv/run-weaver.sh`
 and `nuke GenerateSemconv`, then use the generated constant.
@@ -130,7 +123,11 @@ In `services/qyl.mcp/`:
 
 For anything under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `services/qyl.mcp/Agents/`.
 
-**Authoritative overlay:** `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.md` — qyl MAF consumer patterns (Apex-aligned fluent shape, three-builder trichotomy, `.AsBuilder().Use(...).Build()` composition, file-based instructions, `LoomRunState` session discipline, `WithQylTelemetry`/`UseQylTelemetry` + agent-layer `UseOpenTelemetry("qyl.agent")`). Read it before touching agent/workflow code. Core MAF surface lives in `~/.claude/skills/microsoft-agent-framework/SKILL.md`.
+**Authoritative overlay:** `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.md` — qyl MAF consumer patterns
+(Apex-aligned fluent shape, three-builder trichotomy, `.AsBuilder().Use(...).Build()` composition, file-based
+instructions, `LoomRunState` session discipline, `WithQylTelemetry`/`UseQylTelemetry` + agent-layer
+`UseOpenTelemetry("qyl.agent")`). Read it before touching agent/workflow code. Core MAF surface lives in
+`~/.claude/skills/microsoft-agent-framework/SKILL.md`.
 
 ### Rules
 
@@ -154,17 +151,17 @@ For anything under `services/qyl.loom/`, `services/qyl.loom.patterns/`, or `serv
 
 Reach for these before hand-rolling. Every row has a concrete qyl call-site — grep it before writing a new variant.
 
-| Layer                         | Entry point                                                                                                                                                                   | qyl call-site                                                                                                                     |
-|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| **Agent — standalone**        | `llm.AsAIAgent(new ChatClientAgentOptions { Name, Description, ChatOptions = new() { Instructions } }).AsBuilder().UseQylAgentTelemetry().Build()`                            | `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:35-40` and every sibling executor                                    |
-| **Agent — non-streaming**     | `await agent.RunAsync(userMessage, cancellationToken: ct)`                                                                                                                    | `RcaExecutor.cs:42` — the universal shape across Autofix executors and `TriagePipelineService`                                    |
-| **Agent — streaming**         | `await foreach (var evt in streamingRun.WatchStreamAsync(ct)) { … }`                                                                                                          | `services/qyl.loom/Autofix/AutofixAgentService.cs:66-77`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`           |
-| **Agent — structured output** | `await agent.RunAsync<T>(prompt)` → `AgentResponse<T>.Result`                                                                                                                 | Use when `T` is a `LoomToolEnvelope<TData>` verdict (see `services/qyl.mcp/Tools/`)                                               |
-| **Session**                   | `agent.CreateSessionAsync()` • `SerializeSessionAsync` / `DeserializeSessionAsync`                                                                                            | Required when the same agent must preserve context across MCP tool calls — gate on `LoomRunState`                                 |
-| **Tools — local**             | `AIFunctionFactory.Create(methodInfo, instanceFactory, new AIFunctionFactoryOptions { Name, ... })`                                                                           | `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs:99-119`                                               |
-| **Workflow — build**          | `new WorkflowBuilder(start).AddEdge(a, b).AddFanOutEdge(src, [t1, t2, t3]).WithOutputFrom(last).Build()`                                                                      | `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs:44-51`, `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs:23-28` |
-| **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                          | `AutofixAgentService.cs:66`, `ExplorationOrchestrator.cs:37`                                                                      |
-| **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap **both** or half the OTel attributes vanish. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                            |
+| Layer                         | Entry point                                                                                                                                                                                                                                   | qyl call-site                                                                                                                                      |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Agent — standalone**        | `llm.AsAIAgent(new ChatClientAgentOptions { Name, Description, ChatOptions = new() { Instructions } }).AsBuilder().UseQylAgentTelemetry().Build()`                                                                                            | `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:35-40` and every sibling executor                                                     |
+| **Agent — non-streaming**     | `await agent.RunAsync(userMessage, cancellationToken: ct)`                                                                                                                                                                                    | `RcaExecutor.cs:42` — the universal shape across Autofix executors and `TriagePipelineService`                                                     |
+| **Agent — streaming**         | `await foreach (var evt in streamingRun.WatchStreamAsync(ct)) { … }`                                                                                                                                                                          | `services/qyl.loom/Autofix/AutofixAgentService.cs:66-77`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                            |
+| **Agent — structured output** | `await agent.RunAsync<T>(prompt)` → `AgentResponse<T>.Result`                                                                                                                                                                                 | Use when `T` is a `LoomToolEnvelope<TData>` verdict (see `services/qyl.mcp/Tools/`)                                                                |
+| **Session**                   | `agent.CreateSessionAsync()` • `SerializeSessionAsync` / `DeserializeSessionAsync`                                                                                                                                                            | Required when the same agent must preserve context across MCP tool calls — gate on `LoomRunState`                                                  |
+| **Tools — local**             | `AIFunctionFactory.Create(methodInfo, instanceFactory, new AIFunctionFactoryOptions { Name, ... })`                                                                                                                                           | `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs:99-119`                                                                |
+| **Workflow — build**          | `new WorkflowBuilder(start).AddEdge(a, b).AddFanOutEdge(src, [t1, t2, t3]).WithOutputFrom(last).Build()`                                                                                                                                      | `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs:44-51`, `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs:23-28` |
+| **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                                                                                          | `AutofixAgentService.cs:66`, `ExplorationOrchestrator.cs:37`                                                                                       |
+| **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap **both** or half the OTel attributes vanish. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                                            |
 
 ### Not used in qyl — if you reach for these, justify first
 
@@ -180,8 +177,8 @@ Reach for these before hand-rolling. Every row has a concrete qyl call-site — 
 
 Under `tests/qyl.collector.tests/`:
 
-- xUnit v3 with Microsoft Testing Platform (MTP). Run via `dotnet test --project tests/qyl.collector.tests` — positional
-  args do not work.
+- xUnit v3 with Microsoft Testing Platform (MTP). Run via `dotnet test --project tests/qyl.collector.tests` —
+  positional args do not work.
 - Generate TRX via `--report-xunit-trx`.
 - Temp files in tests: use `Path.Join(Path.GetTempPath(), $"{Guid.NewGuid():N}.<ext>")`. Never
   `Path.GetTempFileName()` — it orphans a `.tmp` file on disk.
@@ -195,14 +192,3 @@ Under `tests/qyl.collector.tests/`:
 - `no-unused-vars` is configured with `argsIgnorePattern: '^_'`. Prefix intentionally unused args with `_`.
 - Playwright e2e tests in `tests/` (or `services/qyl.dashboard/e2e/`) must assert behavior, not render order. No
   arbitrary `waitForTimeout()`. Use `page.waitForResponse` / `page.waitForSelector` with specific selectors.
-
-## When a review comment cites a spec file
-
-If review feedback references `core/specs/api/routes.tsp`, `core/specs/intelligence/*.tsp`, or any other `.tsp` file
-with a line number, **open that file and read the surrounding 20 lines before writing code**. The TypeSpec contract is
-authoritative over the C# implementation in every case of disagreement.
-
-## When you hit a rate limit
-
-If you stop mid-task because of a rate limit, do not push partial work. Leave the branch in the state it was before you
-started. The user will retry.
