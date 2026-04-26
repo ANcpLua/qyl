@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
 using ModelContextProtocol.Server;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 

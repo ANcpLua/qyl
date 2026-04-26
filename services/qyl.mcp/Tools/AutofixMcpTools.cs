@@ -149,7 +149,7 @@ internal sealed class AutofixMcpTools(HttpClient http)
         var uri = new Uri(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
             UriKind.Relative);
-        using var resp = await http.PostAsync(uri, content: null, ct).ConfigureAwait(false);
+        using var resp = await http.PostAsync(uri, null, ct).ConfigureAwait(false);
 
         switch (resp.StatusCode)
         {

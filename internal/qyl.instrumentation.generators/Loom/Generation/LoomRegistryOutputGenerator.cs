@@ -187,8 +187,10 @@ internal static class LoomRegistryOutputGenerator
         using (sb.BeginBlock())
         {
             foreach (var contract in contracts.OrderBy(static c => c.Name, StringComparer.Ordinal))
+            {
                 sb.AppendLine(
                     $"[{LoomGenerationHelpers.StringLiteral(contract.Name)}] = {contract.FullyQualifiedTypeName}.JsonSchema,");
+            }
         }
 
         sb.AppendLine(";");

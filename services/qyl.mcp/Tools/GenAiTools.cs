@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
@@ -41,7 +42,7 @@ public sealed class GenAiTools(HttpClient client)
         int hours = 24) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/genai/stats?hours={hours}", ("sessionId", sessionId));
 
             if (await client.GetFromJsonAsync<GenAiStatsDto>(url, GenAiJsonContext.Default.GenAiStatsDto)
@@ -107,7 +108,7 @@ public sealed class GenAiTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/genai/spans?limit={limit}",
                 ("provider", provider), ("model", model),
                 ("status", status), ("sessionId", sessionId));

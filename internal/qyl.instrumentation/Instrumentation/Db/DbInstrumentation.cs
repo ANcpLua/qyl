@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
-using qyl.contracts.Attributes;
+using DbAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Db.DbAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.Db;
 
@@ -193,13 +193,16 @@ public static class DbInstrumentation
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch
         {
-            _ when typeName.ContainsIgnoreCase("DuckDB") => DbAttributes.Systems.DuckDb,
-            _ when typeName.ContainsIgnoreCase("Npgsql") => DbAttributes.Systems.PostgreSql,
-            _ when typeName.ContainsIgnoreCase("SqlClient") => DbAttributes.Systems.MsSql,
-            _ when typeName.ContainsIgnoreCase("Sqlite") => DbAttributes.Systems.Sqlite,
-            _ when typeName.ContainsIgnoreCase("Oracle") => DbAttributes.Systems.Oracle,
-            _ when typeName.ContainsIgnoreCase("MySql") => DbAttributes.Systems.MySql,
-            _ when typeName.ContainsIgnoreCase("Firebird") => DbAttributes.Systems.Firebird,
+            // "duckdb" is a qyl extension — not in upstream OTel semconv registry.
+            _ when typeName.ContainsIgnoreCase("DuckDB") => "duckdb",
+            _ when typeName.ContainsIgnoreCase("Npgsql") => DbAttributes.SystemNameValues.Postgresql,
+            // "mssql", "oracle", "firebird" preserved as legacy qyl values — upstream renamed
+            // these to "microsoft.sql_server", "oracle.db", "firebirdsql" in semconv 1.40.
+            _ when typeName.ContainsIgnoreCase("SqlClient") => "mssql",
+            _ when typeName.ContainsIgnoreCase("Sqlite") => DbAttributes.SystemNameValues.Sqlite,
+            _ when typeName.ContainsIgnoreCase("Oracle") => "oracle",
+            _ when typeName.ContainsIgnoreCase("MySql") => DbAttributes.SystemNameValues.Mysql,
+            _ when typeName.ContainsIgnoreCase("Firebird") => "firebird",
             _ => "unknown"
         };
 }

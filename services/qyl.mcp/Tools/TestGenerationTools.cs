@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using System.Net;
-using qyl.mcp.Agents;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
@@ -19,6 +19,19 @@ namespace qyl.mcp.Tools;
 [QylSkill(QylSkillKind.Loom)]
 internal sealed class TestGenerationTools(HttpClient http, IConfiguration config)
 {
+    private const string TestGenerationSystemPrompt = """
+                                                      You are a test engineer. Generate a regression test that would catch the given error if it reoccurs.
+
+                                                      Requirements:
+                                                      - Write the test in the framework the user requests.
+                                                      - Verify the specific behavior that caused the error.
+                                                      - Include arrange/act/assert structure.
+                                                      - Add comments explaining what the test validates.
+                                                      - If the error is in a specific method, test that method's edge cases.
+                                                      - Include setup code (mocks, fixtures) as needed.
+                                                      - Output the complete test file in a single code block.
+                                                      """;
+
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
@@ -70,7 +83,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
             {
                 Name = "TestGenerationAgent",
                 Description = "Generates regression tests that would catch a qyl error issue if it reoccurs.",
-                ChatOptions = new ChatOptions { Instructions = TestGenerationSystemPrompt },
+                ChatOptions = new ChatOptions { Instructions = TestGenerationSystemPrompt }
             }).AsBuilder().UseQylAgentTelemetry().Build();
 
             var userMessage = BuildTestUserMessage(issueJson, eventsJson, targetFramework);
@@ -79,19 +92,6 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
 
             return $"## Generated Test for Issue {issueId}\n\n{response.Text}";
         });
-
-    private const string TestGenerationSystemPrompt = """
-                                                      You are a test engineer. Generate a regression test that would catch the given error if it reoccurs.
-
-                                                      Requirements:
-                                                      - Write the test in the framework the user requests.
-                                                      - Verify the specific behavior that caused the error.
-                                                      - Include arrange/act/assert structure.
-                                                      - Add comments explaining what the test validates.
-                                                      - If the error is in a specific method, test that method's edge cases.
-                                                      - Include setup code (mocks, fixtures) as needed.
-                                                      - Output the complete test file in a single code block.
-                                                      """;
 
     private static string BuildTestUserMessage(string issueJson, string eventsJson, string framework) =>
         $$"""

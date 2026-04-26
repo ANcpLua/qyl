@@ -85,9 +85,9 @@ sealed class Build : NukeBuild,
         .Description("Start development environment (Docker + compile)")
         .DependsOn<IDocker>(static x => x.DockerUp)
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(static () =>
+        .Executes(() =>
         {
-            Log.Information("Development environment ready");
+            Log.Information("Development environment ready ({Version})", Versioning?.FullSemVer ?? "local");
             Log.Information("  Dashboard:  http://localhost:5100");
             Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
             Log.Information("  OTLP gRPC:  http://localhost:4317");

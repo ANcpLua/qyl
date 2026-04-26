@@ -111,7 +111,9 @@ public sealed class SpanRingBuffer
             return [];
         }
 
-        return Query(s => s.SessionId == sid, maxCount, out generation);
+        // Compare underlying strings — SpanRecord.SessionId is `string?`, implicitly coercing
+        // via SessionId(string) would trip CS8604 in strict nullable builds.
+        return Query(s => s.SessionId == sid.Value, maxCount, out generation);
     }
 
     public void Clear()

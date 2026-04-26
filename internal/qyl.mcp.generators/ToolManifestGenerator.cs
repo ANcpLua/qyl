@@ -1,9 +1,9 @@
-using Qyl.Mcp.Generators.Analyzers;
-using Qyl.Mcp.Generators.Emitters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using qyl.mcp.generators.Analyzers;
+using qyl.mcp.generators.Emitters;
 
-namespace Qyl.Mcp.Generators;
+namespace qyl.mcp.generators;
 
 /// <summary>
 ///     Discovers [McpServerToolType] classes and their [McpServerTool] methods at compile time.

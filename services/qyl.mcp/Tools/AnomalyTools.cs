@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -54,7 +55,7 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}",
                 ("service", service));
 
@@ -128,7 +129,7 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}",
                 ("service", service));
 
@@ -196,7 +197,7 @@ public sealed class AnomalyTools(HttpClient client)
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}",
                 ("period1Start", period1Start), ("period1End", period1End),
                 ("period2Start", period2Start), ("period2End", period2End),

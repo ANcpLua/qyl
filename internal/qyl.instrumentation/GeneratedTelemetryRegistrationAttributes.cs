@@ -23,4 +23,3 @@ public sealed class GeneratedMeterAttribute(string name) : Attribute
     /// </summary>
     public string Name { get; } = Guard.NotNull(name);
 }
-

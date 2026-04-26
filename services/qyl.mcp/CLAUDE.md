@@ -46,10 +46,10 @@ attachment point. Skill-gating is inline: one `if (skills.IsEnabled(QylSkillKind
 
 ### QylToolManifest emits two dispatch surfaces
 
-| Surface                                                             | Consumer                                                   | Purpose                                                                       |
-|---------------------------------------------------------------------|------------------------------------------------------------|-------------------------------------------------------------------------------|
-| `RegisterTools(builder, skills, jsonOpts)` + `McpServerTool.Create` | `QylMcpServerRegistration.Configure` → MCP `tools/call`    | External protocol surface, skill-gated, carries `_meta`                       |
-| `CreateTools(services, predicate) → List<AIFunction>`               | `UseQylTools`, `RcaTools`                                  | Embedded-agent `UseFunctionInvocation` loop (inside one MCP tool call)        |
+| Surface                                                             | Consumer                                                | Purpose                                                                |
+|---------------------------------------------------------------------|---------------------------------------------------------|------------------------------------------------------------------------|
+| `RegisterTools(builder, skills, jsonOpts)` + `McpServerTool.Create` | `QylMcpServerRegistration.Configure` → MCP `tools/call` | External protocol surface, skill-gated, carries `_meta`                |
+| `CreateTools(services, predicate) → List<AIFunction>`               | `UseQylTools`, `RcaTools`                               | Embedded-agent `UseFunctionInvocation` loop (inside one MCP tool call) |
 
 Both load-bearing. Deleting `CreateTools()` silently breaks the meta-tools — `tools/list._meta` can't bridge an
 inside-a-tool-call dispatch path.

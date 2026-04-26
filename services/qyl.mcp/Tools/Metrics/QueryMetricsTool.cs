@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
@@ -35,7 +36,7 @@ public sealed class QueryMetricsTool(HttpClient client)
         string? interval = null,
         CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/mcp/metrics/{Uri.EscapeDataString(name)}/query",
             ("filter", filter), ("from", from), ("to", to), ("interval", interval));
 

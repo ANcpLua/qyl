@@ -15,7 +15,9 @@ internal sealed partial class LspClientWrapper(
     LspServerResolution resolution,
     ILogger<LspClientWrapper> logger) : IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, Lazy<Task<LspClientConnection>>> _clients = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Lazy<Task<LspClientConnection>>> _clients =
+        new(StringComparer.Ordinal);
+
     private readonly ConcurrentDictionary<string, DocumentState> _documents = new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -76,7 +78,8 @@ internal sealed partial class LspClientWrapper(
     public static string UriToPath(string uri) =>
         Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri;
 
-    private async Task<LspClientConnection> GetOrStartClientAsync(LspServerResolutionResult resolved, CancellationToken ct)
+    private async Task<LspClientConnection> GetOrStartClientAsync(LspServerResolutionResult resolved,
+        CancellationToken ct)
     {
         var key = ClientKey(resolved);
         var lazy = _clients.GetOrAdd(key, _ => new Lazy<Task<LspClientConnection>>(
@@ -102,7 +105,8 @@ internal sealed partial class LspClientWrapper(
     }
 
     private async Task EnsureDocumentAsync(
-        LspClientConnection client, string filePath, string uri, LspServerResolutionResult resolved, CancellationToken ct)
+        LspClientConnection client, string filePath, string uri, LspServerResolutionResult resolved,
+        CancellationToken ct)
     {
         var text = await File.ReadAllTextAsync(filePath, ct).ConfigureAwait(false);
         var languageId = LanguageIdFor(resolved.Definition.Id, filePath);
@@ -136,16 +140,17 @@ internal sealed partial class LspClientWrapper(
             _ => Path.GetExtension(filePath).TrimStart('.').ToLowerInvariant()
         };
 
-    private sealed record DocumentState(string Text, int Version);
-
     [LoggerMessage(Level = LogLevel.Debug, Message = "LSP client {Key} start was cancelled; nothing to dispose")]
     private static partial void LogStartCancelled(ILogger logger, Exception ex, string key);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "LSP client {Key} disposal encountered an IO error")]
     private static partial void LogDisposalIoError(ILogger logger, Exception ex, string key);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Starting LSP server {ServerId} for workspace {WorkspaceRoot}")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Starting LSP server {ServerId} for workspace {WorkspaceRoot}")]
     private static partial void LogStartingServer(ILogger logger, string serverId, string workspaceRoot);
+
+    private sealed record DocumentState(string Text, int Version);
 }
 
 /// <summary>A handle to an opened document.</summary>

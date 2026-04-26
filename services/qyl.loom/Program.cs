@@ -1,10 +1,15 @@
 using System.Net.ServerSentEvents;
+using Microsoft.AspNetCore.Hosting;
 using Qyl.Contracts.Copilot;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
+using Qyl.Loom.Autofix;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
+using Qyl.Loom.Workflows;
+using Qyl.Loom.Workflows.Prompts;
+using AutofixOrchestrator = Qyl.Loom.Autofix.AutofixOrchestrator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 // minimal-API equivalent and runs before Kestrel bind.
 if (int.TryParse(builder.Configuration["PORT"], out var port) && port > 0)
 {
-    builder.WebHost.UseSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
+    builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
 }
 
 builder.AddQylServiceDefaults(options =>
@@ -40,6 +45,7 @@ builder.Services.AddHttpClient("GitHub", client =>
 // RegressionDetectionService auto-register via [QylHostedService] through the
 // generator's QylGeneratedRegistry.RegisterQylHostedServices hook.
 builder.Services.AddSingleton<AutofixOrchestrator>();
+builder.Services.AddSingleton<LoomAutofixRunner>();
 
 // Exploration (interactive investigation)
 builder.Services.AddSingleton<ExplorationContextBuilder>();
@@ -58,7 +64,14 @@ builder.Services
     .AddMcpServer()
     .WithHttpTransport()
     .WithTools<LoomGodAnalyzerServer>()
-    .WithPrompts<Qyl.Loom.CodeReview.CodeReviewPrompt>();
+    .WithTools<LoomWorkflowTools>()
+    .WithPrompts<CodeReviewPrompt>()
+    .WithPrompts<LoomHandoffPrompts>()
+    .WithPrompts<LoomAutofixPrompts>()
+    .WithPrompts<OnboardingPrompts>()
+    .WithPrompts<AiMonitoringPrompts>()
+    .WithPrompts<FixIssuePrompts>()
+    .WithPrompts<ReviewBotPrompts>();
 
 var app = builder.Build();
 
@@ -88,7 +101,7 @@ app.MapPost("/api/v1/loom/{issueId}/explore", (
 
 app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     string issueId,
-    ExplorationCodeItUpRequest _,
+    ExplorationCodeItUpRequest request,
     AutofixOrchestrator autofixOrchestrator,
     CollectorClient collector,
     CancellationToken ct) =>
@@ -100,7 +113,14 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
 
-    return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
+    if (string.IsNullOrWhiteSpace(request.Repo))
+        return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
+
+    var pr = await collector
+        .CreatePullRequestAsync(issueId, run.RunId, request.Repo, request.BaseBranch, ct)
+        .ConfigureAwait(false);
+
+    return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, pr.PrUrl, pr.Error));
 });
 
 // ── Code review endpoints ───────────────────────────────────────────────────

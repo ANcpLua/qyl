@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
 using qyl.mcp.Tools;
@@ -119,7 +120,7 @@ internal sealed class TraceExplorerTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/genai/spans?limit={limit}&hours={hours}",
                 ("status", status));
 
@@ -204,7 +205,7 @@ internal sealed class TraceExplorerTools(HttpClient client)
             ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans?limit={limit}"
             : $"/api/v1/genai/spans?limit={limit}";
 
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(basePath, ("traceId", traceId));
+        var url = QueryString.AppendPairs(basePath, ("traceId", traceId));
 
         var response = await client.GetFromJsonAsync(
             url, TraceExplorerJsonContext.Default.SpanSearchApiResponse).ConfigureAwait(false);

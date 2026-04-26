@@ -1,6 +1,6 @@
-using Qyl.Instrumentation.Instrumentation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace Qyl.Instrumentation;
 

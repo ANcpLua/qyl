@@ -170,8 +170,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         Connection.Open();
         InitializeSchema(Connection);
 
-        _droppedJobs = _meter.CreateCounter<long>("qyl.duckdb.dropped_jobs_total");
-        _droppedSpans = _meter.CreateCounter<long>("qyl.duckdb.dropped_spans_total");
+        _droppedJobs = _meter.CreateCounter<long>(Duckdb.DroppedJobsTotal);
+        _droppedSpans = _meter.CreateCounter<long>(Duckdb.DroppedSpansTotal);
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {

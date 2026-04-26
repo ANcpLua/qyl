@@ -1,0 +1,14 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Compile-time telemetry attribute constants for the qyl observability platform. Generated from eng/semconv/model/qyl/ via Weaver.</Description>
+    <PackageId>Qyl.Telemetry</PackageId>
+    <RootNamespace>QylAttr</RootNamespace>
+    <Authors>ancplua</Authors>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <!-- BCL only - LEAF project has no external dependencies -->
+
+</Project>

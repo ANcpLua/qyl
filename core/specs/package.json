@@ -4,7 +4,7 @@
   "private": true,
   "description": "TypeSpec schemas for qyl observability platform",
   "scripts": {
-    "compile": "tsp compile main.tsp && node scripts/patch-emitted-csharp.mjs",
+    "compile": "tsp compile main.tsp && node scripts/patch-emitted-csharp.mjs && node scripts/patch-emitted-ts-client.mjs",
     "watch": "tsp compile main.tsp --watch",
     "format": "tsp format **/*.tsp",
     "lint": "tsp compile main.tsp --warn-as-error"

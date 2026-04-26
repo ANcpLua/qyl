@@ -1,0 +1,48 @@
+groups:
+  - id: registry.qyl.issue
+    type: attribute_group
+    brief: 'Attributes for qyl error issue tracking'
+    attributes:
+      - id: qyl.issue.id
+        type: string
+        stability: development
+        brief: 'Error issue identifier'
+        examples: [ 'issue_01hzv8x' ]
+      - id: qyl.issue.severity
+        type:
+          members:
+            - id: low
+              value: 'low'
+              stability: development
+              brief: 'Low severity — cosmetic or rare impact'
+            - id: medium
+              value: 'medium'
+              stability: development
+              brief: 'Medium severity — notable but not blocking'
+            - id: high
+              value: 'high'
+              stability: development
+              brief: 'High severity — significant user impact'
+            - id: critical
+              value: 'critical'
+              stability: development
+              brief: 'Critical severity — service-breaking'
+        stability: development
+        brief: 'Issue severity level'
+      - id: qyl.issue.status
+        type:
+          members:
+            - id: open
+              value: 'open'
+              stability: development
+              brief: 'Issue is active and unresolved'
+            - id: resolved
+              value: 'resolved'
+              stability: development
+              brief: 'Issue has been fixed'
+            - id: ignored
+              value: 'ignored'
+              stability: development
+              brief: 'Issue has been acknowledged and dismissed'
+        stability: development
+        brief: 'Current resolution status'

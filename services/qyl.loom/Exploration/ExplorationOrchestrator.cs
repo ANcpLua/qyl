@@ -1,16 +1,17 @@
+using Microsoft.Agents.AI.Workflows;
 using Qyl.Contracts.Copilot;
+using Qyl.Loom.Exploration.Workflow;
 
 namespace Qyl.Loom.Exploration;
 
 /// <summary>
-///     Facade for the interactive exploration flow. Chains diagnostician → strategist
-///     and streams progress updates to the caller.
+///     Thin driver over the <see cref="ExplorationWorkflowFactory" /> workflow. Runs one workflow instance
+///     per <see cref="ExploreAsync" /> invocation, observes its event stream, and forwards any
+///     <see cref="ExplorationStreamEvent" /> to the caller as an <see cref="StreamUpdate" />. Preserves the
+///     prior <c>IAsyncEnumerable&lt;StreamUpdate&gt;</c> contract so the SSE endpoint is untouched.
 /// </summary>
 public sealed partial class ExplorationOrchestrator(
-    ExplorationContextBuilder contextBuilder,
-    ExplorationSessionStore sessionStore,
-    ExplorationDiagnostician diagnostician,
-    ExplorationStrategist strategist,
+    IServiceProvider services,
     ILogger<ExplorationOrchestrator> logger)
 {
     public async IAsyncEnumerable<StreamUpdate> ExploreAsync(
@@ -18,101 +19,35 @@ public sealed partial class ExplorationOrchestrator(
         string? userContext,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        if (!diagnostician.IsConfigured || !strategist.IsConfigured)
+        LogExplorationStarted(issueId);
+
+        var workflow = ExplorationWorkflowFactory.Create(services);
+
+        var streamingRun = await InProcessExecution
+            .RunStreamingAsync(
+                workflow,
+                new StartExplore(issueId, userContext),
+                CheckpointManager.Default,
+                issueId,
+                ct)
+            .ConfigureAwait(false);
+
+        await using (streamingRun.ConfigureAwait(false))
         {
-            yield return MakeError("No LLM configured — cannot start exploration.");
-            yield break;
+            await foreach (var evt in streamingRun.WatchStreamAsync(ct).ConfigureAwait(false))
+            {
+                if (evt is ExplorationStreamEvent streamEvent)
+                {
+                    yield return streamEvent.Update;
+                }
+                else if (evt is WorkflowOutputEvent)
+                {
+                    yield break;
+                }
+            }
         }
-
-        yield return MakeProgress(0, "Ingesting qyl data...");
-
-        var context = await contextBuilder.BuildAsync(issueId, userContext, ct: ct).ConfigureAwait(false);
-        if (context.IsEmpty || context.Issue is null)
-        {
-            yield return MakeError($"Issue '{issueId}' not found.");
-            yield break;
-        }
-
-        var session = sessionStore.GetOrCreate(issueId);
-        sessionStore.SetContext(session.SessionId, userContext, context.FormattedBlock);
-        sessionStore.AppendUserMessage(session.SessionId, userContext ?? $"Explore issue {issueId}");
-
-        LogExplorationStarted(issueId, context.Events.Count);
-
-        yield return MakeProgress(20, "Figuring out the root cause...");
-
-        var diagnosis = await diagnostician.DiagnoseAsync(context, ct).ConfigureAwait(false);
-        foreach (var update in diagnosis.Updates)
-            yield return update;
-
-        if (diagnosis.IsInterrupted)
-        {
-            yield return MakeProgress(100, "Exploration interrupted.");
-            yield return MakeCompleted();
-            yield break;
-        }
-
-        sessionStore.SaveDiagnosis(session.SessionId, diagnosis.Monologue, diagnosis.RootCause);
-
-        yield return MakeProgress(60, "Synthesizing root cause...");
-        if (diagnosis.RootCause is not null)
-        {
-            yield return MakeContent(
-                JsonSerializer.Serialize(diagnosis.RootCause, ExplorationJsonContext.Default.ExplorationRootCause),
-                "root_cause");
-        }
-
-        yield return MakeProgress(80, "Planning solution...");
-
-        var solution = await strategist.PlanAsync(session.SessionId, ct).ConfigureAwait(false);
-        if (solution is not null)
-        {
-            sessionStore.SaveSolution(session.SessionId, solution);
-            yield return MakeContent(
-                JsonSerializer.Serialize(solution, ExplorationJsonContext.Default.ExplorationSolution),
-                "solution");
-        }
-
-        yield return MakeProgress(100, "Formatting for human consumption...");
-        yield return MakeCompleted();
-
-        LogExplorationCompleted(
-            issueId,
-            diagnosis.RootCause?.Steps.Length ?? 0,
-            solution?.Steps.Length ?? 0);
     }
 
-    private static StreamUpdate MakeProgress(int percent, string message) => new()
-    {
-        Kind = StreamUpdateKind.Progress,
-        Progress = percent,
-        Content = message,
-        Timestamp = TimeProvider.System.GetUtcNow()
-    };
-
-    private static StreamUpdate MakeContent(string content, string? toolName = null) => new()
-    {
-        Kind = StreamUpdateKind.Content,
-        Content = content,
-        ToolName = toolName,
-        Timestamp = TimeProvider.System.GetUtcNow()
-    };
-
-    private static StreamUpdate MakeError(string error) => new()
-    {
-        Kind = StreamUpdateKind.Error, Error = error, Timestamp = TimeProvider.System.GetUtcNow()
-    };
-
-    private static StreamUpdate MakeCompleted() => new()
-    {
-        Kind = StreamUpdateKind.Completed, Timestamp = TimeProvider.System.GetUtcNow()
-    };
-
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Exploration started for issue {IssueId} with {EventCount} events")]
-    private partial void LogExplorationStarted(string issueId, int eventCount);
-
-    [LoggerMessage(Level = LogLevel.Information,
-        Message = "Exploration completed for issue {IssueId}: {RcaSteps} RCA steps, {SolutionSteps} solution steps")]
-    private partial void LogExplorationCompleted(string issueId, int rcaSteps, int solutionSteps);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Exploration started for issue {IssueId}")]
+    private partial void LogExplorationStarted(string issueId);
 }

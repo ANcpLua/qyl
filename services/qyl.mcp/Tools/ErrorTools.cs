@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -51,7 +52,7 @@ public sealed class ErrorTools(HttpClient client)
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/issues?limit={limit}",
                 ("status", status), ("priority", priority), ("level", level));
 

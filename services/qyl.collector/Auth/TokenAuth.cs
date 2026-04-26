@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -203,7 +204,7 @@ public sealed class TokenAuthOptions
     ///     <see cref="HttpContext.Items" /> key under which validated Keycloak claims are stored.
     ///     Value is an <see cref="IReadOnlyDictionary{TKey,TValue}" /> of claim type → value.
     /// </summary>
-    public const string KeycloakClaimsKey = "qyl.keycloak.claims";
+    public const string KeycloakClaimsKey = QylAttr.Auth.KeycloakClaims;
 
     /// <summary>
     ///     Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
@@ -286,7 +287,7 @@ public sealed class TokenAuthMiddleware(
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            var bearerToken = ANcpLua.Roslyn.Utilities.Http.BearerHeader.TryExtract(authHeader, out var t)
+            var bearerToken = BearerHeader.TryExtract(authHeader, out var t)
                 ? t!
                 : authHeader;
 

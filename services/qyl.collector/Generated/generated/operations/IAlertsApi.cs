@@ -62,9 +62,29 @@ namespace Qyl.Api
         ///</summary>
         Task<AlertRuleEntity> GetRuleAsync(string ruleId);
         ///<summary>
+        /// Create a new alert rule
+        ///</summary>
+        Task<AlertRuleEntity> CreateRuleAsync(AlertRuleEntity body);
+        ///<summary>
+        /// Update an existing alert rule
+        ///</summary>
+        Task<AlertRuleEntity> UpdateRuleAsync(string ruleId, AlertRuleEntity body);
+        ///<summary>
+        /// Delete an alert rule
+        ///</summary>
+        Task DeleteRuleAsync(string ruleId);
+        ///<summary>
         /// List alert firings
         ///</summary>
         Task<CursorPageAlertFiringEntity> ListFiringsAsync(string? ruleId, AlertFiringStatus? status, DateTimeOffset? startTime, DateTimeOffset? endTime, int? limit, string? cursor);
+        ///<summary>
+        /// Acknowledge an alert firing
+        ///</summary>
+        Task<AlertFiringEntity> AcknowledgeFiringAsync(string firingId, AlertFiringAcknowledgement body);
+        ///<summary>
+        /// Resolve an alert firing
+        ///</summary>
+        Task<AlertFiringEntity> ResolveFiringAsync(string firingId);
         ///<summary>
         /// List fix runs
         ///</summary>

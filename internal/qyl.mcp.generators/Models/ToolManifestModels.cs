@@ -1,4 +1,4 @@
-namespace Qyl.Mcp.Generators.Models;
+namespace qyl.mcp.generators.Models;
 
 /// <summary>
 ///     One <c>[QylCapability("id", role)]</c> attribution on a tool method.

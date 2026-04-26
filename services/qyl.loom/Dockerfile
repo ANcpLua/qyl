@@ -17,6 +17,10 @@ COPY eng/ eng/
 # Copy project files for restore (layer caching). qyl.loom references qyl.instrumentation
 # for WithQylTelemetry, which itself pulls in qyl.instrumentation.generators.
 COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
+COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
 COPY services/qyl.loom/*.csproj services/qyl.loom/
@@ -28,6 +32,10 @@ RUN dotnet restore
 # Copy source files
 WORKDIR /src
 COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
+COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
+COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/ packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
 COPY services/qyl.loom/ services/qyl.loom/
