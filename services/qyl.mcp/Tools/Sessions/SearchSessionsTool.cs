@@ -1,9 +1,10 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
@@ -35,7 +36,7 @@ public sealed class SearchSessionsTool(HttpClient client)
     {
         limit = Math.Clamp(limit, 1, 100);
 
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/mcp/sessions?q={Uri.EscapeDataString(query)}&limit={limit}",
             ("cursor", cursor));
 

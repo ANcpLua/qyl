@@ -1,0 +1,10 @@
+# File-scoped analyzer overrides for `@typespec/http-server-csharp` alpha output.
+# Rationale: the alpha emits XML <param> tags inconsistently (e.g. HttpServiceException
+# drops `<param name="headers">`), and the emitted surface is regenerated on every
+# `nuke Generate`, so fixing upstream once is the only durable resolution. Until the
+# alpha ships that fix, silence the emitter-specific doc-coverage diagnostics on the
+# Generated subtree only. Hand-written code stays under full XML enforcement.
+
+[**/*.cs]
+dotnet_diagnostic.CS1573.severity = none
+dotnet_diagnostic.CS1591.severity = none

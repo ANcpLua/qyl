@@ -6,24 +6,24 @@ responses so every sample exercises the real MAF wiring without network calls.
 
 ## Layout
 
-| Path | Role |
-|---|---|
-| `Program.cs` | CLI — dispatches to one pattern by arg |
-| `Clients/` | `IQylLoomPatternsChatClientBuilder` — provider-agnostic `IChatClient` factory (Apex seam) |
-| `Agents/` | `IQylLoomPatternsAgentsBuilder` — one factory method per bounded agent, wrapped with `UseQylAgentTelemetry` |
+| Path         | Role                                                                                                             |
+|--------------|------------------------------------------------------------------------------------------------------------------|
+| `Program.cs` | CLI — dispatches to one pattern by arg                                                                           |
+| `Clients/`   | `IQylLoomPatternsChatClientBuilder` — provider-agnostic `IChatClient` factory (Apex seam)                        |
+| `Agents/`    | `IQylLoomPatternsAgentsBuilder` — one factory method per bounded agent, wrapped with `UseQylAgentTelemetry`      |
 | `Contracts/` | `[LoomContract]`-decorated records: `RootCauseHypothesis`, `SolutionPlan`, `ConfidenceVerdict`, `IncidentSignal` |
-| `Patterns/` | Six pattern files, each exposing `public static Task RunAsync(agents, ct)` |
+| `Patterns/`  | Six pattern files, each exposing `public static Task RunAsync(agents, ct)`                                       |
 
 ## Patterns
 
-| File | Primitives |
-|---|---|
-| `Pattern01_SwitchRouting.cs` | `AddSwitch` + `AddCase<T>(predicate)` + `WithDefault` |
-| `Pattern02_SubWorkflow.cs` | `Workflow.BindAsExecutor(id)` — inner `rca → solution` as one node |
-| `Pattern03_CheckpointResume.cs` | `CheckpointManager` + `SuperStepCompletedEvent.CompletionInfo.Checkpoint` + `RestoreCheckpointAsync` |
-| `Pattern04_HitlViaExternalCall.cs` | `RequestPort.Create<TReq,TResp>` + `AddExternalCall<TReq,TResp>` + `ForwardMessage<TResp>` |
-| `Pattern05_StatefulExecutor.cs` | `StatefulExecutor<TState,TIn,TOut>` + `InvokeWithStateAsync` + `ctx.AddEventAsync` + caller-minted `sessionId` |
-| `Pattern06_AllCombined.cs` | All of the above in one autofix-shaped graph, plus `StreamingRun.GetStatusAsync` |
+| File                               | Primitives                                                                                                     |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `Pattern01_SwitchRouting.cs`       | `AddSwitch` + `AddCase<T>(predicate)` + `WithDefault`                                                          |
+| `Pattern02_SubWorkflow.cs`         | `Workflow.BindAsExecutor(id)` — inner `rca → solution` as one node                                             |
+| `Pattern03_CheckpointResume.cs`    | `CheckpointManager` + `SuperStepCompletedEvent.CompletionInfo.Checkpoint` + `RestoreCheckpointAsync`           |
+| `Pattern04_HitlViaExternalCall.cs` | `RequestPort.Create<TReq,TResp>` + `AddExternalCall<TReq,TResp>` + `ForwardMessage<TResp>`                     |
+| `Pattern05_StatefulExecutor.cs`    | `StatefulExecutor<TState,TIn,TOut>` + `InvokeWithStateAsync` + `ctx.AddEventAsync` + caller-minted `sessionId` |
+| `Pattern06_AllCombined.cs`         | All of the above in one autofix-shaped graph, plus `StreamingRun.GetStatusAsync`                               |
 
 ## qyl conventions
 

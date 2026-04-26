@@ -1,10 +1,10 @@
-using qyl.mcp.Landing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Qyl.Contracts.Observability;
+using qyl.mcp.Landing;
 using qyl.mcp.Scoping;
 
 namespace qyl.mcp.Hosting;
@@ -14,7 +14,7 @@ internal static class QylMcpHttpHost
     public static async Task RunAsync(string[] args, SkillConfiguration skills, QylScope scope)
     {
         var builder = WebApplication.CreateBuilder(args);
-        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, stdioTransport: false);
+        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, false);
 
         var hostOptions = McpHostOptions.FromConfiguration(builder.Configuration, McpTransportMode.Http);
         QylMcpServiceCollectionExtensions.ApplyPortFallback(builder.WebHost, builder.Configuration);

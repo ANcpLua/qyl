@@ -1,13 +1,13 @@
 using System.ComponentModel;
-using qyl.mcp.Agents;
-using qyl.mcp.Formatting;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
+using Qyl.Instrumentation.Instrumentation.GenAi;
+using qyl.mcp.Agents;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools;
 
@@ -15,7 +15,8 @@ namespace qyl.mcp.Tools;
 ///     Meta-tool: embedded <see cref="ChatClientAgent" /> answers natural-language observability questions by
 ///     autonomously calling every other qyl MCP tool under an <see cref="InvestigationLineage" /> guard.
 ///     <c>UseFunctionInvocation</c> is wired at the chat-client layer (not the agent layer) so qyl's non-default
-///     <c>MaximumIterationsPerRequest</c> + <c>AllowConcurrentInvocation=false</c> take effect — <see cref="ChatClientAgent" />
+///     <c>MaximumIterationsPerRequest</c> + <c>AllowConcurrentInvocation=false</c> take effect —
+///     <see cref="ChatClientAgent" />
 ///     only inserts a default invoker when none is present.
 /// </summary>
 [McpServerToolType]
@@ -80,13 +81,14 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
             .AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "UseQylAgent",
-                Description = "Orchestrates qyl MCP tools under InvestigationLineage guard to answer observability questions.",
+                Description =
+                    "Orchestrates qyl MCP tools under InvestigationLineage guard to answer observability questions.",
                 ChatOptions = new ChatOptions
                 {
                     Instructions = UseQylSystemPrompt.Prompt,
                     Tools = [.. guardedTools],
-                    ToolMode = ChatToolMode.Auto,
-                },
+                    ToolMode = ChatToolMode.Auto
+                }
             })
             .AsBuilder()
             .UseQylAgentTelemetry()

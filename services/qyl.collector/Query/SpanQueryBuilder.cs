@@ -353,7 +353,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
 /// <summary>
 ///     Typed column references for the <c>spans</c> table. Not a complete schema mirror —
 ///     only the columns actually referenced by live queries are exposed as typed properties.
-///     Use <see cref="Column"/> for any column not represented here, and for computed expressions
+///     Use <see cref="Column" /> for any column not represented here, and for computed expressions
 ///     like <c>duration_ns / 1000000.0</c>.
 /// </summary>
 public readonly struct SpanColumn

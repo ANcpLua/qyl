@@ -82,6 +82,7 @@ public static class AutofixEndpoints
                 request.Description,
                 request.Confidence,
                 request.ChangesJson,
+                request.Instruction,
                 ct);
 
             return TypedResults.NoContent();
@@ -107,10 +108,12 @@ public static class AutofixEndpoints
                 return TypedResults.NotFound();
 
             if (run.Status is not "review")
+            {
                 return TypedResults.BadRequest(new
                 {
                     error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'."
                 });
+            }
 
             await store.UpdateFixRunAsync(runId, "applied", ct: ct);
             return TypedResults.Ok(new { status = "applied", runId });
@@ -126,10 +129,12 @@ public static class AutofixEndpoints
                 return TypedResults.NotFound();
 
             if (run.Status is not "review")
+            {
                 return TypedResults.BadRequest(new
                 {
                     error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'."
                 });
+            }
 
             await store.UpdateFixRunAsync(runId, "rejected", request?.Reason, ct: ct);
             return TypedResults.Ok(new { status = "rejected", runId });
@@ -148,6 +153,7 @@ public sealed record FixRunPatchRequest(
     string? Status = null,
     string? Description = null,
     double? Confidence = null,
-    string? ChangesJson = null);
+    string? ChangesJson = null,
+    string? Instruction = null);
 
 public sealed record FixRunRejectRequest(string? Reason = null);

@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Agents;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
@@ -47,7 +47,7 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
             {
                 Name = "AssistedQueryAgent",
                 Description = "Translates natural-language observability questions into DuckDB SELECT queries.",
-                ChatOptions = new ChatOptions { Instructions = BuildSqlSystemPrompt(take) },
+                ChatOptions = new ChatOptions { Instructions = BuildSqlSystemPrompt(take) }
             }).AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(question, cancellationToken: ct).ConfigureAwait(false);

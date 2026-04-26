@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Primitives;
@@ -43,7 +44,7 @@ public sealed class ReplayTools(HttpClient client)
         string? serviceName = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+            var url = QueryString.AppendPairs(
                 $"/api/v1/sessions?limit={limit}", ("serviceName", serviceName));
 
             var response = await client.GetFromJsonAsync<SessionListResponse>(

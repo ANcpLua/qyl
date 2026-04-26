@@ -1,4 +1,5 @@
 using Qyl.Instrumentation.Generators.Models;
+using StringComparison = System.StringComparison;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 

@@ -72,7 +72,7 @@ internal sealed class TriageTools(HttpClient http)
         CancellationToken ct = default)
     {
         var uri = new Uri($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", UriKind.Relative);
-        using var response = await http.PostAsync(uri, content: null, ct).ConfigureAwait(false);
+        using var response = await http.PostAsync(uri, null, ct).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return $"Issue {issueId} not found.";

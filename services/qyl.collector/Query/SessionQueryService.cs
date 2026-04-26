@@ -314,4 +314,3 @@ public sealed record SessionGenAiStats
     public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];
 }
-

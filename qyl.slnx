@@ -4,8 +4,14 @@
 
     <Folder Name="/packages/">
         <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj" />
+        <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
         <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
         <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj" />
+        <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj" />
+        <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj" />
         <File Path="packages\qyl-client\package.json" />
         <File Path="packages\qyl-client\README.md" />
         <File Path="packages\qyl-client\schemas\qyl-api" />
@@ -79,11 +85,14 @@
 
     <Folder Name="/tests/">
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
+
     </Folder>
 
     <!-- BUILD -->
 
     <Folder Name="/eng/">
+        <File Path="eng\skill.md" />
+        <File Path="eng\skillrauschen.md" />
         <Project Path="eng/build/build.csproj" />
         <File Path="eng/build.sh" />
         <File Path="eng/compose.yaml" />
@@ -95,21 +104,13 @@
         <File Path="eng/MSBuild/Shared.Claude.Rules.targets" />
         <File Path="eng/MSBuild/Shared.Claude.targets" />
     </Folder>
-    <Folder Name="/eng/semconv/">
-        <File Path="eng/semconv/generate-semconv.ts" />
-        <File Path="eng/semconv/qyl-extensions.json" />
-        <File Path="eng/semconv/package.json" />
-        <File Path="eng/semconv/tsconfig.json" />
-    </Folder>
 
     <!-- TYPESPEC -->
 
     <Folder Name="/core/">
-        <File Path="core/openapi/openapi.yaml" />
         <File Path="core/specs/main.tsp" />
         <File Path="core/specs/tspconfig.yaml" />
         <File Path="core/specs/package.json" />
-        <File Path="core/specs/generated/semconv.g.tsp" />
     </Folder>
     <Folder Name="/core/specs/" />
     <Folder Name="/core/specs/api/">
@@ -177,34 +178,6 @@
         <File Path="services/qyl.loom/Dockerfile" />
         <File Path="services/qyl.dashboard/Dockerfile" />
         <File Path="eng/compose.yaml" />
-    </Folder>
-    <Folder Name="/plugins/" />
-
-    <!-- PLUGINS -->
-
-    <Folder Name="/plugins/qyl-for-ai/">
-        <File Path="plugins/qyl-for-ai/mcp.json" />
-        <File Path="plugins/qyl-for-ai/SKILL_TREE.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-code-review/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-fix-issues/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-setup-monitoring/SKILL.md" />
-        <File Path="plugins/qyl-for-ai/skills/qyl-workflow/SKILL.md" />
-    </Folder>
-    <Folder Name="/plugins/qyl-mcp/">
-        <File Path="plugins/qyl-mcp/mcp.json" />
-        <File Path="plugins/qyl-mcp/agents/qyl-mcp.md" />
-    </Folder>
-
-    <!-- DOCS -->
-
-    <Folder Name="/docs/">
-        <File Path="docs/mcp-oauth-runbook.md" />
-        <File Path="docs\contract-drift-architecture.md" />
-    </Folder>
-    <Folder Name="/docs/planned/">
-        <File Path="docs/planned/2026-04-18-lsp-phase2-typescript.md" />
-        <File Path="docs/planned/2026-04-18-lsp-phase3-loom-bridge.md" />
-        <File Path="docs/planned/2026-04-18-oauth-playwright-e2e.md" />
     </Folder>
 
     <!-- CI/CD -->

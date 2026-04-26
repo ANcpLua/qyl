@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Analytics;
 
-/// <summary>
-///     Pure statistical math functions ported from Sentry Seer (BSD-3-Clause, SciPy vendored).
-///     No external dependencies — all self-contained numerical algorithms.
-/// </summary>
 public static class StatisticalMath
 {
     // =========================================================================

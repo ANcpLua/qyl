@@ -1,4 +1,4 @@
-namespace qyl.mcp.Capabilities.Definitions;
+namespace qyl.mcp.Capabilities;
 
 [QylCapabilityDefinition("server_introspection",
     Title = "Server Introspection",

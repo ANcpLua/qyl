@@ -1,4 +1,4 @@
-namespace Qyl.Loom;
+namespace Qyl.Loom.Autofix;
 
 /// <summary>
 ///     Orchestrates agent-driven fix runs for grouped errors. Creates fix runs
@@ -27,7 +27,12 @@ public sealed partial class AutofixOrchestrator(CollectorClient collector, ILogg
         string issueId, string runId, string status, string? description = null,
         double? confidence = null, string? changesJson = null, CancellationToken ct = default)
     {
-        await collector.UpdateFixRunAsync(issueId, runId, status, description, confidence, changesJson, ct)
+        await collector.UpdateFixRunAsync(
+                issueId, runId, status,
+                description,
+                confidence,
+                changesJson,
+                ct: ct)
             .ConfigureAwait(false);
         LogFixRunUpdated(runId, status);
     }

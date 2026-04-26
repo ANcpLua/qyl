@@ -1,12 +1,10 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.Diagnostics;
 using ANcpLua.Agents.Testing.ChatClients;
 using ANcpLua.Agents.Testing.Diagnostics;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Xunit;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
@@ -29,13 +27,13 @@ public sealed class WithQylTelemetryEmissionTests
         var inner = new FakeChatClient
             {
                 Metadata = new ChatClientMetadata(
-                    providerName: "openai",
-                    providerUri: null,
-                    defaultModelId: "gpt-4o-mini")
+                    "openai",
+                    null,
+                    "gpt-4o-mini")
             }
             .WithResponse("Hello from fake.");
 
-        var instrumented = inner.WithQylTelemetry(sourceName: "qyl.genai");
+        var instrumented = inner.WithQylTelemetry("qyl.genai");
 
         var response = await instrumented.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "Hi")],
@@ -51,7 +49,7 @@ public sealed class WithQylTelemetryEmissionTests
 
         var chatActivity = collector.Activities
             .First(static a => a.OperationName.ContainsIgnoreCase("chat")
-                            || a.Tags.Any(static t => t.Key == "gen_ai.operation.name"));
+                               || a.Tags.Any(static t => t.Key == "gen_ai.operation.name"));
 
         // GenAI semconv 1.40 core attributes
         chatActivity.AssertHasTag("gen_ai.operation.name");
@@ -66,13 +64,10 @@ public sealed class WithQylTelemetryEmissionTests
     [Fact]
     public async Task WithQylTelemetry_records_call_through_inner_client()
     {
-        var inner = new FakeChatClient
-            {
-                Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini")
-            }
+        var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") }
             .WithResponse("ok");
 
-        var instrumented = inner.WithQylTelemetry(sourceName: "qyl.genai");
+        var instrumented = inner.WithQylTelemetry("qyl.genai");
 
         await instrumented.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "ping")],

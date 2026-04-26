@@ -201,5 +201,4 @@ internal static class UnifiedQueryEngine
 
         return (TimeConversions.ToUnixNanoUnsigned(startDto), TimeConversions.ToUnixNanoUnsigned(endDto));
     }
-
 }

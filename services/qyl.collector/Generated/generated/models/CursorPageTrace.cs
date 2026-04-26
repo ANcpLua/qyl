@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.OTel.Traces;
+using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Common.Pagination
 {

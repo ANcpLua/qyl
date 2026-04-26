@@ -6,23 +6,23 @@ title: Next Steps
 
 - Use the SwaggerUI endpoint to test out the running service
 - Update business logic mocks with real business logic
-  - `mocks/TracesApi.cs`
-  - `mocks/LogsApi.cs`
-  - `mocks/MetricsApi.cs`
-  - `mocks/ProfilesApi.cs`
-  - `mocks/SessionsApi.cs`
-  - `mocks/ErrorsApi.cs`
-  - `mocks/DeploymentsApi.cs`
-  - `mocks/ServicesApi.cs`
-  - `mocks/HealthApi.cs`
-  - `mocks/WorkspacesApi.cs`
-  - `mocks/OnboardingApi.cs`
-  - `mocks/ConfiguratorApi.cs`
-  - `mocks/IssuesApi.cs`
-  - `mocks/WorkflowsApi.cs`
-  - `mocks/SearchApi.cs`
-  - `mocks/AlertsApi.cs`
-  - `mocks/StreamingApi.cs`
+    - `mocks/TracesApi.cs`
+    - `mocks/LogsApi.cs`
+    - `mocks/MetricsApi.cs`
+    - `mocks/ProfilesApi.cs`
+    - `mocks/SessionsApi.cs`
+    - `mocks/ErrorsApi.cs`
+    - `mocks/DeploymentsApi.cs`
+    - `mocks/ServicesApi.cs`
+    - `mocks/HealthApi.cs`
+    - `mocks/WorkspacesApi.cs`
+    - `mocks/OnboardingApi.cs`
+    - `mocks/ConfiguratorApi.cs`
+    - `mocks/IssuesApi.cs`
+    - `mocks/WorkflowsApi.cs`
+    - `mocks/SearchApi.cs`
+    - `mocks/AlertsApi.cs`
+    - `mocks/StreamingApi.cs`
 - Update `mocks/MockRegistration.cs` if you update the constructor of business logic implementations.
 - Update development and production configuration to suit your needs
 

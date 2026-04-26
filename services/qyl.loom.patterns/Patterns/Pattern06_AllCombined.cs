@@ -3,21 +3,21 @@
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
-namespace Qyl.Loom.Patterns;
+namespace Qyl.Loom.Patterns.Patterns;
 
 /// <summary>
 ///     Pattern 06 — autofix-shaped end-to-end demonstration that combines every MAF-1.1
 ///     composition primitive in one graph.
 ///     <list type="bullet">
-///       <item><c>StreamingRun.SessionId</c> — caller-minted, round-tripped through <c>RunStreamingAsync</c>.</item>
-///       <item><c>AddSwitch</c> + <c>AddCase&lt;T&gt;</c> + <c>WithDefault</c> — severity triage.</item>
-///       <item><c>Workflow.BindAsExecutor</c> — inner <c>rca → solution</c> sub-workflow as a single node.</item>
-///       <item><c>StatefulExecutor&lt;TState, TInput, TOutput&gt;</c> + <c>InvokeWithStateAsync</c> — intake counter.</item>
-///       <item><c>ctx.AddEventAsync</c> + <see cref="StageObserved"/> — lifecycle events.</item>
-///       <item><c>AddExternalCall&lt;TReq, TResp&gt;</c> — one-line HITL port.</item>
-///       <item><c>ForwardMessage&lt;TResp&gt;</c> with a predicate — typed fan-out to approve / reject sinks.</item>
-///       <item><c>CheckpointManager</c> + <c>SuperStepCompletedEvent.CompletionInfo.Checkpoint</c> — auto-snapshotting.</item>
-///       <item><c>StreamingRun.GetStatusAsync</c> — post-run diagnostics.</item>
+///         <item><c>StreamingRun.SessionId</c> — caller-minted, round-tripped through <c>RunStreamingAsync</c>.</item>
+///         <item><c>AddSwitch</c> + <c>AddCase&lt;T&gt;</c> + <c>WithDefault</c> — severity triage.</item>
+///         <item><c>Workflow.BindAsExecutor</c> — inner <c>rca → solution</c> sub-workflow as a single node.</item>
+///         <item><c>StatefulExecutor&lt;TState, TInput, TOutput&gt;</c> + <c>InvokeWithStateAsync</c> — intake counter.</item>
+///         <item><c>ctx.AddEventAsync</c> + <see cref="StageObserved" /> — lifecycle events.</item>
+///         <item><c>AddExternalCall&lt;TReq, TResp&gt;</c> — one-line HITL port.</item>
+///         <item><c>ForwardMessage&lt;TResp&gt;</c> with a predicate — typed fan-out to approve / reject sinks.</item>
+///         <item><c>CheckpointManager</c> + <c>SuperStepCompletedEvent.CompletionInfo.Checkpoint</c> — auto-snapshotting.</item>
+///         <item><c>StreamingRun.GetStatusAsync</c> — post-run diagnostics.</item>
 ///     </list>
 /// </summary>
 public static class Pattern06_AllCombined
@@ -26,26 +26,26 @@ public static class Pattern06_AllCombined
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
         // ── Inner autofix sub-workflow: rca → solution ───────────────────────
-        var rca      = new RcaStep("loom.patterns.rca", agents.BuildRcaAgent());
+        var rca = new RcaStep("loom.patterns.rca", agents.BuildRcaAgent());
         var solution = new SolutionStep("loom.patterns.solution", agents.BuildSolutionAgent());
 
-        Workflow innerAutofix = new WorkflowBuilder(rca)
+        var innerAutofix = new WorkflowBuilder(rca)
             .AddEdge(rca, solution)
             .WithOutputFrom(solution)
             .WithName("LoomPatterns/06/InnerAutofix")
             .Build();
 
-        ExecutorBinding autofixSubflow = innerAutofix.BindAsExecutor("loom.patterns.autofix.subflow");
+        var autofixSubflow = innerAutofix.BindAsExecutor("loom.patterns.autofix.subflow");
 
         // ── Outer graph ──────────────────────────────────────────────────────
-        var intake      = new StatefulIntake("loom.patterns.intake");
-        var triage      = new TriageRouter("loom.patterns.triage");
-        var planBridge  = new PlanBridge("loom.patterns.bridge");
-        var infoAck     = new InfoAcknowledge("loom.patterns.info");
-        var approve     = new ApprovedSink("loom.patterns.approve");
-        var reject      = new RejectedSink("loom.patterns.reject");
+        var intake = new StatefulIntake("loom.patterns.intake");
+        var triage = new TriageRouter("loom.patterns.triage");
+        var planBridge = new PlanBridge("loom.patterns.bridge");
+        var infoAck = new InfoAcknowledge("loom.patterns.info");
+        var approve = new ApprovedSink("loom.patterns.approve");
+        var reject = new RejectedSink("loom.patterns.reject");
 
-        Workflow workflow = new WorkflowBuilder(intake)
+        var workflow = new WorkflowBuilder(intake)
             .AddEdge(intake, triage)
             // Severity fan-out — critical/warning enter the autofix subflow, info short-circuits.
             .AddSwitch(triage, sw => sw
@@ -56,10 +56,10 @@ public static class Pattern06_AllCombined
             // interfere with the subflow's own protocol.
             .AddEdge(autofixSubflow, planBridge)
             // One-line HITL — AddExternalCall creates the port + both edges.
-            .AddExternalCall<SolutionPlan, ConfidenceVerdict>(planBridge, portId: "loom.patterns.review")
+            .AddExternalCall<SolutionPlan, ConfidenceVerdict>(planBridge, "loom.patterns.review")
             // Typed forward: verdict dispatches to approve vs. reject sink based on the boolean.
-            .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [approve], v =>  v.Approved)
-            .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [reject],  v => !v.Approved)
+            .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [approve], v => v.Approved)
+            .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [reject], v => !v.Approved)
             .WithOutputFrom(approve)
             .WithOutputFrom(reject)
             .WithOutputFrom(infoAck)
@@ -79,7 +79,7 @@ public static class Pattern06_AllCombined
         Console.WriteLine($"              \"{signal.Description}\"\n");
 
         await using var run = await InProcessExecution.RunStreamingAsync(
-            workflow, signal, cm, sessionId: sessionId, cancellationToken: ct);
+            workflow, signal, cm, sessionId, ct);
 
         await foreach (var evt in run.WatchStreamAsync(ct))
         {
@@ -98,15 +98,16 @@ public static class Pattern06_AllCombined
                     Console.WriteLine($"   ? review    plan for {plan.SignalId}: \"{plan.Approach}\"");
                     Console.WriteLine("     (non-interactive demo → approving)");
                     await run.SendResponseAsync(
-                        ri.Request.CreateResponse(
-                            new ConfidenceVerdict(plan.SignalId, Approved: true, Reason: "auto-approve for demo")))
+                            ri.Request.CreateResponse(
+                                new ConfidenceVerdict(plan.SignalId, true, "auto-approve for demo")))
                         .ConfigureAwait(false);
                     break;
 
                 case WorkflowOutputEvent wo:
                     Console.WriteLine($"\n   ★ output   {wo.Data}");
                     Console.WriteLine($"\n   checkpoints captured : {checkpoints.Count}");
-                    Console.WriteLine($"   status after output  : {await run.GetStatusAsync(ct).ConfigureAwait(false)}");
+                    Console.WriteLine(
+                        $"   status after output  : {await run.GetStatusAsync(ct).ConfigureAwait(false)}");
                     return;
             }
         }
@@ -114,9 +115,9 @@ public static class Pattern06_AllCombined
 
     // ── Lifecycle event ──────────────────────────────────────────────────────
 
-    /// <summary>Lifecycle event for observability — emitted from <see cref="StatefulIntake"/>.</summary>
+    /// <summary>Lifecycle event for observability — emitted from <see cref="StatefulIntake" />.</summary>
     private sealed class StageObserved(string stage, int seenSoFar)
-        : WorkflowEvent(data: new { stage, seenSoFar })
+        : WorkflowEvent(new { stage, seenSoFar })
     {
         public string Stage { get; } = stage;
         public int SeenSoFar { get; } = seenSoFar;
@@ -127,8 +128,8 @@ public static class Pattern06_AllCombined
     private sealed class StatefulIntake(string id)
         : StatefulExecutor<AutofixCombinedState, IncidentSignal, IncidentSignal>(
             id,
-            initialStateFactory: static () => new AutofixCombinedState(SignalsSeen: 0),
-            options: new StatefulExecutorOptions { ScopeName = "loom/run" })
+            static () => new AutofixCombinedState(0),
+            new StatefulExecutorOptions { ScopeName = "loom/run" })
     {
         private IncidentSignal _pending = null!;
 
@@ -182,7 +183,7 @@ public static class Pattern06_AllCombined
             var response = await agent.RunAsync(
                 $"{signal.Id} on {signal.Service}: {signal.Description}",
                 cancellationToken: ct).ConfigureAwait(false);
-            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, Confidence: 0.88);
+            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, 0.88);
             Console.WriteLine($"   ⊢ rca       {hypothesis.Hypothesis}");
             return hypothesis;
         }
@@ -197,7 +198,7 @@ public static class Pattern06_AllCombined
             var response = await agent.RunAsync(
                 $"Plan fix for {rca.SignalId}: {rca.Hypothesis}",
                 cancellationToken: ct).ConfigureAwait(false);
-            var plan = new SolutionPlan(rca.SignalId, response.Text, Steps: [response.Text]);
+            var plan = new SolutionPlan(rca.SignalId, response.Text, [response.Text]);
             Console.WriteLine($"   ⊢ solution  {plan.Approach}");
             return plan;
         }

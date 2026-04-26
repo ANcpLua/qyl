@@ -1,0 +1,30 @@
+{#-
+  Attribute documentation for qyl-owned semconv.
+  application_mode: single — one combined file, sections per sub-namespace.
+  Target: docs/attributes/qyl.attrs.md
+
+  semconv_grouped_attributes merges all qyl.* into one group, so we
+  sub-group by parts[1] of attr.name inside the template.
+-#}
+# qyl Attributes
+
+Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
+
+{% for group in ctx | selectattr("root_namespace", "equalto", "qyl") %}
+{% set ns = namespace(current_section='', section_attrs=[]) %}
+{% for attr in group.attributes | sort(attribute="name") %}
+{% set parts = attr.name.split('.') %}
+{% set section = parts[1] if parts | length >= 2 else 'root' %}
+{% if section != ns.current_section %}
+{% if ns.current_section != '' %}
+
+{% endif %}
+## `qyl.{{ section }}`
+
+| Attribute | Type | Stability | Description |
+|-----------|------|-----------|-------------|
+{% set ns.current_section = section %}
+{% endif %}
+| `{{ attr.name }}` | {% if attr.type is mapping %}`enum` ({{ attr.type.members | length }} values){% else %}`{{ attr.type }}`{% endif %} | {{ attr.stability }} | {{ attr.brief | replace('\n', ' ') | trim }} |
+{% endfor %}
+{% endfor %}

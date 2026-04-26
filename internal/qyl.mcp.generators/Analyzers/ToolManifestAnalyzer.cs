@@ -1,8 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Qyl.Mcp.Generators.Models;
+using qyl.mcp.generators.Models;
 
-namespace Qyl.Mcp.Generators.Analyzers;
+namespace qyl.mcp.generators.Analyzers;
 
 /// <summary>
 ///     Discovers classes decorated with <c>[McpServerToolType]</c> and their <c>[McpServerTool]</c>

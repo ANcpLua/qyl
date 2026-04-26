@@ -1146,6 +1146,24 @@ interface AlertsApi {
   @route("/rules/{ruleId}")
   getRule(@path ruleId: string): AlertRuleEntity | NotFoundError | InternalServerError;
 
+  @doc("Create a new alert rule")
+  @post
+  @route("/rules")
+  createRule(@body rule: AlertRuleEntity): AlertRuleEntity | ValidationError | InternalServerError;
+
+  @doc("Update an existing alert rule")
+  @put
+  @route("/rules/{ruleId}")
+  updateRule(
+    @path ruleId: string,
+    @body rule: AlertRuleEntity,
+  ): AlertRuleEntity | NotFoundError | ValidationError | InternalServerError;
+
+  @doc("Delete an alert rule")
+  @delete
+  @route("/rules/{ruleId}")
+  deleteRule(@path ruleId: string): NoContentResponse | NotFoundError | InternalServerError;
+
   @doc("List alert firings")
   @get
   @route("/firings")
@@ -1157,6 +1175,19 @@ interface AlertsApi {
     @query @doc("Page size") @minValue(1) @maxValue(100) limit?: int32 = 20,
     @query @doc("Cursor") cursor?: string,
   ): CursorPage<AlertFiringEntity> | ValidationError | InternalServerError;
+
+  @doc("Acknowledge an alert firing")
+  @post
+  @route("/firings/{firingId}/acknowledge")
+  acknowledgeFiring(
+    @path firingId: string,
+    @body acknowledgement: AlertFiringAcknowledgement,
+  ): AlertFiringEntity | NotFoundError | InternalServerError;
+
+  @doc("Resolve an alert firing")
+  @post
+  @route("/firings/{firingId}/resolve")
+  resolveFiring(@path firingId: string): AlertFiringEntity | NotFoundError | InternalServerError;
 
   @doc("List fix runs")
   @get
@@ -1172,4 +1203,11 @@ interface AlertsApi {
   @get
   @route("/fixes/{fixId}")
   getFixRun(@path fixId: string): FixRunEntity | NotFoundError | InternalServerError;
+}
+
+@doc("Acknowledge request body for an alert firing")
+model AlertFiringAcknowledgement {
+  @doc("User or service that acknowledges the firing")
+  @encodedName("application/json", "acknowledged_by")
+  acknowledgedBy: string;
 }

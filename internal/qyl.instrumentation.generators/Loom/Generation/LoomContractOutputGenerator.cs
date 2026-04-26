@@ -174,8 +174,10 @@ internal static class LoomContractOutputGenerator
         const string nullablePrefix = "global::System.Nullable<";
         if (typeFullyQualified.StartsWithOrdinal(nullablePrefix) &&
             typeFullyQualified.EndsWithOrdinal(">"))
+        {
             return typeFullyQualified.Substring(nullablePrefix.Length,
                 typeFullyQualified.Length - nullablePrefix.Length - 1);
+        }
 
         return typeFullyQualified;
     }

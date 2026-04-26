@@ -1,6 +1,5 @@
-using StatusCode = Grpc.Core.StatusCode;
-
 using Qyl.Collector.Cost;
+using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 

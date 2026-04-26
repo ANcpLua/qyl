@@ -22,8 +22,4 @@
     <ProjectReference Include="..\..\services\qyl.collector\qyl.collector.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Ingestion\"/>
-  </ItemGroup>
 </Project>

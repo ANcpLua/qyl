@@ -1,8 +1,8 @@
 using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
-using Qyl.Instrumentation.Generators;
 using Qyl.Collector.Meta;
+using Qyl.Instrumentation.Generators;
 
 namespace Qyl.Collector.Hosting;
 
@@ -57,7 +57,7 @@ public static class CollectorEndpointExtensions
         // All Map*Endpoints extensions tagged [QylMapEndpoints] are dispatched here
         // via the generator-emitted QylGeneratedRegistry.MapQylGeneratedEndpoints.
         // Add a new endpoint module by tagging its Map*Endpoints method — no edit here.
-        QylGeneratedRegistry.MapQylGeneratedEndpoints(app);
+        app.MapQylGeneratedEndpoints();
 
         // Browser SDK
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>

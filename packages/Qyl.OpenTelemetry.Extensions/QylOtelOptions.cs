@@ -3,12 +3,12 @@
 namespace Qyl.OpenTelemetry.Extensions;
 
 /// <summary>
-/// Configuration for the qyl OpenTelemetry exporter.
+///     Configuration for the qyl OpenTelemetry exporter.
 /// </summary>
 /// <remarks>
-/// Validated by <see cref="QylOpenTelemetryServiceCollectionExtensions.AddQylOpenTelemetry"/> —
-/// setting <see cref="Endpoint"/> and <see cref="ServiceName"/> is mandatory; the registration
-/// call throws if either is left at its default.
+///     Validated by <see cref="QylOpenTelemetryServiceCollectionExtensions.AddQylOpenTelemetry" /> —
+///     setting <see cref="Endpoint" /> and <see cref="ServiceName" /> is mandatory; the registration
+///     call throws if either is left at its default.
 /// </remarks>
 public sealed class QylOtelOptions
 {

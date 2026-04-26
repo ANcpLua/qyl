@@ -35,11 +35,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: core/specs/package-lock.json
+
+      - name: Cache Weaver binary
+        uses: actions/cache@v5
+        with:
+          path: .tools/weaver
+          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh') }}
+
+      # packages/Qyl.Contracts/Generated/ is gitignored (regenerated from TypeSpec on every
+      # build). The .NET compile references those types, so we regenerate before `dotnet build`.
+      - name: Regenerate TypeSpec artifacts
+        run: ./eng/build.sh Generate
 
       - name: Restore dependencies
         run: dotnet restore -p:TreatWarningsAsErrors=false

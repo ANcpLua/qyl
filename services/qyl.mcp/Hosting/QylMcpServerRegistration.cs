@@ -1,19 +1,16 @@
 using System.Text.Json;
-
-using qyl.contracts.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
+using Qyl.Generated;
 using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Auth;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
-
-using Microsoft.Extensions.DependencyInjection;
-using ModelContextProtocol;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
-
-using Qyl.Generated;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace qyl.mcp.Hosting;
 
@@ -41,17 +38,16 @@ internal static class QylMcpServerRegistration
         // tools/call turns (GET resumption, SSE reconnect, cancellation).
         // TTLs + limits chosen for a single-node dev/prod deployment; tune per profile.
         services.AddSingleton<IMcpTaskStore>(_ => new InMemoryMcpTaskStore(
-            defaultTtl: TimeSpan.FromHours(1),
-            maxTtl: TimeSpan.FromHours(6),
-            pollInterval: TimeSpan.FromSeconds(1),
+            TimeSpan.FromHours(1),
+            TimeSpan.FromHours(6),
+            TimeSpan.FromSeconds(1),
             maxTasks: 500));
 
         var builder = services.AddMcpServer(options =>
         {
             options.ServerInfo = new Implementation
             {
-                Name = QylServerMetadata.Name,
-                Version = QylServerMetadata.Version,
+                Name = QylServerMetadata.Name, Version = QylServerMetadata.Version
             };
             options.ServerInstructions = QylServerMetadata.Instructions;
         });
@@ -69,7 +65,7 @@ internal static class QylMcpServerRegistration
                 if (hostOptions is not null)
                     options.Stateless = hostOptions.Stateless;
             }),
-            _ => builder.WithStdioServerTransport(),
+            _ => builder.WithStdioServerTransport()
         };
 
         if (transport is McpTransportMode.Http)
@@ -84,7 +80,7 @@ internal static class QylMcpServerRegistration
                     {
                         JsonRpcRequest request => request.Method,
                         JsonRpcNotification notification => notification.Method,
-                        _ => null,
+                        _ => null
                     };
 
                     using var activity = TelemetryConstants.ActivitySource.StartActivity(
@@ -156,11 +152,11 @@ internal static class QylMcpServerRegistration
                     }
 
                     using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        $"{GenAiAttributes.Operations.ExecuteTool} {toolName}");
+                        $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
 
-                    activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+                    activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
                     activity?.SetTag(GenAiAttributes.ToolName, toolName);
-                    activity?.SetTag(GenAiAttributes.ToolType, GenAiAttributes.ToolTypes.Extension);
+                    activity?.SetTag(GenAiAttributes.ToolType, "extension");
                     activity?.SetTag(Rpc.Method, "tools/call");
 
                     try

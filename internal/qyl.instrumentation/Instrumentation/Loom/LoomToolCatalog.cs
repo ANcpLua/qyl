@@ -45,7 +45,6 @@ public static class LoomToolDescriptorExtensions
         var parameterBindings = descriptor.Parameters
             .Select(parameter => BindParameter(parameter, options))
             .ToArray();
-
         return new LoomToolBindingSurface(parameterBindings, BindResult(descriptor, options));
     }
 

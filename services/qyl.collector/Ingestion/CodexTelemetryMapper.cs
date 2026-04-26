@@ -107,7 +107,7 @@ public static class CodexTelemetryMapper
         // Always set provider to OpenAI for Codex telemetry
         if (!attributes.ContainsKey(GenAiAttributes.ProviderName))
         {
-            attributes[GenAiAttributes.ProviderName] = GenAiAttributes.Providers.Openai;
+            attributes[GenAiAttributes.ProviderName] = GenAiAttributes.ProviderNameValues.Openai;
             transformed = true;
         }
 
@@ -205,13 +205,13 @@ public static class CodexTelemetryMapper
 
         var operation = spanName switch
         {
-            ConversationStarts => GenAiAttributes.Operations.Chat,
-            ApiRequest => GenAiAttributes.Operations.Chat,
-            SseEvent => GenAiAttributes.Operations.Chat,
-            UserPrompt => GenAiAttributes.Operations.Chat,
-            ToolDecision => GenAiAttributes.Operations.ExecuteTool,
-            ToolResult => GenAiAttributes.Operations.ExecuteTool,
-            _ when spanName.StartsWithOrdinal(CodexPrefix) => GenAiAttributes.Operations.Chat,
+            ConversationStarts => GenAiAttributes.OperationNameValues.Chat,
+            ApiRequest => GenAiAttributes.OperationNameValues.Chat,
+            SseEvent => GenAiAttributes.OperationNameValues.Chat,
+            UserPrompt => GenAiAttributes.OperationNameValues.Chat,
+            ToolDecision => GenAiAttributes.OperationNameValues.ExecuteTool,
+            ToolResult => GenAiAttributes.OperationNameValues.ExecuteTool,
+            _ when spanName.StartsWithOrdinal(CodexPrefix) => GenAiAttributes.OperationNameValues.Chat,
             _ => null
         };
 
@@ -318,7 +318,7 @@ public static class CodexTelemetryMapper
         // Map tool type (Codex tools are function-based)
         if (toolName is not null && !attributes.ContainsKey(GenAiAttributes.ToolType))
         {
-            attributes[GenAiAttributes.ToolType] = GenAiAttributes.ToolTypes.Function;
+            attributes[GenAiAttributes.ToolType] = "function";
             transformed = true;
         }
 
@@ -339,17 +339,17 @@ public static class CodexTelemetryMapper
 
         // Map error type
         if (attributes.TryGetValue(CodexErrorType, out var errorType) &&
-            !attributes.ContainsKey(GenAiAttributes.ErrorType))
+            !attributes.ContainsKey(ErrorAttributes.Type))
         {
-            attributes[GenAiAttributes.ErrorType] = errorType;
+            attributes[ErrorAttributes.Type] = errorType;
             transformed = true;
         }
 
         // Map error message to exception.message
         if (attributes.TryGetValue(CodexErrorMessage, out var errorMessage) &&
-            !attributes.ContainsKey(GenAiAttributes.ExceptionMessage))
+            !attributes.ContainsKey(ExceptionAttributes.Message))
         {
-            attributes[GenAiAttributes.ExceptionMessage] = errorMessage;
+            attributes[ExceptionAttributes.Message] = errorMessage;
             transformed = true;
         }
 

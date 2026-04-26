@@ -1,6 +1,6 @@
 using System.Numerics;
-using Qyl.Contracts.Primitives;
 using Qyl.Collector.Search;
+using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Storage;
 

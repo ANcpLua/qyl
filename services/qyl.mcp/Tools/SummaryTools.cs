@@ -1,20 +1,20 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using qyl.mcp.Agents;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools that fetch observability data via HTTP, then feed it to a
 ///     <c>ChatClientAgent</c> for structured summarization. Combines the HTTP-delegating
-///     pattern from <see cref="GenAiTools"/> with the Apex-aligned agent construction
+///     pattern from <see cref="GenAiTools" /> with the Apex-aligned agent construction
 ///     (<c>_llm.AsAIAgent(new ChatClientAgentOptions { ChatOptions = { Instructions = ... } })</c>).
 ///     No tools are attached — these are pure LLM-as-summarizer calls, so the default
 ///     <c>FunctionInvokingChatClient</c> inserted by <c>AsAIAgent</c> is a no-op passthrough.
@@ -86,12 +86,12 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 return $"# Error Summary (raw data -- no LLM configured)\n\n{sb}";
 
             var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "ErrorSummaryAgent",
-                Description = "Produces a structured AI summary of a qyl error issue.",
-                ChatOptions = new ChatOptions { Instructions = ErrorSummaryPrompt.Prompt },
-            })
-            .AsBuilder().UseQylAgentTelemetry().Build();
+                {
+                    Name = "ErrorSummaryAgent",
+                    Description = "Produces a structured AI summary of a qyl error issue.",
+                    ChatOptions = new ChatOptions { Instructions = ErrorSummaryPrompt.Prompt }
+                })
+                .AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
@@ -162,12 +162,12 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 return $"# Trace Summary (raw data -- no LLM configured)\n\n{sb}";
 
             var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "TraceSummaryAgent",
-                Description = "Produces a structured AI summary of a distributed trace.",
-                ChatOptions = new ChatOptions { Instructions = TraceSummaryPrompt.Prompt },
-            })
-            .AsBuilder().UseQylAgentTelemetry().Build();
+                {
+                    Name = "TraceSummaryAgent",
+                    Description = "Produces a structured AI summary of a distributed trace.",
+                    ChatOptions = new ChatOptions { Instructions = TraceSummaryPrompt.Prompt }
+                })
+                .AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
@@ -244,12 +244,12 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 return $"# Session Summary (raw data -- no LLM configured)\n\n{sb}";
 
             var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "SessionSummaryAgent",
-                Description = "Produces a structured AI summary of a session's spans and lifecycle.",
-                ChatOptions = new ChatOptions { Instructions = SessionSummaryPrompt.Prompt },
-            })
-            .AsBuilder().UseQylAgentTelemetry().Build();
+                {
+                    Name = "SessionSummaryAgent",
+                    Description = "Produces a structured AI summary of a session's spans and lifecycle.",
+                    ChatOptions = new ChatOptions { Instructions = SessionSummaryPrompt.Prompt }
+                })
+                .AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";

@@ -1,8 +1,8 @@
-using Qyl.Instrumentation.Generators.Loom.Extraction;
-using Qyl.Instrumentation.Generators.Loom.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Qyl.Instrumentation.Generators.Loom.Extraction;
+using Qyl.Instrumentation.Generators.Loom.Generation;
 
 namespace Qyl.Instrumentation.Generators.Loom;
 
