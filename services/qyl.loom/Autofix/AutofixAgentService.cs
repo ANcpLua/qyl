@@ -1,25 +1,21 @@
 // Copyright (c) 2025-2026 ancplua
 
-using Microsoft.Agents.AI.Workflows;
-using Microsoft.Extensions.AI;
 using Qyl.Contracts.Observability;
-using Qyl.Loom.Autofix.Workflow;
 
-namespace Qyl.Loom;
+namespace Qyl.Loom.Autofix;
 
 /// <summary>
-///     Scheduler-only: polls the collector for pending fix runs and dispatches each run to a freshly built
-///     MAF workflow via <see cref="AutofixWorkflowFactory" />. All pipeline logic lives in the executors
-///     composed in that factory.
+///     Background scheduler: polls the collector for pending fix runs and dispatches each to
+///     <see cref="LoomAutofixRunner" />. The runner is the single-agent MAF-native pipeline —
+///     no workflow graph, no per-stage executors. Scheduling, batching, and back-pressure
+///     logic live here; all pipeline logic lives in the runner.
 /// </summary>
 [QylHostedService]
 public sealed partial class AutofixAgentService(
     CollectorClient collector,
-    AutofixOrchestrator orchestrator,
-    IServiceProvider services,
+    LoomAutofixRunner runner,
     IConfiguration configuration,
-    ILogger<AutofixAgentService> logger,
-    IChatClient? llm = null)
+    ILogger<AutofixAgentService> logger)
     : BackgroundService
 {
     private readonly bool _enabled = configuration.GetValue("QYL_AUTOFIX_ENABLED", true);
@@ -27,13 +23,13 @@ public sealed partial class AutofixAgentService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_enabled || llm is null)
+        if (!_enabled)
         {
-            LogAutofixDisabled(llm is null ? "no LLM configured" : "QYL_AUTOFIX_ENABLED=false");
+            LogAutofixDisabled("QYL_AUTOFIX_ENABLED=false");
             return;
         }
 
-        // Warmup delay — let triage pipeline populate pending fix runs
+        // Warm-up delay — let the triage pipeline populate pending fix runs.
         await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken).ConfigureAwait(false);
         LogAutofixStarted(_intervalSeconds);
 
@@ -53,44 +49,8 @@ public sealed partial class AutofixAgentService(
 
         foreach (var run in pending)
         {
-            await DispatchRunAsync(run, ct).ConfigureAwait(false);
+            await runner.RunAsync(run.RunId, ct).ConfigureAwait(false);
         }
-    }
-
-    private async Task DispatchRunAsync(FixRunRecord run, CancellationToken ct)
-    {
-        var workflow = AutofixWorkflowFactory.Create(services);
-
-        try
-        {
-            var streamingRun = await InProcessExecution
-                .RunStreamingAsync(workflow, new StartAutofix(run.RunId), cancellationToken: ct)
-                .ConfigureAwait(false);
-
-            await using (streamingRun.ConfigureAwait(false))
-            {
-                await foreach (var evt in streamingRun.WatchStreamAsync(ct).ConfigureAwait(false))
-                {
-                    LogWorkflowEvent(run.RunId, evt.GetType().Name);
-                }
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            await MarkRunFailedAsync(run, ex, ct).ConfigureAwait(false);
-        }
-        catch (JsonException ex)
-        {
-            await MarkRunFailedAsync(run, ex, ct).ConfigureAwait(false);
-        }
-    }
-
-    private async Task MarkRunFailedAsync(FixRunRecord run, Exception ex, CancellationToken ct)
-    {
-        LogFixRunFailed(run.RunId, ex);
-        await orchestrator
-            .UpdateFixRunStatusAsync(run.IssueId, run.RunId, "failed", ex.Message, ct: ct)
-            .ConfigureAwait(false);
     }
 
     [LoggerMessage(Level = LogLevel.Information,
@@ -104,12 +64,4 @@ public sealed partial class AutofixAgentService(
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Processing {Count} pending fix runs")]
     private partial void LogProcessingBatch(int count);
-
-    [LoggerMessage(Level = LogLevel.Debug,
-        Message = "Fix run {RunId} workflow event: {EventType}")]
-    private partial void LogWorkflowEvent(string runId, string eventType);
-
-    [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Fix run {RunId} failed")]
-    private partial void LogFixRunFailed(string runId, Exception ex);
 }

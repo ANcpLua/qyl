@@ -1,8 +1,8 @@
-using ANcpLua.Roslyn.Utilities;
-using Qyl.Contracts.Observability;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Contracts.Observability;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Autofix;
 
 namespace Qyl.Loom;
 
@@ -122,7 +122,7 @@ public sealed partial class TriagePipelineService(
         {
             Name = "TriageScoringAgent",
             Description = "Scores the fixability of a qyl error issue and proposes an automation level.",
-            ChatOptions = new ChatOptions { Instructions = TriagePrompts.FixabilityScoring },
+            ChatOptions = new ChatOptions { Instructions = TriagePrompts.FixabilityScoring }
         }).AsBuilder().UseQylAgentTelemetry().Build();
 
         try

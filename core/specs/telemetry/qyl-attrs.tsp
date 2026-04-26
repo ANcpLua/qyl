@@ -1,46 +1,17 @@
 // =============================================================================
-// qyl telemetry attribute registry
+// DEPRECATED — qyl attribute registry migrated to Weaver YAML
 // =============================================================================
-// Every qyl-owned telemetry key that appears as a string literal in runtime
-// source must be annotated here. The @qylAttr decorator feeds the
-// @qyl/typespec-qyl-semconv-lint validator, which enforces:
+// The @qylAttr decorator and QylTelemetryRegistry model have been replaced by
+// the canonical YAML registry under eng/semconv/model/qyl/.
 //
-//   QYL-LINT-001  no collisions with upstream OTel prefixes
-//   QYL-LINT-002  every key starts with `qyl.`
-//   QYL-LINT-003  OTel naming (lowercase, digits, underscores, dot-separated)
-//   QYL-LINT-004  same key → same primitive type across all sites
-//   QYL-LINT-005  stability one-way ratchet (stable → experimental = error)
-//   QYL-LINT-006  cardinality drift across sites (warning)
+// Attribute constants are now generated via:
+//   nuke GenerateSemconv (or nuke Generate)
 //
-// The marker model is compile-time-only: it carries no @csharpNamespace /
-// @duckdbTable / @tsBrand decorators, so the three content emitters skip it.
+// Outputs:
+//   packages/Qyl.Telemetry/Conventions/Qyl.g.cs   (C# static constants)
+//   packages/qyl-client/src/conventions.ts          (TS string constants)
+//   docs/attributes/qyl.*.md                        (per-namespace docs)
+//
+// This file is intentionally empty — the import in main.tsp is kept as a
+// tombstone so git blame can trace the migration history.
 // =============================================================================
-
-import "@qyl/typespec-qyl-semconv-lint";
-
-using Qyl.Semconv;
-
-namespace Qyl.Telemetry.Attrs;
-
-/**
- * Registry marker — not a runtime shape. Each property is one annotated
- * attribute; the property type mirrors the declared primitive so a future
- * code-gen step can project the registry into typed helpers if needed.
- */
-@doc("qyl-owned telemetry attribute registry (names only).")
-model QylTelemetryRegistry {
-  @qylAttr("qyl.storage.size",               "long",   #{ cardinality: "low",  stability: "experimental" })
-  storageSize: int64;
-
-  @qylAttr("qyl.duckdb.dropped_jobs_total",  "long",   #{ cardinality: "low",  stability: "experimental" })
-  droppedJobsTotal: int64;
-
-  @qylAttr("qyl.duckdb.dropped_spans_total", "long",   #{ cardinality: "low",  stability: "experimental" })
-  droppedSpansTotal: int64;
-
-  @qylAttr("qyl.keycloak.claims",            "string", #{ cardinality: "high", stability: "experimental" })
-  keycloakClaims: string;
-
-  @qylAttr("qyl.instance_id",                "string", #{ cardinality: "high", stability: "experimental" })
-  instanceId: string;
-}

@@ -46,7 +46,7 @@ namespace Qyl.OTel.Metrics
         ///<summary>
         /// Resource describing the entity that produced this metric
         ///</summary>
-        public Resource Resource { get; set; }
+        public Qyl.OTel.Resource.Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope

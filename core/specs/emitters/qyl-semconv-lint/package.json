@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p .",
+    "prepare": "tsc -p .",
     "test": "vitest run",
     "test:watch": "vitest"
   },

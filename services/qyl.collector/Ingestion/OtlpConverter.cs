@@ -4,8 +4,8 @@
 // =============================================================================
 
 using Qyl.Collector.Grpc;
-using Qyl.Contracts.Primitives;
 using Qyl.Collector.Services;
+using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 

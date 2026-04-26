@@ -3,9 +3,9 @@
 namespace Qyl.Run;
 
 /// <summary>
-/// Every magic string and magic port qyl.run references routes through here. Follow the
-/// <c>AddOptionsWithValidateOnStart&lt;T&gt;().BindConfiguration(T.SectionName)</c> pattern —
-/// identifiers that show up in more than one place must be constants.
+///     Every magic string and magic port qyl.run references routes through here. Follow the
+///     <c>AddOptionsWithValidateOnStart&lt;T&gt;().BindConfiguration(T.SectionName)</c> pattern —
+///     identifiers that show up in more than one place must be constants.
 /// </summary>
 public static class QylConstants
 {
@@ -19,8 +19,10 @@ public static class QylConstants
         public const string Tagline = "qyl distributed-app runner";
     }
 
-    /// <summary>Default ports the CLI surfaces. Aligned with the Aspire dashboard defaults so
-    /// muscle memory survives the migration.</summary>
+    /// <summary>
+    ///     Default ports the CLI surfaces. Aligned with the Aspire dashboard defaults so
+    ///     muscle memory survives the migration.
+    /// </summary>
     public static class Ports
     {
         public const int Dashboard = 18888;
@@ -56,8 +58,10 @@ public static class QylConstants
         public const string HttpScheme = "http";
     }
 
-    /// <summary>Environment variables that children inherit. Matches the ASP.NET Core runtime
-    /// contract so `dotnet run` subprocesses bind where we tell them.</summary>
+    /// <summary>
+    ///     Environment variables that children inherit. Matches the ASP.NET Core runtime
+    ///     contract so `dotnet run` subprocesses bind where we tell them.
+    /// </summary>
     public static class Env
     {
         public const string AspNetCoreUrls = "ASPNETCORE_URLS";

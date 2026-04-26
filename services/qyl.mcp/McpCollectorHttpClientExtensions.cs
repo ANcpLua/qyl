@@ -1,8 +1,8 @@
-using qyl.mcp.Agents;
-using qyl.mcp.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
+using qyl.mcp.Agents;
+using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 
 namespace qyl.mcp;

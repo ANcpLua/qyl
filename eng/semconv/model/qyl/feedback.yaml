@@ -1,0 +1,43 @@
+groups:
+  - id: registry.qyl.feedback
+    type: attribute_group
+    brief: 'Attributes for qyl user feedback records attached to error/trace events'
+    attributes:
+      - id: qyl.feedback.id
+        type: string
+        stability: development
+        brief: 'Feedback record identifier'
+        examples: [ 'fb_01hzv8x' ]
+      - id: qyl.feedback.event_id
+        type: string
+        stability: development
+        brief: 'Associated error/trace event identifier'
+        examples: [ 'evt_01hzv8x' ]
+      - id: qyl.feedback.contact_email
+        type: string
+        stability: development
+        brief: >
+          Optional contact email supplied with the feedback.
+          High-cardinality PII — only emit when ENABLE_SENSITIVE_DATA is set.
+        examples: [ 'user@example.com' ]
+      - id: qyl.feedback.source
+        type:
+          members:
+            - id: dashboard
+              value: 'dashboard'
+              stability: development
+              brief: 'Feedback submitted via the qyl dashboard UI'
+            - id: api
+              value: 'api'
+              stability: development
+              brief: 'Feedback submitted via the public API'
+            - id: widget
+              value: 'widget'
+              stability: development
+              brief: 'Feedback submitted via the embeddable widget'
+            - id: mcp
+              value: 'mcp'
+              stability: development
+              brief: 'Feedback submitted through an MCP tool invocation'
+        stability: development
+        brief: 'Channel the feedback was submitted through'

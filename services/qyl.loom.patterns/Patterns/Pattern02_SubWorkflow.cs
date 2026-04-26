@@ -3,7 +3,7 @@
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
-namespace Qyl.Loom.Patterns;
+namespace Qyl.Loom.Patterns.Patterns;
 
 /// <summary>
 ///     Pattern 02 — <c>workflow.BindAsExecutor(id)</c>. Composes an inner
@@ -16,22 +16,22 @@ public static class Pattern02_SubWorkflow
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
         // ── Inner graph: rca → solution ───────────────────────────────────────
-        var rca      = new RcaExecutor("patterns/02/inner/rca", agents.BuildRcaAgent());
+        var rca = new RcaExecutor("patterns/02/inner/rca", agents.BuildRcaAgent());
         var solution = new SolutionExecutor("patterns/02/inner/solution", agents.BuildSolutionAgent());
 
-        Workflow innerWorkflow = new WorkflowBuilder(rca)
+        var innerWorkflow = new WorkflowBuilder(rca)
             .AddEdge(rca, solution)
             .WithOutputFrom(solution)
             .WithName("LoomPatterns/02/InnerAutofix")
             .Build();
 
-        ExecutorBinding autofixSubflow = innerWorkflow.BindAsExecutor("patterns/02/subflow");
+        var autofixSubflow = innerWorkflow.BindAsExecutor("patterns/02/subflow");
 
         // ── Outer graph: intake → [sub] → verdict ─────────────────────────────
-        var intake  = new IntakeExecutor("patterns/02/intake");
+        var intake = new IntakeExecutor("patterns/02/intake");
         var verdict = new VerdictExecutor("patterns/02/verdict", agents.BuildConfidenceAgent());
 
-        Workflow outer = new WorkflowBuilder(intake)
+        var outer = new WorkflowBuilder(intake)
             .AddEdge(intake, autofixSubflow)
             .AddEdge(autofixSubflow, verdict)
             .WithOutputFrom(verdict)
@@ -73,7 +73,7 @@ public static class Pattern02_SubWorkflow
             var response = await agent.RunAsync(
                 $"Signal {signal.Id} on {signal.Service}: {signal.Description}",
                 cancellationToken: ct).ConfigureAwait(false);
-            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, Confidence: 0.85);
+            var hypothesis = new RootCauseHypothesis(signal.Id, response.Text, 0.85);
             Console.WriteLine($"   ⊢ rca       {hypothesis.Hypothesis}");
             return hypothesis;
         }
@@ -88,7 +88,7 @@ public static class Pattern02_SubWorkflow
             var response = await agent.RunAsync(
                 $"RCA for {rca.SignalId}: {rca.Hypothesis}",
                 cancellationToken: ct).ConfigureAwait(false);
-            var plan = new SolutionPlan(rca.SignalId, response.Text, Steps: [response.Text]);
+            var plan = new SolutionPlan(rca.SignalId, response.Text, [response.Text]);
             Console.WriteLine($"   ⊢ solution  {plan.Approach}");
             return plan;
         }

@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using qyl.mcp.Metadata;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
+using qyl.mcp.Metadata;
 
 namespace qyl.mcp.Capabilities;
 

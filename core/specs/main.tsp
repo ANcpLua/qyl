@@ -91,9 +91,6 @@ import "./models/system.tsp";
 // Identity Domain - User stats
 import "./models/identity.tsp";
 
-// Telemetry attribute registry (qyl-semconv-lint marker)
-import "./telemetry/qyl-attrs.tsp";
-
 // =============================================================================
 // API Routes
 // =============================================================================

@@ -30,7 +30,7 @@ public sealed partial class ExplorationStrategist(
             {
                 Name = "ExplorationStrategistAgent",
                 Description = "Converts an exploration root-cause analysis into a minimal implementation plan.",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.SolutionPlanning },
+                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.SolutionPlanning }
             }).AsBuilder().UseQylAgentTelemetry().Build();
 
             var response = await agent.RunAsync(BuildUserMessage(session), cancellationToken: ct)

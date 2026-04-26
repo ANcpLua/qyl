@@ -18,7 +18,6 @@
 import "@qyl/typespec-emit-csharp";
 import "@qyl/typespec-emit-duckdb";
 import "@qyl/typespec-emit-ts-types";
-import "@qyl/typespec-qyl-semconv-lint";
 
 import "./main.tsp";
 import "./models/agent/agent-run.tsp";

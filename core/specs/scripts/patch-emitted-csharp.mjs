@@ -244,10 +244,43 @@ const clientPatches = [
     addBclDisambiguationAliases,
 ];
 
+// Patch 8 — fully-qualify `Resource` property declarations in model files that
+//   `using Qyl.OTel.Resource;`. The alpha emitter collides the class name `Resource`
+//   with the namespace `Qyl.OTel.Resource`, and the namespace import wins when the
+//   naked identifier is resolved — `error CS0118: 'Resource' is a namespace but is
+//   used like a type`. A `using Resource = Qyl.OTel.Resource.Resource;` alias does
+//   not override the namespace import, so we fully qualify the property type instead.
+//   Known consumers: Metric.cs, Span.cs, LogRecord.cs.
+function fullyQualifyResourceProperty(content, filePath) {
+    if (!/\/models\//.test(filePath)) return content;
+    if (!/^using Qyl\.OTel\.Resource;$/m.test(content)) return content;
+    return content.replace(/\bpublic Resource Resource\b/g, "public Qyl.OTel.Resource.Resource Resource");
+}
+
+// Patch 9 — add a `using Trace = Qyl.OTel.Traces.Trace;` alias in model files that
+//   reference the OTel `Trace` type. Collides with `System.Diagnostics.Trace` →
+//   `error CS0104: 'Trace' is an ambiguous reference`. Unlike the Resource collision,
+//   the alias resolves this one because there is no namespace-import precedence to beat.
+//   Known consumers: TraceStreamEvent.cs, CursorPageTrace.cs.
+function addTraceAliasInModels(content, filePath) {
+    if (!/\/models\//.test(filePath)) return content;
+    if (!/^using Qyl\.OTel\.Traces;$/m.test(content)) return content;
+    if (/^using Trace\s*=/m.test(content)) return content;
+    const declaresTrace = /\bpublic\s+Trace\s+\w+\b/.test(content);
+    const isCursorPageTrace = /CursorPageTrace\.cs$/.test(filePath);
+    if (!declaresTrace && !isCursorPageTrace) return content;
+    return content.replace(
+        /^using Qyl\.OTel\.Traces;$/m,
+        "using Qyl.OTel.Traces;\nusing Trace = Qyl.OTel.Traces.Trace;",
+    );
+}
+
 const serverPatches = [
     fixRegexPatterns,
     addServerSideUsings,
     addServerSideDisambiguation,
+    fullyQualifyResourceProperty,
+    addTraceAliasInModels,
 ];
 
 function walk(dir, out = []) {

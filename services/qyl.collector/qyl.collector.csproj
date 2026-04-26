@@ -26,13 +26,24 @@
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
-  <!-- @typespec/http-server-csharp emits controllers + interfaces + support types into
-       Generated/generated/{controllers,operations,lib}/. The parallel `models/` subtree
-       duplicates the canonical types from @qyl/typespec-emit-csharp → Qyl.Contracts; keep
-       it on disk for emitter idempotency but exclude from Compile. -->
+  <!-- @typespec/http-server-csharp emits controllers + operations + lib + models.
+       Only lib/ (TypeSpec.Helpers + JsonConverters) compiles. The rest are excluded:
+         - controllers/, operations/: MVC placeholders; the collector routes via
+           minimal-API (MapQylCollectorEndpoints), not these stubs.
+         - models/: duplicates canonical domain types already produced by
+           @qyl/typespec-emit-csharp into packages/Qyl.Contracts/ (see
+           core/specs/tspconfig.yaml). Two copies in the same namespace trigger
+           CS0436. Drop the MVC-emitter copy; Qyl.Contracts is authoritative. -->
   <ItemGroup>
+    <Compile Remove="Generated/generated/controllers/**/*.cs"/>
+    <Compile Remove="Generated/generated/operations/**/*.cs"/>
     <Compile Remove="Generated/generated/models/**/*.cs"/>
   </ItemGroup>
+
+  <!-- CS1573 / CS1591 scoping for the emitter's Generated subtree lives in
+       services/qyl.collector/Generated/.editorconfig (file-scoped severity overrides
+       beat csproj item metadata for analyzer diagnostics and keep the suppression
+       discoverable at the offending file's location). -->
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
@@ -80,6 +91,10 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions\Qyl.OpenTelemetry.SemanticConventions.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Incubating\Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
@@ -91,6 +106,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\internal\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\internal\qyl.collector.storage.generators\qyl.collector.storage.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Analyzers\Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>

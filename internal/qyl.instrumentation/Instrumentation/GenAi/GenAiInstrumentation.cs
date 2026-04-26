@@ -1,14 +1,18 @@
 // =============================================================================
 // qyl.instrumentation - GenAI Instrumentation
 // Leverages Microsoft.Extensions.AI.OpenTelemetryChatClient for OTel compliance
-// Uses qyl.contracts.Attributes for OTel 1.40 semantic conventions
+// Uses Qyl.OpenTelemetry.SemanticConventions.Incubating for OTel 1.40 semantic conventions
 // =============================================================================
 
 using System.Runtime.CompilerServices;
 using ANcpLua.Agents.Instrumentation;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using qyl.contracts.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+using ErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
@@ -25,6 +29,16 @@ public readonly record struct TokenUsage(int InputTokens, int OutputTokens);
 /// </summary>
 public static class GenAiInstrumentation
 {
+    // One-shot extension-method callers don't have a host-wired IServiceProvider, but
+    // `UseLogging()` in MAF's ChatClientBuilder resolves ILoggerFactory from the services
+    // passed to .Build(). When nothing is passed it throws. Cache a minimal provider with
+    // NullLoggerFactory so the extension form works out of the box; the `UseQylTelemetry`
+    // ChatClientBuilder form (used at composition roots) still honors the real IServiceProvider
+    // the host passes through AddChatClient().
+    private static readonly IServiceProvider s_defaultServices = new ServiceCollection()
+        .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
+        .BuildServiceProvider();
+
     /// <summary>
     ///     Wraps an IChatClient with OpenTelemetry instrumentation.
     ///     Uses M.E.AI.OpenTelemetryChatClient which is fully OTel GenAI SemConv compliant.
@@ -67,7 +81,7 @@ public static class GenAiInstrumentation
                 ? openTelemetryChatClient => openTelemetryChatClient.EnableSensitiveData = enableSensitiveData.Value
                 : null);
 
-        return builder.Build();
+        return builder.Build(s_defaultServices);
     }
 
     /// <summary>Wraps an <see cref="AIFunction" /> with qyl-tagged tool-execution telemetry.</summary>
@@ -79,7 +93,7 @@ public static class GenAiInstrumentation
     ///     OTel spans + ILogger log records + qyl tool-execution decoration.
     /// </summary>
     /// <remarks>
-    ///     Pairs with <see cref="UseQylAgentTelemetry"/> at the agent layer. Both are needed for
+    ///     Pairs with <see cref="UseQylAgentTelemetry" /> at the agent layer. Both are needed for
     ///     full observability: chat-layer handles per-completion spans/logs (via MAF's built-in
     ///     decorators), agent-layer wraps the enclosing <c>RunAsync</c> boundary.
     /// </remarks>
@@ -93,13 +107,19 @@ public static class GenAiInstrumentation
         builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,
             configure: configure);
-        builder.UseLogging();
+        // UseLogging() requires ILoggerFactory in DI; fall back to NullLoggerFactory
+        // so WithQylTelemetry works outside a DI container (e.g. direct test usage).
+        builder.Use(static (inner, services) =>
+        {
+            var loggerFactory = services?.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
+            return new LoggingChatClient(inner, loggerFactory.CreateLogger(nameof(GenAiInstrumentation)));
+        });
         builder.Use(static inner => new ToolDecoratingChatClient(inner, WrapTool));
         return builder;
     }
 
     /// <summary>
-    ///     Extension for <see cref="AIAgentBuilder"/> — agent-layer qyl telemetry pair:
+    ///     Extension for <see cref="AIAgentBuilder" /> — agent-layer qyl telemetry pair:
     ///     <c>UseOpenTelemetry("qyl.agent")</c> for <c>gen_ai.*</c> spans scoped to the agent's
     ///     <c>RunAsync</c> boundary, plus <c>UseLogging()</c> for Debug-level invocation breadcrumbs
     ///     (and Trace-level sensitive payload dumps when <c>Logging:LogLevel:Default</c> is set to Trace).
@@ -107,7 +127,7 @@ public static class GenAiInstrumentation
     /// <remarks>
     ///     <para>
     ///         This is the enforcement point for the 2026-04 collapse note in <c>CLAUDE.md</c>: every
-    ///         qyl composition root that constructs an <see cref="AIAgent"/> must chain
+    ///         qyl composition root that constructs an <see cref="AIAgent" /> must chain
     ///         <c>.AsBuilder().UseQylAgentTelemetry().Build()</c>. The analyzer <c>QYL0135</c> flags
     ///         construction sites that miss this wrap.
     ///     </para>
@@ -131,14 +151,14 @@ public static class GenAiInstrumentation
     public static Activity? StartToolExecutionSpan(
         string toolName,
         string? callId = null,
-        string? toolType = GenAiAttributes.ToolTypes.Function)
+        string? toolType = "function")
     {
         var activity = ActivitySources.GenAiSource.StartActivity(
-            $"{GenAiAttributes.Operations.ExecuteTool} {toolName}");
+            $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
 
         if (activity is not null)
         {
-            activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+            activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
             activity.SetTag(GenAiAttributes.ToolName, toolName);
 
             if (callId is not null)
@@ -165,7 +185,7 @@ public static class GenAiInstrumentation
         if (!success && error is not null)
         {
             activity.SetStatus(ActivityStatusCode.Error, error);
-            activity.SetTag(GenAiAttributes.ErrorType, "tool_execution_error");
+            activity.SetTag(ErrorAttributes.Type, "tool_execution_error");
         }
     }
 
@@ -181,11 +201,11 @@ public static class GenAiInstrumentation
 
     private static Histogram<long> TokenUsageHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
-            GenAiAttributes.Metrics.ClientTokenUsage, "{token}", "Token usage");
+            "gen_ai.client.token.usage", "{token}", "Token usage");
 
     private static Histogram<double> OperationDurationHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
-            GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
+            "gen_ai.client.operation.duration", "s", "Operation duration");
 
     /// <summary>
     ///     Executes an async GenAI operation with full OTel instrumentation.
@@ -344,7 +364,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
         OperationDurationHistogram.Record(duration,
@@ -366,7 +386,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(inputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Input));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Input));
         }
 
         if (outputTokens > 0)
@@ -375,7 +395,7 @@ public static class GenAiInstrumentation
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
         OperationDurationHistogram.Record(durationSeconds,
@@ -413,7 +433,7 @@ public static class GenAiInstrumentation
         OperationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-            new KeyValuePair<string, object?>(GenAiAttributes.ErrorType, errorType));
+            new KeyValuePair<string, object?>(ErrorAttributes.Type, errorType));
     }
 
     #endregion

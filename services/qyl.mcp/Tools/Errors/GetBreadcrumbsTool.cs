@@ -2,8 +2,9 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using qyl.mcp.Errors;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
+using qyl.mcp.Errors;
 
 namespace qyl.mcp.Tools.Errors;
 
@@ -33,7 +34,7 @@ public sealed class GetBreadcrumbsTool(HttpClient client)
         string? eventId = null,
         CancellationToken ct = default)
     {
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/mcp/errors/{Uri.EscapeDataString(issueId)}/breadcrumbs",
             ("eventId", eventId));
 

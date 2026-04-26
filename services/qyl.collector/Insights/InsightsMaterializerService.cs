@@ -1,3 +1,5 @@
+using ANcpLua.Roslyn.Utilities.Security;
+
 namespace Qyl.Collector.Insights;
 
 /// <summary>
@@ -51,7 +53,7 @@ public sealed partial class InsightsMaterializerService(
         var content = await materialize().ConfigureAwait(false);
         sw.Stop();
 
-        var hash = ANcpLua.Roslyn.Utilities.Security.Sha256Hex.Hash(content);
+        var hash = Sha256Hex.Hash(content);
         var existing = await store.GetInsightHashAsync(tier, ct).ConfigureAwait(false);
 
         if (hash == existing)

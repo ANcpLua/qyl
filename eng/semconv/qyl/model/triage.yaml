@@ -1,0 +1,20 @@
+groups:
+  - id: registry.qyl.triage
+    type: attribute_group
+    brief: 'Attributes for qyl automated triage operations'
+    prefix: qyl.triage
+    attributes:
+      - id: id
+        type: string
+        stability: development
+        brief: 'Triage record identifier'
+        examples: [ 'triage_01hzv8x' ]
+      - id: score
+        type: double
+        stability: development
+        brief: 'Triage priority score (0.0 = lowest, 1.0 = highest)'
+      - id: category
+        type: string
+        stability: development
+        brief: 'Classified error category from triage analysis'
+        examples: [ 'null_reference', 'timeout', 'auth_failure' ]

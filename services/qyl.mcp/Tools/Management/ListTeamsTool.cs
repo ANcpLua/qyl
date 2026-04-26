@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using qyl.mcp.Formatting;
+using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
 using Qyl.Contracts.Models;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
@@ -34,7 +35,7 @@ public sealed class ListTeamsTool(HttpClient client)
     {
         limit = Math.Clamp(limit, 1, 100);
 
-        var url = ANcpLua.Roslyn.Utilities.Web.QueryString.AppendPairs(
+        var url = QueryString.AppendPairs(
             $"/api/v1/mcp/teams?limit={limit}", ("q", query));
 
         var result = await client.GetFromJsonAsync<PagedResult<TeamDto>>(url, ct).ConfigureAwait(false);
