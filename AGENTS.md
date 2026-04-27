@@ -122,6 +122,11 @@ In `services/qyl.mcp/`:
 
 - Never register a tool manually. Declare with `[QylSkill]` + `[QylCapability]`; `internal/qyl.mcp.generators/`
   emits the registration.
+- Tool classes are `partial`; every `[McpServerTool]`-decorated method is `partial` (placed directly before the
+  return type, after `public/internal` and any `static`/`async`). The upstream
+  `ModelContextProtocol.Analyzers.XmlToDescriptionGenerator` (1.2.0+) emits `[Description]` attributes onto a sibling
+  partial counterpart from XML `<summary>` / `<param>` docs. Do **not** write manual `[Description("…")]` attributes
+  on tool methods or parameters — XML docs are the single source. `MCP002` flags any tool method that violates this.
 - `TaskSupport`:
     - `Required` — async pipelines with side effects (`qyl.approve_fix_run`, `qyl.generate_fix`).
     - `Optional` — agent-invoking meta-tools and long-form searches (`qyl.use_qyl`, `qyl.root_cause_analysis`,
