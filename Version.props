@@ -17,7 +17,7 @@
     <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills + Testing).
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
     <ANcpLuaRoslynUtilitiesVersion>2.0.4</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAnalyzersVersion>1.27.2</ANcpLuaAnalyzersVersion>
+    <ANcpLuaAnalyzersVersion>1.27.6</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.4.0-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.5.2</ANcpLuaAgentsVersion>
     <!-- MAF 1.3 (released 2026-04-23). Only packages with consumers in this repo. -->
