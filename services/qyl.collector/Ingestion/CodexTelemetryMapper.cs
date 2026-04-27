@@ -105,11 +105,7 @@ public static class CodexTelemetryMapper
         var transformed = false;
 
         // Always set provider to OpenAI for Codex telemetry
-        if (!attributes.ContainsKey(GenAiAttributes.ProviderName))
-        {
-            attributes[GenAiAttributes.ProviderName] = GenAiAttributes.ProviderNameValues.Openai;
-            transformed = true;
-        }
+        transformed |= attributes.TryAdd(GenAiAttributes.ProviderName, GenAiAttributes.ProviderNameValues.Openai);
 
         // Map operation name from span name
         transformed |= MapOperationName(spanName, attributes);
@@ -229,24 +225,12 @@ public static class CodexTelemetryMapper
         if (!attributes.TryGetValue(CodexModel, out var model))
             return false;
 
-        var transformed = false;
+        var addedRequest = attributes.TryAdd(GenAiAttributes.RequestModel, model);
+        var addedResponse = attributes.TryGetValue(CodexSuccess, out var success)
+            && success.EqualsIgnoreCase("true")
+            && attributes.TryAdd(GenAiAttributes.ResponseModel, model);
 
-        if (!attributes.ContainsKey(GenAiAttributes.RequestModel))
-        {
-            attributes[GenAiAttributes.RequestModel] = model;
-            transformed = true;
-        }
-
-        // For completed requests, also set response model
-        if (attributes.TryGetValue(CodexSuccess, out var success) &&
-            success.EqualsIgnoreCase("true") &&
-            !attributes.ContainsKey(GenAiAttributes.ResponseModel))
-        {
-            attributes[GenAiAttributes.ResponseModel] = model;
-            transformed = true;
-        }
-
-        return transformed;
+        return addedRequest || addedResponse;
     }
 
     private static bool MapConversationId(IDictionary<string, string> attributes)
@@ -255,10 +239,9 @@ public static class CodexTelemetryMapper
         _ = attributes.TryGetValue(CodexConversationId, out var conversationId);
         conversationId ??= attributes.GetOrNull(CodexThreadId);
 
-        if (conversationId is null || attributes.ContainsKey(GenAiAttributes.ConversationId))
+        if (conversationId is null || !attributes.TryAdd(GenAiAttributes.ConversationId, conversationId))
             return false;
 
-        attributes[GenAiAttributes.ConversationId] = conversationId;
         return true;
     }
 
@@ -267,20 +250,12 @@ public static class CodexTelemetryMapper
         var transformed = false;
 
         // Map input tokens
-        if (attributes.TryGetValue(CodexInputTokens, out var inputTokens) &&
-            !attributes.ContainsKey(GenAiAttributes.UsageInputTokens))
-        {
-            attributes[GenAiAttributes.UsageInputTokens] = inputTokens;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexInputTokens, out var inputTokens) &&
+                       attributes.TryAdd(GenAiAttributes.UsageInputTokens, inputTokens);
 
         // Map output tokens
-        if (attributes.TryGetValue(CodexOutputTokens, out var outputTokens) &&
-            !attributes.ContainsKey(GenAiAttributes.UsageOutputTokens))
-        {
-            attributes[GenAiAttributes.UsageOutputTokens] = outputTokens;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexOutputTokens, out var outputTokens) &&
+                       attributes.TryAdd(GenAiAttributes.UsageOutputTokens, outputTokens);
 
         return transformed;
     }
@@ -308,27 +283,15 @@ public static class CodexTelemetryMapper
         var transformed = false;
 
         // Map tool name
-        if (attributes.TryGetValue(CodexToolName, out var toolName) &&
-            !attributes.ContainsKey(GenAiAttributes.ToolName))
-        {
-            attributes[GenAiAttributes.ToolName] = toolName;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexToolName, out var toolName) &&
+                       attributes.TryAdd(GenAiAttributes.ToolName, toolName);
 
         // Map tool type (Codex tools are function-based)
-        if (toolName is not null && !attributes.ContainsKey(GenAiAttributes.ToolType))
-        {
-            attributes[GenAiAttributes.ToolType] = "function";
-            transformed = true;
-        }
+        transformed |= toolName is not null && attributes.TryAdd(GenAiAttributes.ToolType, "function");
 
         // Map tool result to tool.call.result
-        if (attributes.TryGetValue(CodexToolOutput, out var toolOutput) &&
-            !attributes.ContainsKey(GenAiAttributes.ToolCallResult))
-        {
-            attributes[GenAiAttributes.ToolCallResult] = toolOutput;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexToolOutput, out var toolOutput) &&
+                       attributes.TryAdd(GenAiAttributes.ToolCallResult, toolOutput);
 
         return transformed;
     }
@@ -338,20 +301,12 @@ public static class CodexTelemetryMapper
         var transformed = false;
 
         // Map error type
-        if (attributes.TryGetValue(CodexErrorType, out var errorType) &&
-            !attributes.ContainsKey(ErrorAttributes.Type))
-        {
-            attributes[ErrorAttributes.Type] = errorType;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexErrorType, out var errorType) &&
+                       attributes.TryAdd(ErrorAttributes.Type, errorType);
 
         // Map error message to exception.message
-        if (attributes.TryGetValue(CodexErrorMessage, out var errorMessage) &&
-            !attributes.ContainsKey(ExceptionAttributes.Message))
-        {
-            attributes[ExceptionAttributes.Message] = errorMessage;
-            transformed = true;
-        }
+        transformed |= attributes.TryGetValue(CodexErrorMessage, out var errorMessage) &&
+                       attributes.TryAdd(ExceptionAttributes.Message, errorMessage);
 
         return transformed;
     }
