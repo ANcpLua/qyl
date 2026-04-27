@@ -10,7 +10,7 @@ internal sealed class FixabilityExecutor(
     : Executor<AutofixWorkflowRequest, FixabilityVerdict>(id)
 {
     public override async ValueTask<FixabilityVerdict> HandleAsync(
-        AutofixWorkflowRequest request, IWorkflowContext _, CancellationToken ct = default)
+        AutofixWorkflowRequest request, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var prompt = $"""
                       Issue id: {request.IssueId}
@@ -30,6 +30,7 @@ internal sealed class FixabilityExecutor(
 
         state.Record(request.RunId, verdict);
         await ledger.RecordFixabilityAsync(verdict, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new FixabilityRecorded(verdict), ct).ConfigureAwait(false);
 
         return verdict;
     }

@@ -11,7 +11,7 @@ internal sealed class HypothesisExecutor(
     : Executor<ContextSummary, HypothesisVerdict>(id)
 {
     public override async ValueTask<HypothesisVerdict> HandleAsync(
-        ContextSummary context, IWorkflowContext _, CancellationToken ct = default)
+        ContextSummary context, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var found = string.Join("\n", context.SignalsFound.Select(static s => $"- {s}"));
         var absent = string.Join("\n", context.SignalsAbsent.Select(static s => $"- {s}"));
@@ -46,6 +46,7 @@ internal sealed class HypothesisExecutor(
 
         state.Record(context.RunId, verdict);
         await ledger.RecordHypothesisAsync(verdict, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new HypothesisRecorded(verdict), ct).ConfigureAwait(false);
 
         return verdict;
     }

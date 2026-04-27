@@ -52,11 +52,12 @@ builder.Services.AddSingleton<IQylLoomAgentsBuilder, QylLoomAgentsBuilder>();
 builder.Services.AddSingleton<IQylLoomWorkflowBuilder, QylLoomWorkflowBuilder>();
 
 // Autofix workflow infrastructure — per-run state, run registry, step ledger,
-// workflow factory. All singleton; per-run state keyed by runId.
+// lifecycle bus, workflow factory. All singleton; per-run state keyed by runId.
 builder.Services.AddSingleton<AutofixReportAssemblyState>();
 builder.Services.AddSingleton<AutofixRunRegistry>();
 builder.Services.AddSingleton<AutofixContextLoader>();
 builder.Services.AddSingleton<IAutofixStepLedger, CollectorAutofixStepLedger>();
+builder.Services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>();
 builder.Services.AddSingleton<AutofixWorkflowFactory>();
 
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
@@ -141,6 +142,16 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, pr.PrUrl, pr.Error));
 });
 
+// ── Autofix workflow lifecycle SSE ──────────────────────────────────────────
+
+app.MapGet("/api/v1/loom/autofix/{runId}/lifecycle", (
+        string runId,
+        IAutofixLifecycleBus bus,
+        CancellationToken ct) =>
+    TypedResults.ServerSentEvents(
+        StreamLifecycleAsync(bus, runId, ct),
+        null));
+
 // ── Code review endpoints ───────────────────────────────────────────────────
 
 app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", async (
@@ -186,6 +197,17 @@ app.Run();
 return;
 
 // ── SSE helper ──────────────────────────────────────────────────────────────
+
+static async IAsyncEnumerable<SseItem<AutofixLifecycleEnvelope>> StreamLifecycleAsync(
+    IAutofixLifecycleBus bus,
+    string runId,
+    [EnumeratorCancellation] CancellationToken ct)
+{
+    await foreach (var envelope in bus.SubscribeAsync(runId, ct).ConfigureAwait(false))
+    {
+        yield return new SseItem<AutofixLifecycleEnvelope>(envelope, envelope.Kind);
+    }
+}
 
 static async IAsyncEnumerable<SseItem<StreamUpdate>> StreamExploreAsync(
     ExplorationOrchestrator orchestrator,

@@ -54,6 +54,7 @@ internal sealed class ReportExecutor(
         };
 
         await ledger.RecordReportAsync(audit.RunId, finalReport, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new ReportRecorded(audit.RunId, finalReport), ct).ConfigureAwait(false);
 
         await ctx.YieldOutputAsync(new AutofixWorkflowResult(audit.RunId, report), ct).ConfigureAwait(false);
     }

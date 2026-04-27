@@ -13,7 +13,8 @@ internal sealed partial class LoomAutofixRunner(
     IQylLoomAgentsBuilder agents,
     IQylLoomWorkflowBuilder workflows,
     AutofixRunRegistry registry,
-    AutofixReportAssemblyState assembly)
+    AutofixReportAssemblyState assembly,
+    IAutofixLifecycleBus lifecycle)
 {
     public Task RunAsync(string runId, CancellationToken ct = default) =>
         RunAsync(runId, AutofixWorkflowDefaults.Config, ct);
@@ -105,24 +106,46 @@ internal sealed partial class LoomAutofixRunner(
             config);
 
         await using var execution = await InProcessExecution
-            .RunStreamingAsync(workflow, request, cancellationToken: ct)
+            .RunStreamingAsync(workflow, request, CheckpointManager.Default, run.RunId, ct)
             .ConfigureAwait(false);
 
         AutofixWorkflowResult? final = null;
 
-        await foreach (var evt in execution.WatchStreamAsync(ct).ConfigureAwait(false))
+        try
         {
-            if (evt is WorkflowOutputEvent { Data: AutofixWorkflowResult result })
+            await foreach (var evt in execution.WatchStreamAsync(ct).ConfigureAwait(false))
             {
-                final = result;
-                break;
+                switch (evt)
+                {
+                    case AutofixLifecycleEvent lifecycleEvent:
+                        lifecycle.Publish(run.RunId, ToEnvelope(lifecycleEvent));
+                        break;
+
+                    case WorkflowOutputEvent { Data: AutofixWorkflowResult result }:
+                        final = result;
+                        break;
+                }
+
+                if (final is not null) break;
             }
+        }
+        finally
+        {
+            lifecycle.Complete(run.RunId);
         }
 
         return final?.Report
                ?? throw new InvalidOperationException(
                    $"Autofix workflow for run {run.RunId} terminated without emitting AutofixWorkflowResult.");
     }
+
+    private static AutofixLifecycleEnvelope ToEnvelope(AutofixLifecycleEvent evt) =>
+        new(
+            evt.RunId,
+            evt.Stage,
+            evt.GetType().Name,
+            JsonSerializer.Serialize<object>(evt.Data),
+            DateTimeOffset.UtcNow);
 
     private static string BuildChangesJson(AutofixReport report) =>
         JsonSerializer.Serialize(new

@@ -52,12 +52,43 @@ internal sealed class AutofixWorkflowFactory(
             state,
             ledger);
 
-        return new WorkflowBuilder(fixability)
+        var workflowBuilder = new WorkflowBuilder(fixability)
             .AddEdge(fixability, context)
-            .AddEdge(context, hypothesis)
-            .AddEdge(hypothesis, solution)
-            .AddEdge(solution, confidence)
-            .AddEdge(confidence, report)
+            .AddEdge(context, hypothesis);
+
+        // Stopping point #1 — pre-solution review (HITL).
+        if (config.StoppingPointAfterHypothesis)
+        {
+            var gate = new StoppingPointGateExecutor<HypothesisVerdict>(
+                "loom.autofix.gate.pre_solution", "pre_solution");
+            workflowBuilder = workflowBuilder
+                .AddEdge(hypothesis, gate)
+                .AddExternalCall<HypothesisVerdict, HypothesisVerdict>(gate, "loom.autofix.review.pre_solution")
+                .ForwardMessage<HypothesisVerdict>("loom.autofix.review.pre_solution", [solution]);
+        }
+        else
+        {
+            workflowBuilder = workflowBuilder.AddEdge(hypothesis, solution);
+        }
+
+        workflowBuilder = workflowBuilder.AddEdge(solution, confidence);
+
+        // Stopping point #2 — pre-commit review (HITL).
+        if (config.StoppingPointBeforeCommit)
+        {
+            var gate = new StoppingPointGateExecutor<ConfidenceAudit>(
+                "loom.autofix.gate.pre_commit", "pre_commit");
+            workflowBuilder = workflowBuilder
+                .AddEdge(confidence, gate)
+                .AddExternalCall<ConfidenceAudit, ConfidenceAudit>(gate, "loom.autofix.review.pre_commit")
+                .ForwardMessage<ConfidenceAudit>("loom.autofix.review.pre_commit", [report]);
+        }
+        else
+        {
+            workflowBuilder = workflowBuilder.AddEdge(confidence, report);
+        }
+
+        return workflowBuilder
             .WithOutputFrom(report)
             .WithName("Qyl.Loom.Autofix.Workflow")
             .Build();

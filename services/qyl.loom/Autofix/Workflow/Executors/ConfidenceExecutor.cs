@@ -11,7 +11,7 @@ internal sealed class ConfidenceExecutor(
     : Executor<SolutionDraft, ConfidenceAudit>(id)
 {
     public override async ValueTask<ConfidenceAudit> HandleAsync(
-        SolutionDraft draft, IWorkflowContext _, CancellationToken ct = default)
+        SolutionDraft draft, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var prompt = $"""
                       ## Solution under audit
@@ -52,6 +52,7 @@ internal sealed class ConfidenceExecutor(
 
         state.Record(draft.RunId, audit);
         await ledger.RecordConfidenceAsync(audit, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new ConfidenceRecorded(audit), ct).ConfigureAwait(false);
 
         return audit;
     }

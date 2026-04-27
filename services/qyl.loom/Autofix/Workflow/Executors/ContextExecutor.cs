@@ -11,7 +11,7 @@ internal sealed class ContextExecutor(
     : Executor<FixabilityVerdict, ContextSummary>(id)
 {
     public override async ValueTask<ContextSummary> HandleAsync(
-        FixabilityVerdict verdict, IWorkflowContext _, CancellationToken ct = default)
+        FixabilityVerdict verdict, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var loaded = await loader.LoadAsync(verdict.RunId, ct).ConfigureAwait(false);
 
@@ -39,6 +39,7 @@ internal sealed class ContextExecutor(
 
         state.Record(verdict.RunId, summary);
         await ledger.RecordContextAsync(summary, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new ContextRecorded(summary), ct).ConfigureAwait(false);
 
         return summary;
     }

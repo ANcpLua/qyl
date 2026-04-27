@@ -10,7 +10,7 @@ internal sealed class SolutionExecutor(
     : Executor<HypothesisVerdict, SolutionDraft>(id)
 {
     public override async ValueTask<SolutionDraft> HandleAsync(
-        HypothesisVerdict verdict, IWorkflowContext _, CancellationToken ct = default)
+        HypothesisVerdict verdict, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var prompt = $"""
                       ## Chosen hypothesis (iteration {verdict.RetryIteration})
@@ -31,6 +31,7 @@ internal sealed class SolutionExecutor(
 
         state.Record(verdict.RunId, draft);
         await ledger.RecordSolutionAsync(draft, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new SolutionRecorded(draft), ct).ConfigureAwait(false);
 
         return draft;
     }
