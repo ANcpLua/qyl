@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Sessions;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetSessionTool(HttpClient client)
+public sealed partial class GetSessionTool(HttpClient client)
 {
     [McpServerTool(
         Name = "get_session",
@@ -21,9 +20,8 @@ public sealed class GetSessionTool(HttpClient client)
         ReadOnly = true,
         Destructive = false,
         OpenWorld = false)]
-    [Description("Get full details of a debugging session including associated traces.")]
-    public async Task<string> GetSession(
-        [Description("Session ID to look up")] string sessionId,
+    public async partial Task<string> GetSession(
+        string sessionId,
         CancellationToken ct = default)
     {
         using var response = await client

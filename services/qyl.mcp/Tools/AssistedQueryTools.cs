@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -13,22 +12,14 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class AssistedQueryTools(HttpClient http, IQylMcpAgentsBuilder agents)
+internal sealed partial class AssistedQueryTools(HttpClient http, IQylMcpAgentsBuilder agents)
 {
 
     [McpServerTool(Name = "qyl.assisted_query", Title = "Assisted Query",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Ask a question about your observability data in natural language.
-                 Translates your question to DuckDB SQL, executes it, and returns formatted results.
-                 Examples: "What are the top 5 errors by count?", "Show traces slower than 2 seconds",
-                 "Which services had errors in the last hour?"
-                 """)]
-    public async Task<string> AssistedQueryAsync(
-        [Description("Your question about the observability data")]
+    public async partial Task<string> AssistedQueryAsync(
         string question,
-        [Description("Maximum rows to return (default: 50)")]
         int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>

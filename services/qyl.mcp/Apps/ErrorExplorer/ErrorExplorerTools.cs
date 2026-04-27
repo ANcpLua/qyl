@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -15,7 +14,7 @@ namespace qyl.mcp.Apps.ErrorExplorer;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Apps)]
-public sealed class ErrorExplorerTools(HttpClient client)
+public sealed partial class ErrorExplorerTools(HttpClient client)
 {
     private const string AppUri = "ui://qyl/error-explorer";
 
@@ -28,18 +27,9 @@ public sealed class ErrorExplorerTools(HttpClient client)
     [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.error_explorer", Title = "Error Explorer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Open the Error Explorer interactive UI showing grouped error issues.
-                 Returns error groups as text AND signals the interactive UI resource.
-
-                 Example: error_explorer(status="unresolved", limit=50)
-                 """)]
-    public async Task<CallToolResult> ExploreErrorsAsync(
-        [Description("Filter by status: 'unresolved', 'resolved', 'ignored'")]
+    public async partial Task<CallToolResult> ExploreErrorsAsync(
         string? status = null,
-        [Description("Filter by service name")]
         string? service = null,
-        [Description("Maximum error groups (default: 50)")]
         int limit = 50)
     {
         var text = await CollectorHelper.ExecuteAsync(async () =>

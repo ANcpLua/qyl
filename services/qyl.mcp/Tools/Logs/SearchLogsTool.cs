@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Logs;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class SearchLogsTool(HttpClient client)
+public sealed partial class SearchLogsTool(HttpClient client)
 {
     /// <summary>
     ///     Searches structured logs matching a query, returning a paginated list of log entries.
@@ -29,14 +28,10 @@ public sealed class SearchLogsTool(HttpClient client)
     [McpServerTool(Name = "search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]
-    public async Task<string> SearchLogsAsync(
-        [Description("Search query (required)")]
+    public async partial Task<string> SearchLogsAsync(
         string query,
-        [Description("Filter by project slug")]
         string? projectSlug = null,
-        [Description("Cursor for pagination")] string? cursor = null,
-        [Description("Maximum results per page (1-100, default 25)")]
+        string? cursor = null,
         int limit = 25,
         CancellationToken ct = default)
     {

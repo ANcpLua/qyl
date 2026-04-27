@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Triage;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class SnoozeErrorTool(HttpClient client)
+public sealed partial class SnoozeErrorTool(HttpClient client)
 {
     private static readonly HashSet<string> ValidDurations = ["1h", "6h", "24h", "7d", "30d"];
 
@@ -24,14 +23,9 @@ public sealed class SnoozeErrorTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description(
-        "Snooze (temporarily ignore) an error issue for a specified duration. Valid durations: 1h, 6h, 24h, 7d, 30d.")]
-    public async Task<string> SnoozeError(
-        [Description("Error issue ID to snooze")]
+    public async partial Task<string> SnoozeError(
         string issueId,
-        [Description("Snooze duration: 1h, 6h, 24h, 7d, or 30d")]
         string duration,
-        [Description("Optional reason for snoozing")]
         string? reason = null,
         CancellationToken ct = default)
     {

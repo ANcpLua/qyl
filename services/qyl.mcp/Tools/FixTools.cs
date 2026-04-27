@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Protocol;
@@ -13,23 +12,13 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class FixTools(HttpClient http)
+internal sealed partial class FixTools(HttpClient http)
 {
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Required)]
-    [Description("""
-                 Enqueue the Loom autofix job in the collector.
-
-                 The fix run is created in the collector and processed asynchronously by
-                 Loom background workers. This tool does not execute RCA or patch generation.
-
-                 Returns: Typed envelope containing created run details.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomFixRunDto>> GenerateFixAsync(
-        [Description("The error issue ID to generate a fix for")]
+    public async partial Task<LoomToolEnvelope<LoomFixRunDto>> GenerateFixAsync(
         string issueId,
-        [Description("Fix policy: auto_apply, require_review (default), dry_run")]
         string? policy = null,
         CancellationToken ct = default)
     {

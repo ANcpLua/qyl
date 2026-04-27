@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,25 +13,12 @@ namespace qyl.mcp.Apps.QueryStudio;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Apps)]
-internal sealed class QueryStudioTools(HttpClient client)
+internal sealed partial class QueryStudioTools(HttpClient client)
 {
     [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.query_studio", Title = "Query Studio",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Opens the Query Studio — an interactive DuckDB query console.
-
-                 Features:
-                 - SQL editor with syntax highlighting and Ctrl+Enter execution
-                 - Results table with sortable columns and pagination
-                 - Schema browser sidebar with table/column tree view
-                 - Preset queries for common observability patterns
-                 - Bar chart and line chart visualizations
-                 - Query history (last 10 queries)
-
-                 The tool returns schema information and preset queries to bootstrap the UI.
-                 """)]
-    public Task<string> OpenQueryStudioAsync() =>
+    public partial Task<string> OpenQueryStudioAsync() =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var schema = await FetchSchemaAsync().ConfigureAwait(false);
@@ -49,19 +35,8 @@ internal sealed class QueryStudioTools(HttpClient client)
     [QylCapability("mcp_apps", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.app.execute_query", Title = "Execute Query",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Executes a DuckDB SQL query and returns structured results.
-
-                 Only SELECT and WITH (CTE) queries are allowed.
-                 Returns column names, types, row data, execution time, and row count.
-
-                 The collector enforces a safety LIMIT (max 10,000 rows).
-                 Forbidden keywords (INSERT, UPDATE, DELETE, DROP, etc.) are rejected.
-                 """)]
-    public Task<string> ExecuteQueryAsync(
-        [Description("The SQL query to execute (SELECT or WITH only)")]
+    public partial Task<string> ExecuteQueryAsync(
         string sql,
-        [Description("Maximum rows to return (default: 100, max: 10000)")]
         int limit = 100,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
@@ -123,13 +98,7 @@ internal sealed class QueryStudioTools(HttpClient client)
     [QylCapability("mcp_apps", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.app.query_schema", Title = "Query Schema",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Returns the DuckDB schema for autocomplete and the schema browser.
-
-                 Lists all tables and their columns with data types.
-                 Uses information_schema views to introspect the live database.
-                 """)]
-    public Task<string> QuerySchemaAsync(CancellationToken ct = default) =>
+    public partial Task<string> QuerySchemaAsync(CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var schema = await FetchSchemaAsync(ct).ConfigureAwait(false);

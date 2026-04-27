@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 ancplua
 
-using System.ComponentModel;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Lsp;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Debug)]
-internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier editApplier)
+internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier editApplier)
 {
     /// <summary>Go to definition of the symbol at the given 1-based position.</summary>
     [QylCapability("lsp_code_intelligence")]
@@ -21,12 +20,10 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         Name = "lsp_goto_definition", Title = "Go to Definition",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Go to the definition of the symbol at the given 1-based line/column in a source file.")]
-    public Task<string> GotoDefinitionAsync(
-        [Description("Absolute path to the source file")]
+    public partial Task<string> GotoDefinitionAsync(
         string filePath,
-        [Description("1-based line number")] int line,
-        [Description("1-based column number")] int column,
+        int line,
+        int column,
         CancellationToken ct = default) =>
         RunAsync(async () =>
         {
@@ -42,13 +39,10 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         Name = "lsp_find_references", Title = "Find References",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Find all references to the symbol at the given 1-based line/column across the workspace.")]
-    public Task<string> FindReferencesAsync(
-        [Description("Absolute path to the source file")]
+    public partial Task<string> FindReferencesAsync(
         string filePath,
-        [Description("1-based line number")] int line,
-        [Description("1-based column number")] int column,
-        [Description("Include the declaration itself in the result list")]
+        int line,
+        int column,
         bool includeDeclaration = true,
         CancellationToken ct = default) =>
         RunAsync(async () =>
@@ -70,13 +64,8 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         Name = "lsp_symbols", Title = "Symbols",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "List symbols in a document, or query workspace symbols when 'query' is provided. A source file is always required to anchor the workspace.")]
-    public Task<string> SymbolsAsync(
-        [Description("Absolute path to a source file (anchors the workspace root)")]
+    public partial Task<string> SymbolsAsync(
         string filePath,
-        [Description(
-            "Optional workspace symbol query. When provided, returns workspace matches instead of document symbols.")]
         string? query = null,
         CancellationToken ct = default) =>
         RunAsync(async () =>
@@ -98,9 +87,7 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         Name = "lsp_diagnostics", Title = "Diagnostics",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Return compiler/analyzer diagnostics for a source file.")]
-    public Task<string> DiagnosticsAsync(
-        [Description("Absolute path to the source file")]
+    public partial Task<string> DiagnosticsAsync(
         string filePath,
         CancellationToken ct = default) =>
         RunAsync(async () =>
@@ -115,12 +102,10 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
     [McpServerTool(
         Name = "lsp_prepare_rename", Title = "Prepare Rename",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Validate whether the symbol at the given 1-based line/column can be renamed.")]
-    public Task<string> PrepareRenameAsync(
-        [Description("Absolute path to the source file")]
+    public partial Task<string> PrepareRenameAsync(
         string filePath,
-        [Description("1-based line number")] int line,
-        [Description("1-based column number")] int column,
+        int line,
+        int column,
         CancellationToken ct = default) =>
         RunAsync(async () =>
         {
@@ -138,14 +123,10 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         Name = "lsp_rename", Title = "Rename Symbol",
         ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "Rename the symbol at the given 1-based line/column across the workspace. Writes the WorkspaceEdit to disk.")]
-    public Task<string> RenameAsync(
-        [Description("Absolute path to the source file")]
+    public partial Task<string> RenameAsync(
         string filePath,
-        [Description("1-based line number")] int line,
-        [Description("1-based column number")] int column,
-        [Description("New identifier to assign at this location")]
+        int line,
+        int column,
         string newName,
         CancellationToken ct = default) =>
         RunAsync(async () =>

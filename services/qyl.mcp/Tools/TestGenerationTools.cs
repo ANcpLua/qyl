@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -13,21 +12,14 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class TestGenerationTools(HttpClient http, IQylMcpAgentsBuilder agents)
+internal sealed partial class TestGenerationTools(HttpClient http, IQylMcpAgentsBuilder agents)
 {
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Generate a regression test based on an error issue.
-                 Fetches the error's stack trace, context, and events,
-                 then uses an LLM to produce test code that would detect
-                 if this error reoccurs. Supports C#/xUnit and TypeScript/Jest.
-                 """)]
-    public async Task<string> GenerateTestAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("Target test framework: 'xunit' (default) or 'jest'")]
+    public async partial Task<string> GenerateTestAsync(
+        string issueId,
         string? framework = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>

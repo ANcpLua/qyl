@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Protocol;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Analysis;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-public sealed class SuggestFixTool(HttpClient client)
+public sealed partial class SuggestFixTool(HttpClient client)
 {
     /// <summary>
     ///     Analyzes error spans in a trace and proposes context-aware remediation steps.
@@ -30,11 +29,8 @@ public sealed class SuggestFixTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Suggest fixes for errors in a trace. Analyzes error spans and proposes remediation steps.")]
-    public async Task<string> SuggestFixAsync(
-        [Description("Trace ID containing errors to analyze")]
+    public async partial Task<string> SuggestFixAsync(
         string traceId,
-        [Description("Specific error message to focus on")]
         string? errorMessage = null,
         CancellationToken ct = default)
     {

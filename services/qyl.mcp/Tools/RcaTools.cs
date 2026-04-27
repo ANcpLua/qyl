@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -15,7 +14,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
+internal sealed partial class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
 {
 
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
@@ -23,26 +22,8 @@ internal sealed class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder a
     [McpServerTool(Name = "qyl.root_cause_analysis", Title = "Root Cause Analysis",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Perform AI-powered root cause analysis on an error issue.
-
-                 Uses a multi-phase investigation approach:
-                 1. Error Characterization -- understand the error
-                 2. Correlation -- cross-reference with traces, logs, metrics
-                 3. Root Cause Identification -- synthesize findings
-
-                 The agent has access to error, anomaly, storage, and log tools
-                 to autonomously investigate the issue.
-
-                 Requires QYL_AGENT_API_KEY to be configured.
-
-                 Returns: Structured RCA report with root cause, evidence,
-                          timeline, recommendations, and confidence level
-                 """)]
-    public async Task<string> RootCauseAnalysisAsync(
-        [Description("The error issue ID to investigate")]
+    public async partial Task<string> RootCauseAnalysisAsync(
         string issueId,
-        [Description("Additional context: time range, suspected cause, recent deploys")]
         string? context = null,
         CancellationToken ct = default)
     {

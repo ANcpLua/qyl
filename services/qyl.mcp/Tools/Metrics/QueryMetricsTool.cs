@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Metrics;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class QueryMetricsTool(HttpClient client)
+public sealed partial class QueryMetricsTool(HttpClient client)
 {
     [McpServerTool(
         Name = "query_metrics",
@@ -22,17 +21,11 @@ public sealed class QueryMetricsTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Query time-series data for a specific metric with optional filtering and time range.")]
-    public async Task<string> QueryMetrics(
-        [Description("Metric name (e.g. 'http.server.request.duration')")]
+    public async partial Task<string> QueryMetrics(
         string name,
-        [Description("Filter expression (e.g. 'service=api-gateway')")]
         string? filter = null,
-        [Description("Start time in ISO 8601 format")]
         string? from = null,
-        [Description("End time in ISO 8601 format")]
         string? to = null,
-        [Description("Aggregation interval (e.g. '5m', '1h', '1d')")]
         string? interval = null,
         CancellationToken ct = default)
     {

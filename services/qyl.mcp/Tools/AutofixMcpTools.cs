@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -14,18 +13,13 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class AutofixMcpTools(HttpClient http)
+internal sealed partial class AutofixMcpTools(HttpClient http)
 {
     [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.list_fix_runs", Title = "List Fix Runs",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 List fix runs for an error issue, ordered by most recent first.
-                 Returns run metadata as typed JSON for machine-readability.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomFixRunList>> ListFixRunsAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("Maximum number of runs to return (default: 10)")]
+    public async partial Task<LoomToolEnvelope<LoomFixRunList>> ListFixRunsAsync(
+        string issueId,
         int? limit = null,
         CancellationToken ct = default)
     {
@@ -57,13 +51,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_fix_run", Title = "Get Fix Run Details",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Get full details of a specific fix run.
-                 Includes status, policy, confidence score, and patch metadata.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomFixRunDto>> GetFixRunAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID")] string runId,
+    public async partial Task<LoomToolEnvelope<LoomFixRunDto>> GetFixRunAsync(
+        string issueId,
+        string runId,
         CancellationToken ct = default)
     {
         var uri = new Uri(
@@ -96,13 +86,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_fix_run_steps", Title = "Get Fix Run Pipeline Steps",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Get the individual pipeline steps for a fix run.
-                 Shows status, timing, and input/output metadata.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomAutofixStepList>> GetFixRunStepsAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID")] string runId,
+    public async partial Task<LoomToolEnvelope<LoomAutofixStepList>> GetFixRunStepsAsync(
+        string issueId,
+        string runId,
         CancellationToken ct = default)
     {
         var uri = new Uri(
@@ -136,13 +122,8 @@ internal sealed class AutofixMcpTools(HttpClient http)
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
         ReadOnly = false, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Required)]
-    [Description("""
-                 Approve a fix run that is in 'review' status.
-                 This transitions the fix run to 'applied' status.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> ApproveFixRunAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID to approve")]
+    public async partial Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> ApproveFixRunAsync(
+        string issueId,
         string runId,
         CancellationToken ct = default)
     {
@@ -179,15 +160,9 @@ internal sealed class AutofixMcpTools(HttpClient http)
 
     [McpServerTool(Name = "qyl.reject_fix_run", Title = "Reject Fix Run",
         ReadOnly = false, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Reject a fix run that is in 'review' status.
-                 Optionally provide a reason for rejection.
-                 """)]
-    public async Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> RejectFixRunAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID to reject")]
+    public async partial Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> RejectFixRunAsync(
+        string issueId,
         string runId,
-        [Description("Optional reason for rejection")]
         string? reason = null,
         CancellationToken ct = default)
     {

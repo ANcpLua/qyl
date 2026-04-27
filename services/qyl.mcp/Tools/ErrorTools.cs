@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ErrorTools(HttpClient client)
+public sealed partial class ErrorTools(HttpClient client)
 {
     /// <summary>Lists fingerprinted error groups (issues) with optional filtering.</summary>
     /// <param name="status">Filter by issue status (e.g. 'unresolved', 'resolved').</param>
@@ -25,30 +24,10 @@ public sealed class ErrorTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List fingerprinted error groups (issues) with optional filtering.
-
-                 Shows grouped errors with:
-                 - Title and error type
-                 - Status (unresolved, acknowledged, investigating, resolved, etc.)
-                 - Priority and occurrence count
-                 - First/last seen timestamps
-
-                 Example queries:
-                 - All unresolved: list_error_issues(status="unresolved")
-                 - High priority: list_error_issues(priority="high")
-                 - Recent errors: list_error_issues(limit=10)
-
-                 Returns: List of error issues with details
-                 """)]
-    public Task<string> ListErrorIssuesAsync(
-        [Description("Filter by status: 'unresolved', 'acknowledged', 'investigating', 'resolved', 'ignored'")]
+    public partial Task<string> ListErrorIssuesAsync(
         string? status = null,
-        [Description("Filter by priority: 'critical', 'high', 'medium', 'low'")]
         string? priority = null,
-        [Description("Filter by level: 'error', 'warning', 'fatal'")]
         string? level = null,
-        [Description("Maximum issues to return (default: 50)")]
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -85,28 +64,9 @@ public sealed class ErrorTools(HttpClient client)
     [QylCapability("error_investigation")]
     [McpServerTool(Name = "qyl.get_error_issue", Title = "Get Error Issue",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Get detailed information about a specific error issue, optionally with recent events.
-
-                 Shows:
-                 - Issue metadata (title, type, category, level, status, priority)
-                 - Occurrence and affected user counts
-                 - First/last seen timestamps
-                 - Culprit and assignee
-                 - Recent event list with stack traces (if includeEvents is true)
-
-                 Example queries:
-                 - Full details: get_error_issue(issueId="abc123")
-                 - Without events: get_error_issue(issueId="abc123", includeEvents=false)
-
-                 Returns: Detailed error issue with optional recent events
-                 """)]
-    public Task<string> GetErrorIssueAsync(
-        [Description("The issue ID to retrieve")]
+    public partial Task<string> GetErrorIssueAsync(
         string issueId,
-        [Description("Include recent events with stack traces (default: true)")]
         bool includeEvents = true,
-        [Description("Maximum events to return (default: 10)")]
         int eventLimit = 10) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -185,22 +145,8 @@ public sealed class ErrorTools(HttpClient client)
     [McpServerTool(Name = "qyl.find_similar_errors", Title = "Find Similar Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Find errors similar to a given span using embedding clusters.
-
-                 Uses vector similarity to find spans with similar error patterns.
-                 Useful for identifying related issues across different services.
-
-                 Example queries:
-                 - Find similar: find_similar_errors(spanId="abc123")
-                 - Limit results: find_similar_errors(spanId="abc123", limit=5)
-
-                 Returns: List of similar spans with cluster labels and similarity scores
-                 """)]
-    public Task<string> FindSimilarErrorsAsync(
-        [Description("The span ID to find similar errors for")]
+    public partial Task<string> FindSimilarErrorsAsync(
         string spanId,
-        [Description("Maximum similar spans to return (default: 10)")]
         int limit = 10) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -233,25 +179,9 @@ public sealed class ErrorTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_error_timeline", Title = "Get Error Timeline",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get error occurrence frequency over time for trend analysis.
-
-                 Shows how often an error occurs across time buckets.
-                 Useful for identifying spikes, regressions, or gradual improvements.
-
-                 Example queries:
-                 - Last 24 hours by hour: get_error_timeline(issueId="abc123")
-                 - Last week by 6h buckets: get_error_timeline(issueId="abc123", hours=168, bucketMinutes=360)
-                 - Last hour by minute: get_error_timeline(issueId="abc123", hours=1, bucketMinutes=1)
-
-                 Returns: Time-bucketed occurrence counts with ASCII sparkline
-                 """)]
-    public Task<string> GetErrorTimelineAsync(
-        [Description("The issue ID to get timeline for")]
+    public partial Task<string> GetErrorTimelineAsync(
         string issueId,
-        [Description("Time window in hours (default: 24)")]
         int hours = 24,
-        [Description("Bucket size in minutes (default: 60)")]
         int bucketMinutes = 60) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
