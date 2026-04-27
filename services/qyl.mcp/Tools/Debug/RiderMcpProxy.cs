@@ -59,7 +59,7 @@ internal sealed partial class RiderMcpProxy(
         _client = await McpClient.CreateAsync(_transport, cancellationToken: ct).ConfigureAwait(false);
         _connectedUrl = url;
 
-        LogConnected(_client.ServerInfo?.Name ?? "unknown");
+        LogConnected(_client.ServerInfo.Name);
 
         return _client;
     }

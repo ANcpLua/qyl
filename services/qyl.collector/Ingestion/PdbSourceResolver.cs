@@ -33,7 +33,7 @@ public sealed partial class PdbSourceResolver
 
         // Best-effort fallback: use current stack symbol info if available.
         var stackTrace = new StackTrace(true);
-        foreach (var frame in stackTrace.GetFrames() ?? [])
+        foreach (var frame in stackTrace.GetFrames())
         {
             if (frame.GetMethod() is not { } method)
                 continue;
