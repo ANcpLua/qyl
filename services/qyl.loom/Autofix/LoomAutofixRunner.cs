@@ -15,7 +15,8 @@ internal sealed partial class LoomAutofixRunner(
     AutofixRunRegistry registry,
     AutofixReportAssemblyState assembly,
     IAutofixLifecycleBus lifecycle,
-    AutofixRunConfigStore configStore)
+    AutofixRunConfigStore configStore,
+    CheckpointManager checkpointManager)
 {
     public Task RunAsync(string runId, CancellationToken ct = default)
     {
@@ -113,7 +114,7 @@ internal sealed partial class LoomAutofixRunner(
             config);
 
         await using var execution = await InProcessExecution
-            .RunStreamingAsync(workflow, request, CheckpointManager.Default, run.RunId, ct)
+            .RunStreamingAsync(workflow, request, checkpointManager, run.RunId, ct)
             .ConfigureAwait(false);
 
         AutofixWorkflowResult? final = null;

@@ -21,8 +21,12 @@ public interface IQylLoomAgentsBuilder
     /// <param name="config">Workflow configuration controlling <see cref="AutofixWorkflowConfig.ToolUsingContext"/> and <see cref="AutofixWorkflowConfig.ContextToolBudget"/>.</param>
     AIAgent BuildContextStageAgent(AutofixWorkflowConfig config);
 
-    /// <summary>Builds the hypothesis generation agent (multi-perspective single call).</summary>
-    AIAgent BuildHypothesisStageAgent();
+    /// <summary>Builds a single-perspective hypothesis-branch agent (one of N parallel fan-out branches).</summary>
+    /// <param name="perspective">The lens this branch should reason from (concurrency / data-shape / ...).</param>
+    AIAgent BuildHypothesisBranchAgent(string perspective);
+
+    /// <summary>Builds the hypothesis judge agent that picks the winning candidate after fan-in.</summary>
+    AIAgent BuildHypothesisJudgeAgent();
 
     /// <summary>Builds the solution drafting agent.</summary>
     AIAgent BuildSolutionStageAgent();

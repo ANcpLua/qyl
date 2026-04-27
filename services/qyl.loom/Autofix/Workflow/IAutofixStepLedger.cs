@@ -6,6 +6,7 @@ internal interface IAutofixStepLedger
 {
     ValueTask RecordFixabilityAsync(FixabilityVerdict verdict, CancellationToken ct);
     ValueTask RecordContextAsync(ContextSummary summary, CancellationToken ct);
+    ValueTask RecordHypothesisCandidateAsync(HypothesisCandidate candidate, CancellationToken ct);
     ValueTask RecordHypothesisAsync(HypothesisVerdict verdict, CancellationToken ct);
     ValueTask RecordSolutionAsync(SolutionDraft draft, CancellationToken ct);
     ValueTask RecordConfidenceAsync(ConfidenceAudit audit, CancellationToken ct);
@@ -32,6 +33,19 @@ internal sealed class CollectorAutofixStepLedger(CollectorClient collector) : IA
                 summary = summary.Summary,
                 signals_found = summary.SignalsFound,
                 signals_absent = summary.SignalsAbsent
+            }),
+            ct);
+
+    public ValueTask RecordHypothesisCandidateAsync(HypothesisCandidate candidate, CancellationToken ct) =>
+        // Sub-step 3a — one row per fan-out branch. The "step_number" stays 3 since
+        // the dashboard groups by step name; the perspective lands in output_json.
+        InsertAsync(candidate.RunId, 3, $"hypothesis.candidate.{candidate.BranchId}", "completed",
+            JsonSerializer.Serialize(new
+            {
+                branch = candidate.BranchId,
+                primary = candidate.Primary,
+                alternative = candidate.Alternative,
+                self_reported_confidence = candidate.SelfReportedConfidence
             }),
             ct);
 

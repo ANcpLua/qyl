@@ -2,25 +2,28 @@
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
+/// One perspective of a multi-hypothesis fan-out. Returns a HypothesisCandidate
+/// rather than the final HypothesisVerdict — the downstream HypothesisJudgeExecutor
+/// joins all branches via AddFanInBarrierEdge and selects the winner.
 internal sealed class HypothesisExecutor(
     string id,
+    string perspective,
     AIAgent agent,
-    AutofixWorkflowConfig config,
-    AutofixReportAssemblyState state,
     IAutofixStepLedger ledger)
-    : Executor<ContextSummary, HypothesisVerdict>(id)
+    : Executor<ContextSummary, HypothesisCandidate>(id)
 {
-    public override async ValueTask<HypothesisVerdict> HandleAsync(
+    public override async ValueTask<HypothesisCandidate> HandleAsync(
         ContextSummary context, IWorkflowContext ctx, CancellationToken ct = default)
     {
         var found = string.Join("\n", context.SignalsFound.Select(static s => $"- {s}"));
         var absent = string.Join("\n", context.SignalsAbsent.Select(static s => $"- {s}"));
 
         var prompt = $"""
-                      Generate {config.HypothesisFanOut} distinct candidate root-cause hypotheses for this
-                      issue, each from a different angle (concurrency / data shape / config drift / network /
-                      build / deploy). Then pick the strongest as primary, optionally rank one as alternative,
-                      and explain your judge rationale.
+                      Branch perspective: {perspective}
+
+                      Propose ONE primary root-cause hypothesis for this issue from the
+                      "{perspective}" lens. Optionally rank one alternative. Every claim must
+                      cite a signal from the context. Self-report your confidence 0..1.
 
                       ## Context summary
                       {context.Summary}
@@ -33,27 +36,25 @@ internal sealed class HypothesisExecutor(
                       """;
 
         var response = await agent
-            .RunAsync<HypothesisVerdictDraft>(prompt, cancellationToken: ct)
+            .RunAsync<HypothesisCandidateDraft>(prompt, cancellationToken: ct)
             .ConfigureAwait(false);
         var draft = response.Result;
 
-        var verdict = new HypothesisVerdict(
+        var candidate = new HypothesisCandidate(
             context.RunId,
+            perspective,
             draft.Primary,
             draft.Alternative,
-            draft.JudgeRationale ?? "(no rationale)",
-            RetryIteration: 0);
+            Math.Clamp(draft.SelfReportedConfidence, 0.0, 1.0));
 
-        state.Record(context.RunId, verdict);
-        await ledger.RecordHypothesisAsync(verdict, ct).ConfigureAwait(false);
-        await ctx.AddEventAsync(new HypothesisRecorded(verdict), ct).ConfigureAwait(false);
+        await ledger.RecordHypothesisCandidateAsync(candidate, ct).ConfigureAwait(false);
+        await ctx.AddEventAsync(new HypothesisCandidateRecorded(candidate), ct).ConfigureAwait(false);
 
-        return verdict;
+        return candidate;
     }
 
-    private sealed record HypothesisVerdictDraft(
+    private sealed record HypothesisCandidateDraft(
         string Primary,
         string? Alternative,
-        string? JudgeRationale,
-        IReadOnlyList<string>? CandidatesConsidered);
+        double SelfReportedConfidence);
 }

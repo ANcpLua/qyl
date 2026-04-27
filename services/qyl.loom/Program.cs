@@ -62,6 +62,13 @@ builder.Services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>
 builder.Services.AddSingleton<AutofixRunConfigStore>();
 builder.Services.AddSingleton<AutofixWorkflowFactory>();
 
+// Checkpoint persistence — file-backed JsonCheckpointStore so workflow runs
+// survive process restart and dashboard refresh. Root path configurable via
+// QYL_AUTOFIX_CHECKPOINT_ROOT env var; otherwise falls under the OS temp dir.
+builder.Services.AddSingleton<FileSystemAutofixCheckpointStore>();
+builder.Services.AddSingleton(sp =>
+    CheckpointManager.CreateJson(sp.GetRequiredService<FileSystemAutofixCheckpointStore>()));
+
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
 // RegressionDetectionService auto-register via [QylHostedService] through the
 // generator's QylGeneratedRegistry.RegisterQylHostedServices hook.

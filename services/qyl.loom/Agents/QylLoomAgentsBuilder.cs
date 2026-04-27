@@ -80,10 +80,15 @@ internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, Au
             .Build();
     }
 
-    public AIAgent BuildHypothesisStageAgent() =>
-        Compose("LoomAutofix.Hypothesis",
-            "Autofix Stage 3 — multi-perspective hypothesis with internal judge.",
+    public AIAgent BuildHypothesisBranchAgent(string perspective) =>
+        Compose($"LoomAutofix.Hypothesis.{perspective}",
+            $"Autofix Stage 3 — single-perspective hypothesis branch ({perspective}).",
             AutofixStagePrompts.Hypothesis);
+
+    public AIAgent BuildHypothesisJudgeAgent() =>
+        Compose("LoomAutofix.HypothesisJudge",
+            "Autofix Stage 3 — fan-in judge: picks the winning hypothesis candidate.",
+            AutofixStagePrompts.HypothesisJudge);
 
     public AIAgent BuildSolutionStageAgent() =>
         Compose("LoomAutofix.Solution",

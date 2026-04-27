@@ -21,6 +21,12 @@ internal sealed class ContextRecorded(ContextSummary summary)
     public ContextSummary Summary { get; } = summary;
 }
 
+internal sealed class HypothesisCandidateRecorded(HypothesisCandidate candidate)
+    : AutofixLifecycleEvent(candidate.RunId, "hypothesis.candidate", candidate)
+{
+    public HypothesisCandidate Candidate { get; } = candidate;
+}
+
 internal sealed class HypothesisRecorded(HypothesisVerdict verdict)
     : AutofixLifecycleEvent(verdict.RunId, "hypothesis", verdict)
 {

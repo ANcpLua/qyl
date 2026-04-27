@@ -40,6 +40,11 @@ internal sealed class ConfidenceExecutor(
             _ => "low"
         };
 
+        // retry_iteration is tracked on HypothesisVerdict — bump-counter lives in the
+        // judge. Gate retry_requested on the budget so the back-edge cycle terminates.
+        var hypothesisIter = state.Snapshot(draft.RunId).Hypothesis?.RetryIteration ?? 0;
+        var withinRetryBudget = hypothesisIter < config.MaxConfidenceRetries;
+
         var audit = new ConfidenceAudit(
             draft.RunId,
             level,
@@ -48,7 +53,7 @@ internal sealed class ConfidenceExecutor(
             Math.Clamp(d.RegressionGate, 0, 3),
             Math.Clamp(d.CompletenessGate, 0, 3),
             Math.Clamp(d.SelfChallengeGate, 0, 3),
-            d.RetryRequested && sum < config.ConfidenceRetryThreshold);
+            d.RetryRequested && sum < config.ConfidenceRetryThreshold && withinRetryBudget);
 
         state.Record(draft.RunId, audit);
         await ledger.RecordConfidenceAsync(audit, ct).ConfigureAwait(false);
