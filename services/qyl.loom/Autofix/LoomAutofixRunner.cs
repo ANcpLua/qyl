@@ -21,39 +21,53 @@ internal sealed partial class LoomAutofixRunner(
 {
     public async Task RunAsync(string runId, CancellationToken ct = default)
     {
-        if (!agents.IsConfigured)
+        try
         {
-            LogNoLlmConfigured(runId);
-            return;
-        }
+            if (!agents.IsConfigured)
+            {
+                LogNoLlmConfigured(runId);
+                return;
+            }
 
-        var run = await collector.GetFixRunAsync(runId, ct).ConfigureAwait(false);
-        if (run is null)
+            var run = await collector.GetFixRunAsync(runId, ct).ConfigureAwait(false);
+            if (run is null)
+            {
+                LogRunNotFound(runId);
+                return;
+            }
+
+            var config = ResolveConfig(runId, run);
+            await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
+        }
+        finally
         {
-            LogRunNotFound(runId);
-            return;
+            configStore.TryRemove(runId);
         }
-
-        var config = ResolveConfig(runId, run);
-        await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
     }
 
     public async Task RunAsync(string runId, AutofixWorkflowConfig config, CancellationToken ct = default)
     {
-        if (!agents.IsConfigured)
+        try
         {
-            LogNoLlmConfigured(runId);
-            return;
-        }
+            if (!agents.IsConfigured)
+            {
+                LogNoLlmConfigured(runId);
+                return;
+            }
 
-        var run = await collector.GetFixRunAsync(runId, ct).ConfigureAwait(false);
-        if (run is null)
+            var run = await collector.GetFixRunAsync(runId, ct).ConfigureAwait(false);
+            if (run is null)
+            {
+                LogRunNotFound(runId);
+                return;
+            }
+
+            await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
+        }
+        finally
         {
-            LogRunNotFound(runId);
-            return;
+            configStore.TryRemove(runId);
         }
-
-        await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
     }
 
     private AutofixWorkflowConfig ResolveConfig(string runId, FixRunRecord run)
@@ -138,9 +152,10 @@ internal sealed partial class LoomAutofixRunner(
         }
         finally
         {
+            // configStore cleanup runs in the outer RunAsync's finally so all early-exit
+            // paths (no LLM, missing run record) also drop the entry.
             registry.TryRemove(runId);
             assembly.TryRemove(runId);
-            configStore.TryRemove(runId);
         }
     }
 
