@@ -14,7 +14,7 @@ namespace Qyl.Loom.Autofix.Workflow;
 ///
 /// Path-traversal hardening — every <c>sessionId</c> / <c>checkpointId</c> is
 /// validated against <see cref="IsSafeIdentifier" /> (alphanumeric +
-/// dash/underscore only) before it touches <see cref="Path.Combine" />, so a
+/// dash/underscore only) before it touches <c>Path.Combine</c>, so a
 /// malicious <c>"../foo"</c> id can't escape the checkpoint root.
 internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configuration) : JsonCheckpointStore
 {
@@ -75,7 +75,7 @@ internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configurat
 
     private string SessionDir(string sessionId) => Path.Combine(_root, SafeFileName(sessionId));
 
-    /// Reject any id that could collapse <see cref="Path.Combine" /> back up to
+    /// Reject any id that could collapse <c>Path.Combine</c> back up to
     /// the checkpoint root or beyond. The contract between MAF and this store
     /// only ever passes mint-fresh GUID-like ids, so the validation just
     /// fail-closes on anything else; there is no caller-controlled use case
