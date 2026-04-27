@@ -50,7 +50,7 @@ interface IVerify : IHazSourcePaths
         .Description("Verify generated C# code compiles")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var paths = CodegenPaths.From(this);
             var generatedFiles = paths.Protocol.GlobFiles("**/*.g.cs")
@@ -66,37 +66,30 @@ interface IVerify : IHazSourcePaths
 
             Log.Information("Compiling {Count} generated files in isolation...", generatedFiles.Count);
 
-            var builder = new ProjectBuilder();
-            try
+            await using var builder = new ProjectBuilder();
+            builder
+                .WithTargetFramework(Tfm.Net100)
+                .WithOutputType(Val.Library)
+                .WithProperty(Prop.Nullable, Val.Enable)
+                .WithProperty(Prop.ImplicitUsings, Val.Enable);
+
+            foreach (var file in generatedFiles)
             {
-                builder
-                    .WithTargetFramework(Tfm.Net100)
-                    .WithOutputType(Val.Library)
-                    .WithProperty(Prop.Nullable, Val.Enable)
-                    .WithProperty(Prop.ImplicitUsings, Val.Enable);
-
-                foreach (var file in generatedFiles)
-                {
-                    var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
-                    builder.AddSource(relativePath, File.ReadAllText(file));
-                }
-
-                var result = builder.BuildAsync().GetAwaiter().GetResult();
-
-                if (result.Failed)
-                {
-                    foreach (var error in result.GetErrors())
-                        Log.Error("  {Error}", error);
-                    throw new InvalidOperationException(
-                        $"Generated code compilation failed with {result.GetErrors().Count()} error(s)");
-                }
-
-                Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
+                var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
+                builder.AddSource(relativePath, File.ReadAllText(file));
             }
-            finally
+
+            var result = await builder.BuildAsync();
+
+            if (result.Failed)
             {
-                builder.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                foreach (var error in result.GetErrors())
+                    Log.Error("  {Error}", error);
+                throw new InvalidOperationException(
+                    $"Generated code compilation failed with {result.GetErrors().Count()} error(s)");
             }
+
+            Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
         });
 
     /// <summary>
