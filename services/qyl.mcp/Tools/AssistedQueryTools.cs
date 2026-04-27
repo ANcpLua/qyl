@@ -42,7 +42,7 @@ internal sealed class AssistedQueryTools(HttpClient http, IQylMcpAgentsBuilder a
 
             var response = await agent.RunAsync(question, cancellationToken: ct).ConfigureAwait(false);
 
-            var sql = ExtractSql(response.Text);
+            var sql = ExtractSql(response.Text ?? string.Empty);
             if (string.IsNullOrWhiteSpace(sql))
                 return "Could not generate a valid SQL query from your question. Try rephrasing.";
 

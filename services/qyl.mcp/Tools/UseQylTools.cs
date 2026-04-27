@@ -65,7 +65,7 @@ internal sealed class UseQylTools(IServiceProvider services, IQylMcpAgentsBuilde
 
         var guardedTools = QylToolManifest
             .CreateTools(services, static type => type != typeof(UseQylTools))
-            .Select(AITool (tool) => investigation.Wrap(tool))
+            .Select(tool => (AITool)investigation.Wrap(tool))
             .ToArray();
 
         var agent = agents.BuildUseQylAgent(guardedTools);

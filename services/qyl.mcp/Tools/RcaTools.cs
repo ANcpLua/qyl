@@ -66,7 +66,7 @@ internal sealed class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder a
                 typeof(AnomalyTools),
                 typeof(SpanQueryTools),
                 typeof(StructuredLogTools))
-            .Select(AITool (tool) => investigation.Wrap(tool))
+            .Select(tool => (AITool)investigation.Wrap(tool))
             .ToArray();
 
         var agent = agents.BuildRcaAgent(guardedTools);
