@@ -1,29 +1,26 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools that fetch observability data via HTTP, then feed it to a
-///     <c>ChatClientAgent</c> for structured summarization. Combines the HTTP-delegating
-///     pattern from <see cref="GenAiTools" /> with the Apex-aligned agent construction
-///     (<c>_llm.AsAIAgent(new ChatClientAgentOptions { ChatOptions = { Instructions = ... } })</c>).
-///     No tools are attached — these are pure LLM-as-summarizer calls, so the default
-///     <c>FunctionInvokingChatClient</c> inserted by <c>AsAIAgent</c> is a no-op passthrough.
+///     <c>ChatClientAgent</c> for structured summarization. Agents are sourced
+///     from <see cref="IQylMcpAgentsBuilder" /> so the
+///     <c>.AsBuilder().UseQylAgentTelemetry().Build()</c> wrap is centralized and
+///     <c>QYL0135</c> is satisfied at the construction site. No tools are attached
+///     — these are pure LLM-as-summarizer calls, so the default
+///     <c>FunctionInvokingChatClient</c> inserted by <c>AsAIAgent</c> is a no-op
+///     passthrough.
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class SummaryTools(HttpClient client, IConfiguration config)
+internal sealed class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agents)
 {
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
@@ -82,16 +79,10 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 }
             }
 
-            if (_llm is null)
+            if (!agents.IsConfigured)
                 return $"# Error Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-                {
-                    Name = "ErrorSummaryAgent",
-                    Description = "Produces a structured AI summary of a qyl error issue.",
-                    ChatOptions = new ChatOptions { Instructions = ErrorSummaryPrompt.Prompt }
-                })
-                .AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildSummarizeErrorAgent();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
@@ -158,16 +149,10 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                     sb.AppendLine($"  Error: {span.StatusMessage}");
             }
 
-            if (_llm is null)
+            if (!agents.IsConfigured)
                 return $"# Trace Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-                {
-                    Name = "TraceSummaryAgent",
-                    Description = "Produces a structured AI summary of a distributed trace.",
-                    ChatOptions = new ChatOptions { Instructions = TraceSummaryPrompt.Prompt }
-                })
-                .AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildSummarizeTraceAgent();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
@@ -240,16 +225,10 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 }
             }
 
-            if (_llm is null)
+            if (!agents.IsConfigured)
                 return $"# Session Summary (raw data -- no LLM configured)\n\n{sb}";
 
-            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-                {
-                    Name = "SessionSummaryAgent",
-                    Description = "Produces a structured AI summary of a session's spans and lifecycle.",
-                    ChatOptions = new ChatOptions { Instructions = SessionSummaryPrompt.Prompt }
-                })
-                .AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildSummarizeSessionAgent();
 
             var response = await agent.RunAsync(sb.ToString(), cancellationToken: ct).ConfigureAwait(false);
             return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";

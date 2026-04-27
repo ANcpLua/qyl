@@ -1,11 +1,7 @@
 using System.ComponentModel;
 using System.Net;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
@@ -17,22 +13,8 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class TestGenerationTools(HttpClient http, IConfiguration config)
+internal sealed class TestGenerationTools(HttpClient http, IQylMcpAgentsBuilder agents)
 {
-    private const string TestGenerationSystemPrompt = """
-                                                      You are a test engineer. Generate a regression test that would catch the given error if it reoccurs.
-
-                                                      Requirements:
-                                                      - Write the test in the framework the user requests.
-                                                      - Verify the specific behavior that caused the error.
-                                                      - Include arrange/act/assert structure.
-                                                      - Add comments explaining what the test validates.
-                                                      - If the error is in a specific method, test that method's edge cases.
-                                                      - Include setup code (mocks, fixtures) as needed.
-                                                      - Output the complete test file in a single code block.
-                                                      """;
-
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -50,7 +32,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            if (_llm is null)
+            if (!agents.IsConfigured)
                 return "Test generation requires an LLM. Set QYL_AGENT_API_KEY to enable.";
 
             var targetFramework = framework?.ToLowerInvariant() switch
@@ -79,12 +61,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
                 ? await eventsResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : "[]";
 
-            var agent = _llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "TestGenerationAgent",
-                Description = "Generates regression tests that would catch a qyl error issue if it reoccurs.",
-                ChatOptions = new ChatOptions { Instructions = TestGenerationSystemPrompt }
-            }).AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildTestGenerationAgent();
 
             var userMessage = BuildTestUserMessage(issueJson, eventsJson, targetFramework);
 
@@ -94,17 +71,17 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
         });
 
     private static string BuildTestUserMessage(string issueJson, string eventsJson, string framework) =>
-        $$"""
-          Target framework: {{framework}}
+        $"""
+         Target framework: {framework}
 
-          ## Error Details
-          ```json
-          {{issueJson}}
-          ```
+         ## Error Details
+         ```json
+         {issueJson}
+         ```
 
-          ## Recent Events (with stack traces)
-          ```json
-          {{eventsJson}}
-          ```
-          """;
+         ## Recent Events (with stack traces)
+         ```json
+         {eventsJson}
+         ```
+         """;
 }

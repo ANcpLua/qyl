@@ -1,11 +1,8 @@
 using System.ComponentModel;
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using qyl.mcp.Agents;
 using qyl.mcp.Formatting;
 
@@ -18,9 +15,8 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
+internal sealed class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
 {
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
@@ -50,7 +46,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
         string? context = null,
         CancellationToken ct = default)
     {
-        if (_llm is null)
+        if (!agents.IsConfigured)
         {
             return "Root cause analysis requires an LLM provider. " +
                    "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
@@ -70,28 +66,10 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                 typeof(AnomalyTools),
                 typeof(SpanQueryTools),
                 typeof(StructuredLogTools))
-            .Select(tool => (AITool)investigation.Wrap(tool));
+            .Select(AITool (tool) => investigation.Wrap(tool))
+            .ToArray();
 
-        var agent = new ChatClientBuilder(_llm)
-            .UseFunctionInvocation(configure: static invoker =>
-            {
-                invoker.MaximumIterationsPerRequest = 10;
-                invoker.AllowConcurrentInvocation = false;
-            })
-            .Build()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "RcaAgent",
-                Description =
-                    "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.",
-                ChatOptions = new ChatOptions
-                {
-                    Instructions = RcaPrompt.Prompt, Tools = [.. guardedTools], ToolMode = ChatToolMode.Auto
-                }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
+        var agent = agents.BuildRcaAgent(guardedTools);
 
         var userMessage = $"Investigate error issue ID: {issueId}";
         if (context is not null)

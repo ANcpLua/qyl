@@ -1,8 +1,7 @@
 // Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.Autofix;
 
@@ -36,7 +35,7 @@ public sealed partial class LoomAutofixRunner(
     CollectorClient collector,
     AutofixOrchestrator orchestrator,
     ILogger<LoomAutofixRunner> logger,
-    IChatClient? llm = null)
+    IQylLoomAgentsBuilder agents)
 {
     /// <summary>Runs the full autofix pipeline for a single pending fix run.</summary>
     /// <param name="runId">
@@ -46,7 +45,7 @@ public sealed partial class LoomAutofixRunner(
     /// <param name="ct">Cancellation token.</param>
     public async Task RunAsync(string runId, CancellationToken ct = default)
     {
-        if (llm is null)
+        if (!agents.IsConfigured)
         {
             LogNoLlmConfigured(runId);
             return;
@@ -118,21 +117,7 @@ public sealed partial class LoomAutofixRunner(
 
     private async Task<AutofixReport> InvokeAgentAsync(string userMessage, CancellationToken ct)
     {
-        var agent = llm!
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "LoomAutofix",
-                Description = "Loom headless autofix runner — five-stage contract, schema-enforced output.",
-                ChatOptions = new ChatOptions
-                {
-                    Instructions = LoomAutofixPrompts.SystemPrompt,
-                    ResponseFormat = ChatResponseFormat.ForJsonSchema<AutofixReport>()
-                }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
-
+        var agent = agents.BuildAutofixAgent();
         var response = await agent.RunAsync<AutofixReport>(userMessage, cancellationToken: ct).ConfigureAwait(false);
         return response.Result;
     }

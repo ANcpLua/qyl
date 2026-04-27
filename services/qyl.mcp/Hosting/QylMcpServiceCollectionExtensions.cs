@@ -7,8 +7,10 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using Qyl.Generated;
+using qyl.mcp.Agents;
 using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Auth;
+using qyl.mcp.Clients;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
 using qyl.mcp.Tools;
@@ -56,6 +58,12 @@ internal static partial class QylMcpServiceCollectionExtensions
         services.AddSingleton(skills);
         services.AddSingleton(scope);
         services.AddSingleton<CapabilityTools>();
+
+        // Apex three-builder pattern — chat-client → agents builder. Every AIAgent
+        // constructed in qyl.mcp tools flows through these singletons so the
+        // .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized.
+        services.AddSingleton<IQylMcpChatClientBuilder, QylMcpChatClientBuilder>();
+        services.AddSingleton<IQylMcpAgentsBuilder, QylMcpAgentsBuilder>();
 
         var collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
         services.AddCollectorHttpClient(collectorUrl);

@@ -1,8 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.CodeReview;
 
@@ -16,7 +14,7 @@ public sealed partial class CodeReviewService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
     ILogger<CodeReviewService> logger,
-    IChatClient? llm = null)
+    IQylLoomAgentsBuilder agents)
 {
     private readonly ConcurrentDictionary<string, CodeReviewResult> _cache = new(StringComparer.Ordinal);
 
@@ -25,7 +23,7 @@ public sealed partial class CodeReviewService(
     {
         LogReviewStarted(repoFullName, prNumber);
 
-        if (llm is null)
+        if (!agents.IsConfigured)
         {
             LogNoLlmConfigured();
             return new CodeReviewResult
@@ -58,16 +56,10 @@ public sealed partial class CodeReviewService(
 
         try
         {
-            var agent = llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "CodeReviewAgent",
-                Description = "Reviews a pull request diff and emits structured JSON comments."
-                // No Instructions: CodeReviewPrompt.Build(...) is an MCP prompt resource that already
-                // contains the system-role preamble + output contract, delivered as a single turn.
-            }).AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildCodeReviewAgent();
 
             var response = await agent.RunAsync(prompt, cancellationToken: ct).ConfigureAwait(false);
-            var comments = ParseReviewComments(response.Text ?? "[]");
+            var comments = ParseReviewComments(response.Text);
             LogReviewComplete(comments.Length);
 
             CodeReviewResult result = new()
@@ -113,8 +105,11 @@ public sealed partial class CodeReviewService(
             using StringContent content = new(json, Encoding.UTF8, "application/json");
 
             using HttpRequestMessage req = new(HttpMethod.Post,
-                $"repos/{repoFullName}/pulls/{prNumber}/comments") { Content = content };
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                $"repos/{repoFullName}/pulls/{prNumber}/comments")
+            {
+                Content = content,
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", token) }
+            };
 
             using var response = await client.SendAsync(req, ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)

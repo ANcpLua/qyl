@@ -1,6 +1,4 @@
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.Exploration;
 
@@ -12,7 +10,7 @@ namespace Qyl.Loom.Exploration;
 public sealed partial class ExplorationInsightService(
     CollectorClient collector,
     ILogger<ExplorationInsightService> logger,
-    IChatClient? llm = null)
+    IQylLoomAgentsBuilder agents)
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
@@ -36,7 +34,7 @@ public sealed partial class ExplorationInsightService(
 
         LogGeneratingInsight(issueId, events.Count);
 
-        var insight = llm is not null
+        var insight = agents.IsConfigured
             ? await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false)
             : GenerateHeuristic(issueId, issue, events);
 
@@ -52,19 +50,13 @@ public sealed partial class ExplorationInsightService(
 
         try
         {
-            var agent = llm!.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "ExplorationInsightAgent",
-                Description =
-                    "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.InsightGeneration }
-            }).AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildExplorationInsightAgent();
 
             var response = await agent.RunAsync(
                 $"Error details:\n{context}",
                 cancellationToken: ct).ConfigureAwait(false);
 
-            var parsed = TryParseInsight(response.Text ?? "{}", issueId);
+            var parsed = TryParseInsight(response.Text, issueId);
             if (parsed is not null) return parsed;
         }
         catch (OperationCanceledException) { throw; }

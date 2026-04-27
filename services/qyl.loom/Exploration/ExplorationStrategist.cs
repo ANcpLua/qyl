@@ -1,6 +1,4 @@
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.Exploration;
 
@@ -11,13 +9,13 @@ namespace Qyl.Loom.Exploration;
 public sealed partial class ExplorationStrategist(
     ExplorationSessionStore sessionStore,
     ILogger<ExplorationStrategist> logger,
-    IChatClient? llm = null)
+    IQylLoomAgentsBuilder agents)
 {
-    public bool IsConfigured => llm is not null;
+    public bool IsConfigured => agents.IsConfigured;
 
     public async Task<ExplorationSolution?> PlanAsync(string sessionId, CancellationToken ct = default)
     {
-        if (llm is null)
+        if (!agents.IsConfigured)
             return null;
 
         var session = sessionStore.Get(sessionId);
@@ -26,16 +24,11 @@ public sealed partial class ExplorationStrategist(
 
         try
         {
-            var agent = llm.AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "ExplorationStrategistAgent",
-                Description = "Converts an exploration root-cause analysis into a minimal implementation plan.",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.SolutionPlanning }
-            }).AsBuilder().UseQylAgentTelemetry().Build();
+            var agent = agents.BuildExplorationStrategistAgent();
 
             var response = await agent.RunAsync(BuildUserMessage(session), cancellationToken: ct)
                 .ConfigureAwait(false);
-            return ExplorationResponseParser.TryParseSolution(response.Text ?? "{}");
+            return ExplorationResponseParser.TryParseSolution(response.Text);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
