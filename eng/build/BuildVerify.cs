@@ -76,7 +76,7 @@ interface IVerify : IHazSourcePaths
             foreach (var file in generatedFiles)
             {
                 var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
-                builder.AddSource(relativePath, File.ReadAllText(file));
+                builder.AddSource(relativePath, await File.ReadAllTextAsync(file));
             }
 
             var result = await builder.BuildAsync();
@@ -100,7 +100,7 @@ interface IVerify : IHazSourcePaths
         .Description("Verify generated DuckDB schema is valid")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var paths = CodegenPaths.From(this);
             var schemaFile = paths.CollectorStorage / "DuckDbSchema.g.cs";
@@ -111,7 +111,7 @@ interface IVerify : IHazSourcePaths
                 return;
             }
 
-            var content = File.ReadAllText(schemaFile);
+            var content = await File.ReadAllTextAsync(schemaFile);
 
             // Extract DDL from generated C# string literals
             var ddlStatements = new List<string>();
@@ -161,7 +161,7 @@ interface IVerify : IHazSourcePaths
         .Description("Verify generated TypeScript uses OTel snake_case property names")
         .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var apiTsPath = DashboardDirectory / "src" / "types" / "api.ts";
 
@@ -172,7 +172,7 @@ interface IVerify : IHazSourcePaths
             }
 
             Log.Information("Verifying OTel naming conventions in generated TypeScript...");
-            var content = File.ReadAllText(apiTsPath);
+            var content = await File.ReadAllTextAsync(apiTsPath);
 
             // Find property names in TypeScript interface/type definitions
             // Pattern: matches lines like "    property_name?: string;" or "    property_name: number;"

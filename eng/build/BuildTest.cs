@@ -15,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
@@ -184,7 +185,7 @@ interface IQylTest : ITest, IHazSourcePaths
         .Unlisted()
         .Description("Generate Markdown test summary from MTP TRX reports")
         .After<IQylTest>(static x => x.Test)
-        .Executes(WriteGitHubTestSummary);
+        .Executes(WriteGitHubTestSummaryAsync);
 
     // Override test project discovery (tests/ dir, not *.Tests naming)
     IEnumerable<Project> ITest.TestProjects =>
@@ -258,7 +259,7 @@ interface IQylTest : ITest, IHazSourcePaths
     ///     Writes to <c>$GITHUB_STEP_SUMMARY</c> when running in GitHub Actions,
     ///     and always writes <c>Artifacts/test-summary.md</c>.
     /// </summary>
-    sealed void WriteGitHubTestSummary()
+    sealed async Task WriteGitHubTestSummaryAsync()
     {
         var trxFiles = TestResultsDirectory.GlobFiles("**/*.trx");
         if (trxFiles.Count is 0)
@@ -283,7 +284,7 @@ interface IQylTest : ITest, IHazSourcePaths
 
         foreach (var trxFile in trxFiles.OrderBy(static f => f.Name))
         {
-            var doc = XDocument.Load(trxFile);
+            var doc = XDocument.Parse(await File.ReadAllTextAsync(trxFile));
             var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
 
             var counters = doc.Descendants(ns + "Counters").FirstOrDefault();
@@ -364,14 +365,14 @@ interface IQylTest : ITest, IHazSourcePaths
         // Always write to artifacts
         var artifactPath = ArtifactsDirectory / "test-summary.md";
         artifactPath.Parent.CreateDirectory();
-        File.WriteAllText(artifactPath, markdown);
+        await File.WriteAllTextAsync(artifactPath, markdown);
         Log.Information("Test summary: {Path}", artifactPath);
 
         // Write to GitHub step summary when available
         var stepSummaryPath = Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY");
         if (stepSummaryPath is { Length: > 0 })
         {
-            File.AppendAllText(stepSummaryPath, markdown);
+            await File.AppendAllTextAsync(stepSummaryPath, markdown);
             Log.Information("Test summary written to $GITHUB_STEP_SUMMARY");
         }
     }
