@@ -119,7 +119,7 @@ Document in `research/<skill>-mcp-prompts.md`:
 Only applicable if the skill drives Loom agents (autofix, fix-run, LLM-driven investigation). If the workflow is tool-only, skip.
 
 ```bash
-# Apex three-builder pattern
+# qyl three-builder pattern
 grep -rn "AsBuilder\(\)\.UseOpenTelemetry\|AsBuilder\(\)\.UseQylTelemetry" services/qyl.loom/
 
 # LoomRunState — session discipline
@@ -133,7 +133,7 @@ grep -rn "IChatClient\b" services/qyl.loom/ services/qyl.collector/ | head -20
 ```
 
 Document in `research/<skill>-agent-composition.md`:
-- Which Apex builder(s) the skill's generated examples should use.
+- Which qyl builder(s) the skill's generated examples should use.
 - How telemetry middleware decorates the builder (`UseOpenTelemetry("qyl.agent")` vs `UseQylTelemetry()`).
 - Whether the skill needs `LoomRunState` session plumbing.
 - Whether `InvestigationLineage.TryEnter()` applies (depth 3, spawn 10 budgets).

@@ -222,7 +222,7 @@ app.MapQylEndpoints();
 app.Run();
 ```
 
-The pattern is **three builders, one composition root** — see `eng/SKILL.md` for the Apex
+The pattern is **three builders, one composition root** — see `eng/SKILL.md` for the qyl
 contract (`IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow code).
 
 ## Manual `gen_ai.*` instrumentation

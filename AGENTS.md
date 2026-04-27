@@ -143,7 +143,7 @@ Authoritative references: `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.
 
 Local invariants:
 
-- Apex three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory
+- qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory
   per bounded agent in `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs`. Returned `AIAgent` is
   telemetry-wrapped at the construction site.
 - Decorate at composition root with the helpers in

@@ -1,29 +1,29 @@
 name: microsoft-agent-framework-qyl
 description: qyl MAF consumer patterns for **MAF 1.3** (2026-04-23 release, 2 days after 1.2 — MS ships on
-continuous-iteration cadence). Apex-aligned fluent. Extends ~/.claude/skills/microsoft-agent-framework/SKILL.md with the
-Apex fluent pattern (IXxxBuilder abstractions + .AsBuilder().Use(middleware).Build() + provider-agnostic chat-client
-factory + file-based instructions + three-strategy orchestration trichotomy + custom-executor disciplines) plus qyl
-delta (WithQylTelemetry/UseQylTelemetry at composition root, AddQylServiceDefaults, LoomRunState session discipline,
-qyl.mcp generator-driven tool registration, InvestigationLineage bounded autonomy). DROPPED 2026-04 — [AgentTraced] +
+continuous-iteration cadence). Extends ~/.claude/skills/microsoft-agent-framework/SKILL.md with the qyl fluent builder
+pattern (IXxxBuilder abstractions + .AsBuilder().Use(middleware).Build() + provider-agnostic chat-client factory +
+file-based instructions + three-strategy orchestration trichotomy + custom-executor disciplines) plus qyl delta
+(WithQylTelemetry/UseQylTelemetry at composition root, AddQylServiceDefaults, LoomRunState session discipline, qyl.mcp
+generator-driven tool registration, InvestigationLineage bounded autonomy). DROPPED 2026-04 — [AgentTraced] +
 AgentCallSiteAnalyzer + AgentInterceptorEmitter + GenAiCallSiteAnalyzer — replaced by .AsBuilder().UseOpenTelemetry("
 qyl.agent").Build() at composition root. 1.2/1.3 highlights — Foundry Hosted Agents, Handoff HITL, Declarative
-resume-edge PortableValue handling, Foundry Evals .NET, duplicate-CallId fix. Triggers on qyl MAF code, Apex-pattern
-references, ExtractorAgentsBuilder, IExtractorChatClientBuilder, IExtractorWorkflowBuilder, UseQylTelemetry,
-WithQylTelemetry, LoomRunState, LoomToolEnvelope, InvestigationLineage, QylSkill, QylCapability.
+resume-edge PortableValue handling, Foundry Evals .NET, duplicate-CallId fix. Triggers on qyl MAF code, IQylLoomChatClientBuilder,
+IQylLoomPatternsAgentsBuilder, IQylMcpAgentsBuilder, UseQylTelemetry, WithQylTelemetry, LoomRunState, LoomToolEnvelope,
+InvestigationLineage, QylSkill, QylCapability.
   ---
 
-# MAF — qyl overlay (Apex-aligned)
+# MAF — qyl overlay
 
 **Read `~/.claude/skills/microsoft-agent-framework/SKILL.md` first** for core MAF (four pillars, life-of-a-call,
 workflows, package matrix, testing, advanced surfaces).
 
-**Reference implementation:** `~/Apex.AgenticEntityExtractor/Apex.AgenticEntityExtractor/` — the canonical shape for how
-qyl consumer code looks. When in doubt, mirror it. Key files:
+**Reference shape (in-repo):** the qyl.loom.patterns sample exposes the canonical builder shape — copy it for new
+services rather than re-deriving. Key files:
 
-- `Agents/ExtractorAgentsBuilder.cs` — agent factory + fluent middleware chain
-- `Clients/ExtractorChatClientBuilder.cs` — provider-agnostic chat client factory
-- `Workflows/ExtractorWorkflowBuilder.cs` — three orchestration strategies side-by-side
-- `Program.cs` — DI wiring, DevUI registration, composition root
+- `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs` — agent factory + fluent middleware chain
+- `services/qyl.loom.patterns/Clients/IQylLoomPatternsChatClientBuilder.cs` — provider-agnostic chat-client factory
+- `services/qyl.loom.patterns/Patterns/Pattern0?_*.cs` — six end-to-end orchestration sketches
+- Production parallels: `services/qyl.loom/Clients/IQylLoomChatClientBuilder.cs`, `services/qyl.mcp/Agents/IQylMcpAgentsBuilder.cs`
 
 ## What changed (2026-04 collapse)
 
@@ -98,7 +98,7 @@ qyl today: 0/3 conditions → imperative stays right
 ```
 Does qyl code use…                                      → Breaking risk
 ────────────────────────────────────────────────────────────────────────────
-the Apex fluent pattern (.AsBuilder().Use(...).Build()) → No (pattern is 1.0-stable surface)
+the qyl fluent builder pattern (.AsBuilder().Use(...).Build()) → No (pattern is 1.0-stable surface)
 WorkflowBuilder + Executor<TIn, TOut>                   → No (API stable)
 AddAIAgent + WithInMemorySessionStore + WithAITool      → No (hosted surface unchanged)
 AgentSession / CreateSessionAsync                       → No
@@ -109,14 +109,8 @@ AgentSession / CreateSessionAsync                       → No
 **Validation rule:** if `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` is clean after the Version.props bump, you are
 done — 1.2/1.3 add features, do not redefine the consumer shape.
 
-## The Apex fluent pattern — qyl's shape
+## The fluent builder pattern — qyl's shape
 
-> **Canonical `Program.cs` composition root** (with `file:line` citations for every MAF API — `AddAIAgent`,
-> `AddWorkflow`, `.AddAsAIAgent`, `AddDevUI`, `AddOpenAIResponses`, `AddOpenAIConversations`, `MapDevUI`,
-> `MapOpenAIResponses`, `MapOpenAIConversations`) lives in
-> `~/RiderProjects/Kochrezepte/Workflowfluentapi.md` → section *"Canonical `Program.cs` — the composition
-> root"*. That is the single source of truth — all other docs reference it rather than duplicating the code.
->
 > **qyl current state (2026-04-23):** only two of the three builder interfaces exist —
 > `services/qyl.loom.patterns/Clients/IQylLoomPatternsChatClientBuilder.cs` and
 > `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs`. No `IQylLoomPatternsWorkflowBuilder` yet;
@@ -199,9 +193,8 @@ Never inline system prompts. One `.md` per agent under `Data/Instructions/`, `Co
 - **`Auto`** — default. Use for conversational agents where tool use is optional.
 - **`None`** — tools remain discoverable but are suppressed from the call. Pairs well with a "plan then execute"
   two-turn flow: first turn `None`, second turn `Auto` / `RequireAny`.
-- **`RequireAny`** — forces at least one function call. **qyl default for structured-output agents with tools** (see
-  `EntAgent` / `RelAgent` in `ExtractorAgentsBuilder`: it guarantees the ontology tool runs before
-  `ResponseFormat = ChatResponseFormat.ForJsonSchema<T>()` binds).
+- **`RequireAny`** — forces at least one function call. **qyl default for structured-output agents with tools** —
+  guarantees a tool (e.g. ontology lookup) runs before `ResponseFormat = ChatResponseFormat.ForJsonSchema<T>()` binds.
 - **`RequireSpecific(name)`** — forces a named call. `name` must match `AIFunction.Name` exactly (method name by
   default, or the explicit 2nd arg to `AIFunctionFactory.Create(..., name: "...")`). Throws/ignores silently
   per-provider if the name is not in `Tools`.
@@ -326,13 +319,13 @@ custom agent authors (`CreateSessionCoreAsync`). Consumers touch exactly two:
   ```csharp
   builder.AddAIAgent("EntAgent_1", (sp, _) =>
   {
-      var b   = sp.GetRequiredService<IExtractorAgentsBuilder>();
+      var b   = sp.GetRequiredService<IXxxAgentsBuilder>();
       var cfg = sp.GetRequiredService<IConfiguration>();
       return b.BuildEntitiesAgent("1", cfg.GetValue<ChatProvider>("Provider"));
   });
 
   builder.AddWorkflow("FullCustomWorkflow", (sp, name) =>
-      sp.GetRequiredService<IExtractorWorkflowBuilder>().BuildLowLevelFullCustomWorkflow(name)
+      sp.GetRequiredService<IXxxWorkflowBuilder>().BuildLowLevelFullCustomWorkflow(name)
   ).AddAsAIAgent();
   ```
 

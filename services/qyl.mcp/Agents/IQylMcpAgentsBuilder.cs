@@ -6,10 +6,9 @@ using Microsoft.Extensions.AI;
 namespace qyl.mcp.Agents;
 
 /// <summary>
-///     One factory method per bounded qyl.mcp tool agent. Mirrors Apex's
-///     <c>IExtractorAgentsBuilder</c> — each call returns a fully composed
-///     <see cref="AIAgent" /> wrapped with <c>UseQylAgentTelemetry()</c>, so the
-///     <c>QYL0135</c> analyzer is satisfied at the construction site.
+///     One factory method per bounded qyl.mcp tool agent. Each call returns a fully
+///     composed <see cref="AIAgent" /> wrapped with <c>UseQylAgentTelemetry()</c>, so
+///     the <c>QYL0135</c> analyzer is satisfied at the construction site.
 /// </summary>
 /// <remarks>
 ///     <para>
