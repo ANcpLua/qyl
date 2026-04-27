@@ -16,13 +16,7 @@ internal sealed class LiveLogDeduplicator
 
     public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100)
     {
-        // Guard.GreaterThan has int/long/double overloads but no TimeSpan one, so this stays
-        // an inline check rather than getting routed through Guard.* (a cross-repo expansion).
-        if (window <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(window), window, "Window must be positive.");
-        }
-
+        Guard.GreaterThan(window, TimeSpan.Zero);
         Guard.NotLessThan(maxSuppressed, 1);
 
         _window = window;
