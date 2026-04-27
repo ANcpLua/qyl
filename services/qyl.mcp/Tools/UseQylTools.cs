@@ -8,12 +8,12 @@ using qyl.mcp.Formatting;
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     Meta-tool: embedded <see cref="ChatClientAgent" /> answers natural-language observability questions by
-///     autonomously calling every other qyl MCP tool under an <see cref="InvestigationLineage" /> guard.
-///     <c>UseFunctionInvocation</c> is wired at the chat-client layer (not the agent layer) by the
-///     <see cref="IQylMcpAgentsBuilder" /> so qyl's non-default <c>MaximumIterationsPerRequest</c> +
-///     <c>AllowConcurrentInvocation=false</c> take effect — <see cref="ChatClientAgent" /> only inserts a default
-///     invoker when none is present.
+///     Meta-tool: embedded <c>ChatClientAgent</c> (from <c>Microsoft.Agents.AI</c>) answers natural-language
+///     observability questions by autonomously calling every other qyl MCP tool under an
+///     <see cref="InvestigationLineage" /> guard. <c>UseFunctionInvocation</c> is wired at the chat-client
+///     layer (not the agent layer) by the <see cref="IQylMcpAgentsBuilder" /> so qyl's non-default
+///     <c>MaximumIterationsPerRequest</c> + <c>AllowConcurrentInvocation=false</c> take effect — the
+///     agent only inserts a default invoker when none is present.
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]

@@ -119,7 +119,7 @@ internal sealed class AutofixWorkflowFactory(
 
         workflowBuilder = workflowBuilder
             .AddSwitch(confidence, sw => sw
-                .AddCase<ConfidenceAudit>(audit => audit.RetryRequested, critique)
+                .AddCase<ConfidenceAudit>(audit => audit is { RetryRequested: true }, critique)
                 .WithDefault(commitTarget))
             .AddFanOutEdge<ContextSummary>(critique, [.. branches], targetSelector: null);
 

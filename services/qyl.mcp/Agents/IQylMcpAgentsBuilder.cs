@@ -13,11 +13,11 @@ namespace qyl.mcp.Agents;
 /// <remarks>
 ///     <para>
 ///         <see cref="IsConfigured" /> reflects whether the upstream
-///         <see cref="Qyl.Loom.Clients.IQylLoomChatClientBuilder" />-equivalent
-///         (<see cref="qyl.mcp.Clients.IQylMcpChatClientBuilder" />) resolved a
-///         non-null <see cref="IChatClient" />. Each <c>Build*Agent</c> method
-///         throws <see cref="InvalidOperationException" /> when
-///         <see cref="IsConfigured" /> is <see langword="false" />.
+///         <see cref="qyl.mcp.Clients.IQylMcpChatClientBuilder" /> (qyl.mcp's
+///         equivalent of qyl.loom's <c>IQylLoomChatClientBuilder</c> — qyl.mcp
+///         doesn't reference qyl.loom) resolved a non-null <see cref="IChatClient" />.
+///         Each <c>Build*Agent</c> method throws <see cref="InvalidOperationException" />
+///         when <see cref="IsConfigured" /> is <see langword="false" />.
 ///     </para>
 ///     <para>
 ///         <see cref="BuildRcaAgent" /> and <see cref="BuildUseQylAgent" /> accept a

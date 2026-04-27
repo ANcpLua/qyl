@@ -11,6 +11,11 @@ namespace Qyl.Loom.Autofix.Workflow;
 /// enumeration. Configure the root via the
 /// <c>QYL_AUTOFIX_CHECKPOINT_ROOT</c> environment variable; default lives
 /// under the OS temp folder so dev hosts don't clutter the user profile.
+///
+/// Path-traversal hardening — every <c>sessionId</c> / <c>checkpointId</c> is
+/// validated against <see cref="IsSafeIdentifier" /> (alphanumeric +
+/// dash/underscore only) before it touches <see cref="Path.Combine" />, so a
+/// malicious <c>"../foo"</c> id can't escape the checkpoint root.
 internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configuration) : JsonCheckpointStore
 {
     private readonly string _root = ResolveRoot(configuration);
@@ -38,11 +43,12 @@ internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configurat
     public override async ValueTask<JsonElement> RetrieveCheckpointAsync(
         string sessionId, CheckpointInfo key)
     {
-        var path = Path.Combine(SessionDir(sessionId), $"{key.CheckpointId}.json");
+        var checkpointFile = SafeFileName(key.CheckpointId);
+        var path = Path.Combine(SessionDir(sessionId), $"{checkpointFile}.json");
         if (!File.Exists(path))
         {
             throw new FileNotFoundException(
-                $"Checkpoint {key.CheckpointId} for session {sessionId} not found at {path}.");
+                $"Checkpoint {checkpointFile} for session not found at {path}.");
         }
 
         await using var stream = File.OpenRead(path);
@@ -67,5 +73,33 @@ internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configurat
         return new(infos);
     }
 
-    private string SessionDir(string sessionId) => Path.Combine(_root, sessionId);
+    private string SessionDir(string sessionId) => Path.Combine(_root, SafeFileName(sessionId));
+
+    /// Reject any id that could collapse <see cref="Path.Combine" /> back up to
+    /// the checkpoint root or beyond. The contract between MAF and this store
+    /// only ever passes mint-fresh GUID-like ids, so the validation just
+    /// fail-closes on anything else; there is no caller-controlled use case
+    /// for <c>../</c> in a checkpoint identifier.
+    private static string SafeFileName(string id)
+    {
+        if (string.IsNullOrEmpty(id) || !IsSafeIdentifier(id))
+        {
+            throw new ArgumentException(
+                $"Checkpoint identifier '{id}' contains characters that aren't safe for filesystem use.",
+                nameof(id));
+        }
+        return id;
+    }
+
+    private static bool IsSafeIdentifier(string id)
+    {
+        foreach (var c in id)
+        {
+            if (!(char.IsLetterOrDigit(c) || c is '-' or '_'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }

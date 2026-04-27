@@ -224,8 +224,18 @@ internal sealed partial class LoomAutofixRunner(
             lifecycle.Complete(run.RunId);
             foreach (var t in pendingTimeouts)
             {
-                try { await t.ConfigureAwait(false); }
-                catch (OperationCanceledException) { }
+                try
+                {
+                    await t.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected: the auto-resolve task races Task.Delay against the
+                    // dashboard's SendResponseAsync. When the response arrives first,
+                    // the delay is cancelled and surfaces here as OCE — this is the
+                    // happy path. We swallow rather than log because logging every
+                    // happy-path cancel would be noise.
+                }
             }
             if (execution is not null)
             {
@@ -263,7 +273,7 @@ internal sealed partial class LoomAutofixRunner(
             evt.RunId,
             evt.Stage,
             evt.GetType().Name,
-            JsonSerializer.Serialize<object>(evt.Data),
+            JsonSerializer.Serialize(evt.Data ?? new { stage = evt.Stage }),
             timeProvider.GetUtcNow());
 
     private AutofixLifecycleEnvelope ToGateEnvelope(RequestInfoEvent ri, string runId)
