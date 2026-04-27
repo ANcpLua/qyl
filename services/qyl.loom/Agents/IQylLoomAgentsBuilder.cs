@@ -18,7 +18,7 @@ public interface IQylLoomAgentsBuilder
     AIAgent BuildFixabilityStageAgent();
 
     /// <summary>Builds the context-gathering agent, optionally wired with tool-using mode from <paramref name="config"/>.</summary>
-    /// <param name="config">Workflow configuration controlling <c>ToolUsingContext</c> and <c>ContextToolBudget</c>.</param>
+    /// <param name="config">Workflow configuration controlling <see cref="AutofixWorkflowConfig.ToolUsingContext"/> and <see cref="AutofixWorkflowConfig.ContextToolBudget"/>.</param>
     AIAgent BuildContextStageAgent(AutofixWorkflowConfig config);
 
     /// <summary>Builds the hypothesis generation agent (multi-perspective single call).</summary>

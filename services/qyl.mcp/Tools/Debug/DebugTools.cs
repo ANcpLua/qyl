@@ -42,7 +42,10 @@ internal sealed class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discove
             var sb = new StringBuilder();
             sb.AppendLine($"# Rider Debugger Tools ({tools.Count})");
             foreach (var tool in tools)
-                sb.AppendLine($"- **{tool.Name}**: {(tool.Description is { Length: > 0 } desc ? desc[..Math.Min(desc.Length, 80)] : string.Empty)}");
+            {
+                var description = tool.Description is { Length: > 0 } d ? d[..Math.Min(d.Length, 80)] : string.Empty;
+                sb.AppendLine($"- **{tool.Name}**: {description}");
+            }
             return sb.ToString();
         });
 
