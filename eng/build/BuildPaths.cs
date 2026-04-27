@@ -26,7 +26,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
     AbsolutePath ProtocolDirectory => PackagesDirectory / "Qyl.Contracts";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
-    AbsolutePath ComposeFile => RootDirectory / "docker-compose.yml";
+    AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
     AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 }
@@ -61,7 +61,8 @@ interface IVersionize : IHazSourcePaths
                            "Versionize tool not found. Install: dotnet tool install -g Versionize");
 
     Target Changelog => d => d
-        .Description("Generate CHANGELOG from conventional commits")
+        .Unlisted()
+        .Description("Generate CHANGELOG from conventional commits (Release runs this)")
         .Executes(() => Versionize("--dry-run", RootDirectory));
 
     Target Release => d => d

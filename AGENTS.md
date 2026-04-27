@@ -28,6 +28,36 @@ These mirror `.editorconfig`, `.github/copilot-instructions.md`, and the ruleset
 Before claiming a change is complete: `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` must report 0 errors. UI work
 must additionally be verified in a browser via Playwright with a screenshot.
 
+## Nuke workflow
+
+Top-level orchestration goes through Nuke (`./eng/build.sh <target>` or, with the global tool, `nuke <target>`).
+Sub-targets (Verify*, FrontendInstall, TypeSpec*, etc.) are `.Unlisted()` so `nuke --help` shows only the
+user-facing surface. The full list is still available via `nuke --plan` or by spelling the target name explicitly.
+
+| Workflow                          | Target            | What it does                                                                |
+|-----------------------------------|-------------------|-----------------------------------------------------------------------------|
+| Daily inner loop                  | `nuke Dev`        | `compose up -d` + `Compile` + URL banner                                    |
+| Build only                        | `nuke Compile`    | Restore + build the solution (`qyl.slnx`)                                   |
+| Test                              | `nuke Test`       | xUnit v3 + MTP across `tests/`                                              |
+| Coverage                          | `nuke Coverage`   | Test + Cobertura report                                                     |
+| Regenerate codegen                | `nuke Generate`   | TypeSpec emitters + Weaver (semconv)                                        |
+| Verify generated artefacts        | `nuke Verify`     | Compiles `*.g.cs`, validates DuckDB DDL, OTel snake_case, frontend types    |
+| Reset & rebuild                   | `nuke Clean`      | Wipe `**/bin`, `**/obj`, `Artifacts/`                                       |
+| CI gate (backend)                 | `nuke Ci`         | Clean → Coverage                                                            |
+| CI gate (full)                    | `nuke Full`       | Ci + Generate + Verify + Frontend{Build,Test,Lint}                          |
+| Cut a release                     | `nuke Release`    | Versionize bump + tag + CHANGELOG                                           |
+| Compose stack — start             | `nuke DockerUp`   | `docker compose -f eng/compose.yaml up -d --remove-orphans`                 |
+| Compose stack — stop              | `nuke DockerDown` | `docker compose down --remove-orphans`                                      |
+| Compose stack — logs              | `nuke DockerLogs` | `compose logs -f`; pass `--service <name>` to filter                        |
+| Build all images                  | `nuke DockerImageBuild` | parallel build of collector / loom / mcp / dashboard                  |
+| Push images                       | `nuke DockerImagePush`  | requires `--registry <prefix>`                                        |
+| Frontend dev server               | `nuke FrontendDev`      | Vite dev at <http://localhost:5173> (run after `nuke Dev`)            |
+| Frontend production build         | `nuke FrontendBuild`    | tsc + vite build                                                      |
+
+The Compose file lives at `eng/compose.yaml` (not the repo root). All Docker/Compose targets read it via
+`IHazSourcePaths.ComposeFile`. The four services `qyl-collector`, `qyl-loom`, `qyl-mcp`, `qyl-dashboard` are all
+orchestrated together — production-parity with the Railway deployment.
+
 ## DuckDB store — read/write separation is non-negotiable
 
 `DuckDbStore` in `services/qyl.collector/Storage/` exposes two access paths:

@@ -23,6 +23,7 @@ interface IPackMcp : IHazSourcePaths, IHazConfiguration
     AbsolutePath McpProject => ServicesDirectory / "qyl.mcp" / "qyl.mcp.csproj";
 
     Target PackMcp => d => d
+        .Unlisted()
         .Description("Pack qyl.mcp as a framework-dependent dotnet tool (.nupkg) into Artifacts/packages")
         .DependsOn<ICompile>(static x => x.Compile)
         .Produces(NupkgOutputDirectory / "Qyl.Mcp.*.nupkg")
@@ -42,6 +43,7 @@ interface IPackMcp : IHazSourcePaths, IHazConfiguration
         });
 
     Target PushMcp => d => d
+        .Unlisted()
         .Description("Push Qyl.Mcp *.nupkg to nuget.org (requires NUGET_API_KEY)")
         .DependsOn(PackMcp)
         .Requires(() => NuGetApiKey)

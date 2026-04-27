@@ -31,6 +31,7 @@ interface IInstrument : INukeBuild
     string? ServiceName => TryGetValue(() => ServiceName);
 
     Target JavaAgent => d => d
+        .Unlisted()
         .Description("Download OTel Java agent and generate qyl instrumentation config")
         .Executes(() =>
         {

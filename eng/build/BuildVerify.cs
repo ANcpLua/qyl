@@ -46,6 +46,7 @@ interface IVerify : IHazSourcePaths
     ///     Uses ProjectBuilder for isolated compilation with SARIF and binlog output.
     /// </summary>
     Target VerifyGeneratedCode => d => d
+        .Unlisted()
         .Description("Verify generated C# code compiles")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -102,6 +103,7 @@ interface IVerify : IHazSourcePaths
     ///     Verify DuckDB schema DDL executes against in-memory DuckDB.
     /// </summary>
     Target VerifyDuckDbSchema => d => d
+        .Unlisted()
         .Description("Verify generated DuckDB schema is valid")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -162,6 +164,7 @@ interface IVerify : IHazSourcePaths
     ///     Checks the actual generated api.ts to catch naming mismatches.
     /// </summary>
     Target VerifySchemaConventions => d => d
+        .Unlisted()
         .Description("Verify generated TypeScript uses OTel snake_case property names")
         .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .OnlyWhenDynamic(() => SkipVerify != true)
@@ -217,6 +220,7 @@ interface IVerify : IHazSourcePaths
     ///     Catches type mismatches between schema and dashboard code.
     /// </summary>
     Target VerifyFrontendTypes => d => d
+        .Unlisted()
         .Description("Verify frontend TypeScript types compile")
         .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -238,6 +242,7 @@ interface IVerify : IHazSourcePaths
     ///     file that bypasses it (e.g. semconv, TypeScript, SQL).
     /// </summary>
     Target VerifyGeneratedFilesClean => d => d
+        .Unlisted()
         .Description("CI gate: verify generated files match HEAD after regeneration")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)

@@ -169,16 +169,19 @@ interface IQylTest : ITest, IHazSourcePaths
     [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     Target UnitTests => d => d
+        .Unlisted()
         .Description("Run unit tests only")
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => RunFilteredTests("*.Unit.*", "Unit", false));
 
     Target IntegrationTests => d => d
+        .Unlisted()
         .Description("Run integration tests only")
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => RunFilteredTests("*.Integration.*", "Integration", true));
 
     Target TestSummary => d => d
+        .Unlisted()
         .Description("Generate Markdown test summary from MTP TRX reports")
         .After<IQylTest>(static x => x.Test)
         .Executes(WriteGitHubTestSummary);

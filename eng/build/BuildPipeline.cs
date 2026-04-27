@@ -24,6 +24,7 @@ interface IPipeline : IHazSourcePaths
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 
     Target TypeSpecInstall => d => d
+        .Unlisted()
         .Description("npm install in core/specs (--legacy-peer-deps per mandate .npmrc)")
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Executes(() => NpmTasks.NpmInstall(s => s
@@ -31,6 +32,7 @@ interface IPipeline : IHazSourcePaths
             .AddProcessAdditionalArguments("--legacy-peer-deps")));
 
     Target TypeSpecCompile => d => d
+        .Unlisted()
         .Description(
             "Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
         .DependsOn(TypeSpecInstall)
@@ -41,6 +43,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("compile")));
 
     Target GenerateSemconv => d => d
+        .Unlisted()
         .Description("Weaver → semconv.ts + C# OTel/qyl packages (idempotent)")
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
         .Executes(() =>
@@ -109,12 +112,20 @@ interface IPipeline : IHazSourcePaths
         .DependsOn(GenerateSemconv);
 
     Target FrontendInstall => d => d
+        .Unlisted()
         .Description("npm install in services/qyl.dashboard")
         .Executes(() => NpmTasks.NpmInstall(s => s
             .SetProcessWorkingDirectory<NpmInstallSettings>(DashboardDirectory)));
 
+    Target FrontendDev => d => d
+        .Description("Run the Vite dev server (hot reload at http://localhost:5173)")
+        .DependsOn(FrontendInstall)
+        .Executes(() => NpmTasks.NpmRun(s => s
+            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+            .SetCommand("dev")));
+
     Target FrontendBuild => d => d
-        .Description("Build frontend for production (tsc + vite build)")
+        .Description("Build the frontend for production (tsc + vite build)")
         .DependsOn(FrontendInstall)
         .Produces(DashboardDistDirectory / "**/*")
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -122,6 +133,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("build")));
 
     Target FrontendTest => d => d
+        .Unlisted()
         .Description("Run frontend tests (Vitest)")
         .DependsOn(FrontendInstall)
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -130,6 +142,7 @@ interface IPipeline : IHazSourcePaths
             .SetArguments("--", "--run")));
 
     Target FrontendLint => d => d
+        .Unlisted()
         .Description("Lint frontend (ESLint)")
         .DependsOn(FrontendInstall)
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -137,6 +150,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("lint")));
 
     Target FrontendClean => d => d
+        .Unlisted()
         .Description("Clean frontend build artifacts")
         .Executes(() =>
         {
