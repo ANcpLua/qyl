@@ -7,7 +7,8 @@ using Qyl.Loom.Exploration;
 
 namespace Qyl.Loom.Agents;
 
-internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients) : IQylLoomAgentsBuilder
+internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, AutofixContextTools contextTools)
+    : IQylLoomAgentsBuilder
 {
     private readonly IChatClient? _llm = clients.BuildChatClient();
 
@@ -38,12 +39,46 @@ internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients) : 
             "Autofix Stage 1 — fixability gate.",
             AutofixStagePrompts.Fixability);
 
-    public AIAgent BuildContextStageAgent(AutofixWorkflowConfig config) =>
-        // Tool-using context wiring is layered in Tier 3 — see QylMcpToolBridge wiring there.
-        // Tier 1 returns the same shape with no tools attached.
-        Compose("LoomAutofix.Context",
-            "Autofix Stage 2 — context gathering.",
-            AutofixStagePrompts.Context);
+    public AIAgent BuildContextStageAgent(AutofixWorkflowConfig config)
+    {
+        if (!config.ToolUsingContext)
+        {
+            return Compose("LoomAutofix.Context",
+                "Autofix Stage 2 — context gathering (static).",
+                AutofixStagePrompts.Context);
+        }
+
+        var tools = AutofixContextToolFactories
+            .Create(contextTools)
+            .Cast<AITool>()
+            .ToArray();
+
+        var options = new ChatClientAgentOptions
+        {
+            Name = "LoomAutofix.Context",
+            Description = "Autofix Stage 2 — tool-using context gathering.",
+            ChatOptions = new ChatOptions
+            {
+                Instructions = AutofixStagePrompts.Context,
+                Tools = tools,
+                ToolMode = ChatToolMode.Auto
+            }
+        };
+
+        var pipeline = new ChatClientBuilder(Llm())
+            .UseFunctionInvocation(configure: invoker =>
+            {
+                invoker.MaximumIterationsPerRequest = config.ContextToolBudget;
+                invoker.AllowConcurrentInvocation = false;
+            })
+            .Build();
+
+        return pipeline
+            .AsAIAgent(options)
+            .AsBuilder()
+            .UseQylAgentTelemetry()
+            .Build();
+    }
 
     public AIAgent BuildHypothesisStageAgent() =>
         Compose("LoomAutofix.Hypothesis",

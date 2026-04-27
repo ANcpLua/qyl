@@ -56,6 +56,7 @@ builder.Services.AddSingleton<IQylLoomWorkflowBuilder, QylLoomWorkflowBuilder>()
 builder.Services.AddSingleton<AutofixReportAssemblyState>();
 builder.Services.AddSingleton<AutofixRunRegistry>();
 builder.Services.AddSingleton<AutofixContextLoader>();
+builder.Services.AddSingleton<AutofixContextTools>();
 builder.Services.AddSingleton<IAutofixStepLedger, CollectorAutofixStepLedger>();
 builder.Services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>();
 builder.Services.AddSingleton<AutofixWorkflowFactory>();
