@@ -142,8 +142,14 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
 
-    // Dashboard-initiated → user is at the other end → opt into HITL gates with timeout fallback.
-    configStore.Set(run.RunId, AutofixWorkflowDefaults.Interactive);
+    // HITL only when the caller explicitly opts in via request_review. Without this
+    // flag the dashboard-initiated run completes autonomously — there is no production
+    // approval endpoint yet, so forcing Interactive on every code-it-up adds two
+    // 5-minute timeout waits to every run for no benefit.
+    if (request.RequestReview)
+    {
+        configStore.Set(run.RunId, AutofixWorkflowDefaults.Interactive);
+    }
 
     if (string.IsNullOrWhiteSpace(request.Repo))
         return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));

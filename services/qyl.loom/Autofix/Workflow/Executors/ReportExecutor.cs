@@ -13,7 +13,7 @@ internal sealed class ReportExecutor(
     public override async ValueTask HandleAsync(
         ConfidenceAudit audit, IWorkflowContext ctx, CancellationToken ct = default)
     {
-        var snapshot = state.Snapshot(audit.RunId);
+        var snapshot = await ResolveSnapshotAsync(audit, ctx, ct).ConfigureAwait(false);
 
         var prompt = $"""
                       Synthesize a 200-word maximum plain-English handoff.
@@ -57,5 +57,45 @@ internal sealed class ReportExecutor(
         await ctx.AddEventAsync(new ReportRecorded(audit.RunId, finalReport), ct).ConfigureAwait(false);
 
         await ctx.YieldOutputAsync(new AutofixWorkflowResult(audit.RunId, report), ct).ConfigureAwait(false);
+    }
+
+    /// In-process state.Snapshot is fast but volatile across process restarts.
+    /// When a checkpoint resumes the workflow in a fresh process, the in-memory
+    /// dictionary is empty — fall back to the durable workflow state that every
+    /// upstream executor wrote via QueueStateUpdateAsync into the
+    /// AutofixAssemblyKeys.Scope scope. The fallback only fires for fields that
+    /// are missing from in-memory state, so the common path stays one dictionary
+    /// lookup.
+    private async ValueTask<AutofixReportAssemblyState.RunSnapshot> ResolveSnapshotAsync(
+        ConfidenceAudit audit, IWorkflowContext ctx, CancellationToken ct)
+    {
+        var snapshot = state.Snapshot(audit.RunId);
+        if (snapshot is { Fixability: not null, Context: not null, Hypothesis: not null, Solution: not null })
+        {
+            return snapshot;
+        }
+
+        var fixability = snapshot.Fixability ??
+            await ctx.ReadStateAsync<FixabilityVerdict>(
+                AutofixAssemblyKeys.Fixability, AutofixAssemblyKeys.Scope, ct).ConfigureAwait(false);
+        var context = snapshot.Context ??
+            await ctx.ReadStateAsync<ContextSummary>(
+                AutofixAssemblyKeys.Context, AutofixAssemblyKeys.Scope, ct).ConfigureAwait(false);
+        var hypothesis = snapshot.Hypothesis ??
+            await ctx.ReadStateAsync<HypothesisVerdict>(
+                AutofixAssemblyKeys.Hypothesis, AutofixAssemblyKeys.Scope, ct).ConfigureAwait(false);
+        var solution = snapshot.Solution ??
+            await ctx.ReadStateAsync<SolutionDraft>(
+                AutofixAssemblyKeys.Solution, AutofixAssemblyKeys.Scope, ct).ConfigureAwait(false);
+        var confidence = snapshot.Audit ?? audit;
+
+        return new AutofixReportAssemblyState.RunSnapshot
+        {
+            Fixability = fixability,
+            Context = context,
+            Hypothesis = hypothesis,
+            Solution = solution,
+            Audit = confidence
+        };
     }
 }

@@ -32,6 +32,8 @@ internal sealed class SolutionExecutor(
         state.Record(verdict.RunId, draft);
         await ledger.RecordSolutionAsync(draft, ct).ConfigureAwait(false);
         await ctx.AddEventAsync(new SolutionRecorded(draft), ct).ConfigureAwait(false);
+        await ctx.QueueStateUpdateAsync(AutofixAssemblyKeys.Solution, draft, AutofixAssemblyKeys.Scope, ct)
+            .ConfigureAwait(false);
 
         return draft;
     }

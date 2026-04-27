@@ -31,6 +31,8 @@ internal sealed class FixabilityExecutor(
         state.Record(request.RunId, verdict);
         await ledger.RecordFixabilityAsync(verdict, ct).ConfigureAwait(false);
         await ctx.AddEventAsync(new FixabilityRecorded(verdict), ct).ConfigureAwait(false);
+        await ctx.QueueStateUpdateAsync(AutofixAssemblyKeys.Fixability, verdict, AutofixAssemblyKeys.Scope, ct)
+            .ConfigureAwait(false);
 
         return verdict;
     }

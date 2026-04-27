@@ -41,7 +41,9 @@ public sealed record ExplorationExploreRequest(
 public sealed record ExplorationCodeItUpRequest(
     [property: JsonPropertyName("repo")] string? Repo,
     [property: JsonPropertyName("base_branch")]
-    string? BaseBranch);
+    string? BaseBranch,
+    [property: JsonPropertyName("request_review")]
+    bool RequestReview = false);
 
 public sealed record ExplorationCodeItUpResponse(
     [property: JsonPropertyName("success")]

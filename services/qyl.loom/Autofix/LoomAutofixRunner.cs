@@ -16,14 +16,26 @@ internal sealed partial class LoomAutofixRunner(
     AutofixReportAssemblyState assembly,
     IAutofixLifecycleBus lifecycle,
     AutofixRunConfigStore configStore,
-    CheckpointManager checkpointManager)
+    CheckpointManager checkpointManager,
+    TimeProvider timeProvider)
 {
-    public Task RunAsync(string runId, CancellationToken ct = default)
+    public async Task RunAsync(string runId, CancellationToken ct = default)
     {
-        var config = configStore.TryGet(runId, out var registered)
-            ? registered
-            : AutofixWorkflowDefaults.Autonomous;
-        return RunAsync(runId, config, ct);
+        if (!agents.IsConfigured)
+        {
+            LogNoLlmConfigured(runId);
+            return;
+        }
+
+        var run = await collector.GetFixRunAsync(runId, ct).ConfigureAwait(false);
+        if (run is null)
+        {
+            LogRunNotFound(runId);
+            return;
+        }
+
+        var config = ResolveConfig(runId, run);
+        await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
     }
 
     public async Task RunAsync(string runId, AutofixWorkflowConfig config, CancellationToken ct = default)
@@ -41,6 +53,27 @@ internal sealed partial class LoomAutofixRunner(
             return;
         }
 
+        await ExecuteRunAsync(runId, run, config, ct).ConfigureAwait(false);
+    }
+
+    private AutofixWorkflowConfig ResolveConfig(string runId, FixRunRecord run)
+    {
+        if (configStore.TryGet(runId, out var registered))
+        {
+            return registered;
+        }
+
+        // Honor the persisted FixRunRecord.StoppingPoint marker — set by callers that
+        // wanted HITL but couldn't reach the in-memory configStore (e.g. cross-restart
+        // pickup from the collector queue).
+        return run.StoppingPoint is { Length: > 0 }
+            ? AutofixWorkflowDefaults.Interactive
+            : AutofixWorkflowDefaults.Autonomous;
+    }
+
+    private async Task ExecuteRunAsync(
+        string runId, FixRunRecord run, AutofixWorkflowConfig config, CancellationToken ct)
+    {
         var policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var parsedPolicy)
             ? parsedPolicy
             : FixPolicy.RequireReview;
@@ -63,6 +96,16 @@ internal sealed partial class LoomAutofixRunner(
         try
         {
             var report = await ExecuteWorkflowAsync(run, config, ct).ConfigureAwait(false);
+
+            if (report is null)
+            {
+                await orchestrator
+                    .UpdateFixRunStatusAsync(run.IssueId, runId, "failed",
+                        "Autofix workflow terminated without emitting AutofixWorkflowResult.", ct: ct)
+                    .ConfigureAwait(false);
+                LogWorkflowNoOutput(runId);
+                return;
+            }
 
             var confidence = report.ConfidenceScoreSum / 12.0;
             var nextStatus = PolicyGate.EvaluateNextStatus(policy, confidence);
@@ -101,7 +144,7 @@ internal sealed partial class LoomAutofixRunner(
         }
     }
 
-    private async Task<AutofixReport> ExecuteWorkflowAsync(
+    private async Task<AutofixReport?> ExecuteWorkflowAsync(
         FixRunRecord run, AutofixWorkflowConfig config, CancellationToken ct)
     {
         var workflow = workflows.BuildAutofixWorkflow(config);
@@ -113,15 +156,20 @@ internal sealed partial class LoomAutofixRunner(
             run.StoppingPoint,
             config);
 
-        await using var execution = await InProcessExecution
-            .RunStreamingAsync(workflow, request, checkpointManager, run.RunId, ct)
-            .ConfigureAwait(false);
-
-        AutofixWorkflowResult? final = null;
         var pendingTimeouts = new List<Task>();
 
+        // Wrap the entire streaming-run lifecycle in a try/finally so a startup
+        // failure (executor construction, model init, etc.) still completes the
+        // lifecycle channel and leaves SSE subscribers unblocked.
+        StreamingRun? execution = null;
         try
         {
+            execution = await InProcessExecution
+                .RunStreamingAsync(workflow, request, checkpointManager, run.RunId, ct)
+                .ConfigureAwait(false);
+
+            AutofixWorkflowResult? final = null;
+
             await foreach (var evt in execution.WatchStreamAsync(ct).ConfigureAwait(false))
             {
                 switch (evt)
@@ -130,8 +178,20 @@ internal sealed partial class LoomAutofixRunner(
                         lifecycle.Publish(run.RunId, ToEnvelope(lifecycleEvent));
                         break;
 
-                    case RequestInfoEvent ri when config.StoppingPointTimeout is { } timeout:
-                        pendingTimeouts.Add(AutoResolveAfterTimeoutAsync(execution, ri, run.RunId, timeout, ct));
+                    case RequestInfoEvent ri:
+                        // Always publish HITL-gate firings to the lifecycle bus so the
+                        // dashboard can render the gate even when no auto-resolver is wired.
+                        lifecycle.Publish(run.RunId, ToGateEnvelope(ri, run.RunId));
+
+                        if (config.StoppingPointTimeout is { } timeout)
+                        {
+                            pendingTimeouts.Add(AutoResolveAfterTimeoutAsync(execution, ri, run.RunId, timeout, ct));
+                        }
+                        else
+                        {
+                            LogStoppingPointWithoutTimeout(run.RunId);
+                        }
+
                         break;
 
                     case WorkflowOutputEvent { Data: AutofixWorkflowResult result }:
@@ -141,6 +201,8 @@ internal sealed partial class LoomAutofixRunner(
 
                 if (final is not null) break;
             }
+
+            return final?.Report;
         }
         finally
         {
@@ -150,11 +212,11 @@ internal sealed partial class LoomAutofixRunner(
                 try { await t.ConfigureAwait(false); }
                 catch (OperationCanceledException) { }
             }
+            if (execution is not null)
+            {
+                await execution.DisposeAsync().ConfigureAwait(false);
+            }
         }
-
-        return final?.Report
-               ?? throw new InvalidOperationException(
-                   $"Autofix workflow for run {run.RunId} terminated without emitting AutofixWorkflowResult.");
     }
 
     private async Task AutoResolveAfterTimeoutAsync(
@@ -162,7 +224,7 @@ internal sealed partial class LoomAutofixRunner(
     {
         try
         {
-            await Task.Delay(timeout, ct).ConfigureAwait(false);
+            await Task.Delay(timeout, timeProvider, ct).ConfigureAwait(false);
 
             if (ri.Request.TryGetDataAs<HypothesisVerdict>(out var hyp))
             {
@@ -181,13 +243,29 @@ internal sealed partial class LoomAutofixRunner(
         }
     }
 
-    private static AutofixLifecycleEnvelope ToEnvelope(AutofixLifecycleEvent evt) =>
+    private AutofixLifecycleEnvelope ToEnvelope(AutofixLifecycleEvent evt) =>
         new(
             evt.RunId,
             evt.Stage,
             evt.GetType().Name,
             JsonSerializer.Serialize<object>(evt.Data),
-            DateTimeOffset.UtcNow);
+            timeProvider.GetUtcNow());
+
+    private AutofixLifecycleEnvelope ToGateEnvelope(RequestInfoEvent ri, string runId)
+    {
+        var (gate, payload) = ri.Request.TryGetDataAs<HypothesisVerdict>(out var hyp)
+            ? ("pre_solution", JsonSerializer.Serialize<object>(hyp))
+            : ri.Request.TryGetDataAs<ConfidenceAudit>(out var audit)
+                ? ("pre_commit", JsonSerializer.Serialize<object>(audit))
+                : ("unknown", "{}");
+
+        return new AutofixLifecycleEnvelope(
+            runId,
+            "stopping_point",
+            $"StoppingPoint.{gate}",
+            payload,
+            timeProvider.GetUtcNow());
+    }
 
     private static string BuildChangesJson(AutofixReport report) =>
         JsonSerializer.Serialize(new
@@ -222,6 +300,14 @@ internal sealed partial class LoomAutofixRunner(
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Loom autofix run {RunId}: stopping-point '{Gate}' auto-approved after {Timeout}")]
     private partial void LogStoppingPointAutoApproved(string runId, string gate, TimeSpan timeout);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Loom autofix run {RunId} terminated without emitting AutofixWorkflowResult — marking failed")]
+    private partial void LogWorkflowNoOutput(string runId);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Loom autofix run {RunId}: HITL stopping-point fired but no StoppingPointTimeout configured — workflow may block indefinitely waiting for an approval response")]
+    private partial void LogStoppingPointWithoutTimeout(string runId);
 }
 
 internal static class AutofixWorkflowDefaults
@@ -241,9 +327,10 @@ internal static class AutofixWorkflowDefaults
         ContextToolBudget: 6,
         StoppingPointTimeout: null);
 
-    /// User-initiated runs from the dashboard. HITL ON at both gates so the
-    /// user can intervene; 5-minute timeout auto-approves if the user closes
-    /// the browser tab so the workflow doesn't deadlock indefinitely.
+    /// User-initiated runs from the dashboard that explicitly opt into review.
+    /// HITL ON at both gates so the user can intervene; 5-minute timeout
+    /// auto-approves if the user closes the browser tab so the workflow doesn't
+    /// deadlock indefinitely.
     public static readonly AutofixWorkflowConfig Interactive = new(
         HypothesisFanOut: 3,
         HypothesisTemperatureSpread: 0.4,

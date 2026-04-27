@@ -58,6 +58,8 @@ internal sealed class ConfidenceExecutor(
         state.Record(draft.RunId, audit);
         await ledger.RecordConfidenceAsync(audit, ct).ConfigureAwait(false);
         await ctx.AddEventAsync(new ConfidenceRecorded(audit), ct).ConfigureAwait(false);
+        await ctx.QueueStateUpdateAsync(AutofixAssemblyKeys.Confidence, audit, AutofixAssemblyKeys.Scope, ct)
+            .ConfigureAwait(false);
 
         return audit;
     }

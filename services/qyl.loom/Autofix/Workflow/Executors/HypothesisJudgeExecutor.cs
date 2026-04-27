@@ -47,6 +47,9 @@ internal sealed class HypothesisJudgeExecutor(
         state.Record(_runId, verdict);
         await ledger.RecordHypothesisAsync(verdict, cancellationToken).ConfigureAwait(false);
         await context.AddEventAsync(new HypothesisRecorded(verdict), cancellationToken).ConfigureAwait(false);
+        await context
+            .QueueStateUpdateAsync(AutofixAssemblyKeys.Hypothesis, verdict, AutofixAssemblyKeys.Scope, cancellationToken)
+            .ConfigureAwait(false);
 
         _buffer.Clear();
         _retryIteration++;

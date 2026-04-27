@@ -40,6 +40,8 @@ internal sealed class ContextExecutor(
         state.Record(verdict.RunId, summary);
         await ledger.RecordContextAsync(summary, ct).ConfigureAwait(false);
         await ctx.AddEventAsync(new ContextRecorded(summary), ct).ConfigureAwait(false);
+        await ctx.QueueStateUpdateAsync(AutofixAssemblyKeys.Context, summary, AutofixAssemblyKeys.Scope, ct)
+            .ConfigureAwait(false);
 
         return summary;
     }
