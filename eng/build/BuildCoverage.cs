@@ -320,7 +320,11 @@ static class CoverageSummaryConverter
             return;
         }
 
-        var cobertura = XDocument.Parse(await File.ReadAllTextAsync(coberturaPath));
+        XDocument cobertura;
+        await using (var stream = File.OpenRead(coberturaPath))
+        {
+            cobertura = await XDocument.LoadAsync(stream, LoadOptions.None, default);
+        }
         if (cobertura.Root is not { } coverageElement)
         {
             Log.Warning("Invalid Cobertura file: no root element");

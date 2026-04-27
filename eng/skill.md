@@ -5,8 +5,9 @@ pattern (IXxxBuilder abstractions + .AsBuilder().Use(middleware).Build() + provi
 file-based instructions + three-strategy orchestration trichotomy + custom-executor disciplines) plus qyl delta
 (WithQylTelemetry/UseQylTelemetry at composition root, AddQylServiceDefaults, LoomRunState session discipline, qyl.mcp
 generator-driven tool registration, InvestigationLineage bounded autonomy). DROPPED 2026-04 — [AgentTraced] +
-AgentCallSiteAnalyzer + AgentInterceptorEmitter + GenAiCallSiteAnalyzer — replaced by .AsBuilder().UseOpenTelemetry("
-qyl.agent").Build() at composition root. 1.2/1.3 highlights — Foundry Hosted Agents, Handoff HITL, Declarative
+AgentCallSiteAnalyzer + AgentInterceptorEmitter + GenAiCallSiteAnalyzer — replaced by
+.AsBuilder().UseQylAgentTelemetry().Build() at composition root (the qyl wrapper around
+.UseOpenTelemetry("qyl.agent")). 1.2/1.3 highlights — Foundry Hosted Agents, Handoff HITL, Declarative
 resume-edge PortableValue handling, Foundry Evals .NET, duplicate-CallId fix. Triggers on qyl MAF code, IQylLoomChatClientBuilder,
 IQylLoomPatternsAgentsBuilder, IQylMcpAgentsBuilder, UseQylTelemetry, WithQylTelemetry, LoomRunState, LoomToolEnvelope,
 InvestigationLineage, QylSkill, QylCapability.
@@ -31,7 +32,11 @@ The attribute+generator stack for **agent/chat-level telemetry** was collapsed t
 
 - `[AgentTraced]` + `AgentCallSiteAnalyzer` + `AgentInterceptorEmitter` + `AgentInterceptors.g.cs` +
   `GenAiCallSiteAnalyzer` — **dropped**.
-- Replacement — `.AsBuilder().UseOpenTelemetry("qyl.agent").Build()` at the composition root, emitted once per agent.
+- Replacement — `.AsBuilder().UseQylAgentTelemetry().Build()` at the composition root, emitted once per
+  agent. The qyl wrapper is mandatory because it pairs with the chat-client-layer
+  `WithQylTelemetry` / `UseQylTelemetry` to keep both `IChatClient` and `AIAgent` instrumentation
+  in lockstep (`UseQylAgentTelemetry` is the qyl wrapper around `.UseOpenTelemetry("qyl.agent")` — call
+  it through the qyl wrapper, not the upstream extension directly, so telemetry attributes stay consistent).
 
 Attribute-based instrumentation is kept **only** for arbitrary non-chat business-logic methods and metrics —
 `[Traced]` / `[Meter]` / `[Counter]` / `[Histogram]` / `[Gauge]` / `[UpDownCounter]` / `[Tag]` — because no builder
@@ -316,7 +321,15 @@ custom agent authors (`CreateSessionCoreAsync`). Consumers touch exactly two:
       IReadOnlyList<Relationship> Relationships);
   ```
 
+  > **qyl policy** — `builder.AddAIAgent(...)` + `builder.AddWorkflow(...).AddAsAIAgent()` are the
+  > **DevUI-only** registration shape. Production qyl services (qyl.loom, qyl.mcp) construct
+  > standalone agents through their `IXxxAgentsBuilder` factory at composition root and never call
+  > the hosted `AddAIAgent`/`WithInMemorySessionStore`/`WithAITool` extensions. The example below is
+  > the canonical *DevUI-host* surface — copy it only when wiring the DevUI sample, not when
+  > registering production agents.
+
   ```csharp
+  // DevUI host registration (sample/inspection only — not used in qyl production services).
   builder.AddAIAgent("EntAgent_1", (sp, _) =>
   {
       var b   = sp.GetRequiredService<IXxxAgentsBuilder>();
