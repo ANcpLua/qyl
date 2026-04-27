@@ -25,7 +25,7 @@ public static partial class ReviewBotCommentParser
 {
     /// <summary>
     ///     Default bot author logins qyl treats as review bots. Case-insensitive. Callers
-    ///     that also want to process foreign review bots (Sentry, Seer, etc.) pass the
+    ///     that also want to process foreign review bots (e.g. <c>loom[bot]</c>) pass the
     ///     extra logins to <see cref="Parse" /> / <see cref="IsReviewBot" />.
     /// </summary>
     public static readonly ImmutableArray<string> KnownBotLogins =

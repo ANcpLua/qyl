@@ -1,6 +1,6 @@
 ---
 name: loom-workflow
-description: Route a user request across the five Loom workflow shapes (fix production issue, review sentry[bot]/seer-by-sentry[bot] PR comments, set up Sentry .NET SDK, set up AI monitoring, run headless autofix pipeline). Use when the user mentions Sentry, seer, production errors, PR bot feedback, setting up error/tracing/profiling/logging/metrics/crons/AI-monitoring in a .NET project, or asking Loom to auto-generate a fix diff. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
+description: Route a user request across the five Loom workflow shapes (fix production issue, process review-bot PR comments, set up Sentry .NET SDK, set up AI monitoring, run headless autofix pipeline). Use when the user mentions Sentry, production errors, PR bot feedback, setting up error/tracing/profiling/logging/metrics/crons/AI-monitoring in a .NET project, or asking Loom to auto-generate a fix diff. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
 ---
 
 # loom-workflow — Router across Loom's five workflow shapes

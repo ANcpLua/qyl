@@ -55,11 +55,11 @@ public sealed partial class LoomWorkflowTools
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     [Description(
-        "Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (Sentry, Seer, etc.). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
+        "Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (e.g. loom[bot]). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
     public static LoomReviewBotParseResult ParseReviewBotComments(
         string commentsJson,
         [Description(
-            "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"sentry[bot]\", \"seer-by-sentry[bot]\"]). Exact, case-insensitive match.")]
+            "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"loom[bot]\"]). Exact, case-insensitive match.")]
         string? additionalBotLoginsJson = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(commentsJson);
