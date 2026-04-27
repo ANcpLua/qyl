@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
 /// <summary>
@@ -15,7 +16,7 @@ public sealed class SpanRingBuffer
 
     public SpanRingBuffer(int capacity = 10_000)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
+        Guard.NotLessThan(capacity, 1);
         Capacity = capacity;
         _buffer = new SpanRecord?[capacity];
     }
