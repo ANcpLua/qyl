@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
@@ -19,30 +18,14 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agents)
+internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agents)
 {
 
     [QylCapability("agentic_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Generate an AI-powered summary of an error issue.
-
-                 Fetches error details and recent events, then uses an LLM
-                 to produce a structured analysis including:
-                 - What's wrong and possible causes
-                 - Impact assessment
-                 - Fixability score (1-5)
-                 - Suggested fix
-
-                 Requires QYL_AGENT_API_KEY to be configured.
-                 Falls back to raw data display if no LLM available.
-
-                 Returns: AI-generated error analysis
-                 """)]
-    public Task<string> SummarizeErrorAsync(
-        [Description("The error issue ID to summarize")]
+    public partial Task<string> SummarizeErrorAsync(
         string issueId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
@@ -92,23 +75,7 @@ internal sealed class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agent
     [McpServerTool(Name = "qyl.summarize_trace", Title = "Summarize Trace",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Generate an AI-powered summary of a distributed trace.
-
-                 Fetches all spans for the trace, then uses an LLM to produce
-                 a structured analysis including:
-                 - Overview of the request flow
-                 - Performance bottlenecks and critical path
-                 - Error analysis
-                 - GenAI cost/latency breakdown (if applicable)
-
-                 Requires QYL_AGENT_API_KEY to be configured.
-                 Falls back to raw data display if no LLM available.
-
-                 Returns: AI-generated trace analysis
-                 """)]
-    public Task<string> SummarizeTraceAsync(
-        [Description("The trace ID to summarize")]
+    public partial Task<string> SummarizeTraceAsync(
         string traceId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
@@ -161,23 +128,7 @@ internal sealed class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agent
     [McpServerTool(Name = "qyl.summarize_session", Title = "Summarize Session",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Generate an AI-powered summary of a session.
-
-                 Fetches session metadata and its spans, then uses an LLM
-                 to produce a structured analysis including:
-                 - Session overview and purpose
-                 - Span timeline and interactions
-                 - Error analysis
-                 - Performance characteristics
-
-                 Requires QYL_AGENT_API_KEY to be configured.
-                 Falls back to raw data display if no LLM available.
-
-                 Returns: AI-generated session analysis
-                 """)]
-    public Task<string> SummarizeSessionAsync(
-        [Description("The session ID to summarize")]
+    public partial Task<string> SummarizeSessionAsync(
         string sessionId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>

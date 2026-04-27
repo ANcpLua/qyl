@@ -15,7 +15,7 @@ public static class LinuxAttributes
     [global::System.Obsolete("Replaced by system.memory.linux.slab.state.", false)]
     public const string MemorySlabState = "linux.memory.slab.state";
 
-    /// <summary>Values for <see cref="MemorySlabState"/>.</summary>
+    /// <summary>Values for the <c>MemorySlabState</c> attribute.</summary>
     public static class MemorySlabStateValues
     {
         /// <summary>.</summary>

@@ -116,7 +116,7 @@ internal static class ToolManifestAnalyzer
                 return null;
 
             string? requiredSkillKindName = null;
-            if (attr.ConstructorArguments is [_, { Value: int skillValue } _])
+            if (attr.ConstructorArguments is [_, { Value: int skillValue }])
             {
                 requiredSkillKindName = ResolveSkillKindName(skillValue);
             }
@@ -157,7 +157,7 @@ internal static class ToolManifestAnalyzer
                 continue;
 
             var role = CapabilityRoleKind.Starting;
-            if (attr.ConstructorArguments is [_, { Value: int roleValue } _, ..])
+            if (attr.ConstructorArguments is [_, { Value: int roleValue }, ..])
             {
                 role = roleValue == 1 ? CapabilityRoleKind.FollowUp : CapabilityRoleKind.Starting;
             }
@@ -178,7 +178,7 @@ internal static class ToolManifestAnalyzer
             if (!attr.AttributeClass.IsEqualTo(skillAttrType))
                 continue;
 
-            if (attr.ConstructorArguments is [{ Value: int skillValue } _, ..])
+            if (attr.ConstructorArguments is [{ Value: int skillValue }, ..])
             {
                 return ResolveSkillKindName(skillValue);
             }

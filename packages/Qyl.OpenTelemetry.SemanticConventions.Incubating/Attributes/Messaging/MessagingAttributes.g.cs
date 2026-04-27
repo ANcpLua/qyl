@@ -117,7 +117,7 @@ public static class MessagingAttributes
     /// <remarks>If a custom value is used, it MUST be of low cardinality.</remarks>
     public const string OperationType = "messaging.operation.type";
 
-    /// <summary>Values for <see cref="OperationType"/>.</summary>
+    /// <summary>Values for the <c>OperationType</c> attribute.</summary>
     public static class OperationTypeValues
     {
         /// <summary>A message is created. "Create" spans always refer to a single message and are used to provide a unique creation context for messages in batch sending scenarios..</summary>
@@ -151,7 +151,7 @@ public static class MessagingAttributes
     /// <summary>Model of message consumption. This only applies to consumer spans..</summary>
     public const string RocketmqConsumptionModel = "messaging.rocketmq.consumption_model";
 
-    /// <summary>Values for <see cref="RocketmqConsumptionModel"/>.</summary>
+    /// <summary>Values for the <c>RocketmqConsumptionModel</c> attribute.</summary>
     public static class RocketmqConsumptionModelValues
     {
         /// <summary>Broadcasting consumption model.</summary>
@@ -178,7 +178,7 @@ public static class MessagingAttributes
     /// <summary>Type of message..</summary>
     public const string RocketmqMessageType = "messaging.rocketmq.message.type";
 
-    /// <summary>Values for <see cref="RocketmqMessageType"/>.</summary>
+    /// <summary>Values for the <c>RocketmqMessageType</c> attribute.</summary>
     public static class RocketmqMessageTypeValues
     {
         /// <summary>Delay message.</summary>
@@ -201,7 +201,7 @@ public static class MessagingAttributes
     /// <summary>Describes the [settlement type](https://learn.microsoft.com/azure/service-bus-messaging/message-transfers-locks-settlement#peeklock)..</summary>
     public const string ServicebusDispositionStatus = "messaging.servicebus.disposition_status";
 
-    /// <summary>Values for <see cref="ServicebusDispositionStatus"/>.</summary>
+    /// <summary>Values for the <c>ServicebusDispositionStatus</c> attribute.</summary>
     public static class ServicebusDispositionStatusValues
     {
         /// <summary>Message is abandoned.</summary>
@@ -224,7 +224,7 @@ public static class MessagingAttributes
     /// <remarks>The actual messaging system may differ from the one known by the client. For example, when using Kafka client libraries to communicate with Azure Event Hubs, the `messaging.system` is set to `kafka` based on the instrumentation's best knowledge.</remarks>
     public const string System = "messaging.system";
 
-    /// <summary>Values for <see cref="System"/>.</summary>
+    /// <summary>Values for the <c>System</c> attribute.</summary>
     public static class SystemValues
     {
         /// <summary>Apache ActiveMQ.</summary>

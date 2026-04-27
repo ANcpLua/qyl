@@ -11,7 +11,7 @@ namespace Qyl.Loom.Autofix;
 ///     logic live here; all pipeline logic lives in the runner.
 /// </summary>
 [QylHostedService]
-public sealed partial class AutofixAgentService(
+internal sealed partial class AutofixAgentService(
     CollectorClient collector,
     LoomAutofixRunner runner,
     IConfiguration configuration,

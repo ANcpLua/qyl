@@ -87,6 +87,8 @@ internal static class DbInterceptorEmitter
                     null,
                     "return DbInstrumentation.ExecuteScalar(command);");
                 break;
+            default:
+                throw new InvalidOperationException($"Unsupported DbCommandMethod: {callSite.Method}");
         }
     }
 

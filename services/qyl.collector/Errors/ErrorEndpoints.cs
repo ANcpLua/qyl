@@ -41,7 +41,7 @@ public static class ErrorEndpoints
                 });
             }
 
-            if (await store.GetErrorByIdAsync(errorId, ct) is not { } existing)
+            if (await store.GetErrorByIdAsync(errorId, ct) is null)
                 return TypedResults.NotFound();
 
             await store.UpdateErrorStatusAsync(errorId, status, update.AssignedTo?.Trim(), ct);

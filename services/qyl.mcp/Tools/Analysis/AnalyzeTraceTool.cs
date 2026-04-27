@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Protocol;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Analysis;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-public sealed class AnalyzeTraceTool(HttpClient client)
+public sealed partial class AnalyzeTraceTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves and formats structured analysis of a distributed trace's spans, errors, and latency patterns.
@@ -30,11 +29,8 @@ public sealed class AnalyzeTraceTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "Analyze a distributed trace. Returns structured analysis of spans, errors, services, and latency patterns.")]
-    public async Task<string> AnalyzeTraceAsync(
-        [Description("Trace ID to analyze")] string traceId,
-        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")]
+    public async partial Task<string> AnalyzeTraceAsync(
+        string traceId,
         string? focus = null,
         CancellationToken ct = default)
     {

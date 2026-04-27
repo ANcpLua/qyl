@@ -108,6 +108,8 @@ internal static class MeterEmitter
                 sb.AppendLine($"    _meter.CreateUpDownCounter<{valueType}>({args});");
                 break;
             }
+            default:
+                throw new InvalidOperationException($"Unsupported MetricKind: {method.Kind}");
         }
     }
 

@@ -47,7 +47,7 @@ public static class NetAttributes
     [global::System.Obsolete("Split to `network.transport` and `network.type`.", false)]
     public const string SockFamily = "net.sock.family";
 
-    /// <summary>Values for <see cref="SockFamily"/>.</summary>
+    /// <summary>Values for the <c>SockFamily</c> attribute.</summary>
     public static class SockFamilyValues
     {
         /// <summary>IPv4 address.</summary>
@@ -82,7 +82,7 @@ public static class NetAttributes
     [global::System.Obsolete("Replaced by network.transport.", false)]
     public const string Transport = "net.transport";
 
-    /// <summary>Values for <see cref="Transport"/>.</summary>
+    /// <summary>Values for the <c>Transport</c> attribute.</summary>
     public static class TransportValues
     {
         /// <summary>In-process communication..</summary>

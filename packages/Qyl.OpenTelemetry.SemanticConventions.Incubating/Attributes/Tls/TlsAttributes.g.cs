@@ -64,7 +64,7 @@ public static class TlsAttributes
     /// <summary>Normalized lowercase protocol name parsed from original string of the negotiated [SSL/TLS protocol version](https://docs.openssl.org/1.1.1/man3/SSL_get_version/#return-values).</summary>
     public const string ProtocolName = "tls.protocol.name";
 
-    /// <summary>Values for <see cref="ProtocolName"/>.</summary>
+    /// <summary>Values for the <c>ProtocolName</c> attribute.</summary>
     public static class ProtocolNameValues
     {
         /// <summary>.</summary>

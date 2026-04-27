@@ -50,7 +50,7 @@ internal static class ObserveEndpoints
             SchemaVersionNegotiator.NegotiationResult.Reject r =>
                 TypedResults.Conflict(new
                 {
-                    error = r.Reason, collector_version = r.CollectorVersion, requested_version = r.RequestedVersion
+                    error = r.Reason, collector_version = r.DeployedVersion, requested_version = r.RequestedVersion
                 }),
 
             SchemaVersionNegotiator.NegotiationResult.Accept a =>
@@ -60,7 +60,7 @@ internal static class ObserveEndpoints
             SchemaVersionNegotiator.NegotiationResult.Transform t =>
                 CreateSubscription(req, manager,
                     new SchemaVersionNegotiator.NegotiationResult.Accept(
-                        t.CollectorVersion, t.RequestedVersion)),
+                        t.DeployedVersion, t.RequestedVersion)),
 
             _ => TypedResults.StatusCode(500)
         };
@@ -78,15 +78,15 @@ internal static class ObserveEndpoints
 
         // Surface version delta as a warning field if versions differ
         if (negotiation.RequestedVersion is not null &&
-            !string.Equals(negotiation.RequestedVersion, negotiation.CollectorVersion,
+            !string.Equals(negotiation.RequestedVersion, negotiation.DeployedVersion,
                 StringComparison.OrdinalIgnoreCase))
         {
             return TypedResults.Ok(new
             {
                 subscription = dto,
                 schema_warning =
-                    $"Semconv version mismatch: collector={negotiation.CollectorVersion}, requested={negotiation.RequestedVersion}. Schema attributes may differ.",
-                collector_version = negotiation.CollectorVersion,
+                    $"Semconv version mismatch: collector={negotiation.DeployedVersion}, requested={negotiation.RequestedVersion}. Schema attributes may differ.",
+                collector_version = negotiation.DeployedVersion,
                 requested_version = negotiation.RequestedVersion
             });
         }

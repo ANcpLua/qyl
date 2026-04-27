@@ -18,7 +18,7 @@ public static class HttpAttributes
     /// <summary>State of the HTTP connection in the HTTP connection pool..</summary>
     public const string ConnectionState = "http.connection.state";
 
-    /// <summary>Values for <see cref="ConnectionState"/>.</summary>
+    /// <summary>Values for the <c>ConnectionState</c> attribute.</summary>
     public static class ConnectionStateValues
     {
         /// <summary>active state..</summary>
@@ -31,7 +31,7 @@ public static class HttpAttributes
     [global::System.Obsolete("Split into `network.protocol.name` and `network.protocol.version`", false)]
     public const string Flavor = "http.flavor";
 
-    /// <summary>Values for <see cref="Flavor"/>.</summary>
+    /// <summary>Values for the <c>Flavor</c> attribute.</summary>
     public static class FlavorValues
     {
         /// <summary>HTTP/1.0.</summary>

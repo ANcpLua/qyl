@@ -32,9 +32,6 @@ public static class PolicyGate
         policy switch
         {
             FixPolicy.AutoApply when confidenceScore >= threshold => "applied",
-            FixPolicy.AutoApply => "review",
-            FixPolicy.RequireReview => "review",
-            FixPolicy.DryRun => "review",
             _ => "review"
         };
 }

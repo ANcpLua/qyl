@@ -1,5 +1,7 @@
 // Copyright (c) 2025-2026 ancplua
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>
@@ -51,7 +53,7 @@ internal sealed class LspServerDefinitions
     /// <param name="id">Server id (case-sensitive).</param>
     /// <param name="definition">The matching definition, when found.</param>
     /// <returns><c>true</c> when a definition exists.</returns>
-    public bool TryGet(string id, out LspServerDefinition definition)
+    public bool TryGet(string id, [NotNullWhen(true)] out LspServerDefinition? definition)
     {
         if (_byId.TryGetValue(id, out var value))
         {
@@ -59,7 +61,7 @@ internal sealed class LspServerDefinitions
             return true;
         }
 
-        definition = null!;
+        definition = null;
         return false;
     }
 }

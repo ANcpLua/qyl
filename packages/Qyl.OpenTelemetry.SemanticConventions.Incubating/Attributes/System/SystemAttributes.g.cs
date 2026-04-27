@@ -19,7 +19,7 @@ public static class SystemAttributes
     [global::System.Obsolete("Replaced by cpu.mode.", false)]
     public const string CpuState = "system.cpu.state";
 
-    /// <summary>Values for <see cref="CpuState"/>.</summary>
+    /// <summary>Values for the <c>CpuState</c> attribute.</summary>
     public static class CpuStateValues
     {
         /// <summary>.</summary>
@@ -50,7 +50,7 @@ public static class SystemAttributes
     /// <summary>The filesystem state.</summary>
     public const string FilesystemState = "system.filesystem.state";
 
-    /// <summary>Values for <see cref="FilesystemState"/>.</summary>
+    /// <summary>Values for the <c>FilesystemState</c> attribute.</summary>
     public static class FilesystemStateValues
     {
         /// <summary>.</summary>
@@ -64,7 +64,7 @@ public static class SystemAttributes
     /// <summary>The filesystem type.</summary>
     public const string FilesystemType = "system.filesystem.type";
 
-    /// <summary>Values for <see cref="FilesystemType"/>.</summary>
+    /// <summary>Values for the <c>FilesystemType</c> attribute.</summary>
     public static class FilesystemTypeValues
     {
         /// <summary>.</summary>
@@ -84,7 +84,7 @@ public static class SystemAttributes
     /// <summary>The Linux Slab memory state.</summary>
     public const string MemoryLinuxSlabState = "system.memory.linux.slab.state";
 
-    /// <summary>Values for <see cref="MemoryLinuxSlabState"/>.</summary>
+    /// <summary>Values for the <c>MemoryLinuxSlabState</c> attribute.</summary>
     public static class MemoryLinuxSlabStateValues
     {
         /// <summary>.</summary>
@@ -96,7 +96,7 @@ public static class SystemAttributes
     /// <summary>The memory state.</summary>
     public const string MemoryState = "system.memory.state";
 
-    /// <summary>Values for <see cref="MemoryState"/>.</summary>
+    /// <summary>Values for the <c>MemoryState</c> attribute.</summary>
     public static class MemoryStateValues
     {
         /// <summary>.</summary>
@@ -116,7 +116,7 @@ public static class SystemAttributes
     [global::System.Obsolete("Replaced by network.connection.state.", false)]
     public const string NetworkState = "system.network.state";
 
-    /// <summary>Values for <see cref="NetworkState"/>.</summary>
+    /// <summary>Values for the <c>NetworkState</c> attribute.</summary>
     public static class NetworkStateValues
     {
         /// <summary>.</summary>
@@ -148,7 +148,7 @@ public static class SystemAttributes
     /// <summary>The paging access direction.</summary>
     public const string PagingDirection = "system.paging.direction";
 
-    /// <summary>Values for <see cref="PagingDirection"/>.</summary>
+    /// <summary>Values for the <c>PagingDirection</c> attribute.</summary>
     public static class PagingDirectionValues
     {
         /// <summary>.</summary>
@@ -160,7 +160,7 @@ public static class SystemAttributes
     /// <summary>The paging fault type.</summary>
     public const string PagingFaultType = "system.paging.fault.type";
 
-    /// <summary>Values for <see cref="PagingFaultType"/>.</summary>
+    /// <summary>Values for the <c>PagingFaultType</c> attribute.</summary>
     public static class PagingFaultTypeValues
     {
         /// <summary>.</summary>
@@ -172,7 +172,7 @@ public static class SystemAttributes
     /// <summary>The memory paging state.</summary>
     public const string PagingState = "system.paging.state";
 
-    /// <summary>Values for <see cref="PagingState"/>.</summary>
+    /// <summary>Values for the <c>PagingState</c> attribute.</summary>
     public static class PagingStateValues
     {
         /// <summary>.</summary>
@@ -185,7 +185,7 @@ public static class SystemAttributes
     [global::System.Obsolete("Replaced by system.paging.fault.type.", false)]
     public const string PagingType = "system.paging.type";
 
-    /// <summary>Values for <see cref="PagingType"/>.</summary>
+    /// <summary>Values for the <c>PagingType</c> attribute.</summary>
     public static class PagingTypeValues
     {
         /// <summary>.</summary>
@@ -198,7 +198,7 @@ public static class SystemAttributes
     [global::System.Obsolete("Replaced by process.state.", false)]
     public const string ProcessStatus = "system.process.status";
 
-    /// <summary>Values for <see cref="ProcessStatus"/>.</summary>
+    /// <summary>Values for the <c>ProcessStatus</c> attribute.</summary>
     public static class ProcessStatusValues
     {
         /// <summary>.</summary>
@@ -215,7 +215,7 @@ public static class SystemAttributes
     [global::System.Obsolete("Replaced by process.state.", false)]
     public const string ProcessesStatus = "system.processes.status";
 
-    /// <summary>Values for <see cref="ProcessesStatus"/>.</summary>
+    /// <summary>Values for the <c>ProcessesStatus</c> attribute.</summary>
     public static class ProcessesStatusValues
     {
         /// <summary>.</summary>

@@ -14,7 +14,7 @@ public static class V8jsAttributes
     /// <summary>The type of garbage collection..</summary>
     public const string GcType = "v8js.gc.type";
 
-    /// <summary>Values for <see cref="GcType"/>.</summary>
+    /// <summary>Values for the <c>GcType</c> attribute.</summary>
     public static class GcTypeValues
     {
         /// <summary>Incremental (Incremental Marking)..</summary>
@@ -31,7 +31,7 @@ public static class V8jsAttributes
     /// <remarks>Value can be retrieved from value `space_name` of [`v8.getHeapSpaceStatistics()`](https://nodejs.org/api/v8.html#v8getheapspacestatistics)</remarks>
     public const string HeapSpaceName = "v8js.heap.space.name";
 
-    /// <summary>Values for <see cref="HeapSpaceName"/>.</summary>
+    /// <summary>Values for the <c>HeapSpaceName</c> attribute.</summary>
     public static class HeapSpaceNameValues
     {
         /// <summary>Code memory space..</summary>

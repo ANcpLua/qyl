@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Auth;
 
 // ── Keycloak JWKS validation ──────────────────────────────────────────────────
@@ -184,7 +185,7 @@ public static class TokenGenerator
 {
     public static string Generate(int byteLength = 24)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLength);
+        Guard.Positive(byteLength);
 
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteLength))
             .Replace('+', '-')

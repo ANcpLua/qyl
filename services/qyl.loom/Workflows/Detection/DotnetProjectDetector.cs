@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
@@ -31,7 +32,7 @@ public static partial class DotnetProjectDetector
         MaxBackgroundServiceScanFileBytes =
             1024 * 1024; // 1 MiB — any .cs file bigger is not a BackgroundService declaration.
 
-    [GeneratedRegex(@"<TargetFrameworks?>([^<]+)</TargetFrameworks?>", RegexOptions.IgnoreCase, 250)]
+    [GeneratedRegex("<TargetFrameworks?>([^<]+)</TargetFrameworks?>", RegexOptions.IgnoreCase, 250)]
     private static partial Regex TargetFrameworkRegex();
 
     [GeneratedRegex(@"<PackageReference\s+Include=""([^""]+)""", RegexOptions.IgnoreCase, 250)]
@@ -52,7 +53,7 @@ public static partial class DotnetProjectDetector
     /// </remarks>
     public static DotnetProjectEvidence Detect(string repoRoot)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(repoRoot);
+        Guard.NotNullOrWhiteSpace(repoRoot);
 
         var normalised = Path.GetFullPath(repoRoot);
         if (!Directory.Exists(normalised))

@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
@@ -25,7 +26,7 @@ public static partial class ReviewBotCommentParser
 {
     /// <summary>
     ///     Default bot author logins qyl treats as review bots. Case-insensitive. Callers
-    ///     that also want to process foreign review bots (Sentry, Seer, etc.) pass the
+    ///     that also want to process foreign review bots (e.g. <c>loom[bot]</c>) pass the
     ///     extra logins to <see cref="Parse" /> / <see cref="IsReviewBot" />.
     /// </summary>
     public static readonly ImmutableArray<string> KnownBotLogins =
@@ -46,7 +47,7 @@ public static partial class ReviewBotCommentParser
         250)]
     private static partial Regex BugRegex();
 
-    [GeneratedRegex(@"<[^>]+>", RegexOptions.None, 250)]
+    [GeneratedRegex("<[^>]+>", RegexOptions.None, 250)]
     private static partial Regex HtmlTagRegex();
 
     [GeneratedRegex(@"[ \t]+", RegexOptions.None, 250)]
@@ -74,7 +75,7 @@ public static partial class ReviewBotCommentParser
         IEnumerable<ReviewBotRawComment> comments,
         IReadOnlyCollection<string>? additionalBotLogins = null)
     {
-        ArgumentNullException.ThrowIfNull(comments);
+        Guard.NotNull(comments);
 
         var builder = ImmutableArray.CreateBuilder<ReviewBotComment>();
         foreach (var raw in comments)
@@ -139,7 +140,7 @@ public static partial class ReviewBotCommentParser
     /// </summary>
     public static string BuildSummary(IEnumerable<ReviewBotComment> comments)
     {
-        ArgumentNullException.ThrowIfNull(comments);
+        Guard.NotNull(comments);
 
         var ordered = comments
             .OrderByDescending(static c => (int)c.Severity)
@@ -157,11 +158,11 @@ public static partial class ReviewBotCommentParser
         for (var i = 0; i < ordered.Length; i++)
         {
             var c = ordered[i];
-            var location = c.Line is int line ? $"{c.File}:{line}" : c.File;
+            var location = c.Line is { } line ? $"{c.File}:{line}" : c.File;
             sb.Append("\n[").Append(i + 1).Append("] ").Append(location)
                 .Append("  (author=").Append(c.Author)
                 .Append(", severity=").Append(c.Severity).Append('/').Append(c.SeverityText);
-            if (c.Confidence is double conf)
+            if (c.Confidence is { } conf)
                 sb.Append(", confidence=").Append(conf.ToString("0.00", CultureInfo.InvariantCulture));
             sb.Append(")\n  bug: ").Append(c.Bug.Length > 0 ? c.Bug : "(no header)");
             if (c.SuggestedFix.Length > 0)

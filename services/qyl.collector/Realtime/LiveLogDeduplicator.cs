@@ -1,5 +1,6 @@
 using Qyl.Contracts.Primitives;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
 /// <summary>
@@ -15,8 +16,14 @@ internal sealed class LiveLogDeduplicator
 
     public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(window, TimeSpan.Zero);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maxSuppressed, 1);
+        // Guard.GreaterThan has int/long/double overloads but no TimeSpan one, so this stays
+        // an inline check rather than getting routed through Guard.* (a cross-repo expansion).
+        if (window <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(window), window, "Window must be positive.");
+        }
+
+        Guard.NotLessThan(maxSuppressed, 1);
 
         _window = window;
         _maxSuppressed = maxSuppressed;

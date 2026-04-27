@@ -201,13 +201,8 @@ public sealed partial class MigrationRunner
         {
             var fileName = Path.GetFileName(filePath);
             var match = MigrationFileRegex().Match(fileName);
-            if (!match.Success)
-            {
-                LogSkippingInvalidFile(fileName);
-                continue;
-            }
-
-            if (!int.TryParse(match.Groups["version"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture,
+            if (!match.Success
+                || !int.TryParse(match.Groups["version"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture,
                     out var version))
             {
                 LogSkippingInvalidFile(fileName);

@@ -1,5 +1,6 @@
 using Qyl.Collector.Analytics;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Intelligence;
 
 /// <summary>
@@ -101,12 +102,12 @@ public static class SemanticDiffService
         int limit = 10,
         bool includeSuppressed = false)
     {
-        ArgumentNullException.ThrowIfNull(baseline);
-        ArgumentNullException.ThrowIfNull(comparison);
-        ArgumentNullException.ThrowIfNull(context);
+        Guard.NotNull(baseline);
+        Guard.NotNull(comparison);
+        Guard.NotNull(context);
 
-        ArgumentOutOfRangeException.ThrowIfNegative(totalBaseline);
-        ArgumentOutOfRangeException.ThrowIfNegative(totalComparison);
+        Guard.NotNegative(totalBaseline);
+        Guard.NotNegative(totalComparison);
         if (limit <= 0) return [];
 
         options ??= SemanticDiffOptions.Default;
@@ -132,7 +133,7 @@ public static class SemanticDiffService
 
             baselineByKey.TryGetValue(key, out var baselineValues);
 
-            var normalizedDimensionScore = normalizedDimensionScores.TryGetValue(key, out var s) ? s : 0.0;
+            var normalizedDimensionScore = normalizedDimensionScores.GetValueOrDefault(key, 0.0);
             var dimensionFiltered = dimensionScoreByKey.TryGetValue(key, out var ds) && ds.Filtered;
             var valueCount = CountDistinctValues(baselineValues, comparisonValues);
 

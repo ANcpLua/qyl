@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ListDsnsTool(HttpClient client)
+public sealed partial class ListDsnsTool(HttpClient client)
 {
     /// <summary>
     ///     Lists all DSNs configured for a project, used by client SDKs to send telemetry data.
@@ -28,9 +27,7 @@ public sealed class ListDsnsTool(HttpClient client)
         Destructive = false,
         Idempotent = true,
         OpenWorld = false)]
-    [Description("List all DSNs for a project. DSNs are used by client SDKs to send telemetry data.")]
-    public async Task<string> ListDsnsAsync(
-        [Description("Project slug to list DSNs for")]
+    public async partial Task<string> ListDsnsAsync(
         string projectSlug,
         CancellationToken ct = default)
     {

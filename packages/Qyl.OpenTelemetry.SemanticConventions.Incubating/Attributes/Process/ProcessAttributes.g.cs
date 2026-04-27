@@ -27,7 +27,7 @@ public static class ProcessAttributes
     /// <summary>Specifies whether the context switches for this data point were voluntary or involuntary..</summary>
     public const string ContextSwitchType = "process.context_switch.type";
 
-    /// <summary>Values for <see cref="ContextSwitchType"/>.</summary>
+    /// <summary>Values for the <c>ContextSwitchType</c> attribute.</summary>
     public static class ContextSwitchTypeValues
     {
         /// <summary>.</summary>
@@ -40,7 +40,7 @@ public static class ProcessAttributes
     [global::System.Obsolete("Replaced by cpu.mode.", false)]
     public const string CpuState = "process.cpu.state";
 
-    /// <summary>Values for <see cref="CpuState"/>.</summary>
+    /// <summary>Values for the <c>CpuState</c> attribute.</summary>
     public static class CpuStateValues
     {
         /// <summary>.</summary>
@@ -100,7 +100,7 @@ public static class ProcessAttributes
     [global::System.Obsolete("Replaced by system.paging.fault.type.", false)]
     public const string PagingFaultType = "process.paging.fault_type";
 
-    /// <summary>Values for <see cref="PagingFaultType"/>.</summary>
+    /// <summary>Values for the <c>PagingFaultType</c> attribute.</summary>
     public static class PagingFaultTypeValues
     {
         /// <summary>.</summary>
@@ -142,7 +142,7 @@ public static class ProcessAttributes
     /// <summary>The process state, e.g., [Linux Process State Codes](https://man7.org/linux/man-pages/man1/ps.1.html#PROCESS_STATE_CODES).</summary>
     public const string State = "process.state";
 
-    /// <summary>Values for <see cref="State"/>.</summary>
+    /// <summary>Values for the <c>State</c> attribute.</summary>
     public static class StateValues
     {
         /// <summary>.</summary>

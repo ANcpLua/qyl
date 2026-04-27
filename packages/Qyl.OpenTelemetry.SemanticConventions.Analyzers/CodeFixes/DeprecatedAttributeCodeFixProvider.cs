@@ -66,9 +66,9 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
 
         switch (entry.Mode)
         {
-            case DeprecatedReplacementMode.Direct:
-            case DeprecatedReplacementMode.FieldMapping:
-            case DeprecatedReplacementMode.Integrate:
+            case DeprecatedReplacementMode.Direct
+                or DeprecatedReplacementMode.FieldMapping
+                or DeprecatedReplacementMode.Integrate:
                 if (entry.Replacements.Length > 0)
                     RegisterDirect(context, literal, entry, diagnostic);
                 break;
@@ -82,7 +82,13 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
                 RegisterRemoval(context, literal, entry, diagnostic);
                 break;
 
-            // Composite / Conditional / Contextual / Example / NoteOnly — no auto-fix.
+            case DeprecatedReplacementMode.Composite:
+            case DeprecatedReplacementMode.Conditional:
+            case DeprecatedReplacementMode.Contextual:
+            case DeprecatedReplacementMode.Example:
+            case DeprecatedReplacementMode.NoteOnly:
+                // No auto-fix — diagnostic still fires for manual review.
+                break;
         }
     }
 

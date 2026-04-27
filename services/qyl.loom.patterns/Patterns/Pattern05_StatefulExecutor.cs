@@ -81,24 +81,25 @@ public static class Pattern05_StatefulExecutor
             static () => new RunState(0),
             new StatefulExecutorOptions { ScopeName = "loom/run" })
     {
-        private RootCauseHypothesis _pending = null!;
-
         public override async ValueTask<RootCauseHypothesis> HandleAsync(
             IncidentSignal signal, IWorkflowContext ctx, CancellationToken ct = default)
         {
+            RootCauseHypothesis? pending = null;
+
             await InvokeWithStateAsync(async (state, innerCtx, innerCt) =>
             {
-                var updated = state with { SignalsSeen = state.SignalsSeen + 1 };
+                var updated = new RunState(state.SignalsSeen + 1);
                 await innerCtx.AddEventAsync(new StageObserved("intake", updated.SignalsSeen), innerCt)
                     .ConfigureAwait(false);
-                _pending = new RootCauseHypothesis(
+                pending = new RootCauseHypothesis(
                     signal.Id,
                     $"Session {sessionId[..8]}: {signal.Description} — triaged #{updated.SignalsSeen}",
                     0.91);
                 return updated;
             }, ctx, cancellationToken: ct).ConfigureAwait(false);
 
-            return _pending;
+            return pending ?? throw new InvalidOperationException(
+                "StatefulIntake.InvokeWithStateAsync did not run the state mutator.");
         }
     }
 

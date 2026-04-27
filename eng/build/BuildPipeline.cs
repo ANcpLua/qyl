@@ -13,6 +13,8 @@ using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
+namespace Qyl.Build;
+
 [ParameterPrefix(nameof(IPipeline))]
 interface IPipeline : IHazSourcePaths
 {
@@ -22,6 +24,7 @@ interface IPipeline : IHazSourcePaths
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 
     Target TypeSpecInstall => d => d
+        .Unlisted()
         .Description("npm install in core/specs (--legacy-peer-deps per mandate .npmrc)")
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Executes(() => NpmTasks.NpmInstall(s => s
@@ -29,6 +32,7 @@ interface IPipeline : IHazSourcePaths
             .AddProcessAdditionalArguments("--legacy-peer-deps")));
 
     Target TypeSpecCompile => d => d
+        .Unlisted()
         .Description(
             "Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
         .DependsOn(TypeSpecInstall)
@@ -39,6 +43,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("compile")));
 
     Target GenerateSemconv => d => d
+        .Unlisted()
         .Description("Weaver → semconv.ts + C# OTel/qyl packages (idempotent)")
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
         .Executes(() =>
@@ -63,22 +68,11 @@ interface IPipeline : IHazSourcePaths
                     ? "aarch64-apple-darwin"
                     : "x86_64-apple-darwin"
                 : "x86_64-unknown-linux-gnu";
-            var weaverBin = (AbsolutePath)(RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver");
+            var weaverBin = RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver";
 
             var templatesDir = SemconvDirectory / "templates" / "registry";
             var upstreamModel = RootDirectory / ".tools" / "semconv-upstream" / "model";
             var qylModel = SemconvDirectory / "model" / "qyl";
-
-            // 4. Generate C# packages
-            static void RunWeaver(AbsolutePath weaver, AbsolutePath registry,
-                AbsolutePath templates, string templateSet, AbsolutePath outputDir)
-            {
-                Directory.CreateDirectory(outputDir);
-                ProcessTasks.StartProcess(weaver,
-                    $"registry generate --registry \"{registry}\" --templates \"{templates}\" {templateSet} \"{outputDir}\"",
-                    logOutput: true).AssertZeroExitCode();
-                Log.Information("GenerateSemconv: {Template} → {Output}", templateSet, outputDir);
-            }
 
             RunWeaver(weaverBin, upstreamModel, templatesDir, "csharp_stable",
                 RootDirectory / "packages" / "Qyl.OpenTelemetry.SemanticConventions");
@@ -89,7 +83,7 @@ interface IPipeline : IHazSourcePaths
 
             // 5. Copy OTel schema to both OTel packages (embedded resource)
             var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
-            if (((string)schemaSource).Length > 0 && File.Exists(schemaSource))
+            if (File.Exists(schemaSource))
             {
                 ReadOnlySpan<string> otelPackages =
                     ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"];
@@ -100,6 +94,16 @@ interface IPipeline : IHazSourcePaths
                     File.Copy(schemaSource, schemasDir / "1.40.0.yaml", true);
                 }
             }
+
+            static void RunWeaver(AbsolutePath weaver, AbsolutePath registry,
+                AbsolutePath templates, string templateSet, AbsolutePath outputDir)
+            {
+                Directory.CreateDirectory(outputDir);
+                ProcessTasks.StartProcess(weaver,
+                    $"registry generate --registry \"{registry}\" --templates \"{templates}\" {templateSet} \"{outputDir}\"",
+                    logOutput: true).AssertZeroExitCode();
+                Log.Information("GenerateSemconv: {Template} → {Output}", templateSet, outputDir);
+            }
         });
 
     Target Generate => d => d
@@ -108,12 +112,20 @@ interface IPipeline : IHazSourcePaths
         .DependsOn(GenerateSemconv);
 
     Target FrontendInstall => d => d
+        .Unlisted()
         .Description("npm install in services/qyl.dashboard")
         .Executes(() => NpmTasks.NpmInstall(s => s
             .SetProcessWorkingDirectory<NpmInstallSettings>(DashboardDirectory)));
 
+    Target FrontendDev => d => d
+        .Description("Run the Vite dev server (hot reload at http://localhost:5173)")
+        .DependsOn(FrontendInstall)
+        .Executes(() => NpmTasks.NpmRun(s => s
+            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+            .SetCommand("dev")));
+
     Target FrontendBuild => d => d
-        .Description("Build frontend for production (tsc + vite build)")
+        .Description("Build the frontend for production (tsc + vite build)")
         .DependsOn(FrontendInstall)
         .Produces(DashboardDistDirectory / "**/*")
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -121,6 +133,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("build")));
 
     Target FrontendTest => d => d
+        .Unlisted()
         .Description("Run frontend tests (Vitest)")
         .DependsOn(FrontendInstall)
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -129,6 +142,7 @@ interface IPipeline : IHazSourcePaths
             .SetArguments("--", "--run")));
 
     Target FrontendLint => d => d
+        .Unlisted()
         .Description("Lint frontend (ESLint)")
         .DependsOn(FrontendInstall)
         .Executes(() => NpmTasks.NpmRun(s => s
@@ -136,6 +150,7 @@ interface IPipeline : IHazSourcePaths
             .SetCommand("lint")));
 
     Target FrontendClean => d => d
+        .Unlisted()
         .Description("Clean frontend build artifacts")
         .Executes(() =>
         {

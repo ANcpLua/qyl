@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Protocol;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Analysis;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-public sealed class AnalyzeSessionTool(HttpClient client)
+public sealed partial class AnalyzeSessionTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves and formats structured analysis of a session's span count, status, service, and traces.
@@ -30,10 +29,8 @@ public sealed class AnalyzeSessionTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("Analyze a session. Returns structured analysis of span count, status, service, and trace breakdown.")]
-    public async Task<string> AnalyzeSessionAsync(
-        [Description("Session ID to analyze")] string sessionId,
-        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")]
+    public async partial Task<string> AnalyzeSessionAsync(
+        string sessionId,
         string? focus = null,
         CancellationToken ct = default)
     {

@@ -33,7 +33,7 @@ internal sealed partial class RiderMcpProxy(
         return await client.ListToolsAsync(cancellationToken: ct).ConfigureAwait(false);
     }
 
-    public string? GetStatus() =>
+    public string GetStatus() =>
         _client is not null ? $"Connected to {_connectedUrl}" : "Not connected";
 
     private async Task<McpClient> GetOrConnectAsync(CancellationToken ct)

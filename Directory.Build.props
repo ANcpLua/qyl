@@ -6,10 +6,6 @@
        ======================================================================= -->
 
   <!-- AL0018 in .editorconfig line 55; AL0086 scoped to hosting in .editorconfig -->
-  <PropertyGroup>
-    <!-- RS0030: SDK BannedApiAnalyzers flags ThrowIfNull/ThrowIfNullOrWhiteSpace/Math.Round — project uses these intentionally -->
-    <NoWarn>$(NoWarn);RS0030</NoWarn>
-  </PropertyGroup>
 
   <!-- Central Package Management (native .NET 8+) -->
   <PropertyGroup>

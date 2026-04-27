@@ -27,7 +27,7 @@ public static class HealthUiEndpoints
 
     private static SemVer ResolveVersion()
     {
-        var version = BuildVersion.InformationalVersion;
+        const string version = BuildVersion.InformationalVersion;
         var plusIndex = version.IndexOf('+');
         return plusIndex > 0 ? version[..plusIndex] : version;
     }

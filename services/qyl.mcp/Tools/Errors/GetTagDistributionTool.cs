@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Errors;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetTagDistributionTool(HttpClient client)
+public sealed partial class GetTagDistributionTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves occurrence counts and percentages for each value of a specific tag on an error issue.
@@ -25,19 +24,8 @@ public sealed class GetTagDistributionTool(HttpClient client)
     [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_tag_distribution", Title = "Get Tag Distribution",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("""
-                 Get the distribution of a specific tag's values for an error issue.
-
-                 Shows which tag values (browsers, environments, URLs, OS versions, etc.)
-                 are most affected, with occurrence counts and percentages.
-
-                 Common tag keys: "browser", "environment", "url", "os", "device", "runtime", "server_name"
-
-                 Returns: Markdown table with value, count, and percentage columns
-                 """)]
-    public async Task<string> GetTagDistributionAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("The tag key to inspect (e.g. \"browser\", \"environment\", \"url\", \"os\")")]
+    public async partial Task<string> GetTagDistributionAsync(
+        string issueId,
         string tagKey,
         CancellationToken ct = default)
     {

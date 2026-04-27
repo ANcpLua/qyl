@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Sessions;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class UpdateSessionStatusTool(HttpClient client)
+public sealed partial class UpdateSessionStatusTool(HttpClient client)
 {
     [McpServerTool(
         Name = "update_session_status",
@@ -21,16 +20,14 @@ public sealed class UpdateSessionStatusTool(HttpClient client)
         ReadOnly = false,
         Destructive = true,
         Idempotent = true)]
-    [Description("Update the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').")]
-    public async Task<string> UpdateSessionStatus(
-        [Description("Session ID")] string sessionId,
-        [Description("New status (e.g. 'reviewed', 'investigating', 'resolved')")]
+    public async partial Task<string> UpdateSessionStatus(
+        string sessionId,
         string status,
         CancellationToken ct = default)
     {
-        var body = new { status };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status") { Content = JsonContent.Create(body) };
+            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status");
+        request.Content = JsonContent.Create(new { status });
         using var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 
         if (response.StatusCode is HttpStatusCode.NotFound)

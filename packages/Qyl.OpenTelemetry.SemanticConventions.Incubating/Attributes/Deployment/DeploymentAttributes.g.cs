@@ -28,7 +28,7 @@ public static class DeploymentAttributes
     /// <summary>The status of the deployment..</summary>
     public const string Status = "deployment.status";
 
-    /// <summary>Values for <see cref="Status"/>.</summary>
+    /// <summary>Values for the <c>Status</c> attribute.</summary>
     public static class StatusValues
     {
         /// <summary>failed.</summary>

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Sessions;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class AnnotateSessionTool(HttpClient client)
+public sealed partial class AnnotateSessionTool(HttpClient client)
 {
     [McpServerTool(
         Name = "annotate_session",
@@ -21,12 +20,9 @@ public sealed class AnnotateSessionTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description("Add an annotation with optional tags to a debugging session.")]
-    public async Task<string> AnnotateSession(
-        [Description("Session ID to annotate")]
+    public async partial Task<string> AnnotateSession(
         string sessionId,
-        [Description("Annotation note")] string note,
-        [Description("Optional tags for categorization")]
+        string note,
         List<string>? tags = null,
         CancellationToken ct = default)
     {

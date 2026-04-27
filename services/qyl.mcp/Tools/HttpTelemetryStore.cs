@@ -80,7 +80,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             return
             [
                 .. response.Items
-                    .Where<StoreSession>(s => InRange(ParseTime(s.StartTime), since, until))
+                    .Where(s => InRange(ParseTime(s.StartTime), since, until))
                     .GroupBy(keySelector)
                     .Select(g => new TokenUsageSummary(
                         g.Key,

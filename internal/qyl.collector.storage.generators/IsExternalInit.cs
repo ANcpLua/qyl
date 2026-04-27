@@ -3,9 +3,7 @@
 
 namespace Qyl.Collector.Storage.Generators;
 
-internal static class IsExternalInit
-{
-}
+internal static class IsExternalInit;
 
 [AttributeUsage(AttributeTargets.Parameter)]
 internal sealed class NotNullWhenAttribute(bool returnValue) : Attribute

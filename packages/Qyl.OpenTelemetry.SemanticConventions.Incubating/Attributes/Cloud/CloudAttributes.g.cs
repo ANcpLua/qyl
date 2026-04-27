@@ -22,7 +22,7 @@ public static class CloudAttributes
     /// <remarks>The prefix of the service SHOULD match the one specified in `cloud.provider`.</remarks>
     public const string Platform = "cloud.platform";
 
-    /// <summary>Values for <see cref="Platform"/>.</summary>
+    /// <summary>Values for the <c>Platform</c> attribute.</summary>
     public static class PlatformValues
     {
         /// <summary>Akamai Cloud Compute.</summary>
@@ -98,7 +98,7 @@ public static class CloudAttributes
     /// <summary>Name of the cloud provider..</summary>
     public const string Provider = "cloud.provider";
 
-    /// <summary>Values for <see cref="Provider"/>.</summary>
+    /// <summary>Values for the <c>Provider</c> attribute.</summary>
     public static class ProviderValues
     {
         /// <summary>Akamai Cloud.</summary>

@@ -14,7 +14,7 @@ public static class CicdAttributes
     /// <summary>The kind of action a pipeline run is performing..</summary>
     public const string PipelineActionName = "cicd.pipeline.action.name";
 
-    /// <summary>Values for <see cref="PipelineActionName"/>.</summary>
+    /// <summary>Values for the <c>PipelineActionName</c> attribute.</summary>
     public static class PipelineActionNameValues
     {
         /// <summary>The pipeline run is executing a build..</summary>
@@ -31,7 +31,7 @@ public static class CicdAttributes
     /// <summary>The result of a pipeline run..</summary>
     public const string PipelineResult = "cicd.pipeline.result";
 
-    /// <summary>Values for <see cref="PipelineResult"/>.</summary>
+    /// <summary>Values for the <c>PipelineResult</c> attribute.</summary>
     public static class PipelineResultValues
     {
         /// <summary>The pipeline run was cancelled, eg. by a user manually cancelling the pipeline run..</summary>
@@ -54,7 +54,7 @@ public static class CicdAttributes
     /// <summary>The pipeline run goes through these states during its lifecycle..</summary>
     public const string PipelineRunState = "cicd.pipeline.run.state";
 
-    /// <summary>Values for <see cref="PipelineRunState"/>.</summary>
+    /// <summary>Values for the <c>PipelineRunState</c> attribute.</summary>
     public static class PipelineRunStateValues
     {
         /// <summary>The executing state spans the execution of any run tasks (eg. build, test)..</summary>
@@ -77,7 +77,7 @@ public static class CicdAttributes
     /// <summary>The result of a task run..</summary>
     public const string PipelineTaskRunResult = "cicd.pipeline.task.run.result";
 
-    /// <summary>Values for <see cref="PipelineTaskRunResult"/>.</summary>
+    /// <summary>Values for the <c>PipelineTaskRunResult</c> attribute.</summary>
     public static class PipelineTaskRunResultValues
     {
         /// <summary>The task run was cancelled, eg. by a user manually cancelling the task run..</summary>
@@ -100,7 +100,7 @@ public static class CicdAttributes
     /// <summary>The type of the task within a pipeline..</summary>
     public const string PipelineTaskType = "cicd.pipeline.task.type";
 
-    /// <summary>Values for <see cref="PipelineTaskType"/>.</summary>
+    /// <summary>Values for the <c>PipelineTaskType</c> attribute.</summary>
     public static class PipelineTaskTypeValues
     {
         /// <summary>build.</summary>
@@ -123,7 +123,7 @@ public static class CicdAttributes
     /// <summary>The state of a CICD worker / agent..</summary>
     public const string WorkerState = "cicd.worker.state";
 
-    /// <summary>Values for <see cref="WorkerState"/>.</summary>
+    /// <summary>Values for the <c>WorkerState</c> attribute.</summary>
     public static class WorkerStateValues
     {
         /// <summary>The worker is not performing work for the CICD system. It is available to the CICD system to perform work on (online / idle)..</summary>

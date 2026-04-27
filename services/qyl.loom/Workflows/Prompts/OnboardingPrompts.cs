@@ -23,7 +23,7 @@ internal sealed class OnboardingPrompts
         [Description(
             "Comma-separated feature list: error,tracing,logging,profiling,metrics,crons. Default: error,tracing,logging.")]
         string? features = null) =>
-        $$"""
+        $"""
           You are running the .NET SDK onboarding wizard for the user's project.
 
           ## Non-negotiable rules
@@ -43,11 +43,11 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           ## Features requested
-          {{features ?? "error,tracing,logging"}}
+          {features ?? "error,tracing,logging"}
 
           ## Your plan, in order
           1. Parse the detection JSON. If `framework == "Unknown"`, stop and ask the user which
@@ -77,7 +77,7 @@ internal sealed class OnboardingPrompts
     public static string ErrorMonitoring(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
-        $$"""
+        $"""
           Configure **Error Monitoring** for the detected project.
 
           ## Automatic vs manual capture (core rule)
@@ -109,7 +109,7 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           Apply the minimal change set for the detected framework. Quote concrete line numbers
@@ -121,7 +121,7 @@ internal sealed class OnboardingPrompts
     public static string Tracing(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
-        $$"""
+        $"""
           Configure **Tracing** for the detected project.
 
           ## Enablement gate
@@ -161,7 +161,7 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           Apply the minimal change for the detected framework; if `requiresFlushOnCompletedRequest`,
@@ -173,7 +173,7 @@ internal sealed class OnboardingPrompts
     public static string Profiling(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
-        $$"""
+        $"""
           Configure **Profiling** for the detected project.
 
           ## Prerequisites
@@ -206,7 +206,7 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           If `supportsProfiling == false`, return: "Profiling unavailable for this target
@@ -218,7 +218,7 @@ internal sealed class OnboardingPrompts
     public static string Logging(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
-        $$"""
+        $"""
           Configure **Logging** for the detected project.
 
           ## Integration selection
@@ -262,7 +262,7 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           If `loggingLibraries` is empty, the project doesn't have a logger wired yet. Propose the
@@ -274,7 +274,7 @@ internal sealed class OnboardingPrompts
     public static string Metrics(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
-        $$"""
+        $"""
           Configure **Trace-connected Metrics** for the detected project.
 
           ## Enablement gate
@@ -308,7 +308,7 @@ internal sealed class OnboardingPrompts
 
           ## Detection
           ```json
-          {{detectionJson}}
+          {detectionJson}
           ```
 
           If the user did not explicitly ask for metrics, confirm before adding — metrics are opt-in,

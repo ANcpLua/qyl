@@ -15,7 +15,7 @@ public static class RpcAttributes
     [global::System.Obsolete("Replaced by rpc.response.status_code.", false)]
     public const string ConnectRpcErrorCode = "rpc.connect_rpc.error_code";
 
-    /// <summary>Values for <see cref="ConnectRpcErrorCode"/>.</summary>
+    /// <summary>Values for the <c>ConnectRpcErrorCode</c> attribute.</summary>
     public static class ConnectRpcErrorCodeValues
     {
         /// <summary>.</summary>
@@ -72,7 +72,7 @@ public static class RpcAttributes
     [global::System.Obsolete("Use string representation of the gRPC status code on the `rpc.response.status_code` attribute.", false)]
     public const string GrpcStatusCode = "rpc.grpc.status_code";
 
-    /// <summary>Values for <see cref="GrpcStatusCode"/>.</summary>
+    /// <summary>Values for the <c>GrpcStatusCode</c> attribute.</summary>
     public static class GrpcStatusCodeValues
     {
         /// <summary>OK.</summary>
@@ -140,7 +140,7 @@ public static class RpcAttributes
     [global::System.Obsolete("Removed, no replacement.", false)]
     public const string MessageType = "rpc.message.type";
 
-    /// <summary>Values for <see cref="MessageType"/>.</summary>
+    /// <summary>Values for the <c>MessageType</c> attribute.</summary>
     public static class MessageTypeValues
     {
         /// <summary>.</summary>
@@ -180,7 +180,7 @@ public static class RpcAttributes
     [global::System.Obsolete("Replaced by rpc.system.name.", false)]
     public const string System = "rpc.system";
 
-    /// <summary>Values for <see cref="System"/>.</summary>
+    /// <summary>Values for the <c>System</c> attribute.</summary>
     public static class SystemValues
     {
         /// <summary>Apache Dubbo.</summary>
@@ -203,7 +203,7 @@ public static class RpcAttributes
     /// <remarks>The client and server RPC systems may differ for the same RPC interaction. For example, a client may use Apache Dubbo or Connect RPC to communicate with a server that uses gRPC since both protocols provide compatibility with gRPC.</remarks>
     public const string SystemName = "rpc.system.name";
 
-    /// <summary>Values for <see cref="SystemName"/>.</summary>
+    /// <summary>Values for the <c>SystemName</c> attribute.</summary>
     public static class SystemNameValues
     {
         /// <summary>[Connect RPC](https://connectrpc.com/).</summary>

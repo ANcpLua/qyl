@@ -304,9 +304,9 @@ public sealed partial class GitHubService(
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code"
         });
 
-        using var request =
-            new HttpRequestMessage(HttpMethod.Post,
-                "https://github.com/login/oauth/access_token") { Content = content };
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            "https://github.com/login/oauth/access_token");
+        request.Content = content;
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);

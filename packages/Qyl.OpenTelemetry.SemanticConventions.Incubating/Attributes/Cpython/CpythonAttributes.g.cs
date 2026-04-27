@@ -14,7 +14,7 @@ public static class CpythonAttributes
     /// <summary>Value of the garbage collector collection generation..</summary>
     public const string GcGeneration = "cpython.gc.generation";
 
-    /// <summary>Values for <see cref="GcGeneration"/>.</summary>
+    /// <summary>Values for the <c>GcGeneration</c> attribute.</summary>
     public static class GcGenerationValues
     {
         /// <summary>Generation 0.</summary>

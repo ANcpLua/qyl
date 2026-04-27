@@ -25,6 +25,8 @@ using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
+namespace Qyl.Build;
+
 /// <summary>
 ///     Validates generated code compiles and behaves correctly.
 ///     Uses ProjectBuilder for isolated MSBuild execution with binlog introspection.
@@ -44,10 +46,11 @@ interface IVerify : IHazSourcePaths
     ///     Uses ProjectBuilder for isolated compilation with SARIF and binlog output.
     /// </summary>
     Target VerifyGeneratedCode => d => d
+        .Unlisted()
         .Description("Verify generated C# code compiles")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var paths = CodegenPaths.From(this);
             var generatedFiles = paths.Protocol.GlobFiles("**/*.g.cs")
@@ -63,47 +66,41 @@ interface IVerify : IHazSourcePaths
 
             Log.Information("Compiling {Count} generated files in isolation...", generatedFiles.Count);
 
-            var builder = new ProjectBuilder();
-            try
+            await using var builder = new ProjectBuilder();
+            builder
+                .WithTargetFramework(Tfm.Net100)
+                .WithOutputType(Val.Library)
+                .WithProperty(Prop.Nullable, Val.Enable)
+                .WithProperty(Prop.ImplicitUsings, Val.Enable);
+
+            foreach (var file in generatedFiles)
             {
-                builder
-                    .WithTargetFramework(Tfm.Net100)
-                    .WithOutputType(Val.Library)
-                    .WithProperty(Prop.Nullable, Val.Enable)
-                    .WithProperty(Prop.ImplicitUsings, Val.Enable);
-
-                foreach (var file in generatedFiles)
-                {
-                    var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
-                    builder.AddSource(relativePath, File.ReadAllText(file));
-                }
-
-                var result = builder.BuildAsync().GetAwaiter().GetResult();
-
-                if (result.Failed)
-                {
-                    foreach (var error in result.GetErrors())
-                        Log.Error("  {Error}", error);
-                    throw new InvalidOperationException(
-                        $"Generated code compilation failed with {result.GetErrors().Count()} error(s)");
-                }
-
-                Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
+                var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
+                builder.AddSource(relativePath, await File.ReadAllTextAsync(file));
             }
-            finally
+
+            var result = await builder.BuildAsync();
+
+            if (result.Failed)
             {
-                builder.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                foreach (var error in result.GetErrors())
+                    Log.Error("  {Error}", error);
+                throw new InvalidOperationException(
+                    $"Generated code compilation failed with {result.GetErrors().Count()} error(s)");
             }
+
+            Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
         });
 
     /// <summary>
     ///     Verify DuckDB schema DDL executes against in-memory DuckDB.
     /// </summary>
     Target VerifyDuckDbSchema => d => d
+        .Unlisted()
         .Description("Verify generated DuckDB schema is valid")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var paths = CodegenPaths.From(this);
             var schemaFile = paths.CollectorStorage / "DuckDbSchema.g.cs";
@@ -114,7 +111,7 @@ interface IVerify : IHazSourcePaths
                 return;
             }
 
-            var content = File.ReadAllText(schemaFile);
+            var content = await File.ReadAllTextAsync(schemaFile);
 
             // Extract DDL from generated C# string literals
             var ddlStatements = new List<string>();
@@ -160,10 +157,11 @@ interface IVerify : IHazSourcePaths
     ///     Checks the actual generated api.ts to catch naming mismatches.
     /// </summary>
     Target VerifySchemaConventions => d => d
+        .Unlisted()
         .Description("Verify generated TypeScript uses OTel snake_case property names")
         .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
+        .Executes(async () =>
         {
             var apiTsPath = DashboardDirectory / "src" / "types" / "api.ts";
 
@@ -174,7 +172,7 @@ interface IVerify : IHazSourcePaths
             }
 
             Log.Information("Verifying OTel naming conventions in generated TypeScript...");
-            var content = File.ReadAllText(apiTsPath);
+            var content = await File.ReadAllTextAsync(apiTsPath);
 
             // Find property names in TypeScript interface/type definitions
             // Pattern: matches lines like "    property_name?: string;" or "    property_name: number;"
@@ -215,6 +213,7 @@ interface IVerify : IHazSourcePaths
     ///     Catches type mismatches between schema and dashboard code.
     /// </summary>
     Target VerifyFrontendTypes => d => d
+        .Unlisted()
         .Description("Verify frontend TypeScript types compile")
         .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
@@ -236,6 +235,7 @@ interface IVerify : IHazSourcePaths
     ///     file that bypasses it (e.g. semconv, TypeScript, SQL).
     /// </summary>
     Target VerifyGeneratedFilesClean => d => d
+        .Unlisted()
         .Description("CI gate: verify generated files match HEAD after regeneration")
         .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)

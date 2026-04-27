@@ -1,66 +1,59 @@
 // =============================================================================
-// qyl Build System - Infrastructure Components
+// qyl Build System - Docker (image build/push + Compose lifecycle)
 // =============================================================================
-// Docker image builds, Compose orchestration
+// Two halves:
+//   1. Image build/push  → DockerTasks.* typed wrappers (already work).
+//   2. Compose lifecycle → typed Tool delegate from [PathVariable].
+//      Manual `compose ` string concatenation + embedded quotes have been
+//      removed because Process.Start treated the whole arg blob as a single
+//      argument, which made docker print its help banner instead of running.
+//      Now: Tool Docker delegate splits on whitespace + respects quotes.
 // =============================================================================
 
-
-// ════════════════════════════════════════════════════════════════════════════════
-// IDocker - Container Build & Orchestration
-// ════════════════════════════════════════════════════════════════════════════════
-
+using System;
+using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Docker;
 using Serilog;
 
+namespace Qyl.Build;
+
 [ParameterPrefix(nameof(IDocker))]
 interface IDocker : IHazSourcePaths
 {
-    // ─── Image Build Parameters ─────────────────────────────────────────────
-    [Parameter("Docker image tag")] string ImageTag => "latest";
+    [PathVariable]
+    Tool Docker => TryGetValue(() => Docker)
+                   ?? throw new InvalidOperationException(
+                       "docker not found on PATH. Install Docker Desktop or add docker to PATH.");
 
-    [Parameter("Docker registry prefix")] string? Registry => TryGetValue(() => Registry);
+    [Parameter("Docker image tag (default: latest)")]
+    string ImageTag => "latest";
 
-    [Parameter("Push images after build")] bool? Push => TryGetValue<bool?>(() => Push);
+    [Parameter("Docker registry prefix (e.g. ghcr.io/ancplua)")]
+    string? Registry => TryGetValue(() => Registry);
 
-    [Parameter("Build images in parallel (default: true)")]
-    bool ParallelBuild => true;
+    [Parameter("Compose service name to target (used by DockerLogs)")]
+    string? Service => TryGetValue(() => Service);
 
-    // ─── Compose Parameters ─────────────────────────────────────────────────
-    [Parameter("Build images before starting (--build)")]
-    bool? ComposeBuild => TryGetValue<bool?>(() => ComposeBuild);
-
-    [Parameter("Force recreate containers (--force-recreate)")]
-    bool? ForceRecreate => TryGetValue<bool?>(() => ForceRecreate);
-
-    [Parameter("Remove volumes on down (-v)")]
-    bool? RemoveVolumes => TryGetValue<bool?>(() => RemoveVolumes);
-
-    [Parameter("Number of log lines to tail")]
-    int? LogTail => TryGetValue<int?>(() => LogTail);
-
-    [Parameter("Target specific service")] string? Service => TryGetValue(() => Service);
-
-    // ─── Image Specs ────────────────────────────────────────────────────────
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
-        ("qyl-loom", ServicesDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom"))
+        ("qyl-loom",      ServicesDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom")),
+        ("qyl-mcp",       ServicesDirectory / "qyl.mcp"  / "Dockerfile", FormatImageName("qyl-mcp")),
+        ("qyl-dashboard", DashboardDirectory             / "Dockerfile", FormatImageName("qyl-dashboard"))
     ];
 
     // ════════════════════════════════════════════════════════════════════════
-    // Image Build Targets
+    // Image lifecycle
     // ════════════════════════════════════════════════════════════════════════
 
     Target DockerImageBuild => d => d
-        .Description("Build all qyl Docker images")
+        .Description("Build all qyl Docker images in parallel")
         .Executes(() =>
         {
-            Log.Information("Building {Count} Docker images{Parallel}...",
-                ImageSpecs.Length,
-                ParallelBuild ? " in parallel" : "");
+            Log.Information("Building {Count} images in parallel", ImageSpecs.Length);
 
             DockerTasks.DockerBuild(s => s
                     .SetPath<DockerBuildSettings>(RootDirectory)
@@ -69,129 +62,67 @@ interface IDocker : IHazSourcePaths
                     .CombineWith(ImageSpecs, static (settings, img) => settings
                         .SetFile(img.Dockerfile)
                         .SetTag(img.Tag)),
-                ParallelBuild ? 2 : 1);
+                degreeOfParallelism: 2);
 
             foreach (var (_, _, tag) in ImageSpecs)
                 Log.Information("Built: {Tag}", tag);
         });
 
-    Target DockerBuildCollector => d => d
-        .Description("Build qyl-collector Docker image")
-        .Executes(() => BuildSingleImage(ImageSpecs[0]));
-
-    Target DockerBuildLoom => d => d
-        .Description("Build qyl-loom Docker image")
-        .Executes(() => BuildSingleImage(ImageSpecs[1]));
-
     Target DockerImagePush => d => d
-        .Description("Push Docker images to registry")
+        .Description("Push all qyl Docker images to the configured registry")
+        .Requires(() => Registry)
         .DependsOn(DockerImageBuild)
         .Executes(() =>
         {
-            Log.Information("Pushing images to registry: {Registry}", Registry);
+            Log.Information("Pushing {Count} images to {Registry}", ImageSpecs.Length, Registry);
 
             DockerTasks.DockerPush(s => s
                     .CombineWith(ImageSpecs, static (settings, img) => settings.SetName<DockerPushSettings>(img.Tag)),
-                ParallelBuild ? 2 : 1);
-
-            Log.Information("Images pushed successfully");
+                degreeOfParallelism: 2);
         });
 
     // ════════════════════════════════════════════════════════════════════════
-    // Compose Targets
+    // Compose lifecycle
     // ════════════════════════════════════════════════════════════════════════
 
     Target DockerUp => d => d
-        .Description("Start qyl Docker Compose stack")
+        .Description("Start the qyl Compose stack (docker compose up -d)")
         .Executes(() =>
         {
-            Log.Information("Starting qyl Docker Compose stack...");
-            Log.Information("  Compose file: {File}", ComposeFile);
-
-            var args = $"-f \"{ComposeFile}\" up -d --remove-orphans";
-            if (ComposeBuild == true) args += " --build";
-            if (ForceRecreate == true) args += " --force-recreate";
-            if (!string.IsNullOrEmpty(Service)) args += $" {Service}";
-
-            RunDockerCompose(args);
-
-            Log.Information("qyl stack started successfully");
-            Log.Information("  Dashboard:  http://localhost:5100");
-            Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
-            Log.Information("  OTLP gRPC:  http://localhost:4317");
-            Log.Information("  Dashboard:  Run 'nuke FrontendDev' for Vite dev server");
+            Compose("up", "-d", "--remove-orphans");
+            Log.Information("qyl stack started");
+            Log.Information("  Dashboard:    http://localhost:5100");
+            Log.Information("  OTLP HTTP:    http://localhost:4318/v1/traces");
+            Log.Information("  OTLP gRPC:    http://localhost:4317");
+            Log.Information("  Frontend dev: nuke FrontendDev");
         });
 
     Target DockerDown => d => d
-        .Description("Stop qyl Docker Compose stack")
-        .Executes(() =>
-        {
-            Log.Information("Stopping qyl Docker Compose stack...");
-
-            var args = $"-f \"{ComposeFile}\" down --remove-orphans";
-            if (RemoveVolumes == true) args += " -v";
-
-            RunDockerCompose(args);
-
-            Log.Information("qyl stack stopped");
-        });
-
-    Target DockerStatus => d => d
-        .Description("Show Docker Compose container status")
-        .Executes(() => RunDockerCompose($"-f \"{ComposeFile}\" ps"));
+        .Description("Stop the qyl Compose stack (docker compose down)")
+        .Executes(() => Compose("down", "--remove-orphans"));
 
     Target DockerLogs => d => d
-        .Description("Tail Docker Compose logs")
+        .Description("Tail Compose logs; pass --service <name> to filter to one service")
         .Executes(() =>
         {
-            var tail = LogTail ?? 100;
-            var args = $"-f \"{ComposeFile}\" logs -f --tail {tail}";
-            if (!string.IsNullOrEmpty(Service)) args += $" {Service}";
-
-            RunDockerCompose(args);
-        });
-
-    Target DockerRestart => d => d
-        .Description("Restart qyl Docker Compose stack (down + up)")
-        .DependsOn(DockerDown)
-        .DependsOn(DockerUp)
-        .Executes(static () => Log.Information("qyl Docker Compose stack restarted"));
-
-    Target DockerPull => d => d
-        .Description("Pull latest Docker images")
-        .Executes(() =>
-        {
-            Log.Information("Pulling latest images...");
-            RunDockerCompose($"-f \"{ComposeFile}\" pull");
-            Log.Information("Images pulled successfully");
+            if (string.IsNullOrEmpty(Service))
+                Compose("logs", "-f");
+            else
+                Compose("logs", "-f", Service);
         });
 
     // ════════════════════════════════════════════════════════════════════════
-    // Private Helpers
+    // Helpers
     // ════════════════════════════════════════════════════════════════════════
 
-    private void BuildSingleImage((string Name, AbsolutePath Dockerfile, string Tag) spec)
+    private void Compose(params string[] composeArgs)
     {
-        Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
-
-        DockerTasks.DockerBuild(s => s
-            .SetPath<DockerBuildSettings>(RootDirectory)
-            .SetFile(spec.Dockerfile)
-            .SetTag(spec.Tag)
-            .EnablePull()
-            .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
+        var argv = new[] { "compose", "-f", ComposeFile.ToString() }.Concat(composeArgs);
+        Docker(string.Join(" ", argv), workingDirectory: RootDirectory);
     }
 
     private string FormatImageName(string name) =>
         string.IsNullOrEmpty(Registry)
             ? $"{name}:{ImageTag}"
             : $"{Registry}/{name}:{ImageTag}";
-
-    private void RunDockerCompose(string arguments) =>
-        ProcessTasks.StartProcess(
-                "docker",
-                $"compose {arguments}",
-                RootDirectory,
-                logOutput: true)
-            .AssertZeroExitCode();
 }

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
@@ -12,7 +11,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ListServicesTool(HttpClient client)
+public sealed partial class ListServicesTool(HttpClient client)
 {
     /// <summary>
     ///     Lists detected services with instance count and last-seen timestamp, optionally filtered by project.
@@ -23,9 +22,7 @@ public sealed class ListServicesTool(HttpClient client)
     [QylCapability("service_discovery")]
     [McpServerTool(Name = "list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("List detected services with instance count and last-seen timestamp. Optionally filter by project.")]
-    public async Task<string> ListServicesAsync(
-        [Description("Filter by project slug")]
+    public async partial Task<string> ListServicesAsync(
         string? projectSlug = null,
         CancellationToken ct = default)
     {

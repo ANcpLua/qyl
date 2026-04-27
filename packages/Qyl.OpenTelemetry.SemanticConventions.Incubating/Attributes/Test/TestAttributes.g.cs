@@ -17,7 +17,7 @@ public static class TestAttributes
     /// <summary>The status of the actual test case result from test execution..</summary>
     public const string CaseResultStatus = "test.case.result.status";
 
-    /// <summary>Values for <see cref="CaseResultStatus"/>.</summary>
+    /// <summary>Values for the <c>CaseResultStatus</c> attribute.</summary>
     public static class CaseResultStatusValues
     {
         /// <summary>fail.</summary>
@@ -32,7 +32,7 @@ public static class TestAttributes
     /// <summary>The status of the test suite run..</summary>
     public const string SuiteRunStatus = "test.suite.run.status";
 
-    /// <summary>Values for <see cref="SuiteRunStatus"/>.</summary>
+    /// <summary>Values for the <c>SuiteRunStatus</c> attribute.</summary>
     public static class SuiteRunStatusValues
     {
         /// <summary>aborted.</summary>

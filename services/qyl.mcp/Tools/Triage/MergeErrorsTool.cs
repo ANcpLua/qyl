@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Triage;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class MergeErrorsTool(HttpClient client)
+public sealed partial class MergeErrorsTool(HttpClient client)
 {
     [McpServerTool(
         Name = "merge_errors",
@@ -21,12 +20,8 @@ public sealed class MergeErrorsTool(HttpClient client)
         ReadOnly = false,
         Destructive = true,
         Idempotent = false)]
-    [Description(
-        "Merge duplicate error issues into a primary issue. All events from the merged issues are consolidated under the primary.")]
-    public async Task<string> MergeErrors(
-        [Description("The primary issue ID that will absorb the duplicates")]
+    public async partial Task<string> MergeErrors(
         string primaryIssueId,
-        [Description("Issue IDs to merge into the primary issue")]
         List<string> issueIds,
         CancellationToken ct = default)
     {

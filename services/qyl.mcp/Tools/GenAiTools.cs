@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GenAiTools(HttpClient client)
+public sealed partial class GenAiTools(HttpClient client)
 {
     /// <summary>Retrieves aggregate GenAI usage statistics: requests, tokens, and costs.</summary>
     /// <param name="sessionId">Optional session ID filter.</param>
@@ -23,22 +22,8 @@ public sealed class GenAiTools(HttpClient client)
     [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.get_genai_stats", Title = "Get GenAI Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Get GenAI usage statistics: total requests, tokens, and costs.
-
-                 Aggregates across all LLM calls in the time window.
-                 Use this for a quick overview of AI usage.
-
-                 Example queries:
-                 - Last 24 hours: get_genai_stats()
-                 - Last week: get_genai_stats(hours=168)
-                 - Specific session: get_genai_stats(session_id="abc123")
-
-                 Returns: Request count, input/output tokens, total cost USD
-                 """)]
-    public Task<string> GetGenAiStatsAsync(
-        [Description("Filter by session ID")] string? sessionId = null,
-        [Description("Time window in hours (default: 24)")]
+    public partial Task<string> GetGenAiStatsAsync(
+        string? sessionId = null,
         int hours = 24) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -79,32 +64,11 @@ public sealed class GenAiTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List GenAI spans (LLM calls) with filtering.
-
-                 Shows individual AI requests with:
-                 - Provider and model
-                 - Token counts and cost
-                 - Duration and status
-                 - Operation type (chat, embeddings, etc.)
-
-                 Example queries:
-                 - All recent: list_genai_spans()
-                 - By provider: list_genai_spans(provider="anthropic")
-                 - By model: list_genai_spans(model="claude-3")
-                 - Errors only: list_genai_spans(status="error")
-
-                 Returns: List of GenAI spans with full details
-                 """)]
-    public Task<string> ListGenAiSpansAsync(
-        [Description("Filter by provider: 'openai', 'anthropic', 'google', 'azure'")]
+    public partial Task<string> ListGenAiSpansAsync(
         string? provider = null,
-        [Description("Filter by model name (partial match, e.g., 'claude-3')")]
         string? model = null,
-        [Description("Filter by status: 'ok' or 'error'")]
         string? status = null,
-        [Description("Filter by session ID")] string? sessionId = null,
-        [Description("Maximum spans to return (default: 50)")]
+        string? sessionId = null,
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -158,16 +122,7 @@ public sealed class GenAiTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_models", Title = "List Models",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get usage breakdown by AI model.
-
-                 Shows which models are being used and their costs.
-                 Useful for understanding model selection and optimizing costs.
-
-                 Returns: List of models with request counts, tokens, and costs
-                 """)]
-    public Task<string> ListModelsAsync(
-        [Description("Time window in hours (default: 24)")]
+    public partial Task<string> ListModelsAsync(
         int hours = 24) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -205,22 +160,8 @@ public sealed class GenAiTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get token usage over time for trend analysis.
-
-                 Shows how token consumption varies by hour/day.
-                 Useful for identifying usage patterns and spikes.
-
-                 Parameters:
-                 - hours: Time window (default: 24)
-                 - interval: 'hour' or 'day' (default: hour)
-
-                 Returns: Time series of token usage with costs
-                 """)]
-    public Task<string> GetTokenTimeseriesAsync(
-        [Description("Time window in hours (default: 24)")]
+    public partial Task<string> GetTokenTimeseriesAsync(
         int hours = 24,
-        [Description("Aggregation interval: 'hour' or 'day'")]
         string interval = "hour") =>
         CollectorHelper.ExecuteAsync(async () =>
         {

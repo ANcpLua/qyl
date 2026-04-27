@@ -23,7 +23,7 @@ public static class OsAttributes
     /// <summary>The operating system type..</summary>
     public const string Type = "os.type";
 
-    /// <summary>Values for <see cref="Type"/>.</summary>
+    /// <summary>Values for the <c>Type</c> attribute.</summary>
     public static class TypeValues
     {
         /// <summary>AIX (Advanced Interactive eXecutive).</summary>

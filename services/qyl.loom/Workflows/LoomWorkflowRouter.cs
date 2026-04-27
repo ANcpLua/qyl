@@ -69,14 +69,14 @@ public static class LoomWorkflowRouter
     {
         signals ??= LoomRouteSignals.Empty;
 
-        if (signals.PullRequestNumber is int prNum && prNum > 0 && signals.ReviewBotAuthor is { Length: > 0 })
+        if (signals.PullRequestNumber is > 0 && signals.ReviewBotAuthor is { Length: > 0 })
         {
             return new LoomRouteDecision
             {
                 Kind = LoomWorkflowKind.ReviewBotPrComments,
                 Confidence = 1.0,
                 Rationale =
-                    $"Signals include PR #{prNum} and bot author '{signals.ReviewBotAuthor}'. " +
+                    $"Signals include PR #{signals.PullRequestNumber} and bot author '{signals.ReviewBotAuthor}'. " +
                     "Bot-comment workflow is the only shape that consumes both.",
                 PromptIds = [PromptIds.ReviewBotPrComments],
                 MatchedSignals = ["signals.pull_request_number", "signals.review_bot_author"]

@@ -101,7 +101,7 @@ Run these batches in parallel where possible:
 | 1 | Routing + workflow kind — `LoomWorkflowKind`, `LoomRouteDecision`, matched signals | `research/<skill>-routing.md` |
 | 2 | MCP tool surface — `[McpServerTool]` names, arguments, return shapes, TaskSupport | `research/<skill>-mcp-tools.md` |
 | 3 | MCP prompt surface — `[McpServerPrompt]` names, arguments, directive contents | `research/<skill>-mcp-prompts.md` |
-| 4 | Agent composition — Apex three-builder pattern, telemetry middleware, MAF integration points | `research/<skill>-agent-composition.md` |
+| 4 | Agent composition — qyl three-builder pattern, telemetry middleware, MAF integration points | `research/<skill>-agent-composition.md` |
 | 5 | Test coverage — `FakeChatClient`, `WorkflowFixture`, generator-tests for any new tool | `research/<skill>-test-coverage.md` |
 
 **Important:** Tell each research task to write its output to a file. Do NOT consume research results inline — they are large and context-hungry. Workers will read them from disk later.

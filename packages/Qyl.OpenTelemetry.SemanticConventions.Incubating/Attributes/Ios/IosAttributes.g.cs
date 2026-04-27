@@ -15,7 +15,7 @@ public static class IosAttributes
     /// <remarks>The iOS lifecycle states are defined in the [UIApplicationDelegate documentation](https://developer.apple.com/documentation/uikit/uiapplicationdelegate), and from which the `OS terminology` column values are derived.</remarks>
     public const string AppState = "ios.app.state";
 
-    /// <summary>Values for <see cref="AppState"/>.</summary>
+    /// <summary>Values for the <c>AppState</c> attribute.</summary>
     public static class AppStateValues
     {
         /// <summary>The app has become `active`. Associated with UIKit notification `applicationDidBecomeActive`..</summary>
@@ -35,7 +35,7 @@ public static class IosAttributes
     [global::System.Obsolete("Replaced by ios.app.state.", false)]
     public const string State = "ios.state";
 
-    /// <summary>Values for <see cref="State"/>.</summary>
+    /// <summary>Values for the <c>State</c> attribute.</summary>
     public static class StateValues
     {
         /// <summary>The app has become `active`. Associated with UIKit notification `applicationDidBecomeActive`..</summary>

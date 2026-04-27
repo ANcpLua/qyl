@@ -44,9 +44,7 @@ public static class ArtifactEndpoints
             string id, DuckDbStore store, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
-            if (row is null) return TypedResults.NotFound();
-
-            if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
+            if (row is null || IsExpired(row))
                 return TypedResults.NotFound();
 
             return TypedResults.Ok(ToResponse(row));
@@ -58,9 +56,7 @@ public static class ArtifactEndpoints
             string id, DuckDbStore store, HttpContext ctx, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
-            if (row is null) return TypedResults.NotFound();
-
-            if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
+            if (row is null || IsExpired(row))
                 return TypedResults.NotFound();
 
             ctx.Response.Headers.XContentTypeOptions = "nosniff";
@@ -75,6 +71,9 @@ public static class ArtifactEndpoints
             return TypedResults.Content(row.Content, safeType);
         });
     }
+
+    private static bool IsExpired(ArtifactRow row) =>
+        row.ExpiresAt is { } expiresAt && expiresAt < TimeProvider.System.GetUtcNow().UtcDateTime;
 
     /// <summary>
     ///     Allowlist of content types safe to serve inline. Everything else becomes text/plain

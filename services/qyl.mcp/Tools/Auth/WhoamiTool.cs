@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Auth;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class WhoamiTool(HttpClient client)
+public sealed partial class WhoamiTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves the authenticated user's identity details from the qyl API.
@@ -25,8 +24,7 @@ public sealed class WhoamiTool(HttpClient client)
     [QylCapability("project_and_access_management")]
     [McpServerTool(Name = "whoami", Title = "Who Am I",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Returns the authenticated user's identity including name, email, user ID, and assigned roles.")]
-    public async Task<string> WhoamiAsync(CancellationToken ct = default)
+    public async partial Task<string> WhoamiAsync(CancellationToken ct = default)
     {
         var response = await client.GetAsync(
             "/api/v1/mcp/auth/whoami", ct).ConfigureAwait(false);

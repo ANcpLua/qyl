@@ -73,6 +73,30 @@ services:
       - QYL_COLLECTOR_URL=http://qyl-collector:5100
     restart: unless-stopped
 
+  # ============================================================================
+  # qyl.loom - AI Investigation Microservice (autofix + triage)
+  # ============================================================================
+  qyl-loom:
+    build:
+      context: ..
+      dockerfile: services/qyl.loom/Dockerfile
+    container_name: qyl-loom
+    ports:
+      - "5300:5200"   # host 5300 -> container 5200 (avoid clash with qyl-mcp)
+    depends_on:
+      qyl-collector:
+        condition: service_healthy
+    environment:
+      - QYL_COLLECTOR_URL=http://qyl-collector:5100
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:5200/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
 volumes:
   qyl-data:
     driver: local

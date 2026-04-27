@@ -24,7 +24,7 @@ public static class QylAttributes
     /// <summary>Capability kind: Starting or FollowUp.</summary>
     public const string CapabilityKind = "qyl.capability.kind";
 
-    /// <summary>Values for <see cref="CapabilityKind"/>.</summary>
+    /// <summary>Values for the <c>CapabilityKind</c> attribute.</summary>
     public static class CapabilityKindValues
     {
         /// <summary>Capability that follows another in a workflow.</summary>
@@ -48,7 +48,7 @@ public static class QylAttributes
     /// <summary>Current status reported by the check-in.</summary>
     public const string CheckInStatus = "qyl.check_in.status";
 
-    /// <summary>Values for <see cref="CheckInStatus"/>.</summary>
+    /// <summary>Values for the <c>CheckInStatus</c> attribute.</summary>
     public static class CheckInStatusValues
     {
         /// <summary>Monitored job completed with a failure.</summary>
@@ -81,7 +81,7 @@ public static class QylAttributes
     /// <summary>Channel the feedback was submitted through.</summary>
     public const string FeedbackSource = "qyl.feedback.source";
 
-    /// <summary>Values for <see cref="FeedbackSource"/>.</summary>
+    /// <summary>Values for the <c>FeedbackSource</c> attribute.</summary>
     public static class FeedbackSourceValues
     {
         /// <summary>Feedback submitted via the public API.</summary>
@@ -100,7 +100,7 @@ public static class QylAttributes
     /// <summary>Current status of the fix run.</summary>
     public const string FixRunStatus = "qyl.fix_run.status";
 
-    /// <summary>Values for <see cref="FixRunStatus"/>.</summary>
+    /// <summary>Values for the <c>FixRunStatus</c> attribute.</summary>
     public static class FixRunStatusValues
     {
         /// <summary>Fix attempt failed.</summary>
@@ -118,7 +118,7 @@ public static class QylAttributes
     /// <summary>What initiated this fix run.</summary>
     public const string FixRunTrigger = "qyl.fix_run.trigger";
 
-    /// <summary>Values for <see cref="FixRunTrigger"/>.</summary>
+    /// <summary>Values for the <c>FixRunTrigger</c> attribute.</summary>
     public static class FixRunTriggerValues
     {
         /// <summary>Triggered automatically by a diagnostic rule.</summary>
@@ -154,7 +154,7 @@ public static class QylAttributes
     /// <summary>Issue severity level.</summary>
     public const string IssueSeverity = "qyl.issue.severity";
 
-    /// <summary>Values for <see cref="IssueSeverity"/>.</summary>
+    /// <summary>Values for the <c>IssueSeverity</c> attribute.</summary>
     public static class IssueSeverityValues
     {
         /// <summary>Critical severity — service-breaking.</summary>
@@ -170,7 +170,7 @@ public static class QylAttributes
     /// <summary>Current resolution status.</summary>
     public const string IssueStatus = "qyl.issue.status";
 
-    /// <summary>Values for <see cref="IssueStatus"/>.</summary>
+    /// <summary>Values for the <c>IssueStatus</c> attribute.</summary>
     public static class IssueStatusValues
     {
         /// <summary>Issue has been acknowledged and dismissed.</summary>
@@ -190,7 +190,7 @@ public static class QylAttributes
     /// <summary>Release track the deployment belongs to.</summary>
     public const string ReleaseChannel = "qyl.release.channel";
 
-    /// <summary>Values for <see cref="ReleaseChannel"/>.</summary>
+    /// <summary>Values for the <c>ReleaseChannel</c> attribute.</summary>
     public static class ReleaseChannelValues
     {
         /// <summary>Beta release track — feature-complete, broader testing.</summary>
@@ -218,7 +218,7 @@ public static class QylAttributes
     /// <summary>Kind of agent run.</summary>
     public const string RunKind = "qyl.run.kind";
 
-    /// <summary>Values for <see cref="RunKind"/>.</summary>
+    /// <summary>Values for the <c>RunKind</c> attribute.</summary>
     public static class RunKindValues
     {
         /// <summary>Automated fix run triggered by a diagnostic.</summary>
@@ -232,7 +232,7 @@ public static class QylAttributes
     /// <summary>Final or current status of the run.</summary>
     public const string RunStatus = "qyl.run.status";
 
-    /// <summary>Values for <see cref="RunStatus"/>.</summary>
+    /// <summary>Values for the <c>RunStatus</c> attribute.</summary>
     public static class RunStatusValues
     {
         /// <summary>Run completed with failure.</summary>

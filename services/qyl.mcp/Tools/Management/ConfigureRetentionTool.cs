@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
-public sealed class ConfigureRetentionTool(HttpClient client)
+public sealed partial class ConfigureRetentionTool(HttpClient client)
 {
     /// <summary>
     ///     Sets the data retention period in days for the specified project.
@@ -28,19 +27,14 @@ public sealed class ConfigureRetentionTool(HttpClient client)
         ReadOnly = false,
         Destructive = true,
         Idempotent = true)]
-    [Description("Set data retention period for a project.")]
-    public async Task<string> ConfigureRetentionAsync(
-        [Description("Project slug")] string projectSlug,
-        [Description("Number of days to retain data")]
+    public async partial Task<string> ConfigureRetentionAsync(
+        string projectSlug,
         int retentionDays,
         CancellationToken ct = default)
     {
-        var body = new { retention_days = retentionDays };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/projects/{Uri.EscapeDataString(projectSlug)}/retention")
-        {
-            Content = JsonContent.Create(body)
-        };
+            $"/api/v1/mcp/projects/{Uri.EscapeDataString(projectSlug)}/retention");
+        request.Content = JsonContent.Create(new { retention_days = retentionDays });
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 

@@ -19,7 +19,7 @@ public static class OtelAttributes
     /// <remarks>If none of the standardized values apply, implementations SHOULD use the language-defined name of the type. E.g. for Java the fully qualified classname SHOULD be used in this case.</remarks>
     public const string ComponentType = "otel.component.type";
 
-    /// <summary>Values for <see cref="ComponentType"/>.</summary>
+    /// <summary>Values for the <c>ComponentType</c> attribute.</summary>
     public static class ComponentTypeValues
     {
         /// <summary>The builtin SDK batching log record processor.</summary>
@@ -74,7 +74,7 @@ public static class OtelAttributes
     /// <summary>Determines whether the span has a parent span, and if so, [whether it is a remote parent](https://opentelemetry.io/docs/specs/otel/trace/api/#isremote).</summary>
     public const string SpanParentOrigin = "otel.span.parent.origin";
 
-    /// <summary>Values for <see cref="SpanParentOrigin"/>.</summary>
+    /// <summary>Values for the <c>SpanParentOrigin</c> attribute.</summary>
     public static class SpanParentOriginValues
     {
         /// <summary>The span has a parent and the parent's span context [isRemote()](https://opentelemetry.io/docs/specs/otel/trace/api/#isremote) is false.</summary>
@@ -88,7 +88,7 @@ public static class OtelAttributes
     /// <summary>The result value of the sampler for this span.</summary>
     public const string SpanSamplingResult = "otel.span.sampling_result";
 
-    /// <summary>Values for <see cref="SpanSamplingResult"/>.</summary>
+    /// <summary>Values for the <c>SpanSamplingResult</c> attribute.</summary>
     public static class SpanSamplingResultValues
     {
         /// <summary>The span is not sampled and not recording.</summary>

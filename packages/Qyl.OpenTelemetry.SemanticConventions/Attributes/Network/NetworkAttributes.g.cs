@@ -35,7 +35,7 @@ public static class NetworkAttributes
     /// <remarks>The value SHOULD be normalized to lowercase.  Consider always setting the transport when setting a port number, since a port number is ambiguous without knowing the transport. For example different processes could be listening on TCP port 12345 and UDP port 12345.</remarks>
     public const string Transport = "network.transport";
 
-    /// <summary>Values for <see cref="Transport"/>.</summary>
+    /// <summary>Values for the <c>Transport</c> attribute.</summary>
     public static class TransportValues
     {
         /// <summary>Named or anonymous pipe..</summary>
@@ -54,7 +54,7 @@ public static class NetworkAttributes
     /// <remarks>The value SHOULD be normalized to lowercase.</remarks>
     public const string Type = "network.type";
 
-    /// <summary>Values for <see cref="Type"/>.</summary>
+    /// <summary>Values for the <c>Type</c> attribute.</summary>
     public static class TypeValues
     {
         /// <summary>IPv4.</summary>

@@ -94,7 +94,7 @@ public sealed class HealthUiService(
             var totalBytes = driveInfo.TotalSize;
             var freeBytes = driveInfo.AvailableFreeSpace;
             var usedPercent = totalBytes > 0
-                ? Math.Round((1.0 - ((double)freeBytes / totalBytes)) * 100, 1)
+                ? Math.Round((1.0 - ((double)freeBytes / totalBytes)) * 100, 1, MidpointRounding.AwayFromZero)
                 : 0;
 
             var status = usedPercent switch
@@ -152,7 +152,7 @@ public sealed class HealthUiService(
             var totalAvailableBytes = gcInfo.TotalAvailableMemoryBytes;
 
             var memoryPressure = totalAvailableBytes > 0
-                ? Math.Round((double)heapSizeBytes / totalAvailableBytes * 100, 1)
+                ? Math.Round((double)heapSizeBytes / totalAvailableBytes * 100, 1, MidpointRounding.AwayFromZero)
                 : 0;
 
             var status = memoryPressure switch
@@ -204,7 +204,7 @@ public sealed class HealthUiService(
     {
         var bufferCount = ringBuffer.Count;
         var bufferCapacity = ringBuffer.Capacity;
-        var fillPercent = Math.Round((double)bufferCount / bufferCapacity * 100, 1);
+        var fillPercent = Math.Round((double)bufferCount / bufferCapacity * 100, 1, MidpointRounding.AwayFromZero);
 
         var hasRecentData = false;
         var secondsSinceLastIngestion = -1L;

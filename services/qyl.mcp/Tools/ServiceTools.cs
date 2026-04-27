@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
@@ -10,7 +9,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ServiceTools(HttpClient client)
+public sealed partial class ServiceTools(HttpClient client)
 {
     /// <summary>Lists all detected services with type, status, instance count, and telemetry stats.</summary>
     /// <param name="type">Filter by service type (e.g. 'ai_agent', 'llm_provider', 'mcp_server').</param>
@@ -19,13 +18,9 @@ public sealed class ServiceTools(HttpClient client)
     /// <returns>A table of services with instance counts, span totals, and error rates.</returns>
     [McpServerTool(Name = "qyl.list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("List all detected services with type, status, instance count, and aggregated telemetry stats")]
-    public Task<string> ListServicesAsync(
-        [Description("Filter by service type: ai_agent, llm_provider, mcp_server, traditional")]
+    public partial Task<string> ListServicesAsync(
         string? type = null,
-        [Description("Filter by status: active, inactive")]
         string? status = null,
-        [Description("Maximum services to return (default: 50)")]
         int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {

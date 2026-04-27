@@ -14,7 +14,7 @@ public static class ProfileAttributes
     /// <summary>Describes the interpreter or compiler of a single frame..</summary>
     public const string FrameType = "profile.frame.type";
 
-    /// <summary>Values for <see cref="FrameType"/>.</summary>
+    /// <summary>Values for the <c>FrameType</c> attribute.</summary>
     public static class FrameTypeValues
     {
         /// <summary>[Erlang](https://en.wikipedia.org/wiki/BEAM_(Erlang_virtual_machine)).</summary>

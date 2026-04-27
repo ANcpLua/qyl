@@ -58,7 +58,7 @@ public static class GenAiAttributes
     [global::System.Obsolete("Replaced by gen_ai.output.type.", false)]
     public const string OpenaiRequestResponseFormat = "gen_ai.openai.request.response_format";
 
-    /// <summary>Values for <see cref="OpenaiRequestResponseFormat"/>.</summary>
+    /// <summary>Values for the <c>OpenaiRequestResponseFormat</c> attribute.</summary>
     public static class OpenaiRequestResponseFormatValues
     {
         /// <summary>JSON object response format.</summary>
@@ -77,7 +77,7 @@ public static class GenAiAttributes
     [global::System.Obsolete("Replaced by openai.request.service_tier.", false)]
     public const string OpenaiRequestServiceTier = "gen_ai.openai.request.service_tier";
 
-    /// <summary>Values for <see cref="OpenaiRequestServiceTier"/>.</summary>
+    /// <summary>Values for the <c>OpenaiRequestServiceTier</c> attribute.</summary>
     public static class OpenaiRequestServiceTierValues
     {
         /// <summary>The system will utilize scale tier credits until they are exhausted..</summary>
@@ -98,7 +98,7 @@ public static class GenAiAttributes
     /// <remarks>If one of the predefined values applies, but specific system uses a different name it's RECOMMENDED to document it in the semantic conventions for specific GenAI system and use system-specific name in the instrumentation. If a different name is not documented, instrumentation libraries SHOULD use applicable predefined value.</remarks>
     public const string OperationName = "gen_ai.operation.name";
 
-    /// <summary>Values for <see cref="OperationName"/>.</summary>
+    /// <summary>Values for the <c>OperationName</c> attribute.</summary>
     public static class OperationNameValues
     {
         /// <summary>Chat completion operation such as [OpenAI Chat API](https://platform.openai.com/docs/api-reference/chat).</summary>
@@ -127,7 +127,7 @@ public static class GenAiAttributes
     /// <remarks>This attribute SHOULD be used when the client requests output of a specific type. The model may return zero or more outputs of this type. This attribute specifies the output modality and not the actual output format. For example, if an image is requested, the actual output could be a URL pointing to an image file. Additional output format details may be recorded in the future in the `gen_ai.output.{type}.*` attributes.</remarks>
     public const string OutputType = "gen_ai.output.type";
 
-    /// <summary>Values for <see cref="OutputType"/>.</summary>
+    /// <summary>Values for the <c>OutputType</c> attribute.</summary>
     public static class OutputTypeValues
     {
         /// <summary>Image.</summary>
@@ -151,7 +151,7 @@ public static class GenAiAttributes
     /// <remarks>The attribute SHOULD be set based on the instrumentation's best knowledge and may differ from the actual model provider.  Multiple providers, including Azure OpenAI, Gemini, and AI hosting platforms are accessible using the OpenAI REST API and corresponding client libraries, but may proxy or host models from different providers.  The `gen_ai.request.model`, `gen_ai.response.model`, and `server.address` attributes may help identify the actual system in use.  The `gen_ai.provider.name` attribute acts as a discriminator that identifies the GenAI telemetry format flavor specific to that provider within GenAI semantic conventions. It SHOULD be set consistently with provider-specific attributes and signals. For example, GenAI spans, metrics, and events related to AWS Bedrock should have the `gen_ai.provider.name` set to `aws.bedrock` and include applicable `aws.bedrock.*` attributes and are not expected to include `openai.*` attributes.</remarks>
     public const string ProviderName = "gen_ai.provider.name";
 
-    /// <summary>Values for <see cref="ProviderName"/>.</summary>
+    /// <summary>Values for the <c>ProviderName</c> attribute.</summary>
     public static class ProviderNameValues
     {
         /// <summary>[Anthropic](https://www.anthropic.com/).</summary>
@@ -241,7 +241,7 @@ public static class GenAiAttributes
     [global::System.Obsolete("Replaced by gen_ai.provider.name.", false)]
     public const string System = "gen_ai.system";
 
-    /// <summary>Values for <see cref="System"/>.</summary>
+    /// <summary>Values for the <c>System</c> attribute.</summary>
     public static class SystemValues
     {
         /// <summary>Anthropic.</summary>
@@ -295,7 +295,7 @@ public static class GenAiAttributes
     /// <summary>The type of token being counted..</summary>
     public const string TokenType = "gen_ai.token.type";
 
-    /// <summary>Values for <see cref="TokenType"/>.</summary>
+    /// <summary>Values for the <c>TokenType</c> attribute.</summary>
     public static class TokenTypeValues
     {
         /// <summary>Input tokens (prompt, input, etc.).</summary>

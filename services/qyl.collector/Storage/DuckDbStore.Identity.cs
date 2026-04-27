@@ -431,7 +431,7 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = workspace.RuntimeVersion ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = workspace.Framework ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = workspace.GitCommit ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = workspace.Status ?? "pending" });
+        cmd.Parameters.Add(new DuckDBParameter { Value = workspace.Status });
         cmd.Parameters.Add(new DuckDBParameter { Value = workspace.MetadataJson ?? (object)DBNull.Value });
     }
 

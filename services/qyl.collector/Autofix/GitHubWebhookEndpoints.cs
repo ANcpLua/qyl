@@ -20,12 +20,12 @@ public static class GitHubWebhookEndpoints
                 var clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
                 var items = await store
                     .GetGitHubEventsAsync(clampedLimit, eventType, repoFullName, ct).ConfigureAwait(false);
-                return TypedResults.Ok(new { items, total = items.Count });
+                return TypedResults.Ok(new GitHubEventListResponse(items, items.Count));
             }
             catch
             {
                 // Avoid breaking Loom dashboard when webhook storage is not initialized.
-                return TypedResults.Ok(new { items = Array.Empty<GitHubEventRecord>(), total = 0 });
+                return TypedResults.Ok(new GitHubEventListResponse(Array.Empty<GitHubEventRecord>(), 0));
             }
         });
     }
@@ -138,3 +138,6 @@ public static class GitHubWebhookEndpoints
             Encoding.UTF8.GetBytes(signatureHeader));
     }
 }
+
+/// <summary>List response shape for GitHub event queries — items + total count.</summary>
+public sealed record GitHubEventListResponse(IReadOnlyList<GitHubEventRecord> Items, int Total);

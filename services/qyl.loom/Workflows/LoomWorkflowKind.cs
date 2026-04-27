@@ -17,7 +17,7 @@ public enum LoomWorkflowKind
     /// <summary>Investigate and fix a production issue surfaced by qyl telemetry.</summary>
     FixProductionIssue = 1,
 
-    /// <summary>Process and resolve review-bot PR comments (<c>sentry[bot]</c>, <c>seer-by-sentry[bot]</c>, qyl review bot).</summary>
+    /// <summary>Process and resolve review-bot PR comments (<c>qyl[bot]</c>, <c>qyl-review[bot]</c>, <c>loom[bot]</c>, plus any opted-in foreign bot logins).</summary>
     ReviewBotPrComments = 2,
 
     /// <summary>

@@ -303,8 +303,8 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
             var cause = new ObjectDisposedException(nameof(LspClientConnection));
             foreach (var (id, tcs) in _pending)
             {
-                if (_pending.TryRemove(id, out var removed))
-                    removed.TrySetException(cause);
+                if (_pending.TryRemove(id, out _))
+                    tcs.TrySetException(cause);
             }
         }
     }

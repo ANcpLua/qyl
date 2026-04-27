@@ -14,7 +14,7 @@ public static class AspnetcoreAttributes
     /// <summary>ASP.NET Core exception middleware handling result..</summary>
     public const string DiagnosticsExceptionResult = "aspnetcore.diagnostics.exception.result";
 
-    /// <summary>Values for <see cref="DiagnosticsExceptionResult"/>.</summary>
+    /// <summary>Values for the <c>DiagnosticsExceptionResult</c> attribute.</summary>
     public static class DiagnosticsExceptionResultValues
     {
         /// <summary>Exception handling didn't run because the request was aborted..</summary>
@@ -36,7 +36,7 @@ public static class AspnetcoreAttributes
     /// <summary>Rate-limiting result, shows whether the lease was acquired or contains a rejection reason.</summary>
     public const string RateLimitingResult = "aspnetcore.rate_limiting.result";
 
-    /// <summary>Values for <see cref="RateLimitingResult"/>.</summary>
+    /// <summary>Values for the <c>RateLimitingResult</c> attribute.</summary>
     public static class RateLimitingResultValues
     {
         /// <summary>Lease was acquired.</summary>
@@ -58,7 +58,7 @@ public static class AspnetcoreAttributes
     /// <summary>Match result - success or failure.</summary>
     public const string RoutingMatchStatus = "aspnetcore.routing.match_status";
 
-    /// <summary>Values for <see cref="RoutingMatchStatus"/>.</summary>
+    /// <summary>Values for the <c>RoutingMatchStatus</c> attribute.</summary>
     public static class RoutingMatchStatusValues
     {
         /// <summary>Match failed.</summary>

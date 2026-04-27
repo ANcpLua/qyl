@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
@@ -12,7 +11,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetServiceMapTool(HttpClient client)
+public sealed partial class GetServiceMapTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves the service dependency map with service nodes and inter-service call edges.
@@ -23,9 +22,7 @@ public sealed class GetServiceMapTool(HttpClient client)
     [QylCapability("service_discovery", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_service_map", Title = "Get Service Map",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("Get the service dependency map showing nodes (services) and edges (calls between services).")]
-    public async Task<string> GetServiceMapAsync(
-        [Description("Filter by project slug")]
+    public async partial Task<string> GetServiceMapAsync(
         string? projectSlug = null,
         CancellationToken ct = default)
     {

@@ -14,7 +14,7 @@ public static class GeoAttributes
     /// <summary>Two-letter code representing continent’s name..</summary>
     public const string ContinentCode = "geo.continent.code";
 
-    /// <summary>Values for <see cref="ContinentCode"/>.</summary>
+    /// <summary>Values for the <c>ContinentCode</c> attribute.</summary>
     public static class ContinentCodeValues
     {
         /// <summary>Africa.</summary>

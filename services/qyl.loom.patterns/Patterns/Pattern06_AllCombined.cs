@@ -94,7 +94,7 @@ public static class Pattern06_AllCombined
                     Console.WriteLine($"   ● event    {so.Stage}  (seen={so.SeenSoFar})");
                     break;
 
-                case RequestInfoEvent ri when ri.Request.TryGetDataAs<SolutionPlan>(out var plan) && plan is not null:
+                case RequestInfoEvent ri when ri.Request.TryGetDataAs<SolutionPlan>(out var plan):
                     Console.WriteLine($"   ? review    plan for {plan.SignalId}: \"{plan.Approach}\"");
                     Console.WriteLine("     (non-interactive demo → approving)");
                     await run.SendResponseAsync(
@@ -131,21 +131,18 @@ public static class Pattern06_AllCombined
             static () => new AutofixCombinedState(0),
             new StatefulExecutorOptions { ScopeName = "loom/run" })
     {
-        private IncidentSignal _pending = null!;
-
         public override async ValueTask<IncidentSignal> HandleAsync(
             IncidentSignal signal, IWorkflowContext ctx, CancellationToken ct = default)
         {
             await InvokeWithStateAsync(async (state, innerCtx, innerCt) =>
             {
-                var updated = state with { SignalsSeen = state.SignalsSeen + 1 };
+                var updated = new AutofixCombinedState(state.SignalsSeen + 1);
                 await innerCtx.AddEventAsync(new StageObserved("intake", updated.SignalsSeen), innerCt)
                     .ConfigureAwait(false);
-                _pending = signal;
                 return updated;
             }, ctx, cancellationToken: ct).ConfigureAwait(false);
 
-            return _pending;
+            return signal;
         }
     }
 

@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
@@ -13,7 +14,7 @@ namespace Qyl.Loom.Workflows;
 ///     no LLM, no side effects.
 /// </summary>
 [McpServerToolType]
-public sealed class LoomWorkflowTools
+public sealed partial class LoomWorkflowTools
 {
     /// <summary>
     ///     Route a user request across the Loom workflow shapes. Returns a
@@ -22,16 +23,11 @@ public sealed class LoomWorkflowTools
     /// </summary>
     [McpServerTool(Name = "loom_route", Title = "Loom Workflow Router",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description(
-        "Route a user request across the four Loom workflows (fix_issue / review_bot_pr / setup_dotnet / setup_ai_monitoring). Returns clarifying question when ambiguous.")]
-    public static LoomRouteDecision Route(
-        [Description("User request in natural language.")]
+    public static partial LoomRouteDecision Route(
         string userRequest,
-        [Description("Optional PR number when caller is on a specific PR.")]
         int? pullRequestNumber = null,
         [Description("Optional review-bot author login (e.g. 'qyl[bot]', 'qyl-review[bot]').")]
         string? reviewBotAuthor = null,
-        [Description("Optional issue id when caller is on a specific issue.")]
         string? issueId = null)
     {
         var signals = new LoomRouteSignals
@@ -48,10 +44,7 @@ public sealed class LoomWorkflowTools
     /// </summary>
     [McpServerTool(Name = "loom_detect_dotnet", Title = "Detect .NET project shape",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = true)]
-    [Description(
-        "Scan a repo root, classify the .NET app shape, surface Sentry/logging/scheduler/AI-SDK evidence, and produce the setup recommendations.")]
-    public static DotnetProjectEvidence DetectDotnet(
-        [Description("Absolute path to the repo or folder root to scan.")]
+    public static partial DotnetProjectEvidence DetectDotnet(
         string repoRoot) =>
         DotnetProjectDetector.Detect(repoRoot);
 
@@ -63,16 +56,14 @@ public sealed class LoomWorkflowTools
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     [Description(
-        "Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (Sentry, Seer, etc.). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
+        "Parse a JSON array of GitHub PR review comments. Filters to qyl review bots by default (exact, case-insensitive login match); pass additionalBotLoginsJson (JSON string[]) to opt in foreign review bots (e.g. loom[bot]). Returns structured bug/severity/confidence/analysis/fix/prompt per comment.")]
     public static LoomReviewBotParseResult ParseReviewBotComments(
-        [Description(
-            "JSON array of GitHub review comments. Each item: { author, file, line, body }. Non-qyl bots are silently dropped unless their login is listed in additionalBotLoginsJson.")]
         string commentsJson,
         [Description(
-            "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"sentry[bot]\", \"seer-by-sentry[bot]\"]). Exact, case-insensitive match.")]
+            "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"loom[bot]\"]). Exact, case-insensitive match.")]
         string? additionalBotLoginsJson = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(commentsJson);
+        Guard.NotNullOrEmpty(commentsJson);
 
         var raw = JsonSerializer.Deserialize(
             commentsJson,

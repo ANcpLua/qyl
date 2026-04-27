@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -18,34 +17,15 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class UseQylTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
+internal sealed partial class UseQylTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
 {
 
     [QylCapability("agentic_investigation")]
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Ask qyl's AI agent to answer complex observability questions.
-                 The agent has access to ALL qyl tools and will autonomously
-                 query spans, traces, logs, builds, analytics, GenAI usage,
-                 sessions, services, and more to answer your question.
-
-                 Use this for questions that span multiple data domains or
-                 require multi-step investigation.
-
-                 Examples:
-                 - "What caused the spike in errors at 3pm?"
-                 - "Compare GenAI costs across services this week"
-                 - "Show me the slowest traces and their related build failures"
-                 - "Summarize system health across all services"
-
-                 Returns: Investigation results from the meta-agent
-                 """)]
-    public async Task<string> UseQylAsync(
-        [Description("Your question about observability data")]
+    public async partial Task<string> UseQylAsync(
         string question,
-        [Description("Additional context: service name, time range hint, session ID, etc.")]
         string? context = null,
         CancellationToken ct = default)
     {
@@ -65,7 +45,7 @@ internal sealed class UseQylTools(IServiceProvider services, IQylMcpAgentsBuilde
 
         var guardedTools = QylToolManifest
             .CreateTools(services, static type => type != typeof(UseQylTools))
-            .Select(AITool (tool) => investigation.Wrap(tool))
+            .Select(tool => (AITool)investigation.Wrap(tool))
             .ToArray();
 
         var agent = agents.BuildUseQylAgent(guardedTools);

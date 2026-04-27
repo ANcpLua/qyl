@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Triage;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class AnnotateTraceTool(HttpClient client)
+public sealed partial class AnnotateTraceTool(HttpClient client)
 {
     [McpServerTool(
         Name = "annotate_trace",
@@ -21,11 +20,9 @@ public sealed class AnnotateTraceTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description("Add an annotation with optional tags to a trace for triage purposes.")]
-    public async Task<string> AnnotateTrace(
-        [Description("Trace ID to annotate")] string traceId,
-        [Description("Annotation note")] string note,
-        [Description("Optional tags for categorization")]
+    public async partial Task<string> AnnotateTrace(
+        string traceId,
+        string note,
         List<string>? tags = null,
         CancellationToken ct = default)
     {

@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // =============================================================================
 // Qyl.Instrumentation - Zero-Config Observability for .NET
 // Single entry point: builder.UseQyl() and app.MapQylEndpoints()
@@ -70,7 +71,7 @@ public static class QylServiceDefaultsExtensions
     /// </summary>
     public static WebApplication MapQylEndpoints(this WebApplication app)
     {
-        ArgumentNullException.ThrowIfNull(app);
+        Guard.NotNull(app);
 
         var options = app.Services.GetService<QylOptions>() ?? new QylOptions();
 
@@ -294,7 +295,7 @@ public static class QylServiceDefaultsExtensions
         /// </example>
         public TBuilder UseQyl(Action<QylOptions>? configure = null)
         {
-            ArgumentNullException.ThrowIfNull(builder);
+            Guard.NotNull(builder);
 
             // Idempotency guard: the source-generated interceptor may also call
             // TryUseQylConventions → UseQyl, causing double OTel registration.

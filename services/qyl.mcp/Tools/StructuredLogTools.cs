@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class StructuredLogTools(HttpClient client)
+public sealed partial class StructuredLogTools(HttpClient client)
 {
     /// <summary>Lists OTLP structured log records with optional filtering by session, trace, severity, or text.</summary>
     /// <param name="sessionId">Filter by session ID.</param>
@@ -27,37 +26,12 @@ public sealed class StructuredLogTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_structured_logs", Title = "List Structured Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List OTLP structured log records captured by qyl.
-
-                 These are server-side logs sent via OpenTelemetry, not frontend console.log messages.
-                 Use 'qyl.list_console_logs' for browser console messages.
-
-                 Supports filtering by:
-                 - Session ID: Filter logs from a specific session
-                 - Trace ID: Get logs associated with a distributed trace
-                 - Severity: Filter by log level (1=Trace, 5=Debug, 9=Info, 13=Warn, 17=Error, 21=Fatal)
-                 - Text search: Search in log body and attributes
-
-                 Example queries:
-                 - All recent logs: list_structured_logs()
-                 - Errors only: list_structured_logs(min_severity=17)
-                 - Search text: list_structured_logs(search="connection failed")
-                 - Trace logs: list_structured_logs(trace_id="abc123...")
-
-                 Returns: Formatted list of structured logs with timestamps, severity, and attributes
-                 """)]
-    public Task<string> ListStructuredLogsAsync(
-        [Description("Filter by session ID")] string? sessionId = null,
-        [Description("Filter by trace ID (correlates with distributed traces)")]
+    public partial Task<string> ListStructuredLogsAsync(
+        string? sessionId = null,
         string? traceId = null,
-        [Description("Filter by severity level name: 'trace', 'debug', 'info', 'warn', 'error', 'fatal'")]
         string? level = null,
-        [Description("Minimum severity number (1=Trace, 5=Debug, 9=Info, 13=Warn, 17=Error, 21=Fatal)")]
         int? minSeverity = null,
-        [Description("Text to search in log body and attributes (case-insensitive)")]
         string? search = null,
-        [Description("Maximum number of logs to return (default: 100)")]
         int limit = 100) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -119,19 +93,7 @@ public sealed class StructuredLogTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get all structured logs associated with a distributed trace.
-
-                 This correlates logs with spans in a trace, useful for debugging
-                 issues that span multiple services.
-
-                 Parameters:
-                 - trace_id: The trace ID (required)
-
-                 Returns: Logs ordered by timestamp for the specified trace
-                 """)]
-    public Task<string> ListTraceLogsAsync(
-        [Description("The trace ID to get logs for (required)")]
+    public partial Task<string> ListTraceLogsAsync(
         string traceId)
     {
         if (string.IsNullOrEmpty(traceId))
@@ -185,26 +147,10 @@ public sealed class StructuredLogTools(HttpClient client)
     [McpServerTool(Name = "qyl.search_logs", Title = "Search Logs",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Search structured logs by text pattern.
-
-                 Searches in log body and attributes for the given text.
-
-                 Parameters:
-                 - query: Text to search for (required)
-                 - min_severity: Minimum severity (17 for errors only)
-                 - hours: Time window in hours (default: 24)
-
-                 Returns: Matching logs with context
-                 """)]
-    public Task<string> SearchLogsAsync(
-        [Description("Text to search for in logs (required)")]
+    public partial Task<string> SearchLogsAsync(
         string query,
-        [Description("Minimum severity (9=Info, 13=Warn, 17=Error)")]
         int? minSeverity = null,
-        [Description("Time window in hours (default: 24)")]
         int hours = 24,
-        [Description("Maximum results (default: 50)")]
         int limit = 50)
     {
         if (string.IsNullOrEmpty(query))

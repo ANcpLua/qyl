@@ -14,7 +14,7 @@ public static class CassandraAttributes
     /// <summary>The consistency level of the query. Based on consistency values from [CQL](https://docs.datastax.com/en/cassandra-oss/3.0/cassandra/dml/dmlConfigConsistency.html)..</summary>
     public const string ConsistencyLevel = "cassandra.consistency.level";
 
-    /// <summary>Values for <see cref="ConsistencyLevel"/>.</summary>
+    /// <summary>Values for the <c>ConsistencyLevel</c> attribute.</summary>
     public static class ConsistencyLevelValues
     {
         /// <summary>All.</summary>

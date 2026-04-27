@@ -255,17 +255,10 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
                 : "UPDATE error_issues SET status = $1, updated_at = $2 WHERE id = $3";
 
             cmd.Parameters.Add(new DuckDBParameter { Value = newStatus });
+            cmd.Parameters.Add(new DuckDBParameter { Value = now });
             if (newStatus == "resolved")
-            {
                 cmd.Parameters.Add(new DuckDBParameter { Value = now });
-                cmd.Parameters.Add(new DuckDBParameter { Value = now });
-                cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-            }
-            else
-            {
-                cmd.Parameters.Add(new DuckDBParameter { Value = now });
-                cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-            }
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
 
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
@@ -279,7 +272,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
     /// </summary>
     public async Task<bool> AssignOwnerAsync(string issueId, string owner, CancellationToken ct = default)
     {
-        if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is not { } existing)
+        if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is null)
             return false;
 
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;

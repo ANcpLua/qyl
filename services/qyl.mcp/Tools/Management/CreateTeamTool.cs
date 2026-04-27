@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
@@ -12,7 +11,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class CreateTeamTool(HttpClient client)
+public sealed partial class CreateTeamTool(HttpClient client)
 {
     /// <summary>
     ///     Creates a new team with the specified name, optional slug, and optional description.
@@ -28,13 +27,9 @@ public sealed class CreateTeamTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = false)]
-    [Description("Create a new team for organizing projects and members.")]
-    public async Task<string> CreateTeamAsync(
-        [Description("Display name for the team")]
+    public async partial Task<string> CreateTeamAsync(
         string name,
-        [Description("URL-safe slug identifier (auto-generated from name if omitted)")]
         string? slug = null,
-        [Description("Optional team description")]
         string? description = null,
         CancellationToken ct = default)
     {

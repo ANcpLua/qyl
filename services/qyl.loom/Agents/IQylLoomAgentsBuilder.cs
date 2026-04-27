@@ -1,53 +1,51 @@
 // Copyright (c) 2025-2026 ancplua
 
-using Microsoft.Agents.AI;
-using Qyl.Loom.Autofix;
+using Qyl.Loom.Autofix.Workflow;
 
 namespace Qyl.Loom.Agents;
 
 /// <summary>
-///     One factory method per bounded qyl.loom agent. Mirrors Apex's
-///     <c>IExtractorAgentsBuilder</c> — each call returns a fully composed
-///     <see cref="AIAgent" /> wrapped with <c>UseQylAgentTelemetry()</c>, so
-///     <c>QYL0135</c> is satisfied at the construction site.
+///     Factory contract that constructs per-stage <see cref="AIAgent" /> instances for the
+///     Loom autofix pipeline. Implementations must wrap every returned agent with
+///     <c>UseQylAgentTelemetry()</c> at the composition root.
 /// </summary>
-/// <remarks>
-///     <para>
-///         <see cref="IsConfigured" /> reflects whether the upstream
-///         <see cref="Qyl.Loom.Clients.IQylLoomChatClientBuilder" /> resolved a
-///         non-null <see cref="IChatClient" />. Each <c>Build*Agent</c> method
-///         throws <see cref="InvalidOperationException" /> when
-///         <see cref="IsConfigured" /> is <see langword="false" /> — callers
-///         gate the call on the property and fall back to the no-LLM path.
-///     </para>
-///     <para>
-///         The structured-output autofix agent
-///         (<see cref="BuildAutofixAgent" />) returns an agent whose
-///         <c>ChatOptions.ResponseFormat</c> is locked to
-///         <see cref="AutofixReport" />; callers invoke
-///         <c>agent.RunAsync&lt;AutofixReport&gt;(...)</c>.
-///     </para>
-/// </remarks>
 public interface IQylLoomAgentsBuilder
 {
-    /// <summary>
-    ///     <see langword="true" /> when an LLM provider is configured and the
-    ///     <c>Build*Agent</c> methods can return non-null instances.
-    /// </summary>
+    /// <summary>Gets a value indicating whether the builder has been configured with an LLM provider.</summary>
     bool IsConfigured { get; }
 
-    /// <summary>Triage stage — scores fixability and proposes an automation level for an issue summary.</summary>
+    /// <summary>Builds the agent used to score fixability of an error issue.</summary>
+    AIAgent BuildFixabilityStageAgent();
+
+    /// <summary>Builds the context-gathering agent, optionally wired with tool-using mode from <paramref name="config"/>.</summary>
+    /// <param name="config">Workflow configuration controlling <see cref="AutofixWorkflowConfig.ToolUsingContext"/> and <see cref="AutofixWorkflowConfig.ContextToolBudget"/>.</param>
+    AIAgent BuildContextStageAgent(AutofixWorkflowConfig config);
+
+    /// <summary>Builds a single-perspective hypothesis-branch agent (one of N parallel fan-out branches).</summary>
+    /// <param name="perspective">The lens this branch should reason from (concurrency / data-shape / ...).</param>
+    AIAgent BuildHypothesisBranchAgent(string perspective);
+
+    /// <summary>Builds the hypothesis judge agent that picks the winning candidate after fan-in.</summary>
+    AIAgent BuildHypothesisJudgeAgent();
+
+    /// <summary>Builds the solution drafting agent.</summary>
+    AIAgent BuildSolutionStageAgent();
+
+    /// <summary>Builds the confidence auditing agent.</summary>
+    AIAgent BuildConfidenceStageAgent();
+
+    /// <summary>Builds the final report assembly agent.</summary>
+    AIAgent BuildReportStageAgent();
+
+    /// <summary>Builds the triage scoring agent.</summary>
     AIAgent BuildTriageScoringAgent();
 
-    /// <summary>Code-review stage — reviews a PR diff and emits structured JSON comments.</summary>
+    /// <summary>Builds the code review agent.</summary>
     AIAgent BuildCodeReviewAgent();
 
-    /// <summary>Autofix stage — single-agent five-stage contract with schema-enforced <see cref="AutofixReport" /> output.</summary>
-    AIAgent BuildAutofixAgent();
-
-    /// <summary>Exploration stage — produces a pre-investigation insight summary (what happened / initial guess / in the trace).</summary>
+    /// <summary>Builds the exploration insight agent.</summary>
     AIAgent BuildExplorationInsightAgent();
 
-    /// <summary>Exploration stage — converts a root-cause analysis into a minimal implementation plan.</summary>
+    /// <summary>Builds the exploration strategist agent.</summary>
     AIAgent BuildExplorationStrategistAgent();
 }
