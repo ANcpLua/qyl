@@ -14,10 +14,16 @@ internal sealed partial class LoomAutofixRunner(
     IQylLoomWorkflowBuilder workflows,
     AutofixRunRegistry registry,
     AutofixReportAssemblyState assembly,
-    IAutofixLifecycleBus lifecycle)
+    IAutofixLifecycleBus lifecycle,
+    AutofixRunConfigStore configStore)
 {
-    public Task RunAsync(string runId, CancellationToken ct = default) =>
-        RunAsync(runId, AutofixWorkflowDefaults.Config, ct);
+    public Task RunAsync(string runId, CancellationToken ct = default)
+    {
+        var config = configStore.TryGet(runId, out var registered)
+            ? registered
+            : AutofixWorkflowDefaults.Autonomous;
+        return RunAsync(runId, config, ct);
+    }
 
     public async Task RunAsync(string runId, AutofixWorkflowConfig config, CancellationToken ct = default)
     {
@@ -90,6 +96,7 @@ internal sealed partial class LoomAutofixRunner(
         {
             registry.TryRemove(runId);
             assembly.TryRemove(runId);
+            configStore.TryRemove(runId);
         }
     }
 
@@ -110,6 +117,7 @@ internal sealed partial class LoomAutofixRunner(
             .ConfigureAwait(false);
 
         AutofixWorkflowResult? final = null;
+        var pendingTimeouts = new List<Task>();
 
         try
         {
@@ -119,6 +127,10 @@ internal sealed partial class LoomAutofixRunner(
                 {
                     case AutofixLifecycleEvent lifecycleEvent:
                         lifecycle.Publish(run.RunId, ToEnvelope(lifecycleEvent));
+                        break;
+
+                    case RequestInfoEvent ri when config.StoppingPointTimeout is { } timeout:
+                        pendingTimeouts.Add(AutoResolveAfterTimeoutAsync(execution, ri, run.RunId, timeout, ct));
                         break;
 
                     case WorkflowOutputEvent { Data: AutofixWorkflowResult result }:
@@ -132,11 +144,40 @@ internal sealed partial class LoomAutofixRunner(
         finally
         {
             lifecycle.Complete(run.RunId);
+            foreach (var t in pendingTimeouts)
+            {
+                try { await t.ConfigureAwait(false); }
+                catch (OperationCanceledException) { }
+            }
         }
 
         return final?.Report
                ?? throw new InvalidOperationException(
                    $"Autofix workflow for run {run.RunId} terminated without emitting AutofixWorkflowResult.");
+    }
+
+    private async Task AutoResolveAfterTimeoutAsync(
+        StreamingRun execution, RequestInfoEvent ri, string runId, TimeSpan timeout, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(timeout, ct).ConfigureAwait(false);
+
+            if (ri.Request.TryGetDataAs<HypothesisVerdict>(out var hyp))
+            {
+                await execution.SendResponseAsync(ri.Request.CreateResponse(hyp)).ConfigureAwait(false);
+                LogStoppingPointAutoApproved(runId, "pre_solution", timeout);
+            }
+            else if (ri.Request.TryGetDataAs<ConfidenceAudit>(out var audit))
+            {
+                await execution.SendResponseAsync(ri.Request.CreateResponse(audit)).ConfigureAwait(false);
+                LogStoppingPointAutoApproved(runId, "pre_commit", timeout);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Run completed (response arrived in time, or workflow ended) — nothing to auto-resolve.
+        }
     }
 
     private static AutofixLifecycleEnvelope ToEnvelope(AutofixLifecycleEvent evt) =>
@@ -176,11 +217,18 @@ internal sealed partial class LoomAutofixRunner(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Loom autofix run {RunId} transport failure")]
     private partial void LogTransportFailure(string runId, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Loom autofix run {RunId}: stopping-point '{Gate}' auto-approved after {Timeout}")]
+    private partial void LogStoppingPointAutoApproved(string runId, string gate, TimeSpan timeout);
 }
 
 internal static class AutofixWorkflowDefaults
 {
-    public static readonly AutofixWorkflowConfig Config = new(
+    /// Background-routed runs (TriagePipelineService auto-route, future
+    /// scheduled jobs). No HITL — there is no human at the other end. Tool-using
+    /// context ON because we want the best evidence the agent can gather.
+    public static readonly AutofixWorkflowConfig Autonomous = new(
         HypothesisFanOut: 3,
         HypothesisTemperatureSpread: 0.4,
         HypothesisAlternateModel: null,
@@ -188,6 +236,22 @@ internal static class AutofixWorkflowDefaults
         MaxConfidenceRetries: 1,
         StoppingPointAfterHypothesis: false,
         StoppingPointBeforeCommit: false,
-        ToolUsingContext: false,
-        ContextToolBudget: 6);
+        ToolUsingContext: true,
+        ContextToolBudget: 6,
+        StoppingPointTimeout: null);
+
+    /// User-initiated runs from the dashboard. HITL ON at both gates so the
+    /// user can intervene; 5-minute timeout auto-approves if the user closes
+    /// the browser tab so the workflow doesn't deadlock indefinitely.
+    public static readonly AutofixWorkflowConfig Interactive = new(
+        HypothesisFanOut: 3,
+        HypothesisTemperatureSpread: 0.4,
+        HypothesisAlternateModel: null,
+        ConfidenceRetryThreshold: 9,
+        MaxConfidenceRetries: 1,
+        StoppingPointAfterHypothesis: true,
+        StoppingPointBeforeCommit: true,
+        ToolUsingContext: true,
+        ContextToolBudget: 6,
+        StoppingPointTimeout: TimeSpan.FromMinutes(5));
 }

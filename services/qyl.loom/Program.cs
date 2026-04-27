@@ -43,7 +43,7 @@ builder.Services.AddHttpClient("GitHub", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
 }).AddStandardResilienceHandler();
 
-// Apex three-builder pattern — chat-client → agents → workflow. Every AIAgent
+// qyl three-builder pattern — chat-client → agents → workflow. Every AIAgent
 // and every Workflow flows through these singletons so the
 // .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized and the
 // workflow topology is constructed once.
@@ -59,6 +59,7 @@ builder.Services.AddSingleton<AutofixContextLoader>();
 builder.Services.AddSingleton<AutofixContextTools>();
 builder.Services.AddSingleton<IAutofixStepLedger, CollectorAutofixStepLedger>();
 builder.Services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>();
+builder.Services.AddSingleton<AutofixRunConfigStore>();
 builder.Services.AddSingleton<AutofixWorkflowFactory>();
 
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
@@ -123,6 +124,7 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     string issueId,
     ExplorationCodeItUpRequest request,
     AutofixOrchestrator autofixOrchestrator,
+    AutofixRunConfigStore configStore,
     CollectorClient collector,
     CancellationToken ct) =>
 {
@@ -132,6 +134,9 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
 
     var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
+
+    // Dashboard-initiated → user is at the other end → opt into HITL gates with timeout fallback.
+    configStore.Set(run.RunId, AutofixWorkflowDefaults.Interactive);
 
     if (string.IsNullOrWhiteSpace(request.Repo))
         return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));

@@ -20,7 +20,8 @@ public sealed partial record AutofixWorkflowConfig(
     bool StoppingPointAfterHypothesis,
     bool StoppingPointBeforeCommit,
     bool ToolUsingContext,
-    int ContextToolBudget);
+    int ContextToolBudget,
+    TimeSpan? StoppingPointTimeout);
 
 /// <summary>Entry message — what the runner hands the workflow.</summary>
 [LoomContract("loom.autofix.request")]
