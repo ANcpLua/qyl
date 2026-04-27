@@ -54,18 +54,18 @@ internal static class SchemaVersionNegotiator
     internal abstract record NegotiationResult
     {
         /// <summary>Versions are compatible. Subscription proceeds.</summary>
-        internal sealed record Accept(string CollectorVersion, string? RequestedVersion)
+        internal sealed record Accept(string DeployedVersion, string? RequestedVersion)
             : NegotiationResult;
 
         /// <summary>Versions are incompatible. Subscription is refused.</summary>
-        internal sealed record Reject(string Reason, string CollectorVersion, string? RequestedVersion)
+        internal sealed record Reject(string Reason, string DeployedVersion, string? RequestedVersion)
             : NegotiationResult;
 
         /// <summary>
         ///     Reserved: versions differ but a known attribute rename mapping exists.
         ///     Not implemented — declared here so future call sites require no changes.
         /// </summary>
-        internal sealed record Transform(string CollectorVersion, string RequestedVersion)
+        internal sealed record Transform(string DeployedVersion, string RequestedVersion)
             : NegotiationResult;
     }
 }

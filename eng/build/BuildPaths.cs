@@ -10,6 +10,8 @@ using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Components;
 
+namespace Qyl.Build;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // IHazSourcePaths - qyl project directory structure
 // ════════════════════════════════════════════════════════════════════════════════
@@ -33,7 +35,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
 // CodegenPaths - Paths for SchemaGenerator and IVerify
 // ════════════════════════════════════════════════════════════════════════════════
 
-public sealed record CodegenPaths(AbsolutePath Root)
+sealed record CodegenPaths(AbsolutePath Root)
 {
     public AbsolutePath Core => Root / "core";
     public AbsolutePath OpenApi => Core / "openapi";

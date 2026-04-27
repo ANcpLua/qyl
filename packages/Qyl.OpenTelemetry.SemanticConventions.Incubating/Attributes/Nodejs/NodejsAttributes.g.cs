@@ -14,7 +14,7 @@ public static class NodejsAttributes
     /// <summary>The state of event loop time..</summary>
     public const string EventloopState = "nodejs.eventloop.state";
 
-    /// <summary>Values for <see cref="EventloopState"/>.</summary>
+    /// <summary>Values for the <c>EventloopState</c> attribute.</summary>
     public static class EventloopStateValues
     {
         /// <summary>Active time..</summary>

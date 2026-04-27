@@ -17,7 +17,7 @@ public static class CpuAttributes
     /// <summary>The mode of the CPU.</summary>
     public const string Mode = "cpu.mode";
 
-    /// <summary>Values for <see cref="Mode"/>.</summary>
+    /// <summary>Values for the <c>Mode</c> attribute.</summary>
     public static class ModeValues
     {
         /// <summary>Idle.</summary>

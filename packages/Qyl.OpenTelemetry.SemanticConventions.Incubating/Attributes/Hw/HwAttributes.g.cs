@@ -20,7 +20,7 @@ public static class HwAttributes
     /// <summary>The current state of the battery.</summary>
     public const string BatteryState = "hw.battery.state";
 
-    /// <summary>Values for <see cref="BatteryState"/>.</summary>
+    /// <summary>Values for the <c>BatteryState</c> attribute.</summary>
     public static class BatteryStateValues
     {
         /// <summary>Charging.</summary>
@@ -44,7 +44,7 @@ public static class HwAttributes
     /// <summary>Type of task the GPU is performing.</summary>
     public const string GpuTask = "hw.gpu.task";
 
-    /// <summary>Values for <see cref="GpuTask"/>.</summary>
+    /// <summary>Values for the <c>GpuTask</c> attribute.</summary>
     public static class GpuTaskValues
     {
         /// <summary>Decoder.</summary>
@@ -61,7 +61,7 @@ public static class HwAttributes
     /// <summary>Type of limit for hardware components.</summary>
     public const string LimitType = "hw.limit_type";
 
-    /// <summary>Values for <see cref="LimitType"/>.</summary>
+    /// <summary>Values for the <c>LimitType</c> attribute.</summary>
     public static class LimitTypeValues
     {
         /// <summary>Critical.</summary>
@@ -90,7 +90,7 @@ public static class HwAttributes
     /// <summary>State of the logical disk space usage.</summary>
     public const string LogicalDiskState = "hw.logical_disk.state";
 
-    /// <summary>Values for <see cref="LogicalDiskState"/>.</summary>
+    /// <summary>Values for the <c>LogicalDiskState</c> attribute.</summary>
     public static class LogicalDiskStateValues
     {
         /// <summary>Free.</summary>
@@ -123,7 +123,7 @@ public static class HwAttributes
     /// <summary>State of the physical disk endurance utilization.</summary>
     public const string PhysicalDiskState = "hw.physical_disk.state";
 
-    /// <summary>Values for <see cref="PhysicalDiskState"/>.</summary>
+    /// <summary>Values for the <c>PhysicalDiskState</c> attribute.</summary>
     public static class PhysicalDiskStateValues
     {
         /// <summary>Remaining.</summary>
@@ -142,7 +142,7 @@ public static class HwAttributes
     /// <summary>The current state of the component.</summary>
     public const string State = "hw.state";
 
-    /// <summary>Values for <see cref="State"/>.</summary>
+    /// <summary>Values for the <c>State</c> attribute.</summary>
     public static class StateValues
     {
         /// <summary>Degraded.</summary>
@@ -160,7 +160,7 @@ public static class HwAttributes
     /// <summary>Type of tape drive operation.</summary>
     public const string TapeDriveOperationType = "hw.tape_drive.operation_type";
 
-    /// <summary>Values for <see cref="TapeDriveOperationType"/>.</summary>
+    /// <summary>Values for the <c>TapeDriveOperationType</c> attribute.</summary>
     public static class TapeDriveOperationTypeValues
     {
         /// <summary>Clean.</summary>
@@ -175,7 +175,7 @@ public static class HwAttributes
     /// <remarks>Describes the category of the hardware component for which `hw.state` is being reported. For example, `hw.type=temperature` along with `hw.state=degraded` would indicate that the temperature of the hardware component has been reported as `degraded`.</remarks>
     public const string Type = "hw.type";
 
-    /// <summary>Values for <see cref="Type"/>.</summary>
+    /// <summary>Values for the <c>Type</c> attribute.</summary>
     public static class TypeValues
     {
         /// <summary>Battery.</summary>

@@ -111,7 +111,7 @@ public static class GenAiInstrumentation
         // so WithQylTelemetry works outside a DI container (e.g. direct test usage).
         builder.Use(static (inner, services) =>
         {
-            var loggerFactory = services?.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
+            var loggerFactory = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
             return new LoggingChatClient(inner, loggerFactory.CreateLogger(nameof(GenAiInstrumentation)));
         });
         builder.Use(static inner => new ToolDecoratingChatClient(inner, WrapTool));

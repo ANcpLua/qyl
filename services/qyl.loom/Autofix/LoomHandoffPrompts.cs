@@ -28,35 +28,35 @@ internal sealed class LoomHandoffPrompts
         string solutionPlan,
         [Description("Optional affected files, one per line, relative to repo root")]
         string? affectedFiles = null) =>
-        $$"""
-          You are implementing a code fix for a qyl issue. qyl has already completed root-cause analysis and
-          solution planning using its observability context (traces, spans, recent events, issue history).
-          Your job is to apply the plan as minimal, surgical code changes.
+        $"""
+         You are implementing a code fix for a qyl issue. qyl has already completed root-cause analysis and
+         solution planning using its observability context (traces, spans, recent events, issue history).
+         Your job is to apply the plan as minimal, surgical code changes.
 
-          ## Issue
-          - id: {{issueId}}
-          - error type: {{errorType}}
+         ## Issue
+         - id: {issueId}
+         - error type: {errorType}
 
-          ## Root-Cause Analysis
-          {{rcaReport}}
+         ## Root-Cause Analysis
+         {rcaReport}
 
-          ## Solution Plan
-          ```json
-          {{solutionPlan}}
-          ```
+         ## Solution Plan
+         ```json
+         {solutionPlan}
+         ```
 
-          {{(affectedFiles is { Length: > 0 }
-              ? $"## Affected Files\n```\n{affectedFiles}\n```\n"
-              : "")}}
+         {(affectedFiles is { Length: > 0 }
+             ? $"## Affected Files\n```\n{affectedFiles}\n```\n"
+             : "")}
 
-          ## Your Task
-          1. Read each file in the solution plan before editing it.
-          2. Apply the minimal change described. Do not refactor unrelated code.
-          3. Preserve the project's existing patterns, imports, and formatting.
-          4. If a step in the plan is ambiguous or appears wrong given what you read, stop and report
-             which step is wrong and why — do not guess.
-          5. After each file change, verify with the project's build command.
+         ## Your Task
+         1. Read each file in the solution plan before editing it.
+         2. Apply the minimal change described. Do not refactor unrelated code.
+         3. Preserve the project's existing patterns, imports, and formatting.
+         4. If a step in the plan is ambiguous or appears wrong given what you read, stop and report
+            which step is wrong and why — do not guess.
+         5. After each file change, verify with the project's build command.
 
-          Do not create a pull request or commit. Leave the working tree dirty so the operator can review.
-          """;
+         Do not create a pull request or commit. Leave the working tree dirty so the operator can review.
+         """;
 }

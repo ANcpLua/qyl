@@ -27,9 +27,9 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
     // Order matters: UUID before generic hex.
     private static readonly (Regex Pattern, string Replacement)[] SPatternReplacements =
     [
-        (new Regex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        (new Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
             RegexOptions.Compiled), "<UUID>"),
-        (new Regex(@"0x[0-9a-fA-F]+", RegexOptions.Compiled), "<HEX>"),
+        (new Regex("0x[0-9a-fA-F]+", RegexOptions.Compiled), "<HEX>"),
         (new Regex(@"\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b", RegexOptions.Compiled), "<IP>"),
         (new Regex(@"(?<![a-zA-Z])\d+(?:\.\d+)?(?![a-zA-Z])", RegexOptions.Compiled), "<N>")
     ];
@@ -210,7 +210,6 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             if (rows.Count > 0)
             {
                 var ordered = rows.OrderBy(static l => l.TimeUnixNano).ToArray();
-                after = ordered[^1].TimeUnixNano;
                 var first = ordered[0];
                 var waitedMs = (long)(timeProvider.GetUtcNow() - started).TotalMilliseconds;
 
@@ -421,14 +420,14 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         string serviceName,
         DateTime firstSeen)
     {
-        public string Template { get; } = template;
-        public string Sample { get; } = sample;
-        public string ServiceName { get; } = serviceName;
-        public int Count { get; set; }
-        public DateTime FirstSeen { get; } = firstSeen;
-        public DateTime LastSeen { get; set; } = firstSeen;
-        public Dictionary<string, int> SeverityCounts { get; } = new(StringComparer.Ordinal);
-        public List<DateTime> ObservedAt { get; } = [];
+        private string Template { get; } = template;
+        private string Sample { get; } = sample;
+        private string ServiceName { get; } = serviceName;
+        public int Count { get; private set; }
+        private DateTime FirstSeen { get; } = firstSeen;
+        private DateTime LastSeen { get; set; } = firstSeen;
+        private Dictionary<string, int> SeverityCounts { get; } = new(StringComparer.Ordinal);
+        private List<DateTime> ObservedAt { get; } = [];
 
         public void AddOccurrence(DateTime observedAt, string severity)
         {

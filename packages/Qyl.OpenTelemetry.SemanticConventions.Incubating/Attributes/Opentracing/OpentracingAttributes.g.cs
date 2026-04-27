@@ -15,7 +15,7 @@ public static class OpentracingAttributes
     /// <remarks>The causal relationship between a child Span and a parent Span.</remarks>
     public const string RefType = "opentracing.ref_type";
 
-    /// <summary>Values for <see cref="RefType"/>.</summary>
+    /// <summary>Values for the <c>RefType</c> attribute.</summary>
     public static class RefTypeValues
     {
         /// <summary>The parent Span depends on the child Span in some capacity.</summary>

@@ -37,9 +37,9 @@ public sealed class UpdateProjectTool(HttpClient client)
         [Description("New description")] string? description = null,
         CancellationToken ct = default)
     {
-        var body = new { name, description };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/projects/{Uri.EscapeDataString(slug)}") { Content = JsonContent.Create(body) };
+            $"/api/v1/mcp/projects/{Uri.EscapeDataString(slug)}");
+        request.Content = JsonContent.Create(new { name, description });
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 

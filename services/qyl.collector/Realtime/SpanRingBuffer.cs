@@ -36,7 +36,7 @@ public sealed class SpanRingBuffer
     {
         Guard.NotNull(spans);
         // Materialize once to avoid multiple enumeration of IEnumerable
-        var materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
+        IReadOnlyList<SpanRecord> materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
         lock (_lock)
         {
             foreach (var span in materialized)

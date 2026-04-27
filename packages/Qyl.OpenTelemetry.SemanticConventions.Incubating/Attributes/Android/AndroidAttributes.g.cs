@@ -15,7 +15,7 @@ public static class AndroidAttributes
     /// <remarks>The Android lifecycle states are defined in [Activity lifecycle callbacks](https://developer.android.com/guide/components/activities/activity-lifecycle#lc), and from which the `OS identifiers` are derived.</remarks>
     public const string AppState = "android.app.state";
 
-    /// <summary>Values for <see cref="AppState"/>.</summary>
+    /// <summary>Values for the <c>AppState</c> attribute.</summary>
     public static class AppStateValues
     {
         /// <summary>Any time after Activity.onPause() or, if the app has no Activity, Context.stopService() has been called when the app was in the foreground state..</summary>
@@ -33,7 +33,7 @@ public static class AndroidAttributes
     [global::System.Obsolete("Replaced by android.app.state.", false)]
     public const string State = "android.state";
 
-    /// <summary>Values for <see cref="State"/>.</summary>
+    /// <summary>Values for the <c>State</c> attribute.</summary>
     public static class StateValues
     {
         /// <summary>Any time after Activity.onPause() or, if the app has no Activity, Context.stopService() has been called when the app was in the foreground state..</summary>

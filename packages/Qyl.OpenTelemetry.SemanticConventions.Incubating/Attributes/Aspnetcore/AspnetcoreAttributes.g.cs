@@ -14,7 +14,7 @@ public static class AspnetcoreAttributes
     /// <summary>The result of the authentication operation..</summary>
     public const string AuthenticationResult = "aspnetcore.authentication.result";
 
-    /// <summary>Values for <see cref="AuthenticationResult"/>.</summary>
+    /// <summary>Values for the <c>AuthenticationResult</c> attribute.</summary>
     public static class AuthenticationResultValues
     {
         /// <summary>Authentication failed..</summary>
@@ -34,7 +34,7 @@ public static class AspnetcoreAttributes
     /// <summary>The result of calling the authorization service..</summary>
     public const string AuthorizationResult = "aspnetcore.authorization.result";
 
-    /// <summary>Values for <see cref="AuthorizationResult"/>.</summary>
+    /// <summary>Values for the <c>AuthorizationResult</c> attribute.</summary>
     public static class AuthorizationResultValues
     {
         /// <summary>Authorization failed..</summary>
@@ -49,7 +49,7 @@ public static class AspnetcoreAttributes
     /// <summary>The result from checking the password..</summary>
     public const string IdentityPasswordCheckResult = "aspnetcore.identity.password_check_result";
 
-    /// <summary>Values for <see cref="IdentityPasswordCheckResult"/>.</summary>
+    /// <summary>Values for the <c>IdentityPasswordCheckResult</c> attribute.</summary>
     public static class IdentityPasswordCheckResultValues
     {
         /// <summary>Password check failed..</summary>
@@ -67,7 +67,7 @@ public static class AspnetcoreAttributes
     /// <summary>The result of the identity operation..</summary>
     public const string IdentityResult = "aspnetcore.identity.result";
 
-    /// <summary>Values for <see cref="IdentityResult"/>.</summary>
+    /// <summary>Values for the <c>IdentityResult</c> attribute.</summary>
     public static class IdentityResultValues
     {
         /// <summary>Identity operation failed..</summary>
@@ -79,7 +79,7 @@ public static class AspnetcoreAttributes
     /// <summary>Whether the sign in result was success or failure..</summary>
     public const string IdentitySignInResult = "aspnetcore.identity.sign_in.result";
 
-    /// <summary>Values for <see cref="IdentitySignInResult"/>.</summary>
+    /// <summary>Values for the <c>IdentitySignInResult</c> attribute.</summary>
     public static class IdentitySignInResultValues
     {
         /// <summary>Sign in failed..</summary>
@@ -97,7 +97,7 @@ public static class AspnetcoreAttributes
     /// <summary>The authentication type..</summary>
     public const string IdentitySignInType = "aspnetcore.identity.sign_in.type";
 
-    /// <summary>Values for <see cref="IdentitySignInType"/>.</summary>
+    /// <summary>Values for the <c>IdentitySignInType</c> attribute.</summary>
     public static class IdentitySignInTypeValues
     {
         /// <summary>Sign in with a previously registered third-party login..</summary>
@@ -117,7 +117,7 @@ public static class AspnetcoreAttributes
     /// <summary>What the token will be used for..</summary>
     public const string IdentityTokenPurpose = "aspnetcore.identity.token_purpose";
 
-    /// <summary>Values for <see cref="IdentityTokenPurpose"/>.</summary>
+    /// <summary>Values for the <c>IdentityTokenPurpose</c> attribute.</summary>
     public static class IdentityTokenPurposeValues
     {
         /// <summary>Any token purpose that the instrumentation has no prior knowledge of..</summary>
@@ -137,7 +137,7 @@ public static class AspnetcoreAttributes
     /// <summary>The result of token verification..</summary>
     public const string IdentityTokenVerified = "aspnetcore.identity.token_verified";
 
-    /// <summary>Values for <see cref="IdentityTokenVerified"/>.</summary>
+    /// <summary>Values for the <c>IdentityTokenVerified</c> attribute.</summary>
     public static class IdentityTokenVerifiedValues
     {
         /// <summary>Token verification failed..</summary>
@@ -149,7 +149,7 @@ public static class AspnetcoreAttributes
     /// <summary>The user update type..</summary>
     public const string IdentityUserUpdateType = "aspnetcore.identity.user.update_type";
 
-    /// <summary>Values for <see cref="IdentityUserUpdateType"/>.</summary>
+    /// <summary>Values for the <c>IdentityUserUpdateType</c> attribute.</summary>
     public static class IdentityUserUpdateTypeValues
     {
         /// <summary>Any update type that the instrumentation has no prior knowledge of..</summary>

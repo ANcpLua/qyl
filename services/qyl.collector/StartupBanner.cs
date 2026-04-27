@@ -121,19 +121,12 @@ public static class StartupBanner
             Console.WriteLine(corsOptions.AllowedOrigins);
         }
 
-        if (apiKeyOptions?.IsApiKeyMode == true)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("  OTLP Auth: API Key required (x-otlp-api-key header)");
-            Console.ResetColor();
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("  OTLP Auth: UNSECURED - telemetry accepted without authentication");
-            Console.ResetColor();
-        }
-
+        var (authColor, authMessage) = apiKeyOptions?.IsApiKeyMode == true
+            ? (ConsoleColor.Green, "  OTLP Auth: API Key required (x-otlp-api-key header)")
+            : (ConsoleColor.Yellow, "  OTLP Auth: UNSECURED - telemetry accepted without authentication");
+        Console.ForegroundColor = authColor;
+        Console.WriteLine(authMessage);
+        Console.ResetColor();
         Console.WriteLine();
     }
 

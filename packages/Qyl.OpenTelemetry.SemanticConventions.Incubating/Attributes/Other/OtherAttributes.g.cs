@@ -15,7 +15,7 @@ public static class OtherAttributes
     [global::System.Obsolete("Replaced by db.client.connection.state.", false)]
     public const string State = "state";
 
-    /// <summary>Values for <see cref="State"/>.</summary>
+    /// <summary>Values for the <c>State</c> attribute.</summary>
     public static class StateValues
     {
         /// <summary>.</summary>

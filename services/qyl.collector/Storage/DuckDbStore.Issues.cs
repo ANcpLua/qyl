@@ -251,7 +251,6 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = EscapeLikePattern(serviceName) });
 
             var regressedIds = new List<string>();
-            var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
             await using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             var candidates = new List<(string ErrorId, string Fingerprint)>();

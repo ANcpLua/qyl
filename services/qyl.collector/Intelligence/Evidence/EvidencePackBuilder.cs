@@ -13,7 +13,7 @@ public sealed class DeterministicEvidencePackBuilder : IEvidencePackBuilder
 
     public AgentRunEvidencePack Build(AutofixEvidenceInput input)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        Guard.NotNull(input);
 
         var artifacts = (input.Artifacts ?? Array.Empty<AgentRunArtifactRef>())
             .OrderBy(static artifact => artifact.Kind)

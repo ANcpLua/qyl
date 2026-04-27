@@ -35,12 +35,9 @@ public sealed class ConfigureRetentionTool(HttpClient client)
         int retentionDays,
         CancellationToken ct = default)
     {
-        var body = new { retention_days = retentionDays };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/projects/{Uri.EscapeDataString(projectSlug)}/retention")
-        {
-            Content = JsonContent.Create(body)
-        };
+            $"/api/v1/mcp/projects/{Uri.EscapeDataString(projectSlug)}/retention");
+        request.Content = JsonContent.Create(new { retention_days = retentionDays });
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 

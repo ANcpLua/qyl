@@ -26,7 +26,7 @@ public static class FaasAttributes
     /// <summary>Describes the type of the operation that was performed on the data..</summary>
     public const string DocumentOperation = "faas.document.operation";
 
-    /// <summary>Values for <see cref="DocumentOperation"/>.</summary>
+    /// <summary>Values for the <c>DocumentOperation</c> attribute.</summary>
     public static class DocumentOperationValues
     {
         /// <summary>When an object is deleted..</summary>
@@ -55,7 +55,7 @@ public static class FaasAttributes
     /// <remarks>SHOULD be equal to the `cloud.provider` resource attribute of the invoked function.</remarks>
     public const string InvokedProvider = "faas.invoked_provider";
 
-    /// <summary>Values for <see cref="InvokedProvider"/>.</summary>
+    /// <summary>Values for the <c>InvokedProvider</c> attribute.</summary>
     public static class InvokedProviderValues
     {
         /// <summary>Alibaba Cloud.</summary>
@@ -88,7 +88,7 @@ public static class FaasAttributes
     /// <summary>Type of the trigger which caused this function invocation..</summary>
     public const string Trigger = "faas.trigger";
 
-    /// <summary>Values for <see cref="Trigger"/>.</summary>
+    /// <summary>Values for the <c>Trigger</c> attribute.</summary>
     public static class TriggerValues
     {
         /// <summary>A response to some data source operation such as a database or filesystem read/write.</summary>

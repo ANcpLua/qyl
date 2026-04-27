@@ -684,9 +684,6 @@ public static class OtlpConverter
         var profileId = profile.ProfileId ?? Guid.NewGuid().ToString("N")[..16];
         var strings = profile.StringTable ?? [];
 
-        string? Resolve(int? index) =>
-            index is { } i and >= 0 && i < strings.Count ? strings[i] : null;
-
         var sessionId = profile.Attributes?
             .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;
 
@@ -830,6 +827,9 @@ public static class OtlpConverter
             Samples = samples,
             Stacks = stacks
         };
+
+        string? Resolve(int? index) =>
+            index is { } i and >= 0 && i < strings.Count ? strings[i] : null;
     }
 
     #endregion

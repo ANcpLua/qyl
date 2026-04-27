@@ -26,7 +26,7 @@ public static class JvmAttributes
     /// <summary>The type of memory..</summary>
     public const string MemoryType = "jvm.memory.type";
 
-    /// <summary>Values for <see cref="MemoryType"/>.</summary>
+    /// <summary>Values for the <c>MemoryType</c> attribute.</summary>
     public static class MemoryTypeValues
     {
         /// <summary>Heap memory..</summary>
@@ -41,7 +41,7 @@ public static class JvmAttributes
     /// <summary>State of the thread..</summary>
     public const string ThreadState = "jvm.thread.state";
 
-    /// <summary>Values for <see cref="ThreadState"/>.</summary>
+    /// <summary>Values for the <c>ThreadState</c> attribute.</summary>
     public static class ThreadStateValues
     {
         /// <summary>A thread that is blocked waiting for a monitor lock is in this state..</summary>

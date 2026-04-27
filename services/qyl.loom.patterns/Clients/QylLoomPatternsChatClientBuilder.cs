@@ -24,7 +24,7 @@ namespace Qyl.Loom.Patterns.Clients;
 ///     </para>
 /// </remarks>
 public sealed class QylLoomPatternsChatClientBuilder(IServiceProvider services)
-    : IQylLoomPatternsChatClientBuilder, IDisposable
+    : IQylLoomPatternsChatClientBuilder
 {
     private static readonly Dictionary<string, string> s_cannedResponses = new(StringComparer.Ordinal)
     {

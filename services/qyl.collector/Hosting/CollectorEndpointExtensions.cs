@@ -501,7 +501,7 @@ public static class CollectorEndpointExtensions
         OtlpApiKeyOptions apiKeyOptions,
         IWebHostEnvironment env)
     {
-        var version = BuildVersion.InformationalVersion;
+        const string version = BuildVersion.InformationalVersion;
         var hasEmbeddedDashboard = EmbeddedDashboardExtensions.HasEmbeddedDashboard();
         var dashboardBuild = DashboardBuildDescriptorReader.TryRead(env);
 

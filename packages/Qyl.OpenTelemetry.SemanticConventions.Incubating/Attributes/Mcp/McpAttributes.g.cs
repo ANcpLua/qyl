@@ -14,7 +14,7 @@ public static class McpAttributes
     /// <summary>The name of the request or notification method..</summary>
     public const string MethodName = "mcp.method.name";
 
-    /// <summary>Values for <see cref="MethodName"/>.</summary>
+    /// <summary>Values for the <c>MethodName</c> attribute.</summary>
     public static class MethodNameValues
     {
         /// <summary>Request to complete a prompt..</summary>

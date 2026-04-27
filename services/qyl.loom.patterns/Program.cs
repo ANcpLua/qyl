@@ -18,11 +18,12 @@ using IQylLoomPatternsChatClientBuilder clients = new QylLoomPatternsChatClientB
 IQylLoomPatternsAgentsBuilder agents = new QylLoomPatternsAgentsBuilder(clients, services);
 
 using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
+ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
     cts.Cancel();
 };
+Console.CancelKeyPress += cancelHandler;
 
 Console.WriteLine($"── pattern: {pattern} ──");
 
@@ -44,6 +45,10 @@ try
 catch (OperationCanceledException)
 {
     Console.WriteLine("\n(cancelled)");
+}
+finally
+{
+    Console.CancelKeyPress -= cancelHandler;
 }
 
 return;

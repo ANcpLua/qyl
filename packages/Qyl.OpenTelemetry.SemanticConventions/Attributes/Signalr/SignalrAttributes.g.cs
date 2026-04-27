@@ -14,7 +14,7 @@ public static class SignalrAttributes
     /// <summary>SignalR HTTP connection closure status..</summary>
     public const string ConnectionStatus = "signalr.connection.status";
 
-    /// <summary>Values for <see cref="ConnectionStatus"/>.</summary>
+    /// <summary>Values for the <c>ConnectionStatus</c> attribute.</summary>
     public static class ConnectionStatusValues
     {
         /// <summary>The connection was closed because the app is shutting down..</summary>
@@ -28,7 +28,7 @@ public static class SignalrAttributes
     /// <summary>[SignalR transport type](https://github.com/dotnet/aspnetcore/blob/main/src/SignalR/docs/specs/TransportProtocols.md).</summary>
     public const string Transport = "signalr.transport";
 
-    /// <summary>Values for <see cref="Transport"/>.</summary>
+    /// <summary>Values for the <c>Transport</c> attribute.</summary>
     public static class TransportValues
     {
         /// <summary>LongPolling protocol.</summary>

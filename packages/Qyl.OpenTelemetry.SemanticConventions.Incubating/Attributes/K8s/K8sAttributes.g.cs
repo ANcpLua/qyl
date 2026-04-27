@@ -30,7 +30,7 @@ public static class K8sAttributes
     /// <summary>The reason for the container state. Corresponds to the `reason` field of the: [K8s ContainerStateWaiting](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#containerstatewaiting-v1-core) or [K8s ContainerStateTerminated](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#containerstateterminated-v1-core).</summary>
     public const string ContainerStatusReason = "k8s.container.status.reason";
 
-    /// <summary>Values for <see cref="ContainerStatusReason"/>.</summary>
+    /// <summary>Values for the <c>ContainerStatusReason</c> attribute.</summary>
     public static class ContainerStatusReasonValues
     {
         /// <summary>The container has completed execution..</summary>
@@ -56,7 +56,7 @@ public static class K8sAttributes
     /// <summary>The state of the container. [K8s ContainerState](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#containerstate-v1-core).</summary>
     public const string ContainerStatusState = "k8s.container.status.state";
 
-    /// <summary>Values for <see cref="ContainerStatusState"/>.</summary>
+    /// <summary>Values for the <c>ContainerStatusState</c> attribute.</summary>
     public static class ContainerStatusStateValues
     {
         /// <summary>The container is running..</summary>
@@ -163,7 +163,7 @@ public static class K8sAttributes
     /// <remarks>This attribute aligns with the `phase` field of the [K8s NamespaceStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#namespacestatus-v1-core)</remarks>
     public const string NamespacePhase = "k8s.namespace.phase";
 
-    /// <summary>Values for <see cref="NamespacePhase"/>.</summary>
+    /// <summary>Values for the <c>NamespacePhase</c> attribute.</summary>
     public static class NamespacePhaseValues
     {
         /// <summary>Active namespace phase as described by [K8s API](https://pkg.go.dev/k8s.io/api@v0.31.3/core/v1#NamespacePhase).</summary>
@@ -180,7 +180,7 @@ public static class K8sAttributes
     /// <remarks>This attribute aligns with the `status` field of the [NodeCondition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#nodecondition-v1-core)</remarks>
     public const string NodeConditionStatus = "k8s.node.condition.status";
 
-    /// <summary>Values for <see cref="NodeConditionStatus"/>.</summary>
+    /// <summary>Values for the <c>NodeConditionStatus</c> attribute.</summary>
     public static class NodeConditionStatusValues
     {
         /// <summary>.</summary>
@@ -195,7 +195,7 @@ public static class K8sAttributes
     /// <remarks>K8s Node conditions as described by [K8s documentation](https://v1-32.docs.kubernetes.io/docs/reference/node/node-status/#condition).  This attribute aligns with the `type` field of the [NodeCondition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#nodecondition-v1-core)  The set of possible values is not limited to those listed here. Managed Kubernetes environments, or custom controllers MAY introduce additional node condition types. When this occurs, the exact value as reported by the Kubernetes API SHOULD be used.</remarks>
     public const string NodeConditionType = "k8s.node.condition.type";
 
-    /// <summary>Values for <see cref="NodeConditionType"/>.</summary>
+    /// <summary>Values for the <c>NodeConditionType</c> attribute.</summary>
     public static class NodeConditionTypeValues
     {
         /// <summary>Pressure exists on the disk size—that is, if the disk capacity is low.</summary>
@@ -250,7 +250,7 @@ public static class K8sAttributes
     /// <summary>The phase for the pod. Corresponds to the `phase` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core).</summary>
     public const string PodStatusPhase = "k8s.pod.status.phase";
 
-    /// <summary>Values for <see cref="PodStatusPhase"/>.</summary>
+    /// <summary>Values for the <c>PodStatusPhase</c> attribute.</summary>
     public static class PodStatusPhaseValues
     {
         /// <summary>All containers in the pod have terminated, and at least one container has terminated in a failure (exited with a non-zero exit code or was stopped by the system)..</summary>
@@ -268,7 +268,7 @@ public static class K8sAttributes
     /// <summary>The reason for the pod state. Corresponds to the `reason` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core).</summary>
     public const string PodStatusReason = "k8s.pod.status.reason";
 
-    /// <summary>Values for <see cref="PodStatusReason"/>.</summary>
+    /// <summary>Values for the <c>PodStatusReason</c> attribute.</summary>
     public static class PodStatusReasonValues
     {
         /// <summary>The pod is evicted..</summary>
@@ -324,7 +324,7 @@ public static class K8sAttributes
     /// <remarks>The network address family or type of the endpoint. This attribute aligns with the `addressType` field of the [K8s EndpointSlice](https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoint-slice-v1/). It is used to differentiate metrics when a Service is backed by multiple address types (e.g., in dual-stack clusters).</remarks>
     public const string ServiceEndpointAddressType = "k8s.service.endpoint.address_type";
 
-    /// <summary>Values for <see cref="ServiceEndpointAddressType"/>.</summary>
+    /// <summary>Values for the <c>ServiceEndpointAddressType</c> attribute.</summary>
     public static class ServiceEndpointAddressTypeValues
     {
         /// <summary>FQDN address type.</summary>
@@ -339,7 +339,7 @@ public static class K8sAttributes
     /// <remarks>The current operational condition of the service endpoint. An endpoint can have multiple conditions set at once (e.g., both `serving` and `terminating` during rollout). This attribute aligns with the condition fields in the [K8s EndpointSlice](https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoint-slice-v1/).</remarks>
     public const string ServiceEndpointCondition = "k8s.service.endpoint.condition";
 
-    /// <summary>Values for <see cref="ServiceEndpointCondition"/>.</summary>
+    /// <summary>Values for the <c>ServiceEndpointCondition</c> attribute.</summary>
     public static class ServiceEndpointConditionValues
     {
         /// <summary>The endpoint is ready to receive new connections..</summary>
@@ -377,7 +377,7 @@ public static class K8sAttributes
     /// <remarks>This attribute aligns with the `type` field of the [K8s ServiceSpec](https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec).</remarks>
     public const string ServiceType = "k8s.service.type";
 
-    /// <summary>Values for <see cref="ServiceType"/>.</summary>
+    /// <summary>Values for the <c>ServiceType</c> attribute.</summary>
     public static class ServiceTypeValues
     {
         /// <summary>ClusterIP service type.</summary>
@@ -416,7 +416,7 @@ public static class K8sAttributes
     /// <summary>The type of the K8s volume..</summary>
     public const string VolumeType = "k8s.volume.type";
 
-    /// <summary>Values for <see cref="VolumeType"/>.</summary>
+    /// <summary>Values for the <c>VolumeType</c> attribute.</summary>
     public static class VolumeTypeValues
     {
         /// <summary>A [configMap](https://v1-30.docs.kubernetes.io/docs/concepts/storage/volumes/#configmap) volume.</summary>

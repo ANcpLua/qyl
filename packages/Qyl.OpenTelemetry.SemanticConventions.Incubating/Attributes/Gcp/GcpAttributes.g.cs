@@ -24,7 +24,7 @@ public static class GcpAttributes
     /// <remarks>[See AppHub type enum](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type)</remarks>
     public const string ApphubServiceCriticalityType = "gcp.apphub.service.criticality_type";
 
-    /// <summary>Values for <see cref="ApphubServiceCriticalityType"/>.</summary>
+    /// <summary>Values for the <c>ApphubServiceCriticalityType</c> attribute.</summary>
     public static class ApphubServiceCriticalityTypeValues
     {
         /// <summary>High impact..</summary>
@@ -41,7 +41,7 @@ public static class GcpAttributes
     /// <remarks>[See AppHub environment type](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type_1)</remarks>
     public const string ApphubServiceEnvironmentType = "gcp.apphub.service.environment_type";
 
-    /// <summary>Values for <see cref="ApphubServiceEnvironmentType"/>.</summary>
+    /// <summary>Values for the <c>ApphubServiceEnvironmentType</c> attribute.</summary>
     public static class ApphubServiceEnvironmentTypeValues
     {
         /// <summary>Development environment..</summary>
@@ -61,7 +61,7 @@ public static class GcpAttributes
     /// <remarks>[See AppHub type enum](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type)</remarks>
     public const string ApphubWorkloadCriticalityType = "gcp.apphub.workload.criticality_type";
 
-    /// <summary>Values for <see cref="ApphubWorkloadCriticalityType"/>.</summary>
+    /// <summary>Values for the <c>ApphubWorkloadCriticalityType</c> attribute.</summary>
     public static class ApphubWorkloadCriticalityTypeValues
     {
         /// <summary>High impact..</summary>
@@ -78,7 +78,7 @@ public static class GcpAttributes
     /// <remarks>[See AppHub environment type](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type_1)</remarks>
     public const string ApphubWorkloadEnvironmentType = "gcp.apphub.workload.environment_type";
 
-    /// <summary>Values for <see cref="ApphubWorkloadEnvironmentType"/>.</summary>
+    /// <summary>Values for the <c>ApphubWorkloadEnvironmentType</c> attribute.</summary>
     public static class ApphubWorkloadEnvironmentTypeValues
     {
         /// <summary>Development environment..</summary>
@@ -106,7 +106,7 @@ public static class GcpAttributes
     /// <summary>Criticality of a destination workload indicates its importance to the business as specified in [AppHub type enum](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type).</summary>
     public const string ApphubDestinationServiceCriticalityType = "gcp.apphub_destination.service.criticality_type";
 
-    /// <summary>Values for <see cref="ApphubDestinationServiceCriticalityType"/>.</summary>
+    /// <summary>Values for the <c>ApphubDestinationServiceCriticalityType</c> attribute.</summary>
     public static class ApphubDestinationServiceCriticalityTypeValues
     {
         /// <summary>High impact..</summary>
@@ -122,7 +122,7 @@ public static class GcpAttributes
     /// <summary>Software lifecycle stage of a destination service as defined [AppHub environment type](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type_1).</summary>
     public const string ApphubDestinationServiceEnvironmentType = "gcp.apphub_destination.service.environment_type";
 
-    /// <summary>Values for <see cref="ApphubDestinationServiceEnvironmentType"/>.</summary>
+    /// <summary>Values for the <c>ApphubDestinationServiceEnvironmentType</c> attribute.</summary>
     public static class ApphubDestinationServiceEnvironmentTypeValues
     {
         /// <summary>Development environment..</summary>
@@ -141,7 +141,7 @@ public static class GcpAttributes
     /// <summary>Criticality of a destination workload indicates its importance to the business as specified in [AppHub type enum](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type).</summary>
     public const string ApphubDestinationWorkloadCriticalityType = "gcp.apphub_destination.workload.criticality_type";
 
-    /// <summary>Values for <see cref="ApphubDestinationWorkloadCriticalityType"/>.</summary>
+    /// <summary>Values for the <c>ApphubDestinationWorkloadCriticalityType</c> attribute.</summary>
     public static class ApphubDestinationWorkloadCriticalityTypeValues
     {
         /// <summary>High impact..</summary>
@@ -157,7 +157,7 @@ public static class GcpAttributes
     /// <summary>Environment of a destination workload is the stage of a software lifecycle as provided in the [AppHub environment type](https://cloud.google.com/app-hub/docs/reference/rest/v1/Attributes#type_1).</summary>
     public const string ApphubDestinationWorkloadEnvironmentType = "gcp.apphub_destination.workload.environment_type";
 
-    /// <summary>Values for <see cref="ApphubDestinationWorkloadEnvironmentType"/>.</summary>
+    /// <summary>Values for the <c>ApphubDestinationWorkloadEnvironmentType</c> attribute.</summary>
     public static class ApphubDestinationWorkloadEnvironmentTypeValues
     {
         /// <summary>Development environment..</summary>

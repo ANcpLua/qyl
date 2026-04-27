@@ -25,7 +25,7 @@ public static class FeatureFlagAttributes
     [global::System.Obsolete("Replaced by feature_flag.result.reason.", false)]
     public const string EvaluationReason = "feature_flag.evaluation.reason";
 
-    /// <summary>Values for <see cref="EvaluationReason"/>.</summary>
+    /// <summary>Values for the <c>EvaluationReason</c> attribute.</summary>
     public static class EvaluationReasonValues
     {
         /// <summary>The resolved value was retrieved from cache..</summary>
@@ -57,7 +57,7 @@ public static class FeatureFlagAttributes
     /// <summary>The reason code which shows how a feature flag value was determined..</summary>
     public const string ResultReason = "feature_flag.result.reason";
 
-    /// <summary>Values for <see cref="ResultReason"/>.</summary>
+    /// <summary>Values for the <c>ResultReason</c> attribute.</summary>
     public static class ResultReasonValues
     {
         /// <summary>The resolved value was retrieved from cache..</summary>

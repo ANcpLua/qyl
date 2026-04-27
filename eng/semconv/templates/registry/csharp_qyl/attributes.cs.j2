@@ -29,7 +29,7 @@ public static class {{ ctx.root_namespace | pascal_case }}Attributes
     public const string {{ local_name }} = "{{ attr.name }}";
 {% if attr.type is mapping and attr.type.members is defined %}
 
-    /// <summary>Values for <see cref="{{ local_name }}"/>.</summary>
+    /// <summary>Values for the <c>{{ local_name }}</c> attribute.</summary>
     public static class {{ local_name }}Values
     {
 {% for member in attr.type.members | sort(attribute="value") %}

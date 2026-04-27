@@ -47,7 +47,7 @@ public static class DbAttributes
     /// <remarks>The actual DBMS may differ from the one identified by the client. For example, when using PostgreSQL client libraries to connect to a CockroachDB, the `db.system.name` is set to `postgresql` based on the instrumentation's best knowledge.</remarks>
     public const string SystemName = "db.system.name";
 
-    /// <summary>Values for <see cref="SystemName"/>.</summary>
+    /// <summary>Values for the <c>SystemName</c> attribute.</summary>
     public static class SystemNameValues
     {
         /// <summary>[Actian Ingres](https://www.actian.com/databases/ingres/).</summary>

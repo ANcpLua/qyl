@@ -14,7 +14,7 @@ public static class OpenaiAttributes
     /// <summary>The type of OpenAI API being used..</summary>
     public const string ApiType = "openai.api.type";
 
-    /// <summary>Values for <see cref="ApiType"/>.</summary>
+    /// <summary>Values for the <c>ApiType</c> attribute.</summary>
     public static class ApiTypeValues
     {
         /// <summary>The OpenAI [Chat Completions API](https://developers.openai.com/api/reference/chat-completions/overview)..</summary>
@@ -26,7 +26,7 @@ public static class OpenaiAttributes
     /// <summary>The service tier requested. May be a specific tier, default, or auto..</summary>
     public const string RequestServiceTier = "openai.request.service_tier";
 
-    /// <summary>Values for <see cref="RequestServiceTier"/>.</summary>
+    /// <summary>Values for the <c>RequestServiceTier</c> attribute.</summary>
     public static class RequestServiceTierValues
     {
         /// <summary>The system will utilize scale tier credits until they are exhausted..</summary>

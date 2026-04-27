@@ -14,7 +14,7 @@ public static class GoAttributes
     /// <summary>The type of memory..</summary>
     public const string MemoryType = "go.memory.type";
 
-    /// <summary>Values for <see cref="MemoryType"/>.</summary>
+    /// <summary>Values for the <c>MemoryType</c> attribute.</summary>
     public static class MemoryTypeValues
     {
         /// <summary>Memory used by the Go runtime, excluding other categories of memory usage described in this enumeration..</summary>

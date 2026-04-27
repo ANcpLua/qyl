@@ -17,7 +17,7 @@ public static class VcsAttributes
     /// <summary>The state of the change (pull request/merge request/changelist)..</summary>
     public const string ChangeState = "vcs.change.state";
 
-    /// <summary>Values for <see cref="ChangeState"/>.</summary>
+    /// <summary>Values for the <c>ChangeState</c> attribute.</summary>
     public static class ChangeStateValues
     {
         /// <summary>Closed means the merge request has been closed without merging. This can happen for various reasons, such as the changes being deemed unnecessary, the issue being resolved in another way, or the author deciding to withdraw the request..</summary>
@@ -36,7 +36,7 @@ public static class VcsAttributes
     /// <summary>The type of line change being measured on a branch or change..</summary>
     public const string LineChangeType = "vcs.line_change.type";
 
-    /// <summary>Values for <see cref="LineChangeType"/>.</summary>
+    /// <summary>Values for the <c>LineChangeType</c> attribute.</summary>
     public static class LineChangeTypeValues
     {
         /// <summary>How many lines were added..</summary>
@@ -51,7 +51,7 @@ public static class VcsAttributes
     /// <summary>The name of the version control system provider..</summary>
     public const string ProviderName = "vcs.provider.name";
 
-    /// <summary>Values for <see cref="ProviderName"/>.</summary>
+    /// <summary>Values for the <c>ProviderName</c> attribute.</summary>
     public static class ProviderNameValues
     {
         /// <summary>[Bitbucket](https://bitbucket.org).</summary>
@@ -79,7 +79,7 @@ public static class VcsAttributes
     /// <remarks>`base` refers to the starting point of a change. For example, `main` would be the base reference of type branch if you've created a new reference of type branch from it and created new commits.</remarks>
     public const string RefBaseType = "vcs.ref.base.type";
 
-    /// <summary>Values for <see cref="RefBaseType"/>.</summary>
+    /// <summary>Values for the <c>RefBaseType</c> attribute.</summary>
     public static class RefBaseTypeValues
     {
         /// <summary>[branch](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefbranchabranch).</summary>
@@ -100,7 +100,7 @@ public static class VcsAttributes
     /// <remarks>`head` refers to where you are right now; the current reference at a given time.</remarks>
     public const string RefHeadType = "vcs.ref.head.type";
 
-    /// <summary>Values for <see cref="RefHeadType"/>.</summary>
+    /// <summary>Values for the <c>RefHeadType</c> attribute.</summary>
     public static class RefHeadTypeValues
     {
         /// <summary>[branch](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefbranchabranch).</summary>
@@ -112,7 +112,7 @@ public static class VcsAttributes
     /// <summary>The type of the [reference](https://git-scm.com/docs/gitglossary#def_ref) in the repository..</summary>
     public const string RefType = "vcs.ref.type";
 
-    /// <summary>Values for <see cref="RefType"/>.</summary>
+    /// <summary>Values for the <c>RefType</c> attribute.</summary>
     public static class RefTypeValues
     {
         /// <summary>[branch](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefbranchabranch).</summary>
@@ -145,7 +145,7 @@ public static class VcsAttributes
     [global::System.Obsolete("Replaced by vcs.ref.head.type.", false)]
     public const string RepositoryRefType = "vcs.repository.ref.type";
 
-    /// <summary>Values for <see cref="RepositoryRefType"/>.</summary>
+    /// <summary>Values for the <c>RepositoryRefType</c> attribute.</summary>
     public static class RepositoryRefTypeValues
     {
         /// <summary>[branch](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefbranchabranch).</summary>
@@ -161,7 +161,7 @@ public static class VcsAttributes
     /// <summary>The type of revision comparison..</summary>
     public const string RevisionDeltaDirection = "vcs.revision_delta.direction";
 
-    /// <summary>Values for <see cref="RevisionDeltaDirection"/>.</summary>
+    /// <summary>Values for the <c>RevisionDeltaDirection</c> attribute.</summary>
     public static class RevisionDeltaDirectionValues
     {
         /// <summary>How many revisions the change is ahead of the target ref..</summary>

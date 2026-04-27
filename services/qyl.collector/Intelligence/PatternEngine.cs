@@ -80,27 +80,15 @@ public sealed class PatternEngine(
                ?? strategies.FirstOrDefault(s => s.TriggerPattern.EqualsIgnoreCase(categoryTrigger));
     }
 
-    private static bool EvaluateSignal(Signal required, IReadOnlyList<Signal> observed)
-    {
-        switch (required.Operator)
+    private static bool EvaluateSignal(Signal required, IReadOnlyList<Signal> observed) =>
+        required.Operator switch
         {
-            case SignalOperator.NotExists:
-                return !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
-            case SignalOperator.Exists:
-                return observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute));
-        }
-
-        foreach (var obs in observed)
-        {
-            if (!obs.Attribute.EqualsOrdinal(required.Attribute))
-                continue;
-
-            if (EvaluateOperator(required.Operator, obs.Value, required.Value))
-                return true;
-        }
-
-        return false;
-    }
+            SignalOperator.NotExists => !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute)),
+            SignalOperator.Exists => observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute)),
+            _ => observed
+                .Where(obs => obs.Attribute.EqualsOrdinal(required.Attribute))
+                .Any(obs => EvaluateOperator(required.Operator, obs.Value, required.Value))
+        };
 
     private static bool EvaluateOperator(SignalOperator op, string? observedValue, string? expectedValue) =>
         op switch

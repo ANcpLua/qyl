@@ -13,6 +13,8 @@ using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
+namespace Qyl.Build;
+
 [ParameterPrefix(nameof(IPipeline))]
 interface IPipeline : IHazSourcePaths
 {
@@ -63,22 +65,11 @@ interface IPipeline : IHazSourcePaths
                     ? "aarch64-apple-darwin"
                     : "x86_64-apple-darwin"
                 : "x86_64-unknown-linux-gnu";
-            var weaverBin = (AbsolutePath)(RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver");
+            var weaverBin = RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver";
 
             var templatesDir = SemconvDirectory / "templates" / "registry";
             var upstreamModel = RootDirectory / ".tools" / "semconv-upstream" / "model";
             var qylModel = SemconvDirectory / "model" / "qyl";
-
-            // 4. Generate C# packages
-            static void RunWeaver(AbsolutePath weaver, AbsolutePath registry,
-                AbsolutePath templates, string templateSet, AbsolutePath outputDir)
-            {
-                Directory.CreateDirectory(outputDir);
-                ProcessTasks.StartProcess(weaver,
-                    $"registry generate --registry \"{registry}\" --templates \"{templates}\" {templateSet} \"{outputDir}\"",
-                    logOutput: true).AssertZeroExitCode();
-                Log.Information("GenerateSemconv: {Template} → {Output}", templateSet, outputDir);
-            }
 
             RunWeaver(weaverBin, upstreamModel, templatesDir, "csharp_stable",
                 RootDirectory / "packages" / "Qyl.OpenTelemetry.SemanticConventions");
@@ -89,7 +80,7 @@ interface IPipeline : IHazSourcePaths
 
             // 5. Copy OTel schema to both OTel packages (embedded resource)
             var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
-            if (((string)schemaSource).Length > 0 && File.Exists(schemaSource))
+            if (File.Exists(schemaSource))
             {
                 ReadOnlySpan<string> otelPackages =
                     ["Qyl.OpenTelemetry.SemanticConventions", "Qyl.OpenTelemetry.SemanticConventions.Incubating"];
@@ -99,6 +90,16 @@ interface IPipeline : IHazSourcePaths
                     Directory.CreateDirectory(schemasDir);
                     File.Copy(schemaSource, schemasDir / "1.40.0.yaml", true);
                 }
+            }
+
+            static void RunWeaver(AbsolutePath weaver, AbsolutePath registry,
+                AbsolutePath templates, string templateSet, AbsolutePath outputDir)
+            {
+                Directory.CreateDirectory(outputDir);
+                ProcessTasks.StartProcess(weaver,
+                    $"registry generate --registry \"{registry}\" --templates \"{templates}\" {templateSet} \"{outputDir}\"",
+                    logOutput: true).AssertZeroExitCode();
+                Log.Information("GenerateSemconv: {Template} → {Output}", templateSet, outputDir);
             }
         });
 

@@ -295,7 +295,7 @@ internal sealed class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier ed
         sb.AppendLine($"- total edits: {summary.EditsPerFile.Values.Sum()}");
         foreach (var file in summary.FilesChanged)
         {
-            var count = summary.EditsPerFile.TryGetValue(file, out var c) ? c : 0;
+            var count = summary.EditsPerFile.GetValueOrDefault(file, 0);
             sb.AppendLine($"  - {file}: {count} edit(s)");
         }
 

@@ -33,7 +33,7 @@ public static class AgentHandoffEndpoints
         {
             var items = await store
                 .GetHandoffsForRunAsync(runId, Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
-            return TypedResults.Ok(new { items, total = items.Count });
+            return TypedResults.Ok(new HandoffListResponse(items, items.Count));
         });
 
         // Get pending handoffs (for agents polling)
@@ -45,12 +45,12 @@ public static class AgentHandoffEndpoints
             {
                 var items = await store
                     .GetPendingHandoffsAsync(Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
-                return TypedResults.Ok(new { items, total = items.Count });
+                return TypedResults.Ok(new HandoffListResponse(items, items.Count));
             }
             catch
             {
                 // Keep Loom dashboard resilient when handoff tables are not initialized yet.
-                return TypedResults.Ok(new { items = Array.Empty<AgentHandoffRecord>(), total = 0 });
+                return TypedResults.Ok(new HandoffListResponse(Array.Empty<AgentHandoffRecord>(), 0));
             }
         });
 
@@ -117,3 +117,6 @@ public sealed record SubmitHandoffRequest(string ResultJson);
 
 /// <summary>Request body for POST /api/v1/handoffs/{handoffId}/fail.</summary>
 public sealed record FailHandoffRequest(string ErrorMessage);
+
+/// <summary>List response shape for handoff queries — items + total count.</summary>
+public sealed record HandoffListResponse(IReadOnlyList<AgentHandoffRecord> Items, int Total);

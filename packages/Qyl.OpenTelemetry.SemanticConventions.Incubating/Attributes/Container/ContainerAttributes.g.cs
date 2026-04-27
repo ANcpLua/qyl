@@ -25,7 +25,7 @@ public static class ContainerAttributes
     [global::System.Obsolete("Replaced by cpu.mode.", false)]
     public const string CpuState = "container.cpu.state";
 
-    /// <summary>Values for <see cref="CpuState"/>.</summary>
+    /// <summary>Values for the <c>CpuState</c> attribute.</summary>
     public static class CpuStateValues
     {
         /// <summary>When tasks of the cgroup are in kernel mode (Linux). When all container processes are in kernel mode (Windows)..</summary>

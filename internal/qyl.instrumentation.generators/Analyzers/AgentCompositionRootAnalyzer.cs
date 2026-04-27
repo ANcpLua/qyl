@@ -164,7 +164,8 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
     {
         for (var t = type; t is not null; t = t.BaseType)
         {
-            if (agents.Any(agent => SymbolEqualityComparer.Default.Equals(t, agent)))
+            var current = t;
+            if (agents.Any(agent => SymbolEqualityComparer.Default.Equals(current, agent)))
                 return true;
         }
 

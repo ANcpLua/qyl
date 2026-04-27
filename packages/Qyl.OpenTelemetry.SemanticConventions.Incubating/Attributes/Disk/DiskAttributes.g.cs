@@ -14,7 +14,7 @@ public static class DiskAttributes
     /// <summary>The disk IO operation direction..</summary>
     public const string IoDirection = "disk.io.direction";
 
-    /// <summary>Values for <see cref="IoDirection"/>.</summary>
+    /// <summary>Values for the <c>IoDirection</c> attribute.</summary>
     public static class IoDirectionValues
     {
         /// <summary>.</summary>

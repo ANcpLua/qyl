@@ -126,7 +126,7 @@ public static partial class ErrorFingerprinter
     [GeneratedRegex(@" in [/\\][^\s]+\.(cs|fs|vb)")]
     private static partial Regex FilePathRegex();
 
-    [GeneratedRegex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
+    [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
     private static partial Regex GuidRegex();
 
     [GeneratedRegex(@"(?<![a-zA-Z])\d{5,}(?![a-zA-Z])")]

@@ -21,7 +21,7 @@ public static class GraphqlAttributes
     /// <summary>The type of the operation being executed..</summary>
     public const string OperationType = "graphql.operation.type";
 
-    /// <summary>Values for <see cref="OperationType"/>.</summary>
+    /// <summary>Values for the <c>OperationType</c> attribute.</summary>
     public static class OperationTypeValues
     {
         /// <summary>GraphQL mutation.</summary>

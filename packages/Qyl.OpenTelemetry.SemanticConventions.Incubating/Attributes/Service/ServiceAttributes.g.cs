@@ -15,7 +15,7 @@ public static class ServiceAttributes
     /// <remarks>Application developers are encouraged to set `service.criticality` to express the operational importance of their services. Telemetry consumers MAY use this attribute to optimize telemetry collection or improve user experience.</remarks>
     public const string Criticality = "service.criticality";
 
-    /// <summary>Values for <see cref="Criticality"/>.</summary>
+    /// <summary>Values for the <c>Criticality</c> attribute.</summary>
     public static class CriticalityValues
     {
         /// <summary>Service is business-critical; downtime directly impacts revenue, user experience, or core functionality..</summary>

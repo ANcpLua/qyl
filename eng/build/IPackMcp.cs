@@ -11,6 +11,8 @@ using Nuke.Common.IO;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Components;
 
+namespace Qyl.Build;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // IPackMcp - Pack & push Qyl.Mcp dotnet tool
 // ════════════════════════════════════════════════════════════════════════════════
@@ -50,5 +52,5 @@ interface IPackMcp : IHazSourcePaths, IHazConfiguration
             .EnableSkipDuplicate()));
 
     [Parameter("NuGet API key for push", Name = "NUGET_API_KEY")]
-    string NuGetApiKey => TryGetValue(() => NuGetApiKey);
+    string? NuGetApiKey => TryGetValue(() => NuGetApiKey);
 }

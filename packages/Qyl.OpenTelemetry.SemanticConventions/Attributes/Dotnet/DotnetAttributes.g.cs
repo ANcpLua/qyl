@@ -14,7 +14,7 @@ public static class DotnetAttributes
     /// <summary>Name of the garbage collector managed heap generation..</summary>
     public const string GcHeapGeneration = "dotnet.gc.heap.generation";
 
-    /// <summary>Values for <see cref="GcHeapGeneration"/>.</summary>
+    /// <summary>Values for the <c>GcHeapGeneration</c> attribute.</summary>
     public static class GcHeapGenerationValues
     {
         /// <summary>Generation 0.</summary>

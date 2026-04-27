@@ -12,17 +12,22 @@ internal static class QylMcpStdioHost
 
         var jsonOptions = builder.Services.AddQylMcpCommonServices(builder.Configuration, skills, scope);
 
-        IServiceProvider? serviceProvider = null;
+        var serviceProviderRef = new ServiceProviderRef();
         QylMcpServerRegistration.Configure(
             builder.Services,
             skills,
             jsonOptions,
             McpTransportMode.Stdio,
             null,
-            () => serviceProvider);
+            () => serviceProviderRef.Value);
 
         var host = builder.Build();
-        serviceProvider = host.Services;
+        serviceProviderRef.Value = host.Services;
         await host.RunAsync().ConfigureAwait(false);
+    }
+
+    private sealed class ServiceProviderRef
+    {
+        public IServiceProvider? Value { get; set; }
     }
 }

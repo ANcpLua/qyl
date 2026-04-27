@@ -39,7 +39,7 @@ public static class Pattern04_HitlViaExternalCall
         {
             switch (evt)
             {
-                case RequestInfoEvent ri when ri.Request.TryGetDataAs<SolutionPlan>(out var plan) && plan is not null:
+                case RequestInfoEvent ri when ri.Request.TryGetDataAs<SolutionPlan>(out var plan):
                     Console.WriteLine($"   ? review    plan for {plan.SignalId}: \"{plan.Approach}\"");
                     Console.WriteLine("     (non-interactive demo → auto-approve)");
                     await run.SendResponseAsync(

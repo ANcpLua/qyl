@@ -88,7 +88,6 @@ internal sealed class QylConsoleUi(
             ResourceLifecycle.Starting => "[yellow]◐[/]",
             ResourceLifecycle.Stopping => "[yellow]◑[/]",
             ResourceLifecycle.Failed => "[red]✖[/]",
-            ResourceLifecycle.Stopped => "[grey]○[/]",
             _ => "[grey]○[/]"
         };
     }

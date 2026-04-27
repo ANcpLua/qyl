@@ -27,7 +27,7 @@ public static class NetworkAttributes
     /// <remarks>Connection states are defined as part of the [rfc9293](https://datatracker.ietf.org/doc/html/rfc9293#section-3.3.2)</remarks>
     public const string ConnectionState = "network.connection.state";
 
-    /// <summary>Values for <see cref="ConnectionState"/>.</summary>
+    /// <summary>Values for the <c>ConnectionState</c> attribute.</summary>
     public static class ConnectionStateValues
     {
         /// <summary>.</summary>
@@ -57,7 +57,7 @@ public static class NetworkAttributes
     /// <summary>This describes more details regarding the connection.type. It may be the type of cell technology connection, but it could be used for describing details about a wifi connection..</summary>
     public const string ConnectionSubtype = "network.connection.subtype";
 
-    /// <summary>Values for <see cref="ConnectionSubtype"/>.</summary>
+    /// <summary>Values for the <c>ConnectionSubtype</c> attribute.</summary>
     public static class ConnectionSubtypeValues
     {
         /// <summary>CDMA.</summary>
@@ -107,7 +107,7 @@ public static class NetworkAttributes
     /// <summary>The internet connection type..</summary>
     public const string ConnectionType = "network.connection.type";
 
-    /// <summary>Values for <see cref="ConnectionType"/>.</summary>
+    /// <summary>Values for the <c>ConnectionType</c> attribute.</summary>
     public static class ConnectionTypeValues
     {
         /// <summary>.</summary>
@@ -128,7 +128,7 @@ public static class NetworkAttributes
     /// <summary>The network IO operation direction..</summary>
     public const string IoDirection = "network.io.direction";
 
-    /// <summary>Values for <see cref="IoDirection"/>.</summary>
+    /// <summary>Values for the <c>IoDirection</c> attribute.</summary>
     public static class IoDirectionValues
     {
         /// <summary>.</summary>

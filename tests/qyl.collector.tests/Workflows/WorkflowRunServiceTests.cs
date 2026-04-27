@@ -69,7 +69,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
     }
 
     private async Task SeedWorkflowAsync(DateTime createdAt, CancellationToken ct) =>
-        await _store.ExecuteWriteAsync(async (connection, ct) =>
+        await _store.ExecuteWriteAsync(async (connection, token) =>
         {
             await using (var run = connection.CreateCommand())
             {
@@ -86,7 +86,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
                                        NULL, $1)
                                   """;
                 run.Parameters.Add(new DuckDBParameter { Value = createdAt });
-                await run.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await run.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             await using (var node = connection.CreateCommand())
@@ -104,7 +104,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
                                         NULL, NULL, NULL, $1)
                                    """;
                 node.Parameters.Add(new DuckDBParameter { Value = createdAt });
-                await node.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await node.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             await using (var firstEvent = connection.CreateCommand())
@@ -118,7 +118,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
                                               '{}', 1, 'test', 'trace-1', $1)
                                          """;
                 firstEvent.Parameters.Add(new DuckDBParameter { Value = createdAt });
-                await firstEvent.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await firstEvent.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             await using (var secondEvent = connection.CreateCommand())
@@ -132,7 +132,7 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
                                                '{}', 2, 'test', 'trace-1', $1)
                                           """;
                 secondEvent.Parameters.Add(new DuckDBParameter { Value = createdAt.AddSeconds(1) });
-                await secondEvent.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await secondEvent.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
             await using var checkpoint = connection.CreateCommand();
@@ -145,6 +145,6 @@ public sealed class WorkflowRunServiceTests : IAsyncDisposable
                                           '{"phase":"approval"}', 2, $1)
                                      """;
             checkpoint.Parameters.Add(new DuckDBParameter { Value = createdAt.AddSeconds(2) });
-            await checkpoint.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            await checkpoint.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct);
 }

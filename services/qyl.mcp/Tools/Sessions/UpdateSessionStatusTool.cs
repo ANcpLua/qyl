@@ -28,9 +28,9 @@ public sealed class UpdateSessionStatusTool(HttpClient client)
         string status,
         CancellationToken ct = default)
     {
-        var body = new { status };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status") { Content = JsonContent.Create(body) };
+            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status");
+        request.Content = JsonContent.Create(new { status });
         using var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 
         if (response.StatusCode is HttpStatusCode.NotFound)

@@ -15,7 +15,7 @@ public static class DbAttributes
     [global::System.Obsolete("Replaced by cassandra.consistency.level.", false)]
     public const string CassandraConsistencyLevel = "db.cassandra.consistency_level";
 
-    /// <summary>Values for <see cref="CassandraConsistencyLevel"/>.</summary>
+    /// <summary>Values for the <c>CassandraConsistencyLevel</c> attribute.</summary>
     public static class CassandraConsistencyLevelValues
     {
         /// <summary>.</summary>
@@ -72,7 +72,7 @@ public static class DbAttributes
     /// <summary>The state of a connection in the pool.</summary>
     public const string ClientConnectionState = "db.client.connection.state";
 
-    /// <summary>Values for <see cref="ClientConnectionState"/>.</summary>
+    /// <summary>Values for the <c>ClientConnectionState</c> attribute.</summary>
     public static class ClientConnectionStateValues
     {
         /// <summary>.</summary>
@@ -89,7 +89,7 @@ public static class DbAttributes
     [global::System.Obsolete("Replaced by db.client.connection.state.", false)]
     public const string ClientConnectionsState = "db.client.connections.state";
 
-    /// <summary>Values for <see cref="ClientConnectionsState"/>.</summary>
+    /// <summary>Values for the <c>ClientConnectionsState</c> attribute.</summary>
     public static class ClientConnectionsStateValues
     {
         /// <summary>.</summary>
@@ -110,7 +110,7 @@ public static class DbAttributes
     [global::System.Obsolete("Replaced by azure.cosmosdb.connection.mode.", false)]
     public const string CosmosdbConnectionMode = "db.cosmosdb.connection_mode";
 
-    /// <summary>Values for <see cref="CosmosdbConnectionMode"/>.</summary>
+    /// <summary>Values for the <c>CosmosdbConnectionMode</c> attribute.</summary>
     public static class CosmosdbConnectionModeValues
     {
         /// <summary>Direct connection..</summary>
@@ -123,7 +123,7 @@ public static class DbAttributes
     [global::System.Obsolete("Replaced by azure.cosmosdb.consistency.level.", false)]
     public const string CosmosdbConsistencyLevel = "db.cosmosdb.consistency_level";
 
-    /// <summary>Values for <see cref="CosmosdbConsistencyLevel"/>.</summary>
+    /// <summary>Values for the <c>CosmosdbConsistencyLevel</c> attribute.</summary>
     public static class CosmosdbConsistencyLevelValues
     {
         /// <summary>.</summary>
@@ -146,7 +146,7 @@ public static class DbAttributes
     [global::System.Obsolete("Removed, no replacement.", false)]
     public const string CosmosdbOperationType = "db.cosmosdb.operation_type";
 
-    /// <summary>Values for <see cref="CosmosdbOperationType"/>.</summary>
+    /// <summary>Values for the <c>CosmosdbOperationType</c> attribute.</summary>
     public static class CosmosdbOperationTypeValues
     {
         /// <summary>.</summary>
@@ -264,7 +264,7 @@ public static class DbAttributes
     [global::System.Obsolete("Replaced by db.system.name.", false)]
     public const string System = "db.system";
 
-    /// <summary>Values for <see cref="System"/>.</summary>
+    /// <summary>Values for the <c>System</c> attribute.</summary>
     public static class SystemValues
     {
         /// <summary>Adabas (Adaptable Database System).</summary>

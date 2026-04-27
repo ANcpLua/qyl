@@ -17,7 +17,7 @@ public static class AzureAttributes
     /// <summary>Cosmos client connection mode..</summary>
     public const string CosmosdbConnectionMode = "azure.cosmosdb.connection.mode";
 
-    /// <summary>Values for <see cref="CosmosdbConnectionMode"/>.</summary>
+    /// <summary>Values for the <c>CosmosdbConnectionMode</c> attribute.</summary>
     public static class CosmosdbConnectionModeValues
     {
         /// <summary>Direct connection..</summary>
@@ -29,7 +29,7 @@ public static class AzureAttributes
     /// <summary>Account or request [consistency level](https://learn.microsoft.com/azure/cosmos-db/consistency-levels)..</summary>
     public const string CosmosdbConsistencyLevel = "azure.cosmosdb.consistency.level";
 
-    /// <summary>Values for <see cref="CosmosdbConsistencyLevel"/>.</summary>
+    /// <summary>Values for the <c>CosmosdbConsistencyLevel</c> attribute.</summary>
     public static class CosmosdbConsistencyLevelValues
     {
         /// <summary>Bounded Staleness.</summary>

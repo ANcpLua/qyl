@@ -13,8 +13,7 @@ public static class CollectorFeatureExtensions
         // Only parameterised wiring (HttpClient, dashboard generator) stays here.
         services.AddHttpClient("GitHub", client =>
         {
-            client.BaseAddress = new Uri(config.GetValue("GitHub:BaseAddress", "https://api.github.com/") ??
-                                         "https://api.github.com/");
+            client.BaseAddress = new Uri(config.GetValue("GitHub:BaseAddress", "https://api.github.com/"));
             client.DefaultRequestHeaders.Add("User-Agent", "qyl/1.0");
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
         }).AddStandardResilienceHandler();

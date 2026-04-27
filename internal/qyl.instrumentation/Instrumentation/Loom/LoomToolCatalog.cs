@@ -89,7 +89,7 @@ public static class LoomToolDescriptorExtensions
         IServiceProvider? services = null)
     {
         ArgumentNullException.ThrowIfNull(descriptors);
-        return descriptors.Select(descriptor => (AITool)descriptor.ToAIFunction(services)).ToArray();
+        return descriptors.Select(AITool (descriptor) => descriptor.ToAIFunction(services)).ToArray();
     }
 
     public static IReadOnlyList<AITool> ToToolCatalog(
@@ -99,7 +99,7 @@ public static class LoomToolDescriptorExtensions
     {
         ArgumentNullException.ThrowIfNull(descriptors);
         ArgumentNullException.ThrowIfNull(options);
-        return descriptors.Select(descriptor => (AITool)descriptor.ToAIFunction(options, services)).ToArray();
+        return descriptors.Select(AITool (descriptor) => descriptor.ToAIFunction(options, services)).ToArray();
     }
 
     public static AIFunction ToFactoryAIFunction(
@@ -319,8 +319,6 @@ internal sealed class LoomToolAIFunction : AIFunction
             LoomToolParameterBindingKind.AiArgument => ReadArgument(arguments, binding.Parameter),
             LoomToolParameterBindingKind.ServiceProvider => services,
             LoomToolParameterBindingKind.CancellationToken => cancellationToken,
-            LoomToolParameterBindingKind.Runtime =>
-                ResolveRuntimeValue(binding, arguments, services, cancellationToken),
             _ => ResolveRuntimeValue(binding, arguments, services, cancellationToken)
         };
     }

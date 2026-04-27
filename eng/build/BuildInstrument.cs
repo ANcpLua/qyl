@@ -10,6 +10,8 @@ using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Serilog;
 
+namespace Qyl.Build;
+
 [ParameterPrefix(nameof(IInstrument))]
 interface IInstrument : INukeBuild
 {
@@ -28,11 +30,11 @@ interface IInstrument : INukeBuild
     [Parameter("Service name for OTel resource")]
     string? ServiceName => TryGetValue(() => ServiceName);
 
-    Target JavaAgent => _ => _
+    Target JavaAgent => d => d
         .Description("Download OTel Java agent and generate qyl instrumentation config")
         .Executes(() =>
         {
-            var targetDir = (AbsolutePath)InstrumentPath;
+            AbsolutePath targetDir = InstrumentPath;
             var agentPath = targetDir / JavaAgentFileName;
 
             // Detect project type
@@ -120,7 +122,7 @@ interface IInstrument : INukeBuild
             Log.Information("  Docker Compose — add to service:");
             Log.Information("    env_file: [qyl-otel.env]");
             Log.Information("    volumes:");
-            Log.Information("      - ./{Agent}:/{Agent}", JavaAgentFileName);
+            Log.Information("      - ./{HostPath}:/{ContainerPath}", JavaAgentFileName, JavaAgentFileName);
             Log.Information("");
         });
 }

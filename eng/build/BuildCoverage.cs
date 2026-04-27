@@ -21,6 +21,8 @@ using Nuke.Common.Tools.ReportGenerator;
 using Nuke.Components;
 using Serilog;
 
+namespace Qyl.Build;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // ICoverage - Code Coverage
 // ════════════════════════════════════════════════════════════════════════════════
@@ -189,7 +191,7 @@ interface ICoverage : IQylTest
 // ════════════════════════════════════════════════════════════════════════════════
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
-public sealed record ExclusionRule(
+sealed record ExclusionRule(
     string Name,
     IReadOnlyList<string>? PathContains = null,
     IReadOnlyList<string>? FileSuffixes = null,
@@ -211,7 +213,7 @@ public sealed record ExclusionRule(
 }
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
-public static class WellKnownExclusionPatterns
+static class WellKnownExclusionPatterns
 {
     public static readonly ExclusionRule SourceGeneratedFiles = new(
         "SourceGenerated",
@@ -259,7 +261,7 @@ public static class WellKnownExclusionPatterns
 }
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
-public static class StateMachinePatterns
+static class StateMachinePatterns
 {
     const string StateMachineMarker = "+<";
     const string StateMachineSuffix = ">d__";
@@ -296,7 +298,7 @@ public static class StateMachinePatterns
 // ════════════════════════════════════════════════════════════════════════════════
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
-public static class CoverageSummaryConverter
+static class CoverageSummaryConverter
 {
     static readonly JsonSerializerOptions JsonOptions = new()
     {

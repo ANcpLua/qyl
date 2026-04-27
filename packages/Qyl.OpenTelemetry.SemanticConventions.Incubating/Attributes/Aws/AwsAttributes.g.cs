@@ -92,7 +92,7 @@ public static class AwsAttributes
     /// <summary>The [launch type](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html) for an ECS task..</summary>
     public const string EcsLaunchtype = "aws.ecs.launchtype";
 
-    /// <summary>Values for <see cref="EcsLaunchtype"/>.</summary>
+    /// <summary>Values for the <c>EcsLaunchtype</c> attribute.</summary>
     public static class EcsLaunchtypeValues
     {
         /// <summary>Amazon EC2.</summary>

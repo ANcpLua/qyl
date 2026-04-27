@@ -20,7 +20,7 @@ public static class OtelAttributes
     /// <summary>Name of the code, either "OK" or "ERROR". MUST NOT be set if the status code is UNSET..</summary>
     public const string StatusCode = "otel.status_code";
 
-    /// <summary>Values for <see cref="StatusCode"/>.</summary>
+    /// <summary>Values for the <c>StatusCode</c> attribute.</summary>
     public static class StatusCodeValues
     {
         /// <summary>The operation contains an error..</summary>

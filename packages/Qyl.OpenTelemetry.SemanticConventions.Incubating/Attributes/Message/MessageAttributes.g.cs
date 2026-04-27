@@ -23,7 +23,7 @@ public static class MessageAttributes
     [global::System.Obsolete("Removed, no replacement.", false)]
     public const string Type = "message.type";
 
-    /// <summary>Values for <see cref="Type"/>.</summary>
+    /// <summary>Values for the <c>Type</c> attribute.</summary>
     public static class TypeValues
     {
         /// <summary>.</summary>

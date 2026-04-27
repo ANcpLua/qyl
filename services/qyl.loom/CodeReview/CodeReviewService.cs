@@ -105,11 +105,9 @@ public sealed partial class CodeReviewService(
             using StringContent content = new(json, Encoding.UTF8, "application/json");
 
             using HttpRequestMessage req = new(HttpMethod.Post,
-                $"repos/{repoFullName}/pulls/{prNumber}/comments")
-            {
-                Content = content,
-                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", token) }
-            };
+                $"repos/{repoFullName}/pulls/{prNumber}/comments");
+            req.Content = content;
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             using var response = await client.SendAsync(req, ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)

@@ -24,17 +24,17 @@ internal static class QylMcpHttpHost
         builder.Services.AddHealthChecks()
             .AddCheck("self", static () => HealthCheckResult.Healthy(), [QylEndpoints.LiveTag]);
 
-        IServiceProvider? serviceProvider = null;
+        var serviceProviderRef = new ServiceProviderRef();
         QylMcpServerRegistration.Configure(
             builder.Services,
             skills,
             jsonOptions,
             McpTransportMode.Http,
             hostOptions,
-            () => serviceProvider);
+            () => serviceProviderRef.Value);
 
         var app = builder.Build();
-        serviceProvider = app.Services;
+        serviceProviderRef.Value = app.Services;
 
         if (hostOptions.RequiresAuthentication)
         {
@@ -59,5 +59,10 @@ internal static class QylMcpHttpHost
             endpoint.RequireAuthorization();
 
         await app.RunAsync().ConfigureAwait(false);
+    }
+
+    private sealed class ServiceProviderRef
+    {
+        public IServiceProvider? Value { get; set; }
     }
 }

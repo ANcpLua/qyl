@@ -14,7 +14,7 @@ public static class TelemetryAttributes
     /// <summary>The language of the telemetry SDK..</summary>
     public const string SdkLanguage = "telemetry.sdk.language";
 
-    /// <summary>Values for <see cref="SdkLanguage"/>.</summary>
+    /// <summary>Values for the <c>SdkLanguage</c> attribute.</summary>
     public static class SdkLanguageValues
     {
         /// <summary>.</summary>

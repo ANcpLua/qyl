@@ -25,6 +25,8 @@ using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
+namespace Qyl.Build;
+
 /// <summary>
 ///     Validates generated code compiles and behaves correctly.
 ///     Uses ProjectBuilder for isolated MSBuild execution with binlog introspection.

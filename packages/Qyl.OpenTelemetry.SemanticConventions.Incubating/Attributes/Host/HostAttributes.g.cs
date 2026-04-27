@@ -14,7 +14,7 @@ public static class HostAttributes
     /// <summary>The CPU architecture the host system is running on..</summary>
     public const string Arch = "host.arch";
 
-    /// <summary>Values for <see cref="Arch"/>.</summary>
+    /// <summary>Values for the <c>Arch</c> attribute.</summary>
     public static class ArchValues
     {
         /// <summary>AMD64.</summary>

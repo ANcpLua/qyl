@@ -25,12 +25,14 @@ using Nuke.Common.Utilities;
 using Nuke.Components;
 using Serilog;
 
-public static class MtpExtensions
+namespace Qyl.Build;
+
+static class MtpExtensions
 {
     public static MtpArgumentsBuilder Mtp() => new();
 }
 
-public sealed class MtpArgumentsBuilder
+sealed class MtpArgumentsBuilder
 {
     readonly List<string> _args = [];
 
