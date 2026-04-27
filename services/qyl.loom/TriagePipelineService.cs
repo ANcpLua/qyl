@@ -1,7 +1,5 @@
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Qyl.Contracts.Observability;
-using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix;
 
 namespace Qyl.Loom;
@@ -17,7 +15,7 @@ public sealed partial class TriagePipelineService(
     AutofixOrchestrator orchestrator,
     IConfiguration configuration,
     ILogger<TriagePipelineService> logger,
-    IChatClient? llm = null)
+    IQylLoomAgentsBuilder agents)
     : BackgroundService
 {
     private readonly double _autoThreshold = configuration.GetValue("QYL_TRIAGE_AUTO_THRESHOLD", 0.8);
@@ -59,7 +57,7 @@ public sealed partial class TriagePipelineService(
         var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null) return null;
 
-        var result = llm is not null
+        var result = agents.IsConfigured
             ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
             : ScoreWithHeuristic(issue);
 
@@ -89,7 +87,7 @@ public sealed partial class TriagePipelineService(
             var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null) continue;
 
-            var result = llm is not null
+            var result = agents.IsConfigured
                 ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
                 : ScoreWithHeuristic(issue);
 
@@ -118,18 +116,13 @@ public sealed partial class TriagePipelineService(
                            Status: {issue.Status}
                            """;
 
-        var agent = llm!.AsAIAgent(new ChatClientAgentOptions
-        {
-            Name = "TriageScoringAgent",
-            Description = "Scores the fixability of a qyl error issue and proposes an automation level.",
-            ChatOptions = new ChatOptions { Instructions = TriagePrompts.FixabilityScoring }
-        }).AsBuilder().UseQylAgentTelemetry().Build();
+        var agent = agents.BuildTriageScoringAgent();
 
         try
         {
             var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
 
-            var text = response.Text ?? "";
+            var text = response.Text;
             var parsed = TryParseResponse(text);
 
             if (parsed is not null)

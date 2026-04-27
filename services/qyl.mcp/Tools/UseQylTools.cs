@@ -1,11 +1,8 @@
 using System.ComponentModel;
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using qyl.mcp.Agents;
 using qyl.mcp.Formatting;
 
@@ -14,16 +11,15 @@ namespace qyl.mcp.Tools;
 /// <summary>
 ///     Meta-tool: embedded <see cref="ChatClientAgent" /> answers natural-language observability questions by
 ///     autonomously calling every other qyl MCP tool under an <see cref="InvestigationLineage" /> guard.
-///     <c>UseFunctionInvocation</c> is wired at the chat-client layer (not the agent layer) so qyl's non-default
-///     <c>MaximumIterationsPerRequest</c> + <c>AllowConcurrentInvocation=false</c> take effect —
-///     <see cref="ChatClientAgent" />
-///     only inserts a default invoker when none is present.
+///     <c>UseFunctionInvocation</c> is wired at the chat-client layer (not the agent layer) by the
+///     <see cref="IQylMcpAgentsBuilder" /> so qyl's non-default <c>MaximumIterationsPerRequest</c> +
+///     <c>AllowConcurrentInvocation=false</c> take effect — <see cref="ChatClientAgent" /> only inserts a default
+///     invoker when none is present.
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
-internal sealed class UseQylTools(IServiceProvider services, IConfiguration config)
+internal sealed class UseQylTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
 {
-    private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 
     [QylCapability("agentic_investigation")]
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
@@ -53,7 +49,7 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
         string? context = null,
         CancellationToken ct = default)
     {
-        if (_agentClient is null)
+        if (!agents.IsConfigured)
         {
             return "use_qyl requires an LLM provider. " +
                    "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
@@ -69,30 +65,10 @@ internal sealed class UseQylTools(IServiceProvider services, IConfiguration conf
 
         var guardedTools = QylToolManifest
             .CreateTools(services, static type => type != typeof(UseQylTools))
-            .Select(tool => (AITool)investigation.Wrap(tool));
+            .Select(AITool (tool) => investigation.Wrap(tool))
+            .ToArray();
 
-        var agent = new ChatClientBuilder(_agentClient)
-            .UseFunctionInvocation(configure: invoker =>
-            {
-                invoker.MaximumIterationsPerRequest = 10;
-                invoker.AllowConcurrentInvocation = false;
-            })
-            .Build()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "UseQylAgent",
-                Description =
-                    "Orchestrates qyl MCP tools under InvestigationLineage guard to answer observability questions.",
-                ChatOptions = new ChatOptions
-                {
-                    Instructions = UseQylSystemPrompt.Prompt,
-                    Tools = [.. guardedTools],
-                    ToolMode = ChatToolMode.Auto
-                }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
+        var agent = agents.BuildUseQylAgent(guardedTools);
 
         var userMessage = context is not null
             ? $"{question}\n\nContext: {context}"

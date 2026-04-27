@@ -5,6 +5,7 @@ using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix;
+using Qyl.Loom.Clients;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
 using Qyl.Loom.Workflows;
@@ -40,6 +41,12 @@ builder.Services.AddHttpClient("GitHub", client =>
     client.DefaultRequestHeaders.Add("User-Agent", "qyl-loom");
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
 }).AddStandardResilienceHandler();
+
+// Apex three-builder pattern — chat-client → agents builder. Every AIAgent
+// constructed in qyl.loom flows through these singletons so the
+// .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized.
+builder.Services.AddSingleton<IQylLoomChatClientBuilder, QylLoomChatClientBuilder>();
+builder.Services.AddSingleton<IQylLoomAgentsBuilder, QylLoomAgentsBuilder>();
 
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
 // RegressionDetectionService auto-register via [QylHostedService] through the
@@ -165,6 +172,7 @@ app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", asyn
 app.MapMcp("/mcp/loom");
 
 app.Run();
+return;
 
 // ── SSE helper ──────────────────────────────────────────────────────────────
 
