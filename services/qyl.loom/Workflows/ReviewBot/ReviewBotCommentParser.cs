@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
@@ -74,7 +75,7 @@ public static partial class ReviewBotCommentParser
         IEnumerable<ReviewBotRawComment> comments,
         IReadOnlyCollection<string>? additionalBotLogins = null)
     {
-        ArgumentNullException.ThrowIfNull(comments);
+        Guard.NotNull(comments);
 
         var builder = ImmutableArray.CreateBuilder<ReviewBotComment>();
         foreach (var raw in comments)
@@ -139,7 +140,7 @@ public static partial class ReviewBotCommentParser
     /// </summary>
     public static string BuildSummary(IEnumerable<ReviewBotComment> comments)
     {
-        ArgumentNullException.ThrowIfNull(comments);
+        Guard.NotNull(comments);
 
         var ordered = comments
             .OrderByDescending(static c => (int)c.Severity)

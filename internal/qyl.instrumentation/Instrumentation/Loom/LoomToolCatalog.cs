@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.AI;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static partial class LoomGeneratedRegistry
@@ -39,7 +40,7 @@ public static class LoomToolDescriptorExtensions
         this LoomToolDescriptor descriptor,
         LoomToolAIFunctionOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
+        Guard.NotNull(descriptor);
         options ??= LoomToolAIFunctionOptions.Default;
 
         var parameterBindings = descriptor.Parameters
@@ -52,7 +53,7 @@ public static class LoomToolDescriptorExtensions
         this LoomToolDescriptor descriptor,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
+        Guard.NotNull(descriptor);
         return new LoomToolAIFunction(descriptor, LoomToolAIFunctionOptions.Default, services);
     }
 
@@ -61,8 +62,8 @@ public static class LoomToolDescriptorExtensions
         LoomToolAIFunctionOptions options,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        ArgumentNullException.ThrowIfNull(options);
+        Guard.NotNull(descriptor);
+        Guard.NotNull(options);
         return new LoomToolAIFunction(descriptor, options, services);
     }
 
@@ -70,7 +71,7 @@ public static class LoomToolDescriptorExtensions
         this IEnumerable<LoomToolDescriptor> descriptors,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptors);
+        Guard.NotNull(descriptors);
         return descriptors.Select(descriptor => descriptor.ToAIFunction(services)).ToArray();
     }
 
@@ -79,8 +80,8 @@ public static class LoomToolDescriptorExtensions
         LoomToolAIFunctionOptions options,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptors);
-        ArgumentNullException.ThrowIfNull(options);
+        Guard.NotNull(descriptors);
+        Guard.NotNull(options);
         return descriptors.Select(descriptor => descriptor.ToAIFunction(options, services)).ToArray();
     }
 
@@ -88,7 +89,7 @@ public static class LoomToolDescriptorExtensions
         this IEnumerable<LoomToolDescriptor> descriptors,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptors);
+        Guard.NotNull(descriptors);
         return descriptors.Select(descriptor => (AITool)descriptor.ToAIFunction(services)).ToArray();
     }
 
@@ -97,8 +98,8 @@ public static class LoomToolDescriptorExtensions
         LoomToolAIFunctionOptions options,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptors);
-        ArgumentNullException.ThrowIfNull(options);
+        Guard.NotNull(descriptors);
+        Guard.NotNull(options);
         return descriptors.Select(descriptor => (AITool)descriptor.ToAIFunction(options, services)).ToArray();
     }
 
@@ -107,8 +108,8 @@ public static class LoomToolDescriptorExtensions
         LoomRuntimeMetadataDescriptor metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(descriptor);
+        Guard.NotNull(metadata);
         return LoomToolFactoryBridge.CreateAIFunction(descriptor, metadata, services);
     }
 
@@ -116,7 +117,7 @@ public static class LoomToolDescriptorExtensions
         this IEnumerable<(LoomToolDescriptor Descriptor, LoomRuntimeMetadataDescriptor Metadata)> pairs,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(pairs);
+        Guard.NotNull(pairs);
         return pairs.Select(p => LoomToolFactoryBridge.CreateAIFunction(p.Descriptor, p.Metadata, services)).ToArray();
     }
 
@@ -234,8 +235,8 @@ internal sealed class LoomToolAIFunction : AIFunction
         LoomToolAIFunctionOptions options,
         IServiceProvider? services)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        ArgumentNullException.ThrowIfNull(options);
+        Guard.NotNull(descriptor);
+        Guard.NotNull(options);
         _descriptor = descriptor;
         _options = options;
         _services = services;
@@ -282,7 +283,7 @@ internal sealed class LoomToolAIFunction : AIFunction
         AIFunctionArguments arguments,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(arguments);
+        Guard.NotNull(arguments);
 
         var services = arguments.Services ?? _services ?? NullServiceProvider.Instance;
         var parameters = new object?[_bindingSurface.Parameters.Count];

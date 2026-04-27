@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
@@ -62,7 +63,7 @@ public sealed partial class LoomWorkflowTools
             "Optional JSON array of extra bot logins to accept in addition to the qyl defaults (e.g. [\"loom[bot]\"]). Exact, case-insensitive match.")]
         string? additionalBotLoginsJson = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(commentsJson);
+        Guard.NotNullOrEmpty(commentsJson);
 
         var raw = JsonSerializer.Deserialize(
             commentsJson,

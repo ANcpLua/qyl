@@ -5,6 +5,7 @@ using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 
+using ANcpLua.Roslyn.Utilities;
 namespace qyl.mcp;
 
 internal static class McpCollectorHttpClientExtensions
@@ -24,7 +25,7 @@ internal static class McpCollectorHttpClientExtensions
 
         var effectiveTimeout = timeout ?? DefaultTimeout;
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(collectorUrl);
+        Guard.NotNullOrWhiteSpace(collectorUrl);
 
         if (!Uri.TryCreate(collectorUrl, UriKind.Absolute, out var baseAddress))
         {
