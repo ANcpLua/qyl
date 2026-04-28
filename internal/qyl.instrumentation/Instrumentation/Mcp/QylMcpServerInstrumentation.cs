@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+using JsonrpcAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Jsonrpc.JsonrpcAttributes;
+using RpcAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Rpc.RpcAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.Mcp;
 
@@ -95,13 +97,13 @@ public static class QylMcpServerInstrumentation
                 {
                     if (method is not null)
                     {
-                        activity.SetTag(McpAttr.RpcSystem, "jsonrpc");
-                        activity.SetTag(McpAttr.RpcMethod, method);
-                        activity.SetTag(McpAttr.JsonrpcProtocolVersion, "2.0");
+                        activity.SetTag(RpcAttributes.SystemName, "jsonrpc");
+                        activity.SetTag(RpcAttributes.Method, method);
+                        activity.SetTag(JsonrpcAttributes.ProtocolVersion, "2.0");
                     }
 
                     if (context.JsonRpcMessage is JsonRpcRequest req)
-                        activity.SetTag(McpAttr.JsonrpcRequestId, req.Id.ToString());
+                        activity.SetTag(JsonrpcAttributes.RequestId, req.Id.ToString());
 
                     SetClientInfo(activity, context);
                 }
@@ -124,18 +126,18 @@ public static class QylMcpServerInstrumentation
 
                 if (activity is not null)
                 {
-                    activity.SetTag(McpAttr.RpcSystem, "jsonrpc");
+                    activity.SetTag(RpcAttributes.SystemName, "jsonrpc");
                     switch (context.JsonRpcMessage)
                     {
                         case JsonRpcResponse response:
-                            activity.SetTag(McpAttr.JsonrpcRequestId, response.Id.ToString());
+                            activity.SetTag(JsonrpcAttributes.RequestId, response.Id.ToString());
                             break;
                         case JsonRpcRequest request:
-                            activity.SetTag(McpAttr.RpcMethod, request.Method);
-                            activity.SetTag(McpAttr.JsonrpcRequestId, request.Id.ToString());
+                            activity.SetTag(RpcAttributes.Method, request.Method);
+                            activity.SetTag(JsonrpcAttributes.RequestId, request.Id.ToString());
                             break;
                         case JsonRpcNotification notification:
-                            activity.SetTag(McpAttr.RpcMethod, notification.Method);
+                            activity.SetTag(RpcAttributes.Method, notification.Method);
                             break;
                     }
                 }
@@ -159,7 +161,7 @@ public static class QylMcpServerInstrumentation
                     activity.SetTag(GenAiAttributes.ToolName, toolName);
                     activity.SetTag(GenAiAttributes.ToolType, "extension");
                     activity.SetTag(McpAttr.McpToolName, toolName);
-                    activity.SetTag(McpAttr.RpcMethod, "tools/call");
+                    activity.SetTag(RpcAttributes.Method, "tools/call");
                     SetClientInfo(activity, request);
 
                     if (options.RecordInputs && request.Params?.Arguments is { } args)
@@ -204,7 +206,7 @@ public static class QylMcpServerInstrumentation
 
                 using var activity = activitySource.StartActivity($"mcp.resource.read {uri}");
                 activity?.SetTag(McpAttr.McpResourceUri, uri);
-                activity?.SetTag(McpAttr.RpcMethod, "resources/read");
+                activity?.SetTag(RpcAttributes.Method, "resources/read");
                 SetClientInfo(activity, request);
 
                 try
@@ -236,7 +238,7 @@ public static class QylMcpServerInstrumentation
 
                 using var activity = activitySource.StartActivity($"mcp.prompt.get {promptName}");
                 activity?.SetTag(McpAttr.McpPromptName, promptName);
-                activity?.SetTag(McpAttr.RpcMethod, "prompts/get");
+                activity?.SetTag(RpcAttributes.Method, "prompts/get");
                 SetClientInfo(activity, request);
 
                 if (activity is not null && options.RecordInputs && request.Params?.Arguments is { } args)
@@ -309,17 +311,15 @@ public static class QylMcpServerInstrumentation
         value.Length <= maxLength ? value : string.Concat(value.AsSpan(0, maxLength), "...");
 }
 
-/// MCP/JSON-RPC span attribute keys. These are not in the OpenTelemetry SemConv
-/// repo yet — the working group is finalising them at <c>mcp.*</c> + <c>rpc.*</c>.
-/// Centralising them here keeps the field list one diff away from a future
-/// generator pass that emits them from <c>eng/semconv/model/qyl/mcp.yaml</c>.
+/// MCP-specific span attribute keys. The OTel working group has not finalised an
+/// <c>mcp.*</c> namespace yet, so these are temporary inline constants until
+/// <c>eng/semconv/model/qyl/mcp.yaml</c> is added and the weaver pass emits a
+/// <c>QylAttr.Mcp</c> generator-output. The standard <c>rpc.*</c> + <c>jsonrpc.*</c>
+/// keys are NOT duplicated here — they come from
+/// <c>Qyl.OpenTelemetry.SemanticConventions.Incubating</c>'s
+/// <c>RpcAttributes</c> + <c>JsonrpcAttributes</c>.
 internal static class McpAttr
 {
-    public const string RpcSystem = "rpc.system.name";
-    public const string RpcMethod = "rpc.method";
-    public const string JsonrpcProtocolVersion = "jsonrpc.protocol.version";
-    public const string JsonrpcRequestId = "jsonrpc.request.id";
-
     public const string McpClientName = "mcp.client.name";
     public const string McpClientVersion = "mcp.client.version";
 
