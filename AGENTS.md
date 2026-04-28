@@ -1,13 +1,11 @@
 # qyl — Agent Instructions
 
-You are an AI coding agent (Claude Code, Codex, aider, Gemini CLI, …) operating on the qyl repository **locally**.
-Cloud GitHub Copilot has its own self-contained instructions at `.github/copilot-instructions.md` — do not edit that
-file as a side-effect of refactoring this one. `CLAUDE.md` is a symlink to this file (Claude Code convention).
+You are an AI coding agent (Claude Code, Codex, aider, Gemini CLI, …) operating on the qyl repository.
+`CLAUDE.md` is a symlink to this file (Claude Code convention).
 
 ## Hard rules — violations fail CI
 
-These mirror `.editorconfig`, `.github/copilot-instructions.md`, and the ruleset emitted by
-`eng/MSBuild/Shared.Claude.*`.
+These mirror `.editorconfig` + the analyzer ruleset shipped by `ANcpLua.NET.Sdk`.
 
 - **Sealed by default:** every non-public class is `sealed` unless a subclass exists in the same assembly.
 - **No suppression:** no `#pragma warning disable`, no `[SuppressMessage]`, no `<NoWarn>` additions, no `null!`. Fix
@@ -27,6 +25,36 @@ These mirror `.editorconfig`, `.github/copilot-instructions.md`, and the ruleset
 
 Before claiming a change is complete: `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` must report 0 errors. UI work
 must additionally be verified in a browser via Playwright with a screenshot.
+
+## Nuke workflow
+
+Top-level orchestration goes through Nuke (`./eng/build.sh <target>` or, with the global tool, `nuke <target>`).
+Sub-targets (Verify*, FrontendInstall, TypeSpec*, etc.) are `.Unlisted()` so `nuke --help` shows only the
+user-facing surface. The full list is still available via `nuke --plan` or by spelling the target name explicitly.
+
+| Workflow                          | Target            | What it does                                                                |
+|-----------------------------------|-------------------|-----------------------------------------------------------------------------|
+| Daily inner loop                  | `nuke Dev`        | `compose up -d` + `Compile` + URL banner                                    |
+| Build only                        | `nuke Compile`    | Restore + build the solution (`qyl.slnx`)                                   |
+| Test                              | `nuke Test`       | xUnit v3 + MTP across `tests/`                                              |
+| Coverage                          | `nuke Coverage`   | Test + Cobertura report                                                     |
+| Regenerate codegen                | `nuke Generate`   | TypeSpec emitters + Weaver (semconv)                                        |
+| Verify generated artefacts        | `nuke Verify`     | Compiles `*.g.cs`, validates DuckDB DDL, OTel snake_case, frontend types    |
+| Reset & rebuild                   | `nuke Clean`      | Wipe `**/bin`, `**/obj`, `Artifacts/`                                       |
+| CI gate (backend)                 | `nuke Ci`         | Clean → Coverage                                                            |
+| CI gate (full)                    | `nuke Full`       | Ci + Generate + Verify + Frontend{Build,Test,Lint}                          |
+| Cut a release                     | `nuke Release`    | Versionize bump + tag + CHANGELOG                                           |
+| Compose stack — start             | `nuke DockerUp`   | `docker compose -f eng/compose.yaml up -d --remove-orphans`                 |
+| Compose stack — stop              | `nuke DockerDown` | `docker compose down --remove-orphans`                                      |
+| Compose stack — logs              | `nuke DockerLogs` | `compose logs -f`; pass `--service <name>` to filter                        |
+| Build all images                  | `nuke DockerImageBuild` | parallel build of collector / loom / mcp / dashboard                  |
+| Push images                       | `nuke DockerImagePush`  | requires `--registry <prefix>`                                        |
+| Frontend dev server               | `nuke FrontendDev`      | Vite dev at <http://localhost:5173> (run after `nuke Dev`)            |
+| Frontend production build         | `nuke FrontendBuild`    | tsc + vite build                                                      |
+
+The Compose file lives at `eng/compose.yaml` (not the repo root). All Docker/Compose targets read it via
+`IHazSourcePaths.ComposeFile`. The four services `qyl-collector`, `qyl-loom`, `qyl-mcp`, `qyl-dashboard` are all
+orchestrated together — production-parity with the Railway deployment.
 
 ## DuckDB store — read/write separation is non-negotiable
 
@@ -92,6 +120,11 @@ In `services/qyl.mcp/`:
 
 - Never register a tool manually. Declare with `[QylSkill]` + `[QylCapability]`; `internal/qyl.mcp.generators/`
   emits the registration.
+- Tool classes are `partial`; every `[McpServerTool]`-decorated method is `partial` (placed directly before the
+  return type, after `public/internal` and any `static`/`async`). The upstream
+  `ModelContextProtocol.Analyzers.XmlToDescriptionGenerator` (1.2.0+) emits `[Description]` attributes onto a sibling
+  partial counterpart from XML `<summary>` / `<param>` docs. Do **not** write manual `[Description("…")]` attributes
+  on tool methods or parameters — XML docs are the single source. `MCP002` flags any tool method that violates this.
 - `TaskSupport`:
     - `Required` — async pipelines with side effects (`qyl.approve_fix_run`, `qyl.generate_fix`).
     - `Optional` — agent-invoking meta-tools and long-form searches (`qyl.use_qyl`, `qyl.root_cause_analysis`,
@@ -108,7 +141,7 @@ Authoritative references: `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.
 
 Local invariants:
 
-- Apex three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory
+- qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory
   per bounded agent in `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs`. Returned `AIAgent` is
   telemetry-wrapped at the construction site.
 - Decorate at composition root with the helpers in
@@ -116,7 +149,7 @@ Local invariants:
   layers must be wrapped — wrap one, lose half the OTel attributes.
 - Never instantiate `ActivitySource` directly in agent code. `[AgentTraced]` is removed; do not reintroduce.
 
-### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.1.0 and live qyl call-sites
+### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.3.0 and live qyl call-sites
 
 Reach for these before hand-rolling. Every row has a concrete qyl call-site — grep it before writing a new variant.
 

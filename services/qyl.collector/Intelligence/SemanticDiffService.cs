@@ -1,5 +1,6 @@
 using Qyl.Collector.Analytics;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Intelligence;
 
 /// <summary>
@@ -105,8 +106,8 @@ public static class SemanticDiffService
         Guard.NotNull(comparison);
         Guard.NotNull(context);
 
-        ArgumentOutOfRangeException.ThrowIfNegative(totalBaseline);
-        ArgumentOutOfRangeException.ThrowIfNegative(totalComparison);
+        Guard.NotNegative(totalBaseline);
+        Guard.NotNegative(totalComparison);
         if (limit <= 0) return [];
 
         options ??= SemanticDiffOptions.Default;

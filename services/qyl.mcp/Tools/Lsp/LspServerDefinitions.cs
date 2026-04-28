@@ -1,5 +1,7 @@
 // Copyright (c) 2025-2026 ancplua
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace qyl.mcp.Tools.Lsp;
 
 /// <summary>

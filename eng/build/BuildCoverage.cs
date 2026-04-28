@@ -12,6 +12,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
@@ -39,7 +41,7 @@ interface ICoverage : IQylTest
         .Description("Run tests with code coverage")
         .DependsOn<ICompile>(static x => x.Compile)
         .Produces(CoverageDirectory / "**")
-        .Executes(() =>
+        .Executes(async () =>
         {
             EnsureTestcontainersConfigured();
             CoverageDirectory.CreateOrCleanDirectory();
@@ -69,9 +71,9 @@ interface ICoverage : IQylTest
             }
 
             GenerateCoverageReports();
-            GenerateAiCoverageSummary();
-            GenerateDetailedCoverageSummaries();
-            WriteGitHubTestSummary();
+            await GenerateAiCoverageSummaryAsync();
+            await GenerateDetailedCoverageSummariesAsync();
+            await WriteGitHubTestSummaryAsync();
         });
 
     private void GenerateCoverageReports()
@@ -105,7 +107,7 @@ interface ICoverage : IQylTest
         Log.Information("Coverage reports generated: {Directory}", CoverageDirectory);
     }
 
-    private void GenerateAiCoverageSummary()
+    private async Task GenerateAiCoverageSummaryAsync()
     {
         var summaryFile = CoverageDirectory / "Summary.txt";
         var jsonOutput = CoverageDirectory / "coverage.summary.json";
@@ -118,9 +120,9 @@ interface ICoverage : IQylTest
 
         try
         {
-            var lines = File.ReadAllLines(summaryFile);
+            var lines = await File.ReadAllLinesAsync(summaryFile);
             var summary = ParseCoverageSummary(lines);
-            File.WriteAllText(jsonOutput, JsonSerializer.Serialize(summary, JsonOptions));
+            await File.WriteAllTextAsync(jsonOutput, JsonSerializer.Serialize(summary, JsonOptions));
             Log.Information("AI coverage summary: {Path}", jsonOutput);
         }
         catch (Exception ex)
@@ -169,7 +171,7 @@ interface ICoverage : IQylTest
         return int.TryParse(line[(colonIdx + 1)..].Trim(), out var result) ? result : 0;
     }
 
-    private void GenerateDetailedCoverageSummaries()
+    private async Task GenerateDetailedCoverageSummariesAsync()
     {
         var mergedCobertura = CoverageDirectory / "Cobertura.xml";
         if (!mergedCobertura.FileExists())
@@ -182,7 +184,7 @@ interface ICoverage : IQylTest
             static p => p.Name,
             p => CoverageDirectory / $"{p.Name}.coverage-issues.xml");
 
-        CoverageSummaryConverter.ConvertPerProject(mergedCobertura, RootDirectory, projectOutputs);
+        await CoverageSummaryConverter.ConvertPerProjectAsync(mergedCobertura, RootDirectory, projectOutputs);
     }
 }
 
@@ -307,7 +309,7 @@ static class CoverageSummaryConverter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public static void ConvertPerProject(
+    public static async Task ConvertPerProjectAsync(
         AbsolutePath coberturaPath,
         AbsolutePath sourceRoot,
         IDictionary<string, AbsolutePath> projectOutputs)
@@ -318,7 +320,11 @@ static class CoverageSummaryConverter
             return;
         }
 
-        var cobertura = XDocument.Load(coberturaPath);
+        XDocument cobertura;
+        await using (var stream = File.OpenRead(coberturaPath))
+        {
+            cobertura = await XDocument.LoadAsync(stream, LoadOptions.None, default);
+        }
         if (cobertura.Root is not { } coverageElement)
         {
             Log.Warning("Invalid Cobertura file: no root element");
@@ -337,7 +343,7 @@ static class CoverageSummaryConverter
                 .Where(kvp => kvp.Key.Contains(projectName, StringComparison.OrdinalIgnoreCase))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
 
-            WriteProjectSummary(projectName, projectFiles, outputPath, generatedAtUtc, relativeCoberturaPath);
+            await WriteProjectSummaryAsync(projectName, projectFiles, outputPath, generatedAtUtc, relativeCoberturaPath);
         }
     }
 
@@ -398,7 +404,7 @@ static class CoverageSummaryConverter
         }
     }
 
-    static void WriteProjectSummary(
+    static async Task WriteProjectSummaryAsync(
         string projectName,
         Dictionary<string, CoverageFile> fileIssues,
         AbsolutePath outputPath,
@@ -445,12 +451,15 @@ static class CoverageSummaryConverter
 
         EnsureDirectoryExists(outputPath);
 
-        new XDocument(new XDeclaration("1.0", "utf-8", null), xmlSummary).Save(outputPath);
+        var xDoc = new XDocument(new XDeclaration("1.0", "utf-8", null), xmlSummary);
+        await using (var stream = File.Create(outputPath))
+        await using (var writer = XmlWriter.Create(stream, new XmlWriterSettings { Async = true, Indent = true }))
+            await xDoc.SaveAsync(writer, default);
 
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(fileIssues, JsonOptions));
+        await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(fileIssues, JsonOptions));
 
         Log.Information("Coverage summary: {XmlPath} + {JsonPath} ({FileCount} files with issues)",
             outputPath, jsonPath, filesWithIssues);

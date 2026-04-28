@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
@@ -11,7 +10,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
-public sealed class CreateApiKeyTool(HttpClient client)
+public sealed partial class CreateApiKeyTool(HttpClient client)
 {
     /// <summary>
     ///     Creates a new API key and returns its name, prefix, and full key value.
@@ -25,9 +24,7 @@ public sealed class CreateApiKeyTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = false)]
-    [Description("Create a new API key for programmatic access.")]
-    public async Task<string> CreateApiKeyAsync(
-        [Description("Name for the API key (e.g. 'ci-pipeline', 'dev-local')")]
+    public async partial Task<string> CreateApiKeyAsync(
         string name,
         CancellationToken ct = default)
     {

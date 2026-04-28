@@ -3,10 +3,9 @@
 namespace Qyl.Loom.Patterns.Clients;
 
 /// <summary>
-///     Provider-agnostic <see cref="IChatClient" /> factory. Mirrors Apex's
-///     <c>IExtractorChatClientBuilder</c> — the composition root calls through this
-///     seam so any concrete provider (OpenAI, Azure, Ollama, or — in this sample —
-///     a fake) can be swapped without touching downstream agent code.
+///     Provider-agnostic <see cref="IChatClient" /> factory. The composition root calls
+///     through this seam so any concrete provider (OpenAI, Azure, Ollama, or — in this
+///     sample — a fake) can be swapped without touching downstream agent code.
 /// </summary>
 public interface IQylLoomPatternsChatClientBuilder : IDisposable
 {

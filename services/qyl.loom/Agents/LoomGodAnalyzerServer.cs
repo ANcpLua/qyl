@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Qyl.Loom.Autofix;
 using Qyl.Loom.CodeReview;
@@ -13,7 +12,7 @@ namespace Qyl.Loom.Agents;
 ///     official MCP C# SDK; this type only carries attributes and business logic.
 /// </summary>
 [McpServerToolType]
-public sealed class LoomGodAnalyzerServer(
+public sealed partial class LoomGodAnalyzerServer(
     CollectorClient collector,
     AutofixOrchestrator autofixOrchestrator,
     ExplorationInsightService insightService,
@@ -21,19 +20,15 @@ public sealed class LoomGodAnalyzerServer(
 {
     [McpServerTool(Name = "loom_get_issue_insight", Title = "Loom Issue Insight",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description("Generate pre-investigation Loom insight for an issue id.")]
-    public async Task<ExplorationInsight?> GetIssueInsightAsync(
-        [Description("Issue identifier to analyze.")]
+    public async partial Task<ExplorationInsight?> GetIssueInsightAsync(
         string issueId,
         CancellationToken ct = default) =>
         await insightService.GenerateInsightAsync(issueId, ct).ConfigureAwait(false);
 
     [McpServerTool(Name = "loom_start_fix_run", Title = "Start Autofix Run",
         ReadOnly = false, Idempotent = false, Destructive = false, OpenWorld = false)]
-    [Description("Create an autofix run for an issue using the selected policy.")]
-    public async Task<FixRunRecord?> StartFixRunAsync(
-        [Description("Issue identifier.")] string issueId,
-        [Description("Fix policy: auto_apply, dry_run, or require_review. Defaults to require_review.")]
+    public async partial Task<FixRunRecord?> StartFixRunAsync(
+        string issueId,
         string? policy = null,
         CancellationToken ct = default)
     {
@@ -48,25 +43,17 @@ public sealed class LoomGodAnalyzerServer(
 
     [McpServerTool(Name = "loom_generate_pr_review", Title = "Generate Pull Request Review",
         ReadOnly = false, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description(
-        "Produces new PR review comments via qyl's LLM reviewer (distinct from `loom_parse_review_bot_comments` which consumes existing bot comments).")]
-    public async Task<CodeReviewResult> ReviewPullRequestAsync(
-        [Description("GitHub repo in `owner/repo` format.")]
+    public async partial Task<CodeReviewResult> ReviewPullRequestAsync(
         string repoFullName,
-        [Description("Pull request number.")] int prNumber,
+        int prNumber,
         CancellationToken ct = default) =>
         await codeReviewService.ReviewPullRequestAsync(repoFullName, prNumber, ct).ConfigureAwait(false);
 
     [McpServerTool(Name = "loom_autofix_update", Title = "Append Instruction to Fix Run",
         ReadOnly = false, Idempotent = false, Destructive = false, OpenWorld = false)]
-    [Description(
-        "Append caller guidance to an existing fix run's instruction column. Append-semantics: new text is concatenated to the existing instruction with a `---` separator. The in-flight agent reads the instruction once at run-start, so the appended text takes effect on the next invocation of the same issue's autofix pipeline — use this to iterate: launch a run, observe the result, append corrective guidance, relaunch. Returns the updated snapshot of the fix run.")]
-    public async Task<LoomAutofixUpdateResult> UpdateFixRunAsync(
-        [Description("Issue identifier the fix run belongs to.")]
+    public async partial Task<LoomAutofixUpdateResult> UpdateFixRunAsync(
         string issueId,
-        [Description("Fix run identifier returned by `loom_start_fix_run`.")]
         string runId,
-        [Description("New instruction text to append. Cannot be empty.")]
         string instruction,
         CancellationToken ct = default)
     {
@@ -90,11 +77,8 @@ public sealed class LoomGodAnalyzerServer(
 
     [McpServerTool(Name = "loom_autofix_setup_check", Title = "Autofix Pre-flight Check",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
-    [Description(
-        "Pre-flight check for an autofix run: verifies the issue exists and the fix policy parses. Returns partial status for prerequisites that need external state (repo connection, integration scopes, code mapping, quota) — fetch MCP prompt `qyl.loom.autofix_setup_check` for the full agent directive to resolve those.")]
-    public async Task<LoomAutofixSetupCheck> AutofixSetupCheckAsync(
-        [Description("Issue identifier.")] string issueId,
-        [Description("Fix policy: auto_apply, dry_run, or require_review. Defaults to require_review.")]
+    public async partial Task<LoomAutofixSetupCheck> AutofixSetupCheckAsync(
+        string issueId,
         string? policy = null,
         CancellationToken ct = default)
     {

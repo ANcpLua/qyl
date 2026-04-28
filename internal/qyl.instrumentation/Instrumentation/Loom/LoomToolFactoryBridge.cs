@@ -5,6 +5,7 @@ using ANcpLua.Agents.Instrumentation;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 /// <summary>
@@ -20,7 +21,7 @@ public static class LoomToolFactoryBridge
         LoomRuntimeMetadataDescriptor metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(metadata);
         return CreateCore(metadata, BuildDescriptionFromMetadata(metadata), services);
     }
 
@@ -29,8 +30,8 @@ public static class LoomToolFactoryBridge
         LoomRuntimeMetadataDescriptor metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(descriptor);
+        Guard.NotNull(metadata);
         return CreateCore(metadata, BuildDescriptionFromDescriptor(descriptor), services);
     }
 
@@ -38,7 +39,7 @@ public static class LoomToolFactoryBridge
         IEnumerable<LoomRuntimeMetadataDescriptor> metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(metadata);
         return metadata.Select(m => CreateAIFunction(m, services)).ToArray();
     }
 
@@ -46,7 +47,7 @@ public static class LoomToolFactoryBridge
         IEnumerable<(LoomToolDescriptor Descriptor, LoomRuntimeMetadataDescriptor Metadata)> pairs,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(pairs);
+        Guard.NotNull(pairs);
         return pairs.Select(p => CreateAIFunction(p.Descriptor, p.Metadata, services)).ToArray();
     }
 
@@ -54,7 +55,7 @@ public static class LoomToolFactoryBridge
         LoomRuntimeMetadataDescriptor metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(metadata);
         return new TracedAIFunction(CreateAIFunction(metadata, services), ActivitySources.GenAiSource);
     }
 
@@ -63,8 +64,8 @@ public static class LoomToolFactoryBridge
         LoomRuntimeMetadataDescriptor metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(descriptor);
+        Guard.NotNull(metadata);
         return new TracedAIFunction(CreateAIFunction(descriptor, metadata, services), ActivitySources.GenAiSource);
     }
 
@@ -72,7 +73,7 @@ public static class LoomToolFactoryBridge
         IEnumerable<LoomRuntimeMetadataDescriptor> metadata,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(metadata);
+        Guard.NotNull(metadata);
         return metadata.Select(m => CreateInstrumentedAIFunction(m, services)).ToArray();
     }
 
@@ -80,7 +81,7 @@ public static class LoomToolFactoryBridge
         IEnumerable<(LoomToolDescriptor Descriptor, LoomRuntimeMetadataDescriptor Metadata)> pairs,
         IServiceProvider? services = null)
     {
-        ArgumentNullException.ThrowIfNull(pairs);
+        Guard.NotNull(pairs);
         return pairs.Select(p => CreateInstrumentedAIFunction(p.Descriptor, p.Metadata, services)).ToArray();
     }
 

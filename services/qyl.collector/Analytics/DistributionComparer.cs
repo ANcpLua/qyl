@@ -3,7 +3,6 @@ namespace Qyl.Collector.Analytics;
 /// <summary>
 ///     Compares multi-dimensional keyed distributions using KL divergence,
 ///     Shannon entropy, and Reciprocal Rank Fusion scoring.
-///     Ported from Sentry Seer workflows/compare.py.
 /// </summary>
 public static class DistributionComparer
 {

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Sessions;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class SearchSessionsTool(HttpClient client)
+public sealed partial class SearchSessionsTool(HttpClient client)
 {
     [McpServerTool(
         Name = "search_sessions",
@@ -23,14 +22,9 @@ public sealed class SearchSessionsTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "Search debugging sessions by query. Returns paginated list of sessions with status, service, and span count.")]
-    public async Task<string> SearchSessions(
-        [Description("Search query (e.g. 'failed payments', 'service:api-gateway')")]
+    public async partial Task<string> SearchSessions(
         string query,
-        [Description("Pagination cursor from previous results")]
         string? cursor = null,
-        [Description("Max results per page (default 25, max 100)")]
         int limit = 25,
         CancellationToken ct = default)
     {

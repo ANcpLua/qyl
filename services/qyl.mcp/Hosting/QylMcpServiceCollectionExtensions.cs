@@ -59,7 +59,7 @@ internal static partial class QylMcpServiceCollectionExtensions
         services.AddSingleton(scope);
         services.AddSingleton<CapabilityTools>();
 
-        // Apex three-builder pattern — chat-client → agents builder. Every AIAgent
+        // qyl three-builder pattern — chat-client → agents builder. Every AIAgent
         // constructed in qyl.mcp tools flows through these singletons so the
         // .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized.
         services.AddSingleton<IQylMcpChatClientBuilder, QylMcpChatClientBuilder>();

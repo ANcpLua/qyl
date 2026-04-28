@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -14,14 +13,11 @@ namespace qyl.mcp.Tools.Traces;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetProfileTool(HttpClient client)
+public sealed partial class GetProfileTool(HttpClient client)
 {
     [McpServerTool(Name = "get_profile", Title = "Get Span Profile",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description(
-        "Get CPU/memory profile data for a span. Returns thread info, hot functions, and stack frame summary.")]
-    public async Task<string> GetProfileAsync(
-        [Description("The span ID to fetch profile data for")]
+    public async partial Task<string> GetProfileAsync(
         string spanId,
         CancellationToken ct = default)
     {

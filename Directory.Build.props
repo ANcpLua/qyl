@@ -26,8 +26,6 @@
 
   <!-- SDK Configuration -->
   <PropertyGroup>
-    <!-- We maintain our own CLAUDE.md files with @import inheritance -->
-    <GenerateClaudeMd>false</GenerateClaudeMd>
     <!-- Guard.NotNull() etc. from ANcpLua.Roslyn.Utilities -->
     <InjectSharedThrow>false</InjectSharedThrow>
   </PropertyGroup>
@@ -68,8 +66,5 @@
 
   <!-- Import qyl-specific Props (OTel config, etc.) -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
-
-  <!-- CLAUDE.md generation system (v2 - Claude Code compatible) -->
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.Claude.props"/>
 
 </Project>

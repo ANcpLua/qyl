@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -11,17 +10,13 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class TriageTools(HttpClient http)
+internal sealed partial class TriageTools(HttpClient http)
 {
     [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.get_triage", Title = "Get Triage Result",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Get the latest AI triage assessment for an error issue.
-                 Returns fixability score, automation level, AI summary, and root cause hypothesis.
-                 """)]
-    public async Task<string> GetTriageAsync(
-        [Description("The error issue ID")] string issueId,
+    public async partial Task<string> GetTriageAsync(
+        string issueId,
         CancellationToken ct = default)
     {
         var uri = new Uri($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", UriKind.Relative);
@@ -36,14 +31,8 @@ internal sealed class TriageTools(HttpClient http)
 
     [McpServerTool(Name = "qyl.list_triage", Title = "List Triage Results",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 List recent triage assessments, optionally filtered by automation level.
-                 Automation levels: auto, assisted, manual, skip.
-                 """)]
-    public async Task<string> ListTriageAsync(
-        [Description("Filter by automation level: auto, assisted, manual, skip")]
+    public async partial Task<string> ListTriageAsync(
         string? automationLevel = null,
-        [Description("Max results (default 20)")]
         int limit = 20,
         CancellationToken ct = default)
     {
@@ -61,13 +50,7 @@ internal sealed class TriageTools(HttpClient http)
     [McpServerTool(Name = "qyl.trigger_triage", Title = "Trigger Triage",
         ReadOnly = false, Destructive = false, Idempotent = false,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Trigger an AI triage assessment for a specific error issue.
-                 Scores fixability, generates a summary, and may auto-route to the autofix pipeline.
-                 If no LLM is configured, uses heuristic scoring as fallback.
-                 """)]
-    public async Task<string> TriggerTriageAsync(
-        [Description("The error issue ID to triage")]
+    public async partial Task<string> TriggerTriageAsync(
         string issueId,
         CancellationToken ct = default)
     {

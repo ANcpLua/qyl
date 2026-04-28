@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Metrics;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ListMetricsTool(HttpClient client)
+public sealed partial class ListMetricsTool(HttpClient client)
 {
     [McpServerTool(
         Name = "list_metrics",
@@ -22,10 +21,7 @@ public sealed class ListMetricsTool(HttpClient client)
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
-    public async Task<string> ListMetrics(
-        [Description("Filter to a specific project slug")]
+    public async partial Task<string> ListMetrics(
         string? projectSlug = null,
         CancellationToken ct = default)
     {

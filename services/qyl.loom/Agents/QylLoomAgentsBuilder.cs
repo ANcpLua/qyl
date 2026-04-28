@@ -1,96 +1,125 @@
 // Copyright (c) 2025-2026 ancplua
 
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
-using Qyl.Loom.Autofix;
+using Qyl.Loom.Autofix.Workflow;
 using Qyl.Loom.Clients;
 using Qyl.Loom.Exploration;
 
 namespace Qyl.Loom.Agents;
 
-/// <summary>
-///     Default <see cref="IQylLoomAgentsBuilder" />. Every returned agent is wrapped
-///     with <c>.AsBuilder().UseQylAgentTelemetry().Build()</c> — the
-///     <c>QYL0135</c> analyzer enforces this on every construction site.
-/// </summary>
-internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients) : IQylLoomAgentsBuilder
+internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, AutofixContextTools contextTools)
+    : IQylLoomAgentsBuilder
 {
     private readonly IChatClient? _llm = clients.BuildChatClient();
 
-    /// <inheritdoc />
     public bool IsConfigured => _llm is not null;
 
-    /// <inheritdoc />
     public AIAgent BuildTriageScoringAgent() =>
-        Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "TriageScoringAgent",
-                Description = "Scores the fixability of a qyl error issue and proposes an automation level.",
-                ChatOptions = new ChatOptions { Instructions = TriagePrompts.FixabilityScoring }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
+        Compose("TriageScoringAgent",
+            "Scores the fixability of a qyl error issue and proposes an automation level.",
+            TriagePrompts.FixabilityScoring);
 
-    /// <inheritdoc />
     public AIAgent BuildCodeReviewAgent() =>
-        Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "CodeReviewAgent",
-                Description = "Reviews a pull request diff and emits structured JSON comments."
-                // No Instructions: callers deliver the system-role preamble + output contract
-                // as a single user-turn prompt (CodeReviewPrompt.Build(...) MCP resource).
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
+        Compose("CodeReviewAgent",
+            "Reviews a pull request diff and emits structured JSON comments.",
+            instructions: null);
 
-    /// <inheritdoc />
-    public AIAgent BuildAutofixAgent() =>
-        Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "LoomAutofix",
-                Description = "Loom headless autofix runner — five-stage contract, schema-enforced output.",
-                ChatOptions = new ChatOptions
-                {
-                    Instructions = LoomAutofixPrompts.SystemPrompt,
-                    ResponseFormat = ChatResponseFormat.ForJsonSchema<AutofixReport>()
-                }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build();
-
-    /// <inheritdoc />
     public AIAgent BuildExplorationInsightAgent() =>
-        Llm()
-            .AsAIAgent(new ChatClientAgentOptions
+        Compose("ExplorationInsightAgent",
+            "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
+            ExplorationPrompts.InsightGeneration);
+
+    public AIAgent BuildExplorationStrategistAgent() =>
+        Compose("ExplorationStrategistAgent",
+            "Converts an exploration root-cause analysis into a minimal implementation plan.",
+            ExplorationPrompts.SolutionPlanning);
+
+    public AIAgent BuildFixabilityStageAgent() =>
+        Compose("LoomAutofix.Fixability",
+            "Autofix Stage 1 — fixability gate.",
+            AutofixStagePrompts.Fixability);
+
+    public AIAgent BuildContextStageAgent(AutofixWorkflowConfig config)
+    {
+        if (!config.ToolUsingContext)
+        {
+            return Compose("LoomAutofix.Context",
+                "Autofix Stage 2 — context gathering (static).",
+                AutofixStagePrompts.Context);
+        }
+
+        var tools = AutofixContextToolFactories
+            .Create(contextTools)
+            .Cast<AITool>()
+            .ToArray();
+
+        var options = new ChatClientAgentOptions
+        {
+            Name = "LoomAutofix.Context",
+            Description = "Autofix Stage 2 — tool-using context gathering.",
+            ChatOptions = new ChatOptions
             {
-                Name = "ExplorationInsightAgent",
-                Description =
-                    "Produces a pre-investigation insight summary (what happened / initial guess / in the trace).",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.InsightGeneration }
+                Instructions = AutofixStagePrompts.Context,
+                Tools = tools,
+                ToolMode = ChatToolMode.Auto
+            }
+        };
+
+        var pipeline = new ChatClientBuilder(Llm())
+            .UseFunctionInvocation(configure: invoker =>
+            {
+                invoker.MaximumIterationsPerRequest = config.ContextToolBudget;
+                invoker.AllowConcurrentInvocation = false;
             })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
             .Build();
 
-    /// <inheritdoc />
-    public AIAgent BuildExplorationStrategistAgent() =>
-        Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "ExplorationStrategistAgent",
-                Description = "Converts an exploration root-cause analysis into a minimal implementation plan.",
-                ChatOptions = new ChatOptions { Instructions = ExplorationPrompts.SolutionPlanning }
-            })
+        return pipeline
+            .AsAIAgent(options)
             .AsBuilder()
             .UseQylAgentTelemetry()
             .Build();
+    }
+
+    public AIAgent BuildHypothesisBranchAgent(string perspective) =>
+        Compose($"LoomAutofix.Hypothesis.{perspective}",
+            $"Autofix Stage 3 — single-perspective hypothesis branch ({perspective}).",
+            AutofixStagePrompts.Hypothesis);
+
+    public AIAgent BuildHypothesisJudgeAgent() =>
+        Compose("LoomAutofix.HypothesisJudge",
+            "Autofix Stage 3 — fan-in judge: picks the winning hypothesis candidate.",
+            AutofixStagePrompts.HypothesisJudge);
+
+    public AIAgent BuildSolutionStageAgent() =>
+        Compose("LoomAutofix.Solution",
+            "Autofix Stage 4 — minimal patch + regression test.",
+            AutofixStagePrompts.Solution);
+
+    public AIAgent BuildConfidenceStageAgent() =>
+        Compose("LoomAutofix.Confidence",
+            "Autofix Stage 5 — four-gate confidence audit.",
+            AutofixStagePrompts.Confidence);
+
+    public AIAgent BuildReportStageAgent() =>
+        Compose("LoomAutofix.Report",
+            "Autofix Stage 6 — final 200-word handoff.",
+            instructions: null);
+
+    private AIAgent Compose(string name, string description, string? instructions)
+    {
+        var options = new ChatClientAgentOptions
+        {
+            Name = name,
+            Description = description,
+            ChatOptions = instructions is null ? null : new ChatOptions { Instructions = instructions }
+        };
+
+        return Llm()
+            .AsAIAgent(options)
+            .AsBuilder()
+            .UseQylAgentTelemetry()
+            .Build();
+    }
 
     private IChatClient Llm() =>
         _llm ?? throw new InvalidOperationException(

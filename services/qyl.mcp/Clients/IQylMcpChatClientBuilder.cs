@@ -7,10 +7,9 @@ namespace qyl.mcp.Clients;
 
 /// <summary>
 ///     Provider-agnostic <see cref="IChatClient" /> factory for qyl.mcp tool agents.
-///     Mirrors Apex's <c>IExtractorChatClientBuilder</c> seam — tools resolve their
-///     chat client through this builder so the underlying provider (qyl agent LLM
-///     factory + <c>WithQylTelemetry</c>) can be swapped or stubbed without touching
-///     individual tool code.
+///     Tools resolve their chat client through this builder so the underlying provider
+///     (qyl agent LLM factory + <c>WithQylTelemetry</c>) can be swapped or stubbed
+///     without touching individual tool code.
 /// </summary>
 internal interface IQylMcpChatClientBuilder
 {

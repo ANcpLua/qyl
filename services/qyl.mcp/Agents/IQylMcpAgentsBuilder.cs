@@ -6,19 +6,18 @@ using Microsoft.Extensions.AI;
 namespace qyl.mcp.Agents;
 
 /// <summary>
-///     One factory method per bounded qyl.mcp tool agent. Mirrors Apex's
-///     <c>IExtractorAgentsBuilder</c> — each call returns a fully composed
-///     <see cref="AIAgent" /> wrapped with <c>UseQylAgentTelemetry()</c>, so the
-///     <c>QYL0135</c> analyzer is satisfied at the construction site.
+///     One factory method per bounded qyl.mcp tool agent. Each call returns a fully
+///     composed <see cref="AIAgent" /> wrapped with <c>UseQylAgentTelemetry()</c>, so
+///     the <c>QYL0135</c> analyzer is satisfied at the construction site.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         <see cref="IsConfigured" /> reflects whether the upstream
-///         <see cref="Qyl.Loom.Clients.IQylLoomChatClientBuilder" />-equivalent
-///         (<see cref="qyl.mcp.Clients.IQylMcpChatClientBuilder" />) resolved a
-///         non-null <see cref="IChatClient" />. Each <c>Build*Agent</c> method
-///         throws <see cref="InvalidOperationException" /> when
-///         <see cref="IsConfigured" /> is <see langword="false" />.
+///         <see cref="qyl.mcp.Clients.IQylMcpChatClientBuilder" /> (qyl.mcp's
+///         equivalent of qyl.loom's <c>IQylLoomChatClientBuilder</c> — qyl.mcp
+///         doesn't reference qyl.loom) resolved a non-null <see cref="IChatClient" />.
+///         Each <c>Build*Agent</c> method throws <see cref="InvalidOperationException" />
+///         when <see cref="IsConfigured" /> is <see langword="false" />.
 ///     </para>
 ///     <para>
 ///         <see cref="BuildRcaAgent" /> and <see cref="BuildUseQylAgent" /> accept a

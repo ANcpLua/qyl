@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Logs;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetLogDetailsTool(HttpClient client)
+public sealed partial class GetLogDetailsTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves all attributes and correlated trace/span IDs for a single log entry.
@@ -24,9 +23,8 @@ public sealed class GetLogDetailsTool(HttpClient client)
     [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_log_details", Title = "Get Log Details",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get full details for a single log entry including all attributes and correlated trace/span IDs.")]
-    public async Task<string> GetLogDetailsAsync(
-        [Description("The log ID to inspect")] string logId,
+    public async partial Task<string> GetLogDetailsAsync(
+        string logId,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(

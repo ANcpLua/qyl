@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -12,22 +11,15 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class RegressionTools(HttpClient http)
+internal sealed partial class RegressionTools(HttpClient http)
 {
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.check_regressions", Title = "Check Regressions for Service",
         ReadOnly = false, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Trigger a regression check for a specific service.
-                 Detects resolved errors that have re-appeared and transitions
-                 them to 'regressed' status. Optionally scope to a specific deploy version.
-                 """)]
-    public async Task<string> CheckRegressionsAsync(
-        [Description("The service name to check for regressions")]
+    public async partial Task<string> CheckRegressionsAsync(
         string serviceName,
-        [Description("Optional deploy version to scope the check")]
         string? version = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
@@ -65,15 +57,8 @@ internal sealed class RegressionTools(HttpClient http)
     [McpServerTool(Name = "qyl.list_regressions", Title = "List Regression Events",
         ReadOnly = true, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List recent regression events across all issues.
-                 Shows which issues regressed, when, and why.
-                 Optionally filter by time range.
-                 """)]
-    public async Task<string> ListRegressionsAsync(
-        [Description("Maximum number of events to return (default: 20)")]
+    public async partial Task<string> ListRegressionsAsync(
         int? limit = null,
-        [Description("Only show regressions after this ISO timestamp")]
         string? since = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
@@ -93,13 +78,8 @@ internal sealed class RegressionTools(HttpClient http)
 
     [McpServerTool(Name = "qyl.get_issue_regressions", Title = "Get Issue Regression History",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Get the regression history for a specific issue.
-                 Shows all times this issue has regressed after being resolved.
-                 """)]
-    public async Task<string> GetIssueRegressionsAsync(
-        [Description("The error issue ID")] string issueId,
-        [Description("Maximum number of events to return (default: 10)")]
+    public async partial Task<string> GetIssueRegressionsAsync(
+        string issueId,
         int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>

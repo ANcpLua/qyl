@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Anomaly)]
-public sealed class AnomalyTools(HttpClient client)
+public sealed partial class AnomalyTools(HttpClient client)
 {
     /// <summary>Detects anomalous metric spikes or drops using z-score analysis.</summary>
     /// <param name="metric">Metric to analyze (e.g. 'error_rate', 'latency_p99').</param>
@@ -26,32 +25,10 @@ public sealed class AnomalyTools(HttpClient client)
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Detect anomalous metric spikes or drops using z-score analysis.
-
-                 Compares each time bucket against the baseline mean/stddev
-                 to identify statistically significant deviations.
-
-                 Supported metrics:
-                 - error_rate, latency_p50, latency_p95, latency_p99
-                 - request_count, token_usage, cost
-
-                 Example queries:
-                 - Error rate anomalies: detect_anomalies(metric="error_rate")
-                 - Latency spikes: detect_anomalies(metric="latency_p99", sensitivity=1.5)
-                 - Service-specific: detect_anomalies(metric="error_rate", service="api-gateway")
-
-                 Returns: Baseline stats and list of anomalous time buckets with z-scores
-                 """)]
-    public Task<string> DetectAnomaliesAsync(
-        [Description(
-            "Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+    public partial Task<string> DetectAnomaliesAsync(
         string metric,
-        [Description("Time window in hours (default: 24)")]
         int hours = 24,
-        [Description("Z-score threshold for anomaly detection (default: 2.0)")]
         double sensitivity = 2.0,
-        [Description("Filter by service name")]
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -103,29 +80,9 @@ public sealed class AnomalyTools(HttpClient client)
     [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.get_metric_baseline", Title = "Get Metric Baseline",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("""
-                 Get baseline statistics (mean, percentiles) for a metric.
-
-                 Computes statistical summary over the time window.
-                 Useful for understanding normal operating ranges.
-
-                 Supported metrics:
-                 - error_rate, latency_p50, latency_p95, latency_p99
-                 - request_count, token_usage, cost
-
-                 Example queries:
-                 - Latency baseline: get_metric_baseline(metric="latency_p95")
-                 - Error rate stats: get_metric_baseline(metric="error_rate", hours=168)
-
-                 Returns: Statistical summary with mean, stddev, and percentiles
-                 """)]
-    public Task<string> GetMetricBaselineAsync(
-        [Description(
-            "Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+    public partial Task<string> GetMetricBaselineAsync(
         string metric,
-        [Description("Time window in hours (default: 24)")]
         int hours = 24,
-        [Description("Filter by service name")]
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -164,36 +121,12 @@ public sealed class AnomalyTools(HttpClient client)
     [McpServerTool(Name = "qyl.compare_periods", Title = "Compare Periods",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Compare metrics between two time periods (e.g., before/after deploy).
-
-                 Computes baseline stats for each period and shows the delta.
-                 Useful for measuring the impact of deployments, config changes, etc.
-
-                 Supported metrics:
-                 - error_rate, latency_p50, latency_p95, latency_p99
-                 - request_count, token_usage, cost
-
-                 Example queries:
-                 - Before/after deploy: compare_periods(metric="error_rate",
-                     period1Start="2024-01-01T00:00:00Z", period1End="2024-01-01T12:00:00Z",
-                     period2Start="2024-01-01T12:00:00Z", period2End="2024-01-02T00:00:00Z")
-
-                 Returns: Side-by-side comparison with delta and percentage change
-                 """)]
-    public Task<string> ComparePeriodsAsync(
-        [Description(
-            "Metric to compare: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+    public partial Task<string> ComparePeriodsAsync(
         string metric,
-        [Description("Start of first period (ISO 8601, e.g., '2024-01-01T00:00:00Z')")]
         string period1Start,
-        [Description("End of first period (ISO 8601)")]
         string period1End,
-        [Description("Start of second period (ISO 8601)")]
         string period2Start,
-        [Description("End of second period (ISO 8601)")]
         string period2End,
-        [Description("Filter by service name")]
         string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {

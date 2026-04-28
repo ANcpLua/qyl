@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Server;
 
@@ -11,27 +10,13 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class ExportForAgentTools(HttpClient http)
+internal sealed partial class ExportForAgentTools(HttpClient http)
 {
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.export_for_agent", Title = "Export Issue for Coding Agent",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Export a structured context block for a specific error issue.
-
-                 Combines:
-                 - Issue metadata (title, type, status, occurrences)
-                 - Recent error events with stack traces
-                 - AI triage assessment (fixability score, root cause hypothesis)
-                 - Latest fix run with generated patch JSON (if available)
-
-                 Returns a markdown block ready to paste into Claude Code, Cursor,
-                 or any other coding agent session to provide full issue context.
-                 """)]
-    public async Task<string> ExportForAgentAsync(
-        [Description("The error issue ID to export context for")]
+    public async partial Task<string> ExportForAgentAsync(
         string issueId,
-        [Description("Include the latest fix run and generated patch if available (default: true)")]
         bool includeFix = true,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>

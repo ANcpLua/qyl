@@ -43,7 +43,7 @@ internal sealed class ReviewBotPrompts
           ## Scope
           - **Only process comments authored by qyl review bots.** Default logins:
             `qyl[bot]`, `qyl-review[bot]`. Matching is an **exact, case-insensitive** login
-            comparison — there is no prefix fallback. Foreign review bots (Sentry, Seer, etc.)
+            comparison — there is no prefix fallback. Foreign review bots (e.g. `loom[bot]`)
             are opt-in via the parser's `additionalBotLogins`. Silently skip every other author
             (`cursor[bot]`, `dependabot[bot]`, `copilot[bot]`, human reviewers).
           - Pre-parsed comment batch follows. Use it as the source of truth — Loom's parser

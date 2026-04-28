@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -15,7 +14,7 @@ namespace qyl.mcp.Tools.Errors;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetAttachmentsTool(HttpClient client)
+public sealed partial class GetAttachmentsTool(HttpClient client)
 {
     /// <summary>
     ///     Retrieves the list of attachments for an error event, optionally scoped to a specific event.
@@ -26,11 +25,8 @@ public sealed class GetAttachmentsTool(HttpClient client)
     /// <returns>A formatted markdown table of attachments with download links.</returns>
     [McpServerTool(Name = "get_attachments", Title = "Get Event Attachments",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("List attachments (screenshots, logs, minidumps) for an error event.")]
-    public async Task<string> GetAttachmentsAsync(
-        [Description("The error issue ID to retrieve attachments for")]
+    public async partial Task<string> GetAttachmentsAsync(
         string issueId,
-        [Description("Optional event ID to scope attachments to a specific event")]
         string? eventId = null,
         CancellationToken ct = default)
     {

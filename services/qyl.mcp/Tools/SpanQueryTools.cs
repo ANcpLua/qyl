@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class SpanQueryTools(HttpClient client)
+public sealed partial class SpanQueryTools(HttpClient client)
 {
     /// <summary>Searches spans with flexible filtering by session, service, operation, and status.</summary>
     /// <param name="sessionId">Filter by session ID.</param>
@@ -27,37 +26,12 @@ public sealed class SpanQueryTools(HttpClient client)
     [McpServerTool(Name = "qyl.search_spans", Title = "Search Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Search spans with flexible filtering.
-
-                 This is the general-purpose span query tool. For GenAI-specific
-                 queries, use list_genai_spans instead.
-
-                 Supports filtering by:
-                 - Session ID
-                 - Service name
-                 - Operation name (partial match)
-                 - Status (ok/error)
-                 - Time range
-
-                 Example queries:
-                 - Errors only: search_spans(status="error")
-                 - By service: search_spans(service_name="api-gateway")
-                 - By operation: search_spans(operation="HTTP GET")
-
-                 Returns: List of matching spans with timing and attributes
-                 """)]
-    public Task<string> SearchSpansAsync(
-        [Description("Filter by session ID")] string? sessionId = null,
-        [Description("Filter by service name")]
+    public partial Task<string> SearchSpansAsync(
+        string? sessionId = null,
         string? serviceName = null,
-        [Description("Filter by operation name (partial match)")]
         string? operation = null,
-        [Description("Filter by status: 'ok' or 'error'")]
         string? status = null,
-        [Description("Time window in hours (default: 24)")]
         int hours = 24,
-        [Description("Maximum spans to return (default: 100)")]
         int limit = 100) => CollectorHelper.ExecuteAsync(async () =>
     {
         var basePath = !string.IsNullOrEmpty(sessionId)

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Analytics)]
-public sealed class AnalyticsTools(HttpClient client)
+public sealed partial class AnalyticsTools(HttpClient client)
 {
     /// <summary>Lists AI conversations captured by qyl, grouped by conversation ID.</summary>
     /// <param name="period">Period filter: 'weekly', 'monthly', 'quarterly', or 'YYYY-MM'.</param>
@@ -29,34 +28,14 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List AI conversations captured by qyl.
-
-                 Groups spans by conversation ID to reconstruct chat threads.
-                 Each conversation shows: first question, turn count, token usage, errors.
-
-                 Example queries:
-                 - This month: list_conversations()
-                 - Last month: list_conversations(period="monthly", offset=1)
-                 - Specific month: list_conversations(period="2026-02")
-                 - With errors only: list_conversations(hasErrors=true)
-                 - By user: list_conversations(userId="user@example.com")
-
-                 Returns: Paginated list of conversations with metadata
-                 """)]
-    public Task<string> ListConversationsAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly', or 'YYYY-MM' (default: monthly)")]
+    public partial Task<string> ListConversationsAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0,
-        [Description("Page number (default: 1)")]
         int page = 1,
-        [Description("Results per page (default: 20, max: 100)")]
         int pageSize = 20,
-        [Description("Filter: only conversations with errors")]
         bool? hasErrors = null,
-        [Description("Filter: by user ID")] string? userId = null,
-        [Description("Filter: by model name")] string? model = null) =>
+        string? userId = null,
+        string? model = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var url = QueryString.AppendPairs(
@@ -100,21 +79,7 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_conversation", Title = "Get Conversation",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get the full detail of a single AI conversation.
-
-                 Shows all turns in chronological order with:
-                 - Operation type (chat, embeddings, tool call)
-                 - Provider and model used
-                 - Token counts and duration
-                 - Error details if any
-
-                 Use list_conversations first to find a conversation ID.
-
-                 Returns: Complete conversation timeline
-                 """)]
-    public Task<string> GetConversationAsync(
-        [Description("The conversation ID from list_conversations (required)")]
+    public partial Task<string> GetConversationAsync(
         string conversationId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -162,25 +127,8 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_coverage_gaps", Title = "Get Coverage Gaps",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Identify topics where the AI assistant fails to help users.
-
-                 Analyzes conversations with uncertainty signals:
-                 - Error responses
-                 - Empty completions (zero output tokens)
-                 - High latency (above 95th percentile)
-
-                 Groups recurring failures into topics with conversation counts
-                 and sample IDs for investigation.
-
-                 Use this to find documentation gaps and product improvement areas.
-
-                 Returns: List of coverage gaps with findings and recommendations
-                 """)]
-    public Task<string> GetCoverageGapsAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
+    public partial Task<string> GetCoverageGapsAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -226,22 +174,9 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Identify the most common topics users ask about.
-
-                 Analyzes ALL conversations (not just failures) to find
-                 recurring themes. Groups similar questions into topic clusters.
-
-                 Use this to understand what users care about most.
-
-                 Returns: Topic clusters ranked by conversation count
-                 """)]
-    public Task<string> GetTopQuestionsAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
+    public partial Task<string> GetTopQuestionsAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0,
-        [Description("Minimum conversations to form a cluster (default: 3)")]
         int minConversations = 3) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -281,20 +216,8 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_source_analytics", Title = "Get Source Analytics",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Show which knowledge sources are most cited by the AI.
-
-                 Tracks which documents/sources the AI references in answers
-                 via gen_ai.data_source.id attributes on spans.
-
-                 Use this to identify important content and dead sources.
-
-                 Returns: Sources ranked by citation frequency
-                 """)]
-    public Task<string> GetSourceAnalyticsAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
+    public partial Task<string> GetSourceAnalyticsAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -329,21 +252,8 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_satisfaction", Title = "Get Satisfaction",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Track user satisfaction with AI answers.
-
-                 Aggregates feedback (upvotes/downvotes) from qyl.feedback.reaction
-                 attributes on spans. Shows overall satisfaction rate plus breakdowns
-                 by model and topic.
-
-                 Use this to monitor answer quality trends.
-
-                 Returns: Satisfaction rate, feedback counts, breakdowns by model and topic
-                 """)]
-    public Task<string> GetSatisfactionAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
+    public partial Task<string> GetSatisfactionAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -394,24 +304,10 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_users", Title = "List Users",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List users who have interacted with the AI assistant.
-
-                 Shows user activity: conversation count, first/last seen dates,
-                 and most common topics.
-
-                 Uses enduser.id attribute from spans for identity.
-
-                 Returns: Paginated list of users with activity summaries
-                 """)]
-    public Task<string> ListUsersAsync(
-        [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
+    public partial Task<string> ListUsersAsync(
         string period = "monthly",
-        [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0,
-        [Description("Page number (default: 1)")]
         int page = 1,
-        [Description("Results per page (default: 20)")]
         int pageSize = 20) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -447,19 +343,7 @@ public sealed class AnalyticsTools(HttpClient client)
     [McpServerTool(Name = "qyl.get_user_journey", Title = "Get User Journey",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Get an individual user's conversation history and journey.
-
-                 Shows all conversations for a user with topics, turn counts,
-                 and satisfaction. Includes aggregate stats like total tokens,
-                 frequent topics, and retention days.
-
-                 Use list_users first to find a user ID.
-
-                 Returns: User journey with conversation history and stats
-                 """)]
-    public Task<string> GetUserJourneyAsync(
-        [Description("The user ID from list_users (required)")]
+    public partial Task<string> GetUserJourneyAsync(
         string userId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {

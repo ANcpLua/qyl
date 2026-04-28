@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,15 +12,13 @@ namespace qyl.mcp.Tools.Traces;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetTraceDetailsTool(HttpClient client)
+public sealed partial class GetTraceDetailsTool(HttpClient client)
 {
     [QylCapability("trace_investigation")]
     [QylCapability("log_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_trace_details", Title = "Get Trace Details",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get full span tree for a trace. Returns all spans with timing, status, and attributes.")]
-    public async Task<string> GetTraceDetailsAsync(
-        [Description("The trace ID to inspect")]
+    public async partial Task<string> GetTraceDetailsAsync(
         string traceId,
         CancellationToken ct = default)
     {

@@ -172,7 +172,7 @@ Every C# example the skill creator produces must obey `/Users/ancplua/qyl/CLAUDE
 | `UPPER_SNAKE_CASE` environment variables | No `SentryAuthToken` — it is `SENTRY_AUTH_TOKEN` |
 
 MAF agent composition (for skills that drive Loom agents):
-- Apex three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow code.
+- qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow code.
 - Decorate at composition root via `.AsBuilder().UseOpenTelemetry("qyl.agent").Build()` or `.AsBuilder().UseQylTelemetry().Build()`.
 - `[AgentTraced]` is **removed**. Do not reintroduce. Tracing is applied via fluent middleware at the builder level.
 

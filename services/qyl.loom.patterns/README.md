@@ -9,7 +9,7 @@ responses so every sample exercises the real MAF wiring without network calls.
 | Path         | Role                                                                                                             |
 |--------------|------------------------------------------------------------------------------------------------------------------|
 | `Program.cs` | CLI — dispatches to one pattern by arg                                                                           |
-| `Clients/`   | `IQylLoomPatternsChatClientBuilder` — provider-agnostic `IChatClient` factory (Apex seam)                        |
+| `Clients/`   | `IQylLoomPatternsChatClientBuilder` — provider-agnostic `IChatClient` factory (qyl seam)                         |
 | `Agents/`    | `IQylLoomPatternsAgentsBuilder` — one factory method per bounded agent, wrapped with `UseQylAgentTelemetry`      |
 | `Contracts/` | `[LoomContract]`-decorated records: `RootCauseHypothesis`, `SolutionPlan`, `ConfidenceVerdict`, `IncidentSignal` |
 | `Patterns/`  | Six pattern files, each exposing `public static Task RunAsync(agents, ct)`                                       |
@@ -30,7 +30,7 @@ responses so every sample exercises the real MAF wiring without network calls.
 - Every `AIAgent` construction chains `.AsBuilder().UseQylAgentTelemetry().Build()` —
   `QYL0135` enforces this at build time.
 - Every `IChatClient` is built via `new ChatClientBuilder(fake).UseQylTelemetry("qyl.genai").Build()`.
-- Apex-aligned three-builder shape: `IQylLoomPatternsChatClientBuilder` →
+- qyl three-builder shape: `IQylLoomPatternsChatClientBuilder` →
   `IQylLoomPatternsAgentsBuilder` → pattern code consumes the agents.
 - `[LoomContract]`, `[LoomStep]`, `[LoomWorkflow]` attributes decorate contracts,
   executors, and the combined workflow in `Pattern06` so `nuke Generate` has real

@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 // Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
@@ -52,7 +53,7 @@ public static partial class DotnetProjectDetector
     /// </remarks>
     public static DotnetProjectEvidence Detect(string repoRoot)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(repoRoot);
+        Guard.NotNullOrWhiteSpace(repoRoot);
 
         var normalised = Path.GetFullPath(repoRoot);
         if (!Directory.Exists(normalised))

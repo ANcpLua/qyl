@@ -1,7 +1,6 @@
 <Project>
   <!-- =======================================================================
        qyl Shared Targets - Imported by Directory.Build.targets
-       CLAUDE.md generation now handled by Shared.Claude.targets (v2)
        Throw.cs injection handled by ANcpLua.NET.Sdk
        ======================================================================= -->
 

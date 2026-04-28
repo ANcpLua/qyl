@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
@@ -14,22 +13,17 @@ namespace qyl.mcp.Tools.Traces;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class SearchTracesTool(HttpClient client)
+public sealed partial class SearchTracesTool(HttpClient client)
 {
     [QylCapability("trace_investigation")]
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "search_traces", Title = "Search Traces",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description(
-        "Search distributed traces by query. Returns a paginated list of matching traces with duration, status, and root span.")]
-    public async Task<string> SearchTracesAsync(
-        [Description("Search query (required)")]
+    public async partial Task<string> SearchTracesAsync(
         string query,
-        [Description("Filter by project slug")]
         string? projectSlug = null,
-        [Description("Cursor for pagination")] string? cursor = null,
-        [Description("Maximum results per page (1-100, default 25)")]
+        string? cursor = null,
         int limit = 25,
         CancellationToken ct = default)
     {

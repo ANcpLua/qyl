@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -14,7 +13,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class CreateDsnTool(HttpClient client)
+public sealed partial class CreateDsnTool(HttpClient client)
 {
     /// <summary>
     ///     Creates a new DSN for a project and returns the full DSN value.
@@ -29,12 +28,8 @@ public sealed class CreateDsnTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = false)]
-    [Description(
-        "Create a new DSN (Data Source Name) for a project. Returns the full DSN value — save it, it may not be shown again.")]
-    public async Task<string> CreateDsnAsync(
-        [Description("Project slug to create the DSN for")]
+    public async partial Task<string> CreateDsnAsync(
         string projectSlug,
-        [Description("Optional human-readable label for the DSN")]
         string? label = null,
         CancellationToken ct = default)
     {

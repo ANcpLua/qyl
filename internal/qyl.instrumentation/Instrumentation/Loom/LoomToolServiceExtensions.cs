@@ -2,13 +2,14 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
+using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Instrumentation.Instrumentation.Loom;
 
 public static class LoomToolServiceExtensions
 {
     public static IServiceCollection AddLoomFactoryTools(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        Guard.NotNull(services);
 
         services.TryAddSingleton<IReadOnlyList<AIFunction>>(static sp =>
             LoomToolFactoryBridge.CreateAIFunctions(LoomGeneratedRegistry.RuntimeMetadata, sp));
@@ -18,7 +19,7 @@ public static class LoomToolServiceExtensions
 
     public static IServiceCollection AddInstrumentedLoomFactoryTools(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        Guard.NotNull(services);
 
         services.TryAddSingleton<IReadOnlyList<AIFunction>>(static sp =>
             LoomToolFactoryBridge.CreateInstrumentedAIFunctions(LoomGeneratedRegistry.RuntimeMetadata, sp));
@@ -30,7 +31,7 @@ public static class LoomToolServiceExtensions
         this IServiceCollection services,
         LoomPhase phase)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        Guard.NotNull(services);
 
         services.TryAddSingleton<IReadOnlyList<AIFunction>>(sp =>
             LoomToolFactoryBridge.CreateAIFunctions(
@@ -43,8 +44,8 @@ public static class LoomToolServiceExtensions
         this IServiceCollection services,
         string requiredCapability)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(requiredCapability);
+        Guard.NotNull(services);
+        Guard.NotNull(requiredCapability);
 
         services.TryAddSingleton<IReadOnlyList<AIFunction>>(sp =>
             LoomToolFactoryBridge.CreateAIFunctions(
@@ -56,7 +57,7 @@ public static class LoomToolServiceExtensions
 
     public static IServiceCollection AddLoomToolDeclaringTypes(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        Guard.NotNull(services);
 
         var registeredTypes = new HashSet<Type>();
         foreach (var metadata in LoomGeneratedRegistry.RuntimeMetadata)
@@ -72,8 +73,8 @@ public static class LoomToolServiceExtensions
         this IServiceCollection services,
         string toolName)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(toolName);
+        Guard.NotNull(services);
+        Guard.NotNull(toolName);
 
         var metadata = LoomGeneratedRegistry.RuntimeMetadata
                            .FirstOrDefault(m => string.Equals(m.Name, toolName, StringComparison.Ordinal))
@@ -85,7 +86,7 @@ public static class LoomToolServiceExtensions
 
     public static IServiceCollection AddLoomTools(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        Guard.NotNull(services);
 
         services.AddLoomToolDeclaringTypes();
         services.AddInstrumentedLoomFactoryTools();

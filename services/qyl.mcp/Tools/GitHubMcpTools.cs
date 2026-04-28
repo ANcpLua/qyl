@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -14,21 +13,15 @@ namespace qyl.mcp.Tools;
 /// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
-internal sealed class GitHubMcpTools(HttpClient http)
+internal sealed partial class GitHubMcpTools(HttpClient http)
 {
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.trigger_code_review", Title = "Trigger Code Review",
         ReadOnly = false, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 Trigger an AI-powered code review for a GitHub pull request.
-                 Fetches the PR diff, analyzes it with an LLM, and returns
-                 structured review comments with severity, file, line, and suggestions.
-                 """)]
-    public async Task<string> TriggerCodeReviewAsync(
-        [Description("GitHub repo full name (e.g. 'owner/repo')")]
+    public async partial Task<string> TriggerCodeReviewAsync(
         string repoFullName,
-        [Description("Pull request number")] int prNumber,
+        int prNumber,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
@@ -46,15 +39,9 @@ internal sealed class GitHubMcpTools(HttpClient http)
 
     [McpServerTool(Name = "qyl.get_code_review", Title = "Get Code Review Results",
         ReadOnly = true, Destructive = false, Idempotent = true)]
-    [Description("""
-                 Get cached code review results for a GitHub pull request.
-                 Returns the review comments from the most recent analysis.
-                 Use trigger_code_review first to generate a review.
-                 """)]
-    public async Task<string> GetCodeReviewAsync(
-        [Description("GitHub repo full name (e.g. 'owner/repo')")]
+    public async partial Task<string> GetCodeReviewAsync(
         string repoFullName,
-        [Description("Pull request number")] int prNumber,
+        int prNumber,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
@@ -76,17 +63,9 @@ internal sealed class GitHubMcpTools(HttpClient http)
     [McpServerTool(Name = "qyl.list_github_events", Title = "List GitHub Webhook Events",
         ReadOnly = true, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Optional)]
-    [Description("""
-                 List recent GitHub webhook events received by the platform.
-                 Shows push, pull_request, deployment, and other events.
-                 Optionally filter by event type or repository.
-                 """)]
-    public async Task<string> ListGitHubEventsAsync(
-        [Description("Maximum number of events to return (default: 20)")]
+    public async partial Task<string> ListGitHubEventsAsync(
         int? limit = null,
-        [Description("Filter by event type (e.g. 'push', 'pull_request')")]
         string? eventType = null,
-        [Description("Filter by repository full name")]
         string? repoFullName = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>

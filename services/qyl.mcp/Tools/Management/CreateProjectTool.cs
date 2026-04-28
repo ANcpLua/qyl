@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
@@ -11,7 +10,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
-public sealed class CreateProjectTool(HttpClient client)
+public sealed partial class CreateProjectTool(HttpClient client)
 {
     /// <summary>
     ///     Creates a new observability project with the specified name, slug, and optional description.
@@ -27,13 +26,9 @@ public sealed class CreateProjectTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = false)]
-    [Description("Create a new observability project.")]
-    public async Task<string> CreateProjectAsync(
-        [Description("Display name for the project")]
+    public async partial Task<string> CreateProjectAsync(
         string name,
-        [Description("URL-safe slug identifier")]
         string slug,
-        [Description("Optional project description")]
         string? description = null,
         CancellationToken ct = default)
     {

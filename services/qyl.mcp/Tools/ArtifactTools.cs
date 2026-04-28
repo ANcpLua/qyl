@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
@@ -9,7 +8,7 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for storing and retrieving artifacts (code patches, reports, analysis results).
 /// </summary>
 [McpServerToolType]
-public sealed class ArtifactTools(HttpClient client)
+public sealed partial class ArtifactTools(HttpClient client)
 {
     /// <summary>Stores an artifact (code patch, report, or investigation notes) in qyl.</summary>
     /// <param name="content">The artifact content.</param>
@@ -25,28 +24,11 @@ public sealed class ArtifactTools(HttpClient client)
         Destructive = false,
         Idempotent = true,
         OpenWorld = true)]
-    [Description("""
-                 Store an artifact (code patch, analysis report, investigation notes) in qyl.
-
-                 Returns a short URL for sharing: /a/<id>
-
-                 Parameters:
-                 - content (required): The artifact content (text, markdown, JSON, code)
-                 - content_type: MIME type (default: text/plain). Common: text/markdown, application/json
-                 - title: Human-readable title
-                 - source: Origin identifier (e.g. "autofix", "rca", "code-review")
-                 - ttl_seconds: Auto-expire after N seconds (0 = never expire)
-
-                 Returns: Artifact ID and short URL
-                 """)]
-    public Task<string> StoreArtifactAsync(
-        [Description("The artifact content")] string content,
-        [Description("MIME type (default: text/plain)")]
+    public partial Task<string> StoreArtifactAsync(
+        string content,
         string? contentType = null,
-        [Description("Human-readable title")] string? title = null,
-        [Description("Origin (e.g. autofix, rca, code-review)")]
+        string? title = null,
         string? source = null,
-        [Description("Auto-expire seconds (0 = never)")]
         int? ttlSeconds = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
@@ -84,16 +66,8 @@ public sealed class ArtifactTools(HttpClient client)
         Destructive = false,
         Idempotent = true,
         OpenWorld = true)]
-    [Description("""
-                 Retrieve a stored artifact by ID.
-
-                 Returns the artifact content, metadata, and creation time.
-                 Returns an error if the artifact has expired or does not exist.
-
-                 Returns: Artifact content and metadata
-                 """)]
-    public Task<string> GetArtifactAsync(
-        [Description("Artifact ID")] string id) =>
+    public partial Task<string> GetArtifactAsync(
+        string id) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var result = await client.GetFromJsonAsync(

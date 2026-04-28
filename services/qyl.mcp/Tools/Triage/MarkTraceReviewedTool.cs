@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -12,7 +11,7 @@ namespace qyl.mcp.Tools.Triage;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class MarkTraceReviewedTool(HttpClient client)
+public sealed partial class MarkTraceReviewedTool(HttpClient client)
 {
     [McpServerTool(
         Name = "mark_trace_reviewed",
@@ -20,9 +19,7 @@ public sealed class MarkTraceReviewedTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         Idempotent = true)]
-    [Description("Mark a trace as reviewed during triage.")]
-    public async Task<string> MarkTraceReviewed(
-        [Description("Trace ID to mark as reviewed")]
+    public async partial Task<string> MarkTraceReviewed(
         string traceId,
         CancellationToken ct = default)
     {

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,14 +12,12 @@ namespace qyl.mcp.Tools.Traces;
 /// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class GetSpanTool(HttpClient client)
+public sealed partial class GetSpanTool(HttpClient client)
 {
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_span", Title = "Get Span",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Get full details for a single span including all attributes.")]
-    public async Task<string> GetSpanAsync(
-        [Description("The span ID to inspect")]
+    public async partial Task<string> GetSpanAsync(
         string spanId,
         CancellationToken ct = default)
     {

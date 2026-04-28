@@ -26,8 +26,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         DiagnosticId,
         "Inline system-prompt literal",
         "System prompt literals must load from `.md` files with `ConcurrentDictionary<string, string>` " +
-        "caching (see `Apex.AgenticEntityExtractor.Agents.ExtractorAgentsBuilder.LoadInstructions`). " +
-        "Move the prompt to `Data/Instructions/<agent>.md` and load via `LoadInstructions(\"<agent>.md\")`.",
+        "caching. Move the prompt to `Data/Instructions/<agent>.md` and load via `LoadInstructions(\"<agent>.md\")`.",
         "Qyl.Instrumentation",
         DiagnosticSeverity.Warning,
         true);

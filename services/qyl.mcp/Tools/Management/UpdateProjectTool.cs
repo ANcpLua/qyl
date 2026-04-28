@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Management;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
-public sealed class UpdateProjectTool(HttpClient client)
+public sealed partial class UpdateProjectTool(HttpClient client)
 {
     /// <summary>
     ///     Updates the name and/or description of an existing project.
@@ -29,12 +28,10 @@ public sealed class UpdateProjectTool(HttpClient client)
         ReadOnly = false,
         Destructive = true,
         Idempotent = true)]
-    [Description("Update an existing project's name or description.")]
-    public async Task<string> UpdateProjectAsync(
-        [Description("Project slug to update")]
+    public async partial Task<string> UpdateProjectAsync(
         string slug,
-        [Description("New display name")] string? name = null,
-        [Description("New description")] string? description = null,
+        string? name = null,
+        string? description = null,
         CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Patch,

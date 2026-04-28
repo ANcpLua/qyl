@@ -5,6 +5,7 @@ using Qyl.Instrumentation.Instrumentation;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix;
+using Qyl.Loom.Autofix.Workflow;
 using Qyl.Loom.Clients;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Exploration;
@@ -42,11 +43,31 @@ builder.Services.AddHttpClient("GitHub", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
 }).AddStandardResilienceHandler();
 
-// Apex three-builder pattern — chat-client → agents builder. Every AIAgent
-// constructed in qyl.loom flows through these singletons so the
-// .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized.
+// qyl three-builder pattern — chat-client → agents → workflow. Every AIAgent
+// and every Workflow flows through these singletons so the
+// .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized and the
+// workflow topology is constructed once.
 builder.Services.AddSingleton<IQylLoomChatClientBuilder, QylLoomChatClientBuilder>();
 builder.Services.AddSingleton<IQylLoomAgentsBuilder, QylLoomAgentsBuilder>();
+builder.Services.AddSingleton<IQylLoomWorkflowBuilder, QylLoomWorkflowBuilder>();
+
+// Autofix workflow infrastructure — per-run state, run registry, step ledger,
+// lifecycle bus, workflow factory. All singleton; per-run state keyed by runId.
+builder.Services.AddSingleton<AutofixReportAssemblyState>();
+builder.Services.AddSingleton<AutofixRunRegistry>();
+builder.Services.AddSingleton<AutofixContextLoader>();
+builder.Services.AddSingleton<AutofixContextTools>();
+builder.Services.AddSingleton<IAutofixStepLedger, CollectorAutofixStepLedger>();
+builder.Services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>();
+builder.Services.AddSingleton<AutofixRunConfigStore>();
+builder.Services.AddSingleton<AutofixWorkflowFactory>();
+
+// Checkpoint persistence — file-backed JsonCheckpointStore so workflow runs
+// survive process restart and dashboard refresh. Root path configurable via
+// QYL_AUTOFIX_CHECKPOINT_ROOT env var; otherwise falls under the OS temp dir.
+builder.Services.AddSingleton<FileSystemAutofixCheckpointStore>();
+builder.Services.AddSingleton(sp =>
+    CheckpointManager.CreateJson(sp.GetRequiredService<FileSystemAutofixCheckpointStore>()));
 
 // Background pipelines — TriagePipelineService, AutofixAgentService, and
 // RegressionDetectionService auto-register via [QylHostedService] through the
@@ -110,6 +131,7 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     string issueId,
     ExplorationCodeItUpRequest request,
     AutofixOrchestrator autofixOrchestrator,
+    AutofixRunConfigStore configStore,
     CollectorClient collector,
     CancellationToken ct) =>
 {
@@ -120,6 +142,15 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
     var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
         .ConfigureAwait(false);
 
+    // HITL only when the caller explicitly opts in via request_review. Without this
+    // flag the dashboard-initiated run completes autonomously — there is no production
+    // approval endpoint yet, so forcing Interactive on every code-it-up adds two
+    // 5-minute timeout waits to every run for no benefit.
+    if (request.RequestReview)
+    {
+        configStore.Set(run.RunId, AutofixWorkflowDefaults.Interactive);
+    }
+
     if (string.IsNullOrWhiteSpace(request.Repo))
         return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, null, null));
 
@@ -129,6 +160,16 @@ app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
 
     return Results.Ok(new ExplorationCodeItUpResponse(true, run.RunId, pr.PrUrl, pr.Error));
 });
+
+// ── Autofix workflow lifecycle SSE ──────────────────────────────────────────
+
+app.MapGet("/api/v1/loom/autofix/{runId}/lifecycle", (
+        string runId,
+        IAutofixLifecycleBus bus,
+        CancellationToken ct) =>
+    TypedResults.ServerSentEvents(
+        StreamLifecycleAsync(bus, runId, ct),
+        null));
 
 // ── Code review endpoints ───────────────────────────────────────────────────
 
@@ -175,6 +216,17 @@ app.Run();
 return;
 
 // ── SSE helper ──────────────────────────────────────────────────────────────
+
+static async IAsyncEnumerable<SseItem<AutofixLifecycleEnvelope>> StreamLifecycleAsync(
+    IAutofixLifecycleBus bus,
+    string runId,
+    [EnumeratorCancellation] CancellationToken ct)
+{
+    await foreach (var envelope in bus.SubscribeAsync(runId, ct).ConfigureAwait(false))
+    {
+        yield return new SseItem<AutofixLifecycleEnvelope>(envelope, envelope.Kind);
+    }
+}
 
 static async IAsyncEnumerable<SseItem<StreamUpdate>> StreamExploreAsync(
     ExplorationOrchestrator orchestrator,

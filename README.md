@@ -26,7 +26,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 | Schema   | TypeSpec -> OpenAPI -> C# / DuckDB / TypeScript |
 | Build    | NUKE 10.1.0, MSBuild, ANcpLua.NET.Sdk           |
 | MCP      | ModelContextProtocol C# SDK 1.2.0               |
-| Agents   | Microsoft Agent Framework 1.1.0                 |
+| Agents   | Microsoft Agent Framework 1.3.0                 |
 
 ## Projects
 
@@ -151,7 +151,7 @@ Transports: stdio (local) and Streamable HTTP (remote, Claude Web UI, API connec
 
 ## Agent Runtime (MAF)
 
-`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.1.0 consumer. Triage, RCA,
+`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.3.0 consumer. Triage, RCA,
 fix generation, and code review agents share one composition shape:
 
 ```csharp

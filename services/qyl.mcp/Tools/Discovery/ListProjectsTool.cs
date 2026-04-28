@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Net.Http.Json;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Server;
@@ -13,7 +12,7 @@ namespace qyl.mcp.Tools.Discovery;
 /// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
-public sealed class ListProjectsTool(HttpClient client)
+public sealed partial class ListProjectsTool(HttpClient client)
 {
     /// <summary>
     ///     Lists available projects, returning slugs that can scope other tools.
@@ -25,10 +24,8 @@ public sealed class ListProjectsTool(HttpClient client)
     [QylCapability("service_discovery")]
     [McpServerTool(Name = "list_projects", Title = "List Projects",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-    [Description("List available projects. Use project slugs to scope other tools to a specific project.")]
-    public async Task<string> ListProjectsAsync(
-        [Description("Cursor for pagination")] string? cursor = null,
-        [Description("Maximum results per page (1-100, default 25)")]
+    public async partial Task<string> ListProjectsAsync(
+        string? cursor = null,
         int limit = 25,
         CancellationToken ct = default)
     {

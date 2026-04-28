@@ -1,4 +1,4 @@
-# MAF primitives × qyl patterns — Seer-parity sketch
+# MAF primitives × qyl autofix patterns — design sketch
 
 Idea map, not a spec. MAF gives the primitives (`Executor`, `WorkflowBuilder`,
 `RequestPort`, `CheckpointManager`, `WorkflowEvent`, `IWorkflowContext`,
