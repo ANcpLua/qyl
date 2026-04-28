@@ -151,8 +151,14 @@ Transports: stdio (local) and Streamable HTTP (remote, Claude Web UI, API connec
 
 ## Agent Runtime (MAF)
 
-`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.3.0 consumer. Triage, RCA,
-fix generation, and code review agents share one composition shape:
+`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.3.0 consumer. Curated
+`Qyl.*` facade extensions over MAF live in [`MAF.Advanced.Patterns`](https://github.com/Alexander-Nachtmann/MAF.Advanced.Patterns)
+(5 packages: core + Azure + Foundry + Foundry.Hosting + OpenAI) — qyl is moving to consume those packages instead of
+duplicating extensions in-tree (tracked in
+[MAF.Advanced.Patterns#1](https://github.com/Alexander-Nachtmann/MAF.Advanced.Patterns/issues/1) /
+[qyl#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)).
+
+Triage, RCA, fix generation, and code review agents share one composition shape:
 
 ```csharp
 var agent = llm.AsAIAgent(new ChatClientAgentOptions
@@ -270,16 +276,17 @@ site/                                   # Landing page (GitHub Pages)
 
 ## Documentation
 
-| Document                 | Purpose                                                      |
-|--------------------------|--------------------------------------------------------------|
-| `AGENTS.md`              | Execution style + plane laws for agents working in this repo |
-| `docs/ARCHITECTURE.md`   | C4 model (Context / Container / Component) + deployment      |
-| `docs/THREAT_MODEL.md`   | Static threat analysis with 20 attacker stories, P0–P3       |
-| `docs/OPEN_WORK.md`      | Consolidated open work items from former `specs/` tree       |
-| `docs/aot-assessment.md` | Native AOT readiness per project                             |
-| `docs/attribute.md`      | Full catalog of compile-time attributes across repos         |
-| `docs/generator.md`      | Full catalog of Roslyn source generators                     |
-| `docs/emitters.md`       | Emitter patterns used across generators                      |
+| Document                                  | Purpose                                                      |
+|-------------------------------------------|--------------------------------------------------------------|
+| `AGENTS.md`                               | Conventions + composition cheat sheet for agents in this repo |
+| `docs/ARCHITECTURE.md`                    | C4 model (Context / Container / Component) + deployment      |
+| `docs/THREAT_MODEL.md`                    | Static threat analysis with 20 attacker stories, P0–P3       |
+| `docs/OPEN_WORK.md`                       | Consolidated open work items from former `specs/` tree       |
+| `docs/MAF-Primitiv + qyl-Pattern.md`      | Design sketch — MAF primitives × qyl autofix patterns (12 sections) |
+| `docs/aot-assessment.md`                  | Native AOT readiness per project                             |
+| `docs/attribute.md`                       | Full catalog of compile-time attributes across repos         |
+| `docs/generator.md`                       | Full catalog of Roslyn source generators                     |
+| `docs/emitters.md`                        | Emitter patterns used across generators                      |
 
 ## License
 

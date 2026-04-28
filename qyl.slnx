@@ -91,6 +91,9 @@
     <!-- BUILD -->
 
     <Folder Name="/eng/">
+        <File Path="eng\semconv\bootstrap-weaver.sh" />
+        <File Path="eng\semconv\deprecated-lookup\master-programmatic.yaml" />
+        <File Path="eng\semconv\run-weaver.sh" />
         <File Path="eng\skill.md" />
         <File Path="eng\skillrauschen.md" />
         <Project Path="eng/build/build.csproj" />
