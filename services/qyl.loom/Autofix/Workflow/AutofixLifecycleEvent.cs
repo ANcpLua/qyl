@@ -50,9 +50,3 @@ internal sealed class ReportRecorded(string runId, string finalReport)
 {
     public string FinalReport { get; } = finalReport;
 }
-
-internal sealed class StoppingPointReached(string runId, string gate)
-    : AutofixLifecycleEvent(runId, "stopping_point", new { runId, gate })
-{
-    public string Gate { get; } = gate;
-}

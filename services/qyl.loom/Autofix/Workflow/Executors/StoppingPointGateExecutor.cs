@@ -2,31 +2,14 @@
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
-/// Generic transparent passthrough executor — used as the source of an
-/// AddExternalCall HITL port. The dashboard sees a RequestInfoEvent carrying
-/// the input and replies via run.SendResponseAsync with the same type.
-internal sealed class StoppingPointGateExecutor<T>(string id, string gateName) : Executor<T, T>(id)
+/// Trivial passthrough executor — bridges <c>AddSwitch</c> default cases into an
+/// <c>AddExternalCall</c> HITL port. The switch needs an executor as target, the
+/// port needs an executor as source; this fills both roles without transforming
+/// the message. The framework's <c>RequestInfoEvent</c> already carries the gate
+/// payload, so no custom lifecycle event is emitted here.
+internal sealed class StoppingPointGateExecutor<T>(string id) : Executor<T, T>(id)
     where T : notnull
 {
-    public string GateName { get; } = gateName;
-
-    public override async ValueTask<T> HandleAsync(T input, IWorkflowContext ctx, CancellationToken ct = default)
-    {
-        if (TryExtractRunId(input) is { } runId)
-        {
-            await ctx.AddEventAsync(new StoppingPointReached(runId, GateName), ct).ConfigureAwait(false);
-        }
-        return input;
-    }
-
-    private static string? TryExtractRunId(T input) =>
-        input switch
-        {
-            HypothesisVerdict h => h.RunId,
-            SolutionDraft s => s.RunId,
-            ConfidenceAudit a => a.RunId,
-            FixabilityVerdict f => f.RunId,
-            ContextSummary c => c.RunId,
-            _ => null
-        };
+    public override ValueTask<T> HandleAsync(T input, IWorkflowContext _, CancellationToken __ = default) =>
+        ValueTask.FromResult(input);
 }

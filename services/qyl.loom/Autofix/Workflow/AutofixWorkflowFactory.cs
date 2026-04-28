@@ -81,14 +81,12 @@ internal sealed class AutofixWorkflowFactory(
             .AddFanOutEdge<ContextSummary>(context, [.. branches], targetSelector: null)
             .AddFanInBarrierEdge([.. branches], judge);
 
-        // Stopping point #1 — pre-solution review (HITL).
+        // Stopping point #1 — pre-solution review (HITL). Pattern04 shape: judge
+        // emits HypothesisVerdict directly into the port, no bridge needed.
         if (config.StoppingPointAfterHypothesis)
         {
-            var gate = new StoppingPointGateExecutor<HypothesisVerdict>(
-                "loom.autofix.gate.pre_solution", "pre_solution");
             workflowBuilder = workflowBuilder
-                .AddEdge(judge, gate)
-                .AddExternalCall<HypothesisVerdict, HypothesisVerdict>(gate, "loom.autofix.review.pre_solution")
+                .AddExternalCall<HypothesisVerdict, HypothesisVerdict>(judge, "loom.autofix.review.pre_solution")
                 .ForwardMessage<HypothesisVerdict>("loom.autofix.review.pre_solution", [solution]);
         }
         else
@@ -98,25 +96,26 @@ internal sealed class AutofixWorkflowFactory(
 
         workflowBuilder = workflowBuilder.AddEdge(solution, confidence);
 
-        // Self-critique back-edge — Confidence routes either through the retry loop
-        // (back to the hypothesis branches with augmented context) or forward to the
-        // commit gate / report. The retry budget is enforced inside ConfidenceExecutor
-        // via AutofixWorkflowConfig.MaxConfidenceRetries so the cycle terminates.
+        // Stopping point #2 — pre-commit review (HITL). Pattern06 shape: switch needs an
+        // executor target and the port needs an executor source — one passthrough fills both.
         ExecutorBinding commitTarget;
         if (config.StoppingPointBeforeCommit)
         {
-            var gate = new StoppingPointGateExecutor<ConfidenceAudit>(
-                "loom.autofix.gate.pre_commit", "pre_commit");
+            var bridge = new StoppingPointGateExecutor<ConfidenceAudit>("loom.autofix.gate.pre_commit");
             workflowBuilder = workflowBuilder
-                .AddExternalCall<ConfidenceAudit, ConfidenceAudit>(gate, "loom.autofix.review.pre_commit")
+                .AddExternalCall<ConfidenceAudit, ConfidenceAudit>(bridge, "loom.autofix.review.pre_commit")
                 .ForwardMessage<ConfidenceAudit>("loom.autofix.review.pre_commit", [report]);
-            commitTarget = gate;
+            commitTarget = bridge;
         }
         else
         {
             commitTarget = report;
         }
 
+        // Self-critique back-edge — Confidence routes either through the retry loop
+        // (back to the hypothesis branches with augmented context) or forward to the
+        // commit target. The retry budget is enforced inside ConfidenceExecutor via
+        // AutofixWorkflowConfig.MaxConfidenceRetries so the cycle terminates.
         workflowBuilder = workflowBuilder
             .AddSwitch(confidence, sw => sw
                 .AddCase<ConfidenceAudit>(audit => audit is { RetryRequested: true }, critique)
