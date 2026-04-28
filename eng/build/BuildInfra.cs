@@ -118,8 +118,13 @@ interface IDocker : IHazSourcePaths
     private void Compose(params string[] composeArgs)
     {
         var argv = new[] { "compose", "-f", ComposeFile.ToString() }.Concat(composeArgs);
-        Docker(string.Join(" ", argv), workingDirectory: RootDirectory);
+        Docker(string.Join(" ", argv.Select(QuoteIfNeeded)), workingDirectory: RootDirectory);
     }
+
+    private static string QuoteIfNeeded(string arg) =>
+        arg.Length == 0 || arg.IndexOfAny([' ', '\t']) < 0
+            ? arg
+            : $"\"{arg.Replace("\"", "\\\"")}\"";
 
     private string FormatImageName(string name) =>
         string.IsNullOrEmpty(Registry)

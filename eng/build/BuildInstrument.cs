@@ -87,10 +87,16 @@ interface IInstrument : INukeBuild
             if (gitignore.FileExists())
             {
                 var content = await File.ReadAllTextAsync(gitignore);
-                if (!content.Contains(JavaAgentFileName))
+                var addJar = !content.Contains(JavaAgentFileName);
+                var addEnv = !content.Contains("qyl-otel.env");
+                if (addJar || addEnv)
                 {
-                    await File.WriteAllTextAsync(gitignore, content.TrimEnd() + $"\n{JavaAgentFileName}\nqyl-otel.env\n");
-                    Log.Information("Added {Agent} to .gitignore", JavaAgentFileName);
+                    var updated = content.TrimEnd() + "\n";
+                    if (addJar) updated += $"{JavaAgentFileName}\n";
+                    if (addEnv) updated += "qyl-otel.env\n";
+                    await File.WriteAllTextAsync(gitignore, updated);
+                    Log.Information(
+                        "Updated .gitignore (jar={AddedJar}, env={AddedEnv})", addJar, addEnv);
                 }
             }
 
