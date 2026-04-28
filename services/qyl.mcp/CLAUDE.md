@@ -80,6 +80,29 @@ root. Helper lives in `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiI
 construction site misses the wrap — symbol-based detection, rename- and namespace-collision-safe. Canonical shape
 in the MAF-qyl overlay skill.
 
+## MCP-server telemetry
+
+The MCP-server filter stack lives in `internal/qyl.instrumentation/Instrumentation/Mcp/QylMcpServerInstrumentation.cs`.
+Composition root calls `.UseQylMcpInstrumentation(TelemetryConstants.ActivitySource)` (or
+`ActivitySources.McpSource` directly) on the `IMcpServerBuilder` immediately after the transport — the facade
+registers the JSON-RPC envelope filters and the `tools/call` / `resources/read` / `prompts/get` request filters that
+emit one OTel span per primitive plus the `gen_ai.execute_tool {name}` child for every tool invocation. Both
+`qyl.mcp` and `qyl.loom` share this single facade so MCP traffic on either service is indistinguishable in span
+shape, attribute set, and status mapping.
+
+- **Never re-implement the filters inline.** Adding a parallel `WithMessageFilters` / `AddCallToolFilter` block that
+  emits its own activity is the same kind of drift that `[QYL0135]` catches at the agent layer; one canonical
+  facade per cross-cutting concern.
+- **PII is opt-in.** `RecordInputs` and `RecordOutputs` are off by default. Enable per call site with
+  `options => { options.RecordInputs = true; }` only when you have an explicit need (debugging, replay) and the
+  tool surface is known not to carry credentials or customer data.
+- **Silent errors get span status.** `CallToolResult.IsError = true` is mapped to `ActivityStatusCode.Error` with
+  message `"Tool returned IsError"` — the facade does this for you, so do not duplicate the IsError handling
+  inside individual tools.
+
+The downstream business filter (admin denial, scope injection, anthropic max-result-size meta) chains *after* the
+facade — it stays in `QylMcpServerRegistration` and contains zero telemetry concerns.
+
 ## TaskSupport classification
 
 `TaskSupport` on `[McpServerTool(...)]` (MCP SDK experimental; `<NoWarn>MCPEXP001</NoWarn>` scoped to this csproj):

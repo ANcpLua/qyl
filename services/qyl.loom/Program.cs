@@ -2,6 +2,7 @@ using System.Net.ServerSentEvents;
 using Microsoft.AspNetCore.Hosting;
 using Qyl.Contracts.Copilot;
 using Qyl.Instrumentation.Instrumentation;
+using Qyl.Instrumentation.Instrumentation.Mcp;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix;
@@ -86,11 +87,17 @@ builder.Services.AddSingleton<ExplorationOrchestrator>();
 // Code review
 builder.Services.AddSingleton<CodeReviewService>();
 
-// MCP server — tools dispatched by official MCP SDK
+// MCP server — tools dispatched by official MCP SDK; telemetry via the qyl
+// instrumentation facade so loom's MCP surface produces the same JSON-RPC
+// envelope spans, gen_ai.execute_tool spans, and silent-error capture as
+// qyl.mcp does. Both servers emit on the canonical "qyl.mcp" ActivitySource
+// (registered by AddQylServiceDefaults), so the OTel pipeline picks them up
+// without any extra source-list entries.
 builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
+    .UseQylMcpInstrumentation(ActivitySources.McpSource)
     .WithTools<LoomGodAnalyzerServer>()
     .WithTools<LoomWorkflowTools>()
     .WithPrompts<CodeReviewPrompt>()

@@ -32,6 +32,9 @@
     <!-- Microsoft.Agents.AI for AIAgentBuilder + UseLogging + UseOpenTelemetry (agent-layer) -->
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
 
+    <!-- ModelContextProtocol for IMcpServerBuilder + filter surface (Mcp/QylMcpServerInstrumentation) -->
+    <PackageReference Include="ModelContextProtocol"/>
+
     <!-- .NET 10 Telemetry (Enrichment, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>

@@ -131,6 +131,16 @@ In `services/qyl.mcp/`:
       `qyl.summarize_*`, `qyl.search_spans`, `qyl.find_similar_errors`, `qyl.list_errors`, anything >10k rows).
 - `LoomToolEnvelope` — use the non-generic companion (`Ok(data)`, `Fail<T>(error)`). Never the generic form.
 - `InvestigationLineage.TryEnter()` before any tool that spawns investigations. Depth 3, spawn 10 — runtime-enforced.
+- **MCP-server telemetry is a single facade.** Every `IMcpServerBuilder` composition root (currently
+  `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs` and `services/qyl.loom/Program.cs`) calls
+  `.UseQylMcpInstrumentation(ActivitySources.McpSource)` immediately after the transport. The facade in
+  `internal/qyl.instrumentation/Instrumentation/Mcp/QylMcpServerInstrumentation.cs` emits the JSON-RPC envelope
+  spans, the `gen_ai.execute_tool` / `mcp.resource.read` / `mcp.prompt.get` request spans, and maps both thrown
+  exceptions and silent `CallToolResult.IsError = true` returns onto the span status. Do not re-implement these
+  filters inline — that is the same drift class `[QYL0135]` catches at the agent layer. Business filters (admin
+  denial, scope injection, response shaping) chain *after* the facade and contain zero telemetry concerns.
+  `RecordInputs` / `RecordOutputs` are off by default; opt in only with an explicit need and a known-non-PII
+  surface.
 
 ## MAF agent composition
 

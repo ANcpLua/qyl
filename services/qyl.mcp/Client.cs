@@ -1,13 +1,13 @@
-using Qyl.OpenTelemetry.SemanticConventions.Incubating;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace qyl.mcp;
 
+/// Local handle to the shared MCP ActivitySource so qyl.mcp doesn't reach into
+/// <see cref="ActivitySources" /> at every call site. The source itself is the
+/// canonical one defined in <c>internal/qyl.instrumentation</c> and registered
+/// by <c>AddQylServiceDefaults</c>; mirroring it here would create a parallel
+/// source the OTel pipeline never subscribes to.
 internal static class TelemetryConstants
 {
-    // ActivitySource name for MCP tool invocations — per qyl observability docs
-    // (CLAUDE.md §Observability). Schema URL comes from semconv 1.40.
-    public static readonly ActivitySource ActivitySource = new(new ActivitySourceOptions("qyl.mcp")
-    {
-        Version = "1.0.0", TelemetrySchemaUrl = SchemaUrl.Current
-    });
+    public static ActivitySource ActivitySource => ActivitySources.McpSource;
 }

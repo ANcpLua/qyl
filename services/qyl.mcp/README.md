@@ -92,6 +92,65 @@ Do not reuse the repo-root `railway.toml` for the MCP service. The root file is 
 - Collector-facing auth remains separate: `qyl.mcp` still authenticates to `qyl.collector` using Keycloak client
   credentials or `QYL_MCP_TOKEN`.
 
+## Monitor your MCP server with qyl
+
+Wrap any .NET MCP server with one extension call to get full visibility into JSON-RPC traffic, tool/resource/prompt
+performance, and the silent errors MCP hides from you. The facade lives in `Qyl.Instrumentation.Instrumentation.Mcp`
+and produces OpenTelemetry spans on the canonical `qyl.mcp` ActivitySource — the same source `AddQylServiceDefaults`
+already registers, so spans flow through your existing OTel pipeline without extra wiring.
+
+```csharp
+using Qyl.Instrumentation.Instrumentation;
+using Qyl.Instrumentation.Instrumentation.Mcp;
+
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport()
+    .UseQylMcpInstrumentation(ActivitySources.McpSource)
+    .WithTools<MyTools>()
+    .WithResources<MyResources>()
+    .WithPrompts<MyPrompts>();
+```
+
+The wrapper instruments four call sites:
+
+| Span                                | Kind   | Notes                                                                          |
+|-------------------------------------|--------|--------------------------------------------------------------------------------|
+| `mcp.receive {method}`              | Server | Per inbound JSON-RPC envelope. Carries `mcp.client.{name,version}` and `rpc.*` |
+| `mcp.send`                          | Client | Per outbound JSON-RPC envelope. Carries `rpc.method` + `jsonrpc.request.id`    |
+| `execute_tool {name}`               | Internal | Per `tools/call`. Carries `gen_ai.*` + `mcp.tool.name`                       |
+| `mcp.resource.read {uri}`           | Internal | Per `resources/read`. Carries `mcp.resource.uri`                             |
+| `mcp.prompt.get {name}`             | Internal | Per `prompts/get`. Carries `mcp.prompt.name`                                 |
+
+### Capturing arguments and results (PII-gated)
+
+Tool arguments and outputs are off by default — they may contain user PII. Opt in explicitly:
+
+```csharp
+.UseQylMcpInstrumentation(ActivitySources.McpSource, options =>
+{
+    options.RecordInputs = true;   // tools/call arguments + prompts/get arguments
+    options.RecordOutputs = true;  // tools/call result text + resources/read content size + prompts/get message count
+})
+```
+
+Captured strings are truncated to `MaxAttributeValueLength` (4_000 chars by default) so they stay below collector
+limits. Disable in production if your tools handle credentials, customer data, or other sensitive content.
+
+### Errors that MCP silently swallows
+
+The official MCP SDK handles tool errors by returning a `CallToolResult` with `IsError = true` instead of throwing.
+The facade catches both shapes — thrown exceptions are recorded with `AddException` and `ActivityStatusCode.Error`,
+and `IsError = true` results set the same status with the message `"Tool returned IsError"` so silent failures show
+up in Sentry/qyl issue lists alongside thrown errors.
+
+### Composing with custom filters
+
+`UseQylMcpInstrumentation` is additive — it registers its filters and returns the same `IMcpServerBuilder`. You can
+chain `.WithMessageFilters` / `.WithRequestFilters` after it for business concerns (admin tool denial, scope
+injection, response shaping). qyl.mcp itself does this for `McpAdminToolFilter` + `ConstraintInjector`; see
+`services/qyl.mcp/Hosting/QylMcpServerRegistration.cs` for the canonical composition.
+
 ## Tools
 
 Primary tool families:

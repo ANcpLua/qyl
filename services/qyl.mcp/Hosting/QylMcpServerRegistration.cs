@@ -4,24 +4,27 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
+using Qyl.Instrumentation.Instrumentation.Mcp;
 using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Auth;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
-using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace qyl.mcp.Hosting;
 
 /// <summary>
-///     Wires the qyl MCP server into DI: transport (stdio or Streamable HTTP), authorization, JSON-RPC telemetry,
-///     and the generator-emitted tool manifest. Telemetry mirrors the MAF <c>Executor</c> pattern — one
-///     <c>ActivityKind.Server</c> span per inbound message, child <c>execute_tool {name}</c> spans parented via
-///     <c>Activity.Current</c>, W3C trace context propagated through <c>params._meta.traceparent</c> by the
-///     <c>ModelContextProtocol</c> SDK. MAF runtime is intentionally NOT imported here — dispatch is owned by the
-///     MCP SDK, and layering a MAF <c>Executor</c> on top would double-dispatch every <c>tools/call</c>. qyl.loom
-///     is where the MAF workflow runtime actually runs.
+///     Wires the qyl MCP server into DI: transport (stdio or Streamable HTTP), authorization, the qyl telemetry
+///     facade, and the generator-emitted tool manifest. Telemetry is delegated to
+///     <see cref="QylMcpServerInstrumentation.UseQylMcpInstrumentation" /> — the facade emits one
+///     <c>ActivityKind.Server</c> span per inbound JSON-RPC message and child spans for <c>tools/call</c>,
+///     <c>resources/read</c>, and <c>prompts/get</c>, parented via <c>Activity.Current</c>; W3C trace context
+///     flows through <c>params._meta.traceparent</c> as supplied by the SDK. The remaining inline filter handles
+///     business concerns (admin tool denial, scope injection, anthropic max-result-size meta) that have nothing
+///     to do with telemetry. MAF runtime is intentionally NOT imported here — dispatch is owned by the MCP SDK,
+///     and layering a MAF <c>Executor</c> on top would double-dispatch every <c>tools/call</c>. qyl.loom is where
+///     the MAF workflow runtime actually runs.
 /// </summary>
 internal static class QylMcpServerRegistration
 {
@@ -72,64 +75,7 @@ internal static class QylMcpServerRegistration
             builder.AddAuthorizationFilters();
 
         builder
-            .WithMessageFilters(filters =>
-            {
-                filters.AddIncomingFilter(next => async (context, cancellationToken) =>
-                {
-                    var method = context.JsonRpcMessage switch
-                    {
-                        JsonRpcRequest request => request.Method,
-                        JsonRpcNotification notification => notification.Method,
-                        _ => null
-                    };
-
-                    using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        method is not null ? $"mcp.receive {method}" : "mcp.receive",
-                        ActivityKind.Server);
-
-                    if (method is not null)
-                    {
-                        activity?.SetTag(Rpc.System, "jsonrpc");
-                        activity?.SetTag(Rpc.Method, method);
-                        activity?.SetTag(Rpc.JsonrpcVersion, "2.0");
-                    }
-
-                    try
-                    {
-                        await next(context, cancellationToken);
-                    }
-                    catch (Exception ex) when (RecordAndPropagate(activity, ex))
-                    {
-                        throw; // unreachable — RecordAndPropagate returns false, exception escapes the filter
-                    }
-                });
-
-                filters.AddOutgoingFilter(next => async (context, cancellationToken) =>
-                {
-                    using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        "mcp.send",
-                        ActivityKind.Client);
-
-                    switch (context.JsonRpcMessage)
-                    {
-                        case JsonRpcResponse response:
-                            activity?.SetTag(Rpc.System, "jsonrpc");
-                            activity?.SetTag(Rpc.JsonrpcRequestId, response.Id.ToString());
-                            break;
-                        case JsonRpcRequest request:
-                            activity?.SetTag(Rpc.System, "jsonrpc");
-                            activity?.SetTag(Rpc.Method, request.Method);
-                            activity?.SetTag(Rpc.JsonrpcRequestId, request.Id.ToString());
-                            break;
-                        case JsonRpcNotification notification:
-                            activity?.SetTag(Rpc.System, "jsonrpc");
-                            activity?.SetTag(Rpc.Method, notification.Method);
-                            break;
-                    }
-
-                    await next(context, cancellationToken);
-                });
-            })
+            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource)
             .WithRequestFilters(filters =>
             {
                 filters.AddCallToolFilter(next => async (request, cancellationToken) =>
@@ -151,37 +97,19 @@ internal static class QylMcpServerRegistration
                             scope);
                     }
 
-                    using var activity = TelemetryConstants.ActivitySource.StartActivity(
-                        $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
+                    var result = await next(request, cancellationToken);
 
-                    activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
-                    activity?.SetTag(GenAiAttributes.ToolName, toolName);
-                    activity?.SetTag(GenAiAttributes.ToolType, "extension");
-                    activity?.SetTag(Rpc.Method, "tools/call");
+                    var totalChars = result.Content
+                        .OfType<TextContentBlock>()
+                        .Sum(static content => content.Text.Length);
 
-                    try
+                    if (totalChars > 10_000)
                     {
-                        var result = await next(request, cancellationToken);
-
-                        if (result.IsError is true)
-                            activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
-
-                        var totalChars = result.Content
-                            .OfType<TextContentBlock>()
-                            .Sum(static content => content.Text.Length);
-
-                        if (totalChars > 10_000)
-                        {
-                            result.Meta ??= [];
-                            result.Meta["anthropic/maxResultSizeChars"] = totalChars;
-                        }
-
-                        return result;
+                        result.Meta ??= [];
+                        result.Meta["anthropic/maxResultSizeChars"] = totalChars;
                     }
-                    catch (Exception ex) when (RecordAndPropagate(activity, ex))
-                    {
-                        throw; // unreachable — RecordAndPropagate returns false, exception escapes the filter
-                    }
+
+                    return result;
                 });
             })
             .WithTools<CapabilityTools>(jsonOptions);
@@ -196,24 +124,4 @@ internal static class QylMcpServerRegistration
                 .WithResources([QueryStudioResource.Create()]);
         }
     }
-
-    // Observe-only exception recorder for the MCP transport boundary. Returning false from a `when`
-    // filter means the catch clause never runs — the exception propagates with its original stack
-    // trace preserved. Narrowing the catch type would leave unknown exception kinds un-recorded on
-    // the span, violating the OTel contract that server spans carry ActivityStatusCode.Error on any
-    // unhandled failure. The breadth is intentional and strictly scoped to this transport layer.
-    private static bool RecordAndPropagate(Activity? activity, Exception ex)
-    {
-        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity?.AddException(ex);
-        return false;
-    }
-}
-
-file static class Rpc
-{
-    public const string System = "rpc.system.name";
-    public const string Method = "rpc.method";
-    public const string JsonrpcVersion = "jsonrpc.protocol.version";
-    public const string JsonrpcRequestId = "jsonrpc.request.id";
 }
