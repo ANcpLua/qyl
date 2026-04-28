@@ -19,6 +19,9 @@
 
   <ItemGroup>
     <PackageReference Include="Spectre.Console"/>
+    <!-- Source-only: Guard.* compiles into Qyl.Run.dll as `internal`; no transitive runtime dep
+         shipped to consumers of the public Qyl.Run NuGet. -->
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>

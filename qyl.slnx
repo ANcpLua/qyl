@@ -100,9 +100,6 @@
     <Folder Name="/eng/MSBuild/">
         <File Path="eng/MSBuild/Shared.props" />
         <File Path="eng/MSBuild/Shared.targets" />
-        <File Path="eng/MSBuild/Shared.Claude.props" />
-        <File Path="eng/MSBuild/Shared.Claude.Rules.targets" />
-        <File Path="eng/MSBuild/Shared.Claude.targets" />
     </Folder>
 
     <!-- TYPESPEC -->
@@ -199,7 +196,6 @@
         <File Path=".dockerignore" />
         <File Path=".gitignore" />
         <File Path="AGENTS.md" />
-        <File Path="CHANGELOG.md" />
         <File Path="Directory.Build.props" />
         <File Path="Directory.Build.targets" />
         <File Path="Directory.Packages.props" />

@@ -1,13 +1,11 @@
 # qyl — Agent Instructions
 
-You are an AI coding agent (Claude Code, Codex, aider, Gemini CLI, …) operating on the qyl repository **locally**.
-Cloud GitHub Copilot has its own self-contained instructions at `.github/copilot-instructions.md` — do not edit that
-file as a side-effect of refactoring this one. `CLAUDE.md` is a symlink to this file (Claude Code convention).
+You are an AI coding agent (Claude Code, Codex, aider, Gemini CLI, …) operating on the qyl repository.
+`CLAUDE.md` is a symlink to this file (Claude Code convention).
 
 ## Hard rules — violations fail CI
 
-These mirror `.editorconfig`, `.github/copilot-instructions.md`, and the ruleset emitted by
-`eng/MSBuild/Shared.Claude.*`.
+These mirror `.editorconfig` + the analyzer ruleset shipped by `ANcpLua.NET.Sdk`.
 
 - **Sealed by default:** every non-public class is `sealed` unless a subclass exists in the same assembly.
 - **No suppression:** no `#pragma warning disable`, no `[SuppressMessage]`, no `<NoWarn>` additions, no `null!`. Fix
@@ -151,7 +149,7 @@ Local invariants:
   layers must be wrapped — wrap one, lose half the OTel attributes.
 - Never instantiate `ActivitySource` directly in agent code. `[AgentTraced]` is removed; do not reintroduce.
 
-### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.1.0 and live qyl call-sites
+### MAF entry-point cheat sheet — verified against `Microsoft.Agents.AI` 1.3.0 and live qyl call-sites
 
 Reach for these before hand-rolling. Every row has a concrete qyl call-site — grep it before writing a new variant.
 

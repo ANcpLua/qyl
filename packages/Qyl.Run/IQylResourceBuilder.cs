@@ -45,8 +45,8 @@ public static class QylResourceBuilderExtensions
     /// </summary>
     public static IQylResourceBuilder WaitFor(this IQylResourceBuilder builder, params IQylResourceBuilder[] others)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(others);
+        Guard.NotNull(builder);
+        Guard.NotNull(others);
         if (others.Length == 0) return builder;
 
         var merged = new List<string>(builder.Resource.WaitForNames);

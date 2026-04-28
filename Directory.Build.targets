@@ -6,7 +6,4 @@
   <!-- Import Shared Targets -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.targets"/>
 
-  <!-- CLAUDE.md generation system (v2 - Claude Code compatible) -->
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.Claude.targets"/>
-
 </Project>

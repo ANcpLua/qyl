@@ -77,7 +77,7 @@ public sealed class QylAppBuilder
     private QylResourceBuilder AddCore(string name, string kind, int port, string environment, string? project,
         Uri? externalEndpoint, string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Guard.NotNullOrWhiteSpace(name);
         if (_resources.Any(r => string.Equals(r.Name, name, StringComparison.Ordinal)))
         {
             throw new InvalidOperationException($"Resource '{name}' was already added; names must be unique.");
