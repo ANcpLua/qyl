@@ -97,7 +97,7 @@ builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .UseQylMcpInstrumentation(ActivitySources.McpSource)
+    .UseQylMcpInstrumentation(ActivitySources.McpSource, options => options.Transport = "http")
     .WithTools<LoomGodAnalyzerServer>()
     .WithTools<LoomWorkflowTools>()
     .WithPrompts<CodeReviewPrompt>()

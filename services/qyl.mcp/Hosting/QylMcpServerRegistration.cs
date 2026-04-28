@@ -75,7 +75,14 @@ internal static class QylMcpServerRegistration
             builder.AddAuthorizationFilters();
 
         builder
-            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource)
+            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options =>
+            {
+                options.Transport = transport switch
+                {
+                    McpTransportMode.Http => "http",
+                    _ => "stdio"
+                };
+            })
             .WithRequestFilters(filters =>
             {
                 filters.AddCallToolFilter(next => async (request, cancellationToken) =>

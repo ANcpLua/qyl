@@ -19,27 +19,42 @@ using RpcAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attribute
 namespace Qyl.Instrumentation.Instrumentation.Mcp;
 
 /// <summary>
-///     PII-gated capture controls for tool/resource/prompt arguments and results.
-///     Matches Sentry's <c>recordInputs</c> / <c>recordOutputs</c> + the OTel
-///     <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c> opt-in shape.
+///     PII-gated capture controls + transport metadata for the MCP-server filter
+///     stack. Mirrors Sentry's <c>recordInputs</c> / <c>recordOutputs</c> + the
+///     OTel <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c> opt-in shape.
+///     Mutable class (not a record) so callers can use the <c>Action&lt;Options&gt;</c>
+///     overload of <c>UseQylMcpInstrumentation</c> with familiar property assignment.
 /// </summary>
-/// <param name="RecordInputs">
-///     When <c>true</c>, capture <c>tools/call</c> arguments and <c>prompts/get</c>
-///     parameters on the span. Off by default — arguments may carry user PII.
-/// </param>
-/// <param name="RecordOutputs">
-///     When <c>true</c>, capture <c>tools/call</c> result text, <c>resources/read</c>
-///     content size, and <c>prompts/get</c> message count on the span. Off by default.
-/// </param>
-/// <param name="MaxAttributeValueLength">
-///     Per-attribute character cap when <see cref="RecordInputs" /> or
-///     <see cref="RecordOutputs" /> is on. Long arguments and results are truncated
-///     to this length with an ellipsis suffix to stay below collector limits.
-/// </param>
-public sealed record QylMcpInstrumentationOptions(
-    bool RecordInputs = false,
-    bool RecordOutputs = false,
-    int MaxAttributeValueLength = 4_000);
+public sealed class QylMcpInstrumentationOptions
+{
+    /// <summary>
+    ///     When <c>true</c>, capture <c>tools/call</c> arguments and <c>prompts/get</c>
+    ///     parameters on the span. Off by default — arguments may carry user PII.
+    /// </summary>
+    public bool RecordInputs { get; set; }
+
+    /// <summary>
+    ///     When <c>true</c>, capture <c>tools/call</c> result text, <c>resources/read</c>
+    ///     content size, and <c>prompts/get</c> message count on the span. Off by default.
+    /// </summary>
+    public bool RecordOutputs { get; set; }
+
+    /// <summary>
+    ///     Per-attribute character cap when <see cref="RecordInputs" /> or
+    ///     <see cref="RecordOutputs" /> is on. Long arguments and results are truncated
+    ///     to this length with an ellipsis suffix to stay below collector limits.
+    /// </summary>
+    public int MaxAttributeValueLength { get; set; } = 4_000;
+
+    /// <summary>
+    ///     Transport label tagged on every span as <c>mcp.transport</c>. Used by
+    ///     dashboards to group traffic by transport (Sentry's "Transport Distribution"
+    ///     widget). Composition roots that know the transport at wire-up time
+    ///     (qyl.mcp's <c>McpTransportMode</c> switch, qyl.loom's hard-coded HTTP)
+    ///     should set this. Leave <c>null</c> if the transport is decided per-request.
+    /// </summary>
+    public string? Transport { get; set; }
+}
 
 /// <summary>
 ///     Wires qyl's MCP-server telemetry stack onto an <see cref="IMcpServerBuilder" />.
@@ -105,7 +120,7 @@ public static class QylMcpServerInstrumentation
                     if (context.JsonRpcMessage is JsonRpcRequest req)
                         activity.SetTag(JsonrpcAttributes.RequestId, req.Id.ToString());
 
-                    SetClientInfo(activity, context);
+                    TagServerContext(activity, context.Server, options.Transport);
                 }
 
                 try
@@ -140,6 +155,7 @@ public static class QylMcpServerInstrumentation
                             activity.SetTag(RpcAttributes.Method, notification.Method);
                             break;
                     }
+                    TagServerContext(activity, context.Server, options.Transport);
                 }
 
                 await next(context, ct).ConfigureAwait(false);
@@ -162,7 +178,7 @@ public static class QylMcpServerInstrumentation
                     activity.SetTag(GenAiAttributes.ToolType, "extension");
                     activity.SetTag(McpAttr.McpToolName, toolName);
                     activity.SetTag(RpcAttributes.Method, "tools/call");
-                    SetClientInfo(activity, request);
+                    TagServerContext(activity, request.Server, options.Transport);
 
                     if (options.RecordInputs && request.Params?.Arguments is { } args)
                         activity.SetTag(McpAttr.McpToolArguments, Truncate(SerializeArguments(args), options.MaxAttributeValueLength));
@@ -207,7 +223,7 @@ public static class QylMcpServerInstrumentation
                 using var activity = activitySource.StartActivity($"mcp.resource.read {uri}");
                 activity?.SetTag(McpAttr.McpResourceUri, uri);
                 activity?.SetTag(RpcAttributes.Method, "resources/read");
-                SetClientInfo(activity, request);
+                TagServerContext(activity, request.Server, options.Transport);
 
                 try
                 {
@@ -239,7 +255,7 @@ public static class QylMcpServerInstrumentation
                 using var activity = activitySource.StartActivity($"mcp.prompt.get {promptName}");
                 activity?.SetTag(McpAttr.McpPromptName, promptName);
                 activity?.SetTag(RpcAttributes.Method, "prompts/get");
-                SetClientInfo(activity, request);
+                TagServerContext(activity, request.Server, options.Transport);
 
                 if (activity is not null && options.RecordInputs && request.Params?.Arguments is { } args)
                     activity.SetTag(McpAttr.McpPromptArguments, Truncate(SerializeArguments(args), options.MaxAttributeValueLength));
@@ -263,24 +279,26 @@ public static class QylMcpServerInstrumentation
         return builder;
     }
 
-    private static void SetClientInfo<TParams>(Activity? activity, RequestContext<TParams> ctx)
+    /// Stamps every span with the per-server context: client name/version (Sentry's
+    /// "Traffic by Client"), session id (Sentry's "session id grouping"), and the
+    /// transport (Sentry's "Transport Distribution"). Pulls all three from the
+    /// <see cref="McpServer" /> directly so we don't need separate overloads for
+    /// <c>RequestContext&lt;T&gt;</c> vs <c>MessageContext</c>.
+    private static void TagServerContext(Activity? activity, McpServer server, string? transport)
     {
         if (activity is null) return;
-        if (ctx.Server.ClientInfo is { } info)
-        {
-            activity.SetTag(McpAttr.McpClientName, info.Name);
-            activity.SetTag(McpAttr.McpClientVersion, info.Version);
-        }
-    }
 
-    private static void SetClientInfo(Activity? activity, MessageContext ctx)
-    {
-        if (activity is null) return;
-        if (ctx.Server.ClientInfo is { } info)
+        if (server.ClientInfo is { } info)
         {
             activity.SetTag(McpAttr.McpClientName, info.Name);
             activity.SetTag(McpAttr.McpClientVersion, info.Version);
         }
+
+        if (server.SessionId is { Length: > 0 } sessionId)
+            activity.SetTag(McpAttr.McpSessionId, sessionId);
+
+        if (transport is { Length: > 0 })
+            activity.SetTag(McpAttr.McpTransport, transport);
     }
 
     // Observe-only exception recorder. Returning false from a `when` filter means the
@@ -322,6 +340,8 @@ internal static class McpAttr
 {
     public const string McpClientName = "mcp.client.name";
     public const string McpClientVersion = "mcp.client.version";
+    public const string McpSessionId = "mcp.session.id";
+    public const string McpTransport = "mcp.transport";
 
     public const string McpToolName = "mcp.tool.name";
     public const string McpToolArguments = "mcp.tool.call.arguments";
