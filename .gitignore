@@ -49,11 +49,12 @@ project.lock.json
 *.svclog
 *.scc
 
-# Claude Code local files (keep rules, workflows, skills tracked for portability)
+# Claude Code local files (keep rules, workflows, skills, settings tracked for portability)
 .claude/*
 !.claude/rules/
 !.claude/qyl-workflows/
 !.claude/skills/
+!.claude/settings.json
 
 # Plugin session state (Hades smart ledger, elegance pipeline, etc.)
 .smart/
