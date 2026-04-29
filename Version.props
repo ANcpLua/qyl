@@ -20,7 +20,12 @@
     <ANcpLuaAnalyzersVersion>1.28.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.6.0-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.5.2</ANcpLuaAgentsVersion>
-    <!-- MAF 1.3 (released 2026-04-23). Only packages with consumers in this repo. -->
+    <!-- MAF (Microsoft.Agents.AI.*) — values mirror ANcpLua.NET.Sdk truth at numeric base 1.3.0,
+         highest experimental track per package. These entries CANNOT be pruned even when equal to
+         truth: qyl/Version.props is imported by Directory.Build.props BEFORE the SDK is brought
+         into scope, so Directory.Packages.props evaluates $(Microsoft...Version) against this file
+         only. SDK truth flows in later for projects with <Project Sdk="ANcpLua.NET.Sdk">, but by
+         then PackageVersion items have already resolved. Bump in lockstep with SDK truth. -->
     <MicrosoftAgentsAIVersion>1.3.0</MicrosoftAgentsAIVersion>
     <MicrosoftAgentsAIAbstractionsVersion>1.3.0</MicrosoftAgentsAIAbstractionsVersion>
     <MicrosoftAgentsAIWorkflowsVersion>1.3.0</MicrosoftAgentsAIWorkflowsVersion>
@@ -28,7 +33,6 @@
     <MicrosoftAgentsAIHostingVersion>1.3.0-preview.260423.1</MicrosoftAgentsAIHostingVersion>
     <MicrosoftAgentsAIDevUIVersion>1.3.0-preview.260423.1</MicrosoftAgentsAIDevUIVersion>
     <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.3.0-preview.260423.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
-
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.10.0</SystemClientModelVersion>
