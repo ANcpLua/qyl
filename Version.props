@@ -19,7 +19,7 @@
     <ANcpLuaRoslynUtilitiesVersion>2.0.7</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAnalyzersVersion>1.28.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.6.0-preview.1</ANcpLuaAgentsTestingVersion>
-    <ANcpLuaAgentsVersion>0.5.2</ANcpLuaAgentsVersion>
+    <ANcpLuaAgentsVersion>0.6.0</ANcpLuaAgentsVersion>
     <!-- MAF (Microsoft.Agents.AI.*) versions are sourced from
          framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props, imported
          from Directory.Packages.props before this file. Bumps happen in the SDK
