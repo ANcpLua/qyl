@@ -7,6 +7,8 @@ export interface AgentRegistration {
     instructionsHash: string | null;
     providerName: string | null;
     registeredAtUtc: string;
+    lastSeenUtc: string | null;
+    callCount24h: number;
 }
 
 export interface AgentInventoryResponse {

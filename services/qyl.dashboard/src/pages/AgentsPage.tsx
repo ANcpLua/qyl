@@ -21,7 +21,8 @@ function truncateHash(hash: string | null) {
     return hash.length <= 12 ? hash : `${hash.slice(0, 12)}…`;
 }
 
-function formatRelative(iso: string) {
+function formatRelative(iso: string | null) {
+    if (!iso) return '—';
     const dt = new Date(iso).getTime();
     const diff = Date.now() - dt;
     const min = 60_000;
@@ -86,10 +87,16 @@ export function AgentsPage() {
                 <span className="text-[11px] text-brutal-slate">{info.getValue() ?? '—'}</span>
             ),
         }),
-        columnHelper.accessor('registeredAtUtc', {
-            header: 'REGISTERED',
+        columnHelper.accessor('lastSeenUtc', {
+            header: 'LAST_SEEN',
             cell: info => (
                 <span className="text-[11px] text-brutal-slate">{formatRelative(info.getValue())}</span>
+            ),
+        }),
+        columnHelper.accessor('callCount24h', {
+            header: 'CALLS_24H',
+            cell: info => (
+                <span className="font-mono text-[11px] tabular-nums text-right block">{info.getValue()}</span>
             ),
         }),
     ], []);

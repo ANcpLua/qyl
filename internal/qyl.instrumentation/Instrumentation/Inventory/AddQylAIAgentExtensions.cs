@@ -25,6 +25,7 @@ public static class AddQylAIAgentExtensions
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IQylAgentInventory, QylAgentInventory>();
+        services.TryAddSingleton<QylAgentActivityProcessor>();
         return services;
     }
 

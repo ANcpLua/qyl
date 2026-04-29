@@ -81,6 +81,7 @@ internal static class ConversationEndpoints
         IConfiguration configuration,
         int? limit,
         int? hours,
+        string? agent,
         CancellationToken ct)
     {
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
@@ -88,6 +89,15 @@ internal static class ConversationEndpoints
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
+
+        // Optional agent filter — keep the named-session join cheap by gating on the
+        // gen_ai.agent.name attribute via DuckDB's JSON probe before grouping.
+        var agentFilter = string.IsNullOrWhiteSpace(agent)
+            ? string.Empty
+            : " AND session_id IN (SELECT session_id FROM qyl_conversations"
+              + " WHERE json_extract_string(attributes_json, '$.\"gen_ai.agent.name\"') = $"
+              + cmd.AddParam(agent) + ")";
+
         cmd.CommandText = $"""
                            SELECT
                                session_id,
@@ -101,6 +111,7 @@ internal static class ConversationEndpoints
                                list_distinct(list(gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL)) AS models
                            FROM qyl_conversations
                            WHERE start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST({window.ToString(CultureInfo.InvariantCulture)} AS UBIGINT) * 3600000000000)
+                           {agentFilter}
                            GROUP BY session_id
                            ORDER BY last_seen_ns DESC
                            LIMIT {boundedLimit.ToString(CultureInfo.InvariantCulture)};
@@ -157,7 +168,8 @@ internal static class ConversationEndpoints
                                  gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                  gen_ai_input_tokens, gen_ai_output_tokens,
                                  gen_ai_tool_name, gen_ai_tool_call_id, gen_ai_cost_usd,
-                                 status_code, status_message, attributes_json
+                                 status_code, status_message, attributes_json,
+                                 json_extract_string(attributes_json, '$."gen_ai.agent.name"') AS agent_name
                           FROM qyl_conversations
                           WHERE session_id = $1
                           ORDER BY start_time_unix_nano ASC;
@@ -168,6 +180,7 @@ internal static class ConversationEndpoints
         var firstSeen = DateTime.MaxValue;
         var lastSeen = DateTime.MinValue;
         var totalCost = 0d;
+        string? firstAgentName = null;
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -182,6 +195,8 @@ internal static class ConversationEndpoints
             var endTime = NanosToUtc(startNs + durationNs);
             if (endTime > lastSeen) lastSeen = endTime;
             if (costUsd is { } c) totalCost += c;
+
+            firstAgentName ??= reader.Col(18).AsString;
 
             spans.Add(new ConversationSpan(
                 SpanId: reader.Col(0).AsString ?? "",
@@ -207,7 +222,9 @@ internal static class ConversationEndpoints
         if (spans.Count == 0)
             return TypedResults.NotFound(new { error = "No conversation found for sessionId", sessionId });
 
-        SpanCountHistogram.Record(spans.Count, new KeyValuePair<string, object?>("session_id", sessionId));
+        SpanCountHistogram.Record(
+            spans.Count,
+            new KeyValuePair<string, object?>("agent_name", firstAgentName ?? "unknown"));
 
         return TypedResults.Ok(new ConversationDetail(
             sessionId,

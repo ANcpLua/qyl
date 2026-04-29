@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {
     createColumnHelper,
     flexRender,
@@ -7,7 +8,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import {Bot, Clock, Coins, Hash, Loader2, MessagesSquare, Wrench} from 'lucide-react';
+import {Bot, Clock, Coins, Hash, Loader2, MessagesSquare, Wrench, X} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -51,9 +52,31 @@ function formatCost(usd: number) {
 
 export function ConversationsPage() {
     const [sorting, setSorting] = useState<SortingState>([{id: 'lastSeen', desc: true}]);
-    const [selectedSession, setSelectedSession] = useState<string | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const list = useConversations(100, 168);
+    // URL is the source of truth — sessionId in ?sessionId= is the selection,
+    // ?agent= is the active list filter. Deep-links land directly; AgentsPage
+    // row-click navigates here with ?agent={name} and we filter on the wire.
+    const selectedSession = searchParams.get('sessionId');
+    const agentFilter = searchParams.get('agent');
+
+    const selectSession = (id: string | null) => {
+        const next = new URLSearchParams(searchParams);
+        if (id) {
+            next.set('sessionId', id);
+        } else {
+            next.delete('sessionId');
+        }
+        setSearchParams(next, {replace: true});
+    };
+
+    const clearAgentFilter = () => {
+        const next = new URLSearchParams(searchParams);
+        next.delete('agent');
+        setSearchParams(next, {replace: true});
+    };
+
+    const list = useConversations(100, 168, agentFilter);
     const detail = useConversationDetail(selectedSession);
 
     const columns = useMemo(() => [
@@ -107,6 +130,17 @@ export function ConversationsPage() {
                     <div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.18em] text-signal-orange">
                         <MessagesSquare className="w-4 h-4"/>
                         CONVERSATIONS
+                        {agentFilter && (
+                            <button
+                                type="button"
+                                onClick={clearAgentFilter}
+                                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 border border-signal-orange/55 text-signal-orange text-[10px] tracking-[0.12em] hover:bg-signal-orange/12 transition-colors"
+                                title="Clear agent filter"
+                            >
+                                AGENT={agentFilter}
+                                <X className="w-3 h-3"/>
+                            </button>
+                        )}
                         {list.data && (
                             <Badge variant="outline" className="ml-auto">
                                 {list.data.total}
@@ -154,7 +188,7 @@ export function ConversationsPage() {
                                 return (
                                     <tr
                                         key={row.id}
-                                        onClick={() => setSelectedSession(row.original.sessionId)}
+                                        onClick={() => selectSession(row.original.sessionId)}
                                         className={cn(
                                             'border-b border-brutal-zinc/40 cursor-pointer transition-colors',
                                             isActive

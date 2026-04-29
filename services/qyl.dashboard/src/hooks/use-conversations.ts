@@ -59,15 +59,22 @@ export interface ConversationDetail {
 
 export const conversationKeys = {
     all: ['conversations'] as const,
-    list: (limit?: number, hours?: number) => [...conversationKeys.all, 'list', limit, hours] as const,
+    list: (limit?: number, hours?: number, agent?: string | null) =>
+        [...conversationKeys.all, 'list', limit, hours, agent ?? null] as const,
     detail: (sessionId: string | null) => [...conversationKeys.all, 'detail', sessionId] as const,
 };
 
-export function useConversations(limit = 100, hours = 168) {
+export function useConversations(limit = 100, hours = 168, agent: string | null = null) {
+    const params = new URLSearchParams({
+        limit: String(limit),
+        hours: String(hours),
+    });
+    if (agent) params.set('agent', agent);
+
     return useQuery({
-        queryKey: conversationKeys.list(limit, hours),
+        queryKey: conversationKeys.list(limit, hours, agent),
         queryFn: () => fetchJson<ConversationListResponse>(
-            `/api/v1/conversations?limit=${limit}&hours=${hours}`,
+            `/api/v1/conversations?${params.toString()}`,
         ),
         staleTime: 30_000,
     });

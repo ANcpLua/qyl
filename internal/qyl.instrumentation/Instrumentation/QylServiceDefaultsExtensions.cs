@@ -25,6 +25,7 @@ using OpenTelemetry.Trace;
 using Qyl.Contracts.Observability;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
 
 namespace Qyl.Instrumentation.Instrumentation;
@@ -250,6 +251,13 @@ public static class QylServiceDefaultsExtensions
                     // Custom sources from options
                     foreach (var source in options.AdditionalActivitySources)
                         tracing.AddSource(source);
+
+                    // PRD #173: SDK-side cost annotation + agent-activity tracking.
+                    // Cost emits gen_ai.usage.cost from the embedded pricing snapshot;
+                    // the activity processor populates IQylAgentInventory.LastSeenUtc /
+                    // CallCount24h from gen_ai.agent.name spans.
+                    tracing.AddProcessor(new QylGenAiCostProcessor());
+                    tracing.AddProcessor<QylAgentActivityProcessor>();
                 }
 
                 options.ConfigureTracing?.Invoke(tracing);
