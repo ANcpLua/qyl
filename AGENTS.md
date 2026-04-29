@@ -6,6 +6,49 @@ to this file.
 These are the conventions the codebase already follows. The analyzer ruleset shipped via `ANcpLua.NET.Sdk` enforces most
 of them — when you write code that fits the patterns below, the build stays green by default.
 
+## ⚠ Consolidation status — BLOCKED on cross-repo NuGet decision (paused 2026-04-29)
+
+The `ANcpLua.Agents` → `MAF.Advanced.Patterns` consolidation is **70% complete** but stalled. Next session: **ASK
+the user how they want to wire qyl → MAF.Advanced.Patterns before touching Phases 4–10.** Don't pick an approach
+unilaterally; the user explicitly declined both `nuget.org publish` and `local NuGet feed` on this date.
+
+**Done (already shipped to `Alexander-Nachtmann/MAF.Advanced.Patterns@main`):**
+
+- ✅ Phase 1 — audit (16 vendored types confirmed still `internal` in MAF 1.3; testing harness ports as-is)
+- ✅ Phase 2 — charter rewrite: facade catalog → MAF consumer toolkit (3 pillars, 3 contracts)
+- ✅ Phase 3 — sibling csproj scaffolding (`Governance`, `Testing`, `Testing.Workflows`)
+- ✅ Phase 6 — Governance migration from `ANcpLua.Agents/Governance/` (commit `12a746f`)
+- ✅ Phase 7 — Testing harness migration from `ANcpLua.Agents.Testing*` (110 files, commit `bae3d2e`)
+
+**Blocked (need user decision before touching):**
+
+- ⏸ Phase 4 — extract `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` → `MAF.Advanced.Patterns/src` core
+  facades. Additive-only on the MAF.Advanced.Patterns side; useless until qyl can consume it.
+- ⏸ Phase 5 — `[QYL0135] AgentCompositionRootAnalyzer` dual-symbol pass: accept both
+  `Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation.UseQylAgentTelemetry` (old) and
+  `Qyl.Hosting.UseQylAgentTelemetry` (new) during cutover.
+- ⏸ Phase 8 — qyl `Program.cs` cutover: `services/qyl.loom/Program.cs` and `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs`
+  switch from `qyl.instrumentation` ProjectReference to `MAF.Advanced.Patterns` PackageReference, namespace
+  changes from `Qyl.Instrumentation.Instrumentation.{GenAi,Mcp}` → `Qyl.Hosting`.
+- ⏸ Phase 9 — drop dual-symbol from `[QYL0135]`, delete `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/`.
+- ⏸ Phase 10 — promote `services/qyl.loom.patterns/Patterns/01-06` → `MAF.Advanced.Patterns/samples/QylLoomCookbook/`,
+  delete `qyl.loom.patterns` from `qyl.slnx`. Depends on Phase 4 (cookbook uses `UseQylTelemetry` from `qyl.instrumentation/GenAi`)
+  and Phase 7 (cookbook uses `FakeChatClient` from `ANcpLua.Agents.Testing` — now in `MAF.Advanced.Patterns.Testing`).
+
+**The blocker:** all five blocked phases require qyl to consume MAF.Advanced.Patterns. `qyl/nuget.config` points only
+at `nuget.org`; qyl currently has zero `<PackageReference Include="MAF.Advanced.Patterns*" />`. To unblock, the user
+must pick one of:
+
+1. **Publish MAF.Advanced.Patterns to nuget.org** as `1.3.x` or `1.4.0-preview` and add `<PackageReference>` rows to
+   `services/qyl.loom/qyl.loom.csproj` + `services/qyl.mcp/qyl.mcp.csproj`. Permanent and visible.
+2. **Local NuGet feed** — `dotnet pack` MAF.Advanced.Patterns to `~/local-nuget/`, add `<add key="local" value="…" />`
+   to `qyl/nuget.config`, consume locally. Works on this machine; CI needs separate wiring.
+3. **Submodule + ProjectReference** — add `MAF.Advanced.Patterns/` as a git submodule under `qyl/external/`, use
+   `ProjectReference` instead of `PackageReference`. Tightest coupling; one repo of truth, one branch to keep in sync.
+
+When picked, the follow-up PR should land Phases 4-5-8-9-10 in this order, with `dotnet build qyl.slnx` and
+`dotnet build MAF.Advanced.Patterns.slnx` both green at every step.
+
 ## Style the codebase has settled on
 
 Anchored in `.editorconfig` + the `ANcpLua.NET.Sdk` analyzers. Most of these are auto-fixable; the rest get flagged.
