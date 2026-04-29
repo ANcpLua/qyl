@@ -28,6 +28,8 @@ const AlertsPage = lazy(() => import('@/pages/AlertsPage').then(m => ({default: 
 const PerformancePage = lazy(() => import('@/pages/PerformancePage').then(m => ({default: m.PerformancePage})));
 const ErrorsOutagesPage = lazy(() => import('@/pages/ErrorsOutagesPage').then(m => ({default: m.ErrorsOutagesPage})));
 const SpanExplorerPage = lazy(() => import('@/pages/SpanExplorerPage').then(m => ({default: m.SpanExplorerPage})));
+const ConversationsPage = lazy(() => import('@/pages/ConversationsPage').then(m => ({default: m.ConversationsPage})));
+const AgentsPage = lazy(() => import('@/pages/AgentsPage').then(m => ({default: m.AgentsPage})));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -182,6 +184,8 @@ export default function App() {
                                 <Route path="/performance" element={<PerformancePage/>}/>
                                 <Route path="/errors" element={<ErrorsOutagesPage/>}/>
                                 <Route path="/spans" element={<SpanExplorerPage/>}/>
+                                <Route path="/conversations" element={<ConversationsPage/>}/>
+                                <Route path="/agents" element={<AgentsPage/>}/>
                             </Route>
                         </Routes>
                     </Suspense>

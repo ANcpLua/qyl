@@ -13,3 +13,5 @@ export {ErrorsOutagesPage} from './ErrorsOutagesPage';
 export {SpanExplorerPage} from './SpanExplorerPage';
 export {CostPage} from './CostPage';
 export {ServicesPage} from './ServicesPage';
+export {ConversationsPage} from './ConversationsPage';
+export {AgentsPage} from './AgentsPage';
