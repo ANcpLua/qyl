@@ -2,6 +2,7 @@
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Qyl.Hosting;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
 using qyl.mcp.Clients;
@@ -42,15 +43,10 @@ internal sealed class QylMcpAgentsBuilder(
     /// <inheritdoc />
     public AIAgent BuildSummarizeErrorAgent() =>
         Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "ErrorSummaryAgent",
-                Description = "Produces a structured AI summary of a qyl error issue.",
-                ChatOptions = new ChatOptions { Instructions = ErrorSummaryPrompt.Prompt }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
+            .AsQylAgent("ErrorSummaryAgent",
+                "Produces a structured AI summary of a qyl error issue.",
+                ErrorSummaryPrompt.Prompt,
+                b => b.UseQylAgentTelemetry())
             .RecordInQylInventory(
                 inventory,
                 key: "ErrorSummaryAgent",
@@ -60,15 +56,10 @@ internal sealed class QylMcpAgentsBuilder(
     /// <inheritdoc />
     public AIAgent BuildSummarizeTraceAgent() =>
         Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "TraceSummaryAgent",
-                Description = "Produces a structured AI summary of a distributed trace.",
-                ChatOptions = new ChatOptions { Instructions = TraceSummaryPrompt.Prompt }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
+            .AsQylAgent("TraceSummaryAgent",
+                "Produces a structured AI summary of a distributed trace.",
+                TraceSummaryPrompt.Prompt,
+                b => b.UseQylAgentTelemetry())
             .RecordInQylInventory(
                 inventory,
                 key: "TraceSummaryAgent",
@@ -78,15 +69,10 @@ internal sealed class QylMcpAgentsBuilder(
     /// <inheritdoc />
     public AIAgent BuildSummarizeSessionAgent() =>
         Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "SessionSummaryAgent",
-                Description = "Produces a structured AI summary of a session's spans and lifecycle.",
-                ChatOptions = new ChatOptions { Instructions = SessionSummaryPrompt.Prompt }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
+            .AsQylAgent("SessionSummaryAgent",
+                "Produces a structured AI summary of a session's spans and lifecycle.",
+                SessionSummaryPrompt.Prompt,
+                b => b.UseQylAgentTelemetry())
             .RecordInQylInventory(
                 inventory,
                 key: "SessionSummaryAgent",
@@ -96,15 +82,10 @@ internal sealed class QylMcpAgentsBuilder(
     /// <inheritdoc />
     public AIAgent BuildTestGenerationAgent() =>
         Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "TestGenerationAgent",
-                Description = "Generates regression tests that would catch a qyl error issue if it reoccurs.",
-                ChatOptions = new ChatOptions { Instructions = TestGenerationSystemPrompt }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
+            .AsQylAgent("TestGenerationAgent",
+                "Generates regression tests that would catch a qyl error issue if it reoccurs.",
+                TestGenerationSystemPrompt,
+                b => b.UseQylAgentTelemetry())
             .RecordInQylInventory(
                 inventory,
                 key: "TestGenerationAgent",
@@ -116,15 +97,10 @@ internal sealed class QylMcpAgentsBuilder(
     {
         var instructions = BuildSqlSystemPrompt(rowLimit);
         return Llm()
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "AssistedQueryAgent",
-                Description = "Translates natural-language observability questions into DuckDB SELECT queries.",
-                ChatOptions = new ChatOptions { Instructions = instructions }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
+            .AsQylAgent("AssistedQueryAgent",
+                "Translates natural-language observability questions into DuckDB SELECT queries.",
+                instructions,
+                b => b.UseQylAgentTelemetry())
             .RecordInQylInventory(
                 inventory,
                 key: "AssistedQueryAgent",

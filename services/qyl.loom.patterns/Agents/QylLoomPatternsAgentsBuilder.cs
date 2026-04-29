@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
+using Qyl.Hosting;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
 using Qyl.Loom.Patterns.Clients;
@@ -29,57 +30,45 @@ public sealed class QylLoomPatternsAgentsBuilder(
         "You are the Confidence stage. Given a plan, reply with 'approved' " +
         "or 'rejected' plus one reason. No preamble.";
 
+    private const string RcaDescription =
+        "Synthesizes a 5-whys root-cause hypothesis from an IncidentSignal.";
+
+    private const string SolutionDescription =
+        "Turns a root-cause hypothesis into an ordered solution plan.";
+
+    private const string ConfidenceDescription =
+        "Approves or rejects a proposed solution plan.";
+
     /// <inheritdoc />
     public AIAgent BuildRcaAgent() =>
         clients.BuildChatClient("rca")
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "FakeRcaAgent",
-                Description = "Synthesizes a 5-whys root-cause hypothesis from an IncidentSignal.",
-                ChatOptions = new ChatOptions { Instructions = RcaInstructions }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build(services)
+            .AsQylAgent("FakeRcaAgent", RcaDescription, RcaInstructions,
+                b => b.UseQylAgentTelemetry(), services)
             .RecordInQylInventory(
                 inventory,
                 key: "FakeRcaAgent",
                 instructions: RcaInstructions,
-                description: "Synthesizes a 5-whys root-cause hypothesis from an IncidentSignal.");
+                description: RcaDescription);
 
     /// <inheritdoc />
     public AIAgent BuildSolutionAgent() =>
         clients.BuildChatClient("solution")
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "FakeSolutionAgent",
-                Description = "Turns a root-cause hypothesis into an ordered solution plan.",
-                ChatOptions = new ChatOptions { Instructions = SolutionInstructions }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build(services)
+            .AsQylAgent("FakeSolutionAgent", SolutionDescription, SolutionInstructions,
+                b => b.UseQylAgentTelemetry(), services)
             .RecordInQylInventory(
                 inventory,
                 key: "FakeSolutionAgent",
                 instructions: SolutionInstructions,
-                description: "Turns a root-cause hypothesis into an ordered solution plan.");
+                description: SolutionDescription);
 
     /// <inheritdoc />
     public AIAgent BuildConfidenceAgent() =>
         clients.BuildChatClient("verdict")
-            .AsAIAgent(new ChatClientAgentOptions
-            {
-                Name = "FakeConfidenceAgent",
-                Description = "Approves or rejects a proposed solution plan.",
-                ChatOptions = new ChatOptions { Instructions = ConfidenceInstructions }
-            })
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build(services)
+            .AsQylAgent("FakeConfidenceAgent", ConfidenceDescription, ConfidenceInstructions,
+                b => b.UseQylAgentTelemetry(), services)
             .RecordInQylInventory(
                 inventory,
                 key: "FakeConfidenceAgent",
                 instructions: ConfidenceInstructions,
-                description: "Approves or rejects a proposed solution plan.");
+                description: ConfidenceDescription);
 }

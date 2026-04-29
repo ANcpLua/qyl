@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
+using Qyl.Hosting;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
 using Qyl.Loom.Autofix.Workflow;
@@ -116,19 +117,23 @@ internal sealed class QylLoomAgentsBuilder(
 
     private AIAgent Compose(string name, string description, string? instructions)
     {
-        var options = new ChatClientAgentOptions
-        {
-            Name = name,
-            Description = description,
-            ChatOptions = instructions is null ? null : new ChatOptions { Instructions = instructions }
-        };
+        // Two paths: the AsQylAgent facade always sets ChatOptions.Instructions,
+        // but two qyl factories (CodeReview, Report) pass null to skip ChatOptions
+        // entirely — the model sees no system prompt. Preserve that semantic by
+        // routing those through the long-form chain.
+        AIAgent agent = instructions is null
+            ? Llm()
+                .AsAIAgent(new ChatClientAgentOptions { Name = name, Description = description })
+                .AsBuilder()
+                .UseQylAgentTelemetry()
+                .Build()
+            : Llm().AsQylAgent(name, description, instructions, b => b.UseQylAgentTelemetry());
 
-        return Llm()
-            .AsAIAgent(options)
-            .AsBuilder()
-            .UseQylAgentTelemetry()
-            .Build()
-            .RecordInQylInventory(inventory, key: name, instructions: instructions, description: description);
+        return agent.RecordInQylInventory(
+            inventory,
+            key: name,
+            instructions: instructions,
+            description: description);
     }
 
     private IChatClient Llm() =>
