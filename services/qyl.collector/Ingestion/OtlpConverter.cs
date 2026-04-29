@@ -503,7 +503,11 @@ public static class OtlpConverter
                          ?? attributes.GetValueOrDefault("gen_ai.response.finish_reason");
         var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
         var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
-        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));
+        // qyl.genai.cost_usd is written by QylGenAiCostProcessor in-process; gen_ai.usage.cost is
+        // the legacy/upstream attribute kept for compatibility with non-qyl GenAI clients.
+        var costUsd = ParseNullableDouble(
+            attributes.GetValueOrDefault("qyl.genai.cost_usd")
+            ?? attributes.GetValueOrDefault("gen_ai.usage.cost"));
 
         return new GenAiData(
             providerName, requestModel, responseModel,

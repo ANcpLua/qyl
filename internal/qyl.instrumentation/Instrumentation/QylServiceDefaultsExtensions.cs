@@ -25,6 +25,7 @@ using OpenTelemetry.Trace;
 using Qyl.Contracts.Observability;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -246,6 +247,11 @@ public static class QylServiceDefaultsExtensions
                     // Custom sources from options
                     foreach (var source in options.AdditionalActivitySources)
                         tracing.AddSource(source);
+
+                    // GenAI cost annotation runs in-process before export so spans carry
+                    // qyl.genai.cost_usd at source. PRD #173: span attribute is the single
+                    // source of truth — no parallel counter metric.
+                    tracing.AddProcessor(new QylGenAiCostProcessor());
                 }
 
                 options.ConfigureTracing?.Invoke(tracing);

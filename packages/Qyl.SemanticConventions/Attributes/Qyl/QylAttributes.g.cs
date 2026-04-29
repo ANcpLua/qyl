@@ -130,6 +130,26 @@ public static class QylAttributes
     /// <summary>Whether the response was served from prompt cache.</summary>
     public const string GenaiCacheHit = "qyl.genai.cache_hit";
 
+    /// <summary>Computed USD cost for input/prompt tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable..</summary>
+    public const string GenaiCostInputUsd = "qyl.genai.cost_input_usd";
+
+    /// <summary>Computed USD cost for output/completion tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable..</summary>
+    public const string GenaiCostOutputUsd = "qyl.genai.cost_output_usd";
+
+    /// <summary>Outcome of cost computation by QylGenAiCostProcessor.</summary>
+    public const string GenaiCostStatus = "qyl.genai.cost_status";
+
+    /// <summary>Values for the <c>GenaiCostStatus</c> attribute.</summary>
+    public static class GenaiCostStatusValues
+    {
+        /// <summary>Cost was computed from per-token pricing and emitted as qyl.genai.cost_usd.</summary>
+        public const string Computed = "computed";
+        /// <summary>Pricing was found but token counts were absent; cost was not emitted.</summary>
+        public const string MissingTokens = "missing_tokens";
+        /// <summary>No pricing entry matched the (provider, model) pair; cost was not emitted.</summary>
+        public const string UnknownModel = "unknown_model";
+    }
+
     /// <summary>Computed USD cost for the call when per-token pricing is known. Omit when pricing is unavailable; do not emit a zero placeholder..</summary>
     public const string GenaiCostUsd = "qyl.genai.cost_usd";
 

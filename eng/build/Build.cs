@@ -31,7 +31,8 @@ sealed class Build : NukeBuild,
     IPipeline,
     IVerify,
     IInstrument,
-    IPackMcp
+    IPackMcp,
+    IPricing
 {
     // ── GitVersion (net10.0, not net8.0) ────────────────────────────────────────
     // NOT exposed via IHazGitVersion — NUKE's ICompile.ReportSummary NREs when

@@ -27,6 +27,36 @@ groups:
         brief: >
           Computed USD cost for the call when per-token pricing is known.
           Omit when pricing is unavailable; do not emit a zero placeholder.
+      - id: qyl.genai.cost_input_usd
+        type: double
+        stability: development
+        brief: >
+          Computed USD cost for input/prompt tokens when per-token pricing is known.
+          Companion of qyl.genai.cost_usd; omit when pricing is unavailable.
+      - id: qyl.genai.cost_output_usd
+        type: double
+        stability: development
+        brief: >
+          Computed USD cost for output/completion tokens when per-token pricing is known.
+          Companion of qyl.genai.cost_usd; omit when pricing is unavailable.
+      - id: qyl.genai.cost_status
+        type:
+          allow_custom_values: false
+          members:
+            - id: computed
+              value: 'computed'
+              stability: development
+              brief: 'Cost was computed from per-token pricing and emitted as qyl.genai.cost_usd'
+            - id: unknown_model
+              value: 'unknown_model'
+              stability: development
+              brief: 'No pricing entry matched the (provider, model) pair; cost was not emitted'
+            - id: missing_tokens
+              value: 'missing_tokens'
+              stability: development
+              brief: 'Pricing was found but token counts were absent; cost was not emitted'
+        stability: development
+        brief: 'Outcome of cost computation by QylGenAiCostProcessor'
       - id: qyl.genai.cache_hit
         type: boolean
         stability: development

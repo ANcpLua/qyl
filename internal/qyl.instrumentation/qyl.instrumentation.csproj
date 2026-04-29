@@ -57,6 +57,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Pricing snapshot consumed by QylPricingTable (LiteLLM-shape, refreshed by `nuke UpdatePricing`) -->
+    <EmbeddedResource Include="../../eng/pricing/models.json" LogicalName="Qyl.Instrumentation.pricing.models.json"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Shared types -->
     <ProjectReference Include="../../packages/Qyl.Contracts/qyl.contracts.csproj"/>
     <ProjectReference Include="../../packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj"/>
