@@ -100,6 +100,7 @@ builder.Services
     .UseQylMcpInstrumentation(ActivitySources.McpSource, options => options.Transport = "http")
     .WithTools<LoomGodAnalyzerServer>()
     .WithTools<LoomWorkflowTools>()
+    .WithTools<Qyl.Loom.Autofix.Workflow.AutofixContextToolsWrapper>()
     .WithPrompts<CodeReviewPrompt>()
     .WithPrompts<LoomHandoffPrompts>()
     .WithPrompts<LoomAutofixPrompts>()

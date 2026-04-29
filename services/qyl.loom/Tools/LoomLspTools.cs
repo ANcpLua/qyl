@@ -10,8 +10,8 @@ namespace Qyl.Loom.Tools;
 ///     LSP-backed tools in <see cref="LoomGeneratedRegistry" /> with phase, capability, side-effect,
 ///     structured-output, and approval metadata. Runtime wiring (LspClientWrapper injection,
 ///     cross-project DI, approval enforcement) is deferred to a follow-up phase because
-///     <c>LspClientWrapper</c> lives in <c>qyl.mcp</c> and the static-tool pattern here cannot
-///     carry instance state.
+///     <c>LspClientWrapper</c> lives in <c>qyl.mcp</c> and qyl.loom does not depend on qyl.mcp.
+///     See <c>MAF.Advanced.Patterns.QylLoomExtensions</c> for the eventual composition approach.
 /// </summary>
 public static partial class LoomLspTools
 {
@@ -25,7 +25,7 @@ public static partial class LoomLspTools
     [EmitsStructuredOutput(typeof(LoomLspLocationList))]
     public static LoomLspLocationList GotoDefinition(string filePath, int line, int column) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 
     [LoomTool("lsp_find_references",
         Description = "Find all references to the symbol at the given 1-based line/column across the workspace.",
@@ -38,7 +38,7 @@ public static partial class LoomLspTools
     public static LoomLspLocationList FindReferences(string filePath, int line, int column,
         bool includeDeclaration = true) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 
     [LoomTool("lsp_symbols",
         Description = "List symbols in a document, or query workspace symbols when 'query' is provided.",
@@ -50,7 +50,7 @@ public static partial class LoomLspTools
     [EmitsStructuredOutput(typeof(LoomLspSymbolList))]
     public static LoomLspSymbolList Symbols(string filePath, string? query = null) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 
     [LoomTool("lsp_diagnostics",
         Description = "Return compiler or analyzer diagnostics for a source file.",
@@ -62,7 +62,7 @@ public static partial class LoomLspTools
     [EmitsStructuredOutput(typeof(LoomLspDiagnosticList))]
     public static LoomLspDiagnosticList Diagnostics(string filePath) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 
     [LoomTool("lsp_prepare_rename",
         Description = "Validate whether the symbol at the given 1-based line/column can be renamed.",
@@ -74,7 +74,7 @@ public static partial class LoomLspTools
     [EmitsStructuredOutput(typeof(LoomLspPrepareRenameResult))]
     public static LoomLspPrepareRenameResult PrepareRename(string filePath, int line, int column) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 
     [LoomTool("lsp_rename",
         Description =
@@ -88,5 +88,5 @@ public static partial class LoomLspTools
     [EmitsStructuredOutput(typeof(LoomLspRenameResult))]
     public static LoomLspRenameResult Rename(string filePath, int line, int column, string newName) =>
         throw new NotImplementedException(
-            "LoomLspTools runtime wiring is deferred. Attribute declarations register entries in LoomGeneratedRegistry; the Phase-1 LspClientWrapper bridge is a follow-up scope.");
+            "LoomLspTools runtime wiring is deferred. Runtime implementation lives in qyl.mcp; composition facade in MAF.Advanced.Patterns.QylLoomExtensions will wire the cross-project dependency.");
 }
