@@ -1,8 +1,13 @@
 <Project>
   <!-- =======================================================================
        qyl Central Package Versions
-       All version literals live in Version.props — reference via $(Variable)
+       MAF (Microsoft.Agents.AI.*) versions live in ANcpLua.NET.Sdk truth and
+       are imported from the source tree below. qyl-specific versions live in
+       Version.props. SDK truth is imported first so qyl/Version.props can
+       override on conflict.
        ======================================================================= -->
+  <Import Project="$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props')"/>
   <Import Project="Version.props"/>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
