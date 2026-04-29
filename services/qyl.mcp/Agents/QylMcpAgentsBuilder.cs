@@ -3,6 +3,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Instrumentation.Instrumentation.Inventory;
 using qyl.mcp.Clients;
 
 namespace qyl.mcp.Agents;
@@ -17,7 +18,10 @@ namespace qyl.mcp.Agents;
 ///     non-default <c>UseFunctionInvocation</c> tuning applies before the agent
 ///     wraps the client.
 /// </summary>
-internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQylMcpAgentsBuilder
+internal sealed class QylMcpAgentsBuilder(
+    IQylMcpChatClientBuilder clients,
+    IQylAgentInventory? inventory = null)
+    : IQylMcpAgentsBuilder
 {
     private const string TestGenerationSystemPrompt = """
                                                       You are a test engineer. Generate a regression test that would catch the given error if it reoccurs.
@@ -46,7 +50,12 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "ErrorSummaryAgent",
+                instructions: ErrorSummaryPrompt.Prompt,
+                description: "Produces a structured AI summary of a qyl error issue.");
 
     /// <inheritdoc />
     public AIAgent BuildSummarizeTraceAgent() =>
@@ -59,7 +68,12 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "TraceSummaryAgent",
+                instructions: TraceSummaryPrompt.Prompt,
+                description: "Produces a structured AI summary of a distributed trace.");
 
     /// <inheritdoc />
     public AIAgent BuildSummarizeSessionAgent() =>
@@ -72,7 +86,12 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "SessionSummaryAgent",
+                instructions: SessionSummaryPrompt.Prompt,
+                description: "Produces a structured AI summary of a session's spans and lifecycle.");
 
     /// <inheritdoc />
     public AIAgent BuildTestGenerationAgent() =>
@@ -85,20 +104,33 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "TestGenerationAgent",
+                instructions: TestGenerationSystemPrompt,
+                description: "Generates regression tests that would catch a qyl error issue if it reoccurs.");
 
     /// <inheritdoc />
-    public AIAgent BuildAssistedQueryAgent(int rowLimit) =>
-        Llm()
+    public AIAgent BuildAssistedQueryAgent(int rowLimit)
+    {
+        var instructions = BuildSqlSystemPrompt(rowLimit);
+        return Llm()
             .AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "AssistedQueryAgent",
                 Description = "Translates natural-language observability questions into DuckDB SELECT queries.",
-                ChatOptions = new ChatOptions { Instructions = BuildSqlSystemPrompt(rowLimit) }
+                ChatOptions = new ChatOptions { Instructions = instructions }
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "AssistedQueryAgent",
+                instructions: instructions,
+                description: "Translates natural-language observability questions into DuckDB SELECT queries.");
+    }
 
     /// <inheritdoc />
     public AIAgent BuildRcaAgent(IReadOnlyList<AITool> tools) =>
@@ -117,7 +149,13 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "RcaAgent",
+                instructions: RcaPrompt.Prompt,
+                description:
+                "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.");
 
     /// <inheritdoc />
     public AIAgent BuildUseQylAgent(IReadOnlyList<AITool> tools) =>
@@ -136,7 +174,13 @@ internal sealed class QylMcpAgentsBuilder(IQylMcpChatClientBuilder clients) : IQ
             })
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "UseQylAgent",
+                instructions: UseQylSystemPrompt.Prompt,
+                description:
+                "Orchestrates qyl MCP tools under InvestigationLineage guard to answer observability questions.");
 
     private IChatClient Llm() =>
         clients.BuildChatClient() ?? throw new InvalidOperationException(

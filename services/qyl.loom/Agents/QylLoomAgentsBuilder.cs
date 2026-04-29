@@ -1,13 +1,17 @@
 // Copyright (c) 2025-2026 ancplua
 
 using Qyl.Instrumentation.Instrumentation.GenAi;
+using Qyl.Instrumentation.Instrumentation.Inventory;
 using Qyl.Loom.Autofix.Workflow;
 using Qyl.Loom.Clients;
 using Qyl.Loom.Exploration;
 
 namespace Qyl.Loom.Agents;
 
-internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, AutofixContextTools contextTools)
+internal sealed class QylLoomAgentsBuilder(
+    IQylLoomChatClientBuilder clients,
+    AutofixContextTools contextTools,
+    IQylAgentInventory? inventory = null)
     : IQylLoomAgentsBuilder
 {
     private readonly IChatClient? _llm = clients.BuildChatClient();
@@ -77,7 +81,12 @@ internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, Au
             .AsAIAgent(options)
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(
+                inventory,
+                key: "LoomAutofix.Context",
+                instructions: AutofixStagePrompts.Context,
+                description: "Autofix Stage 2 — tool-using context gathering.");
     }
 
     public AIAgent BuildHypothesisBranchAgent(string perspective) =>
@@ -118,7 +127,8 @@ internal sealed class QylLoomAgentsBuilder(IQylLoomChatClientBuilder clients, Au
             .AsAIAgent(options)
             .AsBuilder()
             .UseQylAgentTelemetry()
-            .Build();
+            .Build()
+            .RecordInQylInventory(inventory, key: name, instructions: instructions, description: description);
     }
 
     private IChatClient Llm() =>

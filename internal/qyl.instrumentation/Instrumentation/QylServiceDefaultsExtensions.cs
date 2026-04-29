@@ -25,6 +25,7 @@ using OpenTelemetry.Trace;
 using Qyl.Contracts.Observability;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
+using Qyl.Instrumentation.Instrumentation.Inventory;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -92,6 +93,9 @@ public static class QylServiceDefaultsExtensions
         {
             app.MapOpenApi().CacheOutput();
         }
+
+        // PRD #173: agent inventory under /qyl/inventory/agents — gated on auth or dev-only.
+        app.MapQylAgentInventory();
 
         return app;
     }
@@ -308,6 +312,9 @@ public static class QylServiceDefaultsExtensions
 
             // Register options for later use
             builder.Services.TryAddSingleton(options);
+
+            // PRD #173: agent inventory singleton + observable gauge.
+            builder.Services.AddQylAgentInventory();
 
             // Core services
             ConfigureServiceProvider(builder, options);
