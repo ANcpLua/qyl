@@ -68,14 +68,12 @@ Route the request into one or more of these capability shapes:
 - `health_and_storage`
 - `analytics`
 - `agentic_investigation`
-- `loom_triage_and_fix` — umbrella for Loom's four action-oriented workflows; when this matches, delegate routing to
+- `loom_triage_and_fix` — umbrella for Loom's action-oriented workflows; when this matches, delegate routing to
   `loom_route` rather than picking a sub-shape by hand:
     - `loom_fix_production_issue` — fix a live qyl issue with untrusted-input posture
     - `loom_review_bot_pr_comments` — resolve `qyl[bot]` / `qyl-review[bot]` PR comments (extensible to foreign review
       bots via `additionalBotLogins`)
-    - `loom_setup_dotnet_sdk` — install and configure a .NET telemetry SDK (
-      error/tracing/profiling/logging/metrics/crons)
-    - `loom_setup_ai_monitoring` — wire AI monitoring for `gen_ai.*` traffic
+    - `loom_autofix` — headless five-stage autofix pipeline (fixability gate → context → hypothesis → diff → audit)
 
 ### Step 3: Choose the smallest sufficient tool path
 
@@ -89,7 +87,7 @@ Prefer direct evidence tools first:
   builds, analytics, or GenAI usage, use `qyl.use_qyl`.
 - Do not jump to `qyl.use_qyl` when a narrower direct path or `qyl.assisted_query` can answer the question with less
   ambiguity.
-- For `loom_triage_and_fix` requests (fixing a live issue, resolving PR bot comments, installing the Sentry .NET SDK,
+- For `loom_triage_and_fix` requests (fixing a live issue, resolving PR bot comments, installing the qyl .NET SDK,
   wiring AI monitoring), **do not pick a sub-shape by hand**. Call `loom_route(userRequest, …signals)` and follow the
   returned `promptIds`. The router returns `Clarify` with one focused question when signals conflict — ask the user
   verbatim instead of guessing. See the `loom-workflow` skill for the full routing contract.

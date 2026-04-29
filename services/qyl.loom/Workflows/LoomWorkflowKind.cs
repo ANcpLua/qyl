@@ -3,11 +3,11 @@
 namespace Qyl.Loom.Workflows;
 
 /// <summary>
-///     The five Loom workflow shapes <see cref="LoomWorkflowRouter" /> dispatches between
+///     The Loom workflow shapes <see cref="LoomWorkflowRouter" /> dispatches between
 ///     (<see cref="FixProductionIssue" />, <see cref="ReviewBotPrComments" />,
-///     <see cref="SetupDotnetSdk" />, <see cref="SetupAiMonitoring" />, <see cref="Autofix" />).
-///     <see cref="Clarify" /> is returned when the user request is ambiguous — the router
-///     surfaces a focused question instead of silently guessing across workflows.
+///     <see cref="Autofix" />). <see cref="Clarify" /> is returned when the user request
+///     is ambiguous — the router surfaces a focused question instead of silently guessing
+///     across workflows.
 /// </summary>
 public enum LoomWorkflowKind
 {
@@ -19,15 +19,6 @@ public enum LoomWorkflowKind
 
     /// <summary>Process and resolve review-bot PR comments (<c>qyl[bot]</c>, <c>qyl-review[bot]</c>, <c>loom[bot]</c>, plus any opted-in foreign bot logins).</summary>
     ReviewBotPrComments = 2,
-
-    /// <summary>
-    ///     Install and configure the Sentry .NET SDK features (error, tracing, profiling, logging, metrics, crons) in the
-    ///     user's app.
-    /// </summary>
-    SetupDotnetSdk = 3,
-
-    /// <summary>Configure AI agent monitoring for <c>gen_ai.*</c> traffic (LLM calls, agents, tools).</summary>
-    SetupAiMonitoring = 4,
 
     /// <summary>
     ///     Run the headless five-stage autofix pipeline on a qyl issue. Emits a structured

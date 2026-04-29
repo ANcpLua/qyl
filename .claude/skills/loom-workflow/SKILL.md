@@ -1,28 +1,26 @@
 ---
 name: loom-workflow
-description: Route a user request across the five Loom workflow shapes (fix production issue, process review-bot PR comments, set up Sentry .NET SDK, set up AI monitoring, run headless autofix pipeline). Use when the user mentions Sentry, production errors, PR bot feedback, setting up error/tracing/profiling/logging/metrics/crons/AI-monitoring in a .NET project, or asking Loom to auto-generate a fix diff. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
+description: Route a user request across the three Loom workflow shapes (fix production issue, process review-bot PR comments, run headless autofix pipeline). Use when the user mentions qyl, production errors, PR bot feedback, or asking Loom to auto-generate a fix diff. Never guess across workflows — this skill + the loom_route MCP tool force a clarifying question when signals conflict.
 ---
 
-# loom-workflow — Router across Loom's five workflow shapes
+# loom-workflow — Router across Loom's three workflow shapes
 
-Loom (`services/qyl.loom`) exposes a deterministic workflow router over MCP that dispatches user requests to one of five specialised workflow skills. This skill is the entry point.
+Loom (`services/qyl.loom`) exposes a deterministic workflow router over MCP that dispatches user requests to one of three specialised workflow skills. This skill is the entry point.
+
+qyl is OTLP-native — there is no vendor SDK onboarding workflow. Telemetry pipeline setup lives in the sibling `qyl-otel-exporter-setup` skill, not here.
 
 ## Invoke this skill when
-- The user mentions fixing Sentry / qyl errors, debugging production bugs, or investigating exceptions.
+- The user mentions fixing qyl / qyl errors, debugging production bugs, or investigating exceptions.
 - The user mentions `qyl[bot]`, `qyl-review[bot]`, or "review PR comments".
-- The user asks to install / configure Sentry in a .NET project (error monitoring, tracing, profiling, logging, metrics, crons).
-- The user asks to monitor LLM / OpenAI / Anthropic / `gen_ai` calls.
 - The user asks Loom to auto-generate a fix diff / run the headless autofix pipeline on an issue.
-- You are unsure which of the five workflows applies — **always route first, do not guess**.
+- You are unsure which of the three workflows applies — **always route first, do not guess**.
 
-## The five workflows this router dispatches to
+## The three workflows this router dispatches to
 
 | Workflow | Next skill | When |
 |---|---|---|
-| Fix a production issue | `loom-fix-issues` | "fix production bug", "investigate Sentry exception", "resolve error ABC-123" |
+| Fix a production issue | `loom-fix-issues` | "fix production bug", "investigate qyl exception", "resolve error ABC-123" |
 | Review bot PR comments | `loom-review-bot-pr` | "resolve qyl[bot] comments on PR #42", "qyl review feedback" |
-| Set up .NET SDK | `loom-sdk-onboarding` | "add Sentry to this .NET app", "install Sentry.AspNetCore" |
-| Set up AI monitoring | `loom-ai-monitoring` | "monitor LLM calls", "gen_ai spans", "track OpenAI usage" |
 | Headless autofix pipeline | `loom-autofix` | "auto-fix this issue", "run Loom on ABC-123", "generate a diff for this error" |
 
 ## How to run this skill
@@ -33,7 +31,7 @@ The qyl.loom MCP server exposes `loom_route`. Call it with the user's natural-la
 
 ```json
 {
-  "kind": "FixProductionIssue | ReviewBotPrComments | SetupDotnetSdk | SetupAiMonitoring | Autofix | Clarify",
+  "kind": "FixProductionIssue | ReviewBotPrComments | Autofix | Clarify",
   "confidence": 1.0,
   "rationale": "...",
   "promptIds": ["qyl.loom.<picked>"],
@@ -45,17 +43,16 @@ The qyl.loom MCP server exposes `loom_route`. Call it with the user's natural-la
 ### Step 2 — Act on the decision
 
 - `Clarify` → ask the user the `clarifyingQuestion` verbatim, wait for the answer, then call `loom_route` again. Do **not** guess.
-- Any other kind → hand off to the named skill (`loom-fix-issues`, `loom-review-bot-pr`, `loom-sdk-onboarding`, `loom-ai-monitoring`, `loom-autofix`) AND fetch the MCP prompt(s) listed in `promptIds`. The specialised skill will then drive the workflow.
+- Any other kind → hand off to the named skill (`loom-fix-issues`, `loom-review-bot-pr`, `loom-autofix`) AND fetch the MCP prompt(s) listed in `promptIds`. The specialised skill will then drive the workflow.
 
-### Step 3 — Chain detection / parsing explicitly
+### Step 3 — Chain the workflow's specific tool
 
-Once `loom_route` returns a workflow, call the workflow-specific tool yourself: `loom_detect_dotnet(repoRoot)` for onboarding / AI-monitoring, or `loom_parse_review_bot_comments(commentsJson, additionalBotLoginsJson?)` for the PR-review workflow. One tool per step keeps the decision trail visible in the MCP call log — a single meta-tool that fanned out to both was removed to avoid schema drift across three tool descriptors.
+Once `loom_route` returns a workflow, call the workflow-specific tool yourself: `loom_parse_review_bot_comments(commentsJson, additionalBotLoginsJson?)` for the PR-review workflow. One tool per step keeps the decision trail visible in the MCP call log.
 
 ## Hard rules
 
 - **Structured signals win.** If the caller already has `(pullRequestNumber + reviewBotAuthor)` or `issueId`, pass them to `loom_route` — the tool skips keyword matching and returns a deterministic decision.
 - **Two disjoint matches → clarify.** The router returns `Clarify` when the request overlaps two unrelated workflows. Treat that as a hard stop, not a suggestion.
-- **SDK + AI monitoring is not ambiguous.** When both trigger, the router picks `SetupAiMonitoring` and flags `SetupDotnetSdk` as a prerequisite. Follow that order.
 - **Never skip the router.** Even if the request looks obvious, call `loom_route` first so the decision is logged and consistent with the prompt the specialised skill will fetch.
 
 ## MCP surface this skill uses

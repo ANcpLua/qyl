@@ -104,8 +104,6 @@ builder.Services
     .WithPrompts<CodeReviewPrompt>()
     .WithPrompts<LoomHandoffPrompts>()
     .WithPrompts<LoomAutofixPrompts>()
-    .WithPrompts<OnboardingPrompts>()
-    .WithPrompts<AiMonitoringPrompts>()
     .WithPrompts<FixIssuePrompts>()
     .WithPrompts<ReviewBotPrompts>();
 

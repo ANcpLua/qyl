@@ -7,7 +7,7 @@ namespace Qyl.Loom.Autofix;
 
 /// <summary>
 ///     Prompts for the Loom headless autofix pipeline. Mirrors the five-stage contract in
-///     <c>.claude/skills/loom-autofix/SKILL.md</c> and the qyl open equivalent of Sentry's
+///     <c>.claude/skills/loom-autofix/SKILL.md</c> and the qyl open equivalent of qyl's
 ///     undocumented <c>/v1/automation/autofix/start</c> agent.
 /// </summary>
 /// <remarks>
@@ -187,7 +187,7 @@ internal sealed class LoomAutofixPrompts
 
     [McpServerPrompt(Name = "qyl.loom.autofix_setup_check", Title = "Pre-flight setup check")]
     [Description(
-        "Agent directive: verify autofix prerequisites (repo connection, write access, code mapping, policy, quota) before an autofix run. Open equivalent of Sentry's /autofix/setup/.")]
+        "Agent directive: verify autofix prerequisites (repo connection, write access, code mapping, policy, quota) before an autofix run. Open equivalent of qyl's /autofix/setup/.")]
     public static string AutofixSetupCheck() =>
         """
         Before starting an autofix run, verify the run can actually complete. Emit a setup
@@ -198,7 +198,7 @@ internal sealed class LoomAutofixPrompts
         1. Repo connection — is a GitHub / GitLab repo connected to this qyl project?
            Tool: qyl.get_project_integrations(projectSlug)
            Pass: at least one active source-control integration.
-           Fail: none connected → user must run loom-sdk-onboarding first.
+           Fail: none connected → user must connect a source-control integration first.
 
         2. Write access — does the connected integration have write scopes?
            Tool: qyl.get_integration_scopes(integrationId)

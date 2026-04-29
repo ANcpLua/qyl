@@ -12,14 +12,14 @@ Rubric for evaluating Loom workflow-skill bundles before merge. Every item must 
 | Length | 80-150 lines. Hard cap at 200. If longer, move content into a reference. |
 | `name` field | Matches directory name, kebab-case, 1-64 chars, starts `loom-` (or `qyl-` for non-Loom qyl skills) |
 | `description` field | Under 1024 chars, includes trigger phrases, states the non-negotiable posture, no angle brackets inside |
-| `license` field | **Omit** — qyl skills do not carry a `license` frontmatter key (unlike sentry-for-ai skills). Verify: `head -10 SKILL.md \| grep -c '^license:'` should return 0 |
+| `license` field | **Omit** — qyl skills do not carry a `license` frontmatter key (unlike qyl-for-ai skills). Verify: `head -10 SKILL.md \| grep -c '^license:'` should return 0 |
 | No content before `---` | YAML frontmatter must be the first thing in the file |
 
 ### Wizard Flow
 
 | Phase | Must include |
 |---|---|
-| Phase 1: Detect | A real MCP tool call (e.g. `loom_detect_dotnet(repoRoot)`, `loom_parse_review_bot_comments(commentsJson)`). Not pseudo-code. |
+| Phase 1: Detect | A real MCP tool call (e.g. `loom_parse_review_bot_comments(commentsJson)`). Not pseudo-code. |
 | Phase 2: Recommend | Opinionated actions keyed to Phase 1 output. Tables, not prose. "Always / when detected / opt-in" — NOT "maybe consider". |
 | Phase 3: Guide | MCP prompt fetch call with arguments, then the numbered phases from the prompt. |
 | Phase 4: Cross-Link / Verify | Either adjacent-skill suggestions or a concrete verification step (test exception + `qyl.get_error_issue` call, bot-comment report shape, etc.). |
@@ -116,7 +116,7 @@ Watch for these red flags that indicate fabricated content:
 | Referenced skills exist | Every `loom-<x>` name in the skill resolves to a directory under `.claude/skills/` |
 | Router entry exists | If the skill is meant to be routable, `LoomWorkflowKind` has the corresponding enum value |
 | Prompt directives match | Phases listed in `SKILL.md` appear in the prompt returned by the MCP server |
-| Detection commands run | `loom_detect_dotnet` arguments work against a sample project (manual spot-check) |
+| Detection commands run | The skill's evidence-gathering tool runs successfully against a sample input (manual spot-check) |
 
 ## Final Verification
 
@@ -157,8 +157,8 @@ for tool in $(grep -oE '\bqyl\.[a-z_]+\b' .claude/skills/loom-<workflow>/SKILL.m
   [ "$hits" -eq 0 ] && echo "FABRICATED QYL TOOL: $tool"
 done
 
-# 8. No Sentry-wizard fakery
-grep -n "@sentry/wizard\|npx.*wizard\|Option 1: Wizard" .claude/skills/loom-<workflow>/SKILL.md && echo "REMOVE WIZARD FAKERY"
+# 8. No qyl-wizard fakery
+grep -n "@qyl/wizard\|npx.*wizard\|Option 1: Wizard" .claude/skills/loom-<workflow>/SKILL.md && echo "REMOVE WIZARD FAKERY"
 
 # 9. No forbidden C# patterns in examples
 grep -rn "DateTime\.\(UtcNow\|Now\)\|\.Result\b\|\.Wait()\|#pragma warning disable\|\[SuppressMessage\]\|null!" .claude/skills/loom-<workflow>/ && echo "QYL RULE VIOLATIONS"
@@ -179,6 +179,6 @@ The skill is ready to hand back to the user when:
 - [ ] Each reference is 100-300 lines
 - [ ] Every MCP tool/prompt id is grep-verified against `services/`
 - [ ] Every C# example obeys the qyl hard rules (C# 14 preview, TimeProvider, no suppressions, no `null!`)
-- [ ] No fake `@sentry/wizard` "Option 1: Wizard" blockquote
+- [ ] No fake `@qyl/wizard` "Option 1: Wizard" blockquote
 - [ ] `.claude/skills/SKILL.md` workflow-skills table updated
 - [ ] `LoomWorkflowKind` extension flagged to the user (do not silently skip — the user must see the follow-up work)

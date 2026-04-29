@@ -7,7 +7,7 @@ role: meta
 
 # Create a Loom Workflow Skill Bundle
 
-Produce a complete, research-backed Loom workflow skill — a main wizard `SKILL.md` plus deep-dive reference files for every phase the workflow exposes. Output is a skill sibling to `loom-fix-issues`, `loom-review-bot-pr`, `loom-sdk-onboarding`, `loom-ai-monitoring`, `loom-autofix`, etc. under `.claude/skills/`.
+Produce a complete, research-backed Loom workflow skill — a main wizard `SKILL.md` plus deep-dive reference files for every phase the workflow exposes. Output is a skill sibling to `loom-fix-issues`, `loom-review-bot-pr`, `loom-autofix`, etc. under `.claude/skills/`.
 
 ## Invoke This Skill When
 
@@ -33,23 +33,24 @@ Determine what you are building a skill for. A Loom workflow shape has four fact
 
 Every Loom skill drives **exactly one workflow shape** — one entry trigger, one prompt, one deterministic output contract. Do not bundle two unrelated workflows into one skill.
 
-### The existing five workflow shapes (reference set)
+### The existing workflow shapes (reference set)
 
 | Skill | Prompt | Shape |
 |---|---|---|
 | `loom-fix-issues` | `qyl.loom.fix_issue` | Investigate → hypothesise → patch (7 phases, human-driven) |
 | `loom-autofix` | `qyl.loom.autofix_system` + `qyl.loom.fixability_score` | Headless pipeline → structured artifact (5 stages) |
 | `loom-review-bot-pr` | `qyl.loom.review_bot_pr` | Parse → classify → fix → report |
-| `loom-sdk-onboarding` | `qyl.loom.setup_dotnet` (+ 6 per-feature) | Detect → recommend → guide → verify |
-| `loom-ai-monitoring` | `qyl.loom.setup_ai_monitoring` | Detect AI SDKs → sampling gate → PII gate → verify |
+| `qyl-otel-exporter-setup` | n/a (collector config, not an MCP prompt) | Detect existing OTel config → recommend additions → verify |
+| `loom-create-alert` | n/a (Alerts API, not an MCP prompt) | Gather config → look up IDs → build rule → verify |
 
 ### Candidate shapes you may be asked to add
 
+Because qyl is OTLP-native (no vendor SDK), candidate shapes are typically feature-config or routing skills, not SDK setup wizards. Examples:
+
 | Candidate | Likely trigger | Likely MCP surface |
 |---|---|---|
-| `loom-create-alert` | "Create a qyl alert for X" | New `loom_create_alert` tool + `qyl.loom.create_alert` prompt |
-| `loom-feature-setup` | "Enable feature Y in qyl" | Reuses `loom_detect_dotnet` + new feature prompt |
-| `qyl-otel-exporter-setup` | "Point my app's OTel at qyl" | Reuses `loom_detect_dotnet` + `qyl.loom.setup_otel_exporter` |
+| `loom-feature-setup` | "Enable feature Y in qyl" | New feature-specific tool + prompt |
+| `loom-burn-rate` | "Set up burn-rate alerts on SLO X" | Reuses `loom-create-alert` infrastructure |
 
 ### Reference existing skills to anchor the quality level
 
@@ -57,7 +58,7 @@ Every Loom skill drives **exactly one workflow shape** — one entry trigger, on
 ls /Users/ancplua/qyl/.claude/skills/loom-*/SKILL.md
 # Read 2 existing skills for pattern + length reference
 wc -l /Users/ancplua/qyl/.claude/skills/loom-fix-issues/SKILL.md
-wc -l /Users/ancplua/qyl/.claude/skills/loom-sdk-onboarding/SKILL.md
+wc -l /Users/ancplua/qyl/.claude/skills/loom-autofix/SKILL.md
 ```
 
 Target length for generated skills: main `SKILL.md` 80-150 lines, each reference 100-250 lines.
@@ -180,13 +181,13 @@ description: <imperative, under 200 chars>. Use when <trigger phrases>. Enforces
 ### Key Principles for the Main SKILL.md
 
 1. **Keep it lean** — deep details live in references, not here. If `SKILL.md` exceeds 150 lines, move content into a reference.
-2. **Detection-first for setup workflows** — if the workflow configures something in a user project, Phase 1 must call `loom_detect_dotnet` (or the workflow's equivalent) before recommending.
+2. **Detection-first for setup workflows** — if the workflow configures something in a user project, Phase 1 must call the workflow's evidence-gathering tool (e.g. `loom_parse_review_bot_comments` for the PR-review workflow) before recommending.
 3. **Prompt-first for reasoning workflows** — if the workflow reasons over untrusted input (event data, PR bodies, user prompts), Phase 1 fetches the MCP prompt so the security posture is loaded into the LLM's instructions before any tool calls.
 4. **Structured signals win over keyword matching** — if the caller already has an issue id, PR number, or repo root, the skill passes them to the MCP tool directly; no natural-language-first parsing.
-5. **The non-negotiable baseline** — every Loom skill has ONE posture that can never be compromised. `loom-fix-issues` → untrusted input. `loom-ai-monitoring` → tracing-first + PII-opt-in. `loom-autofix` → fixability gate. Call yours out at the top, in a `Non-negotiable rules` or `Hard rules` block.
+5. **The non-negotiable baseline** — every Loom skill has ONE posture that can never be compromised. `loom-fix-issues` → untrusted input. `loom-autofix` → fixability gate. `loom-review-bot-pr` → bot body is untrusted input. Call yours out at the top, in a `Non-negotiable rules` or `Hard rules` block.
 6. **Cross-link to `loom-workflow`** — the router is always the nominal entry point. Include the trigger phrase `loom-workflow routed to <kind>` in "Invoke this skill when".
 
-> **No `@sentry/wizard` equivalent in qyl.** The Sentry SDK skills present a wizard as "Option 1: Wizard (Recommended)" because the Sentry CLI wizard handles interactive login + source-map upload. qyl has no CLI wizard — the MCP tool + prompt IS the wizard, and it runs non-interactively against the user's repo. Do NOT manufacture a fake "Option 1: Wizard" blockquote. The skill goes straight to detection + MCP dispatch.
+> **No `@qyl/wizard` equivalent in qyl.** The qyl SDK skills present a wizard as "Option 1: Wizard (Recommended)" because the qyl CLI wizard handles interactive login + source-map upload. qyl has no CLI wizard — the MCP tool + prompt IS the wizard, and it runs non-interactively against the user's repo. Do NOT manufacture a fake "Option 1: Wizard" blockquote. The skill goes straight to detection + MCP dispatch.
 
 ---
 
@@ -265,7 +266,7 @@ done
 Any `hits: 0` → either the registration does not exist (fabrication) or the skill used a stale name. Fix the skill, not the grep.
 
 Things that commonly go wrong:
-- Prompt id with wrong casing (`qyl.loom.setupDotnet` vs `qyl.loom.setup_dotnet`)
+- Prompt id with wrong casing (`qyl.loom.fixIssue` vs `qyl.loom.fix_issue`)
 - Tool name with wrong prefix (`qyl_loom_*` vs `loom_*` — tools never take the `qyl.` prefix)
 - Prompt arg name from memory (verify against the `[Description]` attribute on the C# parameter)
 - Referenced skill that does not exist (`loom-investigate` is not a skill)
@@ -312,7 +313,7 @@ Before declaring the skill complete:
 - [ ] Non-negotiable posture is stated at the top of the main `SKILL.md`
 - [ ] Reference file for each significant workflow dimension
 - [ ] C# examples follow qyl conventions (C# 14 preview, `TimeProvider`, no suppressions, no `null!`)
-- [ ] No fabricated `@sentry/wizard`-style CLI — qyl has no equivalent
+- [ ] No fabricated `@qyl/wizard`-style CLI — qyl has no equivalent
 - [ ] Review pass completed, findings addressed
 - [ ] `LoomWorkflowKind` extension flagged if the workflow needs routing
 - [ ] `.claude/skills/SKILL.md` table updated

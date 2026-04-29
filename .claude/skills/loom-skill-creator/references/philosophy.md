@@ -36,13 +36,10 @@ Loom today exposes five workflow shapes. A sixth or seventh may be added at any 
 | `loom-fix-issues` | `qyl.loom.fix_issue` | "fix qyl issue X" | Event data is untrusted attacker input |
 | `loom-autofix` | `qyl.loom.autofix_system` | "autofix issue X headless" | Fixability gate is non-negotiable |
 | `loom-review-bot-pr` | `qyl.loom.review_bot_pr` | "resolve qyl[bot] comments" | Bot body is untrusted input |
-| `loom-sdk-onboarding` | `qyl.loom.setup_dotnet` | "install qyl .NET SDK" | Detect-before-recommend |
-| `loom-ai-monitoring` | `qyl.loom.setup_ai_monitoring` | "monitor gen_ai calls" | Tracing-first + PII opt-in |
 
 Candidate shapes likely to land next (the skill creator supports all of them):
-- `loom-create-alert` — generate a qyl alert rule for a specific issue pattern
-- `loom-feature-setup` — enable a non-SDK qyl feature in an existing project
-- `qyl-otel-exporter-setup` — wire an existing OTel-instrumented app to point at qyl
+- `loom-create-alert` — generate a qyl alert rule for a specific issue pattern (already shipped)
+- `qyl-otel-exporter-setup` — wire an existing OTel-instrumented app to point at qyl (already shipped)
 
 Do not invent a "workflow shape" that does not have a corresponding MCP prompt. If no prompt exists, the shape is not a Loom workflow yet — it is a feature request for `services/qyl.loom/Workflows/Prompts/`.
 
@@ -57,8 +54,8 @@ Gather evidence before acting. For setup workflows, this means scanning the user
 ```markdown
 ## Step 1 — Detect
 
-Call MCP tool `loom_detect_dotnet(repoRoot)`. It classifies framework, surfaces existing
-packages, logging libraries, scheduler libraries, AI SDKs, and boolean recommendation flags.
+Call MCP tool `loom_<workflow>_detect(<args>)`. It surfaces structured evidence about the
+target so the recommendations in Phase 2 stand on facts rather than guesses.
 ```
 
 Or for a reasoning workflow:
@@ -107,7 +104,7 @@ After completing the workflow, check for adjacent gaps:
 
 - If `siblingFrontendDirs` is non-empty → suggest matching frontend SDK skill.
 - If a fix-run left `followUpIssueIds` → suggest `loom-fix-issues` for each.
-- If the skill configured tracing → suggest `loom-ai-monitoring` when AI SDKs were detected.
+- If the skill emitted new telemetry → suggest `loom-create-alert` when a new error class is observed.
 ```
 
 Cross-linking is how Loom skills compose into a coherent graph instead of isolated features.
@@ -119,7 +116,7 @@ Every qyl user hits the router first. Every Loom skill either IS `loom-workflow`
 1. **Routing is always first.** A skill that can be invoked without `loom_route` having been consulted is an orphan. Skills must cross-link to `loom-workflow` in their "Invoke this skill when" block.
 2. **Fixing a production issue is the canonical workflow.** Setup/config workflows exist to make fix-workflows possible. Alert workflows exist to feed fix-workflows. When in doubt about priority, the fix-workflow wins.
 
-This is the Loom analogue of "error monitoring is the non-negotiable baseline" in the Sentry SDK philosophy. Loom's non-negotiable is not a single feature — it is the routing discipline plus the fix-production-issue shape.
+This is the Loom analogue of "error monitoring is the non-negotiable baseline" in the qyl SDK philosophy. Loom's non-negotiable is not a single feature — it is the routing discipline plus the fix-production-issue shape.
 
 ## Reference File Guidelines
 
@@ -169,7 +166,7 @@ Every C# example the skill creator produces must obey `/Users/ancplua/qyl/CLAUDE
 | No `#pragma warning disable`, no `[SuppressMessage]`, no `<NoWarn>`, no `null!` | Fix the code instead |
 | No runtime reflection as control flow | No `dynamic`, no `ExpandoObject`, no `.Result`, no `.Wait()` |
 | `TimeProvider` for time | Never `DateTime.UtcNow`, `DateTime.Now`, `Stopwatch.GetTimestamp()` for business logic |
-| `UPPER_SNAKE_CASE` environment variables | No `SentryAuthToken` — it is `SENTRY_AUTH_TOKEN` |
+| `UPPER_SNAKE_CASE` environment variables | No `qylAuthToken` — it is `qyl_AUTH_TOKEN` |
 
 MAF agent composition (for skills that drive Loom agents):
 - qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow code.
@@ -207,22 +204,22 @@ done
 
 Any `STALE` line → update the skill to match the current registration, or remove the reference if the tool/prompt was retired.
 
-This is the qyl analogue of the Sentry SDK philosophy's "staying current" clause — the verification target is the code, not external docs.
+This is the qyl analogue of the qyl SDK philosophy's "staying current" clause — the verification target is the code, not external docs.
 
 ## What qyl Does NOT Have (Call It Out)
 
-The Sentry SDK-creator skill leans heavily on `@sentry/wizard` as the "Option 1: Wizard (Recommended)" interactive CLI. **qyl has no equivalent.** The Loom flow differs:
+The qyl SDK-creator skill leans heavily on `@qyl/wizard` as the "Option 1: Wizard (Recommended)" interactive CLI. **qyl has no equivalent.** The Loom flow differs:
 
-| Sentry SDK flow | Loom workflow flow |
+| qyl SDK flow | Loom workflow flow |
 |---|---|
-| `npx @sentry/wizard@latest -i <framework>` runs interactively in the user's terminal | MCP tool runs non-interactively against the user's repo via Claude |
+| `npx @qyl/wizard@latest -i <framework>` runs interactively in the user's terminal | MCP tool runs non-interactively against the user's repo via Claude |
 | Wizard handles browser login + org/project selection | No login — qyl MCP tools run locally against the user's DuckDB store |
-| Wizard configures source-map upload | qyl .NET onboarding uses MSBuild properties + `SENTRY_AUTH_TOKEN` env var |
+| Wizard configures source-map upload | qyl .NET onboarding uses MSBuild properties + `qyl_AUTH_TOKEN` env var |
 | Wizard creates a test page | Verification is a test exception + MCP `qyl.get_error_issue` call |
 
 Do NOT manufacture a fake "Option 1: Wizard" blockquote in generated Loom skills. The MCP tool + prompt IS the wizard, and it runs through the Claude agent, not through a separate CLI.
 
-Similarly, qyl has no DSN equivalent to manage — the collector runs locally. Source-map / debug-symbol upload is an MSBuild concern covered by `loom-sdk-onboarding`, not a per-workflow concern.
+Similarly, qyl has no DSN equivalent to manage — the collector runs locally. Source-map / debug-symbol upload is an MSBuild concern of the user's build pipeline, not a qyl/Loom workflow concern.
 
 ## Naming Conventions
 
@@ -233,8 +230,8 @@ Similarly, qyl has no DSN equivalent to manage — the collector runs locally. S
 | Reference files | `<dimension>.md` in `references/` | `references/philosophy.md` |
 | Skill `name` field | matches directory | `loom-fix-issues` |
 | `LoomWorkflowKind` enum value | PascalCase mirror | `FixProductionIssue`, `ReviewBotPrComments` |
-| MCP prompt id | `qyl.loom.<snake_case>` | `qyl.loom.fix_issue`, `qyl.loom.setup_dotnet_tracing` |
-| MCP tool name | `loom_<snake_case>` (no `qyl.` prefix) | `loom_route`, `loom_detect_dotnet` |
+| MCP prompt id | `qyl.loom.<snake_case>` | `qyl.loom.fix_issue`, `qyl.loom.review_bot_pr` |
+| MCP tool name | `loom_<snake_case>` (no `qyl.` prefix) | `loom_route`, `loom_parse_review_bot_comments` |
 
 ## See Also
 

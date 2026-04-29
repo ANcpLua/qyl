@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 namespace Qyl.Loom.Workflows;
 
 /// <summary>
-///     Deterministic, LLM-free router across the four Loom workflow shapes
+///     Deterministic, LLM-free router across the three Loom workflow shapes
 ///     (<see cref="LoomWorkflowKind" />). Matches on keyword tokens in the caller's request
 ///     plus optional structured signals (PR number, bot author, issue id). Returns
 ///     <see cref="LoomWorkflowKind.Clarify" /> with one focused question when signals
@@ -31,26 +31,6 @@ public static class LoomWorkflowRouter
         "qyl[bot]", "qyl-review[bot]", "qyl review bot", "qyl bot comment",
         "bot comment", "pr comment", "pr comments", "review comments",
         "address qyl review", "resolve qyl findings", "qyl feedback", "@qyl review"
-    ];
-
-    private static readonly string[] SdkSetupTokens =
-    [
-        "add loom", "install loom", "set up loom", "setup loom",
-        "configure loom", "loom for .net", "loom for c#", "loom.aspnetcore",
-        "loom.maui", "loom.profiling", "loom.extensions.logging",
-        "loom wizard", "loom dsn", "loomsdk.init", "useloom",
-        "error monitoring", "tracing setup", "logging setup", "metrics setup",
-        "enable profiling", "cron monitoring", "hangfire loom", "quartz loom"
-    ];
-
-    private static readonly string[] AiMonitoringTokens =
-    [
-        "ai monitoring", "ai observability", "agent monitoring", "llm monitoring",
-        "monitor llm", "monitor openai", "monitor anthropic", "track openai",
-        "track anthropic", "token usage", "ai costs", "gen_ai", "gen ai",
-        "tracessampler", "traces_sampler", "ai agent visibility", "openai span",
-        "vercel ai loom", "langchain loom", "langgraph loom",
-        "microsoft.extensions.ai monitoring", "mcp.extensions.ai monitoring"
     ];
 
     private static readonly string[] AutofixTokens =
@@ -100,16 +80,14 @@ public static class LoomWorkflowRouter
         {
             return Clarify(
                 "I need a starting point. Is this about: (1) fixing a live production issue, " +
-                "(2) resolving qyl review-bot PR comments, (3) installing a .NET telemetry SDK, " +
-                "(4) configuring AI/LLM monitoring, or (5) running the headless autofix pipeline?");
+                "(2) resolving qyl review-bot PR comments, " +
+                "or (3) running the headless autofix pipeline?");
         }
 
         var normalized = userRequest.ToLowerInvariant();
 
         var fixMatches = FindMatches(normalized, FixIssueTokens);
         var botMatches = FindMatches(normalized, BotReviewTokens);
-        var sdkMatches = FindMatches(normalized, SdkSetupTokens);
-        var aiMatches = FindMatches(normalized, AiMonitoringTokens);
         var autofixMatches = FindMatches(normalized, AutofixTokens);
 
         // Autofix is more specific than FixProductionIssue — a request mentioning both
@@ -130,8 +108,6 @@ public static class LoomWorkflowRouter
 
         var hits = (fixMatches.Length > 0 ? 1 : 0)
                    + (botMatches.Length > 0 ? 1 : 0)
-                   + (sdkMatches.Length > 0 ? 1 : 0)
-                   + (aiMatches.Length > 0 ? 1 : 0)
                    + (autofixMatches.Length > 0 ? 1 : 0);
 
         if (hits == 0)
@@ -139,8 +115,7 @@ public static class LoomWorkflowRouter
             return Clarify(
                 "I can't tell which Loom workflow you want. Is this about: " +
                 "(1) fixing a live production issue, (2) resolving qyl review-bot PR comments, " +
-                "(3) installing a .NET telemetry SDK, (4) configuring AI/LLM monitoring, " +
-                "or (5) running the headless autofix pipeline?");
+                "or (3) running the headless autofix pipeline?");
         }
 
         if (hits == 1)
@@ -149,33 +124,14 @@ public static class LoomWorkflowRouter
                 ? Decision(LoomWorkflowKind.Autofix, PromptIds.Autofix, autofixMatches)
                 : fixMatches.Length > 0
                     ? Decision(LoomWorkflowKind.FixProductionIssue, PromptIds.FixProductionIssue, fixMatches)
-                    : botMatches.Length > 0
-                        ? Decision(LoomWorkflowKind.ReviewBotPrComments, PromptIds.ReviewBotPrComments, botMatches)
-                        : sdkMatches.Length > 0
-                            ? Decision(LoomWorkflowKind.SetupDotnetSdk, PromptIds.SetupDotnetSdk, sdkMatches)
-                            : Decision(LoomWorkflowKind.SetupAiMonitoring, PromptIds.SetupAiMonitoring, aiMatches);
-        }
-
-        // AI monitoring paired with SDK setup is not ambiguous: SDK is prerequisite, AI is the goal.
-        if (hits == 2 && sdkMatches.Length > 0 && aiMatches.Length > 0)
-        {
-            return new LoomRouteDecision
-            {
-                Kind = LoomWorkflowKind.SetupAiMonitoring,
-                Confidence = 0.85,
-                Rationale =
-                    "Request mentions both SDK setup and AI monitoring. AI monitoring requires the base SDK, " +
-                    "so the AI monitoring prompt is the entry point — it references the SDK setup as prerequisite.",
-                PromptIds = [PromptIds.SetupAiMonitoring, PromptIds.SetupDotnetSdk],
-                MatchedSignals = [..aiMatches, ..sdkMatches]
-            };
+                    : Decision(LoomWorkflowKind.ReviewBotPrComments, PromptIds.ReviewBotPrComments, botMatches);
         }
 
         return Clarify(
             "Your request touches multiple Loom workflows at once " +
-            $"({DescribeHits(fixMatches, botMatches, sdkMatches, aiMatches)}). " +
+            $"({DescribeHits(fixMatches, botMatches, autofixMatches)}). " +
             "Which one do you want to start with: fix a production issue, review PR bot comments, " +
-            "set up the .NET SDK, or configure AI monitoring?");
+            "or run the headless autofix pipeline?");
     }
 
     private static ImmutableArray<string> FindMatches(string normalizedText, string[] tokens)
@@ -210,7 +166,7 @@ public static class LoomWorkflowRouter
         {
             Kind = LoomWorkflowKind.Clarify,
             Confidence = 0,
-            Rationale = "Request is ambiguous across the four Loom workflows. " +
+            Rationale = "Request is ambiguous across the three Loom workflows. " +
                         "Router refuses to guess — asking a single clarifying question instead.",
             PromptIds = [],
             MatchedSignals = [],
@@ -220,14 +176,12 @@ public static class LoomWorkflowRouter
     private static string DescribeHits(
         ImmutableArray<string> fix,
         ImmutableArray<string> bot,
-        ImmutableArray<string> sdk,
-        ImmutableArray<string> ai)
+        ImmutableArray<string> autofix)
     {
-        var parts = new List<string>(5);
+        var parts = new List<string>(3);
         if (fix.Length > 0) parts.Add("fix-production");
         if (bot.Length > 0) parts.Add("bot-PR-review");
-        if (sdk.Length > 0) parts.Add("SDK-setup");
-        if (ai.Length > 0) parts.Add("AI-monitoring");
+        if (autofix.Length > 0) parts.Add("autofix");
         return string.Join(" + ", parts);
     }
 
@@ -239,12 +193,6 @@ public static class LoomWorkflowRouter
 
         /// <summary>Resolve review-bot PR comments.</summary>
         public const string ReviewBotPrComments = "qyl.loom.review_bot_pr";
-
-        /// <summary>Install and configure the qyl .NET SDK.</summary>
-        public const string SetupDotnetSdk = "qyl.loom.setup_dotnet";
-
-        /// <summary>Configure AI agent monitoring.</summary>
-        public const string SetupAiMonitoring = "qyl.loom.setup_ai_monitoring";
 
         /// <summary>Headless autofix pipeline — fixability gate + structured artifact.</summary>
         public const string Autofix = "qyl.loom.autofix_system";

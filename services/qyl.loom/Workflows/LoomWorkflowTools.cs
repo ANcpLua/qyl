@@ -3,7 +3,6 @@ using ANcpLua.Roslyn.Utilities;
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using Qyl.Loom.Workflows.Detection;
 using Qyl.Loom.Workflows.ReviewBot;
 
 namespace Qyl.Loom.Workflows;
@@ -36,17 +35,6 @@ public sealed partial class LoomWorkflowTools
         };
         return LoomWorkflowRouter.Route(userRequest, signals);
     }
-
-    /// <summary>
-    ///     Scan <paramref name="repoRoot" /> and return structured detection evidence used
-    ///     by the setup-dotnet / setup-ai-monitoring prompts. Never guesses — empty fields
-    ///     mean "no evidence found".
-    /// </summary>
-    [McpServerTool(Name = "loom_detect_dotnet", Title = "Detect .NET project shape",
-        ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = true)]
-    public static partial DotnetProjectEvidence DetectDotnet(
-        string repoRoot) =>
-        DotnetProjectDetector.Detect(repoRoot);
 
     /// <summary>
     ///     Parse a JSON array of GitHub PR review comments through the deterministic
@@ -105,13 +93,10 @@ public sealed record LoomReviewBotParseResult
 
 /// <summary>
 ///     Source-gen JSON context for <see cref="LoomWorkflowTools" />. Emits camelCase
-///     property names so outputs align with the <c>loom-sdk-onboarding</c> skill and
-///     prompt contracts; avoids runtime reflection, satisfies trim / AOT analysis.
+///     property names; avoids runtime reflection, satisfies trim / AOT analysis.
 /// </summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ReviewBotRawComment[]))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(LoomReviewBotParseResult))]
-[JsonSerializable(typeof(DotnetProjectEvidence))]
-[JsonSerializable(typeof(DotnetFeatureRecommendations))]
 internal sealed partial class LoomWorkflowToolsJsonContext : JsonSerializerContext;

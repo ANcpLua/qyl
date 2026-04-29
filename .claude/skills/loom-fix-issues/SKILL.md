@@ -80,5 +80,5 @@ Those are defect-level slips. The prompt exists because those mistakes are easy 
 | Issue | Fix |
 |---|---|
 | Event data references a file that does not exist in the repo | Flag to the user — the event may be from an older deployment or a different repo. Do not guess. |
-| Stack trace shows optimised / minified frames | Ask whether debug symbols are being uploaded (see `loom-sdk-onboarding` MSBuild properties). |
+| Stack trace shows optimised / minified frames | Ask whether debug symbols are being uploaded; symbol upload is part of the user's build pipeline, not a qyl concern. |
 | Fix would work locally but the root cause is in a shared dep | Surface that explicitly in the report; do not patch in the consumer and call it fixed. |
