@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
-using Qyl.Instrumentation.Instrumentation.Loom;
 
 namespace Qyl.Loom.Autofix.Workflow;
 
@@ -10,7 +9,6 @@ namespace Qyl.Loom.Autofix.Workflow;
 ///     workflow entry — every executor consults this for its tunables. No defaults baked
 ///     into executors; the orchestrator owns the policy.
 /// </summary>
-[LoomContract("loom.autofix.workflow.config")]
 public sealed partial record AutofixWorkflowConfig(
     int HypothesisFanOut,
     double HypothesisTemperatureSpread,
@@ -24,7 +22,6 @@ public sealed partial record AutofixWorkflowConfig(
     TimeSpan? StoppingPointTimeout);
 
 /// <summary>Entry message — what the runner hands the workflow.</summary>
-[LoomContract("loom.autofix.request")]
 public sealed partial record AutofixWorkflowRequest(
     string RunId,
     string IssueId,
@@ -34,7 +31,6 @@ public sealed partial record AutofixWorkflowRequest(
     AutofixWorkflowConfig Config);
 
 /// <summary>Stage 1 — fixability gate verdict.</summary>
-[LoomContract("loom.autofix.fixability")]
 public sealed partial record FixabilityVerdict(
     string RunId,
     [property: Description("0..5")] int Score,
@@ -42,7 +38,6 @@ public sealed partial record FixabilityVerdict(
     string? MissingSignal);
 
 /// <summary>Stage 2 — context-gathering output.</summary>
-[LoomContract("loom.autofix.context")]
 public sealed partial record ContextSummary(
     string RunId,
     string Summary,
@@ -50,7 +45,6 @@ public sealed partial record ContextSummary(
     IReadOnlyList<string> SignalsAbsent);
 
 /// <summary>Stage 3 — single hypothesis verdict (one per fan-out branch).</summary>
-[LoomContract("loom.autofix.hypothesis")]
 public sealed partial record HypothesisCandidate(
     string RunId,
     string BranchId,
@@ -59,7 +53,6 @@ public sealed partial record HypothesisCandidate(
     double SelfReportedConfidence);
 
 /// <summary>Stage 3 — judge output, picks the winning hypothesis after fan-in.</summary>
-[LoomContract("loom.autofix.hypothesis.judged")]
 public sealed partial record HypothesisVerdict(
     string RunId,
     string Primary,
@@ -68,7 +61,6 @@ public sealed partial record HypothesisVerdict(
     int RetryIteration);
 
 /// <summary>Stage 4 — solution draft.</summary>
-[LoomContract("loom.autofix.solution")]
 public sealed partial record SolutionDraft(
     string RunId,
     string? Repo,
@@ -76,7 +68,6 @@ public sealed partial record SolutionDraft(
     string? RegressionTest);
 
 /// <summary>Stage 5 — confidence audit.</summary>
-[LoomContract("loom.autofix.confidence")]
 public sealed partial record ConfidenceAudit(
     string RunId,
     string Level,
@@ -88,7 +79,6 @@ public sealed partial record ConfidenceAudit(
     bool RetryRequested);
 
 /// <summary>Stage 6 — final assembled report (mirrors <see cref="AutofixReport" />).</summary>
-[LoomContract("loom.autofix.report")]
 public sealed partial record AutofixWorkflowResult(
     string RunId,
     AutofixReport Report);
