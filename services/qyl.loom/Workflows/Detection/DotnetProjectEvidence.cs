@@ -33,11 +33,11 @@ public sealed record DotnetProjectEvidence
     [JsonPropertyName("targetFrameworks")]
     public required ImmutableArray<string> TargetFrameworks { get; init; }
 
-    /// <summary>Sentry NuGet packages already referenced (empty if none).</summary>
-    [JsonPropertyName("existingSentryPackages")]
-    public required ImmutableArray<string> ExistingSentryPackages { get; init; }
+    /// <summary>Loom NuGet packages already referenced (empty if none).</summary>
+    [JsonPropertyName("existingLoomPackages")]
+    public required ImmutableArray<string> ExistingLoomPackages { get; init; }
 
-    /// <summary>Recommended Sentry NuGet package for <see cref="Framework" />.</summary>
+    /// <summary>Recommended Loom NuGet package for <see cref="Framework" />.</summary>
     [JsonPropertyName("recommendedPackage")]
     public required string RecommendedPackage { get; init; }
 
@@ -70,7 +70,7 @@ public sealed record DotnetProjectEvidence
     public required bool RequiresFlushOnCompletedRequest { get; init; }
 
     /// <summary>
-    ///     True if <see cref="Framework" /> supports CPU profiling via <c>Sentry.Profiling</c> (.NET 8+, non-WASM,
+    ///     True if <see cref="Framework" /> supports CPU profiling via <c>Loom.Profiling</c> (.NET 8+, non-WASM,
     ///     non-Framework).
     /// </summary>
     [JsonPropertyName("supportsProfiling")]

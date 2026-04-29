@@ -1,9 +1,9 @@
 ---
 name: loom-ai-monitoring
-description: Configure Sentry AI agent monitoring for gen_ai.* traffic (LLM calls, agents, tools, handoffs) in the user's .NET project. Enforces the four hard rules — tracing-first, detect SDKs before configuring, sampling gate via tracesSampler for AI routes, and PII opt-in for prompt/output capture. Never defaults to capturing prompts.
+description: Configure qyl AI agent monitoring for gen_ai.* traffic (LLM calls, agents, tools, handoffs) in the user's .NET project. Enforces the four hard rules — tracing-first, detect SDKs before configuring, sampling gate via tracesSampler for AI routes, and PII opt-in for prompt/output capture. Never defaults to capturing prompts.
 ---
 
-# loom-ai-monitoring — Sentry AI agent monitoring
+# loom-ai-monitoring — qyl AI agent monitoring
 
 Sits on top of `loom-sdk-onboarding`. AI monitoring is NOT a standalone feature — it requires base SDK + tracing already wired.
 
@@ -25,8 +25,8 @@ Do not add an integration for an SDK the project does not use. Use `loom_detect_
 
 | SDK detected | Action |
 |---|---|
-| `OpenAI` NuGet | Sentry auto-instruments via OTel when the base `UseOpenTelemetry()` is wired. |
-| `Microsoft.Extensions.AI` | Wrap `chatClient.AsBuilder().UseOpenTelemetry("my.app.genai").Build()`. Sentry.OpenTelemetry picks up gen_ai spans via `AddSentry()` on TracerProvider. |
+| `OpenAI` NuGet | qyl auto-instruments via OTel when the base `UseOpenTelemetry()` is wired. |
+| `Microsoft.Extensions.AI` | Wrap `chatClient.AsBuilder().UseOpenTelemetry("my.app.genai").Build()`. Loom.OpenTelemetry picks up gen_ai spans via `AddLoom()` on TracerProvider. |
 | `Microsoft.Agents.AI` (MAF) | Wrap `agent.AsBuilder().UseOpenTelemetry("my.app.agent").Build()` — agent-layer spans on top of chat-client spans. |
 | `Anthropic`, `Mscc.GenerativeAI.Microsoft` (Google GenAI) | Same `IChatClient` pattern via Microsoft.Extensions.AI when available. Otherwise manual instrumentation. |
 | No detected SDK | Manual instrumentation with `gen_ai.*` op names. |
@@ -59,10 +59,10 @@ If AI is the core product, skip the sampler and use `TracesSampleRate = 1.0`. St
 
 ### 4. PII / prompt capture is opt-in, explicit
 
-Prompt + output capture sends **user content** to Sentry. That is PII by default. **Never default to on.** Before enabling:
+Prompt + output capture sends **user content** to qyl. That is PII by default. **Never default to on.** Before enabling:
 1. Confirm the app's privacy policy permits capturing prompts / model responses.
 2. Confirm compliance with applicable regulations (GDPR, CCPA, etc.).
-3. Confirm Sentry data retention is appropriate for the sensitivity.
+3. Confirm qyl data retention is appropriate for the sensitivity.
 
 Opt-in flags per SDK: `recordInputs` / `recordOutputs` (JS), `include_prompts` / `send_default_pii` (Python), `SendDefaultPii` + capture flag on the integration (.NET).
 
@@ -74,7 +74,7 @@ Opt-in flags per SDK: `recordInputs` / `recordOutputs` (JS), `include_prompts` /
 loom_detect_dotnet(repoRoot)
 ```
 
-Pull `aiSdks`, `recommendations.tracing`, and the current `SentryOptions` config (read `Program.cs` or `appsettings.json` for the existing `TracesSampleRate`).
+Pull `aiSdks`, `recommendations.tracing`, and the current `LoomOptions` config (read `Program.cs` or `appsettings.json` for the existing `TracesSampleRate`).
 
 ### Step 2 — Confirm prerequisites
 
@@ -96,19 +96,19 @@ The prompt returns the full AI monitoring directive with the four hard rules, th
 
 ### Step 4 — Verify
 
-After wiring, make an LLM call. Confirm `gen_ai.*` spans appear in the Sentry Traces dashboard with `gen_ai.request.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`.
+After wiring, make an LLM call. Confirm `gen_ai.*` spans appear in the qyl Traces dashboard with `gen_ai.request.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`.
 
 ## Fallback — metrics + logs at 100%
 
 If 100% tracing is not feasible, emit metrics + logs on every LLM call (these are independent of trace sampling):
 
 ```csharp
-SentrySdk.Metrics.EmitDistribution("gen_ai.token_usage", usage.TotalTokens,
+LoomSdk.Metrics.EmitDistribution("gen_ai.token_usage", usage.TotalTokens,
     MeasurementUnit.None, new Dictionary<string, object> { ["model"] = model });
-SentrySdk.Metrics.EmitCounter("gen_ai.calls", 1,
+LoomSdk.Metrics.EmitCounter("gen_ai.calls", 1,
     new Dictionary<string, object> { ["model"] = model, ["status"] = status });
 
-SentrySdk.Logger.LogInfo(log =>
+LoomSdk.Logger.LogInfo(log =>
 {
     log.SetAttribute("gen_ai.model", model);
     log.SetAttribute("gen_ai.usage.input_tokens", usage.InputTokens);
@@ -147,7 +147,7 @@ Requires `options.EnableMetrics = true` AND `options.EnableLogs = true` (both op
 - **No AI monitoring without tracing.** Non-negotiable.
 - **Do not default PII on.** `recordInputs`, `recordOutputs`, `include_prompts`, `send_default_pii=true` are opt-in after explicit user consent with documented compliance.
 - **TracesSampler over global TracesSampleRate = 1.0.** Unless AI is the core product.
-- **Detect before integrate.** No `Sentry.openAIIntegration()` / `anthropicAIIntegration()` on a project that does not import the respective SDK.
+- **Detect before integrate.** No `qyl.openAIIntegration()` / `anthropicAIIntegration()` on a project that does not import the respective SDK.
 
 ## Troubleshooting
 

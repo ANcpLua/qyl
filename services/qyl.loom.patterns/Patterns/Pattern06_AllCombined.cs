@@ -134,7 +134,7 @@ public static class Pattern06_AllCombined
         public override async ValueTask<IncidentSignal> HandleAsync(
             IncidentSignal signal, IWorkflowContext ctx, CancellationToken ct = default)
         {
-            await InvokeWithStateAsync(async (state, innerCtx, innerCt) =>
+            await InvokeWithStateAsync(async static (state, innerCtx, innerCt) =>
             {
                 var updated = new AutofixCombinedState(state.SignalsSeen + 1);
                 await innerCtx.AddEventAsync(new StageObserved("intake", updated.SignalsSeen), innerCt)

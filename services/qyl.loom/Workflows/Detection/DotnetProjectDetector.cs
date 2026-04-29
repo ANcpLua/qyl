@@ -84,9 +84,9 @@ public static partial class DotnetProjectDetector
         var aiSdks = DetectAiSdks(inspected);
         var frontends = DetectSiblingFrontends(repoRoot);
 
-        var existingSentry = inspected
+        var existingLoom = inspected
             .SelectMany(static p => p.PackageReferences)
-            .Where(static pkg => pkg.StartsWithIgnoreCase("Sentry"))
+            .Where(static pkg => pkg.StartsWithIgnoreCase("Loom"))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static s => s, StringComparer.OrdinalIgnoreCase)
             .ToImmutableArray();
@@ -99,7 +99,7 @@ public static partial class DotnetProjectDetector
             ProjectFiles = projectFiles,
             Framework = framework,
             TargetFrameworks = primary.TargetFrameworks,
-            ExistingSentryPackages = existingSentry,
+            ExistingLoomPackages = existingLoom,
             RecommendedPackage = RecommendPackage(framework),
             RecommendedInitFile = RecommendInitFile(framework, primary),
             LoggingLibraries = loggingLibs,
@@ -110,7 +110,7 @@ public static partial class DotnetProjectDetector
             RequiresFlushOnCompletedRequest = requiresFlush,
             SupportsProfiling = supportsProfiling,
             Recommendations = recommended,
-            Notes = BuildNotes(framework, primary, existingSentry)
+            Notes = BuildNotes(framework, primary, existingLoom)
         };
     }
 
@@ -275,16 +275,16 @@ public static partial class DotnetProjectDetector
 
     private static string RecommendPackage(DotnetFramework framework) => framework switch
     {
-        DotnetFramework.AspNetCore => "Sentry.AspNetCore",
-        DotnetFramework.Wpf => "Sentry",
-        DotnetFramework.WinForms => "Sentry",
-        DotnetFramework.Maui => "Sentry.Maui",
-        DotnetFramework.BlazorWasm => "Sentry.AspNetCore.Blazor.WebAssembly",
-        DotnetFramework.AzureFunctions => "Sentry.Extensions.Logging (+ Sentry.OpenTelemetry)",
-        DotnetFramework.AwsLambda => "Sentry.AspNetCore",
-        DotnetFramework.ClassicAspNet => "Sentry.AspNet",
-        DotnetFramework.ConsoleOrWorker => "Sentry.Extensions.Logging",
-        _ => "Sentry"
+        DotnetFramework.AspNetCore => "Loom.AspNetCore",
+        DotnetFramework.Wpf => "Loom",
+        DotnetFramework.WinForms => "Loom",
+        DotnetFramework.Maui => "Loom.Maui",
+        DotnetFramework.BlazorWasm => "Loom.AspNetCore.Blazor.WebAssembly",
+        DotnetFramework.AzureFunctions => "Loom.Extensions.Logging (+ Loom.OpenTelemetry)",
+        DotnetFramework.AwsLambda => "Loom.AspNetCore",
+        DotnetFramework.ClassicAspNet => "Loom.AspNet",
+        DotnetFramework.ConsoleOrWorker => "Loom.Extensions.Logging",
+        _ => "Loom"
     };
 
     private static string RecommendInitFile(DotnetFramework framework, InspectedProject primary)
@@ -506,25 +506,25 @@ public static partial class DotnetProjectDetector
     private static ImmutableArray<string> BuildNotes(
         DotnetFramework framework,
         InspectedProject primary,
-        ImmutableArray<string> existingSentry)
+        ImmutableArray<string> existingLoom)
     {
         var notes = ImmutableArray.CreateBuilder<string>();
-        if (existingSentry.Length > 0)
+        if (existingLoom.Length > 0)
         {
-            notes.Add($"Existing Sentry packages detected: {string.Join(", ", existingSentry)}. " +
+            notes.Add($"Existing Loom packages detected: {string.Join(", ", existingLoom)}. " +
                       "Skip install — proceed to feature config.");
         }
 
         if (framework is DotnetFramework.Wpf)
         {
-            notes.Add("WPF: initialise SentrySdk in the App() constructor, NOT OnStartup(). " +
+            notes.Add("WPF: initialise LoomSdk in the App() constructor, NOT OnStartup(). " +
                       "Hook DispatcherUnhandledException alongside the init call.");
         }
 
         if (framework is DotnetFramework.WinForms)
         {
             notes.Add("WinForms: call Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException) " +
-                      "BEFORE SentrySdk.Init so unhandled exceptions surface.");
+                      "BEFORE LoomSdk.Init so unhandled exceptions surface.");
         }
 
         if (framework is DotnetFramework.AwsLambda or DotnetFramework.AzureFunctions)
@@ -535,21 +535,21 @@ public static partial class DotnetProjectDetector
 
         if (framework is DotnetFramework.ConsoleOrWorker)
         {
-            notes.Add("Console/Worker: set options.IsGlobalModeEnabled = true. Dispose the SentrySdk.Init " +
+            notes.Add("Console/Worker: set options.IsGlobalModeEnabled = true. Dispose the LoomSdk.Init " +
                       "result on exit to flush pending events (SDK 3.31.0+ handles this automatically).");
         }
 
         if (framework is DotnetFramework.BlazorWasm)
         {
-            notes.Add("Blazor WASM: profiling is NOT supported. Use Sentry.AspNetCore.Blazor.WebAssembly " +
-                      "and call builder.Logging.AddSentry(o => o.InitializeSdk = false).");
+            notes.Add("Blazor WASM: profiling is NOT supported. Use Loom.AspNetCore.Blazor.WebAssembly " +
+                      "and call builder.Logging.AddLoom(o => o.InitializeSdk = false).");
         }
 
         if (primary.TargetFrameworks.Any(static t =>
                 t.StartsWithIgnoreCase("netstandard") ||
                 t.StartsWithIgnoreCase("net4")))
         {
-            notes.Add("Target framework is older than .NET 8 — profiling (Sentry.Profiling) is unavailable. " +
+            notes.Add("Target framework is older than .NET 8 — profiling (Loom.Profiling) is unavailable. " +
                       "Error monitoring, tracing, logging, metrics, and crons still work.");
         }
 
@@ -563,8 +563,8 @@ public static partial class DotnetProjectDetector
             ProjectFiles = [],
             Framework = DotnetFramework.Unknown,
             TargetFrameworks = [],
-            ExistingSentryPackages = [],
-            RecommendedPackage = "Sentry",
+            ExistingLoomPackages = [],
+            RecommendedPackage = "Loom",
             RecommendedInitFile = "Program.cs (to be created)",
             LoggingLibraries = [],
             SchedulerLibraries = [],

@@ -19,11 +19,11 @@ public static class LoomWorkflowRouter
 {
     private static readonly string[] FixIssueTokens =
     [
-        "fix sentry", "sentry error", "sentry errors", "sentry exception", "sentry exceptions",
+        "fix qyl", "qyl error", "qyl errors", "qyl exception", "qyl exceptions",
         "production issue", "production bug", "debug production", "investigate exception",
         "resolve bug", "fix bug", "fix the bug", "investigate bug", "stack trace",
-        "issue id", "sentry issue", "sentry event", "sentry backlog", "triage",
-        "fix qyl issue", "qyl issue", "qyl error"
+        "issue id", "qyl issue", "qyl event", "qyl backlog", "triage",
+        "fix qyl issue"
     ];
 
     private static readonly string[] BotReviewTokens =
@@ -35,12 +35,12 @@ public static class LoomWorkflowRouter
 
     private static readonly string[] SdkSetupTokens =
     [
-        "add sentry", "install sentry", "set up sentry", "setup sentry",
-        "configure sentry", "sentry for .net", "sentry for c#", "sentry.aspnetcore",
-        "sentry.maui", "sentry.profiling", "sentry.extensions.logging",
-        "sentry wizard", "sentry dsn", "sentrysdk.init", "usesentry",
+        "add loom", "install loom", "set up loom", "setup loom",
+        "configure loom", "loom for .net", "loom for c#", "loom.aspnetcore",
+        "loom.maui", "loom.profiling", "loom.extensions.logging",
+        "loom wizard", "loom dsn", "loomsdk.init", "useloom",
         "error monitoring", "tracing setup", "logging setup", "metrics setup",
-        "enable profiling", "cron monitoring", "hangfire sentry", "quartz sentry"
+        "enable profiling", "cron monitoring", "hangfire loom", "quartz loom"
     ];
 
     private static readonly string[] AiMonitoringTokens =
@@ -49,7 +49,7 @@ public static class LoomWorkflowRouter
         "monitor llm", "monitor openai", "monitor anthropic", "track openai",
         "track anthropic", "token usage", "ai costs", "gen_ai", "gen ai",
         "tracessampler", "traces_sampler", "ai agent visibility", "openai span",
-        "vercel ai sentry", "langchain sentry", "langgraph sentry",
+        "vercel ai loom", "langchain loom", "langgraph loom",
         "microsoft.extensions.ai monitoring", "mcp.extensions.ai monitoring"
     ];
 
@@ -240,7 +240,7 @@ public static class LoomWorkflowRouter
         /// <summary>Resolve review-bot PR comments.</summary>
         public const string ReviewBotPrComments = "qyl.loom.review_bot_pr";
 
-        /// <summary>Install and configure the Sentry .NET SDK.</summary>
+        /// <summary>Install and configure the qyl .NET SDK.</summary>
         public const string SetupDotnetSdk = "qyl.loom.setup_dotnet";
 
         /// <summary>Configure AI agent monitoring.</summary>

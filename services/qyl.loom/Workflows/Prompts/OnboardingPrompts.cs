@@ -32,12 +32,12 @@ internal sealed class OnboardingPrompts
           2. **Tracing is disabled by default.** Profiling requires tracing. Both
              `options.TracesSampleRate > 0` and `options.AddProfilingIntegration(...)` are needed.
           3. **`EnableLogs` and `EnableMetrics` are opt-in gates.** Without them, every
-             `SentrySdk.Logger.*` / `SentrySdk.Metrics.*` call is a silent no-op. State this
+             `LoomSdk.Logger.*` / `LoomSdk.Metrics.*` call is a silent no-op. State this
              explicitly when adding those features.
           4. **Desktop apps require `IsGlobalModeEnabled = true`** (WPF, WinForms, Console).
              Missing this loses background-thread exceptions.
           5. **Serverless requires `FlushOnCompletedRequest = true`** (AWS Lambda, Azure Functions
-             via Sentry.OpenTelemetry). Missing this loses events when the container freezes.
+             via Loom.OpenTelemetry). Missing this loses events when the container freezes.
           6. **Never skip verification.** Finish with a test capture and confirm the event in the
              Issues dashboard.
 
@@ -52,7 +52,7 @@ internal sealed class OnboardingPrompts
           ## Your plan, in order
           1. Parse the detection JSON. If `framework == "Unknown"`, stop and ask the user which
              project to target — do not guess.
-          2. If `existingSentryPackages` is non-empty, skip install. Jump to feature configuration.
+          2. If `existingLoomPackages` is non-empty, skip install. Jump to feature configuration.
           3. Otherwise: run `dotnet add package <recommendedPackage> -v 6.1.0` in the project directory.
           4. Open `recommendedInitFile`. Add the initialisation block for the detected framework.
           5. For each feature the user agreed to, load the matching feature prompt:
@@ -60,13 +60,13 @@ internal sealed class OnboardingPrompts
              - `qyl.loom.setup_dotnet_tracing` — tracing (sampling, propagation, OTel)
              - `qyl.loom.setup_dotnet_profiling` — profiling (requires tracing, .NET 8+ only)
              - `qyl.loom.setup_dotnet_logging` — logging (ILogger / Serilog / NLog / log4net)
-             - `qyl.loom.setup_dotnet_metrics` — metrics (EnableMetrics + SENTRY1001 analyzer)
+             - `qyl.loom.setup_dotnet_metrics` — metrics (EnableMetrics + Loom1001 analyzer)
              - `qyl.loom.setup_dotnet_crons` — crons (Hangfire auto, Quartz manual, heartbeat vs two-signal)
           6. If `siblingFrontendDirs` is non-empty, point the user at the matching frontend SDK.
              Same project = distributed tracing across frontend + .NET server.
           7. Verify end-to-end: throw a test exception, confirm it appears, confirm stack traces
              show file names + line numbers (requires PDB upload via MSBuild
-             `SentryOrg` / `SentryProject` / `SentryUploadSymbols` / `SENTRY_AUTH_TOKEN`).
+             `LoomOrg` / `LoomProject` / `LoomUploadSymbols` / `Loom_AUTH_TOKEN`).
           8. Remove the test throw and commit.
 
           Apply as a single coherent edit set, not a paragraph-by-paragraph tutorial.
@@ -81,30 +81,30 @@ internal sealed class OnboardingPrompts
           Configure **Error Monitoring** for the detected project.
 
           ## Automatic vs manual capture (core rule)
-          > "If you catch an exception and don't re-throw it, Sentry never sees it."
+          > "If you catch an exception and don't re-throw it, Loom never sees it."
 
           Captured automatically:
           - Unhandled `AppDomain.CurrentDomain.UnhandledException` + `TaskScheduler.UnobservedTaskException`
-          - ASP.NET Core request errors via Sentry middleware
+          - ASP.NET Core request errors via Loom middleware
           - WPF `DispatcherUnhandledException` (hook it in `App()` constructor, NOT `OnStartup`)
           - MAUI native + managed exceptions
           - WinForms with `Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException)`
 
           NOT captured:
-          - `try/catch` with graceful return — call `SentrySdk.CaptureException(ex)` before the return.
+          - `try/catch` with graceful return — call `LoomSdk.CaptureException(ex)` before the return.
           - Swallowed errors from background threads when `IsGlobalModeEnabled = false` on desktop.
 
           ## Scope discipline
-          - `SentrySdk.ConfigureScope(...)` — session-level data (user, tenant, request).
+          - `LoomSdk.ConfigureScope(...)` — session-level data (user, tenant, request).
           - Inline `configureScope` callback on `CaptureException` — one-off enrichment; scope is
             cloned, next event is NOT affected.
-          - `SentrySdk.PushScope()` + `using` — temporary batch context.
-          - Clear user on logout: `scope.User = new SentryUser();`.
+          - `LoomSdk.PushScope()` + `using` — temporary batch context.
+          - Clear user on logout: `scope.User = new LoomUser();`.
 
           ## Filtering and fingerprinting
           - `options.SetBeforeSend((@event, hint) => ...)` — scrub / drop events.
           - `options.AddExceptionFilterForType<OperationCanceledException>()` — kill noise.
-          - `@event.SetFingerprint(...)` with Sentry's default template variable (literal double-brace `default`) plus an extra dimension — extends grouping without replacing the stack hash.
+          - `@event.SetFingerprint(...)` with Loom's default template variable (literal double-brace `default`) plus an extra dimension — extends grouping without replacing the stack hash.
           - Scrub `@event.ServerName`, remove sensitive headers, never log raw tokens.
 
           ## Detection
@@ -126,7 +126,7 @@ internal sealed class OnboardingPrompts
 
           ## Enablement gate
           Tracing is **disabled by default.** It turns on only when **one** of the following is set
-          during `SentrySdk.Init`:
+          during `LoomSdk.Init`:
           - `options.TracesSampleRate = 0.2;` (uniform rate 0.0–1.0)
           - `options.TracesSampler = ctx => …;` (per-transaction dynamic; overrides TracesSampleRate)
 
@@ -135,14 +135,14 @@ internal sealed class OnboardingPrompts
 
           ## What ASP.NET Core gives for free
           - One transaction per request, named with the route template.
-          - `SentryHttpMessageHandler` injects `sentry-trace` + `baggage` into outbound HTTP.
-          - Incoming `sentry-trace` + `baggage` auto-continued via `ContinueTrace()`.
+          - `LoomHttpMessageHandler` injects `Loom-trace` + `baggage` into outbound HTTP.
+          - Incoming `Loom-trace` + `baggage` auto-continued via `ContinueTrace()`.
           - EF Core spans: `db.query_compiler`, `db.connection`, `db.query` (via DiagnosticSource).
           - Outgoing HTTP spans — only created when a transaction is on scope.
 
           ## Custom instrumentation
-          - `var tx = SentrySdk.StartTransaction("checkout", "perform-checkout");`
-          - `SentrySdk.ConfigureScope(s => s.Transaction = tx);` — **this** is the step that makes
+          - `var tx = LoomSdk.StartTransaction("checkout", "perform-checkout");`
+          - `LoomSdk.ConfigureScope(s => s.Transaction = tx);` — **this** is the step that makes
             auto instrumentation attach to your transaction. Skip and you get a detached transaction.
           - `var span = tx.StartChild("db.query", "SELECT …"); span.SetData("db.system", "postgresql"); span.Finish(SpanStatus.Ok);`
           - `tx.Finish(exception)` auto-maps exception → SpanStatus.
@@ -153,11 +153,11 @@ internal sealed class OnboardingPrompts
           - For AI traffic: see `qyl.loom.setup_ai_monitoring` — gen_ai spans inherit the parent
             HTTP transaction's sampling decision. Biggest load-bearing gotcha in AI setup.
 
-          ## OpenTelemetry interop (when using `Sentry.OpenTelemetry`)
-          - Two parts: `builder.WebHost.UseSentry(o => o.UseOpenTelemetry(); ...)` AND
-            `builder.Services.AddOpenTelemetry().WithTracing(t => t.AddSentry().AddAspNetCoreInstrumentation().AddHttpClientInstrumentation());`
+          ## OpenTelemetry interop (when using `Loom.OpenTelemetry`)
+          - Two parts: `builder.WebHost.UseLoom(o => o.UseOpenTelemetry(); ...)` AND
+            `builder.Services.AddOpenTelemetry().WithTracing(t => t.AddLoom().AddAspNetCoreInstrumentation().AddHttpClientInstrumentation());`
           - Never call `activity.RecordException(ex)` — it strips exception data. Use
-            `SentrySdk.CaptureException(ex)` or `_logger.LogError(ex, ...)` instead.
+            `LoomSdk.CaptureException(ex)` or `_logger.LogError(ex, ...)` instead.
 
           ## Detection
           ```json
@@ -182,8 +182,8 @@ internal sealed class OnboardingPrompts
           2. **.NET 8+ is required.** .NET Framework, Blazor WebAssembly, Android, and non-iOS Native AOT
              are NOT supported. Check `detection.supportsProfiling` before proceeding — if false,
              stop and tell the user why.
-          3. **Install `Sentry.Profiling`** — but NOT on iOS / Mac Catalyst (built-in Mono AOT profiler
-             inside `Sentry.Maui` already handles those targets).
+          3. **Install `Loom.Profiling`** — but NOT on iOS / Mac Catalyst (built-in Mono AOT profiler
+             inside `Loom.Maui` already handles those targets).
 
           ## Configuration — three steps, not one
           ```csharp
@@ -223,10 +223,10 @@ internal sealed class OnboardingPrompts
 
           ## Integration selection
           Pick by what the project already uses — do not introduce a new logger:
-          - `Microsoft.Extensions.Logging` (ILogger) → `Sentry.Extensions.Logging`
-          - Serilog → `Sentry.Serilog`
-          - NLog → `Sentry.NLog`
-          - log4net → `Sentry.Log4Net`
+          - `Microsoft.Extensions.Logging` (ILogger) → `Loom.Extensions.Logging`
+          - Serilog → `Loom.Serilog`
+          - NLog → `Loom.NLog`
+          - log4net → `Loom.Log4Net`
 
           Each integration carries three capabilities simultaneously:
           1. Lower-level entries become **breadcrumbs** attached to the next error event.
@@ -235,7 +235,7 @@ internal sealed class OnboardingPrompts
 
           ## Enablement gate
           **`options.EnableLogs = true` is required** for native structured logs. Without it,
-          `SentrySdk.Logger.LogInfo/LogWarning/LogError/LogFatal` are silent no-ops. Call it out —
+          `LoomSdk.Logger.LogInfo/LogWarning/LogError/LogFatal` are silent no-ops. Call it out —
           silent no-op is the single most common misconfiguration.
 
           ## Level thresholds (defaults)
@@ -243,12 +243,12 @@ internal sealed class OnboardingPrompts
           - `MinimumEventLevel = Error`
 
           ## NLog trap
-          `SentryTarget` must receive **all** entries to classify them correctly. Set NLog's
+          `LoomTarget` must receive **all** entries to classify them correctly. Set NLog's
           `<logger minlevel="Debug">` **lower** than `MinimumBreadcrumbLevel`. Otherwise breadcrumbs
           never arrive.
 
           ## Dual init guard
-          If `SentrySdk.Init(...)` is called elsewhere, set `InitializeSdk = false` on the logging
+          If `LoomSdk.Init(...)` is called elsewhere, set `InitializeSdk = false` on the logging
           integration. Otherwise the SDK double-inits and events duplicate.
 
           ## Log ↔ trace correlation
@@ -257,7 +257,7 @@ internal sealed class OnboardingPrompts
           stream from that trace.
 
           ## Filtering
-          `options.SetBeforeSendLog(log => log.Level >= SentryLogLevel.Warning ? log : null);`
+          `options.SetBeforeSendLog(log => log.Level >= LoomLogLevel.Warning ? log : null);`
           to drop Trace / Debug in production.
 
           ## Detection
@@ -270,7 +270,7 @@ internal sealed class OnboardingPrompts
           """;
 
     [McpServerPrompt(Name = "qyl.loom.setup_dotnet_metrics", Title = "Metrics")]
-    [Description("Metrics feature prompt — EnableMetrics gate + SENTRY1001 analyzer.")]
+    [Description("Metrics feature prompt — EnableMetrics gate + Loom1001 analyzer.")]
     public static string Metrics(
         [Description("JSON payload produced by loom_detect_dotnet. Required.")]
         string detectionJson) =>
@@ -279,7 +279,7 @@ internal sealed class OnboardingPrompts
 
           ## Enablement gate
           `options.EnableMetrics = true` is required (SDK ≥ 6.1.0). Without it, every
-          `SentrySdk.Metrics.EmitCounter/EmitGauge/EmitDistribution` call is a silent no-op.
+          `LoomSdk.Metrics.EmitCounter/EmitGauge/EmitDistribution` call is a silent no-op.
           State this up front — silent drops are the top misconfiguration.
 
           ## API surface
@@ -291,7 +291,7 @@ internal sealed class OnboardingPrompts
           ## Supported numeric types — narrower than you think
           Allowed at runtime: `byte`, `short`, `int`, `long`, `float`, `double`.
           **Silently dropped** at runtime: `uint`, `ulong`, `decimal`, `Int128`.
-          The Roslyn analyzer `SENTRY1001` (ships with `Sentry.Compiler.Extensions`) flags these at
+          The Roslyn analyzer `Loom1001` (ships with `Loom.Compiler.Extensions`) flags these at
           compile time. Never suppress — the metric is dropped regardless of the pragma.
 
           ## Attribute cardinality
@@ -326,16 +326,16 @@ internal sealed class OnboardingPrompts
           ## Two patterns — pick by need
           ### Pattern A — Two-signal (recommended when you care about timeouts)
           ```csharp
-          var id = SentrySdk.CaptureCheckIn("my-job", CheckInStatus.InProgress);
-          try { DoWork(); SentrySdk.CaptureCheckIn("my-job", CheckInStatus.Ok,    id); }
-          catch  { SentrySdk.CaptureCheckIn("my-job", CheckInStatus.Error, id); throw; }
+          var id = LoomSdk.CaptureCheckIn("my-job", CheckInStatus.InProgress);
+          try { DoWork(); LoomSdk.CaptureCheckIn("my-job", CheckInStatus.Ok,    id); }
+          catch  { LoomSdk.CaptureCheckIn("my-job", CheckInStatus.Error, id); throw; }
           ```
           Detects: missed runs **and** timeout violations.
 
           ### Pattern B — Heartbeat (simpler, no timeout detection)
           ```csharp
-          try { DoWork(); SentrySdk.CaptureCheckIn("my-job", CheckInStatus.Ok); }
-          catch { SentrySdk.CaptureCheckIn("my-job", CheckInStatus.Error); throw; }
+          try { DoWork(); LoomSdk.CaptureCheckIn("my-job", CheckInStatus.Ok); }
+          catch { LoomSdk.CaptureCheckIn("my-job", CheckInStatus.Error); throw; }
           ```
           Detects: missed runs only.
 
@@ -354,7 +354,7 @@ internal sealed class OnboardingPrompts
           ```
 
           ## Integrations detected in this project
-          - **Hangfire** → `Sentry.Hangfire` + `config.UseSentry()` inside `AddHangfire(...)` →
+          - **Hangfire** → `Loom.Hangfire` + `config.UseLoom()` inside `AddHangfire(...)` →
             automatic check-ins per recurring job (slug = `RecurringJobId`).
           - **Quartz.NET** → no official integration. Wrap `CaptureCheckIn` inside `IJob.Execute`.
           - **`BackgroundService` / `IHostedService`** → manual `CaptureCheckIn` as in the patterns above.

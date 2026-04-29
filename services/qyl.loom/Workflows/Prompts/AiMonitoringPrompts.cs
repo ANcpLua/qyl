@@ -48,12 +48,12 @@ internal sealed class AiMonitoringPrompts
           ```
 
           Map detected SDKs to actions:
-          - **`OpenAI` NuGet** → Sentry auto-instruments via OTel when the base `UseOpenTelemetry()`
+          - **`OpenAI` NuGet** → Loom auto-instruments via OTel when the base `UseOpenTelemetry()`
             path is wired. If the project is JS/Node instead, use
-            `Sentry.openAIIntegration()` / `Sentry.instrumentOpenAiClient(client)` (browser / Next.js).
+            `Loom.openAIIntegration()` / `Loom.instrumentOpenAiClient(client)` (browser / Next.js).
           - **`Microsoft.Extensions.AI`** (IChatClient) → wrap with
             `chatClient.AsBuilder().UseOpenTelemetry("my.app.genai").Build()` so gen_ai spans emit.
-            Sentry.OpenTelemetry picks them up via `AddSentry()` on the TracerProvider.
+            Loom.OpenTelemetry picks them up via `AddLoom()` on the TracerProvider.
           - **`Microsoft.Agents.AI`** (MAF) → wrap the agent with
             `agent.AsBuilder().UseOpenTelemetry("my.app.agent").Build()` — agent-level spans plus
             the chat-client spans from the line above.
@@ -97,7 +97,7 @@ internal sealed class AiMonitoringPrompts
           State which you did and why.
 
           ### 4. PII / prompt capture is opt-in, explicit
-          Prompt + output capture sends **user content**. That is PII by default. User consent
+          Prompt + output capture sends **user content** to Loom. That is PII by default. User consent
           flag passed in: `piiCaptureConsent={{piiCaptureConsent}}`.
 
           - `{{(piiCaptureConsent ? "CONSENT GIVEN" : "NO CONSENT")}}` — {{(piiCaptureConsent
@@ -109,12 +109,12 @@ internal sealed class AiMonitoringPrompts
           independent of trace sampling):
 
           ```csharp
-          SentrySdk.Metrics.EmitDistribution("gen_ai.token_usage", usage.TotalTokens,
+          LoomSdk.Metrics.EmitDistribution("gen_ai.token_usage", usage.TotalTokens,
               MeasurementUnit.None, new Dictionary<string, object> { ["model"] = model });
-          SentrySdk.Metrics.EmitCounter("gen_ai.calls", 1,
+          LoomSdk.Metrics.EmitCounter("gen_ai.calls", 1,
               new Dictionary<string, object> { ["model"] = model, ["status"] = status });
 
-          SentrySdk.Logger.LogInfo(log =>
+          LoomSdk.Logger.LogInfo(log =>
           {
               log.SetAttribute("gen_ai.model", model);
               log.SetAttribute("gen_ai.usage.input_tokens", usage.InputTokens);
@@ -126,8 +126,8 @@ internal sealed class AiMonitoringPrompts
 
           ## Manual gen_ai span shape (when no integration exists)
           ```csharp
-          var tx  = SentrySdk.StartTransaction("llm-invoke", "gen_ai.request");
-          SentrySdk.ConfigureScope(s => s.Transaction = tx);
+          var tx  = LoomSdk.StartTransaction("llm-invoke", "gen_ai.request");
+          LoomSdk.ConfigureScope(s => s.Transaction = tx);
 
           var span = tx.StartChild("gen_ai.request", $"LLM request {model}");
           span.SetData("gen_ai.request.model", model);
