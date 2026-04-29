@@ -36,18 +36,6 @@ export const QYL_FIX_RUN_ID = "qyl.fix_run.id";
 export const QYL_FIX_RUN_STATUS = "qyl.fix_run.status";
 export const QYL_FIX_RUN_TRIGGER = "qyl.fix_run.trigger";
 
-// qyl.genai
-export const QYL_GENAI_CACHE_HIT = "qyl.genai.cache_hit";
-export const QYL_GENAI_COST_INPUT_USD = "qyl.genai.cost_input_usd";
-export const QYL_GENAI_COST_OUTPUT_USD = "qyl.genai.cost_output_usd";
-export const QYL_GENAI_COST_STATUS = "qyl.genai.cost_status";
-export const QYL_GENAI_COST_USD = "qyl.genai.cost_usd";
-export const QYL_GENAI_INPUT_TOKENS = "qyl.genai.input_tokens";
-export const QYL_GENAI_MODEL = "qyl.genai.model";
-export const QYL_GENAI_OUTPUT_TOKENS = "qyl.genai.output_tokens";
-export const QYL_GENAI_PROVIDER = "qyl.genai.provider";
-export const QYL_GENAI_WORKFLOW_ID = "qyl.genai.workflow_id";
-
 // qyl.issue
 export const QYL_ISSUE_ID = "qyl.issue.id";
 export const QYL_ISSUE_SEVERITY = "qyl.issue.severity";

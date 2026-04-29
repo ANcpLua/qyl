@@ -1,3 +1,5 @@
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+
 namespace qyl.mcp.Scoping;
 
 /// <summary>
@@ -21,7 +23,12 @@ internal sealed class ScopingDelegatingHandler(QylScope scope) : DelegatingHandl
             parts.Add($"service={Uri.EscapeDataString(scope.ServiceName)}");
 
         if (scope.SessionId is not null)
+        {
             parts.Add($"sessionId={Uri.EscapeDataString(scope.SessionId)}");
+            // OTel canonical: gen_ai.conversation.id. Conversations view rolls spans up
+            // by this attribute regardless of which transport produced them.
+            Activity.Current?.SetTag(GenAiAttributes.ConversationId, scope.SessionId);
+        }
 
         uriBuilder.Query = string.Join("&", parts);
         request.RequestUri = uriBuilder.Uri;

@@ -234,7 +234,9 @@ public static class OtlpConverter
             SpanId = spanId ?? "",
             TraceId = traceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
-            SessionId = attributes.GetValueOrDefault("session.id"),
+            SessionId = attributes.GetValueOrDefault("gen_ai.conversation.id")
+                        ?? attributes.GetValueOrDefault("mcp.session.id")
+                        ?? attributes.GetValueOrDefault("session.id"),
             Name = name ?? "unknown",
             Kind = ConvertSpanKindToByte(kind),
             StartTimeUnixNano = startNano,
@@ -503,11 +505,10 @@ public static class OtlpConverter
                          ?? attributes.GetValueOrDefault("gen_ai.response.finish_reason");
         var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
         var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
-        // qyl.genai.cost_usd is written by QylGenAiCostProcessor in-process; gen_ai.usage.cost is
-        // the legacy/upstream attribute kept for compatibility with non-qyl GenAI clients.
-        var costUsd = ParseNullableDouble(
-            attributes.GetValueOrDefault("qyl.genai.cost_usd")
-            ?? attributes.GetValueOrDefault("gen_ai.usage.cost"));
+        // Cost is not in OTel canonical and is not emitted by producers. The collector
+        // derives it from token counts × pricing in ModelPricingService.EnrichBatchWithCost.
+        // The fallback read covers external producers that emit a custom cost attribute.
+        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));
 
         return new GenAiData(
             providerName, requestModel, responseModel,
@@ -584,7 +585,9 @@ public static class OtlpConverter
         string? resourceJson)
     {
         var sessionId = log.Attributes?
-            .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;
+            .FirstOrDefault(static a =>
+                a.Key == "gen_ai.conversation.id" || a.Key == "mcp.session.id" || a.Key == "session.id")
+            ?.Value?.StringValue;
 
         var body = log.Body?.StringValue
                    ?? log.Body?.IntValue?.ToString()
@@ -689,7 +692,9 @@ public static class OtlpConverter
         var strings = profile.StringTable ?? [];
 
         var sessionId = profile.Attributes?
-            .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;
+            .FirstOrDefault(static a =>
+                a.Key == "gen_ai.conversation.id" || a.Key == "mcp.session.id" || a.Key == "session.id")
+            ?.Value?.StringValue;
 
         var profileFrameType = profile.Attributes?
             .FirstOrDefault(static a => a.Key == "profile.frame.type")?.Value?.StringValue;

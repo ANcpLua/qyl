@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace Qyl.Loom.Exploration.Workflow.Executors;
 
@@ -60,6 +61,10 @@ internal sealed class BuildContextExecutor(
         sessionStore.AppendUserMessage(
             session.SessionId,
             message.UserContext ?? $"Explore issue {message.IssueId}");
+
+        // OTel canonical: gen_ai.conversation.id. Conversations view rolls
+        // spans up by this attribute regardless of which workflow produced them.
+        Activity.Current?.SetTag(GenAiAttributes.ConversationId, $"loom:{session.SessionId}");
 
         return state with { Context = explorationContext, SessionId = session.SessionId };
     }

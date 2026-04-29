@@ -1815,6 +1815,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.ModelPricingTiersDdl, "\n",
             DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
+
+        // PRD #173: conversations view rolls spans up by session_id for the
+        // dashboard thread view. Stays a view (not a materialization) so
+        // capture-gate toggles are honored on read without rebuilding state.
+        using var conversationsCmd = con.CreateCommand();
+        conversationsCmd.CommandText = DuckDbSchema.ConversationsViewDdl;
+        conversationsCmd.ExecuteNonQuery();
     }
 
     private static string NormalizeGeneratedSchemaDdl(string ddl)

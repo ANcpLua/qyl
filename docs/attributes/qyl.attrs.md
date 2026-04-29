@@ -56,21 +56,6 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 | `qyl.fix_run.status` | `enum` (5 values) | development | Current status of the fix run |
 | `qyl.fix_run.trigger` | `enum` (2 values) | development | What initiated this fix run |
 
-## `qyl.genai`
-
-| Attribute | Type | Stability | Description |
-|-----------|------|-----------|-------------|
-| `qyl.genai.cache_hit` | `boolean` | development | Whether the response was served from prompt cache |
-| `qyl.genai.cost_input_usd` | `double` | development | Computed USD cost for input/prompt tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable. |
-| `qyl.genai.cost_output_usd` | `double` | development | Computed USD cost for output/completion tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable. |
-| `qyl.genai.cost_status` | `enum` (3 values) | development | Outcome of cost computation by QylGenAiCostProcessor |
-| `qyl.genai.cost_usd` | `double` | development | Computed USD cost for the call when per-token pricing is known. Omit when pricing is unavailable; do not emit a zero placeholder. |
-| `qyl.genai.input_tokens` | `int` | development | Consumed input tokens for the call |
-| `qyl.genai.model` | `string` | development | Model identifier for the generative AI call |
-| `qyl.genai.output_tokens` | `int` | development | Generated output tokens for the call |
-| `qyl.genai.provider` | `string` | development | Upstream provider that served the completion |
-| `qyl.genai.workflow_id` | `string` | development | Qyl workflow id that produced the call. Links generative AI spans to their enclosing autofix/exploration run. |
-
 ## `qyl.issue`
 
 | Attribute | Type | Stability | Description |

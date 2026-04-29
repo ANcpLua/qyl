@@ -80,31 +80,6 @@ public static class FixRun
     public const string Trigger = "qyl.fix_run.trigger";
 }
 
-/// <summary>Genai attributes</summary>
-public static class Genai
-{
-    /// <summary>Whether the response was served from prompt cache</summary>
-    public const string CacheHit = "qyl.genai.cache_hit";
-    /// <summary>Computed USD cost for input/prompt tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable.</summary>
-    public const string CostInputUsd = "qyl.genai.cost_input_usd";
-    /// <summary>Computed USD cost for output/completion tokens when per-token pricing is known. Companion of qyl.genai.cost_usd; omit when pricing is unavailable.</summary>
-    public const string CostOutputUsd = "qyl.genai.cost_output_usd";
-    /// <summary>Outcome of cost computation by QylGenAiCostProcessor</summary>
-    public const string CostStatus = "qyl.genai.cost_status";
-    /// <summary>Computed USD cost for the call when per-token pricing is known. Omit when pricing is unavailable; do not emit a zero placeholder.</summary>
-    public const string CostUsd = "qyl.genai.cost_usd";
-    /// <summary>Consumed input tokens for the call</summary>
-    public const string InputTokens = "qyl.genai.input_tokens";
-    /// <summary>Model identifier for the generative AI call</summary>
-    public const string Model = "qyl.genai.model";
-    /// <summary>Generated output tokens for the call</summary>
-    public const string OutputTokens = "qyl.genai.output_tokens";
-    /// <summary>Upstream provider that served the completion</summary>
-    public const string Provider = "qyl.genai.provider";
-    /// <summary>Qyl workflow id that produced the call. Links generative AI spans to their enclosing autofix/exploration run.</summary>
-    public const string WorkflowId = "qyl.genai.workflow_id";
-}
-
 /// <summary>Issue attributes</summary>
 public static class Issue
 {
