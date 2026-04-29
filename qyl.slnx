@@ -97,7 +97,9 @@
         <File Path="eng\skill.md" />
         <File Path="eng\skillrauschen.md" />
         <Project Path="eng/build/build.csproj" />
+        <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
         <File Path="eng/build.sh" />
+        <File Path="eng/smoke/run.sh" />
         <File Path="eng/compose.yaml" />
     </Folder>
     <Folder Name="/eng/MSBuild/">

@@ -97,5 +97,35 @@
     "output_cost_per_token": 0,
     "litellm_provider": "ollama",
     "mode": "chat"
+  },
+  "qwen2.5:0.5b": {
+    "input_cost_per_token": 0,
+    "output_cost_per_token": 0,
+    "litellm_provider": "ollama",
+    "mode": "chat"
+  },
+  "qwen2.5:1.5b": {
+    "input_cost_per_token": 0,
+    "output_cost_per_token": 0,
+    "litellm_provider": "ollama",
+    "mode": "chat"
+  },
+  "qwen2.5:3b": {
+    "input_cost_per_token": 0,
+    "output_cost_per_token": 0,
+    "litellm_provider": "ollama",
+    "mode": "chat"
+  },
+  "llama3.2:1b": {
+    "input_cost_per_token": 0,
+    "output_cost_per_token": 0,
+    "litellm_provider": "ollama",
+    "mode": "chat"
+  },
+  "phi4-mini": {
+    "input_cost_per_token": 0,
+    "output_cost_per_token": 0,
+    "litellm_provider": "ollama",
+    "mode": "chat"
   }
 }
