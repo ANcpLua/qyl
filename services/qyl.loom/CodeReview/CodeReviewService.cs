@@ -89,10 +89,11 @@ public sealed partial class CodeReviewService(
         if (string.IsNullOrEmpty(token) || comments.Count is 0)
             return false;
 
-        using var client = httpClientFactory.CreateClient("GitHub");
-        var allPosted = true;
+        var client = httpClientFactory.CreateClient("GitHub");
+        var failed = 0;
 
-        foreach (var comment in comments)
+        var options = new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct };
+        await Parallel.ForEachAsync(comments, options, async (comment, perItemCt) =>
         {
             LogPostingComment(comment.File, comment.Line);
 
@@ -109,12 +110,12 @@ public sealed partial class CodeReviewService(
             req.Content = content;
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            using var response = await client.SendAsync(req, ct).ConfigureAwait(false);
+            using var response = await client.SendAsync(req, perItemCt).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                allPosted = false;
-        }
+                Interlocked.Increment(ref failed);
+        }).ConfigureAwait(false);
 
-        return allPosted;
+        return failed is 0;
     }
 
     public CodeReviewResult? GetCachedResult(string repoFullName, int prNumber) =>

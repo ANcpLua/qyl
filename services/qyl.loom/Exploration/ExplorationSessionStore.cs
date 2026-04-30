@@ -24,7 +24,7 @@ public sealed class ExplorationSessionStore(TimeProvider timeProvider)
             timeProvider.GetUtcNow());
 
     public ExplorationSessionState? Get(string sessionId) =>
-        ((IReadOnlyDictionary<string, ExplorationSessionState>)_sessions).GetOrNull(sessionId);
+        _sessions.GetValueOrDefault(sessionId);
 
     public void SetContext(string sessionId, string? userContext, string contextBlock)
     {

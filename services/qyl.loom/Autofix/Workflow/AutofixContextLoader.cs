@@ -9,8 +9,13 @@ internal sealed class AutofixContextLoader(CollectorClient collector, AutofixRun
         var run = registry.Get(runId)
                   ?? throw new InvalidOperationException($"Run {runId} not registered before workflow start.");
 
-        var issue = await collector.GetIssueByIdAsync(run.IssueId, ct).ConfigureAwait(false);
-        var events = await collector.GetIssueEventsAsync(run.IssueId, 5, ct).ConfigureAwait(false);
+        var issueTask = collector.GetIssueByIdAsync(run.IssueId, ct);
+        var eventsTask = collector.GetIssueEventsAsync(run.IssueId, 5, ct);
+
+        await Task.WhenAll(issueTask, eventsTask).ConfigureAwait(false);
+
+        var issue = await issueTask.ConfigureAwait(false);
+        var events = await eventsTask.ConfigureAwait(false);
 
         var issueBlock = issue is null
             ? $"(issue {run.IssueId} not found)"
@@ -41,7 +46,7 @@ internal sealed class AutofixRunRegistry
     public void Register(RegisteredRun run) => _runs[run.RunId] = run;
 
     public RegisteredRun? Get(string runId) =>
-        _runs.TryGetValue(runId, out var run) ? run : null;
+        _runs.GetValueOrDefault(runId);
 
     public bool TryRemove(string runId) => _runs.TryRemove(runId, out _);
 

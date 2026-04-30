@@ -236,8 +236,8 @@ public static class CodexTelemetryMapper
     private static bool MapConversationId(IDictionary<string, string> attributes)
     {
         // Try conversation_id first, then thread_id
-        _ = attributes.TryGetValue(CodexConversationId, out var conversationId);
-        conversationId ??= attributes.GetOrNull(CodexThreadId);
+        if (!attributes.TryGetValue(CodexConversationId, out var conversationId))
+            attributes.TryGetValue(CodexThreadId, out conversationId);
 
         if (conversationId is null || !attributes.TryAdd(GenAiAttributes.ConversationId, conversationId))
             return false;

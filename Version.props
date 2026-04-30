@@ -16,8 +16,8 @@
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
     <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills + Testing).
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.0.7</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAnalyzersVersion>1.28.1</ANcpLuaAnalyzersVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaAnalyzersVersion>1.29.0</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>0.6.0-preview.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>0.6.0</ANcpLuaAgentsVersion>
     <!-- MAF (Microsoft.Agents.AI.*) versions are sourced from
