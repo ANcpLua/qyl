@@ -104,13 +104,13 @@ public sealed class DeprecatedAttributeCodeFixTests
 
     private static async Task<ImmutableArray<CodeAction>> GetFixActionsAsync(string code)
     {
-        var (document, diagnostics) = await PrepareDocumentAsync(code).ConfigureAwait(true);
-        Assert.Single(diagnostics);
+        using var fixture = await PrepareDocumentAsync(code).ConfigureAwait(true);
+        Assert.Single(fixture.Diagnostics);
 
         var actions = ImmutableArray.CreateBuilder<CodeAction>();
         var context = new CodeFixContext(
-            document,
-            diagnostics[0],
+            fixture.Document,
+            fixture.Diagnostics[0],
             (action, _) => actions.Add(action),
             CancellationToken.None);
 
@@ -120,13 +120,13 @@ public sealed class DeprecatedAttributeCodeFixTests
 
     private static async Task<(string Text, string Title)> ApplyFirstFixAsync(string code)
     {
-        var (document, diagnostics) = await PrepareDocumentAsync(code).ConfigureAwait(true);
-        Assert.Single(diagnostics);
+        using var fixture = await PrepareDocumentAsync(code).ConfigureAwait(true);
+        Assert.Single(fixture.Diagnostics);
 
         CodeAction? captured = null;
         var context = new CodeFixContext(
-            document,
-            diagnostics[0],
+            fixture.Document,
+            fixture.Diagnostics[0],
             (action, _) => { captured ??= action; },
             CancellationToken.None);
 
@@ -135,19 +135,18 @@ public sealed class DeprecatedAttributeCodeFixTests
 
         var operations = await captured!.GetOperationsAsync(CancellationToken.None).ConfigureAwait(true);
         var applyOp = operations.OfType<ApplyChangesOperation>().First();
-        var changedDoc = applyOp.ChangedSolution.GetDocument(document.Id)!;
+        var changedDoc = applyOp.ChangedSolution.GetDocument(fixture.Document.Id)!;
         var text = await changedDoc.GetTextAsync().ConfigureAwait(true);
         return (text.ToString(), captured.Title);
     }
 
-    private static async Task<(Document Document, ImmutableArray<Diagnostic> Diagnostics)>
-        PrepareDocumentAsync(string code)
+    private static async Task<WorkspaceFixture> PrepareDocumentAsync(string code)
     {
         var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
         var documentId = DocumentId.CreateNewId(projectId);
 
-        var project = workspace.AddProject(ProjectInfo.Create(
+        workspace.AddProject(ProjectInfo.Create(
             projectId,
             VersionStamp.Default,
             "Test",
@@ -171,6 +170,13 @@ public sealed class DeprecatedAttributeCodeFixTests
             new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty));
 
         var all = await withAnalyzers.GetAnalyzerDiagnosticsAsync().ConfigureAwait(true);
-        return (document, all);
+        return new WorkspaceFixture(workspace) { Document = document, Diagnostics = all };
+    }
+
+    private sealed class WorkspaceFixture(AdhocWorkspace workspace) : IDisposable
+    {
+        internal required Document Document { get; init; }
+        internal required ImmutableArray<Diagnostic> Diagnostics { get; init; }
+        public void Dispose() => workspace.Dispose();
     }
 }

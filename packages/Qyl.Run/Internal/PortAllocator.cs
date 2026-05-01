@@ -11,15 +11,8 @@ internal static class PortAllocator
     public static int ClaimFreePort(string host)
     {
         var ip = IPAddress.Parse(host);
-        var listener = new TcpListener(ip, QylConstants.Ports.DynamicAllocation);
+        using var listener = new TcpListener(ip, QylConstants.Ports.DynamicAllocation);
         listener.Start();
-        try
-        {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 }

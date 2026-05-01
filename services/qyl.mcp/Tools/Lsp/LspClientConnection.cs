@@ -25,12 +25,11 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
 
     private LspClientConnection(
         LspProcess process,
-        LspClientTransport transport,
         LspServerResolutionResult resolution,
         ILogger? logger)
     {
         _process = process;
-        _transport = transport;
+        _transport = new LspClientTransport(process.Stdout, process.Stdin, logger);
         _logger = logger ?? NullLogger.Instance;
         Resolution = resolution;
         _dispatcherTask = Task.Run(() => DispatchAsync(_dispatcherCts.Token));
@@ -113,16 +112,17 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         ILogger? logger,
         CancellationToken ct)
     {
-        var transport = new LspClientTransport(process.Stdout, process.Stdin, logger);
+        LspClientConnection? connection = null;
         try
         {
-            var connection = new LspClientConnection(process, transport, resolution, logger);
+            connection = new LspClientConnection(process, resolution, logger);
             await connection.InitializeAsync(ct).ConfigureAwait(false);
             return connection;
         }
         catch
         {
-            await transport.DisposeAsync().ConfigureAwait(false);
+            if (connection is not null)
+                await connection.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
