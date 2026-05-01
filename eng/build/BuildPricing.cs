@@ -32,7 +32,8 @@ interface IPricing : IHazSourcePaths
         {
             Directory.CreateDirectory(PricingDirectory);
 
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            using var http = new HttpClient();
+            http.Timeout = TimeSpan.FromSeconds(30);
             http.DefaultRequestHeaders.UserAgent.ParseAdd("qyl-pricing-mirror/1.0");
 
             Log.Information("UpdatePricing: fetching {Url}", PricingSourceUrl);

@@ -36,7 +36,7 @@ internal sealed partial class RiderMcpProxy(
     public string GetStatus() =>
         _client is not null ? $"Connected to {_connectedUrl}" : "Not connected";
 
-    private async Task<McpClient> GetOrConnectAsync(CancellationToken ct)
+    private ValueTask<McpClient> GetOrConnectAsync(CancellationToken ct)
     {
         var endpoints = discovery.GetEndpoints();
         var url = endpoints?.DebuggerStreamableUrl
@@ -45,8 +45,13 @@ internal sealed partial class RiderMcpProxy(
 
         // Reconnect if URL changed (Rider restarted)
         if (_client is not null && _connectedUrl == url)
-            return _client;
+            return ValueTask.FromResult(_client);
 
+        return ConnectAsync(url, ct);
+    }
+
+    private async ValueTask<McpClient> ConnectAsync(string url, CancellationToken ct)
+    {
         await DisposeClientAsync().ConfigureAwait(false);
 
         LogConnecting(url);

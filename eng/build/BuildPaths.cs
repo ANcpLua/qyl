@@ -37,10 +37,10 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
 
 sealed record CodegenPaths(AbsolutePath Root)
 {
-    public AbsolutePath Core => Root / "core";
+    AbsolutePath Core => Root / "core";
     public AbsolutePath OpenApi => Core / "openapi";
     public AbsolutePath Protocol => Root / "packages" / "Qyl.Contracts";
-    public AbsolutePath Collector => Root / "services" / "qyl.collector";
+    AbsolutePath Collector => Root / "services" / "qyl.collector";
     public AbsolutePath CollectorObserve => Collector / "Observe";
     public AbsolutePath CollectorStorage => Collector / "Storage";
     public AbsolutePath Migrations => CollectorStorage / "Migrations";

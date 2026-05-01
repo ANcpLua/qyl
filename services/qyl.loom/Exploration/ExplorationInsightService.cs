@@ -15,22 +15,32 @@ public sealed partial class ExplorationInsightService(
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
 
-    public async Task<ExplorationInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
+    public ValueTask<ExplorationInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
         if (_cache.TryGetValue(issueId, out var cached) && cached.ExpiresAt > TimeProvider.System.GetUtcNow())
         {
             LogCacheHit(issueId);
-            return cached.Insight;
+            return ValueTask.FromResult<ExplorationInsight?>(cached.Insight);
         }
 
-        var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        return new ValueTask<ExplorationInsight?>(GenerateInsightSlowAsync(issueId, ct));
+    }
+
+    private async Task<ExplorationInsight?> GenerateInsightSlowAsync(string issueId, CancellationToken ct)
+    {
+        var issueTask = collector.GetIssueByIdAsync(issueId, ct);
+        var eventsTask = collector.GetIssueEventsAsync(issueId, 5, ct);
+
+        await Task.WhenAll(issueTask, eventsTask).ConfigureAwait(false);
+
+        var issue = await issueTask.ConfigureAwait(false);
+        var events = await eventsTask.ConfigureAwait(false);
+
         if (issue is null)
         {
             LogIssueNotFound(issueId);
             return null;
         }
-
-        var events = await collector.GetIssueEventsAsync(issueId, 5, ct).ConfigureAwait(false);
 
         LogGeneratingInsight(issueId, events.Count);
 

@@ -26,7 +26,7 @@ var model = Environment.GetEnvironmentVariable("QYL_LLM_MODEL")
             ?? "qwen2.5:0.5b";
 var apiKey = Environment.GetEnvironmentVariable("QYL_LLM_API_KEY") ?? "ollama";
 var conversationId = Environment.GetEnvironmentVariable("QYL_SMOKE_CONVERSATION_ID")
-                     ?? $"smoke:{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+                     ?? $"smoke:{TimeProvider.System.GetUtcNow():yyyyMMddHHmmss}";
 var turns = int.TryParse(Environment.GetEnvironmentVariable("QYL_SMOKE_TURNS"), out var t) && t > 0
     ? t
     : 2;
@@ -44,7 +44,7 @@ Console.WriteLine($"#   turns             {turns}");
 Console.WriteLine($"#   otlp              {Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")}");
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.AddQylServiceDefaults(opts =>
+builder.AddQylServiceDefaults(static opts =>
 {
     opts.AdditionalActivitySources.Add("qyl.smoke");
     opts.EnableDefaultHealthChecks = false;
@@ -65,7 +65,7 @@ var chatClient = oai
     .AsIChatClient()
     .WithQylTelemetry();
 
-const string instructions =
+const string Instructions =
     "Respond with a single short word. No preamble, no punctuation, no emoji.";
 
 var agent = chatClient
@@ -73,7 +73,7 @@ var agent = chatClient
     {
         Name = "SmokeAgent",
         Description = "PRD #173 quality gate — exercises cost + activity processors and inventory.",
-        ChatOptions = new ChatOptions { Instructions = instructions }
+        ChatOptions = new ChatOptions { Instructions = Instructions }
     })
     .AsBuilder()
     .UseQylAgentTelemetry()
@@ -81,13 +81,13 @@ var agent = chatClient
     .RecordInQylInventory(
         inventory,
         key: "SmokeAgent",
-        instructions: instructions,
+        instructions: Instructions,
         description: "PRD #173 quality gate — exercises cost + activity processors and inventory.",
         providerName: "ollama");
 
-var smokeSource = new ActivitySource("qyl.smoke");
+using var smokeSource = new ActivitySource("qyl.smoke");
 
-using (var conversation = smokeSource.StartActivity("smoke conversation"))
+using (var conversation = smokeSource.StartActivity(name: "smoke conversation"))
 {
     // Conversation grouping: every child span inherits this tag via baggage,
     // so the qyl_conversations view rolls them all up under one session.
@@ -99,7 +99,7 @@ using (var conversation = smokeSource.StartActivity("smoke conversation"))
         var response = await agent
             .RunAsync($"Are you alive? (turn {i})")
             .ConfigureAwait(false);
-        var text = response.Text?.Trim() ?? "(no text)";
+        var text = response.Text.Trim();
         Console.WriteLine($"  → {text}");
     }
 }

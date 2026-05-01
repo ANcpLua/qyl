@@ -36,7 +36,7 @@ internal sealed class InMemoryAutofixLifecycleBus : IAutofixLifecycleBus
     public async IAsyncEnumerable<AutofixLifecycleEnvelope> SubscribeAsync(
         string runId, [EnumeratorCancellation] CancellationToken ct)
     {
-        var run = _runs.GetOrAdd(runId, _ => new RunSubscribers());
+        var run = _runs.GetOrAdd(runId, static _ => new RunSubscribers());
         var channel = run.Subscribe();
 
         try

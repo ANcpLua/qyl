@@ -15,10 +15,16 @@ public sealed class ExplorationContextBuilder(CollectorClient collector)
         int maxStackLength = DefaultMaxStackLength,
         CancellationToken ct = default)
     {
-        var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issueTask = collector.GetIssueByIdAsync(issueId, ct);
+        var eventsTask = collector.GetIssueEventsAsync(issueId, maxEvents, ct);
+
+        await Task.WhenAll(issueTask, eventsTask).ConfigureAwait(false);
+
+        var issue = await issueTask.ConfigureAwait(false);
+        var events = await eventsTask.ConfigureAwait(false);
+
         if (issue is null) return ExplorationContext.Empty;
 
-        var events = await collector.GetIssueEventsAsync(issueId, maxEvents, ct).ConfigureAwait(false);
         var block = FormatBlock(issue, events, userContext, maxStackLength);
         return new ExplorationContext(issue, events, userContext, block);
     }

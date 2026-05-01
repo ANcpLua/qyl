@@ -128,22 +128,22 @@ interface IVerify : IHazSourcePaths
 
             Log.Information("Executing {Count} DDL statements against in-memory DuckDB...", ddlStatements.Count);
 
-            using var connection = new DuckDBConnection("DataSource=:memory:");
+            await using var connection = new DuckDBConnection("DataSource=:memory:");
             connection.Open();
 
             foreach (var ddl in ddlStatements)
             {
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = ddl;
                 command.ExecuteNonQuery();
             }
 
             // Verify tables were created
             var tables = new List<string>();
-            using (var cmd = connection.CreateCommand())
+            await using (var cmd = connection.CreateCommand())
             {
                 cmd.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'";
-                using var reader = cmd.ExecuteReader();
+                await using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                     tables.Add(reader.GetString(0));
             }

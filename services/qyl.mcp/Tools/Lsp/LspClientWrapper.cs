@@ -78,7 +78,7 @@ internal sealed partial class LspClientWrapper(
     public static string UriToPath(string uri) =>
         Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri;
 
-    private async Task<LspClientConnection> GetOrStartClientAsync(LspServerResolutionResult resolved,
+    private ValueTask<LspClientConnection> GetOrStartClientAsync(LspServerResolutionResult resolved,
         CancellationToken ct)
     {
         var key = ClientKey(resolved);
@@ -86,9 +86,30 @@ internal sealed partial class LspClientWrapper(
             () => StartClientAsync(resolved, ct),
             LazyThreadSafetyMode.ExecutionAndPublication));
 
+        Task<LspClientConnection> startTask;
         try
         {
-            return await lazy.Value.ConfigureAwait(false);
+            startTask = lazy.Value;
+        }
+        catch
+        {
+            _clients.TryRemove(new KeyValuePair<string, Lazy<Task<LspClientConnection>>>(key, lazy));
+            throw;
+        }
+
+        return startTask.IsCompletedSuccessfully
+            ? ValueTask.FromResult(startTask.Result)
+            : AwaitStartedClientAsync(key, lazy, startTask);
+    }
+
+    private async ValueTask<LspClientConnection> AwaitStartedClientAsync(
+        string key,
+        Lazy<Task<LspClientConnection>> lazy,
+        Task<LspClientConnection> startTask)
+    {
+        try
+        {
+            return await startTask.ConfigureAwait(false);
         }
         catch
         {

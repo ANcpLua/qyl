@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -217,35 +218,35 @@ sealed record ExclusionRule(
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 static class WellKnownExclusionPatterns
 {
-    public static readonly ExclusionRule SourceGeneratedFiles = new(
+    static readonly ExclusionRule SourceGeneratedFiles = new(
         "SourceGenerated",
         ["/obj/"],
         [".g.cs", ".generated.cs", ".designer.cs"]);
 
-    public static readonly ExclusionRule Migrations = new(
+    static readonly ExclusionRule Migrations = new(
         "Migrations",
         ["/Migrations/"]);
 
-    public static readonly ExclusionRule InfrastructureCode = new(
+    static readonly ExclusionRule InfrastructureCode = new(
         "Infrastructure",
         ["/Host/", "/Configuration/", "/Extensions/"]);
 
-    public static readonly ExclusionRule PresentationWrappers = new(
+    static readonly ExclusionRule PresentationWrappers = new(
         "PresentationWrapper",
         ["/Presentation/"],
         ["Endpoints.cs", "Listener.cs"],
         false);
 
-    public static readonly ExclusionRule DataTransferObjects = new(
+    static readonly ExclusionRule DataTransferObjects = new(
         "DTO",
         FileSuffixes: ["Dto.cs", "DTOs.cs", "Request.cs", "Response.cs"],
         ShouldExclude: false);
 
-    public static readonly ExclusionRule MappingConfiguration = new(
+    static readonly ExclusionRule MappingConfiguration = new(
         "MappingConfig",
         FileSuffixes: ["MappingConfig.cs", "Profile.cs"]);
 
-    public static readonly IReadOnlyList<ExclusionRule> AllRules =
+    static readonly IReadOnlyList<ExclusionRule> AllRules =
     [
         SourceGeneratedFiles,
         Migrations,
@@ -323,7 +324,7 @@ static class CoverageSummaryConverter
         XDocument cobertura;
         await using (var stream = File.OpenRead(coberturaPath))
         {
-            cobertura = await XDocument.LoadAsync(stream, LoadOptions.None, default);
+            cobertura = await XDocument.LoadAsync(stream, LoadOptions.None, CancellationToken.None);
         }
         if (cobertura.Root is not { } coverageElement)
         {
@@ -454,7 +455,7 @@ static class CoverageSummaryConverter
         var xDoc = new XDocument(new XDeclaration("1.0", "utf-8", null), xmlSummary);
         await using (var stream = File.Create(outputPath))
         await using (var writer = XmlWriter.Create(stream, new XmlWriterSettings { Async = true, Indent = true }))
-            await xDoc.SaveAsync(writer, default);
+            await xDoc.SaveAsync(writer, CancellationToken.None);
 
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,

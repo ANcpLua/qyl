@@ -67,7 +67,7 @@ internal static class IntelligenceEndpoints
         });
     }
 
-    private static Task<IResult> CausalChainAsync(
+    private static ValueTask<IResult> CausalChainAsync(
         IPatternEngine engine,
         string patternIds,
         CancellationToken ct)
@@ -87,7 +87,7 @@ internal static class IntelligenceEndpoints
 
         var graph = engine.BuildCausalGraph(matches);
 
-        return Task.FromResult<IResult>(TypedResults.Ok(new
+        return ValueTask.FromResult<IResult>(TypedResults.Ok(new
         {
             root_causes = graph.RootCauses,
             edges = graph.Edges.Select(static e => new
@@ -97,7 +97,7 @@ internal static class IntelligenceEndpoints
         }));
     }
 
-    private static Task<IResult> StrategyAsync(
+    private static ValueTask<IResult> StrategyAsync(
         IPatternEngine engine,
         string patternId,
         CancellationToken ct)
@@ -105,15 +105,15 @@ internal static class IntelligenceEndpoints
         _ = ct;
         var pattern = DiagnosticPatterns.All.FirstOrDefault(p => p.Id.EqualsOrdinal(patternId));
         if (pattern is null)
-            return Task.FromResult<IResult>(TypedResults.NotFound());
+            return ValueTask.FromResult<IResult>(TypedResults.NotFound());
 
         var match = new PatternMatch(pattern, pattern.Confidence, pattern.Signals);
         var strategy = engine.SelectStrategy(match);
 
         if (strategy is null)
-            return Task.FromResult<IResult>(TypedResults.NotFound());
+            return ValueTask.FromResult<IResult>(TypedResults.NotFound());
 
-        return Task.FromResult<IResult>(TypedResults.Ok(new
+        return ValueTask.FromResult<IResult>(TypedResults.Ok(new
         {
             id = strategy.Id,
             trigger_pattern = strategy.TriggerPattern,

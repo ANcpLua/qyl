@@ -21,6 +21,8 @@ public sealed partial class TriagePipelineService(
     private readonly double _autoThreshold = configuration.GetValue("QYL_TRIAGE_AUTO_THRESHOLD", 0.8);
     private readonly bool _enabled = configuration.GetValue("QYL_TRIAGE_ENABLED", true);
     private readonly int _intervalSeconds = configuration.GetValue("QYL_TRIAGE_INTERVAL_SECONDS", 30);
+    private readonly int _maxParallelism = Math.Clamp(
+        configuration.GetValue("QYL_TRIAGE_MAX_PARALLELISM", 4), 1, 16);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -82,27 +84,29 @@ public sealed partial class TriagePipelineService(
 
         LogTriageBatchStart(issueIds.Count);
 
-        foreach (var issueId in issueIds)
+        var options = new ParallelOptions { MaxDegreeOfParallelism = _maxParallelism, CancellationToken = ct };
+        await Parallel.ForEachAsync(issueIds, options, async (issueId, perItemCt) =>
         {
-            var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-            if (issue is null) continue;
+            var issue = await collector.GetIssueByIdAsync(issueId, perItemCt).ConfigureAwait(false);
+            if (issue is null) return;
 
             var result = agents.IsConfigured
-                ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
+                ? await ScoreWithLlmAsync(issue, perItemCt).ConfigureAwait(false)
                 : ScoreWithHeuristic(issue);
 
-            await collector.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
+            await collector.InsertTriageResultAsync(result, perItemCt).ConfigureAwait(false);
             LogIssueTriaged(issueId, result.FixabilityScore, result.AutomationLevel);
 
             // Route auto-fixable issues to the autofix pipeline
             if (result.FixabilityScore >= _autoThreshold)
             {
                 var run = await orchestrator.CreateFixRunAsync(
-                    issueId, FixPolicy.AutoApply, ct: ct).ConfigureAwait(false);
-                await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
+                    issueId, FixPolicy.AutoApply, ct: perItemCt).ConfigureAwait(false);
+                await collector.UpdateTriageFixRunAsync(result.TriageId, run.RunId, perItemCt)
+                    .ConfigureAwait(false);
                 LogAutoRouted(issueId, run.RunId);
             }
-        }
+        }).ConfigureAwait(false);
     }
 
     private async Task<TriageResult> ScoreWithLlmAsync(IssueSummary issue, CancellationToken ct)

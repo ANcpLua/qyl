@@ -30,17 +30,22 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            // Fetch error data
-            var issue = await client.GetFromJsonAsync<SummaryIssueDto>(
+            // Fetch error data + recent events concurrently
+            var issueTask = client.GetFromJsonAsync<SummaryIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
+                SummaryJsonContext.Default.SummaryIssueDto, ct);
+
+            var eventsTask = client.GetFromJsonAsync<SummaryEventsResponse>(
+                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=5",
+                SummaryJsonContext.Default.SummaryEventsResponse, ct);
+
+            await Task.WhenAll(issueTask, eventsTask).ConfigureAwait(false);
+
+            var issue = await issueTask.ConfigureAwait(false);
+            var eventsResponse = await eventsTask.ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
-
-            var eventsResponse = await client.GetFromJsonAsync<SummaryEventsResponse>(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=5",
-                SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
 
             // Build data context for LLM
             StringBuilder sb = new();
