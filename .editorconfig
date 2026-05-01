@@ -370,18 +370,14 @@ dotnet_diagnostic.CA2000.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
 
 # =============================================================================
-# LSP CLIENT (services/qyl.mcp/Tools/Lsp)
+# PACKAGES (NuGet library code)
 # =============================================================================
-# LspClientConnection.OpenAsync constructs an LspClientTransport and transfers
-# ownership to the connection via its private constructor — the connection's
-# DisposeAsync then disposes the transport. CA2000 cannot model ownership
-# transfer through a constructor parameter and fires a false positive on the
-# new LspClientTransport(...) expression inside the factory. Downgrade to
-# `suggestion` for this folder only: the IDE still surfaces the hint, but the
-# build does not break. Not moved to `none` so new CA2000 real issues
-# (e.g. genuine leaks elsewhere in the LSP client) remain visible.
-[services/qyl.mcp/Tools/Lsp/**.cs]
-dotnet_diagnostic.CA2000.severity = suggestion
+# ANcpLua.NET.Sdk silences CA2007 globally (dotnet_diagnostic.CA2007.severity = none)
+# citing MA0004 as the preferred alternative. qyl does not install MA0004, so that
+# leaves ConfigureAwait unenforced in library code. Re-enable here so
+# packages/Directory.Build.props can promote CA2007 to error for IsPackable=true projects.
+[packages/**/*.cs]
+dotnet_diagnostic.CA2007.severity = warning
 
 # =============================================================================
 # FILE TYPES
