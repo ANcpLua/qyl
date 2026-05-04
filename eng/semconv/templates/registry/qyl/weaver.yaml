@@ -7,7 +7,7 @@ whitespace_control:
   lstrip_blocks: true
 
 params:
-  semconv_version: "1.40.0"
+  semconv_version: "1.41.0"
 
   # Upstream OTel prefixes to surface in qyl's generated outputs. Everything
   # else in the upstream registry is ignored to keep generated files lean.
