@@ -7,6 +7,7 @@
 #   2.  AI Agents (copilot/jules/claude): Auto-merge when CI passes
 #   3.  CodeRabbit approved: Auto-merge when CI passes
 #   4.  Governance bot: Auto-merge action version governance PRs
+#   5.  Owner PRs: Auto-merge when CI passes
 #
 # Uses pull_request_target for security (runs in base branch context).
 # All merges wait for required status checks before completing.
@@ -196,6 +197,20 @@ jobs:
             --body "✅ Auto-approved: action governance update (scoped to .github/)"
 
       - name: Enable auto-merge
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "$PR_URL"
+
+  owner-auto-merge:
+    name: Owner auto-merge
+    runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.user.login == github.event.repository.owner.login &&
+      github.event.pull_request.draft == false
+
+    steps:
+      - name: Enable auto-merge for owner PRs
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
