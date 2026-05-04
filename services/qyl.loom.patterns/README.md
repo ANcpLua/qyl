@@ -1,6 +1,6 @@
 # qyl.loom.patterns
 
-MAF-1.1 composition-primitives cookbook. Six self-contained patterns, autofix-shaped
+MAF 1.3.0 composition-primitives cookbook. Six self-contained patterns, autofix-shaped
 synthetic domain, no LLM / API keys required — `FakeChatClient` supplies canned
 responses so every sample exercises the real MAF wiring without network calls.
 

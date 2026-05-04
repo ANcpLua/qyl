@@ -9,7 +9,6 @@ public static class AgentHandoffEndpoints
     [QylMapEndpoints]
     public static void MapAgentHandoffEndpoints(this WebApplication app)
     {
-        // Create handoff from fix run
         app.MapPost("/api/v1/fix-runs/{runId}/handoffs", static async Task<IResult> (
             string runId, CreateHandoffRequest request,
             AgentHandoffService service, CancellationToken ct) =>
@@ -26,7 +25,6 @@ public static class AgentHandoffEndpoints
             }
         });
 
-        // List handoffs for a fix run
         app.MapGet("/api/v1/fix-runs/{runId}/handoffs", static async (
             string runId, int? limit,
             DuckDbStore store, CancellationToken ct) =>
@@ -36,7 +34,6 @@ public static class AgentHandoffEndpoints
             return TypedResults.Ok(new HandoffListResponse(items, items.Count));
         });
 
-        // Get pending handoffs (for agents polling)
         app.MapGet("/api/v1/handoffs/pending", static async Task<IResult> (
             int? limit,
             DuckDbStore store, CancellationToken ct) =>
@@ -54,7 +51,6 @@ public static class AgentHandoffEndpoints
             }
         });
 
-        // Get handoff by ID
         app.MapGet("/api/v1/handoffs/{handoffId}", static async Task<IResult> (
             string handoffId,
             DuckDbStore store, CancellationToken ct) =>
@@ -63,7 +59,6 @@ public static class AgentHandoffEndpoints
             return record is null ? TypedResults.NotFound() : TypedResults.Ok(record);
         });
 
-        // Get handoff context (the full RCA + plan for the agent to work with)
         app.MapGet("/api/v1/handoffs/{handoffId}/context", static async Task<IResult> (
             string handoffId,
             AgentHandoffService service, CancellationToken ct) =>
@@ -72,7 +67,6 @@ public static class AgentHandoffEndpoints
             return context is null ? TypedResults.NotFound() : TypedResults.Content(context, "application/json");
         });
 
-        // Accept handoff (agent claims it)
         app.MapPost("/api/v1/handoffs/{handoffId}/accept", static async Task<IResult> (
             string handoffId,
             AgentHandoffService service, CancellationToken ct) =>
@@ -83,7 +77,6 @@ public static class AgentHandoffEndpoints
                 : TypedResults.Ok(record);
         });
 
-        // Submit result (agent completed the fix)
         app.MapPost("/api/v1/handoffs/{handoffId}/submit", static async Task<IResult> (
             string handoffId, SubmitHandoffRequest request,
             AgentHandoffService service, CancellationToken ct) =>
@@ -95,7 +88,6 @@ public static class AgentHandoffEndpoints
                 : TypedResults.Ok(record);
         });
 
-        // Fail handoff (agent couldn't complete)
         app.MapPost("/api/v1/handoffs/{handoffId}/fail", static async Task<IResult> (
             string handoffId, FailHandoffRequest request,
             AgentHandoffService service, CancellationToken ct) =>

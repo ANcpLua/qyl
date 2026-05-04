@@ -118,7 +118,7 @@ public sealed partial class GenAiTools(HttpClient client)
     /// <summary>Retrieves usage breakdown by AI model with request counts, tokens, and costs.</summary>
     /// <param name="hours">Time window in hours.</param>
     /// <returns>A table of models ranked by cost with request counts and token usage.</returns>
-    // TODO: Endpoint /api/v1/genai/models missing in collector — see docs/mcp-tool-audit.md
+    // TODO: Endpoint /api/v1/genai/models not yet implemented in collector.
     [McpServerTool(Name = "qyl.list_models", Title = "List Models",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
@@ -155,7 +155,7 @@ public sealed partial class GenAiTools(HttpClient client)
     /// <param name="hours">Time window in hours.</param>
     /// <param name="interval">Aggregation interval: 'hour' or 'day'.</param>
     /// <returns>Time series of token usage with costs per interval.</returns>
-    // TODO: Endpoint /api/v1/genai/usage/timeseries missing in collector — see docs/mcp-tool-audit.md
+    // TODO: Endpoint /api/v1/genai/usage/timeseries not yet implemented in collector.
     [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,

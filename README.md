@@ -257,36 +257,31 @@ cd services/qyl.dashboard && npm run dev
 ```text
 core/                                    # TypeSpec schemas (source of truth)
 eng/                                     # NUKE build system + MSBuild props
-src/
+packages/                                # NuGet-shipped libraries (Qyl.*)
+services/
   qyl.collector/                        # OTLP ingest, REST API, DuckDB storage
-  qyl.mcp/                              # MCP tool surface (77 tools)
+  qyl.mcp/                              # MCP tool surface
   qyl.loom/                             # Standalone agent exe (triage/RCA/fix)
+  qyl.loom.patterns/                    # MAF composition cookbook
   qyl.dashboard/                        # React 19 SPA
-  qyl.contracts/                        # BCL-only shared types
+internal/
   qyl.instrumentation/                  # .NET instrumentation SDK
   qyl.instrumentation.generators/       # Roslyn: GenAI/DB interceptors
   qyl.collector.storage.generators/     # Roslyn: DuckDB storage
-plugins/
-  qyl-for-ai/                          # Claude Code skill definitions
-  qyl-mcp/                             # MCP plugin config
-docs/                                   # Architecture, threat model, open work
+  qyl.mcp.generators/                   # Roslyn: MCP tool manifest emission
+docs/                                   # Architecture sketches + superpowers
 tests/                                  # xUnit v3 + MTP tests
-site/                                   # Landing page (GitHub Pages)
 ```
 
 ## Documentation
 
-| Document                                  | Purpose                                                      |
-|-------------------------------------------|--------------------------------------------------------------|
-| `AGENTS.md`                               | Conventions + composition cheat sheet for agents in this repo |
-| `docs/ARCHITECTURE.md`                    | C4 model (Context / Container / Component) + deployment      |
-| `docs/THREAT_MODEL.md`                    | Static threat analysis with 20 attacker stories, P0–P3       |
-| `docs/OPEN_WORK.md`                       | Consolidated open work items from former `specs/` tree       |
-| `docs/MAF-Primitiv + qyl-Pattern.md`      | Design sketch — MAF primitives × qyl autofix patterns (12 sections) |
-| `docs/aot-assessment.md`                  | Native AOT readiness per project                             |
-| `docs/attribute.md`                       | Full catalog of compile-time attributes across repos         |
-| `docs/generator.md`                       | Full catalog of Roslyn source generators                     |
-| `docs/emitters.md`                        | Emitter patterns used across generators                      |
+| Document                             | Purpose                                                             |
+|--------------------------------------|---------------------------------------------------------------------|
+| `AGENTS.md`                          | Conventions + composition cheat sheet for agents in this repo       |
+| `CLAUDE.md`                          | Per-package conventions, MAF entry-points, MCP/agent telemetry      |
+| `docs/MAF-Primitiv + qyl-Pattern.md` | Design sketch — MAF primitives × qyl autofix patterns (12 sections) |
+| `docs/attributes/`                   | Compile-time attribute catalogues                                   |
+| `docs/superpowers/`                  | Long-form notes and historical design plans                         |
 
 ## License
 

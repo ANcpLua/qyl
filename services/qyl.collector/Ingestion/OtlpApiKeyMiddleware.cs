@@ -44,7 +44,6 @@ public sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions
 
         var keyBytes = Encoding.UTF8.GetBytes(key);
 
-        // Check primary key
         if (!string.IsNullOrEmpty(options.PrimaryApiKey))
         {
             var primaryBytes = Encoding.UTF8.GetBytes(options.PrimaryApiKey);
@@ -52,7 +51,6 @@ public sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions
                 return true;
         }
 
-        // Check secondary key
         if (!string.IsNullOrEmpty(options.SecondaryApiKey))
         {
             var secondaryBytes = Encoding.UTF8.GetBytes(options.SecondaryApiKey);

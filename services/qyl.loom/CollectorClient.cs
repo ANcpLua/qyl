@@ -10,8 +10,6 @@ namespace Qyl.Loom;
 /// </summary>
 public sealed class CollectorClient(HttpClient http)
 {
-    // ── Issues ────────────────────────────────────────────────────────────────
-
     public async Task<IssueSummary?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
     {
         var response = await http.GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
@@ -54,8 +52,6 @@ public sealed class CollectorClient(HttpClient http)
 
         return envelope?.Items ?? [];
     }
-
-    // ── Fix Runs ──────────────────────────────────────────────────────────────
 
     public async Task<List<FixRunRecord>> GetPendingFixRunsAsync(int limit = 10, CancellationToken ct = default)
     {
@@ -181,8 +177,6 @@ public sealed class CollectorClient(HttpClient http)
             failure?.Error ?? $"Collector PR creation failed with HTTP {(int)response.StatusCode}.");
     }
 
-    // ── Autofix Steps ─────────────────────────────────────────────────────────
-
     public async Task InsertAutofixStepAsync(AutofixStepRecord step, CancellationToken ct = default)
     {
         var response = await http
@@ -211,8 +205,6 @@ public sealed class CollectorClient(HttpClient http)
 
         response.EnsureSuccessStatusCode();
     }
-
-    // ── Triage ────────────────────────────────────────────────────────────────
 
     public async Task<TriageResult> InsertTriageResultAsync(
         TriageResult result, CancellationToken ct = default)
@@ -246,8 +238,6 @@ public sealed class CollectorClient(HttpClient http)
         response.EnsureSuccessStatusCode();
     }
 
-    // ── Deployments ───────────────────────────────────────────────────────────
-
     public async Task<List<DeploymentDto>> GetDeploymentsAfterAsync(
         DateTime since, CancellationToken ct = default)
     {
@@ -262,8 +252,6 @@ public sealed class CollectorClient(HttpClient http)
 
         return envelope?.Items ?? [];
     }
-
-    // ── Regressions ───────────────────────────────────────────────────────────
 
     public async Task<List<string>> DetectRegressionsAsync(
         string serviceName, string? version = null, CancellationToken ct = default)
@@ -282,8 +270,6 @@ public sealed class CollectorClient(HttpClient http)
         return envelope?.RegressedIssueIds ?? [];
     }
 
-    // ── Issues (list) ────────────────────────────────────────────────────────
-
     public async Task<List<IssueSummary>> GetRecentIssuesAsync(int limit = 10, CancellationToken ct = default)
     {
         var response = await http
@@ -298,9 +284,6 @@ public sealed class CollectorClient(HttpClient http)
         return envelope?.Items ?? [];
     }
 }
-
-// ── Response DTOs ────────────────────────────────────────────────────────────
-// Minimal shapes matching collector JSON responses.
 
 public sealed record UntriagedIssuesResponse(List<string> Ids);
 
@@ -372,8 +355,6 @@ public sealed record DeploymentDto
 public sealed record RegressionCheckResponse(List<string> RegressedIssueIds, int Count);
 
 public sealed record IssueListResponse(List<IssueSummary> Items, int Total);
-
-// ── Source-generated JSON context ────────────────────────────────────────────
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
