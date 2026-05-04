@@ -9,7 +9,7 @@ namespace Qyl.Collector.AgentRuns;
 
 public sealed class AgentInsightsService(DuckDbStore store)
 {
-    private static readonly HashSet<string> ValidBuckets = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> s_validBuckets = new(StringComparer.OrdinalIgnoreCase)
     {
         "1 minute",
         "5 minutes",
@@ -40,7 +40,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
     }
 
     private static string BucketInterval(string? bucket, long fromUnixMs, long toUnixMs) =>
-        bucket is null or "auto" || !ValidBuckets.Contains(bucket)
+        bucket is null or "auto" || !s_validBuckets.Contains(bucket)
             ? AutoBucket(fromUnixMs, toUnixMs)
             : bucket;
 

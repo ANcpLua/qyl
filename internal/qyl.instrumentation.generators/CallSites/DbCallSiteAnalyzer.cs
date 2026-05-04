@@ -48,7 +48,7 @@ internal static class DbCallSiteAnalyzer
             ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
         ];
 
-    private static readonly HashSet<string> CandidateMethodNames =
+    private static readonly HashSet<string> s_candidateMethodNames =
     [
         ..Matchers.Select(static matcher => matcher.MethodName)
     ];
@@ -59,7 +59,7 @@ internal static class DbCallSiteAnalyzer
     /// </summary>
     public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
         IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
-        CandidateMethodNames.Contains(methodName);
+        s_candidateMethodNames.Contains(methodName);
 
     /// <summary>
     ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.

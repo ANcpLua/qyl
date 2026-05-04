@@ -6,7 +6,7 @@ namespace Qyl.Collector.Dashboards;
 /// </summary>
 public sealed class DashboardDetector(DuckDbStore store)
 {
-    private static readonly IReadOnlyList<DashboardTemplate> Templates =
+    private static readonly IReadOnlyList<DashboardTemplate> s_templates =
     [
         new("api-performance", "API Performance",
             "Routes ranked by p75/p95 latency, error rates, and throughput",
@@ -42,9 +42,9 @@ public sealed class DashboardDetector(DuckDbStore store)
     public async Task<IReadOnlyList<DashboardDefinition>> DetectAsync(CancellationToken ct = default)
     {
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        var results = new List<DashboardDefinition>(Templates.Count);
+        var results = new List<DashboardDefinition>(s_templates.Count);
 
-        foreach (var tpl in Templates)
+        foreach (var tpl in s_templates)
         {
             var available = await ExistsAsync(lease.Connection, tpl.DetectionQuery, ct).ConfigureAwait(false);
             results.Add(new DashboardDefinition(tpl.Id, tpl.Title, tpl.Description, tpl.Icon, available));

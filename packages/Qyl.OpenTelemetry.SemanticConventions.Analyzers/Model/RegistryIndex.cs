@@ -11,7 +11,7 @@ internal sealed class RegistryIndex
 
     // Floor set of stable OTel namespace prefixes so QYL-SEMCONV-003 can flag
     // typos even when the upstream registry submodule isn't initialised.
-    private static readonly ImmutableArray<string> WellKnownOtelPrefixes =
+    private static readonly ImmutableArray<string> s_wellKnownOtelPrefixes =
         ImmutableArray.Create(
             "http", "db", "rpc", "messaging", "faas", "net", "peer",
             "enduser", "service", "telemetry", "code", "exception",
@@ -45,7 +45,7 @@ internal sealed class RegistryIndex
         // Well-known OTel namespace prefixes as a floor (covers stable attrs not in the deprecated set)
         try
         {
-            foreach (var prefix in WellKnownOtelPrefixes)
+            foreach (var prefix in s_wellKnownOtelPrefixes)
                 prefixBuilder.Add(prefix);
         }
         catch

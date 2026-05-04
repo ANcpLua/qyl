@@ -10,12 +10,12 @@ namespace qyl.mcp.Apps.TraceExplorer;
 [McpServerResourceType]
 internal sealed class TraceExplorerResource
 {
-    private static readonly Lazy<string> Html = new(LoadHtml);
+    private static readonly Lazy<string> s_html = new(LoadHtml);
 
     [McpServerResource(UriTemplate = "ui://qyl/trace-viewer",
         Name = "Trace Explorer",
         MimeType = "text/html;profile=mcp-app")]
-    public static string GetTraceViewer() => Html.Value;
+    public static string GetTraceViewer() => s_html.Value;
 
     private static string LoadHtml()
     {

@@ -12,7 +12,7 @@ public sealed partial class ExplorationInsightService(
     ILogger<ExplorationInsightService> logger,
     IQylLoomAgentsBuilder agents)
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan s_cacheTtl = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<string, CachedInsight> _cache = new(StringComparer.Ordinal);
 
     public ValueTask<ExplorationInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
@@ -48,7 +48,7 @@ public sealed partial class ExplorationInsightService(
             ? await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false)
             : GenerateHeuristic(issueId, issue, events);
 
-        _cache[issueId] = new CachedInsight(insight, TimeProvider.System.GetUtcNow() + CacheTtl);
+        _cache[issueId] = new CachedInsight(insight, TimeProvider.System.GetUtcNow() + s_cacheTtl);
         return insight;
     }
 

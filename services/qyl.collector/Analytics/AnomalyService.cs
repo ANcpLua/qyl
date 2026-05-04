@@ -14,7 +14,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
     // Whitelisted Metrics
     // ==========================================================================
 
-    private static readonly FrozenDictionary<string, string> MetricExpressions =
+    private static readonly FrozenDictionary<string, string> s_metricExpressions =
         new Dictionary<string, string>
         {
             ["error_rate"] =
@@ -238,10 +238,10 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
 
     private static string ValidateAndGetExpression(string metric)
     {
-        if (!MetricExpressions.TryGetValue(metric, out var expr))
+        if (!s_metricExpressions.TryGetValue(metric, out var expr))
         {
             throw new ArgumentException(
-                $"Unknown metric '{metric}'. Valid metrics: {string.Join(", ", MetricExpressions.Keys)}",
+                $"Unknown metric '{metric}'. Valid metrics: {string.Join(", ", s_metricExpressions.Keys)}",
                 nameof(metric));
         }
 

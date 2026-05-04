@@ -9,7 +9,7 @@ namespace Qyl.Collector.SchemaControl;
 [QylService(QylLifetime.Singleton)]
 public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlanner> logger)
 {
-    private static readonly string[] AllowedChangeTypes = ["add_column", "add_table", "add_index"];
+    private static readonly string[] s_allowedChangeTypes = ["add_column", "add_table", "add_index"];
 
     [GeneratedRegex(@"\b(DROP\s+TABLE|DROP\s+COLUMN|ALTER\s+TABLE\s+\S+\s+DROP)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled)]
@@ -22,10 +22,10 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         PromotionRequest request,
         CancellationToken ct = default)
     {
-        if (!AllowedChangeTypes.Contains(request.ChangeType))
+        if (!s_allowedChangeTypes.Contains(request.ChangeType))
         {
             throw new ArgumentException(
-                $"Unsupported change type: {request.ChangeType}. Allowed: {string.Join(", ", AllowedChangeTypes)}");
+                $"Unsupported change type: {request.ChangeType}. Allowed: {string.Join(", ", s_allowedChangeTypes)}");
         }
 
         var sql = GenerateSql(request);

@@ -124,14 +124,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     private const int MaxProfilesPerBatch = 50;
 
     // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
-    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
-    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
 
     // ==========================================================================
     // Clear All Operations (for dashboard controls)
     // ==========================================================================
 
-    private static readonly FrozenSet<string> AllowedClearTables = FrozenSet.Create(
+    private static readonly FrozenSet<string> s_allowedClearTables = FrozenSet.Create(
         StringComparer.Ordinal, "spans", "logs", "profiles", "session_entities");
 
     // ==========================================================================
@@ -617,7 +617,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM " + SqlBuilder.Whitelisted(tableName, AllowedClearTables);
+            cmd.CommandText = "DELETE FROM " + SqlBuilder.Whitelisted(tableName, s_allowedClearTables);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -1440,7 +1440,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     {
         Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
 
-        return SSpanInsertSqlCache.GetOrAdd(spanCount, static count =>
+        return s_spanInsertSqlCache.GetOrAdd(spanCount, static count =>
         {
             var sb = new StringBuilder(2048);
             sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
@@ -1475,7 +1475,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     {
         Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
 
-        return SLogInsertSqlCache.GetOrAdd(logCount, static count =>
+        return s_logInsertSqlCache.GetOrAdd(logCount, static count =>
         {
             var sb = new StringBuilder(1024);
             sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");

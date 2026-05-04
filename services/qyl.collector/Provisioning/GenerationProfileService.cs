@@ -7,7 +7,7 @@ namespace Qyl.Collector.Provisioning;
 [QylService(QylLifetime.Singleton)]
 public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<GenerationProfileService> logger)
 {
-    private static readonly FrozenDictionary<string, GenerationProfile> BuiltInProfiles =
+    private static readonly FrozenDictionary<string, GenerationProfile> s_builtInProfiles =
         new Dictionary<string, GenerationProfile>
         {
             ["full"] = new("full", "Full Observability",
@@ -33,7 +33,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
     /// </summary>
     public ValueTask<IReadOnlyList<GenerationProfile>> GetProfilesAsync(CancellationToken _ = default)
     {
-        IReadOnlyList<GenerationProfile> profiles = [.. BuiltInProfiles.Values];
+        IReadOnlyList<GenerationProfile> profiles = [.. s_builtInProfiles.Values];
         return ValueTask.FromResult(profiles);
     }
 
@@ -42,7 +42,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
     /// </summary>
     public ValueTask<GenerationProfile?> GetProfileAsync(string profileId, CancellationToken _ = default)
     {
-        BuiltInProfiles.TryGetValue(profileId, out var profile);
+        s_builtInProfiles.TryGetValue(profileId, out var profile);
         return ValueTask.FromResult(profile);
     }
 
@@ -58,7 +58,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
         GenerationSelectionRequest request,
         CancellationToken ct = default)
     {
-        if (!BuiltInProfiles.ContainsKey(request.ProfileId))
+        if (!s_builtInProfiles.ContainsKey(request.ProfileId))
             throw new ArgumentException($"Unknown profile: {request.ProfileId}");
 
         await store.UpsertConfigSelectionAsync(request.WorkspaceId, request.ProfileId, request.CustomOverrides, ct)
@@ -86,7 +86,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
         GenerationJobRequest request,
         CancellationToken ct = default)
     {
-        if (!BuiltInProfiles.ContainsKey(request.ProfileId))
+        if (!s_builtInProfiles.ContainsKey(request.ProfileId))
             throw new ArgumentException($"Unknown profile: {request.ProfileId}");
 
         var jobId = $"gen-{Guid.CreateVersion7():N}"[..24];

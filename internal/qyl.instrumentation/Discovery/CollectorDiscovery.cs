@@ -9,10 +9,10 @@ namespace Qyl.Instrumentation.Discovery;
 /// </summary>
 internal static partial class CollectorDiscovery
 {
-    private static readonly Lazy<Uri?> SCachedEndpoint =
+    private static readonly Lazy<Uri?> s_cachedEndpoint =
         new(ProbeForCollector, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private static readonly (string Host, int Port)[] SProbeTargets =
+    private static readonly (string Host, int Port)[] s_probeTargets =
     [
         ("localhost", 4317), // gRPC (standard)
         ("localhost", 4318), // HTTP OTLP (standard)
@@ -24,7 +24,7 @@ internal static partial class CollectorDiscovery
     ///     Returns the discovered collector endpoint, or null if none was found.
     ///     The result is computed once and cached for the process lifetime.
     /// </summary>
-    internal static Uri? DiscoverEndpoint() => SCachedEndpoint.Value;
+    internal static Uri? DiscoverEndpoint() => s_cachedEndpoint.Value;
 
     /// <summary>
     ///     Runs the full discovery sequence: env vars first, then network probes.
@@ -46,7 +46,7 @@ internal static partial class CollectorDiscovery
         }
 
         // Priority 3-4: Network probes (TCP socket connect, 100ms timeout each)
-        foreach (var (host, port) in SProbeTargets)
+        foreach (var (host, port) in s_probeTargets)
         {
             if (TcpProbe(host, port))
             {
@@ -89,7 +89,7 @@ internal static partial class CollectorDiscovery
     /// </summary>
     internal static void LogResult(ILogger logger)
     {
-        var endpoint = SCachedEndpoint.Value;
+        var endpoint = s_cachedEndpoint.Value;
         if (endpoint is not null)
         {
             LogCollectorDiscovered(logger, endpoint);

@@ -14,7 +14,7 @@ namespace qyl.mcp.Tools.Triage;
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SetErrorPriorityTool(HttpClient client)
 {
-    private static readonly HashSet<string> ValidPriorities = ["P0", "P1", "P2", "P3", "P4"];
+    private static readonly HashSet<string> s_validPriorities = ["P0", "P1", "P2", "P3", "P4"];
 
     [McpServerTool(
         Name = "set_error_priority",
@@ -27,7 +27,7 @@ public sealed partial class SetErrorPriorityTool(HttpClient client)
         string priority,
         CancellationToken ct = default)
     {
-        if (!ValidPriorities.Contains(priority))
+        if (!s_validPriorities.Contains(priority))
             throw new QylQueryException($"Invalid priority '{priority}'. Must be one of: P0, P1, P2, P3, P4.");
 
         using var response = await client.PostAsJsonAsync(

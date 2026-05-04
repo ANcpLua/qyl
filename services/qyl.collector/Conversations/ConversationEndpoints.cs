@@ -58,9 +58,9 @@ public sealed record ConversationListResponse(
 
 internal static class ConversationEndpoints
 {
-    private static readonly Meter ConversationsMeter = new("qyl.observability.conversations", "1.0.0");
+    private static readonly Meter s_conversationsMeter = new("qyl.observability.conversations", "1.0.0");
 
-    private static readonly Histogram<long> SpanCountHistogram = ConversationsMeter.CreateHistogram<long>(
+    private static readonly Histogram<long> s_spanCountHistogram = s_conversationsMeter.CreateHistogram<long>(
         "qyl_observability_conversation_span_count",
         unit: "{span}",
         description: "Number of spans returned in a single conversation thread fetch");
@@ -222,7 +222,7 @@ internal static class ConversationEndpoints
         if (spans.Count == 0)
             return TypedResults.NotFound(new { error = "No conversation found for sessionId", sessionId });
 
-        SpanCountHistogram.Record(
+        s_spanCountHistogram.Record(
             spans.Count,
             new KeyValuePair<string, object?>("agent_name", firstAgentName ?? "unknown"));
 

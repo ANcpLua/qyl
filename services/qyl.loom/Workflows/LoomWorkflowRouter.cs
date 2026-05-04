@@ -17,7 +17,7 @@ namespace Qyl.Loom.Workflows;
 /// </remarks>
 public static class LoomWorkflowRouter
 {
-    private static readonly string[] FixIssueTokens =
+    private static readonly string[] s_fixIssueTokens =
     [
         "fix qyl", "qyl error", "qyl errors", "qyl exception", "qyl exceptions",
         "production issue", "production bug", "debug production", "investigate exception",
@@ -26,14 +26,14 @@ public static class LoomWorkflowRouter
         "fix qyl issue"
     ];
 
-    private static readonly string[] BotReviewTokens =
+    private static readonly string[] s_botReviewTokens =
     [
         "qyl[bot]", "qyl-review[bot]", "qyl review bot", "qyl bot comment",
         "bot comment", "pr comment", "pr comments", "review comments",
         "address qyl review", "resolve qyl findings", "qyl feedback", "@qyl review"
     ];
 
-    private static readonly string[] AutofixTokens =
+    private static readonly string[] s_autofixTokens =
     [
         "autofix", "auto-fix", "run loom on", "run the loom pipeline",
         "generate a pr for", "open a pr for the fix", "headless fix",
@@ -86,9 +86,9 @@ public static class LoomWorkflowRouter
 
         var normalized = userRequest.ToLowerInvariant();
 
-        var fixMatches = FindMatches(normalized, FixIssueTokens);
-        var botMatches = FindMatches(normalized, BotReviewTokens);
-        var autofixMatches = FindMatches(normalized, AutofixTokens);
+        var fixMatches = FindMatches(normalized, s_fixIssueTokens);
+        var botMatches = FindMatches(normalized, s_botReviewTokens);
+        var autofixMatches = FindMatches(normalized, s_autofixTokens);
 
         // Autofix is more specific than FixProductionIssue — a request mentioning both
         // "autofix" and generic fix tokens ("debug", "fix bug") routes to Autofix.

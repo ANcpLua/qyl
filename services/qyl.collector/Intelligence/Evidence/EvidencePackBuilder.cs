@@ -9,7 +9,7 @@ public interface IEvidencePackBuilder
 
 public sealed class DeterministicEvidencePackBuilder : IEvidencePackBuilder
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
 
     public AgentRunEvidencePack Build(AutofixEvidenceInput input)
     {
@@ -48,5 +48,5 @@ public sealed class DeterministicEvidencePackBuilder : IEvidencePackBuilder
         .ThenBy(static fact => fact.Source, StringComparer.Ordinal)
         .ToArray();
 
-    private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
+    private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, s_jsonOptions);
 }
