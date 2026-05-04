@@ -8,7 +8,7 @@ namespace Qyl.Collector.Identity;
 [QylService(QylLifetime.Singleton)]
 public sealed partial class HandshakeService(DuckDbStore store, ILogger<HandshakeService> logger)
 {
-    private static readonly TimeSpan HandshakeExpiry = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan s_handshakeExpiry = TimeSpan.FromMinutes(10);
 
     /// <summary>
     ///     Initiates a handshake session with a PKCE code_challenge.
@@ -66,7 +66,7 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
 
         // Check expiry
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-        if (now - challenge.CreatedAt > HandshakeExpiry)
+        if (now - challenge.CreatedAt > s_handshakeExpiry)
         {
             await TransitionToExpiredAsync(workspaceId, ct).ConfigureAwait(false);
             LogHandshakeExpired(workspaceId);

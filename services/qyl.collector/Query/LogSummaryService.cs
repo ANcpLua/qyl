@@ -8,9 +8,9 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
 {
     private const int MaxRows = 10_000;
     private const int BatchSize = 500;
-    private static readonly string[] SSeverityOrder = ["trace", "debug", "info", "warn", "error", "fatal"];
+    private static readonly string[] s_severityOrder = ["trace", "debug", "info", "warn", "error", "fatal"];
 
-    private static readonly FrozenDictionary<string, TimeSpan> SWindowDurations =
+    private static readonly FrozenDictionary<string, TimeSpan> s_windowDurations =
         new Dictionary<string, TimeSpan>(StringComparer.OrdinalIgnoreCase)
         {
             ["30s"] = TimeSpan.FromSeconds(30),
@@ -20,12 +20,12 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             ["1h"] = TimeSpan.FromHours(1)
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly Regex SSuccessKeywords = new(
+    private static readonly Regex s_successKeywords = new(
         @"\b(succeeded|successfully|success|resolved|connected|refreshed|recovered|completed)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     // Order matters: UUID before generic hex.
-    private static readonly (Regex Pattern, string Replacement)[] SPatternReplacements =
+    private static readonly (Regex Pattern, string Replacement)[] s_patternReplacements =
     [
         (new Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
             RegexOptions.Compiled), "<UUID>"),
@@ -34,11 +34,11 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         (new Regex(@"(?<![a-zA-Z])\d+(?:\.\d+)?(?![a-zA-Z])", RegexOptions.Compiled), "<N>")
     ];
 
-    private static readonly Regex SCollapsedNumbers = new(
+    private static readonly Regex s_collapsedNumbers = new(
         @"(<N>[,.\s]*)+",
         RegexOptions.Compiled);
 
-    public static bool IsValidWindow(string window) => SWindowDurations.ContainsKey(window);
+    public static bool IsValidWindow(string window) => s_windowDurations.ContainsKey(window);
 
     public async Task<LogSummaryResponse> BuildSummaryAsync(
         string window,
@@ -59,7 +59,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         }
         else
         {
-            var duration = SWindowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
+            var duration = s_windowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
             after = TimeConversions.ToUnixNanoUnsigned(now - duration);
         }
 
@@ -170,7 +170,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             newestTimestamp = TimeConversions.UnixNanoToDateTime(logs.Max(static l => l.TimeUnixNano));
         }
 
-        var bySeverity = SSeverityOrder
+        var bySeverity = s_severityOrder
             .Select(x => new LogStatsSeverityCount(x, counts.GetValueOrDefault(x, 0)))
             .ToArray();
 
@@ -285,7 +285,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
                 endTime.HasValue ? TimeConversions.ToUnixNanoUnsigned(endTime.Value) : null);
         }
 
-        var duration = SWindowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
+        var duration = s_windowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
         var now = timeProvider.GetUtcNow();
         return (
             TimeConversions.ToUnixNanoUnsigned(now - duration),
@@ -329,7 +329,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
                 continue;
             }
 
-            if (!SSuccessKeywords.IsMatch(message))
+            if (!s_successKeywords.IsMatch(message))
                 continue;
 
             if (activeByService.TryGetValue(service, out var servicePatterns))
@@ -405,10 +405,10 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
     private static string ExtractPattern(string message)
     {
         var result = message;
-        foreach (var (pattern, replacement) in SPatternReplacements)
+        foreach (var (pattern, replacement) in s_patternReplacements)
             result = pattern.Replace(result, replacement);
 
-        result = SCollapsedNumbers.Replace(result, "<N> ");
+        result = s_collapsedNumbers.Replace(result, "<N> ");
         return result.Trim();
     }
 

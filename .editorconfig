@@ -77,62 +77,91 @@ dotnet_diagnostic.AL0025.severity = warning
 dotnet_diagnostic.AL0010.severity = none # Type should be partial
 
 # =============================================================================
-# NAMING CONVENTIONS (Microsoft .NET Guidelines)
-# https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines
+# NAMING CONVENTIONS — dotnet/runtime style
+# =============================================================================
+# Canonical source: ANcpLua.NET.Sdk/src/Config/NamingConvention.editorconfig
+# (injected as a global config into all SDK-using projects). Mirror kept here
+# so the four projects on plain Microsoft.NET.Sdk (eng/build/build.csproj,
+# packages/Qyl.Run, packages/Qyl.Client, packages/Qyl.OpenTelemetry.Sema-
+# nticConventions.Analyzers + its Tests, packages/Qyl.Client/Generated/src)
+# also see the same rules. Update both files together.
 # =============================================================================
 
-# Style definitions
-dotnet_naming_style.pascal_case.capitalization = pascal_case
-
-dotnet_naming_style.camel_case_underscore.required_prefix = _
-dotnet_naming_style.camel_case_underscore.capitalization = camel_case
-
-dotnet_naming_style.static_field_style.required_prefix = s_
-dotnet_naming_style.static_field_style.capitalization = camel_case
-
-# Rule 1: Constants must use PascalCase (highest priority)
-dotnet_naming_rule.constants_should_be_pascal_case.severity = error
-dotnet_naming_rule.constants_should_be_pascal_case.symbols = constant_fields
-dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case
-dotnet_naming_symbols.constant_fields.applicable_kinds = field
-dotnet_naming_symbols.constant_fields.applicable_accessibilities = *
+# const fields → PascalCase
+dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
+dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_symbols.constant_fields.applicable_kinds   = field
 dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
-# Rule 2: Static readonly fields should use PascalCase
-dotnet_naming_rule.static_readonly_should_be_pascal_case.severity = warning
-dotnet_naming_rule.static_readonly_should_be_pascal_case.symbols = static_readonly_fields
-dotnet_naming_rule.static_readonly_should_be_pascal_case.style = pascal_case
-dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
-dotnet_naming_symbols.static_readonly_fields.applicable_accessibilities = *
-dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+# private/internal static fields (incl. readonly) → s_camelCase
+# Matches dotnet/runtime: private/internal static readonly is NOT PascalCase —
+# the const rule above keeps const fields PascalCase; the fallback rule at the
+# bottom keeps public/protected static (readonly) fields PascalCase.
+dotnet_naming_rule.static_fields_should_have_prefix.severity = suggestion
+dotnet_naming_rule.static_fields_should_have_prefix.symbols  = static_fields
+dotnet_naming_rule.static_fields_should_have_prefix.style    = static_prefix_style
+dotnet_naming_symbols.static_fields.applicable_kinds   = field
+dotnet_naming_symbols.static_fields.required_modifiers = static
+dotnet_naming_symbols.static_fields.applicable_accessibilities = private, internal, private_protected
+dotnet_naming_style.static_prefix_style.required_prefix = s_
+dotnet_naming_style.static_prefix_style.capitalization = camel_case
 
-# Rule 3: Private static fields should use s_camelCase
-dotnet_naming_rule.private_static_fields_should_be_s_camel_case.severity = warning
-dotnet_naming_rule.private_static_fields_should_be_s_camel_case.symbols = private_static_fields
-dotnet_naming_rule.private_static_fields_should_be_s_camel_case.style = static_field_style
-dotnet_naming_symbols.private_static_fields.applicable_kinds = field
-dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
-dotnet_naming_symbols.private_static_fields.required_modifiers = static
+# private/internal instance fields → _camelCase
+# The static rule above is more specific and wins for static fields.
+dotnet_naming_rule.camel_case_for_private_internal_fields.severity = suggestion
+dotnet_naming_rule.camel_case_for_private_internal_fields.symbols  = private_internal_fields
+dotnet_naming_rule.camel_case_for_private_internal_fields.style    = camel_case_underscore_style
+dotnet_naming_symbols.private_internal_fields.applicable_kinds = field
+dotnet_naming_symbols.private_internal_fields.applicable_accessibilities = private, internal
+dotnet_naming_style.camel_case_underscore_style.required_prefix = _
+dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
 
-# Rule 4: Private instance fields must use _camelCase
-dotnet_naming_rule.private_fields_should_be_camel_case.severity = error
-dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_instance_fields
-dotnet_naming_rule.private_fields_should_be_camel_case.style = camel_case_underscore
-dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
-dotnet_naming_symbols.private_instance_fields.applicable_accessibilities = private
+# const locals → PascalCase
+dotnet_naming_rule.constant_variables_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.constant_variables_should_be_pascal_case.symbols  = constant_variables
+dotnet_naming_rule.constant_variables_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_symbols.constant_variables.applicable_kinds   = local
+dotnet_naming_symbols.constant_variables.required_modifiers = const
 
-# Rule 5: Public/Internal fields should use PascalCase
-dotnet_naming_rule.public_fields_should_be_pascal_case.severity = error
-dotnet_naming_rule.public_fields_should_be_pascal_case.symbols = public_fields
-dotnet_naming_rule.public_fields_should_be_pascal_case.style = pascal_case
-dotnet_naming_symbols.public_fields.applicable_kinds = field
-dotnet_naming_symbols.public_fields.applicable_accessibilities = public, internal, protected, protected_internal
+# locals + parameters → camelCase
+dotnet_naming_rule.locals_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.locals_should_be_camel_case.symbols = locals_and_parameters
+dotnet_naming_rule.locals_should_be_camel_case.style = camel_case_style
+dotnet_naming_symbols.locals_and_parameters.applicable_kinds = parameter, local
+dotnet_naming_style.camel_case_style.capitalization = camel_case
 
-# Rule 6: Namespaces - allow product name 'qyl' in lowercase (brand decision)
-dotnet_naming_rule.namespaces_should_be_pascal_case.severity = suggestion
-dotnet_naming_rule.namespaces_should_be_pascal_case.symbols = namespaces
-dotnet_naming_rule.namespaces_should_be_pascal_case.style = pascal_case
-dotnet_naming_symbols.namespaces.applicable_kinds = namespace
+# local functions → PascalCase
+dotnet_naming_rule.local_functions_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.local_functions_should_be_pascal_case.symbols = local_functions
+dotnet_naming_rule.local_functions_should_be_pascal_case.style = non_private_static_field_style
+dotnet_naming_symbols.local_functions.applicable_kinds = local_function
+dotnet_naming_style.non_private_static_field_style.capitalization = pascal_case
+
+# type parameters → TPascalCase
+dotnet_naming_style.type_parameter_style.capitalization = pascal_case
+dotnet_naming_style.type_parameter_style.required_prefix = T
+dotnet_naming_rule.type_parameter_naming.symbols = type_parameter_symbol
+dotnet_naming_rule.type_parameter_naming.style = type_parameter_style
+dotnet_naming_rule.type_parameter_naming.severity = warning
+dotnet_naming_symbols.type_parameter_symbol.applicable_kinds = type_parameter
+dotnet_naming_symbols.type_parameter_symbol.applicable_accessibilities = *
+
+# interfaces → IPascalCase
+dotnet_naming_style.interface_style.capitalization = pascal_case
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = warning
+dotnet_naming_rule.interface_should_be_begins_with_i.style = interface_style
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface_symbols
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
+
+# fallback for everything else → PascalCase
+dotnet_naming_rule.members_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.members_should_be_pascal_case.symbols = all_members
+dotnet_naming_rule.members_should_be_pascal_case.style = non_private_static_field_style
+dotnet_naming_symbols.all_members.applicable_kinds = *
 
 # =============================================================================
 # SOURCE GENERATORS (netstandard2.0 Roslyn components)

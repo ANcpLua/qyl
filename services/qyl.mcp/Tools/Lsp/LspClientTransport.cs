@@ -18,7 +18,7 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
 {
     // LSP base protocol: "Content-Length: N\r\n\r\n" header, UTF-8 JSON body.
     private const string HeaderPrefix = "Content-Length: ";
-    private static readonly byte[] HeaderTerminator = "\r\n\r\n"u8.ToArray();
+    private static readonly byte[] s_headerTerminator = "\r\n\r\n"u8.ToArray();
     private readonly Channel<JsonObject> _incoming;
     private readonly ILogger? _logger;
     private readonly CancellationTokenSource _readerCts = new();
@@ -197,20 +197,20 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
 
             buffer.Add(scratch[0]);
 
-            if (scratch[0] == HeaderTerminator[matchIndex])
+            if (scratch[0] == s_headerTerminator[matchIndex])
             {
                 matchIndex++;
-                if (matchIndex == HeaderTerminator.Length)
+                if (matchIndex == s_headerTerminator.Length)
                     break;
             }
             else
             {
-                matchIndex = scratch[0] == HeaderTerminator[0] ? 1 : 0;
+                matchIndex = scratch[0] == s_headerTerminator[0] ? 1 : 0;
             }
         }
 
         var headerText = Encoding.ASCII.GetString(
-            buffer.ToArray(), 0, buffer.Count - HeaderTerminator.Length);
+            buffer.ToArray(), 0, buffer.Count - s_headerTerminator.Length);
 
         foreach (var line in headerText.Split("\r\n"))
         {

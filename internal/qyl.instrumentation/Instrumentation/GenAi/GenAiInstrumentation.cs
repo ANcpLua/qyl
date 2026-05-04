@@ -199,11 +199,11 @@ public static class GenAiInstrumentation
 
     // Lazy-initialized metrics
 
-    private static Histogram<long> TokenUsageHistogram =>
+    private static Histogram<long> s_tokenUsageHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
             "gen_ai.client.token.usage", "{token}", "Token usage");
 
-    private static Histogram<double> OperationDurationHistogram =>
+    private static Histogram<double> s_operationDurationHistogram =>
         field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
             "gen_ai.client.operation.duration", "s", "Operation duration");
 
@@ -361,13 +361,13 @@ public static class GenAiInstrumentation
         if (activity is not null && outputTokens > 0)
         {
             activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
-            TokenUsageHistogram.Record(outputTokens,
+            s_tokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
                 new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
-        OperationDurationHistogram.Record(duration,
+        s_operationDurationHistogram.Record(duration,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
     }
@@ -383,7 +383,7 @@ public static class GenAiInstrumentation
         if (inputTokens > 0)
         {
             activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
-            TokenUsageHistogram.Record(inputTokens,
+            s_tokenUsageHistogram.Record(inputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
                 new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Input));
@@ -392,19 +392,19 @@ public static class GenAiInstrumentation
         if (outputTokens > 0)
         {
             activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
-            TokenUsageHistogram.Record(outputTokens,
+            s_tokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
                 new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
         }
 
-        OperationDurationHistogram.Record(durationSeconds,
+        s_operationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
     }
 
     private static void RecordDuration(string provider, string operation, double durationSeconds) =>
-        OperationDurationHistogram.Record(durationSeconds,
+        s_operationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
 
@@ -430,7 +430,7 @@ public static class GenAiInstrumentation
 
         ActivityExceptionTelemetry.Record(activity, ex, errorType);
 
-        OperationDurationHistogram.Record(durationSeconds,
+        s_operationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
             new KeyValuePair<string, object?>(ErrorAttributes.Type, errorType));

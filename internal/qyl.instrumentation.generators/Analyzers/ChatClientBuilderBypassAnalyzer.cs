@@ -18,7 +18,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "QYL0137";
 
-    private static readonly string[] SProviderClients =
+    private static readonly string[] s_providerClients =
     [
         "OpenAI.OpenAIClient",
         "Azure.AI.OpenAI.AzureOpenAIClient",
@@ -26,7 +26,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         "OllamaSharp.OllamaApiClient"
     ];
 
-    private static readonly DiagnosticDescriptor SRule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         DiagnosticId,
         "Provider SDK client instantiated outside ChatClientBuilder",
         "Provider SDK clients may only be instantiated inside an `IXxxChatClientBuilder` implementation. " +
@@ -35,7 +35,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -44,7 +44,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationStartAction(static start =>
         {
             var builder = ImmutableHashSet.CreateBuilder<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-            foreach (var symbol in SProviderClients
+            foreach (var symbol in s_providerClients
                          .Select(start.Compilation.GetTypeByMetadataName)
                          .OfType<INamedTypeSymbol>())
                 builder.Add(symbol);
@@ -68,7 +68,7 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
         if (IsAllowed(context.Operation.Syntax.SyntaxTree.FilePath))
             return;
 
-        context.ReportDiagnostic(Diagnostic.Create(SRule, creation.Syntax.GetLocation()));
+        context.ReportDiagnostic(Diagnostic.Create(s_rule, creation.Syntax.GetLocation()));
     }
 
     private static bool IsAllowed(string path)

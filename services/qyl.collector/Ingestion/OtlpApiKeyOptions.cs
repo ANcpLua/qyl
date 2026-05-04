@@ -5,7 +5,7 @@ namespace Qyl.Collector.Ingestion;
 /// </summary>
 public sealed class OtlpApiKeyOptions
 {
-    private static readonly string[] ValidAuthModes = ["ApiKey", "Unsecured"];
+    private static readonly string[] s_validAuthModes = ["ApiKey", "Unsecured"];
 
     /// <summary>
     ///     Auth mode: "ApiKey" or "Unsecured".
@@ -13,9 +13,9 @@ public sealed class OtlpApiKeyOptions
     public string AuthMode
     {
         get;
-        set => field = ValidAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
+        set => field = s_validAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? value
-            : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", ValidAuthModes)}",
+            : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", s_validAuthModes)}",
                 nameof(value));
     } = "Unsecured";
 

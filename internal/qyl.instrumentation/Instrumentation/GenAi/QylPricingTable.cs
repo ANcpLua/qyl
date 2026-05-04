@@ -24,7 +24,7 @@ public static class QylPricingTable
 {
     private const string EmbeddedResourceName = "Qyl.Instrumentation.pricing.models.json";
 
-    private static readonly Lazy<FrozenDictionary<string, PricingEntry>> Table =
+    private static readonly Lazy<FrozenDictionary<string, PricingEntry>> s_table =
         new(LoadFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
@@ -33,7 +33,7 @@ public static class QylPricingTable
     /// </summary>
     public static bool TryGet(string? provider, string? model, out PricingEntry entry)
     {
-        var table = Table.Value;
+        var table = s_table.Value;
 
         if (!string.IsNullOrEmpty(provider) && !string.IsNullOrEmpty(model)
             && table.TryGetValue(MakeKey(provider, model), out entry))
@@ -50,7 +50,7 @@ public static class QylPricingTable
     }
 
     /// <summary>Total entries in the frozen table (provider::model, bare model, and wildcards).</summary>
-    public static int Count => Table.Value.Count;
+    public static int Count => s_table.Value.Count;
 
     private static string MakeKey(string provider, string model) => $"{provider}::{model}";
 

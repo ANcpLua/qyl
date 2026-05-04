@@ -68,9 +68,9 @@ internal sealed class LspServerResolution(
 /// </summary>
 internal static class WorkspaceRootWalker
 {
-    private static readonly string[] AnchorFileExtensions = [".slnx", ".sln"];
-    private static readonly string[] AnchorProjectFileExtensions = [".csproj"];
-    private static readonly string[] AnchorFileNames = ["package.json"];
+    private static readonly string[] s_anchorFileExtensions = [".slnx", ".sln"];
+    private static readonly string[] s_anchorProjectFileExtensions = [".csproj"];
+    private static readonly string[] s_anchorFileNames = ["package.json"];
 
     /// <summary>
     ///     Walks parents of <paramref name="filePath" /> to find the nearest anchor that marks a
@@ -88,14 +88,14 @@ internal static class WorkspaceRootWalker
         while (directory is not null)
         {
             // Prefer solution-level anchors.
-            if (ContainsAny(directory, AnchorFileExtensions, true))
+            if (ContainsAny(directory, s_anchorFileExtensions, true))
                 return directory.FullName;
 
-            if (ContainsAny(directory, AnchorFileNames, false))
+            if (ContainsAny(directory, s_anchorFileNames, false))
                 return directory.FullName;
 
             // Remember the deepest project-level anchor as a fallback.
-            if (projectLevelRoot is null && ContainsAny(directory, AnchorProjectFileExtensions, true))
+            if (projectLevelRoot is null && ContainsAny(directory, s_anchorProjectFileExtensions, true))
                 projectLevelRoot = directory.FullName;
 
             directory = directory.Parent;

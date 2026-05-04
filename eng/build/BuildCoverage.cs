@@ -32,7 +32,7 @@ namespace Qyl.Build;
 
 interface ICoverage : IQylTest
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -123,7 +123,7 @@ interface ICoverage : IQylTest
         {
             var lines = await File.ReadAllLinesAsync(summaryFile);
             var summary = ParseCoverageSummary(lines);
-            await File.WriteAllTextAsync(jsonOutput, JsonSerializer.Serialize(summary, JsonOptions));
+            await File.WriteAllTextAsync(jsonOutput, JsonSerializer.Serialize(summary, s_jsonOptions));
             Log.Information("AI coverage summary: {Path}", jsonOutput);
         }
         catch (Exception ex)
@@ -303,7 +303,7 @@ static class StateMachinePatterns
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 static class CoverageSummaryConverter
 {
-    static readonly JsonSerializerOptions JsonOptions = new()
+    static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
@@ -460,7 +460,7 @@ static class CoverageSummaryConverter
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
-        await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(fileIssues, JsonOptions));
+        await File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(fileIssues, s_jsonOptions));
 
         Log.Information("Coverage summary: {XmlPath} + {JsonPath} ({FileCount} files with issues)",
             outputPath, jsonPath, filesWithIssues);

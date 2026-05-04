@@ -14,7 +14,7 @@ internal static class ObserveCatalog
 
     // ── Static domain definitions ────────────────────────────────────────────
 
-    private static readonly CatalogDomain[] Domains =
+    private static readonly CatalogDomain[] s_domains =
         BuildDomains().ToArray();
 
     /// <summary>
@@ -28,7 +28,7 @@ internal static class ObserveCatalog
                 s.ContractHash, s.SchemaVersion))
             .ToArray();
 
-        return new CatalogResponse(SchemaVersion, Domains, active);
+        return new CatalogResponse(SchemaVersion, s_domains, active);
     }
 
     private static IEnumerable<CatalogDomain> BuildDomains()
@@ -62,7 +62,7 @@ internal static class ObserveCatalog
 
     /// <summary>Returns the contract hash for a given domain source name, or null if not found.</summary>
     internal static string? GetDomainHash(string sourceName)
-        => Array.Find(Domains, d => string.Equals(d.Source, sourceName, StringComparison.Ordinal))
+        => Array.Find(s_domains, d => string.Equals(d.Source, sourceName, StringComparison.Ordinal))
             ?.ContractHash;
 
     /// <summary>

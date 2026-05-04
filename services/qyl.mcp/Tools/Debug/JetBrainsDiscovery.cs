@@ -12,7 +12,7 @@ internal sealed partial class JetBrainsDiscovery(
     TimeProvider timeProvider,
     ILogger<JetBrainsDiscovery> logger)
 {
-    private static readonly TimeSpan ScanCooldown = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_scanCooldown = TimeSpan.FromSeconds(30);
 
     private JetBrainsEndpoints? _cached;
     private DateTimeOffset _lastScan;
@@ -22,7 +22,7 @@ internal sealed partial class JetBrainsDiscovery(
     /// </summary>
     public JetBrainsEndpoints? GetEndpoints()
     {
-        if (_cached is not null && timeProvider.GetUtcNow() - _lastScan < ScanCooldown)
+        if (_cached is not null && timeProvider.GetUtcNow() - _lastScan < s_scanCooldown)
             return _cached;
 
         var endpoints = ScanLog();

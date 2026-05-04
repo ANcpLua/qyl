@@ -23,7 +23,7 @@ internal sealed class McpAdminToolFilter(
     ///     Tools that require <see cref="RequiredRole" /> when Keycloak is enabled.
     ///     Extend this set as destructive MCP tools are added to the server.
     /// </summary>
-    private static readonly FrozenSet<string> AdminToolNames = ((string[])
+    private static readonly FrozenSet<string> s_adminToolNames = ((string[])
     [
         // Populated when destructive tools are implemented, e.g.:
         // "qyl.storage_clear",
@@ -37,7 +37,7 @@ internal sealed class McpAdminToolFilter(
     /// </summary>
     public CallToolResult? CheckAccess(string toolName)
     {
-        if (!AdminToolNames.Contains(toolName))
+        if (!s_adminToolNames.Contains(toolName))
             return null;
 
         if (!options.Value.IsKeycloakEnabled)

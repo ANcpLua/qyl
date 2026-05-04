@@ -18,7 +18,7 @@ namespace Qyl.Instrumentation.Instrumentation.Db;
 /// </remarks>
 public static class DbInstrumentation
 {
-    private static readonly ConcurrentDictionary<Type, string> SDbSystemCache = new();
+    private static readonly ConcurrentDictionary<Type, string> s_dbSystemCache = new();
 
     /// <summary>
     ///     Executes <see cref="DbCommand.ExecuteReaderAsync(CancellationToken)" /> with instrumentation.
@@ -177,7 +177,7 @@ public static class DbInstrumentation
         if (connection is null)
             return "unknown";
 
-        return SDbSystemCache.GetOrAdd(connection.GetType(), static type =>
+        return s_dbSystemCache.GetOrAdd(connection.GetType(), static type =>
             MapTypeNameToDbSystem(type.FullName ?? type.Name));
     }
 

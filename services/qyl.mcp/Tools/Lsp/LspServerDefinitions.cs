@@ -30,7 +30,7 @@ internal sealed record LspServerDefinition(
 /// </summary>
 internal sealed class LspServerDefinitions
 {
-    private static readonly LspServerDefinition CSharpLs = new(
+    private static readonly LspServerDefinition s_cSharpLs = new(
         "csharp-ls",
         "csharp-ls",
         [],
@@ -39,7 +39,7 @@ internal sealed class LspServerDefinitions
 
     private readonly Dictionary<string, LspServerDefinition> _byId = new(StringComparer.Ordinal)
     {
-        [CSharpLs.Id] = CSharpLs
+        [s_cSharpLs.Id] = s_cSharpLs
     };
 
     /// <summary>
