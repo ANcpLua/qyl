@@ -11,11 +11,12 @@
 whitespace_control:
   trim_blocks: true
   lstrip_blocks: true
+  keep_trailing_newline: true
 
 params:
-  schema_url: "https://opentelemetry.io/schemas/1.40.0"
-  schema_version: "1.40.0"
-  semconv_commit: "7fe537301d17919af7d7eb65b32e9be35da2c497"
+  schema_url: "https://opentelemetry.io/schemas/1.41.0"
+  schema_version: "1.41.0"
+  semconv_commit: "e018fe6f91862f5ed63c082f87697cddac596784"
   package_namespace: "Qyl.OpenTelemetry.SemanticConventions"
 
   # Reserved attrs verified present by the NUKE GenerateSemconvCsharp target.
@@ -34,18 +35,44 @@ params:
     - "telemetry.sdk.version"
     - "url.scheme"
 
+# C# XML-doc comment formatting. The `comment` Jinja filter applies these rules
+# automatically — replaces the manual `replace('&','&amp;')|...` chains in the
+# old templates and the html-snippet handling for <c>code</c>/<code>blocks</code>.
+comment_formats:
+  csharp:
+    format: html
+    header: "/// <summary>"
+    prefix: "/// "
+    footer: "/// </summary>"
+    old_style_paragraph: true
+    omit_closing_li: false
+    inline_code_snippet: "<c>{{code}}</c>"
+    block_code_snippet: "<code>{{code}}</code>"
+    trim: true
+    remove_trailing_dots: false
+    enforce_trailing_dots: true
+default_comment_format: csharp
+
 templates:
+  # Drop groups whose stable-attribute slice is empty BEFORE Weaver decides to
+  # create files. Without this, application_mode: each emits one empty .g.cs
+  # per group whose attributes are all non-stable (deprecated, development, etc.) —
+  # 72 of 90 in v1.41.0.
   - template: attributes.cs.j2
-    filter: semconv_grouped_attributes
+    filter: >
+      semconv_grouped_attributes
+      | map(select(.attributes | map(select(.stability == "stable")) | length > 0))
     application_mode: each
     file_name: "Attributes/{{ ctx.root_namespace | pascal_case }}/{{ ctx.root_namespace | pascal_case }}Attributes.g.cs"
 
+  # Single-mode templates ignore .ctx and read params.schema_url / schema_version.
+  # filter "." passes the whole registry; we don't actually iterate.
   - template: schema_url.cs.j2
-    filter: semconv_grouped_attributes
+    filter: "."
     application_mode: single
     file_name: "SchemaUrl.g.cs"
 
   - template: schema_version.cs.j2
-    filter: semconv_grouped_attributes
+    filter: "."
     application_mode: single
     file_name: "SchemaVersion.g.cs"

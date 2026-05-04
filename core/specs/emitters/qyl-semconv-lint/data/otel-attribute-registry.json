@@ -499,7 +499,7 @@
   },  {
     "name": "container.id",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "container"
   },  {
@@ -511,19 +511,19 @@
   },  {
     "name": "container.image.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "container"
   },  {
     "name": "container.image.repo_digests",
     "type": "string[]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "container"
   },  {
     "name": "container.image.tags",
     "type": "string[]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "container"
   },  {
@@ -865,7 +865,7 @@
   },  {
     "name": "deployment.environment.name",
     "type": "string",
-    "stability": "development",
+    "stability": "stable",
     "deprecated": true,
     "group": "deployment"
   },  {
@@ -1439,6 +1439,12 @@
     "deprecated": true,
     "group": "gen_ai"
   },  {
+    "name": "gen_ai.request.stream",
+    "type": "boolean",
+    "stability": "development",
+    "deprecated": true,
+    "group": "gen_ai"
+  },  {
     "name": "gen_ai.request.temperature",
     "type": "double",
     "stability": "development",
@@ -1471,6 +1477,12 @@
   },  {
     "name": "gen_ai.response.model",
     "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "gen_ai"
+  },  {
+    "name": "gen_ai.response.time_to_first_chunk",
+    "type": "double",
     "stability": "development",
     "deprecated": true,
     "group": "gen_ai"
@@ -1579,6 +1591,18 @@
   },  {
     "name": "gen_ai.usage.prompt_tokens",
     "type": "int",
+    "stability": "development",
+    "deprecated": true,
+    "group": "gen_ai"
+  },  {
+    "name": "gen_ai.usage.reasoning.output_tokens",
+    "type": "int",
+    "stability": "development",
+    "deprecated": true,
+    "group": "gen_ai"
+  },  {
+    "name": "gen_ai.workflow.name",
+    "type": "string",
     "stability": "development",
     "deprecated": true,
     "group": "gen_ai"
@@ -1873,25 +1897,25 @@
   },  {
     "name": "k8s.cluster.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.cluster.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.container.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.container.restart_count",
     "type": "int",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -1915,73 +1939,73 @@
   },  {
     "name": "k8s.cronjob.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.cronjob.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.cronjob.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.cronjob.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.daemonset.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.daemonset.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.daemonset.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.daemonset.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.deployment.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.deployment.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.deployment.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.deployment.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2029,43 +2053,43 @@
   },  {
     "name": "k8s.job.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.job.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.job.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.job.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.namespace.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.namespace.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.namespace.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2077,7 +2101,7 @@
   },  {
     "name": "k8s.node.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2095,43 +2119,115 @@
   },  {
     "name": "k8s.node.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.node.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.node.system_container.name",
+    "type": "string",
+    "stability": "development",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.node.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.annotation",
+    "type": "template[string]",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.label",
+    "type": "template[string]",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.name",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.reclaim_policy",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.status.phase",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolume.uid",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolumeclaim.annotation",
+    "type": "template[string]",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolumeclaim.label",
+    "type": "template[string]",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolumeclaim.name",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolumeclaim.status.phase",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "k8s"
+  },  {
+    "name": "k8s.persistentvolumeclaim.uid",
+    "type": "string",
+    "stability": "development",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.pod.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.pod.hostname",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.pod.ip",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.pod.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2143,13 +2239,13 @@
   },  {
     "name": "k8s.pod.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.pod.start_time",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2167,31 +2263,31 @@
   },  {
     "name": "k8s.pod.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.replicaset.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.replicaset.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.replicaset.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.replicaset.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2293,25 +2389,25 @@
   },  {
     "name": "k8s.statefulset.annotation",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.statefulset.label",
     "type": "template[string]",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.statefulset.name",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
     "name": "k8s.statefulset.uid",
     "type": "string",
-    "stability": "beta",
+    "stability": "release_candidate",
     "deprecated": true,
     "group": "k8s"
   },  {
@@ -2857,7 +2953,7 @@
   },  {
     "name": "otel.event.name",
     "type": "string",
-    "stability": "development",
+    "stability": "stable",
     "deprecated": true,
     "group": "otel"
   },  {
@@ -3461,6 +3557,12 @@
     "deprecated": true,
     "group": "system"
   },  {
+    "name": "system.memory.linux.hugepages.state",
+    "type": "string",
+    "stability": "development",
+    "deprecated": true,
+    "group": "system"
+  },  {
     "name": "system.memory.linux.slab.state",
     "type": "string",
     "stability": "development",
@@ -3517,13 +3619,13 @@
   },  {
     "name": "telemetry.distro.name",
     "type": "string",
-    "stability": "development",
+    "stability": "stable",
     "deprecated": true,
     "group": "telemetry"
   },  {
     "name": "telemetry.distro.version",
     "type": "string",
-    "stability": "development",
+    "stability": "stable",
     "deprecated": true,
     "group": "telemetry"
   },  {
