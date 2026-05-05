@@ -6,35 +6,10 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Analyzes syntax to find ADO.NET DbCommand method invocations to intercept.
-/// </summary>
-/// <remarks>
-///     Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
-///     The type inheritance check (is-or-derives-from DbCommand) uses symbol equality via the compilation
-///     because the DSL's <see cref="InvocationMatcher.OnTypeInheritingFrom" /> uses name-based matching,
-///     and we need precise symbol identity for the concrete type extraction.
-/// </remarks>
 internal static class DbCallSiteAnalyzer
 {
-    /// <summary>
-    ///     The DbCommand base type metadata name.
-    /// </summary>
     private const string DbCommandTypeName = "System.Data.Common.DbCommand";
 
-    /// <summary>
-    ///     Declarative DbCommand method matchers.
-    ///     Each entry pairs an <see cref="InvocationMatcher" /> (method name only) with the operation metadata.
-    /// </summary>
-    /// <remarks>
-    ///     Note: ExecuteReaderAsync has an overload with CommandBehavior parameter,
-    ///     but we only intercept the parameterless version to avoid complexity.
-    ///     The CommandBehavior overload is typically used internally.
-    ///     <para>
-    ///         Type checking against DbCommand is deferred to <see cref="TryMatchDbCommandMethod" />
-    ///         because it requires the <see cref="Compilation" /> to resolve the DbCommand symbol.
-    ///     </para>
-    /// </remarks>
     private static readonly (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[]
         Matchers =
         [
@@ -44,7 +19,6 @@ internal static class DbCallSiteAnalyzer
             ("ExecuteNonQueryAsync", Invoke.Method("ExecuteNonQueryAsync"), DbCommandMethod.ExecuteNonQuery, true),
             ("ExecuteScalar", Invoke.Method("ExecuteScalar"), DbCommandMethod.ExecuteScalar, false),
             ("ExecuteScalarAsync", Invoke.Method("ExecuteScalarAsync"), DbCommandMethod.ExecuteScalar, true),
-            // Protected virtual method exposed by some providers
             ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
         ];
 
@@ -53,18 +27,10 @@ internal static class DbCallSiteAnalyzer
         ..Matchers.Select(static matcher => matcher.MethodName)
     ];
 
-    /// <summary>
-    ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
-    ///     Delegates to <see cref="IncrementalPipelineHelpers.CouldBeInvocation" />.
-    /// </summary>
     public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
         IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
         s_candidateMethodNames.Contains(methodName);
 
-    /// <summary>
-    ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.
-    ///     Returns null if not a DbCommand call or if already intercepted.
-    /// </summary>
     public static DbCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
@@ -79,7 +45,6 @@ internal static class DbCallSiteAnalyzer
                 out var concreteType))
             return null;
 
-        // Skip if already intercepted by another generator
         if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
@@ -106,7 +71,6 @@ internal static class DbCallSiteAnalyzer
         isAsync = false;
         concreteType = null;
 
-        // Phase 1: DSL-based method name matching
         (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync) matched = default;
         var found = false;
 
@@ -123,7 +87,6 @@ internal static class DbCallSiteAnalyzer
         if (!found)
             return false;
 
-        // Phase 2: Symbol-based type inheritance check (requires compilation)
         if (invocation.TargetMethod.ContainingType is not { } containingType)
             return false;
 

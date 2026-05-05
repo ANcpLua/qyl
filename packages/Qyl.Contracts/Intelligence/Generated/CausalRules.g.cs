@@ -1,17 +1,6 @@
-// =============================================================================
-// AUTO-GENERATED FILE - DO NOT EDIT
-// =============================================================================
-//     Source:    core/specs/intelligence/seed/rules.tsp
-//     Spec:     specs/telemetry-intelligence.md §5.2
-//     Rules:    6 v1 seed causal rules
-// =============================================================================
 
 namespace Qyl.Contracts.Intelligence;
 
-/// <summary>
-///     Static registry of all v1 seed causal rules.
-///     Compile-time collections — no file I/O, no deserialization, no reflection.
-/// </summary>
 public static class CausalRules
 {
     public static readonly IReadOnlyList<CausalRule> All =

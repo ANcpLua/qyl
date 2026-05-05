@@ -2,29 +2,15 @@ namespace Qyl.Collector.Grpc;
 
 #region gRPC Service Base and Method Provider
 
-/// <summary>
-///     Base class for OTLP TraceService gRPC implementation.
-///     Service: opentelemetry.proto.collector.trace.v1.TraceService
-/// </summary>
 public abstract class TraceServiceBase
 {
-    /// <summary>
-    ///     Exports trace data (spans) to the collector.
-    /// </summary>
     public abstract Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,
         ServerCallContext context);
 }
 
-/// <summary>
-///     Service method provider for TraceServiceImpl.
-///     This tells ASP.NET Core gRPC how to invoke methods on our custom service.
-/// </summary>
 public sealed class TraceServiceMethodProvider : IServiceMethodProvider<TraceServiceImpl>
 {
-    /// <summary>
-    ///     Discovers and registers gRPC methods for TraceServiceImpl.
-    /// </summary>
     public void OnServiceMethodDiscovery(ServiceMethodProviderContext<TraceServiceImpl> context)
     {
         var exportMethod = new Method<ExportTraceServiceRequest, ExportTraceServiceResponse>(
@@ -45,9 +31,6 @@ public sealed class TraceServiceMethodProvider : IServiceMethodProvider<TraceSer
 
 #region Request/Response Messages
 
-/// <summary>
-///     Request message for TraceService.Export.
-/// </summary>
 public sealed class ExportTraceServiceRequest
 {
     public List<OtlpResourceSpansProto> ResourceSpans { get; } = [];
@@ -68,7 +51,7 @@ public sealed class ExportTraceServiceRequest
         {
             switch (tag.FieldNumber)
             {
-                case 1: // resource_spans
+                case 1:
                     var resourceSpan = new OtlpResourceSpansProto();
                     reader.ReadMessage(resourceSpan);
                     ResourceSpans.Add(resourceSpan);
@@ -81,15 +64,11 @@ public sealed class ExportTraceServiceRequest
     }
 }
 
-/// <summary>
-///     Response message for TraceService.Export.
-/// </summary>
 public sealed class ExportTraceServiceResponse
 {
     public static Marshaller<ExportTraceServiceResponse> Marshaller { get; } = Marshallers.Create(
         static (_, _) =>
         {
-            /* Empty response for success (per OTLP spec) */
         },
         static _ => new ExportTraceServiceResponse());
 }
@@ -98,15 +77,11 @@ public sealed class ExportTraceServiceResponse
 
 #region OTLP Proto Types
 
-/// <summary>
-///     ResourceSpans from OTLP proto.
-/// </summary>
 public sealed class OtlpResourceSpansProto : IProtobufParseable
 {
     public OtlpResourceProto? Resource { get; set; }
     public List<OtlpScopeSpansProto> ScopeSpans { get; } = [];
 
-    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.40.0).</summary>
     public string? SchemaUrl { get; set; }
 
     public void MergeFrom(ProtobufReader reader, int length)
@@ -116,16 +91,16 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // resource
+                case 1:
                     Resource = new OtlpResourceProto();
                     reader.ReadMessage(Resource);
                     break;
-                case 2: // scope_spans
+                case 2:
                     var scopeSpan = new OtlpScopeSpansProto();
                     reader.ReadMessage(scopeSpan);
                     ScopeSpans.Add(scopeSpan);
                     break;
-                case 3: // schema_url
+                case 3:
                     SchemaUrl = reader.ReadString();
                     break;
                 default:
@@ -136,9 +111,6 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     Resource from OTLP proto.
-/// </summary>
 public sealed class OtlpResourceProto : IProtobufParseable
 {
     public List<OtlpKeyValueProto> Attributes { get; } = [];
@@ -150,7 +122,7 @@ public sealed class OtlpResourceProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // attributes
+                case 1:
                     var attr = new OtlpKeyValueProto();
                     reader.ReadMessage(attr);
                     Attributes.Add(attr);
@@ -163,14 +135,10 @@ public sealed class OtlpResourceProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     ScopeSpans from OTLP proto.
-/// </summary>
 public sealed class OtlpScopeSpansProto : IProtobufParseable
 {
     public List<OtlpSpanProto> Spans { get; } = [];
 
-    /// <summary>OTel schema URL for this instrumentation scope (overrides resource-level if set).</summary>
     public string? SchemaUrl { get; set; }
 
     public void MergeFrom(ProtobufReader reader, int length)
@@ -180,12 +148,12 @@ public sealed class OtlpScopeSpansProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 2: // spans
+                case 2:
                     var span = new OtlpSpanProto();
                     reader.ReadMessage(span);
                     Spans.Add(span);
                     break;
-                case 3: // schema_url
+                case 3:
                     SchemaUrl = reader.ReadString();
                     break;
                 default:
@@ -196,9 +164,6 @@ public sealed class OtlpScopeSpansProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     Span from OTLP proto.
-/// </summary>
 public sealed class OtlpSpanProto : IProtobufParseable
 {
     public string? TraceId { get; set; }
@@ -219,40 +184,40 @@ public sealed class OtlpSpanProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // trace_id (bytes)
+                case 1:
                     TraceId = reader.ReadBytesAsHex();
                     break;
-                case 2: // span_id (bytes)
+                case 2:
                     SpanId = reader.ReadBytesAsHex();
                     break;
-                case 4: // parent_span_id (bytes)
+                case 4:
                     ParentSpanId = reader.ReadBytesAsHex();
                     break;
-                case 5: // name
+                case 5:
                     Name = reader.ReadString();
                     break;
-                case 6: // kind (enum)
+                case 6:
                     Kind = (int)reader.ReadVarint();
                     break;
-                case 7: // start_time_unix_nano (fixed64)
+                case 7:
                     StartTimeUnixNano = reader.ReadFixed64();
                     break;
-                case 8: // end_time_unix_nano (fixed64)
+                case 8:
                     EndTimeUnixNano = reader.ReadFixed64();
                     break;
-                case 9: // attributes
+                case 9:
                     Attributes ??= [];
                     var attr = new OtlpKeyValueProto();
                     reader.ReadMessage(attr);
                     Attributes.Add(attr);
                     break;
-                case 11: // events
+                case 11:
                     Events ??= [];
                     var evt = new OtlpSpanEventProto();
                     reader.ReadMessage(evt);
                     Events.Add(evt);
                     break;
-                case 15: // status
+                case 15:
                     Status = new OtlpStatusProto();
                     reader.ReadMessage(Status);
                     break;
@@ -264,9 +229,6 @@ public sealed class OtlpSpanProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     SpanEvent from OTLP proto.
-/// </summary>
 public sealed class OtlpSpanEventProto : IProtobufParseable
 {
     public ulong TimeUnixNano { get; set; }
@@ -280,13 +242,13 @@ public sealed class OtlpSpanEventProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // time_unix_nano (fixed64)
+                case 1:
                     TimeUnixNano = reader.ReadFixed64();
                     break;
-                case 2: // name
+                case 2:
                     Name = reader.ReadString();
                     break;
-                case 3: // attributes
+                case 3:
                     Attributes ??= [];
                     var attr = new OtlpKeyValueProto();
                     reader.ReadMessage(attr);
@@ -300,9 +262,6 @@ public sealed class OtlpSpanEventProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     Status from OTLP proto.
-/// </summary>
 public sealed class OtlpStatusProto : IProtobufParseable
 {
     public string? Message { get; set; }
@@ -315,10 +274,10 @@ public sealed class OtlpStatusProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 2: // message
+                case 2:
                     Message = reader.ReadString();
                     break;
-                case 3: // code (enum)
+                case 3:
                     Code = (int)reader.ReadVarint();
                     break;
                 default:
@@ -329,9 +288,6 @@ public sealed class OtlpStatusProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     KeyValue from OTLP proto.
-/// </summary>
 public sealed class OtlpKeyValueProto : IProtobufParseable
 {
     public string? Key { get; set; }
@@ -344,10 +300,10 @@ public sealed class OtlpKeyValueProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // key
+                case 1:
                     Key = reader.ReadString();
                     break;
-                case 2: // value
+                case 2:
                     Value = new OtlpAnyValueProto();
                     reader.ReadMessage(Value);
                     break;
@@ -359,9 +315,6 @@ public sealed class OtlpKeyValueProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     AnyValue from OTLP proto (oneof value type).
-/// </summary>
 public sealed class OtlpAnyValueProto : IProtobufParseable
 {
     public string? StringValue { get; set; }
@@ -379,19 +332,19 @@ public sealed class OtlpAnyValueProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // string_value
+                case 1:
                     StringValue = reader.ReadString();
                     break;
-                case 2: // bool_value
+                case 2:
                     BoolValue = reader.ReadVarint() is not 0;
                     break;
-                case 3: // int_value
+                case 3:
                     IntValue = reader.ReadSignedVarint();
                     break;
-                case 4: // double_value
+                case 4:
                     DoubleValue = reader.ReadDouble();
                     break;
-                case 5: // array_value
+                case 5:
                     ArrayValue ??= [];
                     var arrayLen = (int)reader.ReadVarint();
                     var arrayEnd = reader.Position + arrayLen;
@@ -408,7 +361,7 @@ public sealed class OtlpAnyValueProto : IProtobufParseable
                     }
 
                     break;
-                case 6: // kvlist_value
+                case 6:
                     KvlistValue ??= [];
                     var kvLen = (int)reader.ReadVarint();
                     var kvEnd = reader.Position + kvLen;
@@ -425,7 +378,7 @@ public sealed class OtlpAnyValueProto : IProtobufParseable
                     }
 
                     break;
-                case 7: // bytes_value
+                case 7:
                     BytesValue = reader.ReadBytes();
                     break;
                 default:
@@ -440,22 +393,13 @@ public sealed class OtlpAnyValueProto : IProtobufParseable
 
 #region Protobuf Reader Infrastructure
 
-/// <summary>
-///     Interface for types that can be parsed from protobuf.
-/// </summary>
 public interface IProtobufParseable
 {
     void MergeFrom(ProtobufReader reader, int length);
 }
 
-/// <summary>
-///     Tag information from protobuf wire format.
-/// </summary>
 public readonly record struct ProtobufTag(int FieldNumber, WireType WireType);
 
-/// <summary>
-///     Wire types in protobuf encoding.
-/// </summary>
 public enum WireType
 {
     Varint = 0,
@@ -466,10 +410,6 @@ public enum WireType
     Fixed32 = 5
 }
 
-/// <summary>
-///     Simple protobuf reader for parsing OTLP messages.
-///     Zero-allocation for contiguous buffers.
-/// </summary>
 public ref struct ProtobufReader(ReadOnlySequence<byte> sequence)
 {
     private readonly ReadOnlySpan<byte> _buffer = sequence.IsSingleSegment

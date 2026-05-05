@@ -1,15 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 
 namespace Qyl.Loom.Autofix;
 
-/// <summary>
-///     Structured output of a single <see cref="LoomAutofixRunner" /> pass. Passed into
-///     <c>agent.RunAsync&lt;AutofixReport&gt;(...)</c> with
-///     <c>ChatResponseFormat.ForJsonSchema&lt;AutofixReport&gt;()</c> so MAF enforces the
-///     shape at the chat-completions layer — no manual XML or JSON parsing, no fallback paths.
-/// </summary>
 public sealed record AutofixReport
 {
     [Description(

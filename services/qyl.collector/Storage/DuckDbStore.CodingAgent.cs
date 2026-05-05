@@ -1,14 +1,7 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with coding agent run
-///     and Loom settings storage operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // =========================================================================
-    // Coding Agent Runs
-    // =========================================================================
 
     public async Task InsertCodingAgentRunAsync(CodingAgentRunRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
@@ -111,9 +104,6 @@ public sealed partial class DuckDbStore
             CompletedAt = reader.Col(8).AsDateTime
         };
 
-    // =========================================================================
-    // Loom Settings
-    // =========================================================================
 
     public async Task<LoomSettingsRecord> GetLoomSettingsAsync(string orgId, CancellationToken ct = default)
     {

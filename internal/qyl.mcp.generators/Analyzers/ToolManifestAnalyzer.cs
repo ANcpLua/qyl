@@ -4,12 +4,6 @@ using qyl.mcp.generators.Models;
 
 namespace qyl.mcp.generators.Analyzers;
 
-/// <summary>
-///     Discovers classes decorated with <c>[McpServerToolType]</c> and their <c>[McpServerTool]</c>
-///     methods, plus the accompanying <c>[QylSkill]</c> class attribution and <c>[QylCapability]</c>
-///     method attributions. A separate entry point handles <c>[QylCapabilityDefinition]</c> marker
-///     classes so the generator can join both pipelines at emit time.
-/// </summary>
 internal static class ToolManifestAnalyzer
 {
     internal const string McpServerToolTypeMetadataName =

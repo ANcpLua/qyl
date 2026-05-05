@@ -1,15 +1,5 @@
-// =============================================================================
-// qyl Build System - Code Verification
-// =============================================================================
-// Validates generated code compiles, OTel conventions enforced, frontend types work
-// Uses ProjectBuilder for isolated MSBuild compilation with SARIF/binlog output
-// Uses DuckDB in-memory for DDL validation
-// =============================================================================
 
 
-// ════════════════════════════════════════════════════════════════════════════════
-// IVerify - Generated Code Validation
-// ════════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
@@ -27,24 +17,13 @@ using Serilog;
 
 namespace Qyl.Build;
 
-/// <summary>
-///     Validates generated code compiles and behaves correctly.
-///     Uses ProjectBuilder for isolated MSBuild execution with binlog introspection.
-/// </summary>
 [ParameterPrefix(nameof(IVerify))]
 interface IVerify : IHazSourcePaths
 {
     [Parameter("Skip verification after generation")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Verification Targets
-    // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    ///     Verify all generated C# code compiles without errors.
-    ///     Uses ProjectBuilder for isolated compilation with SARIF and binlog output.
-    /// </summary>
     Target VerifyGeneratedCode => d => d
         .Unlisted()
         .Description("Verify generated C# code compiles")
@@ -92,9 +71,6 @@ interface IVerify : IHazSourcePaths
             Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
         });
 
-    /// <summary>
-    ///     Verify DuckDB schema DDL executes against in-memory DuckDB.
-    /// </summary>
     Target VerifyDuckDbSchema => d => d
         .Unlisted()
         .Description("Verify generated DuckDB schema is valid")
@@ -113,7 +89,6 @@ interface IVerify : IHazSourcePaths
 
             var content = await File.ReadAllTextAsync(schemaFile);
 
-            // Extract DDL from generated C# string literals
             var ddlStatements = new List<string>();
             foreach (Match match in VerifyRegexes.CreateTablePattern().Matches(content))
                 ddlStatements.Add(match.Value);
@@ -138,7 +113,6 @@ interface IVerify : IHazSourcePaths
                 command.ExecuteNonQuery();
             }
 
-            // Verify tables were created
             var tables = new List<string>();
             await using (var cmd = connection.CreateCommand())
             {
@@ -152,10 +126,6 @@ interface IVerify : IHazSourcePaths
                 tables.Count, string.Join(", ", tables));
         });
 
-    /// <summary>
-    ///     Verify generated TypeScript uses OTel semantic conventions (snake_case properties).
-    ///     Checks the actual generated api.ts to catch naming mismatches.
-    /// </summary>
     Target VerifySchemaConventions => d => d
         .Unlisted()
         .Description("Verify generated TypeScript uses OTel snake_case property names")
@@ -174,8 +144,6 @@ interface IVerify : IHazSourcePaths
             Log.Information("Verifying OTel naming conventions in generated TypeScript...");
             var content = await File.ReadAllTextAsync(apiTsPath);
 
-            // Find property names in TypeScript interface/type definitions
-            // Pattern: matches lines like "    property_name?: string;" or "    property_name: number;"
             var matches = VerifyRegexes.TypeScriptPropertyPattern().Matches(content);
 
             var violations = new HashSet<string>();
@@ -183,11 +151,8 @@ interface IVerify : IHazSourcePaths
             {
                 var propName = match.Groups[1].Value;
 
-                // Skip TypeScript/OpenAPI keywords
                 if (IsTypeScriptKeyword(propName)) continue;
 
-                // Check for camelCase (lowercase start, has uppercase after first char)
-                // Skip snake_case (has underscores) and single words
                 if (IsCamelCase(propName)) violations.Add(propName);
             }
 
@@ -199,7 +164,6 @@ interface IVerify : IHazSourcePaths
                 if (violations.Count > 10)
                     Log.Warning("  ... and {Count} more", violations.Count - 10);
 
-                // Log as warning, not error - some camelCase is acceptable for non-OTel fields
                 Log.Information("Review generated types to ensure OTel attributes use snake_case");
             }
             else
@@ -208,10 +172,6 @@ interface IVerify : IHazSourcePaths
             }
         });
 
-    /// <summary>
-    ///     Verify frontend TypeScript compiles with generated types.
-    ///     Catches type mismatches between schema and dashboard code.
-    /// </summary>
     Target VerifyFrontendTypes => d => d
         .Unlisted()
         .Description("Verify frontend TypeScript types compile")
@@ -229,11 +189,6 @@ interface IVerify : IHazSourcePaths
             Log.Information("Frontend TypeScript types: VALID");
         });
 
-    /// <summary>
-    ///     CI gate: verifies no generated files diverged from HEAD after regeneration.
-    ///     Belt-and-suspenders on top of the emitter's own guard — catches any generated
-    ///     file that bypasses it (e.g. semconv, TypeScript, SQL).
-    /// </summary>
     Target VerifyGeneratedFilesClean => d => d
         .Unlisted()
         .Description("CI gate: verify generated files match HEAD after regeneration")
@@ -271,9 +226,6 @@ interface IVerify : IHazSourcePaths
                 "Run 'nuke Generate' and commit the output.");
         });
 
-    /// <summary>
-    ///     Run all verification checks.
-    /// </summary>
     Target Verify => d => d
         .Description("Run all generated code verification checks")
         .DependsOn(VerifyGeneratedCode)
@@ -294,9 +246,6 @@ interface IVerify : IHazSourcePaths
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Helper Methods
-    // ════════════════════════════════════════════════════════════════════════
 
     private static bool IsTypeScriptKeyword(string name) =>
         name is "type" or "get" or "post" or "put" or "delete" or "patch"
@@ -307,39 +256,24 @@ interface IVerify : IHazSourcePaths
 
     private static bool IsCamelCase(string name)
     {
-        // Skip single-word lowercase (valid)
         if (!name.Contains('_') && string.Equals(name, name.ToLowerInvariant(), StringComparison.Ordinal))
             return false;
 
-        // Skip already snake_case (has underscores)
         if (name.Contains('_'))
             return false;
 
-        // Check for camelCase (lowercase start, has uppercase after)
         return char.IsLower(name[0]) && name.Skip(1).Any(char.IsUpper);
     }
 }
 
-/// <summary>
-///     Source-generated regex patterns for verification.
-/// </summary>
 internal static partial class VerifyRegexes
 {
-    /// <summary>
-    ///     Matches TypeScript property definitions like "    property_name?: string;" or "    property_name: number;".
-    /// </summary>
     [GeneratedRegex(@"^\s+(\w+)[\?]?\s*:\s*", RegexOptions.Multiline)]
     internal static partial Regex TypeScriptPropertyPattern();
 
-    /// <summary>
-    ///     Matches CREATE TABLE statements in generated DuckDB schema files.
-    /// </summary>
     [GeneratedRegex(@"CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS[\s\S]*?\)\s*;")]
     internal static partial Regex CreateTablePattern();
 
-    /// <summary>
-    ///     Matches CREATE INDEX statements (including UNIQUE) in generated DuckDB schema files.
-    /// </summary>
     [GeneratedRegex(@"CREATE\s+(?:UNIQUE\s+)?INDEX\s+IF\s+NOT\s+EXISTS[^\n]+;")]
     internal static partial Regex CreateIndexPattern();
 }

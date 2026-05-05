@@ -1,14 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows;
 
 namespace Qyl.Loom.Exploration.Workflow.Executors;
 
-/// <summary>
-///     Step 2: runs the <see cref="ExplorationDiagnostician" /> with a per-chunk callback that forwards
-///     streaming LLM output to the workflow stream as <see cref="ExplorationStreamEvent" />s. This replaces
-///     the previous buffered behavior (updates collected into a list and flushed after the LLM finished).
-/// </summary>
 internal sealed class DiagnoseExecutor(
     ExplorationDiagnostician diagnostician,
     ExplorationSessionStore sessionStore)

@@ -1,10 +1,5 @@
 namespace Qyl.Collector.Conversations;
 
-/// <summary>
-///     PRD #173: roll spans up by <c>session_id</c> for the dashboard Conversations view.
-///     Reads from the <c>qyl_conversations</c> view and surfaces capture-gate state so the UI
-///     can render tool args/results conditionally without making policy decisions of its own.
-/// </summary>
 public sealed record ConversationCaptureFlags(
     bool MessageContent,
     bool RecordInputs,
@@ -90,8 +85,6 @@ internal static class ConversationEndpoints
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        // Optional agent filter — keep the named-session join cheap by gating on the
-        // gen_ai.agent.name attribute via DuckDB's JSON probe before grouping.
         var agentFilter = string.IsNullOrWhiteSpace(agent)
             ? string.Empty
             : " AND session_id IN (SELECT session_id FROM qyl_conversations"

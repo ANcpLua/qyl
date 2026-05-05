@@ -2,15 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Search;
 
-/// <summary>
-///     Minimal API endpoints for document-indexed search.
-///     Routes: <c>/api/v1/search/*</c>
-/// </summary>
 public static class SearchDocumentEndpoints
 {
-    /// <summary>
-    ///     Maps document search, suggestion, and click audit endpoints.
-    /// </summary>
     [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSearchDocumentEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -74,7 +67,6 @@ public static class SearchDocumentEndpoints
     }
 }
 
-/// <summary>Request body for recording a search result click.</summary>
 public sealed record SearchClickRequest(
     string? QueryAuditId,
     string? ClickedResultId,

@@ -7,21 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Analysis;
 
-/// <summary>
-///     MCP tool that analyzes a session returning span count, status, service, and trace breakdown.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 public sealed partial class AnalyzeSessionTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves and formats structured analysis of a session's span count, status, service, and traces.
-    /// </summary>
-    /// <param name="sessionId">The session ID to analyze.</param>
-    /// <param name="focus">Optional focus area such as 'latency', 'errors', or 'dependencies'.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the session analysis.</returns>
     [McpServerTool(
         Name = "analyze_session",
         Title = "Analyze Session",

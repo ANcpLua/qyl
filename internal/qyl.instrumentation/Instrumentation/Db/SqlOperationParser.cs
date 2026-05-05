@@ -1,81 +1,39 @@
-// =============================================================================
-// qyl.instrumentation - SQL Operation Parser
-// Parses SQL to extract the primary operation (SELECT, INSERT, UPDATE, DELETE, etc.)
-// Per OTel 1.40+ db.operation.name semantic convention
-// Owner: qyl.instrumentation
-// =============================================================================
 
 using System.Runtime.CompilerServices;
 
 namespace Qyl.Instrumentation.Instrumentation.Db;
 
-/// <summary>
-///     Parses SQL statements to extract the primary operation type per OTel semantic conventions.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Handles common SQL patterns including:
-///         - Single-line comments (-- ...)
-///         - Block comments (/* ... */)
-///         - Common Table Expressions (WITH ... SELECT/INSERT/UPDATE/DELETE)
-///         - Leading whitespace
-///     </para>
-///     <para>
-///         Uses Span-based parsing for zero-allocation where possible.
-///     </para>
-/// </remarks>
 internal static class SqlOperationParser
 {
-    /// <summary>
-    ///     Attempts to parse the SQL operation from a SQL statement.
-    /// </summary>
-    /// <param name="sql">The SQL statement to parse.</param>
-    /// <returns>The operation name (SELECT, INSERT, UPDATE, DELETE, etc.) or null if unparseable.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? TryParse(string? sql) =>
         string.IsNullOrWhiteSpace(sql) ? null : TryParseCore(sql.AsSpan());
 
-    /// <summary>
-    ///     Attempts to extract the primary table/collection name from a SQL statement.
-    /// </summary>
-    /// <param name="sql">The SQL statement to parse.</param>
-    /// <returns>The collection (table) name or null if unparseable.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? TryParseCollectionName(string? sql) =>
         string.IsNullOrWhiteSpace(sql) ? null : TryParseCollectionNameCore(sql.AsSpan());
 
-    /// <summary>
-    ///     Core parsing logic using ReadOnlySpan for zero-allocation.
-    /// </summary>
     private static string? TryParseCore(ReadOnlySpan<char> sql)
     {
-        // Skip leading whitespace and comments
         sql = SkipWhitespaceAndComments(sql);
 
         if (sql.IsEmpty)
             return null;
 
-        // Check for CTE (WITH ... AS ...)
         if (StartsWithKeyword(sql, "WITH"))
         {
-            // Find the actual operation after the CTE
             var afterCte = SkipCte(sql);
             if (!afterCte.IsEmpty)
                 sql = afterCte;
         }
 
-        // Match known SQL operations
         return MatchOperation(sql);
     }
 
-    /// <summary>
-    ///     Skips leading whitespace and SQL comments.
-    /// </summary>
     private static ReadOnlySpan<char> SkipWhitespaceAndComments(ReadOnlySpan<char> sql)
     {
         while (!sql.IsEmpty)
         {
-            // Skip whitespace
             sql = sql.TrimStart();
 
             if (sql.IsEmpty)
@@ -83,14 +41,12 @@ internal static class SqlOperationParser
 
             switch (sql.Length)
             {
-                // Check for single-line comment: --
                 case >= 2 when sql[0] == '-' && sql[1] == '-':
                 {
                     var newlineIndex = sql.IndexOfAny('\r', '\n');
                     sql = newlineIndex < 0 ? [] : sql[(newlineIndex + 1)..];
                     continue;
                 }
-                // Check for block comment: /* ... */
                 case >= 2 when sql[0] == '/' && sql[1] == '*':
                 {
                     var endIndex = IndexOfBlockCommentEnd(sql, 2);
@@ -99,16 +55,12 @@ internal static class SqlOperationParser
                 }
             }
 
-            // No more comments to skip
             break;
         }
 
         return sql;
     }
 
-    /// <summary>
-    ///     Finds the end of a block comment, handling nested comments.
-    /// </summary>
     private static int IndexOfBlockCommentEnd(ReadOnlySpan<char> sql, int start)
     {
         var depth = 1;
@@ -118,87 +70,71 @@ internal static class SqlOperationParser
             {
                 case '/' when sql[i + 1] == '*':
                     depth++;
-                    i++; // Skip the '*'
+                    i++;
                     break;
                 case '*' when sql[i + 1] == '/':
                 {
                     depth--;
                     if (depth is 0)
                         return i;
-                    i++; // Skip the '/'
+                    i++;
                     break;
                 }
             }
         }
 
-        return -1; // Unterminated comment
+        return -1;
     }
 
-    /// <summary>
-    ///     Skips a Common Table Expression (WITH ... AS (...)) to find the main operation.
-    /// </summary>
     private static ReadOnlySpan<char> SkipCte(ReadOnlySpan<char> sql)
     {
-        // Skip "WITH" keyword
         sql = sql[4..];
         sql = SkipWhitespaceAndComments(sql);
 
-        // Handle RECURSIVE keyword
         if (StartsWithKeyword(sql, "RECURSIVE"))
         {
             sql = sql[9..];
             sql = SkipWhitespaceAndComments(sql);
         }
 
-        // CTEs can have multiple definitions separated by commas
-        // WITH cte1 AS (...), cte2 AS (...) SELECT/INSERT/UPDATE/DELETE
         while (!sql.IsEmpty)
         {
-            // Skip CTE name
             sql = SkipIdentifier(sql);
             sql = SkipWhitespaceAndComments(sql);
 
-            // Optional column list: (col1, col2)
             if (!sql.IsEmpty && sql[0] == '(')
             {
                 sql = SkipParenthesizedBlock(sql);
                 sql = SkipWhitespaceAndComments(sql);
             }
 
-            // Expect "AS"
             if (!StartsWithKeyword(sql, "AS"))
-                return sql; // Malformed, return what we have
+                return sql;
 
             sql = sql[2..];
             sql = SkipWhitespaceAndComments(sql);
 
-            // Skip the CTE body: (SELECT ...)
             if (!sql.IsEmpty && sql[0] == '(')
             {
                 sql = SkipParenthesizedBlock(sql);
                 sql = SkipWhitespaceAndComments(sql);
             }
 
-            // Check for comma (another CTE) or end
             if (sql.IsEmpty || sql[0] != ',')
                 break;
 
-            sql = sql[1..]; // Skip comma
+            sql = sql[1..];
             sql = SkipWhitespaceAndComments(sql);
         }
 
         return sql;
     }
 
-    /// <summary>
-    ///     Skips an identifier (table name, column name, etc.).
-    /// </summary>
     private static ReadOnlySpan<char> SkipIdentifier(ReadOnlySpan<char> sql)
     {
         if (sql.IsEmpty)
             return sql;
 
-        // Handle quoted identifiers
         if (sql[0] is '"' or '[' or '`')
         {
             var closeChar = sql[0] switch
@@ -213,7 +149,6 @@ internal static class SqlOperationParser
             return endIndex < 0 ? [] : sql[(endIndex + 2)..];
         }
 
-        // Unquoted identifier: letters, digits, underscores
         var i = 0;
         while (i < sql.Length && (char.IsLetterOrDigit(sql[i]) || sql[i] == '_'))
             i++;
@@ -221,9 +156,6 @@ internal static class SqlOperationParser
         return sql[i..];
     }
 
-    /// <summary>
-    ///     Skips a parenthesized block, handling nested parentheses.
-    /// </summary>
     private static ReadOnlySpan<char> SkipParenthesizedBlock(ReadOnlySpan<char> sql)
     {
         if (sql.IsEmpty || sql[0] != '(')
@@ -242,28 +174,24 @@ internal static class SqlOperationParser
                     if (depth is 0)
                         return sql[(i + 1)..];
                     break;
-                case '\'': // Skip string literals
+                case '\'':
                     i = SkipStringLiteral(sql, i);
                     break;
             }
         }
 
-        return []; // Unterminated
+        return [];
     }
 
-    /// <summary>
-    ///     Skips a string literal, handling escaped quotes.
-    /// </summary>
     private static int SkipStringLiteral(ReadOnlySpan<char> sql, int start)
     {
         for (var i = start + 1; i < sql.Length; i++)
         {
             if (sql[i] == '\'')
             {
-                // Check for escaped quote ('')
                 if (i + 1 < sql.Length && sql[i + 1] == '\'')
                 {
-                    i++; // Skip the escaped quote
+                    i++;
                     continue;
                 }
 
@@ -274,9 +202,6 @@ internal static class SqlOperationParser
         return sql.Length - 1;
     }
 
-    /// <summary>
-    ///     Checks if the SQL starts with a keyword (case-insensitive, word boundary).
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool StartsWithKeyword(ReadOnlySpan<char> sql, ReadOnlySpan<char> keyword)
     {
@@ -286,7 +211,6 @@ internal static class SqlOperationParser
         if (!sql[..keyword.Length].Equals(keyword, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        // Ensure word boundary (not followed by letter/digit/underscore)
         if (sql.Length > keyword.Length)
         {
             var nextChar = sql[keyword.Length];
@@ -297,10 +221,6 @@ internal static class SqlOperationParser
         return true;
     }
 
-    /// <summary>
-    ///     Extracts the primary table name from a SQL statement.
-    ///     Handles SELECT...FROM, INSERT INTO, UPDATE, DELETE FROM patterns.
-    /// </summary>
     private static string? TryParseCollectionNameCore(ReadOnlySpan<char> sql)
     {
         sql = SkipWhitespaceAndComments(sql);
@@ -308,7 +228,6 @@ internal static class SqlOperationParser
         if (sql.IsEmpty)
             return null;
 
-        // Handle CTE
         if (StartsWithKeyword(sql, "WITH"))
         {
             var afterCte = SkipCte(sql);
@@ -316,7 +235,6 @@ internal static class SqlOperationParser
                 sql = afterCte;
         }
 
-        // SELECT ... FROM <table>
         if (StartsWithKeyword(sql, "SELECT"))
         {
             var fromIdx = FindKeyword(sql, "FROM");
@@ -327,7 +245,6 @@ internal static class SqlOperationParser
             return ExtractIdentifier(afterFrom);
         }
 
-        // INSERT INTO <table>
         if (StartsWithKeyword(sql, "INSERT"))
         {
             sql = sql[6..];
@@ -341,7 +258,6 @@ internal static class SqlOperationParser
             return ExtractIdentifier(sql);
         }
 
-        // UPDATE <table>
         if (StartsWithKeyword(sql, "UPDATE"))
         {
             sql = sql[6..];
@@ -349,7 +265,6 @@ internal static class SqlOperationParser
             return ExtractIdentifier(sql);
         }
 
-        // DELETE FROM <table>
         if (StartsWithKeyword(sql, "DELETE"))
         {
             sql = sql[6..];
@@ -366,9 +281,6 @@ internal static class SqlOperationParser
         return null;
     }
 
-    /// <summary>
-    ///     Finds a keyword in SQL (case-insensitive, at word boundary), skipping parenthesized subqueries.
-    /// </summary>
     private static int FindKeyword(ReadOnlySpan<char> sql, ReadOnlySpan<char> keyword)
     {
         var depth = 0;
@@ -392,7 +304,6 @@ internal static class SqlOperationParser
 
             if (StartsWithKeyword(sql[i..], keyword))
             {
-                // Ensure word boundary before keyword
                 if (i > 0 && (char.IsLetterOrDigit(sql[i - 1]) || sql[i - 1] == '_'))
                     continue;
 
@@ -403,15 +314,11 @@ internal static class SqlOperationParser
         return -1;
     }
 
-    /// <summary>
-    ///     Extracts an identifier (table name) from the current position.
-    /// </summary>
     private static string? ExtractIdentifier(ReadOnlySpan<char> sql)
     {
         if (sql.IsEmpty)
             return null;
 
-        // Handle quoted identifiers
         if (sql[0] is '"' or '[' or '`')
         {
             var closeChar = sql[0] switch
@@ -425,7 +332,6 @@ internal static class SqlOperationParser
             return endIndex > 0 ? sql[1..(endIndex + 1)].ToString() : null;
         }
 
-        // Unquoted: letters, digits, underscores, dots (for schema.table)
         var i = 0;
         while (i < sql.Length && (char.IsLetterOrDigit(sql[i]) || sql[i] is '_' or '.'))
             i++;
@@ -433,14 +339,8 @@ internal static class SqlOperationParser
         return i > 0 ? sql[..i].ToString() : null;
     }
 
-    /// <summary>
-    ///     Matches the SQL operation at the current position.
-    /// </summary>
     private static string? MatchOperation(ReadOnlySpan<char> sql)
     {
-        // Order by frequency in typical workloads.
-        // SQL op names are uppercase by qyl convention — upstream semconv db.operation.name
-        // is free-form; no generated value constants exist for these.
         if (StartsWithKeyword(sql, "SELECT"))
             return "SELECT";
 
@@ -459,7 +359,6 @@ internal static class SqlOperationParser
         if (StartsWithKeyword(sql, "DROP"))
             return "DROP";
 
-        // Additional DDL/DML operations
         if (StartsWithKeyword(sql, "ALTER"))
             return "ALTER";
 

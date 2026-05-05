@@ -1,24 +1,10 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Runtime.InteropServices;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Resolves an LSP server binary location on disk using PATH and well-known
-///     .NET global-tool install paths.
-/// </summary>
 internal static class LspServerInstallation
 {
-    /// <summary>
-    ///     Locates the binary for a known server definition.
-    /// </summary>
-    /// <param name="definition">Server definition describing executable name and install command.</param>
-    /// <returns>Absolute path to the binary.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown with the install command embedded when the binary cannot be located on PATH or in
-    ///     the dotnet global-tool directory.
-    /// </exception>
     public static string Locate(LspServerDefinition definition)
     {
         var executableName = ResolveExecutableName(definition.Executable);
@@ -39,7 +25,6 @@ internal static class LspServerInstallation
 
     private static IEnumerable<string> EnumerateCandidates(string executableName)
     {
-        // 1. PATH (including the .dotnet/tools directory appended by the dotnet SDK)
         var pathEnv = Environment.GetEnvironmentVariable("PATH");
         if (!string.IsNullOrEmpty(pathEnv))
         {
@@ -49,7 +34,6 @@ internal static class LspServerInstallation
             }
         }
 
-        // 2. Well-known dotnet global-tool paths (in case PATH isn't set for the host process)
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrEmpty(userProfile))
         {

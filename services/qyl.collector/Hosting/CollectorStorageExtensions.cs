@@ -18,10 +18,6 @@ public static class CollectorStorageExtensions
         services.AddSingleton(_ => new DuckDbStore(dataPath));
         services.ActivateSingleton<DuckDbStore>();
 
-        // Plain singletons (MigrationRunner, SourceLocationCache, PdbSourceResolver,
-        // SchemaPlanner, SchemaExecutor, ModelPricingService) auto-register via
-        // [QylService(Singleton)] through QylGeneratedRegistry.RegisterQylServices.
-        // Query-service factories stay here — they need sp.GetRequiredService<DuckDbStore>().
         services.AddSingleton(sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(sp => new AnalyticsQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(sp => new AgentInsightsService(sp.GetRequiredService<DuckDbStore>()));

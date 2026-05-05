@@ -1,10 +1,6 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
-/// One perspective of a multi-hypothesis fan-out. Returns a HypothesisCandidate
-/// rather than the final HypothesisVerdict — the downstream HypothesisJudgeExecutor
-/// joins all branches via AddFanInBarrierEdge and selects the winner.
 internal sealed class HypothesisExecutor(
     string id,
     string perspective,

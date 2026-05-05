@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Globalization;
 using Microsoft.Extensions.Hosting;
@@ -6,11 +5,6 @@ using Spectre.Console;
 
 namespace Qyl.Run.Internal;
 
-/// <summary>
-///     Spectre.Console front-end for the orchestrator. Prints the qyl banner, renders a live
-///     table of resource state, and handles <c>[S]</c>/<c>[R]</c>/<c>[B]</c>/<c>[H]</c>/<c>[Esc]</c>
-///     key bindings in a secondary task.
-/// </summary>
 internal sealed class QylConsoleUi(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
@@ -138,8 +132,6 @@ internal sealed class QylConsoleUi(
             return;
         }
 
-        // UseShellExecute=true dispatches to the OS default handler — opens a browser on
-        // Windows / macOS / Linux without the cross-platform branch dance.
         Process.Start(new ProcessStartInfo(state.Endpoint.ToString()) { UseShellExecute = true })?.Dispose();
     }
 }

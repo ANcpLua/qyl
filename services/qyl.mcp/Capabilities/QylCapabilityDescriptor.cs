@@ -1,11 +1,5 @@
 namespace qyl.mcp.Capabilities;
 
-/// <summary>
-///     Runtime shape of one capability, populated by ToolManifestGenerator from
-///     <see cref="QylCapabilityDefinitionAttribute" /> markers and <see cref="QylCapabilityAttribute" />
-///     method attributions. Tool name lists are verified against the generated tool manifest at
-///     compile time — no string drift possible.
-/// </summary>
 internal sealed record QylCapabilityDescriptor
 {
     public required string Id { get; init; }

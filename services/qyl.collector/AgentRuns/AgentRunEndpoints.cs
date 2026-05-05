@@ -1,8 +1,5 @@
 namespace Qyl.Collector.AgentRuns;
 
-/// <summary>
-///     Endpoints for querying agent runs and tool calls.
-/// </summary>
 public static class AgentRunEndpoints
 {
     [QylMapEndpoints]

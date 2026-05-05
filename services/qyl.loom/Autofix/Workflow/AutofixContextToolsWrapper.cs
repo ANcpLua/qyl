@@ -1,13 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Autofix.Workflow;
 
-/// <summary>
-///     MCP facade for autofix context tools. Delegates to <see cref="AutofixContextTools" />
-///     and registers methods as MCP server tools for external agent use.
-/// </summary>
 [McpServerToolType]
 public sealed partial class AutofixContextToolsWrapper(CollectorClient collector)
 {

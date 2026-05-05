@@ -1,8 +1,5 @@
 namespace Qyl.Collector.SchemaControl;
 
-/// <summary>
-///     REST endpoints for schema promotion and migration management.
-/// </summary>
 public static class SchemaEndpoints
 {
     [QylMapEndpoints]

@@ -2,11 +2,6 @@ using ANcpLua.Roslyn.Utilities.Security;
 
 namespace Qyl.Collector.Insights;
 
-/// <summary>
-///     Background service that periodically materializes pre-computed system context
-///     from DuckDB telemetry into the materialized_insights table.
-///     Consumers (REST, MCP, Copilot) serve this instantly with zero query cost.
-/// </summary>
 [QylHostedService]
 public sealed partial class InsightsMaterializerService(
     DuckDbStore store,
@@ -18,7 +13,6 @@ public sealed partial class InsightsMaterializerService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // 10-second delay for ingestion warmup
         await Task.Delay(TimeSpan.FromSeconds(10), _timeProvider, stoppingToken).ConfigureAwait(false);
         await MaterializeAllAsync(stoppingToken).ConfigureAwait(false);
 

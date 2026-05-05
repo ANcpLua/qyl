@@ -20,7 +20,6 @@ public static partial class ErrorFingerprinter
         var normalizedStack = NormalizeStackTrace(stackTrace);
         var normalizedMessage = NormalizeMessage(message);
 
-        // v2: service.name scopes fingerprints per service (prevents cross-service merging)
         var input = !string.IsNullOrEmpty(serviceName)
             ? $"{serviceName}\n{exceptionType}\n{normalizedMessage}\n{normalizedStack}"
             : $"{exceptionType}\n{normalizedMessage}\n{normalizedStack}";
@@ -30,31 +29,26 @@ public static partial class ErrorFingerprinter
         if (!string.IsNullOrEmpty(genAiOperation))
             input = $"{input}\n{genAiOperation}";
 
-        // GenAI-aware grouping: add dimensions based on error category
         if (!string.IsNullOrEmpty(category))
         {
             switch (category)
             {
                 case "rate_limit" when !string.IsNullOrEmpty(genAiProvider):
-                    // Group rate limit errors by provider (same provider = same fingerprint)
                     input = $"rate_limit\n{genAiProvider}";
                     if (!string.IsNullOrEmpty(serviceName))
                         input = $"{serviceName}\n{input}";
                     break;
                 case "content_filter" when !string.IsNullOrEmpty(genAiModel):
-                    // Group content filter errors by model
                     input = $"content_filter\n{genAiModel}";
                     if (!string.IsNullOrEmpty(serviceName))
                         input = $"{serviceName}\n{input}";
                     break;
                 case "token_limit" when !string.IsNullOrEmpty(genAiModel):
-                    // Group token limit errors by model
                     input = $"token_limit\n{genAiModel}";
                     if (!string.IsNullOrEmpty(serviceName))
                         input = $"{serviceName}\n{input}";
                     break;
                 default:
-                    // For other GenAI errors, include provider and finish reason as dimensions
                     if (!string.IsNullOrEmpty(genAiProvider))
                         input = $"{input}\n{genAiProvider}";
                     if (!string.IsNullOrEmpty(finishReason))
@@ -63,7 +57,7 @@ public static partial class ErrorFingerprinter
             }
         }
 
-        return Sha256Hex.Hash(input)[..16]; // 64-bit fingerprint
+        return Sha256Hex.Hash(input)[..16];
     }
 
     private static string NormalizeStackTrace(string? stackTrace)
@@ -75,10 +69,6 @@ public static partial class ErrorFingerprinter
         return result.Trim();
     }
 
-    /// <summary>
-    ///     Collapses consecutive .NET framework/pipeline frames into a single [framework] marker.
-    ///     Prevents ASP.NET Core middleware pipeline depth from splitting otherwise-identical issues.
-    /// </summary>
     private static string CollapseFrameworkFrames(string stackTrace)
     {
         var lines = stackTrace.Split('\n');

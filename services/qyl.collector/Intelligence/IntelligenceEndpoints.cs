@@ -75,7 +75,6 @@ internal static class IntelligenceEndpoints
         _ = ct;
         var ids = patternIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        // Build synthetic PatternMatches from IDs so the engine can build the graph
         var allPatterns = DiagnosticPatterns.All;
         var matches = new List<PatternMatch>();
         foreach (var id in ids)
@@ -140,13 +139,11 @@ internal static class IntelligenceEndpoints
         var step = strategy.Steps[stepIndex];
         var query = step.Query;
 
-        // Template substitution for context parameters
         if (traceId is not null)
             query = query.ReplaceOrdinal("${trace_id}", traceId);
         if (service is not null)
             query = query.ReplaceOrdinal("${service_name}", service);
 
-        // Execute the DuckDB query
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = query;
@@ -187,10 +184,6 @@ internal static class IntelligenceEndpoints
         });
     }
 
-    /// <summary>
-    ///     Extract Signal objects from span promoted columns and attributes_json.
-    ///     Maps span fields to semconv attribute names for pattern matching.
-    /// </summary>
     private static List<Signal> ExtractSignals(IReadOnlyList<SpanStorageRow> spans)
     {
         var signals = new List<Signal>();
@@ -213,11 +206,9 @@ internal static class IntelligenceEndpoints
             AddSignalIfPresent(signals, "span_name", span.Name);
             AddSignalIfPresent(signals, "duration_ns", span.DurationNs.ToString(CultureInfo.InvariantCulture));
 
-            // Parse error_type from status_message or attributes_json
-            if (span.StatusCode is 2) // Error
+            if (span.StatusCode is 2)
                 AddSignalIfPresent(signals, "error_type", span.StatusMessage);
 
-            // Extract from attributes_json
             if (span.AttributesJson is not null)
             {
                 try
@@ -238,7 +229,6 @@ internal static class IntelligenceEndpoints
                 }
                 catch (JsonException ex)
                 {
-                    // Skip malformed attribute payloads.
                     Debug.WriteLine(ex);
                 }
             }

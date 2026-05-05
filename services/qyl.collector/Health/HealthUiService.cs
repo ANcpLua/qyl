@@ -3,9 +3,6 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Health;
 
-/// <summary>
-///     Service for gathering detailed health information for the UI dashboard.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed class HealthUiService(
     DuckDbStore store,
@@ -20,7 +17,6 @@ public sealed class HealthUiService(
     {
         var now = TimeProvider.System.GetUtcNow();
 
-        // Get latest span first — used by both ingestion health and last-ingestion-time
         var latest = ringBuffer.GetLatest(1, out _);
 
         var components = new List<ComponentHealth>
@@ -214,7 +210,7 @@ public sealed class HealthUiService(
             var lastTime = TimeConversions.NanosToDateTimeOffset(latest[0].StartTimeUnixNano);
             var now = TimeProvider.System.GetUtcNow();
             secondsSinceLastIngestion = (long)(now - lastTime).TotalSeconds;
-            hasRecentData = secondsSinceLastIngestion < 300; // 5 minutes
+            hasRecentData = secondsSinceLastIngestion < 300;
         }
 
         var status = hasRecentData || bufferCount is 0 ? HealthStatus.Healthy : HealthStatus.Degraded;

@@ -4,26 +4,8 @@ using System.Text;
 
 namespace Qyl.Instrumentation.Instrumentation.Inventory;
 
-/// <summary>
-///     Concurrent in-memory <see cref="IQylAgentInventory" />. Keyed by <see cref="AgentRegistration.Key" />;
-///     last-writer-wins on concurrent registrations, which matches the "refresh metadata"
-///     intent. Publishes <c>qyl_observability_inventory_size</c> as an observable gauge on
-///     <see cref="ActivitySources.AgentMeter" /> so the dashboard can plot inventory growth
-///     without polling the endpoint.
-/// </summary>
-/// <remarks>
-///     Activity counters are bounded: each agent keeps a <see cref="ConcurrentQueue{DateTime}" />
-///     of timestamps capped at <see cref="ActivityWindowCap" /> entries, with prune-on-read
-///     dropping anything older than 24h. The cap protects a runaway emission storm from
-///     unbounded heap growth; pruning happens in <see cref="Snapshot" /> so reads see a
-///     correct 24h window without a background timer.
-/// </remarks>
 public sealed class QylAgentInventory : IQylAgentInventory
 {
-    /// <summary>
-    ///     Per-agent activity-window cap. 24h × 60s = 86 400; 10 000 covers a sustained
-    ///     8 invocations per minute without backpressure. Excess is dropped from the front.
-    /// </summary>
     private const int ActivityWindowCap = 10_000;
 
     private readonly ConcurrentDictionary<string, AgentRegistration> _entries =
@@ -38,7 +20,6 @@ public sealed class QylAgentInventory : IQylAgentInventory
     {
         _time = time;
 
-        // Holding the gauge instance keeps the callback alive for the meter's lifetime.
         InventorySizeGauge = ActivitySources.AgentMeter.CreateObservableGauge(
             "qyl_observability_inventory_size",
             () => _entries.Count,
@@ -63,8 +44,6 @@ public sealed class QylAgentInventory : IQylAgentInventory
     {
         if (string.IsNullOrEmpty(agentName)) return;
 
-        // Fast-path: skip names that aren't registered. Avoids unbounded growth on
-        // arbitrary gen_ai.agent.name values from non-qyl producers.
         if (!IsRegisteredName(agentName)) return;
 
         var queue = _activity.GetOrAdd(agentName, static _ => new ConcurrentQueue<DateTime>());
@@ -72,7 +51,6 @@ public sealed class QylAgentInventory : IQylAgentInventory
 
         while (queue.Count > ActivityWindowCap && queue.TryDequeue(out _))
         {
-            // Bounded buffer — drop oldest until we're back under the cap.
         }
     }
 
@@ -88,7 +66,6 @@ public sealed class QylAgentInventory : IQylAgentInventory
 
             if (_activity.TryGetValue(entry.Name, out var queue))
             {
-                // Prune-on-read: drop anything older than 24h from the head.
                 while (queue.TryPeek(out var head) && head < cutoff)
                     queue.TryDequeue(out _);
 
@@ -120,7 +97,6 @@ public sealed class QylAgentInventory : IQylAgentInventory
         return false;
     }
 
-    /// <summary>Compute the SHA256 hex digest of an instruction string.</summary>
     public static string? HashInstructions(string? instructions) =>
         string.IsNullOrEmpty(instructions)
             ? null

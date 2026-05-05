@@ -2,11 +2,6 @@ using Qyl.Contracts.Observability;
 
 namespace Qyl.Loom;
 
-/// <summary>
-///     Background service that polls for new deployments and runs regression detection.
-///     Checks if resolved errors have re-appeared after a deploy and triggers re-triage
-///     via <see cref="TriagePipelineService" /> when regressions are found.
-/// </summary>
 [QylHostedService]
 public sealed partial class RegressionDetectionService(
     CollectorClient collector,
@@ -28,7 +23,6 @@ public sealed partial class RegressionDetectionService(
             return;
         }
 
-        // Warmup delay — let deployments accumulate
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
         LogRegressionDetectionStarted(_intervalSeconds);
 
@@ -69,11 +63,9 @@ public sealed partial class RegressionDetectionService(
 
             totalRegressions += regressedIds.Count;
 
-            // Advance checkpoint only after successful processing of this deployment
             _lastChecked = deployment.StartTime;
         }
 
-        // If any regressions were found, trigger re-triage
         if (totalRegressions > 0)
         {
             await triagePipeline.TriageUntriagedIssuesAsync(ct).ConfigureAwait(false);

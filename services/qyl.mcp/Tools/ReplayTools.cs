@@ -7,18 +7,10 @@ using Qyl.Contracts.Primitives;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for replaying and analyzing stored AI sessions.
-///     Fetches data from qyl.collector via HTTP.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ReplayTools(HttpClient client)
 {
-    /// <summary>Lists AI sessions captured by qyl for replay or analysis.</summary>
-    /// <param name="limit">Maximum number of sessions to return.</param>
-    /// <param name="serviceName">Optional filter by service/application name.</param>
-    /// <returns>Session IDs with span counts, error counts, token usage, and costs.</returns>
     [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
@@ -60,9 +52,6 @@ public sealed partial class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching sessions");
 
-    /// <summary>Retrieves a human-readable transcript of an AI session with timing and cost details.</summary>
-    /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
-    /// <returns>A formatted transcript with timing, tokens, costs, and errors.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -83,7 +72,6 @@ public sealed partial class ReplayTools(HttpClient client)
             sb.AppendLine($"Total Spans: {response.Items.Count}");
             sb.AppendLine();
 
-            // Sort by start time
             var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
 
             foreach (var span in sortedSpans)
@@ -104,13 +92,12 @@ public sealed partial class ReplayTools(HttpClient client)
                         sb.AppendLine($"- Cost: ${span.GenAiCostUsd:F6}");
                 }
 
-                if (span.StatusCode == 2) // ERROR
+                if (span.StatusCode == 2)
                     sb.AppendLine($"- **ERROR**: {span.StatusMessage ?? "Unknown error"}");
 
                 sb.AppendLine();
             }
 
-            // Summary
             var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0L);
             var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0L);
             var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0d);
@@ -127,9 +114,6 @@ public sealed partial class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching session");
 
-    /// <summary>Retrieves the complete span tree for a distributed trace.</summary>
-    /// <param name="traceId">The trace ID hex string.</param>
-    /// <returns>Span hierarchy with timing, status, and GenAI attributes.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -167,9 +151,6 @@ public sealed partial class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching trace");
 
-    /// <summary>Analyzes all errors in a session with error messages, providers, and context.</summary>
-    /// <param name="sessionId">The session ID obtained from <c>list_sessions</c>.</param>
-    /// <returns>Error details grouped by span with full context.</returns>
     [QylCapability("session_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.analyze_session_errors", Title = "Analyze Session Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,

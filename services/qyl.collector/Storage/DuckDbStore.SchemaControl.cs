@@ -2,18 +2,9 @@ using Qyl.Collector.SchemaControl;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with schema control operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Schema Promotion Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new schema promotion record.
-    /// </summary>
     public async Task InsertSchemaPromotionAsync(
         SchemaPromotionRecord record,
         CancellationToken ct = default) =>
@@ -37,9 +28,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a schema promotion by its ID.
-    /// </summary>
     public async Task<SchemaPromotionRecord?> GetSchemaPromotionAsync(
         string promotionId,
         CancellationToken ct = default)
@@ -63,9 +51,6 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    /// <summary>
-    ///     Gets all schema promotions matching the given status.
-    /// </summary>
     public async Task<IReadOnlyList<SchemaPromotionRecord>> GetSchemaPromotionsByStatusAsync(
         string status,
         CancellationToken ct = default)
@@ -91,9 +76,6 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    /// <summary>
-    ///     Updates the status of a schema promotion.
-    /// </summary>
     public async Task UpdateSchemaPromotionStatusAsync(
         string promotionId,
         string status,
@@ -117,9 +99,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Executes a raw DDL statement for schema promotion.
-    /// </summary>
     public async Task ExecuteSchemaDdlAsync(
         string ddl,
         CancellationToken ct = default) =>
@@ -130,9 +109,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Private Methods - Schema Control Mapping
-    // ==========================================================================
 
     private static SchemaPromotionRecord MapSchemaPromotion(DbDataReader reader) =>
         new(

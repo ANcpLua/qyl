@@ -1,24 +1,10 @@
-// =============================================================================
-// AUTO-GENERATED FILE - DO NOT EDIT
-// =============================================================================
-//     Source:    core/specs/intelligence/seed/patterns.tsp
-//     Spec:     specs/telemetry-intelligence.md §5.1
-//     Patterns: 19 v1 seed diagnostic patterns (10 infra + 9 agent behavioral)
-// =============================================================================
 
 namespace Qyl.Contracts.Intelligence;
 
-/// <summary>
-///     Static registry of all v1 seed diagnostic patterns.
-///     Compile-time collections — no file I/O, no deserialization, no reflection.
-/// </summary>
 public static class DiagnosticPatterns
 {
     public static readonly IReadOnlyList<DiagnosticPattern> All =
     [
-        // -----------------------------------------------------------------
-        // GenAI patterns
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "genai_rate_limit",
@@ -55,9 +41,6 @@ public static class DiagnosticPatterns
             Confidence = 0.95,
         },
 
-        // -----------------------------------------------------------------
-        // Data patterns
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "db_timeout",
@@ -85,9 +68,6 @@ public static class DiagnosticPatterns
             Confidence = 0.80,
         },
 
-        // -----------------------------------------------------------------
-        // Error patterns
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "http_5xx_cluster",
@@ -113,9 +93,6 @@ public static class DiagnosticPatterns
             Confidence = 0.80,
         },
 
-        // -----------------------------------------------------------------
-        // Latency patterns
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "cascading_timeout",
@@ -141,9 +118,6 @@ public static class DiagnosticPatterns
             Confidence = 0.65,
         },
 
-        // -----------------------------------------------------------------
-        // Cost patterns
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "cost_spike",
@@ -156,10 +130,6 @@ public static class DiagnosticPatterns
             Confidence = 0.75,
         },
 
-        // -----------------------------------------------------------------
-        // Agent behavioral patterns (AgentRx taxonomy)
-        // Source: Microsoft Research AgentRx, March 2026
-        // -----------------------------------------------------------------
         new DiagnosticPattern
         {
             Id = "agent_intent_plan_misalignment",

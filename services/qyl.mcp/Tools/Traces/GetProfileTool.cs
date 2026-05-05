@@ -7,10 +7,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Traces;
 
-/// <summary>
-///     Retrieves CPU/memory profile data for a span, including thread info, hot functions, and stack frame summary.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetProfileTool(HttpClient client)

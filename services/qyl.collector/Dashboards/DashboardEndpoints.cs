@@ -2,14 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Dashboards;
 
-/// <summary>
-///     Maps dashboard REST API endpoints.
-/// </summary>
 public static class DashboardEndpoints
 {
     internal static void MapDashboardEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // List all detected dashboards (only available ones)
         endpoints.MapGet("/api/v1/dashboards", ([FromServices] DashboardService service) =>
         {
             var dashboards = service.GetAvailable()
@@ -18,7 +14,6 @@ public static class DashboardEndpoints
             return TypedResults.Ok(new { items = dashboards, total = dashboards.Count });
         });
 
-        // Get dashboard data with computed widgets
         endpoints.MapGet("/api/v1/dashboards/{id}", async Task<IResult> (
             string id,
             [FromServices] DashboardService service,
@@ -40,7 +35,6 @@ public static class DashboardEndpoints
                 widgets));
         });
 
-        // Get individual widget data (partial refresh)
         endpoints.MapGet("/api/v1/dashboards/{id}/widgets", async Task<IResult> (
             string id,
             [FromServices] DashboardService service,

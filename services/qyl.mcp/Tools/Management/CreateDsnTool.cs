@@ -7,21 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that creates a new DSN (Data Source Name) for a project.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class CreateDsnTool(HttpClient client)
 {
-    /// <summary>
-    ///     Creates a new DSN for a project and returns the full DSN value.
-    /// </summary>
-    /// <param name="projectSlug">The project slug to create the DSN for.</param>
-    /// <param name="label">Optional human-readable label for the DSN.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the created DSN details.</returns>
     [McpServerTool(
         Name = "create_dsn",
         Title = "Create DSN",

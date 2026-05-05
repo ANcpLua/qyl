@@ -1,10 +1,5 @@
 namespace qyl.mcp.Skills;
 
-/// <summary>
-///     Skill-label helpers. Tool-to-skill mapping now lives entirely in
-///     <see cref="QylSkillAttribute" /> annotations on tool classes and is surfaced via
-///     the generator-produced <c>QylToolManifest.ToolDescriptors</c>.
-/// </summary>
 internal static class QylSkillCatalog
 {
     public static IReadOnlyList<string> GetEnabledSkillLabels(SkillConfiguration skills)

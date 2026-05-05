@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
-/// <summary>
-///     Updates the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class UpdateSessionStatusTool(HttpClient client)

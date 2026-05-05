@@ -1,15 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Workflows.Prompts;
 
-/// <summary>
-///     MCP prompt for reviewing and resolving qyl review-bot comments on GitHub pull
-///     requests. Encodes the parsing contract so the caller can filter, verify, and fix
-///     each comment deterministically.
-/// </summary>
 [McpServerPromptType]
 internal sealed class ReviewBotPrompts
 {

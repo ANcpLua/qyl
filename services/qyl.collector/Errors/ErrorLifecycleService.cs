@@ -1,14 +1,8 @@
 namespace Qyl.Collector.Errors;
 
-/// <summary>
-///     Issue lifecycle state machine. Validates and applies status transitions:
-///     <c>new → acknowledged → resolved → regressed</c>,
-///     <c>resolved ↔ reopened</c>.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<ErrorLifecycleService> logger)
 {
-    /// <summary>Valid transitions from each source status.</summary>
     private static readonly FrozenDictionary<IssueStatus, IssueStatus[]> s_allowedTransitions =
         new Dictionary<IssueStatus, IssueStatus[]>
         {
@@ -19,11 +13,6 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
             [IssueStatus.Reopened] = [IssueStatus.Acknowledged, IssueStatus.Resolved]
         }.ToFrozenDictionary();
 
-    /// <summary>
-    ///     Transitions the status of an issue, validating the transition is allowed.
-    /// </summary>
-    /// <returns><c>true</c> if the transition succeeded; <c>false</c> if the issue was not found.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the transition is invalid.</exception>
     public async Task<bool> TransitionStatusAsync(string issueId, IssueStatus newStatus, string? reason = null,
         CancellationToken ct = default)
     {
@@ -44,9 +33,6 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
         return true;
     }
 
-    /// <summary>
-    ///     Checks whether a transition from <paramref name="from" /> to <paramref name="to" /> is valid.
-    /// </summary>
     public static bool IsTransitionAllowed(IssueStatus from, IssueStatus to) =>
         s_allowedTransitions.TryGetValue(from, out var allowed) && allowed.AsSpan().Contains(to);
 

@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Traces;
 
-/// <summary>
-///     Retrieves full details for a single span including all attributes.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetSpanTool(HttpClient client)

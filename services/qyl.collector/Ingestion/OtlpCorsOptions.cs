@@ -1,32 +1,18 @@
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Configuration for OTLP endpoint CORS.
-/// </summary>
 public sealed class OtlpCorsOptions
 {
-    /// <summary>
-    ///     Allowed origins. Comma-separated list or "*" for all.
-    ///     Default: empty (CORS disabled).
-    /// </summary>
     public string? AllowedOrigins { get; set; }
 
-    /// <summary>
-    ///     Additional allowed headers beyond defaults.
-    ///     Default: content-type, x-otlp-api-key.
-    /// </summary>
     public string? AllowedHeaders { get; set; }
 
-    /// <summary>
-    ///     Max age for preflight cache in seconds. Must be positive.
-    /// </summary>
     public int MaxAge
     {
         get;
         set => field = value > 0
             ? value
             : throw new ArgumentOutOfRangeException(nameof(value), "MaxAge must be positive");
-    } = 86400; // 24 hours
+    } = 86400;
 
     public bool IsEnabled => !string.IsNullOrWhiteSpace(AllowedOrigins);
 

@@ -1,15 +1,9 @@
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Configuration for OTLP endpoint authentication.
-/// </summary>
 public sealed class OtlpApiKeyOptions
 {
     private static readonly string[] s_validAuthModes = ["ApiKey", "Unsecured"];
 
-    /// <summary>
-    ///     Auth mode: "ApiKey" or "Unsecured".
-    /// </summary>
     public string AuthMode
     {
         get;
@@ -19,19 +13,10 @@ public sealed class OtlpApiKeyOptions
                 nameof(value));
     } = "Unsecured";
 
-    /// <summary>
-    ///     Primary API key for validation.
-    /// </summary>
     public string? PrimaryApiKey { get; set; }
 
-    /// <summary>
-    ///     Secondary API key for rotation.
-    /// </summary>
     public string? SecondaryApiKey { get; set; }
 
-    /// <summary>
-    ///     Header name for API key. Cannot be empty.
-    /// </summary>
     public string HeaderName
     {
         get;

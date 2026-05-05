@@ -1,6 +1,3 @@
-// =============================================================================
-// Manual schema extensions for coding agent runs and Loom settings persistence.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 

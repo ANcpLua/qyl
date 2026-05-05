@@ -6,21 +6,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
-/// <summary>
-///     MCP tool that lists available projects with pagination support.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ListProjectsTool(HttpClient client)
 {
-    /// <summary>
-    ///     Lists available projects, returning slugs that can scope other tools.
-    /// </summary>
-    /// <param name="cursor">Cursor for pagination.</param>
-    /// <param name="limit">Maximum results per page (1-100, default 25).</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted paginated list of projects.</returns>
     [QylCapability("service_discovery")]
     [McpServerTool(Name = "list_projects", Title = "List Projects",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

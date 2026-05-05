@@ -1,14 +1,7 @@
 namespace Qyl.Collector.Realtime;
 
-/// <summary>
-///     REST endpoints for querying spans from in-memory <see cref="SpanRingBuffer" />.
-///     Provides sub-millisecond queries for recent telemetry data.
-/// </summary>
 public static class SpanMemoryEndpoints
 {
-    /// <summary>
-    ///     Maps the memory-backed span endpoints.
-    /// </summary>
     [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSpanMemoryEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -107,9 +100,6 @@ public static class SpanMemoryEndpoints
         });
 }
 
-/// <summary>
-///     Response for recent spans query.
-/// </summary>
 public sealed record RecentSpansResponse
 {
     public required List<SpanDto> Spans { get; init; }
@@ -119,9 +109,6 @@ public sealed record RecentSpansResponse
     public required int BufferCapacity { get; init; }
 }
 
-/// <summary>
-///     Response for trace from memory query.
-/// </summary>
 public sealed record TraceFromMemoryResponse
 {
     public required string TraceId { get; init; }
@@ -133,9 +120,6 @@ public sealed record TraceFromMemoryResponse
     public required string Source { get; init; }
 }
 
-/// <summary>
-///     Response for session spans from memory query.
-/// </summary>
 public sealed record SessionSpansFromMemoryResponse
 {
     public required string SessionId { get; init; }
@@ -144,9 +128,6 @@ public sealed record SessionSpansFromMemoryResponse
     public required string Source { get; init; }
 }
 
-/// <summary>
-///     Response for buffer statistics.
-/// </summary>
 public sealed record BufferStatsResponse
 {
     public required int Count { get; init; }

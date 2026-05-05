@@ -1,34 +1,12 @@
 using ANcpLua.Roslyn.Utilities;
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 
 namespace Qyl.Loom.Workflows.ReviewBot;
 
-/// <summary>
-///     Deterministic parser for qyl review-bot PR comments. Defaults to qyl's own bot
-///     logins; callers can pass additional bot logins via <see cref="Parse" /> when
-///     processing a PR that also carries comments from foreign review bots.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Pure — no IO, no LLM. Input is an already-fetched list of GitHub review
-///         comments (author / file / line / body). Output is a structured batch ready for
-///         direct LLM consumption or deterministic triage.
-///     </para>
-///     <para>
-///         Unknown comment shapes resolve to empty strings rather than exceptions, so a
-///         partial match still yields actionable data.
-///     </para>
-/// </remarks>
 public static partial class ReviewBotCommentParser
 {
-    /// <summary>
-    ///     Default bot author logins qyl treats as review bots. Case-insensitive. Callers
-    ///     that also want to process foreign review bots (e.g. <c>loom[bot]</c>) pass the
-    ///     extra logins to <see cref="Parse" /> / <see cref="IsReviewBot" />.
-    /// </summary>
     public static readonly ImmutableArray<string> KnownBotLogins =
     [
         "qyl[bot]",
@@ -53,12 +31,6 @@ public static partial class ReviewBotCommentParser
     [GeneratedRegex(@"[ \t]+", RegexOptions.None, 250)]
     private static partial Regex CollapseSpaceRegex();
 
-    /// <summary>
-    ///     True when <paramref name="login" /> is an exact (case-insensitive) match against
-    ///     <see cref="KnownBotLogins" /> ∪ <paramref name="additionalBotLogins" />. There is
-    ///     no prefix / substring fallback — a login like <c>qylliance-user</c> is NOT a bot.
-    ///     Foreign review bots must be opted in explicitly via <paramref name="additionalBotLogins" />.
-    /// </summary>
     public static bool IsReviewBot(string? login, IReadOnlyCollection<string>? additionalBotLogins = null)
     {
         if (string.IsNullOrWhiteSpace(login)) return false;
@@ -67,10 +39,6 @@ public static partial class ReviewBotCommentParser
                additionalBotLogins.Contains(login, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    ///     Parse a batch of raw GitHub review comments. Authors not matching a qyl review
-    ///     bot (or <paramref name="additionalBotLogins" />) are silently dropped.
-    /// </summary>
     public static ImmutableArray<ReviewBotComment> Parse(
         IEnumerable<ReviewBotRawComment> comments,
         IReadOnlyCollection<string>? additionalBotLogins = null)
@@ -87,7 +55,6 @@ public static partial class ReviewBotCommentParser
         return builder.ToImmutable();
     }
 
-    /// <summary>Parse a single raw comment. Caller is responsible for bot-filtering.</summary>
     public static ReviewBotComment ParseOne(ReviewBotRawComment raw)
     {
         var body = raw.Body ?? "";
@@ -134,10 +101,6 @@ public static partial class ReviewBotCommentParser
         };
     }
 
-    /// <summary>
-    ///     Human-readable summary of a parsed batch. Ordered by severity descending,
-    ///     confidence descending, then file / line. Safe to include in a prompt.
-    /// </summary>
     public static string BuildSummary(IEnumerable<ReviewBotComment> comments)
     {
         Guard.NotNull(comments);

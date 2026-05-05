@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
-/// <summary>
-///     Queries time-series data for a specific metric with optional filtering and time range.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class QueryMetricsTool(HttpClient client)

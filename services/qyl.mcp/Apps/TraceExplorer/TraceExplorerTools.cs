@@ -9,10 +9,6 @@ using qyl.mcp.Tools;
 
 namespace qyl.mcp.Apps.TraceExplorer;
 
-/// <summary>
-///     MCP tools for the Trace Explorer ext-app.
-///     Returns trace/span data for interactive visualization in the <c>ui://qyl/trace-viewer</c> resource.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Apps)]
 internal sealed class TraceExplorerTools(HttpClient client)
@@ -50,7 +46,6 @@ internal sealed class TraceExplorerTools(HttpClient client)
             var payload = BuildPayload(spans);
             var json = JsonSerializer.Serialize(payload, TraceExplorerJsonContext.Default.TraceViewerPayload);
 
-            // Build text summary for non-UI hosts alongside the UI metadata
             StringBuilder sb = new();
             sb.AppendLine($"# Trace: {payload.Spans[0].TraceId}");
             sb.AppendLine($"Spans: {payload.Spans.Count} | Duration: {payload.TotalDurationMs:F1}ms");
@@ -129,7 +124,6 @@ internal sealed class TraceExplorerTools(HttpClient client)
 
             var spans = response?.Items ?? response?.Spans ?? [];
 
-            // Client-side filtering
             if (!string.IsNullOrEmpty(serviceName))
                 spans = [.. spans.Where(s => s.ServiceName?.ContainsIgnoreCase(serviceName) is true)];
 
@@ -145,7 +139,6 @@ internal sealed class TraceExplorerTools(HttpClient client)
             if (spans.Count is 0)
                 return "No traces found matching the criteria.";
 
-            // Group by trace ID for summary
             var traceGroups = spans
                 .GroupBy(s => s.TraceId)
                 .Select(g =>
@@ -212,7 +205,6 @@ internal sealed class TraceExplorerTools(HttpClient client)
 
         var rawSpans = response?.Items ?? response?.Spans ?? [];
 
-        // If filtering by traceId, do client-side filtering as fallback
         if (!string.IsNullOrEmpty(traceId))
             rawSpans = [.. rawSpans.Where(s => s.TraceId == traceId)];
 

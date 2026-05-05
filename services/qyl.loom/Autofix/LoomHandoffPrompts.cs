@@ -1,17 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Autofix;
 
-/// <summary>
-///     MCP prompt template for handing off a completed qyl autofix analysis to an external coding agent
-///     (Claude Code, Cursor, Copilot). The autofix pipeline runs root-cause analysis and solution planning
-///     against qyl's telemetry context; this prompt formats that output so the external agent can implement
-///     the fix in its own environment. RCA + plan ship as a structured prompt rather than the diff itself —
-///     the external agent applies the change in its own working tree.
-/// </summary>
 [McpServerPromptType]
 internal sealed class LoomHandoffPrompts
 {

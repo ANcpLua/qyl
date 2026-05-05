@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     REST endpoints for fix runs. Collector stores fix run data —
-///     orchestration (RCA, diff generation, confidence scoring) is owned by qyl.loom.
-/// </summary>
 public static class AutofixEndpoints
 {
     [QylMapEndpoints]

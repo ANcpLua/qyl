@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -11,28 +10,18 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.CodeFixes;
 
-/// <summary>
-///     For a magic-string that is a known attribute ID, offers to replace it with a
-///     TODO comment pointing to the appropriate constant.
-///     A full constant-name lookup requires the generated SemanticConventions package to be
-///     present; this provider records the intent as a structured TODO so a follow-up pass
-///     can resolve the exact type name.
-/// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MagicStringCodeFixProvider))]
 [Shared]
 public sealed class MagicStringCodeFixProvider : CodeFixProvider
 {
-    /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; } =
         ImmutableArray.Create(MagicStringAnalyzer.DiagnosticId);
 
-    /// <inheritdoc />
     public override FixAllProvider GetFixAllProvider()
     {
         return WellKnownFixAllProviders.BatchFixer;
     }
 
-    /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
@@ -65,7 +54,6 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
         if (root is null)
             return document;
 
-        // Try to resolve the constant from the SemanticModel (requires the generated constants package to be referenced)
         var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
         if (semanticModel is not null)
         {
@@ -77,7 +65,6 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
             }
         }
 
-        // Fallback: leave a structured TODO comment above the statement
         var statement = literal.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
             return document;
@@ -91,12 +78,10 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
         return document.WithSyntaxRoot(updatedRoot);
     }
 
-    /// <summary>Walks the compilation's global namespace to find a string const equal to <paramref name="attrId" />.</summary>
     private static ExpressionSyntax? TryResolveConstantExpression(
         SemanticModel model,
         string attrId)
     {
-        // Walk types in Qyl.OpenTelemetry.SemanticConventions.* looking for a static string const with the right value
         var ns = FindNamespace(model.Compilation.GlobalNamespace, "Qyl.OpenTelemetry.SemanticConventions");
         if (ns is null)
             return null;
@@ -141,7 +126,6 @@ public sealed class MagicStringCodeFixProvider : CodeFixProvider
             }
         }
 
-        // Recurse into nested types
         foreach (var nested in type.GetTypeMembers())
         {
             var expr = TryFindConstInType(nested, attrId);

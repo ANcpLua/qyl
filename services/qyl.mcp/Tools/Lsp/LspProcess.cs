@@ -1,12 +1,6 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Owns the <see cref="Process" /> of an LSP server and exposes its stdin / stdout as streams.
-///     Disposes via <see cref="IAsyncDisposable" />; <see cref="ExitAsync" /> requests graceful
-///     shutdown with a timeout before killing the process.
-/// </summary>
 internal sealed class LspProcess : IAsyncDisposable
 {
     private readonly Process _process;
@@ -14,22 +8,12 @@ internal sealed class LspProcess : IAsyncDisposable
 
     private LspProcess(Process process) => _process = process;
 
-    /// <summary>
-    ///     Standard input of the LSP server process — writes go to the server's stdin.
-    /// </summary>
     public Stream Stdin => _process.StandardInput.BaseStream;
 
-    /// <summary>
-    ///     Standard output of the LSP server process — reads come from the server's stdout.
-    /// </summary>
     public Stream Stdout => _process.StandardOutput.BaseStream;
 
-    /// <summary>
-    ///     Process id, useful for logging and cleanup hooks.
-    /// </summary>
     public int Id => _process.Id;
 
-    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
@@ -45,12 +29,6 @@ internal sealed class LspProcess : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    ///     Starts an LSP server process in the given working directory.
-    /// </summary>
-    /// <param name="resolution">Resolved server + binary + workspace root.</param>
-    /// <returns>A running <see cref="LspProcess" />.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the process fails to start.</exception>
     public static LspProcess Start(LspServerResolutionResult resolution)
     {
         var startInfo = new ProcessStartInfo
@@ -78,12 +56,6 @@ internal sealed class LspProcess : IAsyncDisposable
         return new LspProcess(process);
     }
 
-    /// <summary>
-    ///     Requests graceful shutdown: waits up to <paramref name="timeout" /> for exit,
-    ///     then kills the process tree.
-    /// </summary>
-    /// <param name="timeout">Maximum time to wait for natural exit before killing.</param>
-    /// <param name="ct">Cancellation token.</param>
     public async Task ExitAsync(TimeSpan timeout, CancellationToken ct)
     {
         if (_process.HasExited)
@@ -110,7 +82,6 @@ internal sealed class LspProcess : IAsyncDisposable
         }
         catch (InvalidOperationException)
         {
-            // Process already exited between the HasExited check and Kill — benign.
         }
     }
 }

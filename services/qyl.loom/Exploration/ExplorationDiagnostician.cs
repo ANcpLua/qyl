@@ -3,13 +3,6 @@ using Qyl.Contracts.Copilot;
 
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     Bounded sub-agent responsible only for root-cause investigation.
-///     Streams LLM reasoning chunks to an optional per-chunk callback as they arrive, then returns the
-///     accumulated monologue plus parsed root cause. The callback exists so the workflow diagnose executor
-///     can republish chunks as <c>ExplorationStreamEvent</c>s in real time rather than after the LLM has
-///     finished producing tokens.
-/// </summary>
 public sealed class ExplorationDiagnostician(IChatClient? llm = null)
 {
     public bool IsConfigured => llm is not null;

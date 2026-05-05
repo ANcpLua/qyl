@@ -7,18 +7,10 @@ using Qyl.Contracts.Primitives;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for querying GenAI telemetry (LLM calls, token usage, costs).
-///     Provides AI-focused analytics beyond generic span queries.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GenAiTools(HttpClient client)
 {
-    /// <summary>Retrieves aggregate GenAI usage statistics: requests, tokens, and costs.</summary>
-    /// <param name="sessionId">Optional session ID filter.</param>
-    /// <param name="hours">Time window in hours.</param>
-    /// <returns>Request count, input/output tokens, total cost, and error count.</returns>
     [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.get_genai_stats", Title = "Get GenAI Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -53,13 +45,6 @@ public sealed partial class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    /// <summary>Lists GenAI spans (individual LLM calls) with optional filtering.</summary>
-    /// <param name="provider">Filter by provider name (e.g. 'anthropic', 'openai').</param>
-    /// <param name="model">Filter by model name with partial matching.</param>
-    /// <param name="status">Filter by status: 'ok' or 'error'.</param>
-    /// <param name="sessionId">Filter by session ID.</param>
-    /// <param name="limit">Maximum number of spans to return.</param>
-    /// <returns>A list of GenAI spans with provider, model, tokens, cost, and status.</returns>
     [QylCapability("genai_observability")]
     [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -115,10 +100,6 @@ public sealed partial class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    /// <summary>Retrieves usage breakdown by AI model with request counts, tokens, and costs.</summary>
-    /// <param name="hours">Time window in hours.</param>
-    /// <returns>A table of models ranked by cost with request counts and token usage.</returns>
-    // TODO: Endpoint /api/v1/genai/models not yet implemented in collector.
     [McpServerTool(Name = "qyl.list_models", Title = "List Models",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
@@ -151,11 +132,6 @@ public sealed partial class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    /// <summary>Retrieves token usage over time as a time series for trend analysis.</summary>
-    /// <param name="hours">Time window in hours.</param>
-    /// <param name="interval">Aggregation interval: 'hour' or 'day'.</param>
-    /// <returns>Time series of token usage with costs per interval.</returns>
-    // TODO: Endpoint /api/v1/genai/usage/timeseries not yet implemented in collector.
     [QylCapability("genai_observability", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,

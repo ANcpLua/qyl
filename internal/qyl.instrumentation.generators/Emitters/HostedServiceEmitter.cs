@@ -3,21 +3,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
 
-/// <summary>
-///     Emits <c>QylGeneratedRegistry.g.cs</c>, the single class that houses every
-///     generator-discovered service-wiring helper:
-///     <list type="bullet">
-///         <item><c>RegisterQylHostedServices(IServiceCollection)</c> — all <c>[QylHostedService]</c> classes.</item>
-///         <item>
-///             <c>MapQylGeneratedEndpoints(WebApplication)</c> — all <c>[QylMapEndpoints]</c> extension methods,
-///             ordered.
-///         </item>
-///     </list>
-///     The interceptor in <c>ServiceDefaultsSourceGenerator</c> auto-calls
-///     <c>RegisterQylHostedServices</c> before <c>builder.Build()</c>.
-///     Consumers call <c>MapQylGeneratedEndpoints</c> from their own aggregator so they retain
-///     full control over placement relative to hand-written <c>MapGroup</c>, gRPC, and fallback routes.
-/// </summary>
 internal static class HostedServiceEmitter
 {
     public static string Emit(
@@ -78,7 +63,6 @@ internal static class HostedServiceEmitter
         {
             foreach (var def in ordered)
             {
-                // TypeFullyQualifiedName already includes "global::".
                 sb.AppendLine(
                     $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionHostedServiceExtensions.AddHostedService<{def.TypeFullyQualifiedName}>(services);");
             }
@@ -99,7 +83,6 @@ internal static class HostedServiceEmitter
         {
             foreach (var def in ordered)
             {
-                // Emit either AddLifetime<T>(services) or AddLifetime<IFoo, Foo>(services).
                 var call = def.InterfaceFullyQualifiedName is null
                     ? $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.TypeFullyQualifiedName}>(services);"
                     : $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.InterfaceFullyQualifiedName}, {def.TypeFullyQualifiedName}>(services);";
@@ -153,7 +136,6 @@ internal static class HostedServiceEmitter
         {
             foreach (var def in ordered)
             {
-                // ContainingTypeFullyQualifiedName already includes "global::".
                 sb.AppendLine($"{def.ContainingTypeFullyQualifiedName}.{def.MethodName}(app);");
             }
 

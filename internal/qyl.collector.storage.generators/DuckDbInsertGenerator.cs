@@ -1,8 +1,3 @@
-// =============================================================================
-// Qyl.Collector.Storage.Generators - DuckDB Insert Generator
-// Generates type-safe parameter binding and reader mapping for DuckDB
-// Owner: Qyl.Collector.Storage.Generators
-// =============================================================================
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,15 +6,6 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Qyl.Collector.Storage.Generators;
 
-/// <summary>
-///     Generates DuckDB helper methods for types decorated with [DuckDbTable].
-///     For each marked type, generates:
-///     - ColumnList constant (comma-separated column names)
-///     - ColumnCount constant
-///     - AddParameters(DuckDBCommand, T) static method
-///     - MapFromReader(DbDataReader) static method
-///     - BuildMultiRowInsertSql(int) static method
-/// </summary>
 [Generator]
 public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 {
@@ -29,11 +15,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Emit attributes
         context.RegisterPostInitializationOutput(static ctx =>
             ctx.AddSource("DuckDbAttributes.g.cs", SourceText.From(DuckDbAttributeSource.Source, Encoding.UTF8)));
 
-        // Find types with [DuckDbTable]
         var tableTypes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 DuckDbTableAttribute,
@@ -41,7 +25,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 static (ctx, _) => ExtractTableInfo(ctx))
             .WhereNotNull();
 
-        // Generate code
         context.RegisterSourceOutput(tableTypes, static (spc, tableInfo) =>
         {
             var source = DuckDbEmitter.Emit(tableInfo);
@@ -56,11 +39,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         var typeDecl = (TypeDeclarationSyntax)ctx.TargetNode;
 
-        // Check if partial
         if (!typeDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
             return null;
 
-        // Get table attribute data
         string? tableName = null;
         string? onConflict = null;
 
@@ -79,7 +60,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         if (tableName is not { Length: > 0 })
             return null;
 
-        // Collect properties
         var columns = new List<DuckDbColumnInfo>();
         var ordinal = 0;
 
@@ -94,7 +74,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             if (prop.GetMethod is null)
                 continue;
 
-            // Check for [DuckDbIgnore]
             if (prop.HasAttribute(DuckDbIgnoreAttribute))
                 continue;
 
@@ -147,14 +126,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             }
         }
 
-        // Default column name: convert PascalCase to snake_case
         columnName ??= ToSnakeCase(prop.Name);
 
         var propType = prop.Type.ToDisplayString();
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated ||
                          propType.EndsWithOrdinal("?");
 
-        // Detect UBIGINT by type if not explicitly marked
         if (!isUBigInt && propType is "ulong" or "System.UInt64")
             isUBigInt = true;
 

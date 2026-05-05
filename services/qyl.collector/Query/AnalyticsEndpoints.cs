@@ -1,13 +1,6 @@
-// =============================================================================
-// AnalyticsEndpoints - REST API for AI chat analytics
-// =============================================================================
 
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     REST endpoints for AI chat analytics.
-///     All queries run against the existing spans table via AnalyticsQueryService.
-/// </summary>
 internal static class AnalyticsEndpoints
 {
     [QylMapEndpoints]

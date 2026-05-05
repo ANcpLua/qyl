@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -8,11 +7,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Owns a single LSP server connection: process + transport + real
-///     <c>initialize</c> / <c>initialized</c> / <c>shutdown</c> / <c>exit</c> handshake.
-///     No fixed sleeps — see skill's "JSON-RPC framing" hard rule.
-/// </summary>
 internal sealed partial class LspClientConnection : IAsyncDisposable
 {
     private readonly CancellationTokenSource _dispatcherCts = new();
@@ -35,17 +29,13 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         _dispatcherTask = Task.Run(() => DispatchAsync(_dispatcherCts.Token));
     }
 
-    /// <summary>Resolved server + binary + workspace metadata.</summary>
     public LspServerResolutionResult Resolution { get; }
 
-    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
-        // Polite shutdown: shutdown request + exit notification, 2s budget. If the server is
-        // unresponsive or already torn down, LspProcess.DisposeAsync handles the forceful kill.
         try
         {
             using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -85,10 +75,6 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         await _process.DisposeAsync().ConfigureAwait(false);
     }
 
-    /// <summary>Starts the process, wraps the transport, runs the real init handshake.</summary>
-    /// <param name="resolution">Resolved launch parameters.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <param name="logger">Optional logger for transport + shutdown diagnostics.</param>
     public static async Task<LspClientConnection> OpenAsync(
         LspServerResolutionResult resolution,
         CancellationToken ct,
@@ -127,7 +113,6 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         }
     }
 
-    /// <summary>Sends a JSON-RPC request and awaits its response.</summary>
     public async Task<JsonNode?> SendRequestAsync(string method, JsonNode? parameters, CancellationToken ct)
     {
         var id = _transport.AllocateRequestId();
@@ -144,14 +129,10 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         return await tcs.Task.ConfigureAwait(false);
     }
 
-    /// <summary>Sends a fire-and-forget JSON-RPC notification.</summary>
     public Task SendNotificationAsync(string method, JsonNode? parameters, CancellationToken ct) =>
         _transport.SendNotificationAsync(method, parameters, ct);
 
-    // ── Typed LSP method layer (one-per-open-workspace; positions are 0-based LSP-wire format;
-    //    callers translate from 1-based user positions at the LspClientWrapper boundary) ────────
 
-    /// <summary>Notifies the server that a document has been opened with the given contents.</summary>
     public Task DidOpenAsync(string uri, string languageId, int version, string text, CancellationToken ct) =>
         SendNotificationAsync("textDocument/didOpen",
             new JsonObject
@@ -162,10 +143,6 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
                 }
             }, ct);
 
-    /// <summary>
-    ///     Notifies the server that a document has changed. Sends the full document (LSP allows
-    ///     this when incremental sync is not registered).
-    /// </summary>
     public Task DidChangeAsync(string uri, int version, string text, CancellationToken ct) =>
         SendNotificationAsync("textDocument/didChange",
             new JsonObject
@@ -174,11 +151,9 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
                 ["contentChanges"] = new JsonArray { new JsonObject { ["text"] = text } }
             }, ct);
 
-    /// <summary><c>textDocument/definition</c>. Returns Location | Location[] | LocationLink[].</summary>
     public Task<JsonNode?> GotoDefinitionAsync(string uri, int line0, int character0, CancellationToken ct) =>
         SendRequestAsync("textDocument/definition", BuildTextDocumentPosition(uri, line0, character0), ct);
 
-    /// <summary><c>textDocument/references</c>.</summary>
     public Task<JsonNode?> FindReferencesAsync(string uri, int line0, int character0, bool includeDeclaration,
         CancellationToken ct)
     {
@@ -187,25 +162,20 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
         return SendRequestAsync("textDocument/references", parameters, ct);
     }
 
-    /// <summary><c>textDocument/documentSymbol</c>. Returns DocumentSymbol[] or SymbolInformation[].</summary>
     public Task<JsonNode?> DocumentSymbolsAsync(string uri, CancellationToken ct) =>
         SendRequestAsync("textDocument/documentSymbol",
             new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri } }, ct);
 
-    /// <summary><c>workspace/symbol</c>.</summary>
     public Task<JsonNode?> WorkspaceSymbolsAsync(string query, CancellationToken ct) =>
         SendRequestAsync("workspace/symbol", new JsonObject { ["query"] = query }, ct);
 
-    /// <summary><c>textDocument/diagnostic</c> (pull-model diagnostics, LSP 3.17+).</summary>
     public Task<JsonNode?> DiagnosticsAsync(string uri, CancellationToken ct) =>
         SendRequestAsync("textDocument/diagnostic",
             new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri } }, ct);
 
-    /// <summary><c>textDocument/prepareRename</c>.</summary>
     public Task<JsonNode?> PrepareRenameAsync(string uri, int line0, int character0, CancellationToken ct) =>
         SendRequestAsync("textDocument/prepareRename", BuildTextDocumentPosition(uri, line0, character0), ct);
 
-    /// <summary><c>textDocument/rename</c>. Returns a <c>WorkspaceEdit</c>.</summary>
     public Task<JsonNode?> RenameAsync(string uri, int line0, int character0, string newName, CancellationToken ct)
     {
         var parameters = BuildTextDocumentPosition(uri, line0, character0);
@@ -277,7 +247,7 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
                 if (frame["id"] is not JsonValue value ||
                     value.GetValueKind() != JsonValueKind.Number ||
                     !value.TryGetValue<long>(out var id))
-                    continue; // notifications / server-initiated requests — not used in Phase 1
+                    continue;
 
                 if (!_pending.TryRemove(id, out var pending))
                     continue;
@@ -330,27 +300,20 @@ internal sealed partial class LspClientConnection : IAsyncDisposable
     private static partial void LogDispatcherLoopCancelled(ILogger logger);
 }
 
-/// <summary>Thrown when a JSON-RPC response carries an <c>error</c> object.</summary>
 internal sealed class LspProtocolException : Exception
 {
-    /// <summary>Constructs with a JSON-RPC error code and message.</summary>
     public LspProtocolException(int code, string message)
         : base($"LSP error {code}: {message}") => Code = code;
 
-    /// <summary>Constructs with a JSON-RPC error code, message, and inner exception.</summary>
     public LspProtocolException(int code, string message, Exception innerException)
         : base($"LSP error {code}: {message}", innerException) => Code = code;
 
-    /// <summary>Parameterless constructor for serialization.</summary>
     public LspProtocolException() : base("LSP error") => Code = 0;
 
-    /// <summary>Constructs from a bare message (code defaults to 0).</summary>
     public LspProtocolException(string message) : base(message) => Code = 0;
 
-    /// <summary>Constructs from a message + inner exception (code defaults to 0).</summary>
     public LspProtocolException(string message, Exception innerException)
         : base(message, innerException) => Code = 0;
 
-    /// <summary>JSON-RPC error code.</summary>
     public int Code { get; }
 }

@@ -1,8 +1,3 @@
-// =============================================================================
-// Manual schema extensions for workflow execution persistence.
-// The base DuckDbSchema.g.cs is auto-generated from TypeSpec; this partial
-// adds tables not yet in the TypeSpec model.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 

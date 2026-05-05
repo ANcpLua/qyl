@@ -1,33 +1,12 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Autofix;
 
-/// <summary>
-///     Prompts for the Loom headless autofix pipeline. Mirrors the five-stage contract in
-///     <c>.claude/skills/loom-autofix/SKILL.md</c> and the qyl open equivalent of qyl's
-///     undocumented <c>/v1/automation/autofix/start</c> agent.
-/// </summary>
-/// <remarks>
-///     <see cref="SystemPrompt" /> is the agent directive the in-process runner loads via
-///     <c>ChatOptions.Instructions</c>. The same text is also surfaced as the MCP prompt
-///     <c>qyl.loom.autofix_system</c> (see <see cref="AutofixSystem" />) so external agents
-///     that drive the pipeline themselves — or the workflow router when it points at
-///     <c>PromptIds.Autofix</c> — can retrieve the identical contract. The other three
-///     prompts on this type are narrower-scoped aids: <see cref="FixabilityScore" /> for
-///     pre-triage only, <see cref="AutofixCollaborate" /> for mid-run peer feedback,
-///     <see cref="AutofixSetupCheck" /> for repo/scope pre-flight.
-/// </remarks>
 [McpServerPromptType]
 internal sealed class LoomAutofixPrompts
 {
-    /// <summary>
-    ///     System prompt for a single-agent autofix pipeline. Loaded once per run, held for
-    ///     the agent lifetime. Encodes the five-stage contract plus the untrusted-input
-    ///     security posture.
-    /// </summary>
     internal const string SystemPrompt = """
                                          You are Loom, qyl's autofix agent. You investigate production issues end-to-end using
                                          qyl's telemetry as your only source of ground truth.

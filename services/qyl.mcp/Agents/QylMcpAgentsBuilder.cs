@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -9,16 +8,6 @@ using qyl.mcp.Clients;
 
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     Default <see cref="IQylMcpAgentsBuilder" />. Every returned agent is wrapped
-///     with <c>.AsBuilder().UseQylAgentTelemetry().Build()</c> — the <c>QYL0135</c>
-///     analyzer enforces this on every construction site. Meta-tool agents
-///     (<see cref="BuildRcaAgent" />, <see cref="BuildUseQylAgent" />) source their
-///     chat client from
-///     <see cref="IQylMcpChatClientBuilder.BuildAgentChatClient" /> so qyl's
-///     non-default <c>UseFunctionInvocation</c> tuning applies before the agent
-///     wraps the client.
-/// </summary>
 internal sealed class QylMcpAgentsBuilder(
     IQylMcpChatClientBuilder clients,
     IQylAgentInventory? inventory = null)
@@ -37,10 +26,8 @@ internal sealed class QylMcpAgentsBuilder(
                                                       - Output the complete test file in a single code block.
                                                       """;
 
-    /// <inheritdoc />
     public bool IsConfigured => clients.IsConfigured;
 
-    /// <inheritdoc />
     public AIAgent BuildSummarizeErrorAgent() =>
         Llm()
             .AsQylAgent("ErrorSummaryAgent",
@@ -53,7 +40,6 @@ internal sealed class QylMcpAgentsBuilder(
                 instructions: ErrorSummaryPrompt.Prompt,
                 description: "Produces a structured AI summary of a qyl error issue.");
 
-    /// <inheritdoc />
     public AIAgent BuildSummarizeTraceAgent() =>
         Llm()
             .AsQylAgent("TraceSummaryAgent",
@@ -66,7 +52,6 @@ internal sealed class QylMcpAgentsBuilder(
                 instructions: TraceSummaryPrompt.Prompt,
                 description: "Produces a structured AI summary of a distributed trace.");
 
-    /// <inheritdoc />
     public AIAgent BuildSummarizeSessionAgent() =>
         Llm()
             .AsQylAgent("SessionSummaryAgent",
@@ -79,7 +64,6 @@ internal sealed class QylMcpAgentsBuilder(
                 instructions: SessionSummaryPrompt.Prompt,
                 description: "Produces a structured AI summary of a session's spans and lifecycle.");
 
-    /// <inheritdoc />
     public AIAgent BuildTestGenerationAgent() =>
         Llm()
             .AsQylAgent("TestGenerationAgent",
@@ -92,7 +76,6 @@ internal sealed class QylMcpAgentsBuilder(
                 instructions: TestGenerationSystemPrompt,
                 description: "Generates regression tests that would catch a qyl error issue if it reoccurs.");
 
-    /// <inheritdoc />
     public AIAgent BuildAssistedQueryAgent(int rowLimit)
     {
         var instructions = BuildSqlSystemPrompt(rowLimit);
@@ -108,7 +91,6 @@ internal sealed class QylMcpAgentsBuilder(
                 description: "Translates natural-language observability questions into DuckDB SELECT queries.");
     }
 
-    /// <inheritdoc />
     public AIAgent BuildRcaAgent(IReadOnlyList<AITool> tools) =>
         AgentLlm()
             .AsAIAgent(new ChatClientAgentOptions
@@ -133,7 +115,6 @@ internal sealed class QylMcpAgentsBuilder(
                 description:
                 "Multi-phase root-cause investigator with access to error, anomaly, span, and structured-log tools.");
 
-    /// <inheritdoc />
     public AIAgent BuildUseQylAgent(IReadOnlyList<AITool> tools) =>
         AgentLlm()
             .AsAIAgent(new ChatClientAgentOptions

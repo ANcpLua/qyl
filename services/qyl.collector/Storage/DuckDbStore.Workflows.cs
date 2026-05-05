@@ -2,15 +2,8 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with workflow execution,
-///     checkpoint, and event operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Private Methods - Workflow Mapping
-    // ==========================================================================
 
     private const string WorkflowExecutionSelectSql = """
                                                       SELECT execution_id, trace_id, workflow_name, trigger, status,
@@ -19,13 +12,7 @@ public sealed partial class DuckDbStore
                                                              start_time_unix_nano, end_time_unix_nano, duration_ns, error_message
                                                       FROM workflow_executions
                                                       """;
-    // ==========================================================================
-    // Workflow Execution Operations (WorkflowExecutionRecord)
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a workflow execution using the full record type.
-    /// </summary>
     public async Task InsertWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -43,9 +30,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Updates a workflow execution using the full record type.
-    /// </summary>
     public async Task UpdateWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -76,9 +60,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a single workflow execution by ID as a full record.
-    /// </summary>
     public Task<WorkflowExecutionRecord?> GetWorkflowExecutionAsync(
         string executionId, CancellationToken ct = default) =>
         ReadOneAsync(
@@ -86,9 +67,6 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = executionId }),
             MapWorkflowExecution, ct);
 
-    /// <summary>
-    ///     Lists workflow executions with optional filtering.
-    /// </summary>
     public async Task<IReadOnlyList<WorkflowExecutionRecord>> GetWorkflowExecutionsAsync(
         int limit = 50,
         int offset = 0,
@@ -117,13 +95,7 @@ public sealed partial class DuckDbStore
             MapWorkflowExecution, ct).ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // Workflow Checkpoint Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a workflow checkpoint record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertCheckpointAsync(WorkflowCheckpointRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -144,9 +116,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets all checkpoints for a workflow execution, ordered by sequence number.
-    /// </summary>
     public Task<IReadOnlyList<WorkflowCheckpointRecord>> GetCheckpointsAsync(
         string executionId, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -160,13 +129,7 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = executionId }),
             MapCheckpoint, ct);
 
-    // ==========================================================================
-    // Workflow Event Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a workflow event record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertWorkflowEventAsync(WorkflowEventRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -188,9 +151,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets workflow events for an execution, ordered by sequence number.
-    /// </summary>
     public async Task<IReadOnlyList<WorkflowEventRecord>> GetWorkflowEventsAsync(
         string executionId,
         int? afterSequence = null,
@@ -213,13 +173,7 @@ public sealed partial class DuckDbStore
             MapEvent, ct).ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // Workflow Cancel
-    // ==========================================================================
 
-    /// <summary>
-    ///     Cancels a running workflow execution by setting its status to 'cancelled'.
-    /// </summary>
     public async Task<bool> CancelWorkflowExecutionAsync(string executionId, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -304,13 +258,7 @@ public sealed partial class DuckDbStore
         };
 }
 
-// =============================================================================
-// Workflow Storage Records
-// =============================================================================
 
-/// <summary>
-///     Storage record for a workflow execution. Maps to the workflow_executions DuckDB table.
-/// </summary>
 public sealed record WorkflowExecutionRecord
 {
     public required string ExecutionId { get; init; }
@@ -331,9 +279,6 @@ public sealed record WorkflowExecutionRecord
     public string? ErrorMessage { get; init; }
 }
 
-/// <summary>
-///     Storage record for a workflow checkpoint. Maps to the workflow_checkpoints DuckDB table.
-/// </summary>
 public sealed record WorkflowCheckpointRecord
 {
     public required string CheckpointId { get; init; }
@@ -344,9 +289,6 @@ public sealed record WorkflowCheckpointRecord
     public long CreatedAtUnixNano { get; init; }
 }
 
-/// <summary>
-///     Storage record for a workflow event. Maps to the workflow_events DuckDB table.
-/// </summary>
 public sealed record WorkflowEventRecord
 {
     public required string EventId { get; init; }

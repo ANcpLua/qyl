@@ -16,7 +16,7 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             RecordException(ex);
-            throw; // Re-throw — we capture, we don't swallow
+            throw;
         }
     }
 

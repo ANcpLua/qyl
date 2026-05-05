@@ -1,16 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Per-workspace client pool. Lazily starts one <see cref="LspClientConnection" /> per
-///     <c>(workspaceRoot, serverId)</c> pair, tracks <c>didOpen</c> / <c>didChange</c> state per
-///     document, and converts the 1-based user coordinate system to the 0-based LSP wire format
-///     at this boundary.
-/// </summary>
 internal sealed partial class LspClientWrapper(
     LspServerResolution resolution,
     ILogger<LspClientWrapper> logger) : IAsyncDisposable
@@ -20,7 +13,6 @@ internal sealed partial class LspClientWrapper(
 
     private readonly ConcurrentDictionary<string, DocumentState> _documents = new(StringComparer.Ordinal);
 
-    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         foreach (var kv in _clients)
@@ -47,7 +39,6 @@ internal sealed partial class LspClientWrapper(
         _documents.Clear();
     }
 
-    /// <summary>Resolves a client for the file's workspace + server and ensures the document is open.</summary>
     public async Task<OpenedDocument> OpenAsync(string filePath, CancellationToken ct)
     {
         if (!File.Exists(filePath))
@@ -60,7 +51,6 @@ internal sealed partial class LspClientWrapper(
         return new OpenedDocument(connection, uri, resolved);
     }
 
-    /// <summary>Converts 1-based user line/column to 0-based LSP line/character.</summary>
     public static (int Line0, int Character0) ToZeroBased(int line1, int column1)
     {
         if (line1 < 1)
@@ -70,11 +60,9 @@ internal sealed partial class LspClientWrapper(
         return (line1 - 1, column1 - 1);
     }
 
-    /// <summary>Converts 0-based LSP line/character to 1-based user line/column.</summary>
     public static (int Line1, int Column1) ToOneBased(int line0, int character0) =>
         (line0 + 1, character0 + 1);
 
-    /// <summary>Converts a <c>file://</c> URI back to a local path for display.</summary>
     public static string UriToPath(string uri) =>
         Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri;
 
@@ -113,7 +101,6 @@ internal sealed partial class LspClientWrapper(
         }
         catch
         {
-            // Start failed — evict the failed lazy so the next call retries.
             _clients.TryRemove(new KeyValuePair<string, Lazy<Task<LspClientConnection>>>(key, lazy));
             throw;
         }
@@ -174,8 +161,4 @@ internal sealed partial class LspClientWrapper(
     private sealed record DocumentState(string Text, int Version);
 }
 
-/// <summary>A handle to an opened document.</summary>
-/// <param name="Client">The typed LSP client.</param>
-/// <param name="Uri">The document's <c>file://</c> URI.</param>
-/// <param name="Resolution">Resolved server + binary + workspace metadata.</param>
 internal sealed record OpenedDocument(LspClientConnection Client, string Uri, LspServerResolutionResult Resolution);

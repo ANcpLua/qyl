@@ -2,13 +2,8 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Search;
 
-/// <summary>
-///     Builds cross-entity DuckDB queries using UNION ALL with time-bounded text search.
-/// </summary>
 internal static class UnifiedQueryEngine
 {
-    // Each subquery returns: entity_type, entity_id, title, snippet, ts (as UBIGINT unix nano), score
-    // Score: 2.0 for exact name match, 1.0 for partial match in secondary columns
 
     private const string SpanSubquery = """
                                         SELECT
@@ -123,16 +118,11 @@ internal static class UnifiedQueryEngine
                                             ) AS workflow_result
                                             """;
 
-    /// <summary>Default time window when no explicit range is specified (24 hours).</summary>
     private static readonly TimeSpan s_defaultWindow = TimeSpan.FromHours(24);
 
     private static readonly FrozenSet<string> s_validEntityTypes = FrozenSet.ToFrozenSet(
         ["spans", "logs", "errors", "agent_runs", "workflows"]);
 
-    /// <summary>
-    ///     Builds a UNION ALL query across requested entity types, applying text and time filters.
-    /// </summary>
-    /// <returns>The SQL text and ordered list of parameters.</returns>
     public static (string Sql, List<DuckDBParameter> Parameters) BuildQuery(SearchQuery query)
     {
         var entityTypes = ResolveEntityTypes(query.EntityTypes);
@@ -145,7 +135,6 @@ internal static class UnifiedQueryEngine
             new() { Value = searchText }, new() { Value = (decimal)startNano }, new() { Value = (decimal)endNano }
         };
 
-        // $1 = search text, $2 = start nano, $3 = end nano
         var unions = new List<string>();
 
         if (entityTypes.Contains("spans"))

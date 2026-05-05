@@ -1,13 +1,5 @@
-// =============================================================================
-// qyl Build System - Test Execution
-// =============================================================================
-// MTP argument builder + IQylTest (ITest + xUnit v3 + MTP)
-// =============================================================================
 
 
-// ════════════════════════════════════════════════════════════════════════════════
-// MTP (Microsoft Testing Platform) Extensions
-// ════════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
@@ -63,7 +55,6 @@ sealed class MtpArgumentsBuilder
         return this;
     }
 
-    // ─── Filters ────────────────────────────────────────────────────────────
     public MtpArgumentsBuilder FilterNamespace(params ReadOnlySpan<string> patterns) =>
         AddFilter("--filter-namespace", patterns);
 
@@ -88,14 +79,12 @@ sealed class MtpArgumentsBuilder
     public MtpArgumentsBuilder FilterQuery(string? expression) =>
         string.IsNullOrEmpty(expression) ? this : AddOption("--filter-query", expression);
 
-    // ─── Reports ────────────────────────────────────────────────────────────
     public MtpArgumentsBuilder ReportTrx(string filename)
     {
         _args.Add("--report-trx");
         return AddOption("--report-trx-filename", filename);
     }
 
-    // ─── Execution Options ──────────────────────────────────────────────────
     public MtpArgumentsBuilder StopOnFail() => AddFlag("--stop-on-fail");
 
     public MtpArgumentsBuilder MaxThreads(int count) =>
@@ -117,7 +106,6 @@ sealed class MtpArgumentsBuilder
 
     public MtpArgumentsBuilder Diagnostics() => AddFlag("--xunit-diagnostics");
 
-    // ─── Coverage ───────────────────────────────────────────────────────────
     public MtpArgumentsBuilder CoverageCobertura(AbsolutePath outputPath)
     {
         _args.Add("--coverage");
@@ -126,7 +114,6 @@ sealed class MtpArgumentsBuilder
         return AddOption("--coverage-output", outputPath.ToString());
     }
 
-    // ─── Output ─────────────────────────────────────────────────────────────
     public string Build()
     {
         if (_args is []) return string.Empty;
@@ -143,10 +130,6 @@ sealed class MtpArgumentsBuilder
 
     public IEnumerable<string> BuildArgs() => _args;
 
-    /// <summary>
-    ///     Builds a properly-escaped argument string for passthrough after --.
-    ///     Returns empty string if no args, otherwise "-- arg1 arg2 ...".
-    /// </summary>
     public string BuildProcessArgs()
     {
         if (_args.Count is 0) return string.Empty;
@@ -154,9 +137,6 @@ sealed class MtpArgumentsBuilder
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// IQylTest - Test Execution via ITest + MTP
-// ════════════════════════════════════════════════════════════════════════════════
 
 [ParameterPrefix(nameof(IQylTest))]
 interface IQylTest : ITest, IHazSourcePaths
@@ -187,20 +167,16 @@ interface IQylTest : ITest, IHazSourcePaths
         .After<IQylTest>(static x => x.Test)
         .Executes(WriteGitHubTestSummaryAsync);
 
-    // Override test project discovery (tests/ dir, not *.Tests naming)
     IEnumerable<Project> ITest.TestProjects =>
         Solution.AllProjects.Where(static p =>
             p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true);
 
-    // Override results directory
     Configure<DotNetTestSettings> ITest.TestSettings => s =>
     {
         EnsureTestcontainersConfigured();
         return s.SetResultsDirectory(TestResultsDirectory);
     };
 
-    // MTP arguments per project (replaces ExecuteMtpTestInternal)
-    // .NET 10 SDK: dotnet test requires --project flag (positional arg removed)
     Configure<DotNetTestSettings, Project> ITest.TestProjectSettings => (s, project) =>
     {
         var mtp = MtpExtensions.Mtp()
@@ -211,9 +187,6 @@ interface IQylTest : ITest, IHazSourcePaths
         if (StopOnFail == true) mtp.StopOnFail();
         if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-        // NUKE 10.1.0 uses positional arg for project, but .NET 10 requires --project flag.
-        // Clear --logger (conflicts with MTP's --report-trx), reset positional arg,
-        // pass --project + MTP args via additional arguments.
         var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
         string[] additionalArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
         return s.ClearLoggers().ResetProjectFile().SetProcessAdditionalArguments(additionalArgs);
@@ -254,11 +227,6 @@ interface IQylTest : ITest, IHazSourcePaths
         }
     }
 
-    /// <summary>
-    ///     Parses MTP-produced TRX files and writes a Markdown summary.
-    ///     Writes to <c>$GITHUB_STEP_SUMMARY</c> when running in GitHub Actions,
-    ///     and always writes <c>Artifacts/test-summary.md</c>.
-    /// </summary>
     sealed async Task WriteGitHubTestSummaryAsync()
     {
         var trxFiles = TestResultsDirectory.GlobFiles("**/*.trx");
@@ -296,7 +264,6 @@ interface IQylTest : ITest, IHazSourcePaths
                 counters.Attribute("notExecuted")?.Value ?? counters.Attribute("inconclusive")?.Value ?? "0",
                 CultureInfo.InvariantCulture);
 
-            // Sum durations from individual test results (more accurate than wall-clock)
             var projectDuration = TimeSpan.Zero;
             foreach (var result in doc.Descendants(ns + "UnitTestResult"))
             {
@@ -362,13 +329,11 @@ interface IQylTest : ITest, IHazSourcePaths
 
         var markdown = sb.ToString();
 
-        // Always write to artifacts
         var artifactPath = ArtifactsDirectory / "test-summary.md";
         artifactPath.Parent.CreateDirectory();
         await File.WriteAllTextAsync(artifactPath, markdown);
         Log.Information("Test summary: {Path}", artifactPath);
 
-        // Write to GitHub step summary when available
         var stepSummaryPath = Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY");
         if (stepSummaryPath is { Length: > 0 })
         {

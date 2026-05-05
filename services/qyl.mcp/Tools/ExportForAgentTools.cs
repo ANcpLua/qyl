@@ -3,11 +3,6 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tool that packages an error issue, its triage assessment, and the latest
-///     fix run into a structured markdown context block for use by coding agents
-///     (Claude Code, Cursor, etc.).  Read-only — no LLM call required.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class ExportForAgentTools(HttpClient http)
@@ -21,7 +16,6 @@ internal sealed partial class ExportForAgentTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            // 1. Issue details
             using var issueResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
@@ -32,7 +26,6 @@ internal sealed partial class ExportForAgentTools(HttpClient http)
             issueResp.EnsureSuccessStatusCode();
             var issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
-            // 2. Recent events (stack traces)
             using var eventsResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
                 .ConfigureAwait(false);
@@ -40,7 +33,6 @@ internal sealed partial class ExportForAgentTools(HttpClient http)
                 ? await eventsResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : "{}";
 
-            // 3. Triage assessment
             using var triageResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", ct)
                 .ConfigureAwait(false);
@@ -48,7 +40,6 @@ internal sealed partial class ExportForAgentTools(HttpClient http)
                 ? await triageResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : null;
 
-            // 4. Latest fix run (optional)
             string? fixRunJson = null;
             if (includeFix)
             {

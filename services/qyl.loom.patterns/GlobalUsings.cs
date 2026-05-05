@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 global using System.Collections.Generic;
 global using System.Threading;

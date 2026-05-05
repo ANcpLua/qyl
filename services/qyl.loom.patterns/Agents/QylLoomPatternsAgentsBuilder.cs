@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Hosting;
 using Qyl.Instrumentation.Instrumentation.GenAi;
@@ -7,11 +6,6 @@ using Qyl.Loom.Patterns.Clients;
 
 namespace Qyl.Loom.Patterns.Agents;
 
-/// <summary>
-///     Default <see cref="IQylLoomPatternsAgentsBuilder" />. Every returned agent is
-///     wrapped with <c>.AsBuilder().UseQylAgentTelemetry().Build()</c> — the
-///     <c>QYL0135</c> analyzer enforces this on every construction site.
-/// </summary>
 public sealed class QylLoomPatternsAgentsBuilder(
     IQylLoomPatternsChatClientBuilder clients,
     IServiceProvider services,
@@ -39,7 +33,6 @@ public sealed class QylLoomPatternsAgentsBuilder(
     private const string ConfidenceDescription =
         "Approves or rejects a proposed solution plan.";
 
-    /// <inheritdoc />
     public AIAgent BuildRcaAgent() =>
         clients.BuildChatClient("rca")
             .AsQylAgent("FakeRcaAgent", RcaDescription, RcaInstructions,
@@ -50,7 +43,6 @@ public sealed class QylLoomPatternsAgentsBuilder(
                 instructions: RcaInstructions,
                 description: RcaDescription);
 
-    /// <inheritdoc />
     public AIAgent BuildSolutionAgent() =>
         clients.BuildChatClient("solution")
             .AsQylAgent("FakeSolutionAgent", SolutionDescription, SolutionInstructions,
@@ -61,7 +53,6 @@ public sealed class QylLoomPatternsAgentsBuilder(
                 instructions: SolutionInstructions,
                 description: SolutionDescription);
 
-    /// <inheritdoc />
     public AIAgent BuildConfidenceAgent() =>
         clients.BuildChatClient("verdict")
             .AsQylAgent("FakeConfidenceAgent", ConfidenceDescription, ConfidenceInstructions,

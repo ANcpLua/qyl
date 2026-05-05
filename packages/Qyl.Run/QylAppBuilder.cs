@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,11 +6,6 @@ using Qyl.Run.Internal;
 
 namespace Qyl.Run;
 
-/// <summary>
-///     Entry point for a qyl.run distributed-app declaration. Shape mirrors
-///     <c>DistributedApplication.CreateBuilder(args)</c> from Aspire without any of the Aspire
-///     dependencies.
-/// </summary>
 public sealed class QylAppBuilder
 {
     private readonly List<QylResource> _resources = [];

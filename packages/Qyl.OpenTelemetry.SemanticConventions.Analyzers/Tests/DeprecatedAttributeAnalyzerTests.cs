@@ -6,7 +6,6 @@ namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests;
 
 public sealed class DeprecatedAttributeAnalyzerTests
 {
-    // android.state → android.app.state (status=renamed, mode=direct)
     private const string DeprecatedCode = """
                                           class C
                                           {
@@ -35,8 +34,6 @@ public sealed class DeprecatedAttributeAnalyzerTests
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(DeprecatedCode, s_analyzer);
 
         Assert.Single(diags);
-        // android.state is the first alphabetically-sorted entry (folder=android)
-        // → QYLSC0001 in the generated table.
         Assert.Equal("QYLSC0001", diags[0].Id);
         Assert.Equal(DiagnosticSeverity.Warning, diags[0].Severity);
     }
@@ -95,14 +92,12 @@ public sealed class DeprecatedAttributeAnalyzerTests
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
-        // SomeHelper.Do is not in the tag-method list → no diagnostic
         Assert.Empty(diags);
     }
 
     [Fact]
     public async Task FiresOnRemovedAttributeWithPerEntryDescriptorAsync()
     {
-        // db.jdbc.driver_classname — status=obsoleted, mode=removed
         const string code = """
                             class C { void M(object a) { a.SetTag("db.jdbc.driver_classname", "x"); } }
                             """;
@@ -118,7 +113,6 @@ public sealed class DeprecatedAttributeAnalyzerTests
     [Fact]
     public async Task FiresOnUncategorizedEntryAsync()
     {
-        // code.function — status=uncategorized, mode=integrate
         const string code = """
                             class C { void M(object a) { a.SetTag("code.function", "x"); } }
                             """;
@@ -134,7 +128,6 @@ public sealed class DeprecatedAttributeAnalyzerTests
     [Fact]
     public async Task FiresOnAlternativeModeAsync()
     {
-        // http.host — mode=alternative, replacements=[server.address, client.address, http.request.header.host]
         const string code = """
                             class C { void M(object a) { a.SetTag("http.host", "x"); } }
                             """;
@@ -151,7 +144,6 @@ public sealed class DeprecatedAttributeAnalyzerTests
     [Fact]
     public void GeneratedTableContainsExpectedBucketCounts()
     {
-        // Guard against drift: regenerate if these counts change.
         Assert.Equal(245, DeprecatedDiagnostics.ByDeprecatedId.Count);
         Assert.Equal(245, DeprecatedDiagnostics.AllDescriptors.Length);
         Assert.Equal(245, DeprecatedDiagnostics.AllRuleIds.Length);
@@ -164,9 +156,6 @@ public sealed class DeprecatedAttributeAnalyzerTests
         Assert.Equal(6, byMode[DeprecatedReplacementMode.Alternative]);
     }
 
-    // http.request.header is tested above; entries for status-bucket naming aren't on
-    // DeprecatedEntry directly (status isn't generated — only mode/kind/basis are). The
-    // mode proxies status for the three required buckets.
     private static string ExpectStatus(DeprecatedEntry entry)
     {
         return entry.Mode switch

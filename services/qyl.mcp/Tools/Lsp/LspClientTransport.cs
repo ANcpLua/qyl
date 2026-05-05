@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Buffers;
 using System.Text.Json;
@@ -8,15 +7,8 @@ using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     JSON-RPC 2.0 stdio transport with LSP-style <c>Content-Length</c> framing. Hand-rolled
-///     on top of <c>System.Text.Json</c> and <c>System.Threading.Channels</c> — six tools and a
-///     dozen methods do not justify the <c>StreamJsonRpc</c> dependency. See the skill's
-///     "JSON-RPC framing" rule.
-/// </summary>
 internal sealed partial class LspClientTransport : IAsyncDisposable
 {
-    // LSP base protocol: "Content-Length: N\r\n\r\n" header, UTF-8 JSON body.
     private const string HeaderPrefix = "Content-Length: ";
     private static readonly byte[] s_headerTerminator = "\r\n\r\n"u8.ToArray();
     private readonly Channel<JsonObject> _incoming;
@@ -29,13 +21,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
     private int _disposed;
     private long _nextRequestId;
 
-    /// <summary>
-    ///     Constructs a transport over pre-connected stdio streams and starts a background reader
-    ///     that demultiplexes incoming frames into <see cref="IncomingReader" />.
-    /// </summary>
-    /// <param name="input">The stream to read frames from (the server's stdout).</param>
-    /// <param name="output">The stream to write frames to (the server's stdin).</param>
-    /// <param name="logger">Optional logger for disposal-time diagnostics.</param>
     public LspClientTransport(Stream input, Stream output, ILogger? logger = null)
     {
         _writer = output;
@@ -48,10 +33,8 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         _readerTask = Task.Run(() => ReadLoopAsync(input, _readerCts.Token));
     }
 
-    /// <summary>Reader side of the demultiplex channel.</summary>
     public ChannelReader<JsonObject> IncomingReader => _incoming.Reader;
 
-    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
@@ -76,10 +59,8 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         await _writer.DisposeAsync().ConfigureAwait(false);
     }
 
-    /// <summary>Allocate a monotonic request id for a JSON-RPC <c>id</c> field.</summary>
     public long AllocateRequestId() => Interlocked.Increment(ref _nextRequestId);
 
-    /// <summary>Sends a JSON-RPC request frame (one with an <c>id</c>).</summary>
     public Task SendRequestAsync(long id, string method, JsonNode? parameters, CancellationToken ct)
     {
         var frame = new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["method"] = method };
@@ -88,7 +69,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         return WriteFrameAsync(frame, ct);
     }
 
-    /// <summary>Sends a JSON-RPC notification frame (no <c>id</c>).</summary>
     public Task SendNotificationAsync(string method, JsonNode? parameters, CancellationToken ct)
     {
         var frame = new JsonObject { ["jsonrpc"] = "2.0", ["method"] = method };
@@ -102,7 +82,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         var body = JsonSerializer.SerializeToUtf8Bytes(frame);
         var header = Encoding.ASCII.GetBytes($"{HeaderPrefix}{body.Length}\r\n\r\n");
 
-        // Serialize writes so concurrent callers cannot interleave frames.
         await _writeLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -118,8 +97,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
 
     private async Task ReadLoopAsync(Stream input, CancellationToken ct)
     {
-        // IO, parse, or protocol-level errors propagate to the consumer via channel.Complete(ex)
-        // so waiting requests fail fast with an accurate cause. We do not swallow.
         try
         {
             while (!ct.IsCancellationRequested)
@@ -135,7 +112,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Disposal flipped the reader CTS — finish cleanly.
             _incoming.Writer.TryComplete();
         }
         catch (EndOfStreamException truncated)
@@ -179,8 +155,6 @@ internal sealed partial class LspClientTransport : IAsyncDisposable
 
     private static async Task<int> ReadHeadersAsync(Stream input, CancellationToken ct)
     {
-        // Accumulate bytes one at a time until we see the "\r\n\r\n" header terminator.
-        // Header size is tiny — a few dozen bytes — so byte-at-a-time keeps the code small.
         var buffer = new List<byte>(64);
         var scratch = new byte[1];
         var matchIndex = 0;

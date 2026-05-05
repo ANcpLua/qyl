@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -6,13 +5,6 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
-/// <summary>
-///     QYL0137 — Flags direct instantiation of provider SDK clients
-///     (<c>OpenAIClient</c>, <c>AzureOpenAIClient</c>, <c>AnthropicClient</c>, <c>OllamaApiClient</c>)
-///     from any file that is not a sanctioned composition root
-///     (<c>**/Clients/*ChatClientBuilder.cs</c> or <c>**/Factories/*ChatClientFactory.cs</c>).
-///     Exempt under <c>tests/**</c> and <c>samples/**</c>.
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
 {
@@ -73,7 +65,6 @@ public sealed class ChatClientBuilderBypassAnalyzer : DiagnosticAnalyzer
 
     private static bool IsAllowed(string path)
     {
-        // Wrap so startsWith-tests paths (e.g. `tests/foo.cs`) match `/tests/` too.
         var normalized = "/" + path.Replace('\\', '/');
         if (normalized.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/samples/", StringComparison.OrdinalIgnoreCase))

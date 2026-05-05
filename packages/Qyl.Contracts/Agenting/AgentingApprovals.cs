@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Approval request raised by policy or workflow checkpoints.
-/// </summary>
 public sealed record AgentRunApprovalRequest
 {
     public required string ApprovalId { get; init; }
@@ -18,9 +15,6 @@ public sealed record AgentRunApprovalRequest
     public DateTimeOffset? ExpiresAtUtc { get; init; }
 }
 
-/// <summary>
-///     Approval decision written to ledger and replayable by the control plane.
-/// </summary>
 public sealed record AgentRunApprovalDecision
 {
     public required string ApprovalId { get; init; }

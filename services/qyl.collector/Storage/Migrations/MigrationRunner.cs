@@ -1,32 +1,11 @@
-// =============================================================================
-// DuckDB Schema Migration Runner
-// =============================================================================
-// Tracks applied migrations in a _schema_versions table.
-// Applies pending .sql migration files on startup, ordered by version number.
-//
-// Migration file naming convention:
-//   V{version}__description.sql
-//   Example: V20260214__add_session_cost_columns.sql
-//
-// The runner is called from DuckDbStore.InitializeSchema after the base
-// CREATE TABLE IF NOT EXISTS DDL runs. This ensures tables exist before
-// ALTER TABLE migrations execute.
-// =============================================================================
 
 using System.Text.RegularExpressions;
 
 namespace Qyl.Collector.Storage.Migrations;
 
-/// <summary>
-///     Applies pending DuckDB schema migrations on startup.
-///     Tracks applied versions in a <c>_schema_versions</c> metadata table.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class MigrationRunner
 {
-    /// <summary>
-    ///     DDL for the migration tracking table. Created automatically on first run.
-    /// </summary>
     public const string SchemaVersionsDdl = """
                                             CREATE TABLE IF NOT EXISTS _schema_versions (
                                                 version INTEGER NOT NULL PRIMARY KEY,
@@ -42,25 +21,13 @@ public sealed partial class MigrationRunner
 
     public MigrationRunner(ILogger<MigrationRunner> logger) => _logger = logger;
 
-    /// <summary>
-    ///     Initializes the version tracking table and applies any pending migrations.
-    /// </summary>
-    /// <param name="connection">Open DuckDB connection (the write connection).</param>
-    /// <param name="currentSchemaVersion">
-    ///     The current schema version from <see cref="DuckDbSchema.Version" />.
-    /// </param>
-    /// <param name="migrationDirectory">
-    ///     Directory containing V*.sql migration files. Pass null to skip file-based migrations.
-    /// </param>
     public void ApplyPendingMigrations(
         DuckDBConnection connection,
         int currentSchemaVersion,
         string? migrationDirectory = null)
     {
-        // 1. Ensure _schema_versions table exists
         EnsureVersionTable(connection);
 
-        // 2. Get the last applied version
         var lastApplied = GetLastAppliedVersion(connection);
 
         if (lastApplied >= currentSchemaVersion)
@@ -69,8 +36,6 @@ public sealed partial class MigrationRunner
             return;
         }
 
-        // 3. If no migrations have ever been applied, optionally apply file migrations from scratch.
-        // This allows newly added migrations to run on fresh databases.
         if (lastApplied is 0)
         {
             if (migrationDirectory is not null && Directory.Exists(migrationDirectory))
@@ -100,7 +65,6 @@ public sealed partial class MigrationRunner
             return;
         }
 
-        // 4. Apply pending migration files if directory is provided
         if (migrationDirectory is not null && Directory.Exists(migrationDirectory))
         {
             var pendingFiles = GetPendingMigrationFiles(migrationDirectory, lastApplied);
@@ -117,17 +81,12 @@ public sealed partial class MigrationRunner
         }
         else
         {
-            // No migration directory: just record the version bump
-            // The CREATE TABLE IF NOT EXISTS DDL handles additive schema
             RecordVersion(connection, currentSchemaVersion,
                 $"Schema version bump from v{lastApplied}");
             LogVersionBumped(lastApplied, currentSchemaVersion);
         }
     }
 
-    /// <summary>
-    ///     Gets the last applied schema version, or 0 if none.
-    /// </summary>
     public static int GetLastAppliedVersion(DuckDBConnection connection)
     {
         using var cmd = connection.CreateCommand();
@@ -142,9 +101,6 @@ public sealed partial class MigrationRunner
         };
     }
 
-    /// <summary>
-    ///     Gets all applied versions, ordered ascending.
-    /// </summary>
     public static IReadOnlyList<AppliedMigration> GetAppliedMigrations(DuckDBConnection connection)
     {
         var migrations = new List<AppliedMigration>();
@@ -169,9 +125,6 @@ public sealed partial class MigrationRunner
         return migrations;
     }
 
-    // ════════════════════════════════════════════════════════════════════════════
-    // INTERNAL
-    // ════════════════════════════════════════════════════════════════════════════
 
     private static void EnsureVersionTable(DuckDBConnection connection)
     {
@@ -217,7 +170,6 @@ public sealed partial class MigrationRunner
             }
         }
 
-        // Apply in version order
         files.Sort(static (a, b) => a.Version.CompareTo(b.Version));
         return files;
     }
@@ -228,12 +180,8 @@ public sealed partial class MigrationRunner
 
         var sql = File.ReadAllText(migration.FilePath);
 
-        // Compute checksum for audit trail
         var checksum = ComputeChecksum(sql);
 
-        // Execute the migration SQL
-        // Split on semicolons to handle multi-statement migrations
-        // (DuckDB requires individual statements)
         var statements = SplitStatements(sql);
 
         using var tx = connection.BeginTransaction();
@@ -248,7 +196,6 @@ public sealed partial class MigrationRunner
             cmd.ExecuteNonQuery();
         }
 
-        // Record the migration (inside the same transaction if possible)
         using (var recordCmd = connection.CreateCommand())
         {
             recordCmd.Transaction = tx;
@@ -268,10 +215,6 @@ public sealed partial class MigrationRunner
         LogMigrationApplied(migration.Version, checksum[..8]);
     }
 
-    /// <summary>
-    ///     Splits SQL text into individual statements, respecting comments.
-    ///     Filters out comment-only lines and empty statements.
-    /// </summary>
     internal static List<string> SplitStatements(string sql)
     {
         var statements = new List<string>();
@@ -281,14 +224,11 @@ public sealed partial class MigrationRunner
         {
             var trimmed = line.TrimStart();
 
-            // Skip pure comment lines for statement splitting
-            // but preserve them within multi-line statements
             if (trimmed.StartsWithOrdinal(CommentPrefix) && current.Length is 0)
                 continue;
 
             current.AppendLine(line);
 
-            // Check if line ends with semicolon (outside comments)
             var effectiveLine = trimmed;
             var commentIdx = effectiveLine.IndexOfOrdinal(CommentPrefix);
             if (commentIdx >= 0)
@@ -303,7 +243,6 @@ public sealed partial class MigrationRunner
             }
         }
 
-        // Handle trailing statement without semicolon
         var remaining = current.ToString().Trim();
         if (!string.IsNullOrWhiteSpace(remaining) && !IsCommentOnly(remaining))
             statements.Add(remaining.TrimEnd(';'));
@@ -330,9 +269,6 @@ public sealed partial class MigrationRunner
         return Convert.ToHexStringLower(hash);
     }
 
-    // ════════════════════════════════════════════════════════════════════════════
-    // LOGGER MESSAGES
-    // ════════════════════════════════════════════════════════════════════════════
 
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Schema is up to date (version {Version})")]
@@ -366,16 +302,7 @@ public sealed partial class MigrationRunner
     private static partial Regex MigrationFileRegex();
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// SUPPORTING TYPES
-// ════════════════════════════════════════════════════════════════════════════════
 
-/// <summary>
-///     A migration file on disk pending application.
-/// </summary>
 public sealed record MigrationFile(int Version, string Description, string FilePath);
 
-/// <summary>
-///     A migration that has been applied (from the _schema_versions table).
-/// </summary>
 public sealed record AppliedMigration(int Version, string Description, DateTime AppliedAt, string? Checksum);

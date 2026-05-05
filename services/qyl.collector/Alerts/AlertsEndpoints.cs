@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.AspNetCore.Mvc;
 using Qyl.Common.Pagination;
@@ -6,16 +5,8 @@ using Qyl.Domains.Alerting;
 
 namespace Qyl.Collector.Alerts;
 
-/// <summary>
-///     Minimal-API endpoints for alert-rule and alert-firing management.
-///     Route: <c>/api/v1/alerts/*</c>. Mirrors the TypeSpec <c>AlertsApi</c> contract in
-///     <c>core/specs/api/routes.tsp</c> — keep this file in sync with the generated
-///     <c>IAlertsApi</c> surface when routes.tsp changes.
-/// </summary>
 public static class AlertsEndpoints
 {
-    /// <summary>Registers alert-rule and alert-firing HTTP endpoints under <c>/api/v1/alerts</c>.</summary>
-    /// <param name="app">The ASP.NET Core web application to extend.</param>
     [QylMapEndpoints]
     public static void MapAlertsEndpoints(this WebApplication app)
     {
@@ -25,9 +16,6 @@ public static class AlertsEndpoints
         MapFiringRoutes(group);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // Rule routes
-    // ══════════════════════════════════════════════════════════════════════════
 
     private static void MapRuleRoutes(RouteGroupBuilder group)
     {
@@ -92,9 +80,6 @@ public static class AlertsEndpoints
         });
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // Firing routes (ack + resolve)
-    // ══════════════════════════════════════════════════════════════════════════
 
     private static void MapFiringRoutes(RouteGroupBuilder group)
     {

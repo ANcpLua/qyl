@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Qyl.Contracts.Loom;
 
-/// <summary>
-///     Storage record for a triage result. Maps to the triage_results DuckDB table.
-/// </summary>
 public sealed record TriageResult
 {
     public required string TriageId { get; init; }
@@ -19,7 +16,6 @@ public sealed record TriageResult
     public DateTime? CreatedAt { get; init; }
 }
 
-/// <summary>JSON response shape from the LLM fixability scoring prompt.</summary>
 public sealed record LlmTriageResponse
 {
     [JsonPropertyName("fixability_score")] public double FixabilityScore { get; init; }

@@ -1,21 +1,13 @@
 namespace Qyl.Contracts.Loom;
 
-/// <summary>
-///     Pluggable coding agent backends that can receive autofix analysis
-///     and generate code changes.
-/// </summary>
 public enum CodingAgentProvider
 {
-    /// <summary>Built-in Loom autofix pipeline (default).</summary>
     Loom,
 
-    /// <summary>Cursor Background Agent API.</summary>
     Cursor,
 
-    /// <summary>GitHub Copilot Coding Agent Tasks API.</summary>
     GithubCopilot,
 
-    /// <summary>Anthropic Claude Code agent API (experimental).</summary>
     ClaudeCode
 }
 
@@ -62,9 +54,6 @@ public static class CodingAgentProviderNames
     }
 }
 
-/// <summary>
-///     Storage record for a coding agent run. Maps to the coding_agent_runs DuckDB table.
-/// </summary>
 public sealed record CodingAgentRunRecord
 {
     public required string Id { get; init; }
@@ -78,9 +67,6 @@ public sealed record CodingAgentRunRecord
     public DateTime? CompletedAt { get; init; }
 }
 
-/// <summary>
-///     Organization-level Loom configuration. Stored in the loom_settings DuckDB table.
-/// </summary>
 public sealed record LoomSettingsRecord
 {
     public required string Id { get; init; }

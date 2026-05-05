@@ -1,6 +1,3 @@
-// =============================================================================
-// Manual schema extensions for triage pipeline persistence.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 

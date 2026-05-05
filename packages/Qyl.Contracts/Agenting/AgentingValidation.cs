@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Deterministic validation checkpoint outcome.
-/// </summary>
 public sealed record ValidationCheckpoint
 {
     public required string CheckpointId { get; init; }
@@ -16,9 +13,6 @@ public sealed record ValidationCheckpoint
     public string? EvaluatedBy { get; init; }
 }
 
-/// <summary>
-///     Policy gate result that transitions the run state.
-/// </summary>
 public sealed record AgentRunPolicyEvaluation
 {
     public required string RunId { get; init; }
@@ -31,9 +25,6 @@ public sealed record AgentRunPolicyEvaluation
     public string? ReviewPath { get; init; }
 }
 
-/// <summary>
-///     Compact confidence signal used for repair loop control.
-/// </summary>
 public sealed record ConfidenceSignal
 {
     public required string SignalId { get; init; }

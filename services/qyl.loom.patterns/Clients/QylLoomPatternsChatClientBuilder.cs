@@ -1,28 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using ANcpLua.Agents.Testing.ChatClients;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Loom.Patterns.Clients;
 
-/// <summary>
-///     Default <see cref="IQylLoomPatternsChatClientBuilder" /> backed by
-///     <see cref="FakeChatClient" />. Each stage gets a canned narrative response
-///     wrapped with <c>UseQylTelemetry</c> — the chat-client-layer telemetry
-///     pipeline runs exactly like production, but no API key is required.
-/// </summary>
-/// <remarks>
-///     <para>
-///         The underlying <see cref="FakeChatClient" /> instances are cached per stage
-///         and disposed with the builder. Callers treat the returned
-///         <see cref="IChatClient" /> as borrowed — do not dispose it directly.
-///     </para>
-///     <para>
-///         <c>UseQylTelemetry</c> bundles <c>UseLogging()</c>, which resolves
-///         <c>ILoggerFactory</c> from the <see cref="IServiceProvider" /> passed to
-///         <c>Build(...)</c>. The composition root owns that provider and hands it in.
-///     </para>
-/// </remarks>
 public sealed class QylLoomPatternsChatClientBuilder(IServiceProvider services)
     : IQylLoomPatternsChatClientBuilder
 {
@@ -39,7 +20,6 @@ public sealed class QylLoomPatternsChatClientBuilder(IServiceProvider services)
 
     private readonly Dictionary<string, FakeChatClient> _fakes = new(StringComparer.Ordinal);
 
-    /// <inheritdoc />
     public IChatClient BuildChatClient(string stage)
     {
         if (_cache.TryGetValue(stage, out var cached))
@@ -58,7 +38,7 @@ public sealed class QylLoomPatternsChatClientBuilder(IServiceProvider services)
                 null,
                 $"loom-patterns-{stage}")
         };
-        _fakes[stage] = fake; // transfer ownership before the fluent chain runs
+        _fakes[stage] = fake;
         fake.WithResponse(canned);
 
         var instrumented = new ChatClientBuilder(fake)
@@ -69,7 +49,6 @@ public sealed class QylLoomPatternsChatClientBuilder(IServiceProvider services)
         return instrumented;
     }
 
-    /// <inheritdoc />
     public void Dispose()
     {
         foreach (var client in _cache.Values) client.Dispose();

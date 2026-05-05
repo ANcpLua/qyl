@@ -12,8 +12,6 @@ public static class CollectorTelemetryExtensions
         services.AddQylTelemetry();
         services.AddLogging(logging => logging.AddQylLogging(environment));
 
-        // Complex built-in checks that don't map to a simple [QylHealthCheck] class tag
-        // (they're parameterised extension calls on IHealthChecksBuilder).
         var healthBuilder = services.AddHealthChecks()
             .AddApplicationLifecycleHealthCheck(QylEndpoints.LiveTag);
 
@@ -37,11 +35,6 @@ public static class CollectorTelemetryExtensions
 
         services.AddTelemetryHealthCheckPublisher();
 
-        // The rest auto-wires via the generator:
-        //   [QylHostedService] -> InsightsMaterializerService, ServiceMaterializerService,
-        //                         EmbeddingClusterWorker
-        //   [QylHealthCheck]   -> DuckDbHealthCheck ("duckdb", [db, storage, ready])
-        //   [QylService]       -> HealthUiService (Singleton)
         return services;
     }
 }

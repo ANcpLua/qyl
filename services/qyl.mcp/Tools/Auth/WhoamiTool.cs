@@ -7,19 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Auth;
 
-/// <summary>
-///     MCP tool that returns the authenticated user's identity including name, email, user ID, and roles.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class WhoamiTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves the authenticated user's identity details from the qyl API.
-    /// </summary>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the user's identity information.</returns>
     [QylCapability("server_introspection", QylCapabilityRole.FollowUp)]
     [QylCapability("project_and_access_management")]
     [McpServerTool(Name = "whoami", Title = "Who Am I",

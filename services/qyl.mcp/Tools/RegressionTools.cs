@@ -6,9 +6,6 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for regression detection: trigger checks and query regression events.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class RegressionTools(HttpClient http)

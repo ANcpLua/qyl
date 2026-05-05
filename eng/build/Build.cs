@@ -1,9 +1,3 @@
-// =============================================================================
-// qyl Build System - Entry Point
-// =============================================================================
-// NUKE build orchestration for AI Observability Platform
-// Single entry: nuke <target> or ./eng/build.sh <target>
-// =============================================================================
 
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -35,15 +29,9 @@ sealed class Build : NukeBuild,
     IPricing,
     ISmoke
 {
-    // ── GitVersion (net10.0, not net8.0) ────────────────────────────────────────
-    // NOT exposed via IHazGitVersion — NUKE's ICompile.ReportSummary NREs when
-    // GitVersion injection fails silently. Accessed directly where needed.
     [GitVersion(Framework = "net10.0", NoCache = true, NoFetch = true)]
     internal readonly GitVersion? Versioning;
 
-    // ════════════════════════════════════════════════════════════════════════════
-    // Orchestration Targets
-    // ════════════════════════════════════════════════════════════════════════════
 
     Target Clean => d => d
         .Before<IRestore>(static x => x.Restore)
@@ -99,15 +87,12 @@ sealed class Build : NukeBuild,
             Log.Information("  Run 'nuke FrontendDev' in another terminal for hot reload");
         });
 
-    // ── IHazArtifacts override (Artifacts/, not output/) ─────────────────────
     AbsolutePath IHazArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
 
-    // ── ICompile.CompileSettings override (CI flags) ─────────────────────────
     Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
         .SetDeterministic(IsServerBuild)
         .SetContinuousIntegrationBuild(IsServerBuild);
 
-    // ── Helper to avoid ((IFoo)this) casting ─────────────────────────────────
     T From<T>() where T : INukeBuild => (T)(object)this;
 
     public static int Main() => Execute<Build>(static x => ((IQylTest)x).Test);

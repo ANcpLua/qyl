@@ -5,10 +5,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
-/// <summary>
-///     Marks a trace as reviewed during triage.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class MarkTraceReviewedTool(HttpClient client)

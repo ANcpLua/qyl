@@ -6,20 +6,10 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for anomaly detection analytics.
-///     Provides z-score based anomaly detection, baseline statistics, and period comparison.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Anomaly)]
 public sealed partial class AnomalyTools(HttpClient client)
 {
-    /// <summary>Detects anomalous metric spikes or drops using z-score analysis.</summary>
-    /// <param name="metric">Metric to analyze (e.g. 'error_rate', 'latency_p99').</param>
-    /// <param name="hours">Time window in hours.</param>
-    /// <param name="sensitivity">Z-score threshold for anomaly detection.</param>
-    /// <param name="service">Optional service name filter.</param>
-    /// <returns>Baseline statistics and a list of anomalous time buckets with z-scores.</returns>
     [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
     [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
@@ -71,11 +61,6 @@ public sealed partial class AnomalyTools(HttpClient client)
             return sb.ToString();
         });
 
-    /// <summary>Computes baseline statistics (mean, percentiles) for a metric over a time window.</summary>
-    /// <param name="metric">Metric to analyze (e.g. 'error_rate', 'latency_p95').</param>
-    /// <param name="hours">Time window in hours.</param>
-    /// <param name="service">Optional service name filter.</param>
-    /// <returns>Statistical summary with mean, standard deviation, and percentiles.</returns>
     [QylCapability("metrics_analysis", QylCapabilityRole.FollowUp)]
     [QylCapability("anomaly_detection")]
     [McpServerTool(Name = "qyl.get_metric_baseline", Title = "Get Metric Baseline",
@@ -109,14 +94,6 @@ public sealed partial class AnomalyTools(HttpClient client)
             return sb.ToString();
         });
 
-    /// <summary>Compares metrics between two time periods for before/after analysis.</summary>
-    /// <param name="metric">Metric to compare (e.g. 'error_rate', 'latency_p95').</param>
-    /// <param name="period1Start">Start of the first period in ISO 8601 format.</param>
-    /// <param name="period1End">End of the first period in ISO 8601 format.</param>
-    /// <param name="period2Start">Start of the second period in ISO 8601 format.</param>
-    /// <param name="period2End">End of the second period in ISO 8601 format.</param>
-    /// <param name="service">Optional service name filter.</param>
-    /// <returns>Side-by-side comparison with delta and percentage change.</returns>
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.compare_periods", Title = "Compare Periods",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,

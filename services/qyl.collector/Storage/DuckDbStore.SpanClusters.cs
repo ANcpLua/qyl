@@ -1,14 +1,8 @@
-// =============================================================================
-// DuckDbStore — span_clusters read/write operations.
-// Called by EmbeddingClusterWorker to persist semantic cluster assignments.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>A span that has not yet been assigned to a semantic cluster.</summary>
 public sealed record UnclusteredSpan(string SpanId, string SpanName, string? InputMessages);
 
-/// <summary>A cluster assignment row for <c>span_clusters</c>.</summary>
 public sealed record SpanClusterRow(
     string SpanId,
     int ClusterId,
@@ -19,15 +13,7 @@ public sealed record SpanClusterRow(
 
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Read
-    // ==========================================================================
 
-    /// <summary>
-    ///     Returns up to <paramref name="limit" /> gen_ai spans that have
-    ///     <c>gen_ai.input.messages</c> in their attributes but no entry
-    ///     in <c>span_clusters</c> yet.
-    /// </summary>
     public async Task<IReadOnlyList<UnclusteredSpan>> GetUnclusteredChatSpansAsync(
         int limit = 200,
         CancellationToken ct = default)
@@ -63,14 +49,7 @@ public sealed partial class DuckDbStore
         return result;
     }
 
-    // ==========================================================================
-    // Write
-    // ==========================================================================
 
-    /// <summary>
-    ///     Upserts cluster assignments into <c>span_clusters</c>.
-    ///     Uses the single write connection (channel-buffered).
-    /// </summary>
     public async Task UpsertSpanClustersAsync(
         IReadOnlyList<SpanClusterRow> rows,
         CancellationToken ct = default)

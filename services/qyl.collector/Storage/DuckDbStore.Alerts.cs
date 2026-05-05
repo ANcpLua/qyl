@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Domains.Alerting;
 
@@ -6,9 +5,6 @@ namespace Qyl.Collector.Storage;
 
 public sealed partial class DuckDbStore
 {
-    // ══════════════════════════════════════════════════════════════════════════
-    // ALERT RULES
-    // ══════════════════════════════════════════════════════════════════════════
 
     private const string AlertRuleInsertSql = """
                                               INSERT INTO alert_rules (
@@ -58,9 +54,6 @@ public sealed partial class DuckDbStore
                                             LIMIT $3
                                             """;
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // ALERT FIRINGS (ack + resolve)
-    // ══════════════════════════════════════════════════════════════════════════
 
     private const string AlertFiringAcknowledgeSql = """
                                                      UPDATE alert_firings SET
@@ -85,7 +78,6 @@ public sealed partial class DuckDbStore
                                                     WHERE id = $1
                                                     """;
 
-    /// <summary>Inserts a new alert rule. Returns the persisted entity.</summary>
     public async Task<AlertRuleEntity> InsertAlertRuleAsync(AlertRuleEntity rule, CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
@@ -144,10 +136,6 @@ public sealed partial class DuckDbStore
         return toPersist;
     }
 
-    /// <summary>
-    ///     Updates an existing alert rule. Returns the updated entity, or <c>null</c> when <paramref name="ruleId" />
-    ///     does not exist.
-    /// </summary>
     public async Task<AlertRuleEntity?> UpdateAlertRuleAsync(string ruleId, AlertRuleEntity rule,
         CancellationToken ct = default)
     {
@@ -181,7 +169,6 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0 ? await GetAlertRuleAsync(ruleId, ct).ConfigureAwait(false) : null;
     }
 
-    /// <summary>Deletes an alert rule by id. Returns <c>true</c> when a row was removed.</summary>
     public async Task<bool> DeleteAlertRuleAsync(string ruleId, CancellationToken ct = default)
     {
         var rowsAffected = 0;
@@ -196,7 +183,6 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0;
     }
 
-    /// <summary>Fetches an alert rule by id, or <c>null</c> when not found.</summary>
     public async Task<AlertRuleEntity?> GetAlertRuleAsync(string ruleId, CancellationToken ct = default)
     {
         await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);
@@ -208,7 +194,6 @@ public sealed partial class DuckDbStore
         return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapAlertRule(reader) : null;
     }
 
-    /// <summary>Lists alert rules with optional project / enabled filters.</summary>
     public async Task<IReadOnlyList<AlertRuleEntity>> ListAlertRulesAsync(
         string? projectId, bool? enabled, int limit, CancellationToken ct = default)
     {
@@ -253,7 +238,6 @@ public sealed partial class DuckDbStore
     private static T ParseEnum<T>(string value) where T : struct, Enum =>
         Enum.TryParse<T>(value, true, out var parsed) ? parsed : default;
 
-    /// <summary>Acknowledges an alert firing. Returns the updated entity, or <c>null</c> when the firing does not exist.</summary>
     public async Task<AlertFiringEntity?> AcknowledgeAlertFiringAsync(
         string firingId, string acknowledgedBy, CancellationToken ct = default)
     {
@@ -272,7 +256,6 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0 ? await GetAlertFiringAsync(firingId, ct).ConfigureAwait(false) : null;
     }
 
-    /// <summary>Resolves an alert firing. Returns the updated entity, or <c>null</c> when the firing does not exist.</summary>
     public async Task<AlertFiringEntity?> ResolveAlertFiringAsync(string firingId, CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
@@ -289,7 +272,6 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0 ? await GetAlertFiringAsync(firingId, ct).ConfigureAwait(false) : null;
     }
 
-    /// <summary>Fetches an alert firing by id, or <c>null</c> when not found.</summary>
     public async Task<AlertFiringEntity?> GetAlertFiringAsync(string firingId, CancellationToken ct = default)
     {
         await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);

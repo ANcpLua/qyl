@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     REST endpoint for executing read-only SQL queries against the DuckDB store.
-///     Used by MCP agents and the dashboard for ad-hoc data exploration.
-/// </summary>
 internal static class QueryEndpoints
 {
     private const int DefaultLimit = 1000;
@@ -26,21 +22,18 @@ internal static class QueryEndpoints
         DuckDbStore store,
         CancellationToken ct)
     {
-        // Validate SQL is provided
         if (string.IsNullOrWhiteSpace(request.Sql))
             return TypedResults.BadRequest(new { error = "SQL query is required." });
 
         var trimmed = request.Sql.Trim();
         var upper = trimmed.ToUpperInvariant();
 
-        // Must start with SELECT or WITH (CTEs)
         if (!upper.StartsWithOrdinal("SELECT") &&
             !upper.StartsWithOrdinal("WITH"))
         {
             return TypedResults.BadRequest(new { error = "Only SELECT and WITH (CTE) queries are allowed." });
         }
 
-        // Scan for banned keywords
         var tokens = upper.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         foreach (var token in tokens)
         {
@@ -50,7 +43,6 @@ internal static class QueryEndpoints
             }
         }
 
-        // Apply safety LIMIT
         var sql = ApplySafetyLimit(trimmed, upper, request.Limit);
 
         try
@@ -61,14 +53,12 @@ internal static class QueryEndpoints
 
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
-            // Extract column names
             List<string> columns = new(reader.FieldCount);
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 columns.Add(reader.GetName(i));
             }
 
-            // Read rows into dictionaries
             List<Dictionary<string, object?>> rows = [];
             while (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
@@ -100,12 +90,9 @@ internal static class QueryEndpoints
             return $"{sql} LIMIT {limit}";
         }
 
-        // SQL already contains LIMIT — cap it to MaxLimit
-        // Find the last LIMIT token and its numeric argument
         var limitIndex = upper.LastIndexOf("LIMIT", StringComparison.Ordinal);
         var afterLimit = sql[(limitIndex + 5)..].Trim();
 
-        // Extract the numeric value after LIMIT
         var endIndex = 0;
         while (endIndex < afterLimit.Length && char.IsDigit(afterLimit[endIndex]))
             endIndex++;

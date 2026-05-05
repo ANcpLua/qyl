@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix.Workflow;
@@ -77,9 +76,6 @@ internal sealed partial class LoomAutofixRunner(
             return registered;
         }
 
-        // Honor the persisted FixRunRecord.StoppingPoint marker — set by callers that
-        // wanted HITL but couldn't reach the in-memory configStore (e.g. cross-restart
-        // pickup from the collector queue).
         return run.StoppingPoint is { Length: > 0 }
             ? AutofixWorkflowDefaults.Interactive
             : AutofixWorkflowDefaults.Autonomous;
@@ -152,8 +148,6 @@ internal sealed partial class LoomAutofixRunner(
         }
         finally
         {
-            // configStore cleanup runs in the outer RunAsync's finally so all early-exit
-            // paths (no LLM, missing run record) also drop the entry.
             registry.TryRemove(runId);
             assembly.TryRemove(runId);
         }
@@ -173,9 +167,6 @@ internal sealed partial class LoomAutofixRunner(
 
         var pendingTimeouts = new List<Task>();
 
-        // Wrap the entire streaming-run lifecycle in a try/finally so a startup
-        // failure (executor construction, model init, etc.) still completes the
-        // lifecycle channel and leaves SSE subscribers unblocked.
         StreamingRun? execution = null;
         try
         {
@@ -194,8 +185,6 @@ internal sealed partial class LoomAutofixRunner(
                         break;
 
                     case RequestInfoEvent ri:
-                        // Always publish HITL-gate firings to the lifecycle bus so the
-                        // dashboard can render the gate even when no auto-resolver is wired.
                         lifecycle.Publish(run.RunId, ToGateEnvelope(ri, run.RunId));
 
                         if (config.StoppingPointTimeout is { } timeout)
@@ -230,11 +219,6 @@ internal sealed partial class LoomAutofixRunner(
                 }
                 catch (OperationCanceledException)
                 {
-                    // Expected: the auto-resolve task races Task.Delay against the
-                    // dashboard's SendResponseAsync. When the response arrives first,
-                    // the delay is cancelled and surfaces here as OCE — this is the
-                    // happy path. We swallow rather than log because logging every
-                    // happy-path cancel would be noise.
                 }
             }
             if (execution is not null)
@@ -264,7 +248,6 @@ internal sealed partial class LoomAutofixRunner(
         }
         catch (OperationCanceledException)
         {
-            // Run completed (response arrived in time, or workflow ended) — nothing to auto-resolve.
         }
     }
 
@@ -337,9 +320,6 @@ internal sealed partial class LoomAutofixRunner(
 
 internal static class AutofixWorkflowDefaults
 {
-    /// Background-routed runs (TriagePipelineService auto-route, future
-    /// scheduled jobs). No HITL — there is no human at the other end. Tool-using
-    /// context ON because we want the best evidence the agent can gather.
     public static readonly AutofixWorkflowConfig Autonomous = new(
         HypothesisFanOut: 3,
         HypothesisTemperatureSpread: 0.4,
@@ -352,10 +332,6 @@ internal static class AutofixWorkflowDefaults
         ContextToolBudget: 6,
         StoppingPointTimeout: null);
 
-    /// User-initiated runs from the dashboard that explicitly opt into review.
-    /// HITL ON at both gates so the user can intervene; 5-minute timeout
-    /// auto-approves if the user closes the browser tab so the workflow doesn't
-    /// deadlock indefinitely.
     public static readonly AutofixWorkflowConfig Interactive = new(
         HypothesisFanOut: 3,
         HypothesisTemperatureSpread: 0.4,

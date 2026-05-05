@@ -1,250 +1,145 @@
-// =============================================================================
-// Qyl.Contracts - Copilot Integration Types
-// BCL-only shared types for GitHub Copilot workflows
-// Owner: Qyl.Contracts | Consumers: copilot, collector, dashboard
-// =============================================================================
 
 using System.Text.Json.Serialization;
 
 namespace Qyl.Contracts.Copilot;
 
-/// <summary>
-///     Execution mode for unified tri-track routing.
-/// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<TrackMode>))]
 public enum TrackMode
 {
-    /// <summary>Automatically classify from intent and context.</summary>
     Auto,
 
-    /// <summary>Creative generation and narrative-oriented outputs.</summary>
     Creative,
 
-    /// <summary>Reasoning-heavy investigation and verification workflows.</summary>
     Reasoning,
 
-    /// <summary>Enterprise policy/compliance and controlled-action workflows.</summary>
     Enterprise
 }
 
-/// <summary>
-///     Chat message role in a conversation.
-/// </summary>
 public enum ChatRole
 {
-    /// <summary>System message (instructions).</summary>
     System,
 
-    /// <summary>User message (prompt).</summary>
     User,
 
-    /// <summary>Assistant message (response).</summary>
     Assistant,
 
-    /// <summary>Tool/function call result.</summary>
     Tool
 }
 
-/// <summary>
-///     Type of streaming update during execution.
-/// </summary>
 public enum StreamUpdateKind
 {
-    /// <summary>Text content being streamed.</summary>
     Content,
 
-    /// <summary>Tool/function is being called.</summary>
     ToolCall,
 
-    /// <summary>Tool/function call completed.</summary>
     ToolResult,
 
-    /// <summary>Execution completed successfully.</summary>
     Completed,
 
-    /// <summary>Error occurred during execution.</summary>
     Error,
 
-    /// <summary>Progress update with percentage.</summary>
     Progress,
 
-    /// <summary>Metadata update (tokens, timing).</summary>
     Metadata
 }
 
-/// <summary>
-///     Streaming update during workflow or chat execution.
-/// </summary>
 public sealed record StreamUpdate
 {
-    /// <summary>Type of update.</summary>
     public required StreamUpdateKind Kind { get; init; }
 
-    /// <summary>Text content (for Content kind).</summary>
     public string? Content { get; init; }
 
-    /// <summary>Tool name (for ToolCall/ToolResult kinds).</summary>
     public string? ToolName { get; init; }
 
-    /// <summary>Tool call arguments JSON (for ToolCall kind).</summary>
     public string? ToolArguments { get; init; }
 
-    /// <summary>Tool call result (for ToolResult kind).</summary>
     public string? ToolResult { get; init; }
 
-    /// <summary>Error message (for Error kind).</summary>
     public string? Error { get; init; }
 
-    /// <summary>Progress percentage 0-100 (for Progress kind).</summary>
     public int? Progress { get; init; }
 
-    /// <summary>Input tokens consumed so far.</summary>
     public long? InputTokens { get; init; }
 
-    /// <summary>Output tokens generated so far.</summary>
     public long? OutputTokens { get; init; }
 
-    /// <summary>Timestamp of this update (UTC).</summary>
     public DateTimeOffset Timestamp { get; init; }
 }
 
-/// <summary>
-///     Chat message in a conversation.
-/// </summary>
 public sealed record ChatMessage
 {
-    /// <summary>Message role.</summary>
     public required ChatRole Role { get; init; }
 
-    /// <summary>Message content.</summary>
     public required string Content { get; init; }
 
-    /// <summary>Tool call ID (for tool messages).</summary>
     public string? ToolCallId { get; init; }
 
-    /// <summary>Tool name (for tool messages).</summary>
     public string? ToolName { get; init; }
 
-    /// <summary>When message was created.</summary>
     public DateTimeOffset? Timestamp { get; init; }
 }
 
-/// <summary>
-///     Context for a chat or workflow execution.
-/// </summary>
 public sealed record CopilotContext
 {
-    /// <summary>Session/conversation ID for multi-turn conversations.</summary>
     public string? SessionId { get; init; }
 
-    /// <summary>Previous messages in the conversation.</summary>
     public IReadOnlyList<ChatMessage>? History { get; init; }
 
-    /// <summary>Template parameters to substitute in workflow instructions.</summary>
     public IReadOnlyDictionary<string, string>? Parameters { get; init; }
 
-    /// <summary>Additional context data (e.g., telemetry data to analyze).</summary>
     public string? AdditionalContext { get; init; }
 
-    /// <summary>Maximum tokens to generate.</summary>
     public int? MaxTokens { get; init; }
 
-    /// <summary>Temperature for sampling (0.0-2.0).</summary>
     public double? Temperature { get; init; }
 }
 
-/// <summary>
-///     Copilot authentication status.
-/// </summary>
 public sealed record CopilotAuthStatus
 {
-    /// <summary>Whether authentication is valid.</summary>
     public required bool IsAuthenticated { get; init; }
 
-    /// <summary>Authentication method used.</summary>
     public string? AuthMethod { get; init; }
 
-    /// <summary>GitHub username if authenticated.</summary>
     public string? Username { get; init; }
 
-    /// <summary>Available Copilot capabilities.</summary>
     public IReadOnlyList<string>? Capabilities { get; init; }
 
-    /// <summary>Token expiration time (if known).</summary>
     public DateTimeOffset? ExpiresAt { get; init; }
 
-    /// <summary>Error message if authentication failed.</summary>
     public string? Error { get; init; }
 }
 
-/// <summary>
-///     Request to start a chat interaction.
-/// </summary>
 public sealed record ChatRequest
 {
-    /// <summary>The user's prompt.</summary>
     public required string Prompt { get; init; }
 
-    /// <summary>
-    ///     Track routing mode for this request.
-    ///     Defaults to <see cref="TrackMode.Auto" />.
-    /// </summary>
     public TrackMode Mode { get; init; } = TrackMode.Auto;
 
-    /// <summary>
-    ///     Optional system prompt override.
-    ///     When set, replaces the default system instructions for this request.
-    ///     Used by the MCP investigate tool to inject observability-specific instructions.
-    /// </summary>
     public string? SystemPrompt { get; init; }
 
-    /// <summary>Execution context.</summary>
     public CopilotContext? Context { get; init; }
 
-    /// <summary>
-    ///     BYOK (Bring Your Own Key) LLM configuration.
-    ///     When the server has no LLM configured, visitors can provide their own credentials per-request.
-    ///     Keys are never stored — used only for the duration of this request.
-    /// </summary>
     public ByokLlmConfig? Llm { get; init; }
 }
 
-/// <summary>
-///     Per-request LLM credentials for BYOK (Bring Your Own Key).
-///     Allows dashboard visitors to use their own API key without the server owner configuring one.
-/// </summary>
 public sealed record ByokLlmConfig
 {
-    /// <summary>Provider: "openai", "anthropic", "ollama", "openai-compatible".</summary>
     public required string Provider { get; init; }
 
-    /// <summary>API key (required for openai/anthropic).</summary>
     public string? ApiKey { get; init; }
 
-    /// <summary>Model override (defaults to provider default).</summary>
     public string? Model { get; init; }
 
-    /// <summary>Endpoint override (required for openai-compatible).</summary>
     public string? Endpoint { get; init; }
 }
 
-/// <summary>
-///     Request to execute a workflow.
-/// </summary>
 public sealed record WorkflowRunRequest
 {
-    /// <summary>Workflow name to execute.</summary>
     public required string WorkflowName { get; init; }
 
-    /// <summary>
-    ///     Track routing mode for this execution.
-    ///     Defaults to <see cref="TrackMode.Auto" />.
-    /// </summary>
     public TrackMode Mode { get; init; } = TrackMode.Auto;
 
-    /// <summary>Template parameters.</summary>
     public IReadOnlyDictionary<string, string>? Parameters { get; init; }
 
-    /// <summary>Execution context.</summary>
     public CopilotContext? Context { get; init; }
 }

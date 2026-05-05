@@ -7,21 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Analysis;
 
-/// <summary>
-///     MCP tool that suggests fixes for errors in a trace by analyzing error spans and proposing remediation steps.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 public sealed partial class SuggestFixTool(HttpClient client)
 {
-    /// <summary>
-    ///     Analyzes error spans in a trace and proposes context-aware remediation steps.
-    /// </summary>
-    /// <param name="traceId">The trace ID containing errors to analyze.</param>
-    /// <param name="errorMessage">Optional specific error message to focus on.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing fix suggestions for each error span.</returns>
     [McpServerTool(
         Name = "suggest_fix",
         Title = "Suggest Fix",

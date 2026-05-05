@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Threading.Channels;
 
@@ -18,11 +17,6 @@ internal readonly record struct AutofixLifecycleEnvelope(
     string PayloadJson,
     DateTimeOffset Timestamp);
 
-/// Broadcast bus — every subscriber for a given runId receives every event for
-/// that run. Each subscriber gets its own bounded-throughput channel; writes
-/// fan out across active subscribers. Subscribers that disconnect (cancel
-/// their token) are removed and their channels closed; <see cref="Complete" />
-/// closes any remaining subscribers and clears the per-run subscriber list.
 internal sealed class InMemoryAutofixLifecycleBus : IAutofixLifecycleBus
 {
     private readonly ConcurrentDictionary<string, RunSubscribers> _runs = new(StringComparer.Ordinal);
@@ -49,9 +43,6 @@ internal sealed class InMemoryAutofixLifecycleBus : IAutofixLifecycleBus
         finally
         {
             run.Unsubscribe(channel);
-            // Don't TryRemove the run here — Publish may still arrive after the last
-            // subscriber leaves and we want to deliver-and-drop those events.
-            // Complete() removes the run entry once the workflow finishes.
         }
     }
 

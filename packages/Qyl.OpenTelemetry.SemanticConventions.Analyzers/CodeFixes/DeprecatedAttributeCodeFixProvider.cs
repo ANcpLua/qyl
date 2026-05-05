@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using System.Composition;
@@ -11,40 +10,18 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.CodeFixes;
 
-/// <summary>
-///     Rewrites deprecated OTel semantic-convention string literals using the upstream replacement
-///     metadata. Fix strategy depends on the entry's <see cref="DeprecatedReplacementMode" />:
-///     <list type="bullet">
-///         <item>
-///             <term>Direct / FieldMapping / Integrate</term><description>1:1 literal replacement.</description>
-///         </item>
-///         <item>
-///             <term>Alternative</term><description>one code action per candidate replacement.</description>
-///         </item>
-///         <item>
-///             <term>Removed</term><description>removes the enclosing statement with a TODO note.</description>
-///         </item>
-///         <item>
-///             <term>Composite / Conditional / Contextual / Example / NoteOnly</term>
-///             <description>no auto-fix offered; requires manual review (diagnostic still fires).</description>
-///         </item>
-///     </list>
-/// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DeprecatedAttributeCodeFixProvider))]
 [Shared]
 public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
 {
-    /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; } =
         DeprecatedDiagnostics.AllRuleIds;
 
-    /// <inheritdoc />
     public override FixAllProvider GetFixAllProvider()
     {
         return WellKnownFixAllProviders.BatchFixer;
     }
 
-    /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
@@ -87,7 +64,6 @@ public sealed class DeprecatedAttributeCodeFixProvider : CodeFixProvider
             case DeprecatedReplacementMode.Contextual:
             case DeprecatedReplacementMode.Example:
             case DeprecatedReplacementMode.NoteOnly:
-                // No auto-fix — diagnostic still fires for manual review.
                 break;
         }
     }

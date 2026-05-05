@@ -3,11 +3,6 @@ using System.Net.Http.Headers;
 
 namespace Qyl.Collector.Identity;
 
-/// <summary>
-///     GitHub identity integration with runtime-updatable tokens (ADR-002).
-///     Supports: env var, PAT paste, GitHub Device Flow.
-///     Singleton service — uses Lock for thread-safe token updates.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class GitHubService(
     IHttpClientFactory httpClientFactory,
@@ -35,14 +30,8 @@ public sealed partial class GitHubService(
 
     public bool IsDeviceFlowAvailable => !string.IsNullOrWhiteSpace(_clientId);
 
-    /// <summary>
-    ///     Returns the current GitHub token (runtime or env var). Used by Qyl.Agents token bridge (ADR-002).
-    /// </summary>
     public string? GetToken() => GetEffectiveToken();
 
-    /// <summary>
-    ///     Loads persisted token from DuckDB on startup, falls back to env var.
-    /// </summary>
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         var record = await store.GetGitHubTokenAsync(ct).ConfigureAwait(false);
@@ -65,9 +54,6 @@ public sealed partial class GitHubService(
         }
     }
 
-    /// <summary>
-    ///     Validates a token against GitHub /user, persists to DuckDB, updates in-memory.
-    /// </summary>
     public async Task<GitHubUser?> SetTokenAsync(string token, string authMethod = "pat",
         CancellationToken ct = default)
     {
@@ -87,9 +73,6 @@ public sealed partial class GitHubService(
         return user;
     }
 
-    /// <summary>
-    ///     Clears persisted token, reverts to env var if present.
-    /// </summary>
     public async Task ClearTokenAsync(CancellationToken ct = default)
     {
         await store.DeleteGitHubTokenAsync(ct).ConfigureAwait(false);
@@ -144,11 +127,7 @@ public sealed partial class GitHubService(
             .ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // Pull Requests
-    // ==========================================================================
 
-    /// <summary>Gets the SHA of the HEAD commit on a branch.</summary>
     public async Task<string?> GetBranchShaAsync(string repoFullName, string branch, CancellationToken ct = default)
     {
         if (!IsConfigured) return null;
@@ -169,7 +148,6 @@ public sealed partial class GitHubService(
         return refObj?.Target?.Sha;
     }
 
-    /// <summary>Creates a new branch from a base SHA.</summary>
     public async Task<bool> CreateBranchAsync(
         string repoFullName, string branchName, string baseSha, CancellationToken ct = default)
     {
@@ -187,7 +165,6 @@ public sealed partial class GitHubService(
         return response.IsSuccessStatusCode;
     }
 
-    /// <summary>Gets a file's content and current SHA from a repo.</summary>
     public async Task<GitHubFileContent?> GetFileContentAsync(
         string repoFullName, string filePath, string branch, CancellationToken ct = default)
     {
@@ -212,7 +189,6 @@ public sealed partial class GitHubService(
             .ConfigureAwait(false);
     }
 
-    /// <summary>Creates or updates a file in a repo, committing the change to <paramref name="branch" />.</summary>
     public async Task<bool> CreateOrUpdateFileAsync(
         string repoFullName, string filePath, string contentBase64,
         string commitMessage, string branch, string? existingSha,
@@ -233,7 +209,6 @@ public sealed partial class GitHubService(
         return response.IsSuccessStatusCode;
     }
 
-    /// <summary>Opens a pull request and returns the PR URL, or null on failure.</summary>
     public async Task<string?> CreatePullRequestAsync(
         string repoFullName, string title, string body,
         string headBranch, string baseBranch,
@@ -260,9 +235,6 @@ public sealed partial class GitHubService(
         return pr?.HtmlUrl;
     }
 
-    // ==========================================================================
-    // Device Flow
-    // ==========================================================================
 
     public async Task<DeviceCodeResponse?> StartDeviceFlowAsync(CancellationToken ct = default)
     {
@@ -335,16 +307,12 @@ public sealed partial class GitHubService(
         if (string.IsNullOrEmpty(tokenResponse.AccessToken))
             return new DevicePollResponse("error", null, "No access token in response");
 
-        // Token received — validate and persist
         var user = await SetTokenAsync(tokenResponse.AccessToken, "device_flow", ct).ConfigureAwait(false);
         return user is not null
             ? new DevicePollResponse("complete", user, null)
             : new DevicePollResponse("error", null, "Token validation failed");
     }
 
-    // ==========================================================================
-    // Private
-    // ==========================================================================
 
     private string? GetEffectiveToken()
     {
@@ -389,9 +357,6 @@ public sealed partial class GitHubService(
         return client;
     }
 
-    // ==========================================================================
-    // LoggerMessage -- structured, zero-allocation logging
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "GitHub API call failed: {Endpoint} returned {StatusCode}")]
@@ -409,9 +374,6 @@ public sealed partial class GitHubService(
     private partial void LogTokenCleared();
 }
 
-// =============================================================================
-// GitHub DTOs
-// =============================================================================
 
 public sealed record GitHubRepo(
     [property: JsonPropertyName("name")] string Name,
@@ -473,7 +435,6 @@ public sealed record DeviceAvailableResponse(
     [property: JsonPropertyName("available")]
     bool Available);
 
-// Pull-request DTOs ──────────────────────────────────────────────────────────
 
 public sealed record GitHubRefObject(
     [property: JsonPropertyName("sha")] string Sha);
@@ -512,9 +473,6 @@ public sealed record GitHubPrResponse(
     [property: JsonPropertyName("html_url")]
     string HtmlUrl);
 
-// =============================================================================
-// Source-generated JSON context for GitHub types
-// =============================================================================
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

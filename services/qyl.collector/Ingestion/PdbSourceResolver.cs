@@ -31,7 +31,6 @@ public sealed partial class PdbSourceResolver
         if (string.IsNullOrWhiteSpace(methodName))
             return null;
 
-        // Best-effort fallback: use current stack symbol info if available.
         var stackTrace = new StackTrace(true);
         foreach (var frame in stackTrace.GetFrames())
         {

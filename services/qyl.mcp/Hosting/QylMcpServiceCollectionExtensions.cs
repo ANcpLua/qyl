@@ -37,10 +37,6 @@ internal static partial class QylMcpServiceCollectionExtensions
     public static void ConfigureLogging(ILoggingBuilder logging, bool stdioTransport) =>
         logging.AddConsole(options =>
         {
-            // Stdio transport: stdout carries the MCP JSON-RPC protocol, so every log
-            // must land on stderr or we corrupt the frame. HTTP transport: keep the
-            // default (Errors+Critical on stderr, rest on stdout) so container hosts
-            // like Railway don't tag every "info: ..." line as error severity.
             if (stdioTransport)
             {
                 options.LogToStandardErrorThreshold = LogLevel.Trace;
@@ -59,9 +55,6 @@ internal static partial class QylMcpServiceCollectionExtensions
         services.AddSingleton(scope);
         services.AddSingleton<CapabilityTools>();
 
-        // qyl three-builder pattern — chat-client → agents builder. Every AIAgent
-        // constructed in qyl.mcp tools flows through these singletons so the
-        // .AsBuilder().UseQylAgentTelemetry().Build() wrap is centralized.
         services.AddSingleton<IQylMcpChatClientBuilder, QylMcpChatClientBuilder>();
         services.AddSingleton<IQylMcpAgentsBuilder, QylMcpAgentsBuilder>();
 
@@ -78,14 +71,12 @@ internal static partial class QylMcpServiceCollectionExtensions
             services.AddSingleton<JetBrainsDiscovery>();
             services.AddSingleton<RiderMcpProxy>();
 
-            // LSP runtime — singletons for pure lookup/state services.
             services.AddSingleton<LspServerDefinitions>();
             services.AddSingleton<LspLanguageMappings>();
             services.AddSingleton<LspServerResolution>();
             services.AddSingleton<LspClientWrapper>();
             services.AddSingleton<WorkspaceEditApplier>();
 
-            // LSP process lifecycle — hosted services tear down LSP servers on host shutdown.
             services.AddHostedService<LspManagerProcessCleanup>();
             services.AddHostedService<LspManagerTempDirectoryCleanup>();
         }
@@ -120,12 +111,6 @@ internal static partial class QylMcpServiceCollectionExtensions
 
         var authority = hostOptions.KeycloakAuthority!;
 
-        // ── Fail-fast guard (Spec 2) ────────────────────────────────────────
-        // Without an explicit audience, JwtBearer validates only the issuer — so
-        // any token signed by the realm (including a low-privilege client's
-        // service-account token or a user-facing SPA token for an unrelated
-        // application) would be accepted. Refuse to start rather than silently
-        // run with an "any-token-from-realm" policy.
         if (string.IsNullOrWhiteSpace(hostOptions.KeycloakAudience))
         {
             throw new InvalidOperationException(
@@ -208,7 +193,6 @@ internal static partial class QylMcpServiceCollectionExtensions
             });
     }
 
-    // ── Auth-path structured logging (EventIds 4001-4099) ───────────────────
 
     [LoggerMessage(EventId = 4001, Level = LogLevel.Information,
         Message = "OAuth protected-resource metadata discovery hit: {Path}")]

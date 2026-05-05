@@ -2,15 +2,8 @@ using Qyl.Collector.Autofix;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with deployment
-///     query operations for the regression detection pipeline.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    /// <summary>
-    ///     Gets recent deployments ordered by start_time descending.
-    /// </summary>
     public async Task<IReadOnlyList<DeploymentRecord>> GetRecentDeploymentsAsync(
         int limit, CancellationToken ct = default)
     {
@@ -38,10 +31,6 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    /// <summary>
-    ///     Gets deployments that started after the specified time.
-    ///     Used by the regression detection service to check for new deployments since the last poll.
-    /// </summary>
     public async Task<IReadOnlyList<DeploymentRecord>> GetDeploymentsAfterAsync(
         DateTime since, CancellationToken ct = default)
     {

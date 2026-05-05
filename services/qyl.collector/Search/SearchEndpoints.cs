@@ -1,13 +1,7 @@
 namespace Qyl.Collector.Search;
 
-/// <summary>
-///     REST endpoints for unified cross-entity search.
-/// </summary>
 public static class SearchEndpoints
 {
-    /// <summary>
-    ///     Maps search endpoints: POST /api/v1/search/query and GET /api/v1/search/suggestions.
-    /// </summary>
     [QylMapEndpoints]
     public static void MapSearchEndpoints(this WebApplication app)
     {
@@ -35,9 +29,6 @@ public static class SearchEndpoints
     }
 }
 
-/// <summary>
-///     Unified search query across all entity types.
-/// </summary>
 public sealed record SearchQuery(
     string Text,
     string[]? EntityTypes = null,
@@ -45,9 +36,6 @@ public sealed record SearchQuery(
     DateTime? EndTime = null,
     int Limit = 20);
 
-/// <summary>
-///     A single search result from any entity type.
-/// </summary>
 public sealed record SearchResult(
     string EntityType,
     string EntityId,
@@ -56,9 +44,6 @@ public sealed record SearchResult(
     DateTime Timestamp,
     double Score);
 
-/// <summary>
-///     Autocomplete suggestion from recent data.
-/// </summary>
 public sealed record SearchSuggestion(
     string Text,
     string EntityType,

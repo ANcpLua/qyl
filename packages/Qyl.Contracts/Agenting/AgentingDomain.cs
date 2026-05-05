@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Canonical lifecycle phases for a run under the agent/control and governance model.
-/// </summary>
 public enum AgentRunPhase
 {
     Intake,
@@ -19,9 +16,6 @@ public enum AgentRunPhase
     Closed
 }
 
-/// <summary>
-///     High-level run status emitted by automation and control systems.
-/// </summary>
 public enum AgentRunStatus
 {
     Pending,
@@ -34,9 +28,6 @@ public enum AgentRunStatus
     Escalated
 }
 
-/// <summary>
-///     Artifact kinds persisted or derived during an agentic run.
-/// </summary>
 public enum AgentRunArtifactKind
 {
     Context,
@@ -52,9 +43,6 @@ public enum AgentRunArtifactKind
     ApprovalRecord
 }
 
-/// <summary>
-///     Capability scope for actions taken by an agent run.
-/// </summary>
 public enum AgentCapabilityScope
 {
     Read,
@@ -63,9 +51,6 @@ public enum AgentCapabilityScope
     Admin
 }
 
-/// <summary>
-///     Approval decision for a gated run transition.
-/// </summary>
 public enum AgentRunApprovalStatus
 {
     Pending,
@@ -75,9 +60,6 @@ public enum AgentRunApprovalStatus
     Withdrawn
 }
 
-/// <summary>
-///     Governance decision after policy evaluation.
-/// </summary>
 public enum AgentRunPolicyDecision
 {
     Allowed,
@@ -87,9 +69,6 @@ public enum AgentRunPolicyDecision
     Deferred
 }
 
-/// <summary>
-///     Confidence/validation outcome for a run checkpoint.
-/// </summary>
 public enum ValidationOutcome
 {
     Unknown,
@@ -99,9 +78,6 @@ public enum ValidationOutcome
     NotApplicable
 }
 
-/// <summary>
-///     Capability declaration used by policy/ledger to gate tool and workflow behavior.
-/// </summary>
 public sealed record AgentCapabilityDescriptor
 {
     public required string CapabilityId { get; init; }

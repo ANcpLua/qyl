@@ -1,37 +1,15 @@
-// =============================================================================
-// qyl OTLP Ingestion - HTTP Protobuf Parser
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
-// =============================================================================
 
 using Qyl.Collector.Grpc;
 
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Parses OTLP ExportTraceServiceRequest from HTTP protobuf payloads.
-///     Used by: POST /v1/traces with Content-Type: application/x-protobuf
-///     Reuses the same proto types as the gRPC endpoint for consistency.
-/// </summary>
 public static class OtlpProtobufParser
 {
-    /// <summary>
-    ///     Content type for OTLP HTTP protobuf format.
-    /// </summary>
     public const string ContentType = "application/x-protobuf";
 
-    /// <summary>
-    ///     Parses an ExportTraceServiceRequest from a protobuf-encoded byte array.
-    /// </summary>
-    /// <param name="data">The protobuf-encoded request body.</param>
-    /// <returns>The parsed ExportTraceServiceRequest.</returns>
     public static ExportTraceServiceRequest Parse(ReadOnlyMemory<byte> data) =>
         Parse(new ReadOnlySequence<byte>(data));
 
-    /// <summary>
-    ///     Parses an ExportTraceServiceRequest from a protobuf-encoded ReadOnlySequence.
-    /// </summary>
-    /// <param name="data">The protobuf-encoded request body.</param>
-    /// <returns>The parsed ExportTraceServiceRequest.</returns>
     public static ExportTraceServiceRequest Parse(ReadOnlySequence<byte> data)
     {
         var request = new ExportTraceServiceRequest();
@@ -39,32 +17,18 @@ public static class OtlpProtobufParser
         return request;
     }
 
-    /// <summary>
-    ///     Reads the request body and parses as OTLP protobuf.
-    /// </summary>
-    /// <param name="request">The HTTP request.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The parsed ExportTraceServiceRequest.</returns>
     public static async Task<ExportTraceServiceRequest> ParseFromRequestAsync(
         HttpRequest request,
         CancellationToken ct = default)
     {
-        // Enable request body buffering for potential re-reads
         request.EnableBuffering();
 
-        // Read the entire body into memory
         await using var ms = new MemoryStream();
         await request.Body.CopyToAsync(ms, ct).ConfigureAwait(false);
 
         return Parse(ms.GetBuffer().AsMemory(0, (int)ms.Length));
     }
 
-    /// <summary>
-    ///     Checks if the request content type indicates protobuf format.
-    /// </summary>
-    /// <param name="contentType">The Content-Type header value.</param>
-    /// <returns>True if the content type indicates protobuf.</returns>
-    // Handle content types like "application/x-protobuf" or "application/x-protobuf; charset=utf-8"
     public static bool IsProtobufContentType(string? contentType) =>
         !string.IsNullOrEmpty(contentType) && contentType.StartsWithIgnoreCase(ContentType);
 }

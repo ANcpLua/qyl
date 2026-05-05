@@ -1,8 +1,3 @@
-// =============================================================================
-// qyl Build System - Coverage & Quality
-// =============================================================================
-// ICoverage, exclusion rules, coverage summary converter
-// =============================================================================
 
 using System;
 using System.Collections.Generic;
@@ -26,9 +21,6 @@ using Serilog;
 
 namespace Qyl.Build;
 
-// ════════════════════════════════════════════════════════════════════════════════
-// ICoverage - Code Coverage
-// ════════════════════════════════════════════════════════════════════════════════
 
 interface ICoverage : IQylTest
 {
@@ -189,9 +181,6 @@ interface ICoverage : IQylTest
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// Coverage Patterns - Exclusion rules and utilities
-// ════════════════════════════════════════════════════════════════════════════════
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 sealed record ExclusionRule(
@@ -296,9 +285,6 @@ static class StateMachinePatterns
             : "CompilerGeneratedStateMachine";
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// Coverage Summary Converter
-// ════════════════════════════════════════════════════════════════════════════════
 
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 static class CoverageSummaryConverter
@@ -560,7 +546,6 @@ static class CoverageSummaryConverter
 
     sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
 
-    // ─── DTOs (properties accessed by JsonSerializer via reflection) ─────────
     sealed class CoverageFile
     {
         [JsonIgnore] public readonly Dictionary<int, CoverageBranch> BranchDict = [];

@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Traces;
 
-/// <summary>
-///     Retrieves the full span tree for a trace, returning all spans with timing, status, and attributes.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetTraceDetailsTool(HttpClient client)

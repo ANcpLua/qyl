@@ -15,11 +15,9 @@ internal static class ObserveEndpoints
         return app;
     }
 
-    // GET /api/v1/observe/catalog — domain discovery and attribute manifests
     private static Ok<CatalogResponse> GetCatalog(SubscriptionManager manager)
         => TypedResults.Ok(ObserveCatalog.Build(manager));
 
-    // GET /api/v1/observe — list active subscriptions
     private static IResult ListSubscriptions(SubscriptionManager manager)
     {
         var items = manager.GetAll()
@@ -31,7 +29,6 @@ internal static class ObserveEndpoints
         return Results.Ok(new { subscriptions = items });
     }
 
-    // POST /api/v1/observe — activate a new subscription
     private static IResult Subscribe(SubscribeRequest req, SubscriptionManager manager)
     {
         if (string.IsNullOrWhiteSpace(req.Filter))
@@ -56,7 +53,6 @@ internal static class ObserveEndpoints
             SchemaVersionNegotiator.NegotiationResult.Accept a =>
                 CreateSubscription(req, manager, a),
 
-            // Transform: not yet implemented — treat as Accept
             SchemaVersionNegotiator.NegotiationResult.Transform t =>
                 CreateSubscription(req, manager,
                     new SchemaVersionNegotiator.NegotiationResult.Accept(
@@ -76,7 +72,6 @@ internal static class ObserveEndpoints
             subscription.Id, subscription.Filter, subscription.Endpoint,
             subscription.CreatedAt, subscription.ContractHash, subscription.SchemaVersion);
 
-        // Surface version delta as a warning field if versions differ
         if (negotiation.RequestedVersion is not null &&
             !string.Equals(negotiation.RequestedVersion, negotiation.DeployedVersion,
                 StringComparison.OrdinalIgnoreCase))
@@ -94,7 +89,6 @@ internal static class ObserveEndpoints
         return TypedResults.Ok(dto);
     }
 
-    // DELETE /api/v1/observe/{id} — tear down a subscription
     private static IResult Unsubscribe(string id, SubscriptionManager manager) =>
         manager.Unsubscribe(id)
             ? TypedResults.NoContent()

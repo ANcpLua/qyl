@@ -7,11 +7,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tool that performs AI-powered multi-step root cause analysis.
-///     Creates an embedded agent with access to error, anomaly, storage, and log tools
-///     to autonomously investigate error issues.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 internal sealed partial class RcaTools(IServiceProvider services, IQylMcpAgentsBuilder agents)
@@ -41,7 +36,6 @@ internal sealed partial class RcaTools(IServiceProvider services, IQylMcpAgentsB
         var lineage = lineageResult.Lineage!;
         var investigation = InvestigationGuard.FromEnvironment(50);
 
-        // Build curated tool set -- only data-retrieval tools, not LLM tools
         var guardedTools = DiscoverToolsFrom(
                 typeof(ErrorTools),
                 typeof(AnomalyTools),

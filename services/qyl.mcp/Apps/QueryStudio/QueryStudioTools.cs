@@ -6,11 +6,6 @@ using qyl.mcp.Tools;
 
 namespace qyl.mcp.Apps.QueryStudio;
 
-/// <summary>
-///     MCP tools for the Query Studio ext-app.
-///     Provides DuckDB SQL execution, schema introspection, and the UI entry point.
-///     All data access goes through the collector's <c>/api/v1/query</c> endpoint.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Apps)]
 internal sealed partial class QueryStudioTools(HttpClient client)
@@ -70,7 +65,6 @@ internal sealed partial class QueryStudioTools(HttpClient client)
                     QueryStudioJsonContext.Default.QueryStudioErrorResult);
             }
 
-            // Build typed columns from first row, flatten rows to positional arrays
             var firstRow = raw.Rows.Count > 0 ? raw.Rows[0] : null;
             var columns = raw.Columns
                 .Select(name => new QueryStudioColumn(name,

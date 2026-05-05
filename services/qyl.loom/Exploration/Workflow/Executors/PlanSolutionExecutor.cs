@@ -1,13 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows;
 
 namespace Qyl.Loom.Exploration.Workflow.Executors;
 
-/// <summary>
-///     Step 3: runs the <see cref="ExplorationStrategist" /> to turn the diagnosis into a minimal
-///     implementation plan, persists it on the session, and emits the structured JSON as a content update.
-/// </summary>
 internal sealed class PlanSolutionExecutor(
     ExplorationStrategist strategist,
     ExplorationSessionStore sessionStore)

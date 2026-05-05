@@ -7,21 +7,10 @@ using Qyl.Contracts.Primitives;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for querying spans.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SpanQueryTools(HttpClient client)
 {
-    /// <summary>Searches spans with flexible filtering by session, service, operation, and status.</summary>
-    /// <param name="sessionId">Filter by session ID.</param>
-    /// <param name="serviceName">Filter by service name.</param>
-    /// <param name="operation">Filter by operation name with partial matching.</param>
-    /// <param name="status">Filter by status: 'ok' or 'error'.</param>
-    /// <param name="hours">Time window in hours.</param>
-    /// <param name="limit">Maximum number of spans to return.</param>
-    /// <returns>A list of matching spans with timing and attributes.</returns>
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.search_spans", Title = "Search Spans",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -49,7 +38,6 @@ public sealed partial class SpanQueryTools(HttpClient client)
         if (spans is null || spans.Count is 0)
             return "No spans found matching the criteria.";
 
-        // Apply client-side filters
         if (!string.IsNullOrEmpty(serviceName))
         {
             spans =

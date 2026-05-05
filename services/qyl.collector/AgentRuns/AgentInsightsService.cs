@@ -1,7 +1,3 @@
-// =============================================================================
-// AgentInsightsService - Agent observability analytics queries
-// 6 overview panels + trace list + model/tool breakdowns
-// =============================================================================
 
 using Qyl.Contracts.Primitives;
 
@@ -22,9 +18,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         "1 week",
         "1 month"
     };
-    // =========================================================================
-    // Time bucketing
-    // =========================================================================
 
     private static string AutoBucket(long fromUnixMs, long toUnixMs)
     {
@@ -44,12 +37,8 @@ public sealed class AgentInsightsService(DuckDbStore store)
             ? AutoBucket(fromUnixMs, toUnixMs)
             : bucket;
 
-    /// <summary>Converts JS millisecond timestamp to nanosecond UBIGINT for DuckDB.</summary>
     private static decimal MsToNano(long ms) => (decimal)ms * 1_000_000;
 
-    // =========================================================================
-    // 1. Traffic panel — runs per bucket + error rate
-    // =========================================================================
 
     public async Task<TrafficResult> GetTrafficAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -88,9 +77,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new TrafficResult { Buckets = buckets };
     }
 
-    // =========================================================================
-    // 2. Duration panel — avg + p95 per bucket
-    // =========================================================================
 
     public async Task<DurationResult> GetDurationAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -127,9 +113,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new DurationResult { Buckets = buckets };
     }
 
-    // =========================================================================
-    // 3. Issues panel — top errors
-    // =========================================================================
 
     public async Task<IssuesResult> GetIssuesAsync(
         long fromMs, long toMs, int limit = 10, CancellationToken ct = default)
@@ -171,9 +154,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new IssuesResult { Issues = issues };
     }
 
-    // =========================================================================
-    // 4. LLM Calls panel — calls per bucket by model
-    // =========================================================================
 
     public async Task<ModelTimeseriesResult> GetLlmCallsAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -197,9 +177,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return await ReadModelTimeseries(cmd, ct).ConfigureAwait(false);
     }
 
-    // =========================================================================
-    // 5. Tokens Used panel — tokens per bucket by model
-    // =========================================================================
 
     public async Task<ModelTimeseriesResult> GetTokensAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -224,9 +201,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return await ReadModelTimeseries(cmd, ct).ConfigureAwait(false);
     }
 
-    // =========================================================================
-    // 6. Tool Calls panel — calls per bucket by tool
-    // =========================================================================
 
     public async Task<ToolTimeseriesResult> GetToolCallsTimeseriesAsync(
         long fromMs, long toMs, string? bucket = null, int topN = 8, CancellationToken ct = default)
@@ -235,7 +209,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        // Get top N tools first
         await using var topCmd = lease.Connection.CreateCommand();
         topCmd.CommandText = """
                              SELECT gen_ai_tool_name, COUNT(*) AS cnt
@@ -263,7 +236,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
             }
         }
 
-        // Time series for top tools (bucket others into "Other")
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
                                                           + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
@@ -306,9 +278,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new ToolTimeseriesResult { Buckets = buckets, Legend = legend };
     }
 
-    // =========================================================================
-    // 7. Trace list — aggregated per trace
-    // =========================================================================
 
     public async Task<TraceListResult> GetAgentTracesAsync(
         long fromMs, long toMs, int limit = 50, int offset = 0,
@@ -379,7 +348,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
             });
         }
 
-        // Total count
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = """
                                SELECT COUNT(DISTINCT trace_id)
@@ -395,9 +363,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new TraceListResult { Items = items, Total = total };
     }
 
-    // =========================================================================
-    // 8. Models tab — model breakdown
-    // =========================================================================
 
     public async Task<ModelsResult> GetModelsAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -406,7 +371,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        // Aggregates
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
@@ -445,7 +409,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
             }
         }
 
-        // Timeseries
         await using var tsCmd = lease.Connection.CreateCommand();
         tsCmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
                                                             + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
@@ -462,9 +425,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new ModelsResult { Models = models, Timeseries = timeseries.Buckets, Legend = timeseries.Legend };
     }
 
-    // =========================================================================
-    // 9. Tools tab — tool breakdown
-    // =========================================================================
 
     public async Task<ToolsResult> GetToolsAsync(
         long fromMs, long toMs, string? bucket = null, CancellationToken ct = default)
@@ -473,7 +433,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        // Aggregates
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
@@ -506,7 +465,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
             }
         }
 
-        // Timeseries
         await using var tsCmd = lease.Connection.CreateCommand();
         tsCmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
                                                             + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
@@ -553,9 +511,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return new ToolsResult { Tools = tools, Timeseries = tsBuckets, Legend = legend };
     }
 
-    // =========================================================================
-    // 10. Trace spans — for abbreviated trace view
-    // =========================================================================
 
     public async Task<IReadOnlyList<TraceSpan>> GetTraceSpansAsync(
         string traceId, CancellationToken ct = default)
@@ -607,9 +562,6 @@ public sealed class AgentInsightsService(DuckDbStore store)
         return spans;
     }
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     private static async Task<ModelTimeseriesResult> ReadModelTimeseries(
         DuckDBCommand cmd, CancellationToken ct)
@@ -666,11 +618,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
     }
 }
 
-// =============================================================================
-// DTOs
-// =============================================================================
 
-// --- Traffic ---
 public sealed record TrafficResult
 {
     public IReadOnlyList<TrafficBucket> Buckets { get; init; } = [];
@@ -684,7 +632,6 @@ public sealed record TrafficBucket
     public double ErrorRate { get; init; }
 }
 
-// --- Duration ---
 public sealed record DurationResult
 {
     public IReadOnlyList<DurationBucket> Buckets { get; init; } = [];
@@ -697,7 +644,6 @@ public sealed record DurationBucket
     public double P95Ms { get; init; }
 }
 
-// --- Issues ---
 public sealed record IssuesResult
 {
     public IReadOnlyList<IssueItem> Issues { get; init; } = [];
@@ -710,7 +656,6 @@ public sealed record IssueItem
     public IReadOnlyList<string> SampleTraceIds { get; init; } = [];
 }
 
-// --- Model Timeseries ---
 public sealed record ModelTimeseriesResult
 {
     public IReadOnlyList<ModelTimeBucket> Buckets { get; init; } = [];
@@ -723,7 +668,6 @@ public sealed record ModelTimeBucket
     public Dictionary<string, long> Models { get; init; } = [];
 }
 
-// --- Tool Timeseries ---
 public sealed record ToolTimeseriesResult
 {
     public IReadOnlyList<ToolTimeBucket> Buckets { get; init; } = [];
@@ -742,7 +686,6 @@ public sealed record LegendItem
     public long Total { get; init; }
 }
 
-// --- Trace List ---
 public sealed record TraceListResult
 {
     public IReadOnlyList<AgentTraceRow> Items { get; init; } = [];
@@ -763,7 +706,6 @@ public sealed record AgentTraceRow
     public string? AgentName { get; init; }
 }
 
-// --- Models Tab ---
 public sealed record ModelsResult
 {
     public IReadOnlyList<ModelRow> Models { get; init; } = [];
@@ -782,7 +724,6 @@ public sealed record ModelRow
     public double ErrorRate { get; init; }
 }
 
-// --- Tools Tab ---
 public sealed record ToolsResult
 {
     public IReadOnlyList<ToolRow> Tools { get; init; } = [];
@@ -798,7 +739,6 @@ public sealed record ToolRow
     public double ErrorRate { get; init; }
 }
 
-// --- Trace Spans ---
 public sealed record TraceSpan
 {
     public required string SpanId { get; init; }

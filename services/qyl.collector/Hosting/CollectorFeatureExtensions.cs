@@ -8,9 +8,6 @@ public static class CollectorFeatureExtensions
         this IServiceCollection services,
         IConfiguration config)
     {
-        // All 14 feature services (Identity, Provisioning, Analytics, Errors, Search)
-        // auto-register via [QylService(Singleton)] through QylGeneratedRegistry.
-        // Only parameterised wiring (HttpClient, dashboard generator) stays here.
         services.AddHttpClient("GitHub", client =>
         {
             client.BaseAddress = new Uri(config.GetValue("GitHub:BaseAddress", "https://api.github.com/"));

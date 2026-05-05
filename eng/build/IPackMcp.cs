@@ -1,10 +1,3 @@
-// =============================================================================
-// qyl Build System - qyl.mcp NuGet packaging
-// =============================================================================
-// IPackMcp: pack services/qyl.mcp as a dotnet-tool .nupkg into Artifacts/packages/
-// and (in CI only) push to nuget.org. First-class release path is
-// .github/workflows/release-mcp.yml triggered by 'mcp-v*' tag push.
-// =============================================================================
 
 using Nuke.Common;
 using Nuke.Common.IO;
@@ -13,9 +6,6 @@ using Nuke.Components;
 
 namespace Qyl.Build;
 
-// ════════════════════════════════════════════════════════════════════════════════
-// IPackMcp - Pack & push Qyl.Mcp dotnet tool
-// ════════════════════════════════════════════════════════════════════════════════
 
 interface IPackMcp : IHazSourcePaths, IHazConfiguration
 {
@@ -30,9 +20,6 @@ interface IPackMcp : IHazSourcePaths, IHazConfiguration
         .Executes(() =>
         {
             NupkgOutputDirectory.CreateDirectory();
-            // IsPacking=true suppresses <RuntimeIdentifiers> and PublishSelfContained
-            // in qyl.mcp.csproj so pack produces a single portable tool package
-            // instead of 6 self-contained per-RID packages (~54 MB each).
             DotNetTasks.DotNetPack(s => s
                 .SetProject<DotNetPackSettings>(McpProject)
                 .SetConfiguration(Configuration)

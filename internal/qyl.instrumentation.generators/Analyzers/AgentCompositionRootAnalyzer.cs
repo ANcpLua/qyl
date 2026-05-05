@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,31 +6,6 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
-/// <summary>
-///     QYL0135 — Warns when an <c>AIAgent</c> is invoked from a construction that lacks
-///     composition-root agent-layer telemetry. Detects both <c>new *Agent(...)</c> direct
-///     construction and <c>xxx.AsAIAgent(...)</c> extension-call results assigned to a local,
-///     when neither is wrapped by an <c>AIAgentBuilder</c> chain that calls one of:
-///     <c>UseQylAgentTelemetry</c>, <c>UseOpenTelemetry</c>, or <c>UseLogging</c>.
-///     Receivers produced by factories or DI are trusted (the factory is the composition root).
-/// </summary>
-/// <remarks>
-///     <para>
-///         Detection is fully symbol-based. Every method the analyzer cares about — the
-///         invocation entry points (<c>RunAsync</c> et al.), <c>AIAgentBuilder.Build</c>, the
-///         <c>AsAIAgent</c> extension family, and the three telemetry extensions — is resolved
-///         once at compilation start via <see cref="Compilation.GetTypeByMetadataName" /> and
-///         compared through <see cref="SymbolEqualityComparer" />. String-name matches are avoided
-///         throughout so renames, namespace collisions, and unrelated methods with the same name
-///         cannot false-fire or silently disable the diagnostic.
-///     </para>
-///     <para>
-///         Method-name resolution is all-or-nothing — if any entry-point name fails to resolve
-///         across every agent type in the compilation, the analyzer bails entirely rather than
-///         degrade to partial coverage. Symbol-valued state is captured via closure locals
-///         (not stored in a named container type) to comply with ANcpLua AL0119.
-///     </para>
-/// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
 {
@@ -90,9 +64,6 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
             if (agentBuilder is null)
                 return;
 
-            // All-or-nothing method-name resolution: if any expected entry point fails to
-            // resolve across every agent type, bail entirely. A partial green state from a
-            // silently-shrunk set is worse than no analyzer.
             var targetMethodsBuilder = ImmutableArray.CreateBuilder<IMethodSymbol>();
             foreach (var name in s_targetMethodNames)
             {
@@ -121,9 +92,6 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
                     .AddRange(ResolveStaticMethods(compilation, QylTelemetryExtensionsMetadataName,
                         "UseQylAgentTelemetry"));
 
-            // Symbol-valued state is held in this closure's capture frame (compiler-generated,
-            // not a qyl-authored named type) to satisfy AL0119. The analyzer runs once per
-            // compilation, so the closure lifetime matches the analysis lifetime.
             start.RegisterOperationAction(
                 ctx => Analyze(ctx, agents, targetMethods, buildMethods, asAIAgentMethods, telemetryMethods),
                 OperationKind.Invocation);
@@ -203,15 +171,6 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         return IsBareAgentConstruction(initOp, buildMethods, asAIAgentMethods, telemetryMethods);
     }
 
-    // Flags a construction as lacking agent-layer telemetry when:
-    //   1) `new *Agent(...)` with no subsequent wrap — caller assigned the raw instance.
-    //   2) `xxx.AsAIAgent(...)` invocation resolving (by symbol) to one of the MAF-published
-    //      extensions, with no subsequent `.AsBuilder()...Build()` chain.
-    //   3) `.AsBuilder().X().Y().Build()` chain where the terminal `Build` resolves to
-    //      `AIAgentBuilder.Build` and none of the intermediate invocations resolves to a
-    //      captured telemetry-extension method.
-    // Factory and DI resolutions (method calls returning an AIAgent that are NOT one of the
-    // recognised construction shapes) remain trusted.
     private static bool IsBareAgentConstruction(
         IOperation op,
         ImmutableArray<IMethodSymbol> buildMethods,
@@ -245,8 +204,6 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    // Walks an `AIAgentBuilder` fluent chain backwards from its terminal invocation, looking
-    // for any symbol in the captured telemetry-method set. Returns true as soon as one matches.
     private static bool ChainHasAgentTelemetry(IOperation? node, ImmutableArray<IMethodSymbol> telemetryMethods)
     {
         for (var current = node; current is IInvocationOperation invocation; current = invocation.Instance)

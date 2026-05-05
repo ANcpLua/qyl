@@ -6,12 +6,6 @@ internal enum QylCapabilityRole
     FollowUp
 }
 
-/// <summary>
-///     Tags an MCP tool method as participating in a capability. The capability id must match
-///     a <see cref="QylCapabilityDefinitionAttribute" /> in the same compilation — otherwise
-///     the generator emits a diagnostic. Multiple capabilities may share a tool; a tool may
-///     participate in multiple capabilities.
-/// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 internal sealed class QylCapabilityAttribute(
     string capabilityId,

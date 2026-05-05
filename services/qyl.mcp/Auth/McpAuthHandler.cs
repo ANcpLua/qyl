@@ -4,22 +4,12 @@ using Microsoft.Extensions.Options;
 
 namespace qyl.mcp.Auth;
 
-/// <summary>
-///     Delegating handler that authenticates outgoing collector requests.
-///     Priority: Keycloak JWT (Bearer) → x-mcp-api-key → unauthenticated (dev mode).
-/// </summary>
 public sealed partial class McpAuthHandler : DelegatingHandler
 {
     private readonly KeycloakTokenProvider _keycloak;
     private readonly ILogger<McpAuthHandler> _logger;
     private readonly McpAuthOptions _options;
 
-    /// <summary>
-    ///     Initializes a new instance of the <see cref="McpAuthHandler" /> class.
-    /// </summary>
-    /// <param name="options">Authentication options controlling the auth strategy.</param>
-    /// <param name="keycloak">Token provider for Keycloak JWT acquisition.</param>
-    /// <param name="logger">Logger for auth strategy selection events.</param>
     public McpAuthHandler(
         IOptions<McpAuthOptions> options,
         KeycloakTokenProvider keycloak,
@@ -41,7 +31,6 @@ public sealed partial class McpAuthHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        // Keycloak path: fetch JWT and forward as Bearer
         if (_options.IsKeycloakEnabled)
         {
             var jwt = await _keycloak.GetTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -54,7 +43,6 @@ public sealed partial class McpAuthHandler : DelegatingHandler
             LogKeycloakFallback();
         }
 
-        // API-key fallback
         if (_options.IsEnabled && !string.IsNullOrWhiteSpace(_options.Token))
         {
             request.Headers.TryAddWithoutValidation(McpAuthOptions.HeaderName, _options.Token);

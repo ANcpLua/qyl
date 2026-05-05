@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
-/// <summary>
-///     Retrieves full details of a debugging session including associated traces.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetSessionTool(HttpClient client)

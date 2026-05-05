@@ -2,26 +2,6 @@ using OpenTelemetry;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
-/// <summary>
-///     Post-processor that reads <c>gen_ai.request.model</c> + token-usage tags from finished
-///     spans, looks up per-token pricing in <see cref="QylPricingTable" />, and writes
-///     <c>gen_ai.usage.cost</c> before the span is handed to the exporter.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Cost is the SDK-side fast path: it runs in-process at every host that calls
-///         <c>UseQyl()</c>, so the span carries cost at source — the collector reads the
-///         attribute via <see cref="OtlpConverter" /> without joining against a pricing
-///         table at query time. Unknown models and missing token counts are simply
-///         dropped (no cost attribute emitted) — the collector falls back to its
-///         server-side <c>ModelPricingService</c> for those.
-///     </para>
-///     <para>
-///         Only the canonical-style <c>gen_ai.usage.cost</c> attribute is emitted; no
-///         qyl-namespaced cost attributes are introduced (they would shadow the upstream
-///         convention).
-///     </para>
-/// </remarks>
 public sealed class QylGenAiCostProcessor : BaseProcessor<Activity>
 {
     public const string CostAttribute = "gen_ai.usage.cost";

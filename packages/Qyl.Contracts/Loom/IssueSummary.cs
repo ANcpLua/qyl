@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Loom;
 
-/// <summary>
-///     Issue lifecycle status for the legacy <c>errors</c> table.
-/// </summary>
 public enum IssueStatus
 {
     New,
@@ -12,9 +9,6 @@ public enum IssueStatus
     Reopened
 }
 
-/// <summary>
-///     Summary projection of an error issue from the <c>errors</c> table.
-/// </summary>
 public sealed record IssueSummary
 {
     public required string IssueId { get; init; }
@@ -28,9 +22,6 @@ public sealed record IssueSummary
     public required DateTime LastSeen { get; init; }
 }
 
-/// <summary>
-///     A lifecycle event record from the <c>issue_events</c> table.
-/// </summary>
 public sealed record IssueEvent(
     string EventId,
     string IssueId,

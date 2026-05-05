@@ -1,20 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 
 namespace Qyl.Loom.Workflows;
 
-/// <summary>
-///     Deterministic, LLM-free router across the three Loom workflow shapes
-///     (<see cref="LoomWorkflowKind" />). Matches on keyword tokens in the caller's request
-///     plus optional structured signals (PR number, bot author, issue id). Returns
-///     <see cref="LoomWorkflowKind.Clarify" /> with one focused question when signals
-///     conflict — the router never silently picks between two plausible workflows.
-/// </summary>
-/// <remarks>
-///     Pure static surface. No DI, no IO, no LLM. Callable from MCP tools, tests, and
-///     future workflow executors without any wiring.
-/// </remarks>
 public static class LoomWorkflowRouter
 {
     private static readonly string[] s_fixIssueTokens =
@@ -41,10 +29,6 @@ public static class LoomWorkflowRouter
         "autofix this issue", "autofix issue", "loom autofix"
     ];
 
-    /// <summary>
-    ///     Route a user request. Case-insensitive token match against <paramref name="userRequest" />.
-    ///     Structured signals in <paramref name="signals" /> (if provided) override keyword matches.
-    /// </summary>
     public static LoomRouteDecision Route(string? userRequest, LoomRouteSignals? signals = null)
     {
         signals ??= LoomRouteSignals.Empty;
@@ -90,8 +74,6 @@ public static class LoomWorkflowRouter
         var botMatches = FindMatches(normalized, s_botReviewTokens);
         var autofixMatches = FindMatches(normalized, s_autofixTokens);
 
-        // Autofix is more specific than FixProductionIssue — a request mentioning both
-        // "autofix" and generic fix tokens ("debug", "fix bug") routes to Autofix.
         if (autofixMatches.Length > 0 && fixMatches.Length > 0)
         {
             return new LoomRouteDecision
@@ -185,23 +167,14 @@ public static class LoomWorkflowRouter
         return string.Join(" + ", parts);
     }
 
-    /// <summary>MCP prompt names this router dispatches to. Stable — tests assert on them.</summary>
     public static class PromptIds
     {
-        /// <summary>Fix a production issue workflow.</summary>
         public const string FixProductionIssue = "qyl.loom.fix_issue";
 
-        /// <summary>Resolve review-bot PR comments.</summary>
         public const string ReviewBotPrComments = "qyl.loom.review_bot_pr";
 
-        /// <summary>Headless autofix pipeline — fixability gate + structured artifact.</summary>
         public const string Autofix = "qyl.loom.autofix_system";
 
-        /// <summary>
-        ///     Deprecated — the deterministic router is the source of truth; the LLM-side
-        ///     routing prompt was removed. Constant retained so callers that still reference
-        ///     <c>PromptIds.Router</c> keep compiling; nothing serves this id any more.
-        /// </summary>
         public const string Router = "qyl.loom.route";
     }
 }

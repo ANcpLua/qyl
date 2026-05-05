@@ -1,24 +1,12 @@
-// =============================================================================
-// qyl OTLP Ingestion - OTel GenAI Semantic Conventions v1.40.0
-// https://opentelemetry.io/docs/specs/semconv/gen-ai/
-// Target: .NET 10 / C# 14
-// =============================================================================
 
 namespace Qyl.Collector.Ingestion;
 
-// =============================================================================
-// SCHEMA NORMALIZER (Deprecated → Current)
-// =============================================================================
 
-/// <summary>
-///     Single source of truth for deprecated OTel attribute mappings (1.40 migration).
-/// </summary>
 public static class SchemaNormalizer
 {
     private static readonly FrozenDictionary<string, string> s_deprecatedMappings =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            // GenAI deprecated (pre-1.38)
             ["gen_ai.system"] = "gen_ai.provider.name",
             ["gen_ai.prompt"] = "gen_ai.input.messages",
             ["gen_ai.completion"] = "gen_ai.output.messages",
@@ -26,24 +14,20 @@ public static class SchemaNormalizer
             ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
             ["gen_ai.openai.request.seed"] = "gen_ai.request.seed",
 
-            // OpenAI-specific moved out of gen_ai namespace
             ["gen_ai.openai.request.service_tier"] = "openai.request.service_tier",
             ["gen_ai.openai.response.service_tier"] = "openai.response.service_tier",
             ["gen_ai.openai.response.system_fingerprint"] = "openai.response.system_fingerprint",
 
-            // Legacy agents.* prefix → gen_ai.agent.* / gen_ai.tool.*
             ["agents.agent.id"] = "gen_ai.agent.id",
             ["agents.agent.name"] = "gen_ai.agent.name",
             ["agents.agent.description"] = "gen_ai.agent.description",
             ["agents.tool.name"] = "gen_ai.tool.name",
             ["agents.tool.call_id"] = "gen_ai.tool.call.id",
 
-            // Code attributes
             ["code.function"] = "code.function.name",
             ["code.filepath"] = "code.file.path",
             ["code.lineno"] = "code.line.number",
 
-            // DB attributes
             ["db.system"] = "db.system.name"
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
@@ -52,9 +36,6 @@ public static class SchemaNormalizer
         s_deprecatedMappings.GetValueOrDefault(attributeName, attributeName);
 }
 
-// =============================================================================
-// OTLP JSON DTOs
-// =============================================================================
 
 public sealed record OtlpExportTraceServiceRequest
 {
@@ -66,7 +47,6 @@ public sealed record OtlpResourceSpans
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeSpans>? ScopeSpans { get; init; }
 
-    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.40.0).</summary>
     public string? SchemaUrl { get; init; }
 }
 
@@ -79,7 +59,6 @@ public sealed record OtlpScopeSpans
 {
     public List<OtlpSpan>? Spans { get; init; }
 
-    /// <summary>OTel schema URL for this instrumentation scope (overrides resource-level if set).</summary>
     public string? SchemaUrl { get; init; }
 }
 
@@ -91,10 +70,8 @@ public sealed record OtlpSpan
     public string? Name { get; init; }
     public int? Kind { get; init; }
 
-    /// <summary>Start time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
     public ulong StartTimeUnixNano { get; init; }
 
-    /// <summary>End time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
     public ulong EndTimeUnixNano { get; init; }
 
     public OtlpStatus? Status { get; init; }
@@ -134,9 +111,6 @@ public sealed record OtlpKeyValueList
     public List<OtlpKeyValue>? Values { get; init; }
 }
 
-// =============================================================================
-// OTLP LOGS JSON DTOs
-// =============================================================================
 
 public sealed record OtlpExportLogsServiceRequest
 {
@@ -166,9 +140,6 @@ public sealed record OtlpLogRecord
     public string? SpanId { get; init; }
 }
 
-// =============================================================================
-// OTLP PROFILES JSON DTOs (v1development)
-// =============================================================================
 
 public sealed record OtlpExportProfilesServiceRequest
 {
@@ -202,7 +173,6 @@ public sealed record OtlpProfile
     public List<OtlpKeyValue>? Attributes { get; init; }
     public int? DroppedAttributesCount { get; init; }
 
-    // Dictionary tables (flattened from ProfilesDictionary for JSON)
     public List<string>? StringTable { get; init; }
     public List<OtlpProfileFunction>? FunctionTable { get; init; }
     public List<OtlpProfileLocation>? LocationTable { get; init; }

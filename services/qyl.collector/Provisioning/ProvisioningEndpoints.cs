@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Provisioning;
 
-/// <summary>
-///     Minimal API endpoints for generation profile management and code generation jobs.
-///     Routes: /api/v1/configurator/*
-/// </summary>
 public static class ProvisioningEndpoints
 {
     [QylMapEndpoints]
@@ -16,9 +12,6 @@ public static class ProvisioningEndpoints
         MapJobRoutes(configurator);
     }
 
-    // ==========================================================================
-    // Profile Routes
-    // ==========================================================================
 
     private static void MapProfileRoutes(RouteGroupBuilder group)
     {
@@ -65,9 +58,6 @@ public static class ProvisioningEndpoints
         });
     }
 
-    // ==========================================================================
-    // Generation Job Routes
-    // ==========================================================================
 
     private static void MapJobRoutes(RouteGroupBuilder group)
     {

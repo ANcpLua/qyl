@@ -5,11 +5,6 @@ using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
-/// <summary>
-///     Verifies that <see cref="GenAiInstrumentation.WithQylTelemetry(IChatClient, string?, bool?)" />
-///     produces a pipeline whose outermost layer is the qyl-decorated
-///     <see cref="ToolDecoratingChatClient" />.
-/// </summary>
 public sealed class ChatClientToolInstrumentationTests
 {
     [Fact]

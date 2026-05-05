@@ -2,10 +2,6 @@ using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     Bounded sub-agent responsible for turning the investigation
-///     into a minimal implementation plan.
-/// </summary>
 public sealed partial class ExplorationStrategist(
     ExplorationSessionStore sessionStore,
     ILogger<ExplorationStrategist> logger,

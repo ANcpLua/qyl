@@ -4,19 +4,9 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for storing and retrieving artifacts (code patches, reports, analysis results).
-/// </summary>
 [McpServerToolType]
 public sealed partial class ArtifactTools(HttpClient client)
 {
-    /// <summary>Stores an artifact (code patch, report, or investigation notes) in qyl.</summary>
-    /// <param name="content">The artifact content.</param>
-    /// <param name="contentType">MIME type of the content.</param>
-    /// <param name="title">Human-readable title for the artifact.</param>
-    /// <param name="source">Origin identifier (e.g. "autofix", "rca").</param>
-    /// <param name="ttlSeconds">Auto-expire after this many seconds; 0 means never.</param>
-    /// <returns>The artifact ID and short URL for sharing.</returns>
     [McpServerTool(
         Name = "qyl.store_artifact",
         Title = "Store Artifact",
@@ -56,9 +46,6 @@ public sealed partial class ArtifactTools(HttpClient client)
             return sb.ToString();
         }, "Failed to store artifact");
 
-    /// <summary>Retrieves a stored artifact by its ID.</summary>
-    /// <param name="id">The artifact ID to retrieve.</param>
-    /// <returns>The artifact content and metadata.</returns>
     [McpServerTool(
         Name = "qyl.get_artifact",
         Title = "Get Artifact",
@@ -97,9 +84,6 @@ public sealed partial class ArtifactTools(HttpClient client)
         }, "Artifact not found");
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// DTOs
-// ═══════════════════════════════════════════════════════════════════════
 
 internal sealed record ArtifactStoreRequest(
     [property: JsonPropertyName("content")]

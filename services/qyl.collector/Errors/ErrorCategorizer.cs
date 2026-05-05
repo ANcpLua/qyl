@@ -8,7 +8,6 @@ public static class ErrorCategorizer
         string? finishReason = null,
         string? message = null)
     {
-        // GenAI-specific error type takes precedence
         if (!string.IsNullOrEmpty(genAiErrorType))
         {
             return genAiErrorType switch
@@ -25,7 +24,6 @@ public static class ErrorCategorizer
             };
         }
 
-        // Infer GenAI category from finish reasons
         if (!string.IsNullOrEmpty(finishReason))
         {
             if (finishReason.ContainsOrdinal("content_filter"))
@@ -34,7 +32,6 @@ public static class ErrorCategorizer
                 return "token_limit";
         }
 
-        // Infer GenAI category from error message patterns
         if (!string.IsNullOrEmpty(message))
         {
             if (message.ContainsOrdinal("rate limit") || message.ContainsOrdinal("429") ||
@@ -51,7 +48,6 @@ public static class ErrorCategorizer
                 return "tool_execution_error";
         }
 
-        // .NET exception type mapping
         return exceptionType switch
         {
             _ when exceptionType.ContainsOrdinal("HttpRequestException") => "network",

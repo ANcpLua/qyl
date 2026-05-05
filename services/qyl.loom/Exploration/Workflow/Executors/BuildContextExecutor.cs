@@ -1,15 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows;
 using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace Qyl.Loom.Exploration.Workflow.Executors;
 
-/// <summary>
-///     Step 1: preflight (LLM configured?) + context build + session hydration. Terminal failures here —
-///     missing LLM, unknown issue id — mark the state as <see cref="ExplorationRunState.IsError" />, which
-///     every downstream executor honors by passing state through untouched to the finalize executor.
-/// </summary>
 internal sealed class BuildContextExecutor(
     ExplorationContextBuilder contextBuilder,
     ExplorationSessionStore sessionStore,
@@ -62,8 +56,6 @@ internal sealed class BuildContextExecutor(
             session.SessionId,
             message.UserContext ?? $"Explore issue {message.IssueId}");
 
-        // OTel canonical: gen_ai.conversation.id. Conversations view rolls
-        // spans up by this attribute regardless of which workflow produced them.
         Activity.Current?.SetTag(GenAiAttributes.ConversationId, $"loom:{session.SessionId}");
 
         return state with { Context = explorationContext, SessionId = session.SessionId };

@@ -4,11 +4,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Discovers <c>public static</c> extension methods tagged with
-///     <c>[QylMapEndpoints]</c> so the generator can emit a single
-///     <c>MapQylGeneratedEndpoints(this WebApplication)</c> aggregator.
-/// </summary>
 internal static class MapEndpointsAnalyzer
 {
     internal const string MapEndpointsAttributeMetadataName = "Qyl.Contracts.Observability.QylMapEndpointsAttribute";

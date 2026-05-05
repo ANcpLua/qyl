@@ -4,10 +4,6 @@ using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Debug;
 
-/// <summary>
-///     Discovers JetBrains Rider MCP endpoints by parsing the IDE's log file.
-///     Finds the built-in server port (SSE) and debugger MCP port (Streamable HTTP).
-/// </summary>
 internal sealed partial class JetBrainsDiscovery(
     TimeProvider timeProvider,
     ILogger<JetBrainsDiscovery> logger)
@@ -17,9 +13,6 @@ internal sealed partial class JetBrainsDiscovery(
     private JetBrainsEndpoints? _cached;
     private DateTimeOffset _lastScan;
 
-    /// <summary>
-    ///     Returns the currently known Rider MCP endpoints, re-scanning the log if stale (>30s).
-    /// </summary>
     public JetBrainsEndpoints? GetEndpoints()
     {
         if (_cached is not null && timeProvider.GetUtcNow() - _lastScan < s_scanCooldown)
@@ -40,9 +33,6 @@ internal sealed partial class JetBrainsDiscovery(
         return _cached;
     }
 
-    /// <summary>
-    ///     Forces a fresh scan regardless of cooldown.
-    /// </summary>
     public JetBrainsEndpoints? Refresh()
     {
         _cached = null;
@@ -75,7 +65,6 @@ internal sealed partial class JetBrainsDiscovery(
         string? builtInPort = null;
         string? debuggerUrl = null;
 
-        // Scan forward so later entries win (latest Rider session)
         foreach (var line in lines)
         {
             if (line.Contains("built-in server started, port"))
@@ -106,7 +95,6 @@ internal sealed partial class JetBrainsDiscovery(
         if (logDir is null || !Directory.Exists(logDir))
             return null;
 
-        // Find the latest Rider version directory (e.g., Rider2026.1)
         var riderDirs = Directory.GetDirectories(logDir, "Rider*")
             .OrderByDescending(static d => d)
             .ToArray();
@@ -162,9 +150,6 @@ internal sealed partial class JetBrainsDiscovery(
     private partial void LogReadFailed(Exception ex);
 }
 
-/// <summary>
-///     Discovered JetBrains Rider MCP endpoint URLs.
-/// </summary>
 internal sealed record JetBrainsEndpoints(
     string? BuiltInSseUrl,
     string? DebuggerStreamableUrl);

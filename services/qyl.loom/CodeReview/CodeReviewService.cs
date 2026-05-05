@@ -4,11 +4,6 @@ using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.CodeReview;
 
-/// <summary>
-///     Fetches a PR diff from GitHub, runs LLM-based code review analysis,
-///     and posts inline review comments back to the pull request.
-///     Uses <see cref="CollectorClient" /> for known error pattern context.
-/// </summary>
 public sealed partial class CodeReviewService(
     CollectorClient collector,
     IHttpClientFactory httpClientFactory,

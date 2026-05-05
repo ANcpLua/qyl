@@ -4,18 +4,10 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for listing services auto-discovered from incoming OTLP telemetry.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ServiceTools(HttpClient client)
 {
-    /// <summary>Lists all detected services with type, status, instance count, and telemetry stats.</summary>
-    /// <param name="type">Filter by service type (e.g. 'ai_agent', 'llm_provider', 'mcp_server').</param>
-    /// <param name="status">Filter by status: 'active' or 'inactive'.</param>
-    /// <param name="limit">Maximum number of services to return.</param>
-    /// <returns>A table of services with instance counts, span totals, and error rates.</returns>
     [McpServerTool(Name = "qyl.list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     public partial Task<string> ListServicesAsync(
@@ -53,9 +45,6 @@ public sealed partial class ServiceTools(HttpClient client)
         });
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MCP DTOs (separate from collector DTOs for AOT isolation)
-// ═════════════════════════════════════════════════════════════════════════════
 
 internal sealed record ServiceMcpSummary
 {
@@ -78,9 +67,6 @@ internal sealed record ServicesMcpResponse
     [JsonPropertyName("total")] public int Total { get; init; }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// JSON Context (AOT)
-// ═════════════════════════════════════════════════════════════════════════════
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ServiceMcpSummary))]

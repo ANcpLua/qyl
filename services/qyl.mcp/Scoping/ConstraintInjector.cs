@@ -3,11 +3,6 @@ using System.Text.Json;
 
 namespace qyl.mcp.Scoping;
 
-/// <summary>
-///     Auto-injects scoped parameters into MCP tool call arguments.
-///     When qyl.mcp is scoped (via <see cref="QylScope" />), matching tool parameters
-///     are injected silently so the agent doesn't need to specify them on every call.
-/// </summary>
 internal static class ConstraintInjector
 {
     private static readonly FrozenDictionary<string, Func<QylScope, string?>> s_injectableParameters =
@@ -31,7 +26,6 @@ internal static class ConstraintInjector
             if (value is null)
                 continue;
 
-            // Only inject if not already provided with a non-empty value
             if (dict.TryGetValue(paramName, out var existing)
                 && existing.ValueKind is JsonValueKind.String
                 && !string.IsNullOrEmpty(existing.GetString()))

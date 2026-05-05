@@ -1,10 +1,6 @@
 using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
-/// <summary>
-///     Thread-safe circular buffer for real-time span queries.
-///     O(1) push with pre-allocated storage and generation tracking for cache invalidation.
-/// </summary>
 public sealed class SpanRingBuffer
 {
     private readonly SpanRecord?[] _buffer;
@@ -36,7 +32,6 @@ public sealed class SpanRingBuffer
     public void PushRange(IEnumerable<SpanRecord> spans)
     {
         Guard.NotNull(spans);
-        // Materialize once to avoid multiple enumeration of IEnumerable
         IReadOnlyList<SpanRecord> materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
         lock (_lock)
         {
@@ -112,8 +107,6 @@ public sealed class SpanRingBuffer
             return [];
         }
 
-        // Compare underlying strings — SpanRecord.SessionId is `string?`, implicitly coercing
-        // via SessionId(string) would trip CS8604 in strict nullable builds.
         return Query(s => s.SessionId == sid.Value, maxCount, out generation);
     }
 

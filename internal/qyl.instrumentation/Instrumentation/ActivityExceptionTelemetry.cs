@@ -3,9 +3,6 @@ using ExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exc
 
 namespace Qyl.Instrumentation.Instrumentation;
 
-/// <summary>
-///     Shared OpenTelemetry exception recording for qyl instrumentation.
-/// </summary>
 public static class ActivityExceptionTelemetry
 {
     private const string ErrorType = ErrorAttributes.Type;
@@ -14,8 +11,6 @@ public static class ActivityExceptionTelemetry
 
     private const string ExceptionStacktrace = ExceptionAttributes.Stacktrace;
 
-    // exception.escaped was removed from upstream OTel semconv with no replacement;
-    // kept as an inline literal to preserve qyl telemetry consumers.
     private const string ExceptionEscaped = "exception.escaped";
 
     public static void Record(

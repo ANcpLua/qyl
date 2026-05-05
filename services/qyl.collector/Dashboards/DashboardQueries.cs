@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Dashboards;
 
-/// <summary>
-///     Pre-built DuckDB queries for each dashboard type.
-///     Returns structured widget data for frontend rendering.
-/// </summary>
 public static class DashboardQueries
 {
     public static async Task<IReadOnlyList<DashboardWidget>> GetWidgetsAsync(
@@ -19,16 +15,12 @@ public static class DashboardQueries
             _ => []
         };
 
-    // =========================================================================
-    // API Performance
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> ApiPerformanceAsync(
         DuckDBConnection con, CancellationToken ct)
     {
         var widgets = new List<DashboardWidget>();
 
-        // Stat: total requests, avg latency, error rate
         var stats = await QueryStatsAsync(con, """
                                                SELECT
                                                    COUNT(*) AS total_requests,
@@ -48,7 +40,6 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        // Top routes by p95 latency
         var topRoutes = await QueryTopNAsync(con, """
                                                   SELECT
                                                       COALESCE(
@@ -70,7 +61,6 @@ public static class DashboardQueries
         if (topRoutes.Count > 0)
             widgets.Add(new DashboardWidget("api-top-routes", "Top Routes by P95 Latency", "table", topRoutes));
 
-        // Throughput over time (last 24h, 1h buckets)
         var throughput = await QueryTimeSeriesAsync(con, """
                                                          SELECT
                                                              strftime(time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1e9)), '%H:%M') AS bucket,
@@ -88,9 +78,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // External APIs
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> ExternalApisAsync(
         DuckDBConnection con, CancellationToken ct)
@@ -143,9 +130,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // GenAI
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> GenAiAsync(
         DuckDBConnection con, CancellationToken ct)
@@ -216,9 +200,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // Database
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> DatabaseAsync(
         DuckDBConnection con, CancellationToken ct)
@@ -271,9 +252,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // Error Tracker
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> ErrorTrackerAsync(
         DuckDBConnection con, CancellationToken ct)
@@ -330,9 +308,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // Messaging
-    // =========================================================================
 
     private static async Task<IReadOnlyList<DashboardWidget>> MessagingAsync(
         DuckDBConnection con, CancellationToken ct)
@@ -378,9 +353,6 @@ public static class DashboardQueries
         return widgets;
     }
 
-    // =========================================================================
-    // Query Helpers
-    // =========================================================================
 
     private static async Task<Dictionary<string, string>> QueryStatsAsync(
         DuckDBConnection con, string sql, CancellationToken ct)
@@ -404,7 +376,6 @@ public static class DashboardQueries
         }
         catch (DuckDBException ex)
         {
-            // Graceful fallback — table/column might not exist yet.
             Debug.WriteLine(ex);
         }
 
@@ -436,7 +407,6 @@ public static class DashboardQueries
         }
         catch (DuckDBException ex)
         {
-            // Graceful fallback — query target may be missing.
             Debug.WriteLine(ex);
         }
 
@@ -462,7 +432,6 @@ public static class DashboardQueries
         }
         catch (DuckDBException ex)
         {
-            // Graceful fallback — query target may be missing.
             Debug.WriteLine(ex);
         }
 

@@ -7,21 +7,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Analysis;
 
-/// <summary>
-///     MCP tool that analyzes a distributed trace returning span, error, service, and latency details.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 public sealed partial class AnalyzeTraceTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves and formats structured analysis of a distributed trace's spans, errors, and latency patterns.
-    /// </summary>
-    /// <param name="traceId">The trace ID to analyze.</param>
-    /// <param name="focus">Optional focus area such as 'latency', 'errors', or 'dependencies'.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the trace analysis.</returns>
     [McpServerTool(
         Name = "analyze_trace",
         Title = "Analyze Trace",

@@ -3,9 +3,6 @@ using Qyl.Collector.Analytics;
 using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Intelligence;
 
-/// <summary>
-///     Context for a single semantic diff ("semantic XOR") analysis run.
-/// </summary>
 public sealed record SemanticDiffContext(
     string EntityId,
     string EntityKind,
@@ -15,10 +12,6 @@ public sealed record SemanticDiffContext(
     DateTime ComparisonEnd,
     IReadOnlyList<SemanticSignal>? Signals = null);
 
-/// <summary>
-///     Optional external hints that boost, dampen, or suppress a specific dimension/value pair.
-///     Null key/value means the signal applies globally to all candidates in the analysis run.
-/// </summary>
 public sealed record SemanticSignal(
     string? DimensionKey = null,
     string? DimensionValue = null,
@@ -33,9 +26,6 @@ public sealed record SemanticSignal(
         (DimensionValue is null || string.Equals(DimensionValue, value, StringComparison.Ordinal));
 }
 
-/// <summary>
-///     Tunable parameters for semantic diff scoring.
-/// </summary>
 public sealed record SemanticDiffOptions
 {
     public static SemanticDiffOptions Default { get; } = new();
@@ -59,9 +49,6 @@ public sealed record SemanticDiffOptions
     public string[] NoiseDimensionValues { get; init; } = [];
 }
 
-/// <summary>
-///     One ranked semantic diff candidate.
-/// </summary>
 public sealed record SemanticDiffRecord(
     string EntityId,
     string EntityKind,
@@ -85,11 +72,6 @@ public sealed record SemanticDiffRecord(
     DateTime ComparisonStart,
     DateTime ComparisonEnd);
 
-/// <summary>
-///     Pure semantic diff analyzer.
-///     Input = keyed counts for baseline and comparison windows.
-///     Output = ranked "what changed that reduces my search space?" candidates.
-/// </summary>
 public static class SemanticDiffService
 {
     public static IReadOnlyList<SemanticDiffRecord> Analyze(

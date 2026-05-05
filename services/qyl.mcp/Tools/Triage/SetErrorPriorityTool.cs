@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
-/// <summary>
-///     Sets the priority level (P0-P4) on an error issue for triage.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SetErrorPriorityTool(HttpClient client)

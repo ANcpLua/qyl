@@ -6,13 +6,8 @@ public sealed class MagicStringAnalyzerTests
 {
     private static readonly MagicStringAnalyzer s_analyzer = new();
 
-    /// <summary>
-    ///     Get a known-valid (replacement) ID from the deprecation index so the test
-    ///     is data-driven and stays correct if the YAML changes.
-    /// </summary>
     private static string AnyValidId()
     {
-        // android.app.state is the replacement for android.state
         return "android.app.state";
     }
 
@@ -34,7 +29,6 @@ public sealed class MagicStringAnalyzerTests
     [Fact]
     public async Task DoesNotFireOnDeprecatedString()
     {
-        // Deprecated IDs are handled by QYL-SEMCONV-001, not 002
         const string code = """
                             class C { void M(object a) { a.SetTag("android.state", "x"); } }
                             """;
@@ -47,14 +41,12 @@ public sealed class MagicStringAnalyzerTests
     [Fact]
     public async Task DoesNotFireOnUnknownString()
     {
-        // Completely unknown IDs are handled by QYL-SEMCONV-003
         const string code = """
                             class C { void M(object a) { a.SetTag("totally.custom.attr", "x"); } }
                             """;
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
-        // This ID is neither deprecated nor known-valid → 002 should not fire
         Assert.Empty(diags);
     }
 
@@ -67,7 +59,6 @@ public sealed class MagicStringAnalyzerTests
 
         var diags = await RoslynTestHelper.GetDiagnosticsAsync(code, s_analyzer);
 
-        // First argument is an identifier, not a literal → no diagnostic
         Assert.Empty(diags);
     }
 }

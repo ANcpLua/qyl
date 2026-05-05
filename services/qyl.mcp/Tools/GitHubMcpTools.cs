@@ -7,10 +7,6 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for GitHub integration: trigger code reviews,
-///     get review results, and list webhook events.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class GitHubMcpTools(HttpClient http)

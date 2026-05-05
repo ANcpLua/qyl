@@ -1,11 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Net;
 using System.Net.Sockets;
 
 namespace Qyl.Run.Internal;
 
-/// <summary>Claims a free TCP port by binding, reading the OS-assigned port, and releasing.</summary>
 internal static class PortAllocator
 {
     public static int ClaimFreePort(string host)

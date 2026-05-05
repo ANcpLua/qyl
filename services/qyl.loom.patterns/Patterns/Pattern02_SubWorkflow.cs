@@ -1,21 +1,13 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
 namespace Qyl.Loom.Patterns.Patterns;
 
-/// <summary>
-///     Pattern 02 — <c>workflow.BindAsExecutor(id)</c>. Composes an inner
-///     two-stage <c>rca → solution</c> sub-workflow as a single executor node
-///     in an outer <c>intake → [sub] → verdict</c> graph.
-/// </summary>
 public static class Pattern02_SubWorkflow
 {
-    /// <summary>Runs the sub-workflow composition demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
-        // ── Inner graph: rca → solution ───────────────────────────────────────
         var rca = new RcaExecutor("patterns/02/inner/rca", agents.BuildRcaAgent());
         var solution = new SolutionExecutor("patterns/02/inner/solution", agents.BuildSolutionAgent());
 
@@ -27,7 +19,6 @@ public static class Pattern02_SubWorkflow
 
         var autofixSubflow = innerWorkflow.BindAsExecutor("patterns/02/subflow");
 
-        // ── Outer graph: intake → [sub] → verdict ─────────────────────────────
         var intake = new IntakeExecutor("patterns/02/intake");
         var verdict = new VerdictExecutor("patterns/02/verdict", agents.BuildConfidenceAgent());
 
@@ -52,7 +43,6 @@ public static class Pattern02_SubWorkflow
         }
     }
 
-    // ── Executors ────────────────────────────────────────────────────────────
 
     private sealed class IntakeExecutor(string id) : Executor<IncidentSignal, IncidentSignal>(id)
     {

@@ -1,9 +1,5 @@
 namespace qyl.mcp.Apps.ErrorExplorer;
 
-/// <summary>
-///     Raw HTML content for the Error Explorer ext-app.
-///     Source-of-truth is <c>error-explorer.html</c> (kept for standalone preview).
-/// </summary>
 internal static class ErrorExplorerHtml
 {
     public const string Content = """

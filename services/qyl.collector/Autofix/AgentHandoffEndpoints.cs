@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     REST endpoints for managing coding agent handoff lifecycle:
-///     create, accept, submit, fail, and query handoffs.
-/// </summary>
 public static class AgentHandoffEndpoints
 {
     [QylMapEndpoints]
@@ -46,7 +42,6 @@ public static class AgentHandoffEndpoints
             }
             catch
             {
-                // Keep Loom dashboard resilient when handoff tables are not initialized yet.
                 return TypedResults.Ok(new HandoffListResponse(Array.Empty<AgentHandoffRecord>(), 0));
             }
         });
@@ -101,14 +96,10 @@ public static class AgentHandoffEndpoints
     }
 }
 
-/// <summary>Request body for POST /api/v1/fix-runs/{runId}/handoffs.</summary>
 public sealed record CreateHandoffRequest(string AgentType);
 
-/// <summary>Request body for POST /api/v1/handoffs/{handoffId}/submit.</summary>
 public sealed record SubmitHandoffRequest(string ResultJson);
 
-/// <summary>Request body for POST /api/v1/handoffs/{handoffId}/fail.</summary>
 public sealed record FailHandoffRequest(string ErrorMessage);
 
-/// <summary>List response shape for handoff queries — items + total count.</summary>
 public sealed record HandoffListResponse(IReadOnlyList<AgentHandoffRecord> Items, int Total);

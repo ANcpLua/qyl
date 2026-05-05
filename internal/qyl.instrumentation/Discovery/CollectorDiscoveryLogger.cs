@@ -3,9 +3,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Qyl.Instrumentation.Discovery;
 
-/// <summary>
-///     Logs the collector discovery result once at application startup.
-/// </summary>
 internal sealed class CollectorDiscoveryLogger(ILogger<CollectorDiscoveryLogger> logger) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)

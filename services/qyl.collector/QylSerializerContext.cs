@@ -49,7 +49,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(OtlpKeyValue))]
 [JsonSerializable(typeof(OtlpAnyValue))]
 [JsonSerializable(typeof(OtlpExportLogsServiceRequest))]
-// Profile OTLP types (for ProfileDataJson blob serialization)
 [JsonSerializable(typeof(OtlpProfile))]
 [JsonSerializable(typeof(OtlpResourceLogs))]
 [JsonSerializable(typeof(OtlpScopeLogs))]
@@ -57,18 +56,14 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(LogStorageRow))]
 [JsonSerializable(typeof(List<LogStorageRow>))]
 [JsonSerializable(typeof(string[]))]
-// Ring buffer response types
 [JsonSerializable(typeof(RecentSpansResponse))]
 [JsonSerializable(typeof(TraceFromMemoryResponse))]
 [JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
 [JsonSerializable(typeof(BufferStatsResponse))]
-// Telemetry management types
 [JsonSerializable(typeof(ClearTelemetryResponse))]
-// Insights materializer types
 [JsonSerializable(typeof(InsightsResponse))]
 [JsonSerializable(typeof(InsightTierStatus))]
 [JsonSerializable(typeof(IReadOnlyList<InsightTierStatus>))]
-// Dashboard types
 [JsonSerializable(typeof(DashboardDefinition))]
 [JsonSerializable(typeof(DashboardData))]
 [JsonSerializable(typeof(DashboardWidget))]
@@ -79,7 +74,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(IReadOnlyList<DashboardWidget>))]
 [JsonSerializable(typeof(IReadOnlyList<TopNRow>))]
 [JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
-// Copilot types (for request body deserialization)
 [JsonSerializable(typeof(ChatRequest))]
 [JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
@@ -88,36 +82,30 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(AgentRunAudit))]
 [JsonSerializable(typeof(AgentDecision))]
 [JsonSerializable(typeof(AgentEvidenceLink))]
-// Agent run endpoint payloads
 [JsonSerializable(typeof(AgentRunRecord))]
 [JsonSerializable(typeof(ToolCallRecord))]
 [JsonSerializable(typeof(AgentDecisionRecord))]
 [JsonSerializable(typeof(List<AgentRunRecord>))]
 [JsonSerializable(typeof(List<ToolCallRecord>))]
 [JsonSerializable(typeof(List<AgentDecisionRecord>))]
-// Meta endpoint types
 [JsonSerializable(typeof(MetaResponse))]
 [JsonSerializable(typeof(MetaBuild))]
 [JsonSerializable(typeof(MetaCapabilities))]
 [JsonSerializable(typeof(MetaStatus))]
 [JsonSerializable(typeof(MetaLinks))]
 [JsonSerializable(typeof(MetaPorts))]
-// Error engine types
 [JsonSerializable(typeof(ErrorStatusUpdate))]
 [JsonSerializable(typeof(ErrorRow))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorRow>))]
 [JsonSerializable(typeof(ErrorStats))]
 [JsonSerializable(typeof(ErrorCategoryStat))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))]
-// Search types
 [JsonSerializable(typeof(SearchQuery))]
 [JsonSerializable(typeof(SearchResult))]
 [JsonSerializable(typeof(IReadOnlyList<SearchResult>))]
 [JsonSerializable(typeof(SearchSuggestion))]
 [JsonSerializable(typeof(IReadOnlyList<SearchSuggestion>))]
-// Artifact types
 [JsonSerializable(typeof(ArtifactCreateRequest))]
 [JsonSerializable(typeof(ArtifactResponse))]
-// Cost engine types
 [JsonSerializable(typeof(PricingOverrideRequest))]
 public partial class QylSerializerContext : JsonSerializerContext;

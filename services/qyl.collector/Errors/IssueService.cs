@@ -1,16 +1,8 @@
 namespace Qyl.Collector.Errors;
 
-/// <summary>
-///     Service layer for the error issue engine. Operates against the
-///     <c>error_issues</c>, <c>error_issue_events</c>, and <c>error_breadcrumbs</c>
-///     DuckDB tables using pooled read connections for queries and inline writes.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService> logger)
 {
-    // ==========================================================================
-    // Private Methods - SQL & Mapping
-    // ==========================================================================
 
     private const string IssueSelectSql = """
                                           SELECT id, project_id, fingerprint, title, culprit, error_type, category,
@@ -20,9 +12,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
                                                  tags_json, metadata_json, created_at, updated_at
                                           FROM error_issues
                                           """;
-    // ==========================================================================
-    // Valid Statuses and Transitions
-    // ==========================================================================
 
     private static readonly FrozenSet<string> s_validStatuses = FrozenSet.ToFrozenSet(
         ["unresolved", "acknowledged", "investigating", "in_progress", "resolved", "ignored", "regressed"]);
@@ -39,16 +28,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
             ["regressed"] = ["acknowledged", "investigating", "resolved", "ignored"]
         }.ToFrozenDictionary();
 
-    // ==========================================================================
-    // Issue CRUD
-    // ==========================================================================
 
-    /// <summary>
-    ///     Creates or updates an error issue using fingerprint-based grouping.
-    ///     If an issue with the same fingerprint exists for the project,
-    ///     increments its occurrence count and updates last_seen_at.
-    /// </summary>
-    /// <returns>The issue ID (existing or newly created).</returns>
     public async Task<string> UpsertIssueAsync(
         string projectId,
         string fingerprint,
@@ -67,7 +47,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
-            // Read existing fingerprint under the write lock so the check+insert is atomic.
             await using var checkCmd = con.CreateCommand();
             checkCmd.Transaction = tx;
             checkCmd.CommandText = """
@@ -130,9 +109,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return resolvedId;
     }
 
-    /// <summary>
-    ///     Gets a single error issue by ID.
-    /// </summary>
     public async Task<ErrorIssueRow?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
     {
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
@@ -144,9 +120,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapIssue(reader) : null;
     }
 
-    /// <summary>
-    ///     Lists issues with optional filtering by project, status, priority, and level.
-    /// </summary>
     public async Task<IReadOnlyList<ErrorIssueRow>> ListIssuesAsync(
         string? projectId = null,
         string? status = null,
@@ -216,15 +189,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return results;
     }
 
-    // ==========================================================================
-    // Issue Lifecycle
-    // ==========================================================================
 
-    /// <summary>
-    ///     Transitions an issue status, enforcing valid lifecycle transitions.
-    /// </summary>
-    /// <returns><c>true</c> if the transition was applied; <c>false</c> if the issue was not found.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the transition is invalid.</exception>
     public async Task<bool> TransitionStatusAsync(
         string issueId,
         string newStatus,
@@ -267,9 +232,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return true;
     }
 
-    /// <summary>
-    ///     Assigns an owner to an issue.
-    /// </summary>
     public async Task<bool> AssignOwnerAsync(string issueId, string owner, CancellationToken ct = default)
     {
         if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is null)
@@ -290,9 +252,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return true;
     }
 
-    /// <summary>
-    ///     Updates priority for an issue.
-    /// </summary>
     public async Task<bool> SetPriorityAsync(string issueId, string priority, CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
@@ -307,14 +266,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         }, ct).ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // Issue Events
-    // ==========================================================================
 
-    /// <summary>
-    ///     Links an error event occurrence to an issue.
-    /// </summary>
-    /// <returns>The newly created event ID.</returns>
     public async Task<string> LinkEventAsync(
         string issueId,
         string? traceId = null,
@@ -354,9 +306,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return eventId;
     }
 
-    /// <summary>
-    ///     Gets error events linked to an issue, ordered by timestamp descending.
-    /// </summary>
     public async Task<IReadOnlyList<ErrorIssueEventRow>> GetEventsAsync(
         string issueId,
         int limit = 100,
@@ -386,13 +335,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         return results;
     }
 
-    // ==========================================================================
-    // Breadcrumbs
-    // ==========================================================================
 
-    /// <summary>
-    ///     Gets breadcrumbs for an error event, ordered by timestamp ascending (oldest first).
-    /// </summary>
     public async Task<IReadOnlyList<ErrorBreadcrumbRow>> GetBreadcrumbsAsync(
         string eventId,
         int limit = 200,
@@ -489,9 +432,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
             Timestamp = reader.GetDateTime(20)
         };
 
-    // ==========================================================================
-    // Log Messages
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Issue {IssueId} upserted for fingerprint {Fingerprint}")]
@@ -506,13 +446,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
     private partial void LogOwnerAssigned(string issueId, string owner);
 }
 
-// =============================================================================
-// Issue Storage Records
-// =============================================================================
 
-/// <summary>
-///     Storage row for the <c>error_issues</c> table.
-/// </summary>
 public sealed record ErrorIssueRow
 {
     public required string Id { get; init; }
@@ -542,9 +476,6 @@ public sealed record ErrorIssueRow
     public required DateTime UpdatedAt { get; init; }
 }
 
-/// <summary>
-///     Storage row for the <c>error_issue_events</c> table.
-/// </summary>
 public sealed record ErrorIssueEventRow
 {
     public required string Id { get; init; }
@@ -570,9 +501,6 @@ public sealed record ErrorIssueEventRow
     public required DateTime Timestamp { get; init; }
 }
 
-/// <summary>
-///     Storage row for the <c>error_breadcrumbs</c> table.
-/// </summary>
 public sealed record ErrorBreadcrumbRow
 {
     public required string Id { get; init; }

@@ -2,12 +2,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     HTTP delegating handler that limits concurrent requests to the qyl collector.
-///     DuckDB is single-writer; unbounded concurrency from autonomous agents saturates it.
-///     Excess requests queue on the semaphore. If queued longer than <see cref="s_queueTimeout" />,
-///     the request proceeds anyway to avoid deadlock.
-/// </summary>
 internal sealed class CollectorConcurrencyLimiter : DelegatingHandler, IDisposable
 {
     private const int DefaultMaxConcurrency = 5;

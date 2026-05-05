@@ -1,9 +1,5 @@
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     Builds formatted context blocks from collector data for LLM prompts.
-///     Uses <see cref="CollectorClient" /> instead of direct DuckDB access.
-/// </summary>
 public sealed class ExplorationContextBuilder(CollectorClient collector)
 {
     public const int DefaultMaxStackLength = 800;

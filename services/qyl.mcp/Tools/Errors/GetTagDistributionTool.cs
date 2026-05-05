@@ -6,21 +6,10 @@ using qyl.mcp.Errors;
 
 namespace qyl.mcp.Tools.Errors;
 
-/// <summary>
-///     MCP tool that retrieves the distribution of a tag's values for an error issue.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetTagDistributionTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves occurrence counts and percentages for each value of a specific tag on an error issue.
-    /// </summary>
-    /// <param name="issueId">The error issue ID.</param>
-    /// <param name="tagKey">The tag key to inspect (e.g. "browser", "environment", "url", "os").</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown table with value, count, percentage, and bar chart columns.</returns>
     [QylCapability("error_investigation", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_tag_distribution", Title = "Get Tag Distribution",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]

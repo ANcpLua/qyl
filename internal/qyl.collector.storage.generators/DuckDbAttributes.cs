@@ -1,15 +1,6 @@
-// =============================================================================
-// Qyl.Collector.Storage.Generators - DuckDB Attributes
-// Marks types and properties for DuckDB code generation
-// Owner: Qyl.Collector.Storage.Generators
-// =============================================================================
 
 namespace Qyl.Collector.Storage.Generators;
 
-/// <summary>
-///     Source code for DuckDB attributes emitted via PostInitializationOutput.
-///     These attributes mark types for DuckDB helper generation.
-/// </summary>
 internal static class DuckDbAttributeSource
 {
     public const string Source = """

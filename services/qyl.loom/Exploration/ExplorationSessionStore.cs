@@ -2,11 +2,6 @@ using Qyl.Contracts.Agenting;
 
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     Keeps active exploration sessions and issues continuation tokens
-///     for multi-turn specialist execution. In-memory — persistence via
-///     collector API can be added later.
-/// </summary>
 public sealed class ExplorationSessionStore(TimeProvider timeProvider)
 {
     private readonly ConcurrentDictionary<string, ExplorationSessionState> _sessions = new(StringComparer.Ordinal);

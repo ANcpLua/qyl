@@ -2,13 +2,11 @@ namespace Qyl.Collector.Artifacts;
 
 public static class ArtifactEndpoints
 {
-    /// <summary>URL-safe 12-char artifact id (72 bits of entropy).</summary>
     private static string NewArtifactId() => Base64Url.NewRandom(9);
 
     [QylMapEndpoints]
     public static void MapArtifactEndpoints(this WebApplication app)
     {
-        // ── REST API ──────────────────────────────────────────────────
 
         app.MapPost("/api/v1/artifacts", static async (
             ArtifactCreateRequest request,
@@ -50,7 +48,6 @@ public static class ArtifactEndpoints
             return TypedResults.Ok(ToResponse(row));
         });
 
-        // ── Short URL ─────────────────────────────────────────────────
 
         app.MapGet("/a/{id}", static async Task<IResult> (
             string id, DuckDbStore store, HttpContext ctx, CancellationToken ct) =>
@@ -61,12 +58,10 @@ public static class ArtifactEndpoints
 
             ctx.Response.Headers.XContentTypeOptions = "nosniff";
 
-            // If the client accepts JSON, return structured response
             var accept = ctx.Request.Headers.Accept.ToString();
             if (accept.ContainsIgnoreCase("application/json"))
                 return TypedResults.Ok(ToResponse(row));
 
-            // Only serve safe content types inline — force text/plain for anything executable
             var safeType = SanitizeContentType(row.ContentType);
             return TypedResults.Content(row.Content, safeType);
         });
@@ -75,10 +70,6 @@ public static class ArtifactEndpoints
     private static bool IsExpired(ArtifactRow row) =>
         row.ExpiresAt is { } expiresAt && expiresAt < TimeProvider.System.GetUtcNow().UtcDateTime;
 
-    /// <summary>
-    ///     Allowlist of content types safe to serve inline. Everything else becomes text/plain
-    ///     to prevent stored XSS via attacker-controlled content_type (e.g. text/html, image/svg+xml).
-    /// </summary>
     private static string SanitizeContentType(string contentType) =>
         contentType switch
         {
@@ -102,9 +93,6 @@ public static class ArtifactEndpoints
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// DTOs
-// ═══════════════════════════════════════════════════════════════════════
 
 public sealed record ArtifactCreateRequest(
     [property: JsonPropertyName("content")]

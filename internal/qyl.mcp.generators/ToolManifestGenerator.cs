@@ -5,10 +5,6 @@ using qyl.mcp.generators.Emitters;
 
 namespace qyl.mcp.generators;
 
-/// <summary>
-///     Discovers [McpServerToolType] classes and their [McpServerTool] methods at compile time.
-///     Emits QylToolManifest with both a Type[] array and an AOT-safe CreateTools factory.
-/// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class ToolManifestGenerator : IIncrementalGenerator
 {

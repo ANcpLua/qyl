@@ -1,25 +1,10 @@
-// =============================================================================
-// AUTO-GENERATED FILE - DO NOT EDIT
-// =============================================================================
-//     Source:    core/specs/intelligence/seed/strategies.tsp
-//     Spec:     specs/telemetry-intelligence.md §5.3
-//     Strategies: 5 v1 seed investigation strategies (4 infra + 1 agent behavioral)
-// =============================================================================
 
 namespace Qyl.Contracts.Intelligence;
 
-/// <summary>
-///     Static registry of all v1 seed investigation strategies.
-///     Compile-time collections — no file I/O, no deserialization, no reflection.
-/// </summary>
 public static class InvestigationStrategies
 {
     public static readonly IReadOnlyList<InvestigationStrategy> All =
     [
-        // -----------------------------------------------------------------
-        // investigate_error_issue — 6 steps
-        // Triggered by any error category pattern
-        // -----------------------------------------------------------------
         new InvestigationStrategy
         {
             Id = "investigate_error_issue",
@@ -65,10 +50,6 @@ public static class InvestigationStrategies
             ],
         },
 
-        // -----------------------------------------------------------------
-        // investigate_latency — 5 steps
-        // Triggered by any latency category pattern
-        // -----------------------------------------------------------------
         new InvestigationStrategy
         {
             Id = "investigate_latency",
@@ -108,10 +89,6 @@ public static class InvestigationStrategies
             ],
         },
 
-        // -----------------------------------------------------------------
-        // investigate_cost — 5 steps
-        // Triggered by any cost category pattern
-        // -----------------------------------------------------------------
         new InvestigationStrategy
         {
             Id = "investigate_cost",
@@ -151,10 +128,6 @@ public static class InvestigationStrategies
             ],
         },
 
-        // -----------------------------------------------------------------
-        // investigate_genai — 5 steps
-        // Triggered by any genai category pattern
-        // -----------------------------------------------------------------
         new InvestigationStrategy
         {
             Id = "investigate_genai",
@@ -193,10 +166,6 @@ public static class InvestigationStrategies
                 },
             ],
         },
-        // -----------------------------------------------------------------
-        // investigate_agent_failure — 6 steps
-        // Triggered by any agent category pattern (AgentRx taxonomy)
-        // -----------------------------------------------------------------
         new InvestigationStrategy
         {
             Id = "investigate_agent_failure",

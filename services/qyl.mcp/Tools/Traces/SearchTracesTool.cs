@@ -7,10 +7,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Traces;
 
-/// <summary>
-///     Searches distributed traces by query, returning a paginated list with duration, status, and root span.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SearchTracesTool(HttpClient client)

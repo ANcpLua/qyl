@@ -24,7 +24,6 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         @"\b(succeeded|successfully|success|resolved|connected|refreshed|recovered|completed)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Order matters: UUID before generic hex.
     private static readonly (Regex Pattern, string Replacement)[] s_patternReplacements =
     [
         (new Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
