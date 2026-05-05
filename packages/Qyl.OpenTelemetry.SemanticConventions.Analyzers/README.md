@@ -10,7 +10,7 @@ conventions v1.40.0 in C# code.
 | `QYLSC0001`–`QYLSC0245` | Warning | Each deprecated OTel attribute / metric / event / entity / enum member gets its own rule id so severity can be tuned per entry via `.editorconfig`. |
 | `QYLSC002`              | Info    | Magic-string attribute id — suggests replacing with a typed constant.                                                                               |
 | `QYLSC003A`             | Warning | String literal that looks OTel-namespaced but isn't in the registry; offers a Levenshtein suggestion.                                               |
-| `QYLSC003B`             | Warning | Unregistered `qyl.*` attribute — must be registered under `eng/semconv/qyl/model`.                                                                  |
+| `QYLSC003B`             | Warning | Unregistered `qyl.*` attribute — must be registered under `eng/semconv/model/qyl`.                                                                  |
 
 ## Code fixes
 
