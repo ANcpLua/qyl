@@ -1,32 +1,18 @@
-# =============================================================================
-# Auto-merge for Trusted PRs
-# -----------------------------------------------------------------------------
-# Tiers:
-#   1a. Dependabot: Auto-approve + auto-merge patch/minor/ major verify by subagent OR Claude review major merge it
-#   1b. Renovate: Auto-approve + auto-merge
-#   2.  CodeRabbit approved: Auto-merge when review has been implmement
-#   3.  Governance bot: Auto-merge action version governance PRs
-#   4.  Owner PRs: Auto-merge when CI passes if blocked to ratelimiting rely on reviews
+# Common tiers (Dependabot, Renovate, AI Agent, CodeRabbit, Owner) delegate
+# to the reusable workflow at ANcpLua/renovate-config. The Governance bot
+# tier is qyl-specific and stays local.
 #
-# Auto-approval of agent-authored fix PRs (copilot/, jules/, claude/) was
-# intentionally removed: the workflow approving its own agent's output is a
-# rubber-stamp with no quality signal. Real signal comes from independent
-# reviewers reaching "approved" review state after their findings are
-# addressed (Tier 2). The intended loop:
-#   reviewer agent posts findings -> autofix workflow applies them ->
-#   re-review on push -> reviewer approves -> Tier 2 auto-merges. 
-#
-# Uses pull_request_target for security (runs in base branch context).
-# All merges wait for required status checks before completing.
-# =============================================================================
+# Required secrets:
+#   AUTOMERGE_APP_ID, AUTOMERGE_APP_PRIVATE_KEY
+# See https://github.com/ANcpLua/renovate-config#auto-merge-reusable-workflow
 
 name: Auto-merge
 
 on:
   pull_request_target:
-    types: [ opened, synchronize, reopened, ready_for_review ]
+    types: [opened, synchronize, reopened, ready_for_review]
   pull_request_review:
-    types: [ submitted ]
+    types: [submitted]
 
 permissions:
   contents: write
@@ -37,40 +23,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  renovate-auto-merge:
-    name: Renovate auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'renovate[bot]' &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Auto-approve Renovate PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL"
-
-      - name: Enable auto-merge for Renovate
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  coderabbit-auto-merge:
-    name: CodeRabbit auto-merge
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request_review' &&
-      github.event.review.state == 'approved' &&
-      github.event.review.user.login == 'coderabbitai[bot]'
-
-    steps:
-      - name: Enable auto-merge for CodeRabbit approved PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
+  auto-merge:
+    uses: ANcpLua/renovate-config/.github/workflows/auto-merge-reusable.yml@main
+    secrets: inherit
 
   governance-auto-merge:
     name: Governance bot auto-merge
@@ -79,12 +34,17 @@ jobs:
       github.event.pull_request.user.login == 'github-actions[bot]' &&
       github.event.pull_request.head.ref == 'chore/action-governance' &&
       github.event.pull_request.draft == false
-
     steps:
+      - uses: actions/create-github-app-token@67e27a7eb7db372a1c61a7f9bdab8699e9ee57f7 # v2.1.4
+        id: app-token
+        with:
+          app-id: ${{ secrets.AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.AUTOMERGE_APP_PRIVATE_KEY }}
+
       - name: Verify only .github files changed
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
           files=$(gh pr diff "$PR_URL" --name-only)
@@ -97,7 +57,7 @@ jobs:
       - name: Auto-approve governance PR
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           gh pr review --approve "$PR_URL" \
             --body "✅ Auto-approved: action governance update (scoped to .github/)"
@@ -105,19 +65,5 @@ jobs:
       - name: Enable auto-merge
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  owner-auto-merge:
-    name: Owner auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == github.event.repository.owner.login &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Enable auto-merge for owner PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge --auto --squash "$PR_URL"

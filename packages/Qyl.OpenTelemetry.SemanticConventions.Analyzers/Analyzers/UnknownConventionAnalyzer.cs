@@ -27,7 +27,7 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor s_qylUnregistered = new(
         QylUnregisteredId,
         "Unregistered qyl attribute",
-        "Unregistered qyl attribute '{0}'. Add it to eng/semconv/qyl/model/ before shipping.",
+        "Unregistered qyl attribute '{0}'. Add it to eng/semconv/model/qyl/ before shipping.",
         "QylSemanticConventions",
         DiagnosticSeverity.Warning,
         true,
