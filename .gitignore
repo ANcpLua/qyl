@@ -1,6 +1,8 @@
 # Build outputs (UseArtifactsOutput centralizes to artifacts/)
 artifacts/
 !src/**/Artifacts/
+# Generated semconv staging (Weaver intermediate; final outputs ship via install -m 0644)
+Artifacts/semconv/
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
