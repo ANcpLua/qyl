@@ -2,11 +2,11 @@
 # Auto-merge for Trusted PRs
 # -----------------------------------------------------------------------------
 # Tiers:
-#   1a. Dependabot: Auto-approve + auto-merge patch/minor; Claude review major
+#   1a. Dependabot: Auto-approve + auto-merge patch/minor/ major verify by subagent OR Claude review major merge it
 #   1b. Renovate: Auto-approve + auto-merge
-#   2.  CodeRabbit approved: Auto-merge when CI passes
+#   2.  CodeRabbit approved: Auto-merge when review has been implmement
 #   3.  Governance bot: Auto-merge action version governance PRs
-#   4.  Owner PRs: Auto-merge when CI passes
+#   4.  Owner PRs: Auto-merge when CI passes if blocked to ratelimiting rely on reviews
 #
 # Auto-approval of agent-authored fix PRs (copilot/, jules/, claude/) was
 # intentionally removed: the workflow approving its own agent's output is a
@@ -14,7 +14,7 @@
 # reviewers reaching "approved" review state after their findings are
 # addressed (Tier 2). The intended loop:
 #   reviewer agent posts findings -> autofix workflow applies them ->
-#   re-review on push -> reviewer approves -> Tier 2 auto-merges.
+#   re-review on push -> reviewer approves -> Tier 2 auto-merges. 
 #
 # Uses pull_request_target for security (runs in base branch context).
 # All merges wait for required status checks before completing.
@@ -37,67 +37,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dependabot-auto-merge:
-    name: Dependabot auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Fetch Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Evaluate auto-merge eligibility
-        id: eligibility
-        env:
-          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
-        run: |
-          case "$UPDATE_TYPE" in
-            version-update:semver-patch|version-update:semver-minor)
-              echo "eligible=true" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "eligible=false" >> "$GITHUB_OUTPUT"
-              ;;
-          esac
-
-      - name: Auto-approve patch and minor updates
-        if: steps.eligibility.outputs.eligible == 'true'
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL"
-
-      - name: Enable auto-merge for patch and minor
-        if: steps.eligibility.outputs.eligible == 'true'
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-      - name: Request Claude review for major updates
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEP_NAMES: ${{ steps.metadata.outputs.dependency-names }}
-          PREV_VERSION: ${{ steps.metadata.outputs.previous-version }}
-          NEW_VERSION: ${{ steps.metadata.outputs.new-version }}
-        run: |
-          gh pr comment "$PR_URL" --body "## ⚠️ Major Version Update
-
-          @claude Please review this major version update for breaking changes and merge if safe.
-
-          | Dependency | Update |
-          |------------|--------|
-          | \`$DEP_NAMES\` | \`$PREV_VERSION\` → \`$NEW_VERSION\` |
-
-          Check the changelog and verify compatibility."
-
   renovate-auto-merge:
     name: Renovate auto-merge
     runs-on: ubuntu-latest

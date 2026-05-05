@@ -17,7 +17,7 @@
     "@typespec/compiler": "1.11.0",
     "@typespec/events": "0.81.0",
     "@typespec/http": "1.11.0",
-    "@typespec/http-server-csharp": "^0.58.0-alpha.27",
+    "@typespec/http-server-csharp": "0.58.0-alpha.27",
     "@typespec/json-schema": "1.11.0",
     "@typespec/openapi": "1.11.0",
     "@typespec/openapi3": "1.11.0",
@@ -25,7 +25,7 @@
     "@typespec/sse": "0.81.0",
     "@typespec/streams": "0.81.0",
     "@typespec/versioning": "0.81.0",
-    "openapi-typescript": "^7.10.1"
+    "openapi-typescript": "7.13.0"
   },
   "dependencies": {
     "@azure-tools/typespec-azure-core": "^0.67.0",
