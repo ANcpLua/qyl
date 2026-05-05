@@ -224,7 +224,7 @@ public static class EmbeddedDashboardExtensions
     ///     Checks if the assembly contains embedded dashboard resources.
     ///     Used to decide between embedded and physical file serving at startup.
     /// </summary>
-    private static readonly bool SCachedHasEmbeddedDashboard =
+    private static readonly bool s_cachedHasEmbeddedDashboard =
         typeof(EmbeddedDashboardMiddleware).Assembly
             .GetManifestResourceNames()
             .Any(static n => n.StartsWithOrdinal("Qyl.Collector.wwwroot."));
@@ -238,5 +238,5 @@ public static class EmbeddedDashboardExtensions
         string basePath = "") =>
         app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
 
-    public static bool HasEmbeddedDashboard() => SCachedHasEmbeddedDashboard;
+    public static bool HasEmbeddedDashboard() => s_cachedHasEmbeddedDashboard;
 }

@@ -31,13 +31,13 @@ internal sealed class NullKeycloakJwksValidator : IKeycloakJwksValidator
 
 /// <summary>
 ///     Validates JWTs against Keycloak's JWKS endpoint.
-///     Signing keys are cached for <see cref="KeysCacheDuration" /> and refreshed automatically
+///     Signing keys are cached for <see cref="s_keysCacheDuration" /> and refreshed automatically
 ///     on <see cref="SecurityTokenSignatureKeyNotFoundException" />.
 /// </summary>
 internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, IDisposable
 {
-    private static readonly JsonWebTokenHandler TokenHandler = new();
-    private static readonly TimeSpan KeysCacheDuration = TimeSpan.FromHours(1);
+    private static readonly JsonWebTokenHandler s_tokenHandler = new();
+    private static readonly TimeSpan s_keysCacheDuration = TimeSpan.FromHours(1);
     private readonly string? _audience;
 
     private readonly string _authority;
@@ -121,7 +121,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
             JsonWebKeySet jwks = new(json);
             var keys = (IReadOnlyList<SecurityKey>)jwks.GetSigningKeys();
             _cachedKeys = keys;
-            _keysExpiry = TimeProvider.System.GetUtcNow().Add(KeysCacheDuration);
+            _keysExpiry = TimeProvider.System.GetUtcNow().Add(s_keysCacheDuration);
             LogKeysRefreshed(keys.Count);
             return keys;
         }
@@ -153,7 +153,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
             IssuerSigningKeys = keys,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
-        return TokenHandler.ValidateTokenAsync(token, parameters);
+        return s_tokenHandler.ValidateTokenAsync(token, parameters);
     }
 
     private static FrozenDictionary<string, string> ExtractClaims(TokenValidationResult result)

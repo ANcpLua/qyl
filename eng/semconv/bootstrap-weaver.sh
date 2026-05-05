@@ -23,7 +23,7 @@ WEAVER_DIR="${TOOLS_DIR}/weaver"
 UPSTREAM_DIR="${TOOLS_DIR}/semconv-upstream"
 WEAVER_YAML="${REPO_ROOT}/eng/semconv/templates/registry/qyl/weaver.yaml"
 
-WEAVER_VERSION="v0.22.1"
+WEAVER_VERSION="v0.23.0"
 SEMCONV_VERSION="$(sed -n 's/^[[:space:]]*semconv_version:[[:space:]]*"\(.*\)"/\1/p' "${WEAVER_YAML}")"
 
 if [ -z "${SEMCONV_VERSION}" ]; then

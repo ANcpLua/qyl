@@ -14,7 +14,7 @@ internal static class QylServiceAnalyzer
 
     // Keep in sync with QylLifetime enum. Uses string names so the emitter can produce the
     // exact ServiceCollection* extension-method call.
-    private static readonly string[] SLifetimeNames = ["Singleton", "Scoped", "Transient"];
+    private static readonly string[] s_lifetimeNames = ["Singleton", "Scoped", "Transient"];
 
     public static bool CouldBeQylServiceClass(SyntaxNode node, CancellationToken _) =>
         node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
@@ -38,7 +38,7 @@ internal static class QylServiceAnalyzer
             return null;
 
         var lifetimeIndex = attr.ConstructorArguments is [{ Value: int i }, ..] ? i : 0;
-        if (lifetimeIndex < 0 || lifetimeIndex >= SLifetimeNames.Length)
+        if (lifetimeIndex < 0 || lifetimeIndex >= s_lifetimeNames.Length)
             lifetimeIndex = 0;
 
         string? interfaceFqn = null;
@@ -47,7 +47,7 @@ internal static class QylServiceAnalyzer
 
         return new QylServiceDefinition(
             classSymbol.GetFullyQualifiedName(),
-            SLifetimeNames[lifetimeIndex],
+            s_lifetimeNames[lifetimeIndex],
             interfaceFqn,
             IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }

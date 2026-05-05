@@ -34,7 +34,7 @@ public static class GlobalExceptionHooks
 {
     private static int s_registered;
 
-    private static readonly ActivitySource Source = new("Qyl.Instrumentation.ErrorCapture");
+    private static readonly ActivitySource s_source = new("Qyl.Instrumentation.ErrorCapture");
 
     public static void Register(ILoggerFactory loggerFactory)
     {
@@ -63,7 +63,7 @@ public static class GlobalExceptionHooks
         var activity = Activity.Current;
         if (activity is null)
         {
-            if (Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not
+            if (s_source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not
                 { } fallback) return;
             TagActivity(fallback, ex, source);
             return;

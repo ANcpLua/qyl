@@ -10,7 +10,7 @@ namespace qyl.mcp.Scoping;
 /// </summary>
 internal static class ConstraintInjector
 {
-    private static readonly FrozenDictionary<string, Func<QylScope, string?>> InjectableParameters =
+    private static readonly FrozenDictionary<string, Func<QylScope, string?>> s_injectableParameters =
         new Dictionary<string, Func<QylScope, string?>>(StringComparer.OrdinalIgnoreCase)
         {
             ["serviceName"] = static s => s.ServiceName, ["sessionId"] = static s => s.SessionId
@@ -25,7 +25,7 @@ internal static class ConstraintInjector
 
         var dict = arguments ?? new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (paramName, accessor) in InjectableParameters)
+        foreach (var (paramName, accessor) in s_injectableParameters)
         {
             var value = accessor(scope);
             if (value is null)

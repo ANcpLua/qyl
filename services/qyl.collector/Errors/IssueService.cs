@@ -24,10 +24,10 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
     // Valid Statuses and Transitions
     // ==========================================================================
 
-    private static readonly FrozenSet<string> ValidStatuses = FrozenSet.ToFrozenSet(
+    private static readonly FrozenSet<string> s_validStatuses = FrozenSet.ToFrozenSet(
         ["unresolved", "acknowledged", "investigating", "in_progress", "resolved", "ignored", "regressed"]);
 
-    private static readonly FrozenDictionary<string, string[]> AllowedTransitions =
+    private static readonly FrozenDictionary<string, string[]> s_allowedTransitions =
         new Dictionary<string, string[]>
         {
             ["unresolved"] = ["acknowledged", "investigating", "resolved", "ignored"],
@@ -232,13 +232,13 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         CancellationToken ct = default)
     {
         newStatus = newStatus.Trim().ToLowerInvariant();
-        if (!ValidStatuses.Contains(newStatus))
+        if (!s_validStatuses.Contains(newStatus))
             throw new ArgumentException($"Invalid status: '{newStatus}'", nameof(newStatus));
 
         if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is not { } existing)
             return false;
 
-        if (!AllowedTransitions.TryGetValue(existing.Status, out var allowed) ||
+        if (!s_allowedTransitions.TryGetValue(existing.Status, out var allowed) ||
             !allowed.AsSpan().Contains(newStatus))
         {
             throw new InvalidOperationException(

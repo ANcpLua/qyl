@@ -15,7 +15,7 @@ namespace Qyl.Collector.Ingestion;
 /// </summary>
 public static class SchemaNormalizer
 {
-    private static readonly FrozenDictionary<string, string> DeprecatedMappings =
+    private static readonly FrozenDictionary<string, string> s_deprecatedMappings =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // GenAI deprecated (pre-1.38)
@@ -49,7 +49,7 @@ public static class SchemaNormalizer
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Normalize(string attributeName) =>
-        DeprecatedMappings.GetValueOrDefault(attributeName, attributeName);
+        s_deprecatedMappings.GetValueOrDefault(attributeName, attributeName);
 }
 
 // =============================================================================

@@ -48,17 +48,17 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
     private const string QylTelemetryExtensionsMetadataName =
         "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
 
-    private static readonly string[] SAgentTypeMetadataNames =
+    private static readonly string[] s_agentTypeMetadataNames =
     [
         "Microsoft.Agents.AI.AIAgent",
         "Microsoft.Agents.AI.ChatClientAgent",
         "Microsoft.Agents.AI.DelegatingAIAgent"
     ];
 
-    private static readonly string[] STargetMethodNames =
+    private static readonly string[] s_targetMethodNames =
         ["RunAsync", "RunStreamingAsync", "InvokeAsync", "CreateSessionAsync"];
 
-    private static readonly DiagnosticDescriptor SRule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         DiagnosticId,
         "Agent invoked without composition-root agent-layer telemetry wrapping",
         "Agent '{0}' is invoked without composition-root telemetry. " +
@@ -68,7 +68,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -78,7 +78,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         {
             var compilation = start.Compilation;
 
-            var agents = SAgentTypeMetadataNames
+            var agents = s_agentTypeMetadataNames
                 .Select(compilation.GetTypeByMetadataName)
                 .OfType<INamedTypeSymbol>()
                 .ToImmutableArray();
@@ -94,7 +94,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
             // resolve across every agent type, bail entirely. A partial green state from a
             // silently-shrunk set is worse than no analyzer.
             var targetMethodsBuilder = ImmutableArray.CreateBuilder<IMethodSymbol>();
-            foreach (var name in STargetMethodNames)
+            foreach (var name in s_targetMethodNames)
             {
                 var resolved = agents
                     .SelectMany(agent => agent.GetMembers(name))
@@ -157,7 +157,7 @@ public sealed class AgentCompositionRootAnalyzer : DiagnosticAnalyzer
         if (!TryUnwrappedName(invocation.Instance, buildMethods, asAIAgentMethods, telemetryMethods, out var name))
             return;
 
-        operationContext.ReportDiagnostic(Diagnostic.Create(SRule, invocation.Syntax.GetLocation(), name));
+        operationContext.ReportDiagnostic(Diagnostic.Create(s_rule, invocation.Syntax.GetLocation(), name));
     }
 
     private static bool IsAgentType(ITypeSymbol type, ImmutableArray<INamedTypeSymbol> agents)

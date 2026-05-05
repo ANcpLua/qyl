@@ -15,7 +15,7 @@ namespace qyl.mcp.Tools.Triage;
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SnoozeErrorTool(HttpClient client)
 {
-    private static readonly HashSet<string> ValidDurations = ["1h", "6h", "24h", "7d", "30d"];
+    private static readonly HashSet<string> s_validDurations = ["1h", "6h", "24h", "7d", "30d"];
 
     [McpServerTool(
         Name = "snooze_error",
@@ -29,7 +29,7 @@ public sealed partial class SnoozeErrorTool(HttpClient client)
         string? reason = null,
         CancellationToken ct = default)
     {
-        if (!ValidDurations.Contains(duration))
+        if (!s_validDurations.Contains(duration))
             throw new QylQueryException($"Invalid duration '{duration}'. Must be one of: 1h, 6h, 24h, 7d, 30d.");
 
         var body = new SnoozeErrorRequestDto(duration, reason);

@@ -2,7 +2,7 @@ namespace Qyl.Collector.Errors;
 
 public static class ErrorEndpoints
 {
-    private static readonly HashSet<string> AllowedStatuses = ["new", "acknowledged", "resolved", "ignored"];
+    private static readonly HashSet<string> s_allowedStatuses = ["new", "acknowledged", "resolved", "ignored"];
 
     [QylMapEndpoints]
     public static void MapErrorEndpoints(this WebApplication app)
@@ -33,11 +33,11 @@ public static class ErrorEndpoints
             string errorId, ErrorStatusUpdate update, DuckDbStore store, CancellationToken ct) =>
         {
             var status = update.Status?.Trim().ToLowerInvariant();
-            if (string.IsNullOrEmpty(status) || !AllowedStatuses.Contains(status))
+            if (string.IsNullOrEmpty(status) || !s_allowedStatuses.Contains(status))
             {
                 return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
-                    ["status"] = [$"Must be one of: {string.Join(", ", AllowedStatuses)}"]
+                    ["status"] = [$"Must be one of: {string.Join(", ", s_allowedStatuses)}"]
                 });
             }
 

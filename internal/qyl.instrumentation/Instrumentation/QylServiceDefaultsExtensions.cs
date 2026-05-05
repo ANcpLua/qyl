@@ -48,7 +48,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// </remarks>
 public static class QylServiceDefaultsExtensions
 {
-    private static readonly string[] SGenAiActivitySources =
+    private static readonly string[] s_genAiActivitySources =
     [
         ActivitySources.GenAi,
         "OpenAI.*",
@@ -59,7 +59,7 @@ public static class QylServiceDefaultsExtensions
         "Experimental.Microsoft.Agents.AI"
     ];
 
-    private static readonly string[] SGenAiMeterNames =
+    private static readonly string[] s_genAiMeterNames =
     [
         ActivitySources.GenAi,
         "Microsoft.Extensions.AI",
@@ -197,7 +197,7 @@ public static class QylServiceDefaultsExtensions
                     .AddRuntimeInstrumentation();
 
                 // GenAI meters (qyl + SDK providers)
-                foreach (var meter in SGenAiMeterNames)
+                foreach (var meter in s_genAiMeterNames)
                     metrics.AddMeter(meter);
 
                 // Db meter
@@ -239,7 +239,7 @@ public static class QylServiceDefaultsExtensions
                         .AddHttpClientInstrumentation();
 
                     // GenAI activity sources (qyl + SDK providers)
-                    foreach (var source in SGenAiActivitySources)
+                    foreach (var source in s_genAiActivitySources)
                         tracing.AddSource(source);
 
                     // Db + traced + agent + MCP instrumentation

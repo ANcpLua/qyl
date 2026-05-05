@@ -124,9 +124,9 @@ internal static class UnifiedQueryEngine
                                             """;
 
     /// <summary>Default time window when no explicit range is specified (24 hours).</summary>
-    private static readonly TimeSpan DefaultWindow = TimeSpan.FromHours(24);
+    private static readonly TimeSpan s_defaultWindow = TimeSpan.FromHours(24);
 
-    private static readonly FrozenSet<string> ValidEntityTypes = FrozenSet.ToFrozenSet(
+    private static readonly FrozenSet<string> s_validEntityTypes = FrozenSet.ToFrozenSet(
         ["spans", "logs", "errors", "agent_runs", "workflows"]);
 
     /// <summary>
@@ -180,24 +180,24 @@ internal static class UnifiedQueryEngine
     private static HashSet<string> ResolveEntityTypes(string[]? requested)
     {
         if (requested is null or { Length: 0 })
-            return [.. ValidEntityTypes];
+            return [.. s_validEntityTypes];
 
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var t in requested)
         {
             var lower = t.ToLowerInvariant();
-            if (ValidEntityTypes.Contains(lower))
+            if (s_validEntityTypes.Contains(lower))
                 result.Add(lower);
         }
 
-        return result.Count > 0 ? result : [.. ValidEntityTypes];
+        return result.Count > 0 ? result : [.. s_validEntityTypes];
     }
 
     private static (ulong Start, ulong End) ResolveTimeWindow(DateTime? start, DateTime? end)
     {
         var now = TimeProvider.System.GetUtcNow();
         var endDto = end.HasValue ? new DateTimeOffset(end.Value, TimeSpan.Zero) : now;
-        var startDto = start.HasValue ? new DateTimeOffset(start.Value, TimeSpan.Zero) : endDto - DefaultWindow;
+        var startDto = start.HasValue ? new DateTimeOffset(start.Value, TimeSpan.Zero) : endDto - s_defaultWindow;
 
         return (TimeConversions.ToUnixNanoUnsigned(startDto), TimeConversions.ToUnixNanoUnsigned(endDto));
     }

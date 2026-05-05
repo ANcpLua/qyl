@@ -15,7 +15,7 @@ namespace Qyl.Collector.Ingestion;
 /// </summary>
 public static class OtlpConverter
 {
-    private static readonly LogSourceEnricher SLogSourceEnricher =
+    private static readonly LogSourceEnricher s_logSourceEnricher =
         new(new SourceLocationCache(), new PdbSourceResolver());
 
     #region Proto Conversion (gRPC endpoint)
@@ -596,7 +596,7 @@ public static class OtlpConverter
 
         var severityNumber = log.SeverityNumber ?? 0;
         var severityText = log.SeverityText ?? SeverityNumberToText(severityNumber);
-        var sourceLocation = SLogSourceEnricher.Enrich(log);
+        var sourceLocation = s_logSourceEnricher.Enrich(log);
 
         return new LogStorageRow
         {

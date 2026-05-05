@@ -22,7 +22,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
     private const string InstructionsMember = "Instructions";
     private const string InstructionsParameter = "instructions";
 
-    private static readonly DiagnosticDescriptor SRule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         DiagnosticId,
         "Inline system-prompt literal",
         "System prompt literals must load from `.md` files with `ConcurrentDictionary<string, string>` " +
@@ -31,7 +31,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [SRule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -82,7 +82,7 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         if (text.Length < LengthThreshold && !text.Contains('\n', StringComparison.Ordinal))
             return;
 
-        context.ReportDiagnostic(Diagnostic.Create(SRule, value.Syntax.GetLocation()));
+        context.ReportDiagnostic(Diagnostic.Create(s_rule, value.Syntax.GetLocation()));
     }
 
     private static bool IsExempt(string path)

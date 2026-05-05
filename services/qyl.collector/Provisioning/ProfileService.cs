@@ -7,7 +7,7 @@ namespace Qyl.Collector.Provisioning;
 [QylService(QylLifetime.Singleton)]
 public sealed partial class ProfileService(DuckDbStore store, ILogger<ProfileService> logger)
 {
-    private static readonly FrozenDictionary<string, InstrumentationProfile> BuiltInProfiles =
+    private static readonly FrozenDictionary<string, InstrumentationProfile> s_builtInProfiles =
         new Dictionary<string, InstrumentationProfile>
         {
             ["full"] = new("full", "Full Observability",
@@ -29,7 +29,7 @@ public sealed partial class ProfileService(DuckDbStore store, ILogger<ProfileSer
     /// </summary>
     public ValueTask<IReadOnlyList<InstrumentationProfile>> GetProfilesAsync(CancellationToken _ = default)
     {
-        IReadOnlyList<InstrumentationProfile> profiles = [.. BuiltInProfiles.Values];
+        IReadOnlyList<InstrumentationProfile> profiles = [.. s_builtInProfiles.Values];
         return ValueTask.FromResult(profiles);
     }
 
@@ -40,7 +40,7 @@ public sealed partial class ProfileService(DuckDbStore store, ILogger<ProfileSer
         ConfigSelectionRequest request,
         CancellationToken ct = default)
     {
-        if (!BuiltInProfiles.ContainsKey(request.ProfileId))
+        if (!s_builtInProfiles.ContainsKey(request.ProfileId))
             throw new ArgumentException($"Unknown profile: {request.ProfileId}");
 
         await store.UpsertConfigSelectionAsync(request.WorkspaceId, request.ProfileId, request.CustomOverrides, ct)

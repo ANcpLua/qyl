@@ -4,12 +4,12 @@ namespace Qyl.Collector.Mapping;
 
 public static class SpanMapper
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private static readonly string[] SpanKindNames =
+    private static readonly string[] s_spanKindNames =
         ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
     public static SpanRecord ToRecord(SpanStorageRow row) =>
@@ -98,7 +98,7 @@ public static class SpanMapper
     ];
 
     private static string MapSpanKind(byte kind) =>
-        kind < SpanKindNames.Length ? SpanKindNames[kind] : "unspecified";
+        kind < s_spanKindNames.Length ? s_spanKindNames[kind] : "unspecified";
 
     private static string MapStatus(byte statusCode) =>
         statusCode switch
@@ -118,7 +118,7 @@ public static class SpanMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, JsonOptions) ?? [];
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, s_jsonOptions) ?? [];
         }
         catch
         {
@@ -135,7 +135,7 @@ public static class SpanMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions);
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json, s_jsonOptions);
         }
         catch
         {

@@ -9,7 +9,7 @@ internal static class QueryEndpoints
     private const int DefaultLimit = 1000;
     private const int MaxLimit = 10_000;
 
-    private static readonly FrozenSet<string> BannedTokens = new[]
+    private static readonly FrozenSet<string> s_bannedTokens = new[]
     {
         "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "ATTACH", "DETACH", "COPY"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
@@ -44,7 +44,7 @@ internal static class QueryEndpoints
         var tokens = upper.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         foreach (var token in tokens)
         {
-            if (BannedTokens.Contains(token))
+            if (s_bannedTokens.Contains(token))
             {
                 return TypedResults.BadRequest(new { error = $"Forbidden keyword detected: {token}" });
             }

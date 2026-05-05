@@ -30,28 +30,28 @@ public static class ActivitySources
     public const string Mcp = "qyl.mcp";
 
     /// <summary>Assembly containing the instrumentation.</summary>
-    internal static readonly Assembly Assembly = typeof(ActivitySources).Assembly;
+    internal static readonly Assembly s_assembly = typeof(ActivitySources).Assembly;
 
     /// <summary>Package version extracted from assembly metadata, with git SHA stripped for stable span tags.</summary>
-    internal static readonly string Version = GetVersion(Assembly);
+    internal static readonly string s_version = GetVersion(s_assembly);
 
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
-    public static ActivitySource GenAiSource => field ??= new ActivitySource(GenAi, Version);
+    public static ActivitySource GenAiSource => field ??= new ActivitySource(GenAi, s_version);
 
     /// <summary>ActivitySource for database instrumentation.</summary>
-    public static ActivitySource DbSource => field ??= new ActivitySource(Db, Version);
+    public static ActivitySource DbSource => field ??= new ActivitySource(Db, s_version);
 
     /// <summary>ActivitySource for agent instrumentation.</summary>
-    public static ActivitySource AgentSource => field ??= new ActivitySource(Agent, Version);
+    public static ActivitySource AgentSource => field ??= new ActivitySource(Agent, s_version);
 
     /// <summary>ActivitySource for MCP protocol instrumentation.</summary>
-    public static ActivitySource McpSource => field ??= new ActivitySource(Mcp, Version);
+    public static ActivitySource McpSource => field ??= new ActivitySource(Mcp, s_version);
 
     /// <summary>Meter for GenAI metrics.</summary>
-    public static Meter GenAiMeter => field ??= new Meter(GenAi, Version);
+    public static Meter GenAiMeter => field ??= new Meter(GenAi, s_version);
 
     /// <summary>Meter for agent metrics.</summary>
-    public static Meter AgentMeter => field ??= new Meter(Agent, Version);
+    public static Meter AgentMeter => field ??= new Meter(Agent, s_version);
 
     private static string GetVersion(Assembly assembly)
     {

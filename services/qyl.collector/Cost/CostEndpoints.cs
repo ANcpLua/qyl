@@ -2,11 +2,11 @@ namespace Qyl.Collector.Cost;
 
 internal static class CostEndpoints
 {
-    private static readonly FrozenSet<string> ValidGroupBy = FrozenSet.Create(
+    private static readonly FrozenSet<string> s_validGroupBy = FrozenSet.Create(
         StringComparer.Ordinal, "session_id, service_name", "service_name",
         "gen_ai_provider_name, gen_ai_request_model");
 
-    private static readonly FrozenSet<string> ValidTruncInterval = FrozenSet.Create(
+    private static readonly FrozenSet<string> s_validTruncInterval = FrozenSet.Create(
         StringComparer.Ordinal, "day", "hour");
 
     [QylMapEndpoints]
@@ -40,7 +40,7 @@ internal static class CostEndpoints
         DuckDbStore store, string groupBy, int? limit, int? hours,
         string? providerFilter, CancellationToken ct)
     {
-        var safeGroupBy = SqlBuilder.Whitelisted(groupBy, ValidGroupBy);
+        var safeGroupBy = SqlBuilder.Whitelisted(groupBy, s_validGroupBy);
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 1000);
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
@@ -83,7 +83,7 @@ internal static class CostEndpoints
         DuckDbStore store, string? bucket, int? hours,
         string? service, string? model, CancellationToken ct)
     {
-        var trunc = SqlBuilder.Whitelisted(bucket is "day" ? "day" : "hour", ValidTruncInterval);
+        var trunc = SqlBuilder.Whitelisted(bucket is "day" ? "day" : "hour", s_validTruncInterval);
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 

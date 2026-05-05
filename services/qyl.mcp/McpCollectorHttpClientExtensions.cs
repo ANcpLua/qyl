@@ -11,7 +11,7 @@ namespace qyl.mcp;
 internal static class McpCollectorHttpClientExtensions
 {
     public const string CollectorClientName = "qyl.collector";
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan s_defaultTimeout = TimeSpan.FromSeconds(30);
 
     public static IHttpClientBuilder AddCollectorHttpClient(
         this IServiceCollection services,
@@ -23,7 +23,7 @@ internal static class McpCollectorHttpClientExtensions
             throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be greater than zero.");
         }
 
-        var effectiveTimeout = timeout ?? DefaultTimeout;
+        var effectiveTimeout = timeout ?? s_defaultTimeout;
 
         Guard.NotNullOrWhiteSpace(collectorUrl);
 

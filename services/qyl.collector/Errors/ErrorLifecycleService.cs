@@ -9,7 +9,7 @@ namespace Qyl.Collector.Errors;
 public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<ErrorLifecycleService> logger)
 {
     /// <summary>Valid transitions from each source status.</summary>
-    private static readonly FrozenDictionary<IssueStatus, IssueStatus[]> AllowedTransitions =
+    private static readonly FrozenDictionary<IssueStatus, IssueStatus[]> s_allowedTransitions =
         new Dictionary<IssueStatus, IssueStatus[]>
         {
             [IssueStatus.New] = [IssueStatus.Acknowledged, IssueStatus.Resolved],
@@ -48,7 +48,7 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
     ///     Checks whether a transition from <paramref name="from" /> to <paramref name="to" /> is valid.
     /// </summary>
     public static bool IsTransitionAllowed(IssueStatus from, IssueStatus to) =>
-        AllowedTransitions.TryGetValue(from, out var allowed) && allowed.AsSpan().Contains(to);
+        s_allowedTransitions.TryGetValue(from, out var allowed) && allowed.AsSpan().Contains(to);
 
     private static IssueStatus ParseStatus(string status) =>
         status switch
