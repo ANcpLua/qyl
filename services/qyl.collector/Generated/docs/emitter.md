@@ -45,8 +45,7 @@ Chooses which service artifacts to emit. choices include 'models' or 'all' artif
 
 **Type:** `"mocks-and-project-files" | "mocks-only" | "none"`
 
-Emits mock implementations of business logic, setup code, and project files enabling the service to respond to requests
-before a real implementation is provided
+Emits mock implementations of business logic, setup code, and project files enabling the service to respond to requests before a real implementation is provided
 
 ### `use-swaggerui`
 
@@ -58,8 +57,7 @@ Configure a Swagger UI endpoint in the development configuration
 
 **Type:** `string`
 
-Use openapi at the given path for generating SwaggerUI endpoints. By default, this will be 'openapi/openapi.yaml' if
-the 'use-swaggerui' option is enabled.
+Use openapi at the given path for generating SwaggerUI endpoints. By default, this will be 'openapi/openapi.yaml' if the 'use-swaggerui' option is enabled.
 
 ### `overwrite`
 
