@@ -30,7 +30,8 @@ WEAVER_BIN="${REPO_ROOT}/.tools/weaver/weaver-${WEAVER_ARCH}/weaver"
 UPSTREAM_REGISTRY="${REPO_ROOT}/.tools/semconv-upstream/model"
 QYL_REGISTRY="${REPO_ROOT}/eng/semconv/model/qyl"
 TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
-STAGING_DIR="${REPO_ROOT}/Artifacts/semconv"
+# Override with SEMCONV_STAGING_DIR for non-default workspace layouts (e.g. CI).
+STAGING_DIR="${SEMCONV_STAGING_DIR:-${REPO_ROOT}/Artifacts/semconv}"
 
 TS_DEST="${REPO_ROOT}/services/qyl.dashboard/src/lib/semconv.ts"
 SQL_DEST="${REPO_ROOT}/services/qyl.collector/Storage/promoted-columns.g.sql"
