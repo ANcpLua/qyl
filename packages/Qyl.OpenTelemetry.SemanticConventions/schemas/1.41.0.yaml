@@ -1,8 +1,18 @@
 
 
 file_format: 1.1.0
-schema_url: https://opentelemetry.io/schemas/1.40.0
+schema_url: https://opentelemetry.io/schemas/1.41.0
 versions:
+  1.41.0:
+    metrics:
+      changes:
+        - rename_metrics:
+            k8s.container.cpu.limit: k8s.container.cpu.limit.desired
+            k8s.container.cpu.limit_utilization: k8s.container.cpu.limit.utilization
+            k8s.container.cpu.request: k8s.container.cpu.request.desired
+            k8s.container.cpu.request_utilization: k8s.container.cpu.request.utilization
+            k8s.container.memory.limit: k8s.container.memory.limit.desired
+            k8s.container.memory.request: k8s.container.memory.request.desired
   1.40.0:
     all:
       changes:
