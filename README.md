@@ -130,6 +130,7 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 |------|----------|--------------------------------|
 | 5100 | HTTP     | REST API, Dashboard, OTLP/HTTP |
 | 4317 | gRPC     | OTLP/gRPC ingestion            |
+| 4318 | HTTP     | OTLP HTTP/protobuf ingestion   |
 
 ## MCP Tool Surface
 
@@ -225,16 +226,23 @@ Never edit `*.g.cs` or `api.ts` — edit TypeSpec and regenerate.
 
 ## Environment Variables
 
-| Variable                       | Default      | Purpose                    |
-|--------------------------------|--------------|----------------------------|
-| `QYL_PORT`                     | 5100         | HTTP API port              |
-| `QYL_GRPC_PORT`                | 4317         | gRPC OTLP port (0=disable) |
-| `QYL_DATA_PATH`                | ./qyl.duckdb | DuckDB file location       |
-| `QYL_TOKEN`                    | (none)       | Auth token                 |
-| `QYL_MAX_RETENTION_DAYS`       | 30           | Telemetry retention        |
-| `QYL_MAX_SPAN_COUNT`           | 1000000      | Max spans before cleanup   |
-| `QYL_MAX_LOG_COUNT`            | 500000       | Max logs before cleanup    |
-| `QYL_CLEANUP_INTERVAL_SECONDS` | 300          | Cleanup interval           |
+| Variable                       | Default               | Purpose                                  |
+|--------------------------------|-----------------------|------------------------------------------|
+| `QYL_PORT`                     | 5100                  | HTTP API port                            |
+| `QYL_GRPC_PORT`                | 4317                  | OTLP/gRPC port (0=disable)               |
+| `QYL_OTLP_PORT`                | 4318                  | OTLP HTTP/protobuf port (0=disable)      |
+| `QYL_DATA_PATH`                | ./qyl.duckdb          | DuckDB file location                     |
+| `QYL_TOKEN`                    | (none)                | Auth token                               |
+| `QYL_COLLECTOR_URL`            | http://localhost:5100 | Collector URL for `qyl.mcp` / `qyl.loom` |
+| `QYL_MCP_TRANSPORT`            | stdio                 | MCP transport (`stdio` or `http`)        |
+| `QYL_MCP_TOKEN`                | (none)                | MCP bearer-token auth                    |
+| `QYL_SKILLS`                   | all non-debug         | Enabled MCP skill families               |
+| `QYL_AGENT_API_KEY`            | (none)                | LLM API key for agent-backed tools       |
+| `QYL_AGENT_MODEL`              | (none)                | LLM model for agent-backed tools         |
+| `QYL_MAX_RETENTION_DAYS`       | 30                    | Telemetry retention                      |
+| `QYL_MAX_SPAN_COUNT`           | 1000000               | Max spans before cleanup                 |
+| `QYL_MAX_LOG_COUNT`            | 500000                | Max logs before cleanup                  |
+| `QYL_CLEANUP_INTERVAL_SECONDS` | 300                   | Cleanup interval                         |
 
 ## Development
 
