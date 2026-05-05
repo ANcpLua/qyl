@@ -82,7 +82,7 @@ interface IPipeline : IHazSourcePaths
                 RootDirectory / "packages" / "Qyl.SemanticConventions");
 
             // 5. Copy OTel schema to both OTel packages (embedded resource)
-            var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
+            var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.41.0";
             if (File.Exists(schemaSource))
             {
                 ReadOnlySpan<string> otelPackages =
@@ -91,7 +91,7 @@ interface IPipeline : IHazSourcePaths
                 {
                     var schemasDir = RootDirectory / "packages" / pkg / "schemas";
                     Directory.CreateDirectory(schemasDir);
-                    File.Copy(schemaSource, schemasDir / "1.40.0.yaml", true);
+                    File.Copy(schemaSource, schemasDir / "1.41.0.yaml", true);
                 }
             }
 
