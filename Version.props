@@ -32,7 +32,7 @@
     <NukeVersion>10.1.0</NukeVersion>
     <NetArchTestVersion>1.3.2</NetArchTestVersion>
     <YamlDotNetVersion>16.3.0</YamlDotNetVersion>
-    <SpectreConsoleVersion>0.55.0</SpectreConsoleVersion>
+    <SpectreConsoleVersion>0.55.2</SpectreConsoleVersion>
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
