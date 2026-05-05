@@ -1,5 +1,5 @@
 # Weaver template config for Qyl.SemanticConventions (qyl custom attrs).
-# Registry: eng/semconv/qyl/model/ (qyl-owned, not upstream OTel).
+# Registry: eng/semconv/model/qyl/ (qyl-owned, not upstream OTel).
 # No stability filter — all qyl attributes are included.
 
 whitespace_control:
