@@ -5,12 +5,6 @@ using Qyl.Loom.Exploration;
 
 namespace Qyl.Loom.Agents;
 
-/// <summary>
-///     Primary MCP surface for qyl Loom. Exposes three tools — issue insight,
-///     autofix launch, pull-request review — backed by qyl collector services.
-///     Tool dispatch, schema generation, and protocol handling come from the
-///     official MCP C# SDK; this type only carries attributes and business logic.
-/// </summary>
 [McpServerToolType]
 public sealed partial class LoomGodAnalyzerServer(
     CollectorClient collector,
@@ -147,17 +141,6 @@ public sealed partial class LoomGodAnalyzerServer(
     }
 }
 
-/// <summary>
-///     Structured result of <see cref="LoomGodAnalyzerServer.AutofixSetupCheckAsync" />.
-///     Combines tool-checkable prerequisites (issue existence, policy parse) with
-///     <c>unknown</c> placeholders for checks that require external state the collector
-///     does not currently expose.
-/// </summary>
-/// <param name="IssueId">The issue id the caller supplied.</param>
-/// <param name="Policy">Resolved fix policy string (result of <see cref="FixPolicy" /> parse).</param>
-/// <param name="Checks">Named checks: issue_exists, policy, repo_connection, write_access, code_mapping, quota.</param>
-/// <param name="Decision"><c>proceed</c> when all programmatic checks pass; <c>cannot_proceed</c> otherwise.</param>
-/// <param name="AgentPromptId">MCP prompt id carrying the full agent directive for resolving <c>unknown</c> checks.</param>
 public sealed record LoomAutofixSetupCheck(
     string IssueId,
     string Policy,
@@ -165,19 +148,6 @@ public sealed record LoomAutofixSetupCheck(
     string Decision,
     string AgentPromptId);
 
-/// <summary>A single named check inside <see cref="LoomAutofixSetupCheck" />.</summary>
-/// <param name="Name">Check identifier (e.g. <c>issue_exists</c>, <c>policy</c>, <c>repo_connection</c>).</param>
-/// <param name="Status"><c>pass</c>, <c>fail</c>, or <c>unknown</c>.</param>
-/// <param name="Detail">Human-readable explanation of the status.</param>
 public sealed record LoomAutofixCheck(string Name, string Status, string Detail);
 
-/// <summary>
-///     Structured result of <see cref="LoomGodAnalyzerServer.UpdateFixRunAsync" />.
-///     Indicates whether the instruction append succeeded; on failure the <paramref name="Error" />
-///     carries the collector's rejection message (404 when issue/run mismatch, 400 when the
-///     instruction was empty).
-/// </summary>
-/// <param name="Success"><c>true</c> when the collector persisted the appended instruction.</param>
-/// <param name="RunId">Fix run identifier the caller targeted (echoed for symmetry).</param>
-/// <param name="Error">Human-readable error when <paramref name="Success" /> is <c>false</c>.</param>
 public sealed record LoomAutofixUpdateResult(bool Success, string RunId, string? Error);

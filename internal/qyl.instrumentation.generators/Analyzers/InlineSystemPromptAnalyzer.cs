@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -6,12 +5,6 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Qyl.Instrumentation.Generators.Analyzers;
 
-/// <summary>
-///     QYL0136 — Flags inline string literals supplied as a <c>ChatClientAgentOptions.Instructions</c>
-///     value or a <c>ChatClientAgent</c> <c>instructions:</c> argument. Only literals over a
-///     ~40-char threshold (or containing a newline) are flagged so that short test/debug sentinels
-///     stay silent. Exempt under <c>tests/**</c> and <c>samples/**</c>.
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
 {
@@ -66,7 +59,6 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
         if (argument.Parameter?.Name != InstructionsParameter)
             return;
 
-        // Limit to ChatClient*Agent / ChatClientAgentOptions ctors to avoid coincidental parameter names.
         var containing = argument.Parameter.ContainingSymbol?.ContainingType?.ToDisplayString();
         if (containing is not "Microsoft.Agents.AI.ChatClientAgent" and not OptionsTypeName)
             return;
@@ -87,7 +79,6 @@ public sealed class InlineSystemPromptAnalyzer : DiagnosticAnalyzer
 
     private static bool IsExempt(string path)
     {
-        // Wrap so startsWith-tests and leading-separator paths both match `/tests/` / `/samples/`.
         var normalized = "/" + path.Replace('\\', '/');
         return normalized.Contains("/tests/", StringComparison.OrdinalIgnoreCase) ||
                normalized.Contains("/samples/", StringComparison.OrdinalIgnoreCase);

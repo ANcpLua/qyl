@@ -5,11 +5,6 @@ using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tool for natural language → DuckDB SQL → formatted results.
-///     Uses an LLM to translate questions into SQL, executes against
-///     the collector's /api/v1/query endpoint, and formats output.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class AssistedQueryTools(HttpClient http, IQylMcpAgentsBuilder agents)
@@ -63,7 +58,6 @@ internal sealed partial class AssistedQueryTools(HttpClient http, IQylMcpAgentsB
                 return text[start..end].Trim();
         }
 
-        // Fallback: try to find a SELECT statement
         var selectIdx = text.IndexOfIgnoreCase("SELECT");
         return selectIdx >= 0
             ? text[selectIdx..].Trim().TrimEnd(';', '`', '\n', '\r')

@@ -4,10 +4,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Discovers classes tagged with <c>[QylHealthCheck(name, tags...)]</c> for auto-registration
-///     via <c>services.AddHealthChecks().AddCheck&lt;T&gt;(name, failure, tags)</c>.
-/// </summary>
 internal static class QylHealthCheckAnalyzer
 {
     internal const string QylHealthCheckAttributeMetadataName =

@@ -2,20 +2,9 @@ using Qyl.Collector.Identity;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with workspace identity operations,
-///     project CRUD, project environments, and handshake PKCE challenge persistence.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Workspace Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Upserts a workspace record via the channel-buffered write path.
-    ///     On conflict, updates all mutable fields and refreshes last_heartbeat.
-    /// </summary>
     public async Task UpsertWorkspaceAsync(WorkspaceRecord workspace, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -40,9 +29,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a single workspace by its workspace ID.
-    /// </summary>
     public async Task<WorkspaceRecord?> GetWorkspaceAsync(string workspaceId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -64,9 +50,6 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    /// <summary>
-    ///     Updates the last_heartbeat timestamp for a workspace.
-    /// </summary>
     public async Task UpdateHeartbeatAsync(string workspaceId, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -79,9 +62,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Lists workspaces ordered by last heartbeat, most recent first.
-    /// </summary>
     public async Task<IReadOnlyList<WorkspaceRecord>> GetWorkspacesAsync(
         int limit = 50,
         CancellationToken ct = default)
@@ -105,9 +85,6 @@ public sealed partial class DuckDbStore
         return workspaces;
     }
 
-    /// <summary>
-    ///     Deletes a workspace by ID. Returns true if a row was deleted.
-    /// </summary>
     public async Task<bool> DeleteWorkspaceAsync(string workspaceId, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -117,13 +94,7 @@ public sealed partial class DuckDbStore
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Project Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new project record.
-    /// </summary>
     public async Task InsertProjectAsync(ProjectRecord project, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -142,9 +113,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a single project by its ID.
-    /// </summary>
     public async Task<ProjectRecord?> GetProjectAsync(string projectId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -165,10 +133,6 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    /// <summary>
-    ///     Lists projects for a workspace with cursor-based pagination.
-    ///     When <paramref name="cursor" /> is provided, returns projects created after that ID.
-    /// </summary>
     public async Task<IReadOnlyList<ProjectRecord>> GetProjectsAsync(
         string workspaceId,
         int limit = 50,
@@ -202,9 +166,6 @@ public sealed partial class DuckDbStore
         return projects;
     }
 
-    /// <summary>
-    ///     Deletes a project by ID. Returns true if a row was deleted.
-    /// </summary>
     public async Task<bool> DeleteProjectAsync(string projectId, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -214,13 +175,7 @@ public sealed partial class DuckDbStore
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Project Environment Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new project environment record.
-    /// </summary>
     public async Task InsertProjectEnvironmentAsync(
         ProjectEnvironmentRecord env,
         CancellationToken ct = default) =>
@@ -240,9 +195,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Lists all environments for a project.
-    /// </summary>
     public async Task<IReadOnlyList<ProjectEnvironmentRecord>> GetProjectEnvironmentsAsync(
         string projectId,
         CancellationToken ct = default)
@@ -267,9 +219,6 @@ public sealed partial class DuckDbStore
         return envs;
     }
 
-    /// <summary>
-    ///     Deletes a project environment by ID. Returns true if a row was deleted.
-    /// </summary>
     public async Task<bool> DeleteProjectEnvironmentAsync(
         string environmentId,
         CancellationToken ct = default) =>
@@ -281,13 +230,7 @@ public sealed partial class DuckDbStore
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Handshake PKCE Challenge Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Stores a PKCE challenge for a pending handshake session.
-    /// </summary>
     public async Task UpsertHandshakeChallengeAsync(
         string workspaceId,
         string codeChallenge,
@@ -309,9 +252,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Retrieves the stored PKCE challenge for a workspace.
-    /// </summary>
     public async Task<HandshakeChallengeRecord?> GetHandshakeChallengeAsync(
         string workspaceId,
         CancellationToken ct = default)
@@ -339,9 +279,6 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    /// <summary>
-    ///     Deletes a PKCE challenge after handshake verification.
-    /// </summary>
     public async Task DeleteHandshakeChallengeAsync(
         string workspaceId,
         CancellationToken ct = default) =>
@@ -353,9 +290,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // GitHub Token Operations
-    // ==========================================================================
 
     public async Task UpsertGitHubTokenAsync(
         string token,
@@ -418,9 +352,6 @@ public sealed partial class DuckDbStore
             return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false) > 0;
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Private Methods - Identity Mapping
-    // ==========================================================================
 
     private static void AddWorkspaceParameters(DuckDBCommand cmd, WorkspaceRecord workspace)
     {
@@ -479,13 +410,7 @@ public sealed partial class DuckDbStore
     }
 }
 
-// =============================================================================
-// Workspace Identity Records
-// =============================================================================
 
-/// <summary>
-///     Storage record for a workspace. Maps to the workspaces DuckDB table.
-/// </summary>
 public sealed record GitHubTokenRecord(
     string Token,
     string? Scope,

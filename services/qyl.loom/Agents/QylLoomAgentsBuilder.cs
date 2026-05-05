@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Hosting;
 using Qyl.Instrumentation.Instrumentation.GenAi;
@@ -117,10 +116,6 @@ internal sealed class QylLoomAgentsBuilder(
 
     private AIAgent Compose(string name, string description, string? instructions)
     {
-        // Two paths: the AsQylAgent facade always sets ChatOptions.Instructions,
-        // but two qyl factories (CodeReview, Report) pass null to skip ChatOptions
-        // entirely — the model sees no system prompt. Preserve that semantic by
-        // routing those through the long-form chain.
         AIAgent agent = instructions is null
             ? Llm()
                 .AsAIAgent(new ChatClientAgentOptions { Name = name, Description = description })

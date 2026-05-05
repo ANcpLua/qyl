@@ -2,10 +2,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
 
-/// <summary>
-///     Emits <c>QylToolManifest.ToolTypes</c> — a compile-time <c>Type[]</c> of all
-///     [McpServerToolType]-decorated classes, replacing the hardcoded array in McpToolRegistry.
-/// </summary>
 internal static class ToolManifestEmitter
 {
     public static string Emit(ImmutableArray<ToolTypeEntry> toolTypes)

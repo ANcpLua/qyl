@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     CORS middleware specifically for OTLP endpoints.
-///     Only applies to /v1/* paths (OTLP HTTP endpoints).
-/// </summary>
 public sealed class OtlpCorsMiddleware
 {
     private readonly bool _allowAll;
@@ -25,7 +21,6 @@ public sealed class OtlpCorsMiddleware
     {
         var path = context.Request.Path.Value ?? "";
 
-        // Only handle OTLP paths
         if (!OtlpConstants.IsOtlpPath(path))
         {
             await _next(context).ConfigureAwait(false);
@@ -34,7 +29,6 @@ public sealed class OtlpCorsMiddleware
 
         var origin = context.Request.Headers.Origin.FirstOrDefault();
 
-        // Handle preflight
         if (context.Request.Method == "OPTIONS")
         {
             if (IsOriginAllowed(origin))
@@ -51,7 +45,6 @@ public sealed class OtlpCorsMiddleware
             return;
         }
 
-        // Handle actual request
         if (IsOriginAllowed(origin))
         {
             SetCorsHeaders(context.Response, origin);
@@ -68,8 +61,6 @@ public sealed class OtlpCorsMiddleware
         response.Headers["Access-Control-Allow-Origin"] = _allowAll ? "*" : origin;
         response.Headers["Access-Control-Allow-Headers"] = _allowedHeadersHeader;
 
-        // RFC 6454: Access-Control-Allow-Credentials cannot be "true" when origin is "*"
-        // Browsers will reject the response if both are set
         if (!_allowAll)
         {
             response.Headers["Access-Control-Allow-Credentials"] = "true";

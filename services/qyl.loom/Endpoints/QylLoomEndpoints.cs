@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
@@ -14,10 +13,6 @@ using AutofixOrchestrator = Qyl.Loom.Autofix.AutofixOrchestrator;
 
 namespace Qyl.Loom.Endpoints;
 
-/// <summary>
-///     qyl.loom HTTP endpoint surface — exploration, autofix lifecycle SSE, code review.
-///     Pure code-move from <c>Program.cs</c>; routes and behavior are byte-identical.
-/// </summary>
 public static class QylLoomEndpoints
 {
     public static WebApplication MapQylLoomEndpoints(this WebApplication app)
@@ -28,8 +23,6 @@ public static class QylLoomEndpoints
         MapAutofixLifecycleEndpoints(app);
         MapCodeReviewEndpoints(app);
 
-        // MCP server — tools registered at composition time via .AddMcpServer() chain;
-        // here we only expose the transport at the agreed path.
         app.MapMcp("/mcp/loom");
 
         return app;
@@ -72,10 +65,6 @@ public static class QylLoomEndpoints
             var run = await autofixOrchestrator.CreateFixRunAsync(issueId, FixPolicy.AutoApply, ct: ct)
                 .ConfigureAwait(false);
 
-            // HITL only when the caller explicitly opts in via request_review. Without this
-            // flag the dashboard-initiated run completes autonomously — there is no production
-            // approval endpoint yet, so forcing Interactive on every code-it-up adds two
-            // 5-minute timeout waits to every run for no benefit.
             if (request.RequestReview)
             {
                 configStore.Set(run.RunId, AutofixWorkflowDefaults.Interactive);
@@ -141,7 +130,6 @@ public static class QylLoomEndpoints
         });
     }
 
-    // ── SSE helpers ────────────────────────────────────────────────────────────
 
     private static async IAsyncEnumerable<SseItem<AutofixLifecycleEnvelope>> StreamLifecycleAsync(
         IAutofixLifecycleBus bus,

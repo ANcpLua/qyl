@@ -1,55 +1,25 @@
-// =============================================================================
-// AnalyticsQueryService - AI chat analytics queries against DuckDB spans
-// =============================================================================
 
 using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     Analytics query service for AI chat conversations.
-///     All queries run against the existing spans table using DuckDB SQL.
-///     Uses COALESCE for conversation grouping: attributes_json gen_ai.conversation.id -> session_id -> trace_id.
-/// </summary>
 public sealed class AnalyticsQueryService(DuckDbStore store)
 {
-    // =========================================================================
-    // Shared SQL fragments
-    // =========================================================================
 
-    /// <summary>
-    ///     Conversation ID resolution: gen_ai.conversation.id from attributes_json,
-    ///     falling back to session_id, then trace_id.
-    /// </summary>
     private const string ConversationIdExpr =
         "COALESCE(attributes_json->>'gen_ai.conversation.id', session_id, trace_id)";
 
-    /// <summary>
-    ///     Operation name from attributes_json (not a promoted column).
-    /// </summary>
     private const string OperationNameExpr =
         "attributes_json->>'gen_ai.operation.name'";
 
-    /// <summary>
-    ///     End user ID from attributes_json.
-    /// </summary>
     private const string EnduserIdExpr =
         "attributes_json->>'enduser.id'";
 
-    /// <summary>
-    ///     Data source ID from attributes_json.
-    /// </summary>
     private const string DataSourceIdExpr =
         "attributes_json->>'gen_ai.data_source.id'";
 
-    /// <summary>
-    ///     Duration in milliseconds computed from nanoseconds.
-    /// </summary>
     private const string DurationMsExpr = "duration_ns / 1000000.0";
 
-    // =========================================================================
-    // Period helpers
-    // =========================================================================
 
     private static (ulong StartNano, ulong EndNano) ResolvePeriod(string period, int offset)
     {
@@ -60,8 +30,8 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             "weekly" => GetWeekBounds(now, offset),
             "monthly" => GetMonthBounds(now, offset),
             "quarterly" => GetQuarterBounds(now, offset),
-            _ when period.Length == 7 => ParseYearMonth(period), // "2026-02"
-            _ => GetMonthBounds(now, offset) // default to monthly
+            _ when period.Length == 7 => ParseYearMonth(period),
+            _ => GetMonthBounds(now, offset)
         };
 
         return (DateTimeToUnixNano(start), DateTimeToUnixNano(end));
@@ -107,9 +77,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         return (ulong)ticks * 100UL;
     }
 
-    // =========================================================================
-    // 1. List Conversations
-    // =========================================================================
 
     public async Task<ConversationListResult> ListConversationsAsync(
         string period = "monthly",
@@ -180,7 +147,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             });
         }
 
-        // Get total count
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
                                + " FROM spans"
@@ -197,9 +163,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         };
     }
 
-    // =========================================================================
-    // 2. Get Conversation Detail
-    // =========================================================================
 
     public async Task<ConversationDetail?> GetConversationAsync(
         string conversationId,
@@ -251,9 +214,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         return turns.Count is 0 ? null : new ConversationDetail { ConversationId = conversationId, Turns = turns };
     }
 
-    // =========================================================================
-    // 3. Coverage Gaps
-    // =========================================================================
 
     public async Task<CoverageGapsResult> GetCoverageGapsAsync(
         string period = "monthly",
@@ -264,7 +224,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        // First get total conversation count for the period
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
                                + " FROM spans"
@@ -274,7 +233,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
 
-        // Find uncertain conversations grouped by semantic cluster label (only clustered spans)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "WITH uncertain AS ("
                           + " SELECT " + ConversationIdExpr + " AS conversation_id,"
@@ -334,9 +292,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         };
     }
 
-    // =========================================================================
-    // 4. Top Questions
-    // =========================================================================
 
     public async Task<TopQuestionsResult> GetTopQuestionsAsync(
         string period = "monthly",
@@ -348,7 +303,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
 
-        // Total conversations
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
                                + " FROM spans"
@@ -358,7 +312,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
 
-        // Group by semantic cluster label (only clustered spans)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT sc.cluster_label AS topic,"
                           + " COUNT(DISTINCT " + ConversationIdExpr + ") AS conversation_count,"
@@ -397,9 +350,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         };
     }
 
-    // =========================================================================
-    // 5. Source Analytics
-    // =========================================================================
 
     public async Task<SourceAnalyticsResult> GetSourceAnalyticsAsync(
         string period = "monthly",
@@ -440,9 +390,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         return new SourceAnalyticsResult { Sources = sources };
     }
 
-    // =========================================================================
-    // 6. Satisfaction
-    // =========================================================================
 
     public async Task<SatisfactionResult> GetSatisfactionAsync(
         string period = "monthly",
@@ -454,7 +401,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        // Aggregate feedback from attributes_json
         cmd.CommandText = """
                           SELECT
                               COUNT(*) AS total_feedback,
@@ -480,7 +426,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             }
         }
 
-        // Satisfaction by model
         await using var modelCmd = lease.Connection.CreateCommand();
         modelCmd.CommandText = """
                                SELECT
@@ -518,7 +463,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             }
         }
 
-        // Satisfaction by topic (cluster label)
         await using var topicCmd = lease.Connection.CreateCommand();
         topicCmd.CommandText = """
                                SELECT
@@ -571,9 +515,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         };
     }
 
-    // =========================================================================
-    // 7. List Users
-    // =========================================================================
 
     public async Task<UserListResult> ListUsersAsync(
         string period = "monthly",
@@ -624,7 +565,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             });
         }
 
-        // Total user count
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(DISTINCT " + EnduserIdExpr + ")"
                                + " FROM spans"
@@ -638,9 +578,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         return new UserListResult { Users = users, Total = total };
     }
 
-    // =========================================================================
-    // 8. Get User Journey
-    // =========================================================================
 
     public async Task<UserJourneyResult?> GetUserJourneyAsync(
         string userId,
@@ -685,7 +622,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         if (conversations.Count is 0)
             return null;
 
-        // Frequent topics
         var frequentTopics = conversations
             .Where(c => c.Topic is not null)
             .GroupBy(c => c.Topic!)
@@ -694,7 +630,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             .Select(g => g.Key)
             .ToList();
 
-        // Retention days
         var retentionDays = conversations.Count >= 2
             ? (int)(conversations[0].Date - conversations[^1].Date).TotalDays
             : 0;
@@ -709,9 +644,6 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         };
     }
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     private static IReadOnlyList<string> ReadStringList(DbDataReader reader, int ordinal)
     {
@@ -728,11 +660,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     }
 }
 
-// =============================================================================
-// DTOs
-// =============================================================================
 
-// --- Conversations ---
 
 public sealed record ConversationListResult
 {
@@ -781,7 +709,6 @@ public sealed record ConversationTurn
     public string? DataSourceId { get; init; }
 }
 
-// --- Coverage Gaps ---
 
 public sealed record CoverageGapsResult
 {
@@ -799,7 +726,6 @@ public sealed record CoverageGap
     public IReadOnlyList<string> SampleConversationIds { get; init; } = [];
 }
 
-// --- Top Questions ---
 
 public sealed record TopQuestionsResult
 {
@@ -815,7 +741,6 @@ public sealed record TopQuestionCluster
     public IReadOnlyList<string> SampleConversationIds { get; init; } = [];
 }
 
-// --- Source Analytics ---
 
 public sealed record SourceAnalyticsResult
 {
@@ -829,7 +754,6 @@ public sealed record SourceUsage
     public IReadOnlyList<string> TopQuestions { get; init; } = [];
 }
 
-// --- Satisfaction ---
 
 public sealed record SatisfactionResult
 {
@@ -855,7 +779,6 @@ public sealed record SatisfactionByTopic
     public long Downvotes { get; init; }
 }
 
-// --- Users ---
 
 public sealed record UserListResult
 {
@@ -872,7 +795,6 @@ public sealed record UserSummary
     public IReadOnlyList<string> TopTopics { get; init; } = [];
 }
 
-// --- User Journey ---
 
 public sealed record UserJourneyResult
 {

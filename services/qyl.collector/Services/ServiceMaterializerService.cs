@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Services;
 
-/// <summary>
-///     Background service that recomputes service_instances aggregates
-///     from spans/logs tables every 15 minutes.
-/// </summary>
 [QylHostedService]
 public sealed partial class ServiceMaterializerService(
     DuckDbStore store,

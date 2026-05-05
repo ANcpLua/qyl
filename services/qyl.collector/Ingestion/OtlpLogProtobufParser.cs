@@ -2,10 +2,6 @@ using Qyl.Collector.Grpc;
 
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Parses OTLP ExportLogsServiceRequest from HTTP protobuf payloads.
-///     Mirrors <see cref="OtlpProtobufParser" /> for traces.
-/// </summary>
 public static class OtlpLogProtobufParser
 {
     public static ExportLogsServiceRequestProto Parse(ReadOnlyMemory<byte> data) =>

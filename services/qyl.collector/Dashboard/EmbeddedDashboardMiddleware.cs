@@ -1,19 +1,6 @@
-// =============================================================================
-// Embedded Dashboard Middleware
-// Serves pre-built dashboard as embedded resources for single-binary deployment
-// Based on agent-framework DevUIMiddleware patterns:
-// - FrozenDictionary for O(1) resource lookup
-// - Pre-computed gzip compression with size comparison
-// - ETag from SHA256 for browser caching
-// - SPA fallback routing (serve index.html for client-side routes)
-// =============================================================================
 
 namespace Qyl.Collector.Dashboard;
 
-/// <summary>
-///     Middleware that serves embedded dashboard resources with caching and compression.
-///     Enable single-binary deployment by embedding the built dashboard.
-/// </summary>
 public sealed partial class EmbeddedDashboardMiddleware
 {
     private const string ResourcePrefix = "Qyl.Collector.wwwroot.";
@@ -52,13 +39,11 @@ public sealed partial class EmbeddedDashboardMiddleware
     {
         var path = context.Request.Path.Value?.TrimStart('/') ?? "";
 
-        // Strip base path if configured
         if (!string.IsNullOrEmpty(_basePath) && path.StartsWithIgnoreCase(_basePath))
         {
             path = path[_basePath.Length..].TrimStart('/');
         }
 
-        // Skip API and OTLP routes
         if (path.StartsWithIgnoreCase("api/") ||
             path.StartsWithIgnoreCase("v1/") ||
             path.StartsWithIgnoreCase("mcp/") ||
@@ -69,23 +54,19 @@ public sealed partial class EmbeddedDashboardMiddleware
             return;
         }
 
-        // Try exact match first
         if (!_resources.TryGetValue(path, out var resource))
         {
-            // SPA fallback: paths without extensions get index.html
             if (!Path.HasExtension(path) && _indexHtml is not null)
             {
                 resource = _indexHtml;
             }
             else
             {
-                // Not found - pass to next middleware
                 await _next(context).ConfigureAwait(false);
                 return;
             }
         }
 
-        // ETag caching - return 304 if unchanged
         var requestETag = context.Request.Headers.IfNoneMatch.FirstOrDefault();
         if (requestETag == resource.ETag)
         {
@@ -93,7 +74,6 @@ public sealed partial class EmbeddedDashboardMiddleware
             return;
         }
 
-        // Set response headers
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = resource.ContentType;
         context.Response.Headers.ETag = resource.ETag;
@@ -101,7 +81,6 @@ public sealed partial class EmbeddedDashboardMiddleware
             ? "public, max-age=31536000, immutable"
             : "no-cache";
 
-        // Serve compressed if client supports and we have compressed version
         var acceptEncoding = context.Request.Headers.AcceptEncoding.ToString();
         if (resource.CompressedContent is not null &&
             acceptEncoding.ContainsIgnoreCase("gzip"))
@@ -133,9 +112,7 @@ public sealed partial class EmbeddedDashboardMiddleware
             var content = new byte[stream.Length];
             _ = stream.Read(content, 0, content.Length);
 
-            // Extract path from resource name
             var path = name[ResourcePrefix.Length..].Replace('.', '/');
-            // Fix extension (last dot should be a dot, not slash)
             var lastSlash = path.LastIndexOf('/');
             if (lastSlash > 0)
             {
@@ -145,9 +122,8 @@ public sealed partial class EmbeddedDashboardMiddleware
             var contentType = GetContentType(path);
             var isCacheable = IsImmutableAsset(path);
 
-            // Pre-compute gzip (only store if smaller)
             byte[]? compressed = null;
-            if (content.Length > 1024) // Only compress files > 1KB
+            if (content.Length > 1024)
             {
                 using var ms = new MemoryStream();
                 using (var gzip = new GZipStream(ms, CompressionLevel.Optimal, true))
@@ -156,13 +132,12 @@ public sealed partial class EmbeddedDashboardMiddleware
                 }
 
                 var gzipped = ms.ToArray();
-                if (gzipped.Length < content.Length * 0.9) // Only use if >10% smaller
+                if (gzipped.Length < content.Length * 0.9)
                 {
                     compressed = gzipped;
                 }
             }
 
-            // ETag from SHA256
             var hash = SHA256.HashData(content);
             var etag = $"\"{Convert.ToHexString(hash)[..16]}\"";
 
@@ -198,16 +173,12 @@ public sealed partial class EmbeddedDashboardMiddleware
 
     private static bool IsImmutableAsset(string path)
     {
-        // Assets with hash in filename are immutable
         var name = Path.GetFileNameWithoutExtension(path);
         return name.ContainsOrdinal("-") || name.ContainsOrdinal(".") ||
                path.StartsWithIgnoreCase("assets/");
     }
 }
 
-/// <summary>
-///     Cached embedded resource with pre-computed compression and ETag.
-/// </summary>
 public sealed record CachedResource(
     byte[] Content,
     byte[]? CompressedContent,
@@ -215,24 +186,13 @@ public sealed record CachedResource(
     string ContentType,
     bool IsCacheable);
 
-/// <summary>
-///     Extension methods for embedded dashboard middleware.
-/// </summary>
 public static class EmbeddedDashboardExtensions
 {
-    /// <summary>
-    ///     Checks if the assembly contains embedded dashboard resources.
-    ///     Used to decide between embedded and physical file serving at startup.
-    /// </summary>
     private static readonly bool s_cachedHasEmbeddedDashboard =
         typeof(EmbeddedDashboardMiddleware).Assembly
             .GetManifestResourceNames()
             .Any(static n => n.StartsWithOrdinal("Qyl.Collector.wwwroot."));
 
-    /// <summary>
-    ///     Adds embedded dashboard middleware for single-binary deployment.
-    ///     Call this INSTEAD of UseStaticFiles/UseDefaultFiles when dashboard is embedded.
-    /// </summary>
     public static IApplicationBuilder UseEmbeddedDashboard(
         this IApplicationBuilder app,
         string basePath = "") =>

@@ -2,10 +2,6 @@ using System.Buffers.Binary;
 
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     Opaque URL-safe cursor for log timeline deltas — a big-endian Unix-nano timestamp wrapped in base64url with a
-///     <c>c_</c> prefix.
-/// </summary>
 internal static class LogCursor
 {
     private const string Prefix = "c_";

@@ -5,12 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Qyl.Instrumentation.DevLogs;
 
-/// <summary>
-///     Opt-in frontend→backend console bridge. Emits a <c>&lt;script&gt;</c> at
-///     <c>/dev-logs.js</c> that intercepts <c>console.*</c> calls and POSTs them
-///     to <c>/dev-logs</c>, which re-emits them as <c>ILogger</c> entries.
-///     Not part of <see cref="QylServiceDefaults" /> — dashboard hosts opt in explicitly.
-/// </summary>
 public static partial class DevLogsExtensions
 {
     private const string BridgeScript = """
@@ -33,7 +27,6 @@ public static partial class DevLogsExtensions
                                         })();
                                         """;
 
-    /// <summary>Maps the DevLogs frontend console bridge (POST <c>/dev-logs</c> + GET <c>/dev-logs.js</c>).</summary>
     public static void MapDevLogsEndpoint(this IEndpointRouteBuilder app, string routePattern = "/dev-logs")
     {
         app.MapPost(routePattern, static (DevLogEntry entry, ILogger<DevLogEntry> logger) =>

@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,7 +6,6 @@ using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Clients;
 using Qyl.Loom.Patterns.Patterns;
 
-// ── CLI dispatch ─────────────────────────────────────────────────────────────
 var pattern = args.Length > 0 ? args[0].ToLowerInvariant() : "all-combined";
 
 await using var services = new ServiceCollection()

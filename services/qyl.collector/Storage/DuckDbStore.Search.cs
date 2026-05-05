@@ -4,19 +4,9 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with unified cross-entity search operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Unified Search Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Searches across spans, logs, errors, agent runs, and workflows using text matching.
-    ///     Results are ranked by relevance score and ordered by timestamp.
-    /// </summary>
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         SearchQuery query,
         CancellationToken ct = default)
@@ -38,9 +28,6 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    /// <summary>
-    ///     Returns autocomplete suggestions by querying distinct values from key columns.
-    /// </summary>
     public async Task<IReadOnlyList<SearchSuggestion>> GetSuggestionsAsync(
         string prefix,
         CancellationToken ct = default)
@@ -100,9 +87,6 @@ public sealed partial class DuckDbStore
         return suggestions;
     }
 
-    // ==========================================================================
-    // Private Methods - Search Result Mapping
-    // ==========================================================================
 
     private static SearchResult MapSearchResult(DbDataReader reader)
     {

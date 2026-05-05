@@ -1,22 +1,17 @@
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     API key authentication for OTLP endpoints.
-/// </summary>
 public sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
 {
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
 
-        // Only validate OTLP paths when API key mode is enabled
         if (!options.IsApiKeyMode || !OtlpConstants.IsOtlpPath(path))
         {
             await next(context).ConfigureAwait(false);
             return;
         }
 
-        // Skip OPTIONS (preflight)
         if (context.Request.Method == "OPTIONS")
         {
             await next(context).ConfigureAwait(false);

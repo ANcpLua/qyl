@@ -1,15 +1,8 @@
 namespace Qyl.Collector.SchemaControl;
 
-/// <summary>
-///     Executes planned schema promotions against DuckDB.
-///     Records execution time, status, and SQL applied. Rollback is not supported (append-only).
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExecutor> logger)
 {
-    /// <summary>
-    ///     Executes the SQL statements for a pending promotion and records the outcome.
-    /// </summary>
     public async Task<SchemaPromotionRecord?> ExecutePromotionAsync(
         string promotionId,
         CancellationToken ct = default)
@@ -47,9 +40,6 @@ public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExec
         }
     }
 
-    // ==========================================================================
-    // LoggerMessage — structured, zero-allocation logging
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Schema promotion applied: {PromotionId} in {DurationMs}ms")]
@@ -60,13 +50,7 @@ public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExec
     private partial void LogPromotionFailed(string promotionId, Exception ex);
 }
 
-// =============================================================================
-// Schema Control Records
-// =============================================================================
 
-/// <summary>
-///     Request to create a schema promotion.
-/// </summary>
 public sealed record PromotionRequest(
     string ChangeType,
     string TargetTable,
@@ -74,9 +58,6 @@ public sealed record PromotionRequest(
     string? ColumnType = null,
     string? RequestedBy = null);
 
-/// <summary>
-///     Storage record for a schema promotion.
-/// </summary>
 public sealed record SchemaPromotionRecord(
     string PromotionId,
     string? RequestedBy,

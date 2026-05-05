@@ -5,21 +5,6 @@ using System.Text.Json;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
-/// <summary>
-///     Per-token GenAI pricing keyed by <c>provider::model</c> with bare-model fallback.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Loaded once from the embedded LiteLLM-shape <c>eng/pricing/models.json</c> and frozen.
-///         Cost computation is the SDK-side fast path consumed by <see cref="QylGenAiCostProcessor" />;
-///         the collector keeps a parallel DuckDB-backed <c>ModelPricingService</c> for runtime
-///         overrides and admin-supplied custom pricing.
-///     </para>
-///     <para>
-///         Lookup falls through three keys in order: <c>provider::model</c>, bare <c>model</c>,
-///         then <c>*::provider</c> wildcard (used for free local providers like ollama).
-///     </para>
-/// </remarks>
 public static class QylPricingTable
 {
     private const string EmbeddedResourceName = "Qyl.Instrumentation.pricing.models.json";
@@ -27,10 +12,6 @@ public static class QylPricingTable
     private static readonly Lazy<FrozenDictionary<string, PricingEntry>> s_table =
         new(LoadFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    /// <summary>
-    ///     Resolve pricing for a (provider, model) pair. Returns <see langword="false" /> when no
-    ///     match is found at any of the three lookup keys.
-    /// </summary>
     public static bool TryGet(string? provider, string? model, out PricingEntry entry)
     {
         var table = s_table.Value;
@@ -49,7 +30,6 @@ public static class QylPricingTable
         return false;
     }
 
-    /// <summary>Total entries in the frozen table (provider::model, bare model, and wildcards).</summary>
     public static int Count => s_table.Value.Count;
 
     private static string MakeKey(string provider, string model) => $"{provider}::{model}";
@@ -66,14 +46,12 @@ public static class QylPricingTable
 
         foreach (var prop in doc.RootElement.EnumerateObject())
         {
-            // Metadata keys (_comment, _source_url, _seeded_at_utc) carry no pricing.
             if (prop.Name.StartsWith('_') || prop.Value.ValueKind != JsonValueKind.Object)
                 continue;
 
             if (!TryParse(prop.Value, out var entry))
                 continue;
 
-            // Wildcard handling: keys like "ollama/*" map to "*::ollama" for provider-fallback lookups.
             if (prop.Name.EndsWith("/*"))
             {
                 var providerOnly = prop.Name[..^2];
@@ -121,7 +99,6 @@ public static class QylPricingTable
             : null;
 }
 
-/// <summary>Per-token pricing for a single (provider, model) entry. All rates are USD per token.</summary>
 public readonly record struct PricingEntry(
     double InputCostPerToken,
     double OutputCostPerToken,

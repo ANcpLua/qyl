@@ -1,13 +1,3 @@
-// PRD #173 smoke runner — exercises QylGenAiCostProcessor +
-// QylAgentActivityProcessor + IQylAgentInventory end-to-end against a live
-// qyl.collector + a local Ollama (or any OpenAI-compatible) endpoint.
-//
-//   QYL_LLM_BASE_URL  → OpenAI-compatible URL              (default: http://localhost:11434/v1)
-//   QYL_LLM_MODEL     → model id                            (default: qwen2.5:0.5b)
-//   QYL_LLM_API_KEY   → API key (Ollama ignores it)         (default: "ollama")
-//   OTEL_EXPORTER_OTLP_ENDPOINT → collector OTLP endpoint   (default: http://localhost:4318)
-//   QYL_SMOKE_CONVERSATION_ID → tag for grouping            (default: smoke:<utc>)
-//   QYL_SMOKE_TURNS   → number of agent calls to issue      (default: 2)
 
 using System.ClientModel;
 using Microsoft.Agents.AI;
@@ -89,8 +79,6 @@ using var smokeSource = new ActivitySource("qyl.smoke");
 
 using (var conversation = smokeSource.StartActivity(name: "smoke conversation"))
 {
-    // Conversation grouping: every child span inherits this tag via baggage,
-    // so the qyl_conversations view rolls them all up under one session.
     conversation?.SetTag(GenAiAttributes.ConversationId, conversationId);
 
     for (var i = 1; i <= turns; i++)
@@ -104,7 +92,6 @@ using (var conversation = smokeSource.StartActivity(name: "smoke conversation"))
     }
 }
 
-// Allow OTLP batch exporter to flush before the host shuts down.
 await Task.Delay(2_500).ConfigureAwait(false);
 await host.StopAsync().ConfigureAwait(false);
 

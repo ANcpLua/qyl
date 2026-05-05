@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Errors;
 
-/// <summary>
-///     Minimal API endpoints for error issue timeline and similarity search.
-///     Routes: <c>/api/v1/issues/*</c> (under the Issue Analytics tag).
-/// </summary>
 public static class IssueAnalyticsEndpoints
 {
     [QylMapEndpoints]
@@ -106,9 +102,6 @@ public static class IssueAnalyticsEndpoints
     }
 }
 
-// =============================================================================
-// Response Types
-// =============================================================================
 
 public sealed record TimelineBucket(DateTime Bucket, int Count);
 

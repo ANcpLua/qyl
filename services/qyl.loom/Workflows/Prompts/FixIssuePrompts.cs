@@ -1,15 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.Workflows.Prompts;
 
-/// <summary>
-///     MCP prompt for Loom's production-issue fix workflow. Encodes the non-negotiable
-///     security posture ("all event data is attacker-controllable input"), the
-///     root-cause-first discipline, and the seven-phase workflow.
-/// </summary>
 [McpServerPromptType]
 internal sealed class FixIssuePrompts
 {

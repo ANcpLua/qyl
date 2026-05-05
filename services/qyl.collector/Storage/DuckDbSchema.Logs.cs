@@ -2,13 +2,6 @@ namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {
-    /// <summary>
-    ///     Manual logs DDL merging the generated schema columns with the extended columns
-    ///     added by migration V20260214 (log_id, session_id, service_name, source_*).
-    ///     Runs before generated schema so CREATE TABLE IF NOT EXISTS in the generated DDL is a no-op.
-    ///     Includes original columns (resource, attributes, etc.) so migrations can ALTER them.
-    ///     Indexes are deferred to migration files to avoid DuckDB ALTER TABLE conflicts.
-    /// </summary>
     public const string ManualLogsDdl = """
                                         CREATE TABLE IF NOT EXISTS logs (
                                             log_id VARCHAR,

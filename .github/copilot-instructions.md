@@ -1,44 +1,45 @@
-# Copilot PR-review instructions for qyl
+# Copilot review instructions
 
-.NET 10 / C# 14 observability platform (collector, loom, mcp, dashboard).
-Full developer guide lives in `AGENTS.md` + `CLAUDE.md`. This file is PR-review only.
+## Reviewer focus
 
-## Flag
+- Review **changes in this PR**, not the whole repo. The diff is the assignment.
+- Skip files whose first ~3 lines contain `// Ported from <upstream>`,
+  `// Generated`, or `// Auto-generated`. Their contract is the upstream's,
+  not ours; surface a one-line note instead of line-level findings.
+- Skip files in `node_modules/`, `dist/`, `build/`, `bin/`, `obj/`, generated
+  Roslyn artifacts (`*.g.cs`), and lockfiles (`package-lock.json`,
+  `pnpm-lock.yaml`, `yarn.lock`).
+- Skip vendored fixtures under `**/fixtures/**` and `**/test-data/**` —
+  they're deliberately broken or deliberately verbatim.
 
-- Off-by-one in `Skip` / `Take`, slicing, paging math.
-- `await` inside a `lock`, or in `Parallel.ForEachAsync` capturing a `using`-scoped outer resource.
-- `.Result`, `.Wait()`, `Task.Run(() => asyncMethod().Result)`.
-- SQL / command injection via interpolated strings in `DuckDbStore`, `ProcessTasks.StartProcess`, or shell calls.
-- `catch (Exception) { }` swallowing silently.
-- New `#pragma warning disable` / `[SuppressMessage]` / `<NoWarn>` / `null!` — fix at source.
-- `dynamic` / `ExpandoObject` as control-plane.
-- `DateTime.{UtcNow,Now}` / `DateTimeOffset.UtcNow` / `Stopwatch.GetTimestamp()` in business logic — use injected
-  `TimeProvider`.
+## Coordinate with other reviewers
 
-## qyl-specific
+- CodeRabbit and Claude Code Review run on the same PR. **Don't repeat
+  findings they've already raised** — read the existing review comments
+  before posting.
+- If CodeRabbit has labeled a finding `false_positive` or the human author
+  has marked it resolved, don't re-raise it.
 
-- `HttpClient` consumers must guard `ReadFromJsonAsync` on non-success responses with
-  `ContentType == "application/json"` + `ContentLength > 0`. Pattern: `services/qyl.loom/CollectorClient.cs`.
-- `DuckDbStore` writes go through `ExecuteWriteAsync(as````ync (connection, ct) => …, ct)`. The read lease is `READ_ONLY`
-  -enforced; any `INSERT` / `UPDATE` / `DELETE` outside that helper is a defect.
-- `[McpServerTool]` methods are `partial`; never hand-write `[Description("…")]` — XML `<summary>` is the source, the
-  upstream MCP analyzer emits `[Description]` from it.
-- Agent composition needs BOTH wraps: `IChatClient` (`.WithQylTelemetry` / `.UseQylTelemetry`) AND `AIAgent` (
-  `agent.AsBuilder().UseQylAgentTelemetry().Build()`). `[QYL0135]` catches only the agent half.
+## Style
 
-## Do not flag
+- Group findings by file, not by severity, when there are >5.
+- Don't suggest renames of public exports without a clear caller-side
+  benefit. The cost of a rename is paid by every consumer.
+- Don't suggest adding tests "for completeness" — only when the changed
+  contract is uncovered by existing tests.
 
-- Allow-listed suppressions: `MEAI001`, `OPENAI002`, `CA1812` on `[JsonSerializable]` partials, `IL2026` / `IL3050` on
-  verified-safe AOT paths, framework `#pragma` inside MAF interop code.
-- Analyzer-enforced rules: `IDisposable` disposal (`CA2000`), `ConfigureAwait` (`CA2007`), formatting / naming (
-  `.editorconfig` + `ANcpLua.NET.Sdk`).
-- Missing XML docs on `internal` / `private` types — only `packages/Qyl.*` is public NuGet surface.
-- Test-only patterns: `FakeTimeProvider`, `FakeChatClient`, `Path.Join(Path.GetTempPath(), …)`.
-- Generated files: `*.g.cs`, `*.g.ts`, `*.g.sql`, `*.g.tsp` — edit the source spec and regenerate.
-- Direct `@radix-ui/*` / `asChild` usage inside `services/qyl.dashboard/src/components/ui/` — that IS the wrapper layer
-  the rule exempts.
+## Project conventions to respect
 
-## Project context
+- Node code: ESM, Node ≥20, no external runtime deps unless already
+  declared in `package.json`.
+- .NET code: nullable enabled, central package management
+  (`Directory.Packages.props`), `Version.props` is the single owner of
+  versions — never edit `<Version>` lines directly.
+- Don't suggest patterns that contradict `CLAUDE.md`, `AGENTS.md`, or the
+  repo's `.coderabbit.yaml` `path_instructions`.
 
-Solo-dev repo. Breaking changes are allowed; the owner fixes downstream consumers in the same session. Don't suggest
-backwards-compat shims, feature flags, or deprecated-marker dual paths within a single PR.
+## Rate-limit / failure behavior
+
+If you hit a rate limit, **surface the limit and the unblock date in your
+review body** rather than the generic "encountered an error" string. The
+human author needs the date to plan, not a vague retry hint.

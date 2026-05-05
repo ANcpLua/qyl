@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow;
 
@@ -37,8 +36,6 @@ internal sealed class CollectorAutofixStepLedger(CollectorClient collector) : IA
             ct);
 
     public ValueTask RecordHypothesisCandidateAsync(HypothesisCandidate candidate, CancellationToken ct) =>
-        // Sub-step 3a — one row per fan-out branch. The "step_number" stays 3 since
-        // the dashboard groups by step name; the perspective lands in output_json.
         InsertAsync(candidate.RunId, 3, $"hypothesis.candidate.{candidate.BranchId}", "completed",
             JsonSerializer.Serialize(new
             {

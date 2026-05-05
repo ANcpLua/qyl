@@ -1,11 +1,5 @@
 namespace qyl.mcp.Metadata;
 
-/// <summary>
-///     Compile-time descriptor of a single MCP tool method, emitted by ToolManifestGenerator.
-///     Consolidates both the method-level metadata ([McpServerTool]/[Description]) and the
-///     tool-type skill family ([QylSkill]) into one record — there is no second runtime-only
-///     descriptor that has to enrich this shape.
-/// </summary>
 internal sealed record ToolDescriptor
 {
     public required string Name { get; init; }

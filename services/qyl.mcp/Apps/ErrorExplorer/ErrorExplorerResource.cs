@@ -3,16 +3,9 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Apps.ErrorExplorer;
 
-/// <summary>
-///     Serves the Error Explorer HTML as an MCP resource at <c>ui://qyl/error-explorer</c>.
-///     HTML content is loaded from <c>ErrorExplorerHtml.Content</c>.
-/// </summary>
 [McpServerResourceType]
 public sealed class ErrorExplorerResource
 {
-    /// <summary>
-    ///     Returns the Error Explorer HTML content as an MCP resource.
-    /// </summary>
     [McpServerResource(
         UriTemplate = "ui://qyl/error-explorer",
         Name = "error-explorer",

@@ -4,10 +4,6 @@ using QueryString = ANcpLua.Roslyn.Utilities.Web.QueryString;
 
 namespace Qyl.Loom;
 
-/// <summary>
-///     Typed HTTP client for the qyl collector REST API.
-///     Replaces direct DuckDbStore usage so Loom runs as a standalone process.
-/// </summary>
 public sealed class CollectorClient(HttpClient http)
 {
     public async Task<IssueSummary?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
@@ -121,13 +117,6 @@ public sealed class CollectorClient(HttpClient http)
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>
-    ///     Append caller guidance to an existing fix run's instruction column via PATCH.
-    ///     Append-semantics: the collector concatenates the new text to any existing
-    ///     instruction with a <c>---</c> separator. Status is left unchanged (re-sent as
-    ///     its current value via the PATCH contract's <c>COALESCE</c> semantics — we send
-    ///     only the instruction field, collector keeps the rest).
-    /// </summary>
     public async Task AppendFixRunInstructionAsync(
         string issueId, string runId, string instruction, CancellationToken ct = default)
     {
@@ -289,10 +278,6 @@ public sealed record UntriagedIssuesResponse(List<string> Ids);
 
 public sealed record IssueEventsResponse(List<IssueEventDto> Items, int Total);
 
-/// <summary>
-///     Subset of ErrorIssueEventRow returned by the collector issue events endpoint.
-///     Only the fields Loom needs for autofix context gathering.
-/// </summary>
 public sealed record IssueEventDto
 {
     [JsonPropertyName("id")] public required string Id { get; init; }

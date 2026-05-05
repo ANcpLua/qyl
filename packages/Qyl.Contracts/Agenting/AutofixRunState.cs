@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Canonical, deterministic state object for agentic runs.
-/// </summary>
 public sealed record AutofixRunState
 {
     public required string RunId { get; init; }
@@ -31,9 +28,6 @@ public sealed record AutofixRunState
     public string? FinalOutcome { get; init; }
 }
 
-/// <summary>
-///     Envelope for deterministic run telemetry and governance projection.
-/// </summary>
 public sealed record RunLedgerEvent
 {
     public required string EventId { get; init; }

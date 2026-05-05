@@ -1,6 +1,5 @@
 namespace Qyl.Collector.Analytics;
 
-/// <summary>Anomaly classification confidence level.</summary>
 public enum AnomalyType
 {
     None,
@@ -9,7 +8,6 @@ public enum AnomalyType
     HighConfidence
 }
 
-/// <summary>Detection sensitivity — controls Z-score threshold.</summary>
 public enum AnomalySensitivity
 {
     Low,
@@ -17,7 +15,6 @@ public enum AnomalySensitivity
     High
 }
 
-/// <summary>Expected seasonality patterns for time-series decomposition.</summary>
 public enum AnomalySeasonality
 {
     Auto,
@@ -30,7 +27,6 @@ public enum AnomalySeasonality
     HourlyDailyWeekly
 }
 
-/// <summary>Which direction triggers an anomaly.</summary>
 public enum AnomalyThresholdDirection
 {
     Above,

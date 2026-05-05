@@ -4,20 +4,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that creates a new API key for programmatic access.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
 public sealed partial class CreateApiKeyTool(HttpClient client)
 {
-    /// <summary>
-    ///     Creates a new API key and returns its name, prefix, and full key value.
-    /// </summary>
-    /// <param name="name">Human-readable name for the API key (e.g. 'ci-pipeline', 'dev-local').</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the created key details.</returns>
     [McpServerTool(
         Name = "create_api_key",
         Title = "Create API Key",

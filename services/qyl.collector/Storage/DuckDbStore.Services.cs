@@ -5,9 +5,6 @@ namespace Qyl.Collector.Storage;
 
 public sealed partial class DuckDbStore
 {
-    // ══════════════════════════════════════════════════════════════════════════
-    // SERVICE REGISTRY
-    // ══════════════════════════════════════════════════════════════════════════
 
     internal const string ServiceInstancesDdl = """
                                                 CREATE TABLE IF NOT EXISTS service_instances (
@@ -91,10 +88,6 @@ public sealed partial class DuckDbStore
     private static DateTime NanoToDateTime(ulong nanos) =>
         TimeConversions.UnixNanoToDateTime(nanos);
 
-    /// <summary>
-    ///     Upserts a service instance discovered from OTLP resource attributes.
-    ///     Called at ingest time — idempotent and cheap.
-    /// </summary>
     public async Task UpsertServiceInstanceAsync(ServiceInstanceRecord instance, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -118,9 +111,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Queries the services view for the REST endpoint.
-    /// </summary>
     public async Task<IReadOnlyList<ServiceSummary>> GetServicesAsync(
         string? typeFilter = null,
         string? statusFilter = null,
@@ -190,9 +180,6 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    /// <summary>
-    ///     Gets a single service with its instance list.
-    /// </summary>
     public async Task<ServiceDetail?> GetServiceDetailAsync(
         string serviceName,
         string? serviceType = null,
@@ -255,10 +242,6 @@ public sealed partial class DuckDbStore
         };
     }
 
-    /// <summary>
-    ///     Recomputes aggregates for all service instances from spans/logs tables.
-    ///     Called by ServiceMaterializerService on a 5-minute interval.
-    /// </summary>
     public async Task UpdateServiceAggregatesAsync(CancellationToken ct = default) =>
         await ExecuteWriteAsync(static async (con, token) =>
         {
@@ -313,9 +296,6 @@ public sealed partial class DuckDbStore
             await statusCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Backfills service_instances from spans for services not yet registered.
-    /// </summary>
     public async Task BackfillMissingServicesAsync(CancellationToken ct = default) =>
         await ExecuteWriteAsync(static async (con, token) =>
         {
@@ -347,9 +327,6 @@ public sealed partial class DuckDbStore
         }, ct).ConfigureAwait(false);
 }
 
-/// <summary>
-///     Data extracted from OTLP resource attributes for the service upsert.
-/// </summary>
 public sealed record ServiceInstanceRecord
 {
     public required string ServiceNamespace { get; init; }

@@ -254,7 +254,6 @@ internal static class TracedInterceptorEmitter
 
         using (sb.BeginIf("activity is not null"))
         {
-            // code.* attributes
             if (cs.CodeFilePath is { Length: > 0 })
             {
                 sb.AppendLine(
@@ -267,7 +266,6 @@ internal static class TracedInterceptorEmitter
             if (cs.CodeLineNumber > 0)
                 sb.AppendLine($"activity.SetTag(\"code.lineno\", {cs.CodeLineNumber});");
 
-            // Parameter tags
             foreach (var tag in cs.TracedTags)
             {
                 switch (tag)
@@ -290,7 +288,6 @@ internal static class TracedInterceptorEmitter
                 }
             }
 
-            // Property tags
             foreach (var prop in cs.TracedTagProperties)
             {
                 var accessor = prop.IsStatic

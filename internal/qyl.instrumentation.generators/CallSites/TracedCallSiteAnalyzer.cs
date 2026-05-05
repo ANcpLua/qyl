@@ -5,9 +5,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Analyzes syntax to find invocations of methods decorated with [Traced] attribute.
-/// </summary>
 internal static class TracedCallSiteAnalyzer
 {
     private const string TracedAttributeFullName = "Qyl.Instrumentation.Instrumentation.TracedAttribute";
@@ -18,16 +15,9 @@ internal static class TracedCallSiteAnalyzer
     private const string AsyncEnumerablePrefix =
         "System.Collections.Generic.IAsyncEnumerable<";
 
-    /// <summary>
-    ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
-    /// </summary>
     public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken ct) =>
         IncrementalPipelineHelpers.CouldBeInvocation(node, ct);
 
-    /// <summary>
-    ///     Extracts a traced call site from a syntax context if the target has [Traced] attribute.
-    ///     Returns null if not a traced method or if already intercepted.
-    /// </summary>
     public static TracedCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
@@ -51,7 +41,6 @@ internal static class TracedCallSiteAnalyzer
         var method = invocation.TargetMethod;
         var compilation = context.SemanticModel.Compilation;
 
-        // Resolve attribute types once
         var tracedTagAttributeType = compilation.GetTypeByMetadataName(TracedTagAttributeFullName);
         var tracedReturnAttributeType = compilation.GetTypeByMetadataName(TracedReturnAttributeFullName);
 
@@ -68,7 +57,6 @@ internal static class TracedCallSiteAnalyzer
         var isAsyncEnumerable = returnTypeName.StartsWithOrdinal(AsyncEnumerablePrefix);
         var isAsync = !isAsyncEnumerable && IncrementalPipelineHelpers.IsAsyncReturnType(method);
 
-        // T-008: Extract code.* attributes from method definition location.
         string? codeFilePath = null;
         var codeLineNumber = 0;
         if (method.DeclaringSyntaxReferences.FirstOrDefault() is { } syntaxRef)
@@ -106,9 +94,6 @@ internal static class TracedCallSiteAnalyzer
             interceptLocation);
     }
 
-    // =========================================================================
-    // [Traced] attribute extraction
-    // =========================================================================
 
     private static bool TryGetTracedAttribute(
         ISymbol method,
@@ -121,12 +106,10 @@ internal static class TracedCallSiteAnalyzer
         if (compilation.GetTypeByMetadataName(TracedAttributeFullName) is not { } tracedAttributeType)
             return false;
 
-        // Check if method has [NoTrace] — opt-out from class-level tracing
         var noTraceAttributeType = compilation.GetTypeByMetadataName(NoTraceAttributeFullName);
         if (noTraceAttributeType is not null && method.HasAttribute(noTraceAttributeType))
             return false;
 
-        // 1. Method-level [Traced] takes priority
         var methodAttr = GetTracedAttributeData(method.GetAttributes(), tracedAttributeType);
         if (methodAttr is not null)
         {
@@ -134,11 +117,9 @@ internal static class TracedCallSiteAnalyzer
             return tracedInfo is not null;
         }
 
-        // 2. Class-level [Traced] — walk inheritance chain
         var classAttr = GetTracedAttributeFromTypeHierarchy(method.ContainingType, tracedAttributeType);
         if (classAttr is not null)
         {
-            // Only public methods inherit class-level tracing
             if (method.DeclaredAccessibility != Accessibility.Public)
                 return false;
 
@@ -212,9 +193,6 @@ internal static class TracedCallSiteAnalyzer
         return (activitySourceName, spanName ?? defaultSpanName, spanKind, rootSpan);
     }
 
-    // =========================================================================
-    // [TracedTag] extraction — parameters (T-006: SkipIfDefault)
-    // =========================================================================
 
     private static EquatableArray<TracedTagParameter> ExtractTracedTags(
         IMethodSymbol method,
@@ -270,9 +248,6 @@ internal static class TracedCallSiteAnalyzer
         return tags.ToArray().ToEquatableArray();
     }
 
-    // =========================================================================
-    // T-004: [TracedTag] on properties of the containing type
-    // =========================================================================
 
     private static EquatableArray<TracedTagProperty> ExtractTracedTagProperties(
         INamedTypeSymbol containingType,
@@ -285,13 +260,11 @@ internal static class TracedCallSiteAnalyzer
 
         var properties = new List<TracedTagProperty>();
 
-        // Only scan instance properties for instance methods (static methods have no @this)
         foreach (var member in containingType.GetMembers().OfType<IPropertySymbol>())
         {
             if (member.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
                 continue;
 
-            // Instance properties are inaccessible from static interceptors
             if (methodIsStatic && !member.IsStatic)
                 continue;
 
@@ -327,9 +300,6 @@ internal static class TracedCallSiteAnalyzer
         return properties.ToArray().ToEquatableArray();
     }
 
-    // =========================================================================
-    // T-007: [return: TracedReturn(...)] extraction
-    // =========================================================================
 
     private static TracedReturnInfo? ExtractReturnCapture(
         IMethodSymbol method,
@@ -338,7 +308,6 @@ internal static class TracedCallSiteAnalyzer
         if (tracedReturnAttributeType is null)
             return null;
 
-        // Skip void and Task (no meaningful return value to capture)
         var returnType = method.ReturnType.ToDisplayString();
         if (returnType is "void" ||
             returnType is "System.Threading.Tasks.Task" ||
@@ -363,9 +332,6 @@ internal static class TracedCallSiteAnalyzer
         return new TracedReturnInfo(tagName, propertyPath);
     }
 
-    // =========================================================================
-    // Generic type parameter extraction
-    // =========================================================================
 
     private static EquatableArray<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method) =>
         method.TypeParameters.IsEmpty

@@ -1,6 +1,3 @@
-// =============================================================================
-// Manual schema extensions for autofix step tracking within fix runs.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 

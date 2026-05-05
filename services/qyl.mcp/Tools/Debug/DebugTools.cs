@@ -3,15 +3,10 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Debug;
 
-/// <summary>
-///     MCP tools for debugging via Rider's Debugger MCP plugin.
-///     Stable contracts — backend will migrate from Rider proxy to native .NET debugging.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Debug)]
 internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery discovery)
 {
-    // -- Connection -------------------------------------------------------
 
     [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.status", Title = "Debug Connection Status",
@@ -45,7 +40,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
             return sb.ToString();
         });
 
-    // -- Sessions ---------------------------------------------------------
 
     [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.start_session", Title = "Start Debug Session",
@@ -75,7 +69,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_debug_session_status", BuildArgs(("sessionId", sessionId)), ct);
 
-    // -- Run Configurations -----------------------------------------------
 
     [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.list_run_configs", Title = "List Run Configurations",
@@ -83,7 +76,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
     public partial Task<string> ListRunConfigurationsAsync(CancellationToken ct = default) =>
         CallRiderToolAsync("list_run_configurations", null, ct);
 
-    // -- Breakpoints ------------------------------------------------------
 
     [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.set_breakpoint", Title = "Set Breakpoint",
@@ -111,7 +103,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
     public partial Task<string> ListBreakpointsAsync(CancellationToken ct = default) =>
         CallRiderToolAsync("list_breakpoints", null, ct);
 
-    // -- Execution Control ------------------------------------------------
 
     [McpServerTool(Name = "qyl.debug.resume", Title = "Resume Execution",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
@@ -158,7 +149,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         CallRiderToolAsync("run_to_line", BuildArgs(
             ("filePath", filePath), ("lineNumber", lineNumber), ("sessionId", sessionId)), ct);
 
-    // -- Inspection -------------------------------------------------------
 
     [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.evaluate", Title = "Evaluate Expression",
@@ -193,7 +183,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
             ("variableName", variableName), ("value", value),
             ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
 
-    // -- Stack ------------------------------------------------------------
 
     [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.get_stack_trace", Title = "Get Stack Trace",
@@ -219,7 +208,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         CallRiderToolAsync("select_stack_frame", BuildArgs(
             ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
 
-    // -- Source -----------------------------------------------------------
 
     [McpServerTool(Name = "qyl.debug.get_source", Title = "Get Source Context",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
@@ -228,7 +216,6 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         CancellationToken ct = default) =>
         CallRiderToolAsync("get_source_context", BuildArgs(("sessionId", sessionId)), ct);
 
-    // -- Proxy plumbing ---------------------------------------------------
 
     private async Task<string> CallRiderToolAsync(
         string riderToolName,

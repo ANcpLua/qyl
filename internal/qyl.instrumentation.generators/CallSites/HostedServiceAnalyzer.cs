@@ -4,10 +4,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Discovers classes tagged with <c>[QylHostedService]</c> for compile-time
-///     <c>AddHostedService&lt;T&gt;()</c> registration.
-/// </summary>
 internal static class HostedServiceAnalyzer
 {
     internal const string HostedServiceAttributeMetadataName = "Qyl.Contracts.Observability.QylHostedServiceAttribute";

@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -9,14 +8,9 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
-/// <summary>
-///     QYLSC002 — Reports an Info diagnostic when a string literal that matches a known (non-deprecated)
-///     OTel attribute ID is passed to a tag-setter method. A CodeFix offers to replace it with the typed constant.
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
 {
-    /// <summary>Diagnostic ID for magic-string usage of a known attribute.</summary>
     public const string DiagnosticId = "QYLSC002";
 
     private static readonly DiagnosticDescriptor s_rule = new(
@@ -28,11 +22,9 @@ public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
         true,
         "Typed constants from Qyl.OpenTelemetry.SemanticConventions are refactor-safe and IDE-navigable.");
 
-    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(s_rule);
 
-    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();
@@ -56,11 +48,9 @@ public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
             var dep = DeprecationIndex.Instance;
             var reg = RegistryIndex.Instance;
 
-            // Skip if it's deprecated — QYL-SEMCONV-001 already covers that
             if (dep.DeprecatedIds.Contains(value))
                 return;
 
-            // Only fire when the ID is in the known-valid registry
             if (!reg.IsValid(value))
                 return;
 
@@ -68,7 +58,6 @@ public sealed class MagicStringAnalyzer : DiagnosticAnalyzer
         }
         catch
         {
-            // Suppress analyzer exceptions so they don't produce AD0001.
         }
     }
 }

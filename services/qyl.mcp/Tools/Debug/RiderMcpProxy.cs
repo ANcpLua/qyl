@@ -4,10 +4,6 @@ using ModelContextProtocol.Protocol;
 
 namespace qyl.mcp.Tools.Debug;
 
-/// <summary>
-///     Lazily connects to Rider's debugger MCP server and proxies tool calls.
-///     Reconnects automatically when Rider restarts (URL changes).
-/// </summary>
 internal sealed partial class RiderMcpProxy(
     JetBrainsDiscovery discovery,
     ILogger<RiderMcpProxy> logger) : IAsyncDisposable
@@ -43,7 +39,6 @@ internal sealed partial class RiderMcpProxy(
                   ?? throw new InvalidOperationException(
                       "Rider debugger MCP not found. Is Rider running with the Debugger MCP plugin?");
 
-        // Reconnect if URL changed (Rider restarted)
         if (_client is not null && _connectedUrl == url)
             return ValueTask.FromResult(_client);
 

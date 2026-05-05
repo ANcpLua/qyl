@@ -3,11 +3,6 @@ using Qyl.Contracts.Primitives;
 using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
-/// <summary>
-///     Quern-inspired live log deduplicator.
-///     Emits the first log immediately, suppresses repeated identical logs
-///     inside a sliding window, then emits a summary event once the burst quiets.
-/// </summary>
 internal sealed class LiveLogDeduplicator
 {
     private readonly Dictionary<string, DedupBucket> _buckets = new(StringComparer.Ordinal);
@@ -16,8 +11,6 @@ internal sealed class LiveLogDeduplicator
 
     public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100)
     {
-        // Guard.GreaterThan has int/long/double overloads but no TimeSpan one, so this stays
-        // an inline check rather than getting routed through Guard.* (a cross-repo expansion).
         if (window <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(window), window, "Window must be positive.");
@@ -29,10 +22,6 @@ internal sealed class LiveLogDeduplicator
         _maxSuppressed = maxSuppressed;
     }
 
-    /// <summary>
-    ///     Processes logs in ascending timestamp order.
-    ///     First occurrences are emitted immediately; duplicate bursts are summarized later.
-    /// </summary>
     public IReadOnlyList<DeduplicatedLiveLog> ProcessBatch(IEnumerable<LogStorageRow> orderedLogs)
     {
         var output = new List<DeduplicatedLiveLog>();
@@ -49,7 +38,6 @@ internal sealed class LiveLogDeduplicator
                 bucket.LastSeenUtc = timestamp;
                 bucket.LastLog = log;
 
-                // Prevent unbounded suppression during sustained spam bursts.
                 if (bucket.Count - 1 >= _maxSuppressed)
                 {
                     EmitSummary(bucket, output);
@@ -66,9 +54,6 @@ internal sealed class LiveLogDeduplicator
         return output;
     }
 
-    /// <summary>
-    ///     Flushes only buckets whose dedupe windows have expired.
-    /// </summary>
     public IReadOnlyList<DeduplicatedLiveLog> FlushExpired(DateTime utcNow)
     {
         var output = new List<DeduplicatedLiveLog>();
@@ -122,10 +107,6 @@ internal sealed class LiveLogDeduplicator
     }
 }
 
-/// <summary>
-///     Log emitted by deduplication.
-///     <see cref="RepeatCount" /> is the number of suppressed duplicates for summary events.
-/// </summary>
 internal sealed record DeduplicatedLiveLog(
     LogStorageRow Log,
     int RepeatCount = 1,

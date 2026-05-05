@@ -1,20 +1,11 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
 namespace Qyl.Loom.Patterns.Patterns;
 
-/// <summary>
-///     Pattern 03 — <c>CheckpointManager</c> + <c>SuperStepCompletedEvent.CompletionInfo.Checkpoint</c>
-///     + <c>StreamingRun.RestoreCheckpointAsync</c>.
-///     Demonstrates pause/resume by replaying the same run from a middle checkpoint after
-///     initial completion. Swap <c>CheckpointManager.Default</c> for a durable subclass
-///     (Cosmos, file-based) and pause/resume works across process restarts.
-/// </summary>
 public static class Pattern03_CheckpointResume
 {
-    /// <summary>Runs the checkpoint/resume demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
         var rca = new RcaExecutor("patterns/03/rca", agents.BuildRcaAgent());
@@ -72,7 +63,6 @@ public static class Pattern03_CheckpointResume
         }
     }
 
-    // ── Executors ────────────────────────────────────────────────────────────
 
     private sealed class RcaExecutor(string id, AIAgent agent)
         : Executor<IncidentSignal, RootCauseHypothesis>(id)

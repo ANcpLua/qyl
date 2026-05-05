@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     Receives GitHub webhook events, verifies HMAC-SHA256 signatures,
-///     stores events, and routes to appropriate handlers.
-/// </summary>
 public static class GitHubWebhookEndpoints
 {
     [QylMapEndpoints]
@@ -24,7 +20,6 @@ public static class GitHubWebhookEndpoints
             }
             catch
             {
-                // Avoid breaking Loom dashboard when webhook storage is not initialized.
                 return TypedResults.Ok(new GitHubEventListResponse(Array.Empty<GitHubEventRecord>(), 0));
             }
         });
@@ -36,7 +31,6 @@ public static class GitHubWebhookEndpoints
         DuckDbStore store,
         CancellationToken ct)
     {
-        // 1. Read raw request body
         byte[] payload;
         await using (MemoryStream ms = new())
         {
@@ -44,7 +38,6 @@ public static class GitHubWebhookEndpoints
             payload = ms.ToArray();
         }
 
-        // 2. Read GitHub headers
         var signatureHeader = request.Headers["X-Hub-Signature-256"].ToString();
         var eventType = request.Headers["X-GitHub-Event"].ToString();
         var deliveryId = request.Headers["X-GitHub-Delivery"].ToString();
@@ -56,7 +49,6 @@ public static class GitHubWebhookEndpoints
         if (string.IsNullOrEmpty(deliveryId))
             deliveryId = Guid.NewGuid().ToString("N");
 
-        // 3. Verify HMAC-SHA256 signature
         var webhookSecret = configuration["QYL_GITHUB_WEBHOOK_SECRET"];
         if (!string.IsNullOrEmpty(webhookSecret))
         {
@@ -64,11 +56,9 @@ public static class GitHubWebhookEndpoints
                 return TypedResults.Unauthorized();
         }
 
-        // 4. Parse JSON payload
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
 
-        // 5. Extract common fields
         var action = root.TryGetProperty("action", out var actionEl)
             ? actionEl.GetString()
             : null;
@@ -83,7 +73,6 @@ public static class GitHubWebhookEndpoints
             ? loginEl.GetString()
             : null;
 
-        // 6. Extract event-specific fields
         int? prNumber = null;
         string? prUrl = null;
         string? gitRef = null;
@@ -105,7 +94,6 @@ public static class GitHubWebhookEndpoints
                 break;
         }
 
-        // 7. Store event
         GitHubEventRecord record = new()
         {
             EventId = deliveryId,
@@ -139,5 +127,4 @@ public static class GitHubWebhookEndpoints
     }
 }
 
-/// <summary>List response shape for GitHub event queries — items + total count.</summary>
 public sealed record GitHubEventListResponse(IReadOnlyList<GitHubEventRecord> Items, int Total);

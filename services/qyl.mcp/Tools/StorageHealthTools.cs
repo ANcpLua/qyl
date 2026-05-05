@@ -6,21 +6,15 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for system health and storage status.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Health)]
 public sealed partial class StorageHealthTools(HttpClient client)
 {
-    /// <summary>Retrieves storage statistics for the qyl collector including span/log counts and database size.</summary>
-    /// <returns>A storage statistics summary from the health endpoint.</returns>
     [QylCapability("health_and_storage", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.get_storage_stats", Title = "Get Storage Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     public partial Task<string> GetStorageStatsAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        // /health is a bare 200/503 Aspire-style probe — rich component detail lives on /health/ui.
         var health = await client.GetFromJsonAsync<HealthUiResponsePayload>(
             "/health/ui",
             StorageHealthJsonContext.Default.HealthUiResponsePayload).ConfigureAwait(false);
@@ -51,14 +45,11 @@ public sealed partial class StorageHealthTools(HttpClient client)
         return sb.ToString();
     });
 
-    /// <summary>Checks the health status of all qyl collector components.</summary>
-    /// <returns>Health status of DuckDB, ingestion pipeline, and SSE streaming.</returns>
     [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.health_check", Title = "Health Check",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     public partial Task<string> HealthCheckAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        // Aspire-style probes: /alive = live-tagged, /health = ready-tagged. Rich detail from /health/ui.
         var aliveTask = client.GetAsync("/alive");
         var healthTask = client.GetAsync("/health");
         var detailTask = client.GetFromJsonAsync<HealthUiResponsePayload>(
@@ -90,8 +81,6 @@ public sealed partial class StorageHealthTools(HttpClient client)
         return sb.ToString();
     }, "Health check failed - qyl collector may be down");
 
-    /// <summary>Retrieves pre-computed system context (topology, performance, known issues) from the insights materializer.</summary>
-    /// <returns>Markdown system context with topology, performance profile, and alerts.</returns>
     [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
@@ -118,8 +107,6 @@ public sealed partial class StorageHealthTools(HttpClient client)
 
 #region DTOs
 
-// Mirrors Qyl.Collector.Health.HealthUiResponse JSON (camelCase via collector's QylOptions).
-// Kept local so qyl.mcp doesn't take a project reference on qyl.collector.
 internal sealed record HealthUiResponsePayload(
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("components")]

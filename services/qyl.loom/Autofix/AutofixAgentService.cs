@@ -1,15 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Contracts.Observability;
 
 namespace Qyl.Loom.Autofix;
 
-/// <summary>
-///     Background scheduler: polls the collector for pending fix runs and dispatches each to
-///     <see cref="LoomAutofixRunner" />. The runner is the single-agent MAF-native pipeline —
-///     no workflow graph, no per-stage executors. Scheduling, batching, and back-pressure
-///     logic live here; all pipeline logic lives in the runner.
-/// </summary>
 [QylHostedService]
 internal sealed partial class AutofixAgentService(
     CollectorClient collector,
@@ -29,7 +22,6 @@ internal sealed partial class AutofixAgentService(
             return;
         }
 
-        // Warm-up delay — let the triage pipeline populate pending fix runs.
         await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken).ConfigureAwait(false);
         LogAutofixStarted(_intervalSeconds);
 

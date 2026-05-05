@@ -3,9 +3,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
 
-/// <summary>
-///     Emits meter implementations for [Meter] attributed partial classes.
-/// </summary>
 internal static class MeterEmitter
 {
     public static string Emit(ImmutableArray<MeterDefinition> meters)

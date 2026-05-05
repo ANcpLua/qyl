@@ -46,8 +46,8 @@
     "uri-template": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "~18.19.75",
-    "typescript": "~5.6.0"
+    "@types/node": "18.19.130",
+    "typescript": "5.6.3"
   },
   "publishConfig": {
     "access": "public"

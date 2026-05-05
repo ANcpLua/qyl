@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -11,11 +10,6 @@ using Microsoft.Extensions.Options;
 
 namespace Qyl.Run.Internal;
 
-/// <summary>
-///     Spawns every declared resource's subprocess, allocates ports for port-0 resources, polls
-///     <see cref="QylLaunchSpec.HealthPath" /> on each, and publishes lifecycle events into the
-///     <see cref="QylResourceRegistry" />. <see cref="QylConsoleUi" /> renders off that feed.
-/// </summary>
 internal sealed partial class QylOrchestrator(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
@@ -46,9 +40,6 @@ internal sealed partial class QylOrchestrator(
         LogBoot(logger, resources.Count);
         foreach (var r in resources) registry.Publish(r.Name, ResourceLifecycle.Pending);
 
-        // Ordered start — resources get spawned in declaration order, but each one awaits its
-        // `WaitForNames` deps before racing to Ready. Simple topological traversal; cycle
-        // detection is implicit (a cycle deadlocks, we fail after the startup timeout).
         var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken)).ToArray();
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
@@ -58,7 +49,6 @@ internal sealed partial class QylOrchestrator(
         }
         catch (OperationCanceledException)
         {
-            /* expected on host shutdown */
         }
         finally
         {
@@ -86,7 +76,6 @@ internal sealed partial class QylOrchestrator(
 
             if (string.IsNullOrEmpty(resource.Launch.Executable))
             {
-                // External endpoint — treat as already-running and just health-poll.
                 if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
                 {
                     registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
@@ -128,26 +117,22 @@ internal sealed partial class QylOrchestrator(
                 registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out");
             }
         }
-        // Typed catches — each maps to one concrete subprocess-launch failure mode. Anything
-        // outside this set is a programmer bug and must surface with a full stack trace.
-        // SocketException : Win32Exception — keep the subclass first so port-claim failures
-        // report as "port in use" rather than the generic Win32 message.
         catch (SocketException ex)
         {
             FailResource(resource, ex);
-        } // port claim failure
+        }
         catch (Win32Exception ex)
         {
             FailResource(resource, ex);
-        } // executable not found / permission denied
+        }
         catch (FileNotFoundException ex)
         {
             FailResource(resource, ex);
-        } // project path wrong
+        }
         catch (InvalidOperationException ex)
         {
             FailResource(resource, ex);
-        } // Process.Start returned null or state error
+        }
     }
 
     private void FailResource(QylResource resource, Exception ex)
@@ -185,11 +170,9 @@ internal sealed partial class QylOrchestrator(
             }
             catch (HttpRequestException)
             {
-                /* probe again */
             }
             catch (TaskCanceledException)
             {
-                /* probe again */
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
@@ -214,7 +197,6 @@ internal sealed partial class QylOrchestrator(
             }
             catch (InvalidOperationException)
             {
-                /* already gone */
             }
 
             registry.Publish(name, ResourceLifecycle.Stopped);

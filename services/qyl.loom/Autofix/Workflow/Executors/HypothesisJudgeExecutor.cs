@@ -1,12 +1,6 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
-/// Fan-in barrier aggregator for HypothesisCandidate fan-out branches.
-/// MAF delivers the full List once all parallel branches complete (via
-/// AddFanInBarrierEdge). The judge LLM scores the candidates, picks the
-/// winner, and forwards a HypothesisVerdict to the next stage via
-/// context.SendMessageAsync.
 internal sealed class HypothesisJudgeExecutor(
     string id,
     AIAgent agent,

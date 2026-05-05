@@ -1,15 +1,9 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Prunes stale LSP workspace temp directories on startup. csharp-ls creates per-workspace
-///     temp state under <c>$TMPDIR/csharp-ls-*</c>; left over from prior crashes, they can eat
-///     gigabytes over time. Removes directories older than <see cref="s_maxAge" />.
-/// </summary>
 internal sealed partial class LspManagerTempDirectoryCleanup(
     TimeProvider time,
     ILogger<LspManagerTempDirectoryCleanup> logger) : IHostedService
@@ -17,7 +11,6 @@ internal sealed partial class LspManagerTempDirectoryCleanup(
     private static readonly TimeSpan s_maxAge = TimeSpan.FromDays(7);
     private static readonly string[] s_prefixes = ["csharp-ls-", "typescript-language-server-"];
 
-    /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var tempRoot = Path.GetTempPath();
@@ -38,7 +31,6 @@ internal sealed partial class LspManagerTempDirectoryCleanup(
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     private void TryPrune(string directory, DateTimeOffset cutoff)

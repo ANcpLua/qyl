@@ -4,22 +4,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that creates a new observability project.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
 public sealed partial class CreateProjectTool(HttpClient client)
 {
-    /// <summary>
-    ///     Creates a new observability project with the specified name, slug, and optional description.
-    /// </summary>
-    /// <param name="name">Display name for the project.</param>
-    /// <param name="slug">URL-safe slug identifier.</param>
-    /// <param name="description">Optional project description.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the created project details.</returns>
     [McpServerTool(
         Name = "create_project",
         Title = "Create Project",

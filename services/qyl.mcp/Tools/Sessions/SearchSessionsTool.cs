@@ -7,10 +7,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
-/// <summary>
-///     Searches debugging sessions by query, returning a paginated list with status, service, and span count.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SearchSessionsTool(HttpClient client)

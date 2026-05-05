@@ -1,14 +1,3 @@
-// =============================================================================
-// qyl Build System - Docker (image build/push + Compose lifecycle)
-// =============================================================================
-// Two halves:
-//   1. Image build/push  → DockerTasks.* typed wrappers (already work).
-//   2. Compose lifecycle → typed Tool delegate from [PathVariable].
-//      Manual `compose ` string concatenation + embedded quotes have been
-//      removed because Process.Start treated the whole arg blob as a single
-//      argument, which made docker print its help banner instead of running.
-//      Now: Tool Docker delegate splits on whitespace + respects quotes.
-// =============================================================================
 
 using System;
 using System.Linq;
@@ -45,9 +34,6 @@ interface IDocker : IHazSourcePaths
         ("qyl-dashboard", DashboardDirectory             / "Dockerfile", FormatImageName("qyl-dashboard"))
     ];
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Image lifecycle
-    // ════════════════════════════════════════════════════════════════════════
 
     Target DockerImageBuild => d => d
         .Description("Build all qyl Docker images in parallel")
@@ -81,9 +67,6 @@ interface IDocker : IHazSourcePaths
                 degreeOfParallelism: 2);
         });
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Compose lifecycle
-    // ════════════════════════════════════════════════════════════════════════
 
     Target DockerUp => d => d
         .Description("Start the qyl Compose stack (docker compose up -d)")
@@ -111,9 +94,6 @@ interface IDocker : IHazSourcePaths
                 Compose("logs", "-f", Service);
         });
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Helpers
-    // ════════════════════════════════════════════════════════════════════════
 
     private void Compose(params string[] composeArgs)
     {

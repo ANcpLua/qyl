@@ -1,30 +1,8 @@
-// =============================================================================
-// EmbeddingClusterWorker — semantic clustering for Coverage Gaps & Top Questions
-// =============================================================================
-// Runs every 15 minutes when an IEmbeddingGenerator<string, Embedding<float>>
-// is registered in DI. If none is registered the service exits immediately.
-// Analytics queries (Coverage Gaps, Top Questions, Satisfaction by topic)
-// require clustering — unclustered spans are excluded from topic analytics.
-//
-// Algorithm (greedy cosine-similarity):
-//   1. Fetch up to 200 unclustered gen_ai spans with gen_ai.input.messages.
-//   2. Extract the first user message from each span's messages JSON.
-//      Spans without an extractable user message are skipped.
-//   3. Embed all texts in one batch via the injected generator.
-//   4. Greedily assign each embedding to the nearest existing centroid
-//      (if cosine similarity ≥ 0.75) or start a new cluster.
-//   5. Persist assignments to span_clusters via DuckDbStore.
-// =============================================================================
 
 using Microsoft.Extensions.AI;
 
 namespace Qyl.Collector.Analytics;
 
-/// <summary>
-///     Background service that enriches gen_ai spans with semantic cluster labels.
-///     Only active when <see cref="IEmbeddingGenerator{TInput,TEmbedding}" /> is
-///     registered in the DI container.
-/// </summary>
 [QylHostedService]
 public sealed partial class EmbeddingClusterWorker(
     DuckDbStore store,
@@ -36,9 +14,6 @@ public sealed partial class EmbeddingClusterWorker(
     private const int BatchSize = 200;
     private const string ModelVersion = "cosine-v1";
 
-    // ==========================================================================
-    // BackgroundService
-    // ==========================================================================
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -49,7 +24,6 @@ public sealed partial class EmbeddingClusterWorker(
             return;
         }
 
-        // Wait for ingestion warmup before first clustering pass
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
         await RunClusteringAsync(generator, stoppingToken).ConfigureAwait(false);
 
@@ -67,9 +41,6 @@ public sealed partial class EmbeddingClusterWorker(
         }
     }
 
-    // ==========================================================================
-    // Clustering pipeline
-    // ==========================================================================
 
     private async Task RunClusteringAsync(
         IEmbeddingGenerator<string, Embedding<float>> generator,
@@ -82,7 +53,6 @@ public sealed partial class EmbeddingClusterWorker(
             return;
         }
 
-        // Filter to spans with extractable user messages — no span-name fallback
         var clusterableSpans = new List<UnclusteredSpan>(spans.Count);
         var texts = new List<string>(spans.Count);
         foreach (var span in spans)
@@ -105,9 +75,6 @@ public sealed partial class EmbeddingClusterWorker(
         LogClustered(logger, rows.Count, spans.Count);
     }
 
-    // ==========================================================================
-    // Greedy cosine-similarity clustering
-    // ==========================================================================
 
     private static List<SpanClusterRow> ClusterEmbeddings(
         List<UnclusteredSpan> spans,
@@ -117,7 +84,6 @@ public sealed partial class EmbeddingClusterWorker(
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
-        // Each entry: (running-mean centroid vector, human-readable label)
         var centroids = new List<(float[] Vector, string Label, int Count)>();
         var result = new List<SpanClusterRow>(spans.Count);
 
@@ -144,7 +110,6 @@ public sealed partial class EmbeddingClusterWorker(
                 clusterId = bestIdx;
                 clusterLabel = centroids[bestIdx].Label;
 
-                // Update centroid with running mean
                 var (old, label, count) = centroids[bestIdx];
                 var updated = new float[old.Length];
                 var factor = 1f / (count + 1);
@@ -188,14 +153,7 @@ public sealed partial class EmbeddingClusterWorker(
         return denom < 1e-8f ? 0f : dot / denom;
     }
 
-    // ==========================================================================
-    // JSON helpers
-    // ==========================================================================
 
-    /// <summary>
-    ///     Extracts the first user-role message text from a
-    ///     <c>gen_ai.input.messages</c> JSON array.
-    /// </summary>
     private static string? ExtractFirstUserMessage(string? messagesJson)
     {
         if (string.IsNullOrEmpty(messagesJson)) return null;
@@ -216,7 +174,6 @@ public sealed partial class EmbeddingClusterWorker(
         }
         catch (JsonException ex)
         {
-            // Malformed payload — the text is best-effort; fall through to null.
             Debug.WriteLine(ex);
         }
 
@@ -229,9 +186,6 @@ public sealed partial class EmbeddingClusterWorker(
         return text.Length <= 80 ? text : string.Concat(text.AsSpan(0, 77), "...");
     }
 
-    // ==========================================================================
-    // Structured log messages
-    // ==========================================================================
 
     [LoggerMessage(
         Level = LogLevel.Information,

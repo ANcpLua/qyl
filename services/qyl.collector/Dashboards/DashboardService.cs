@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Dashboards;
 
-/// <summary>
-///     Background service that periodically re-detects available dashboards.
-///     Caches results in memory so endpoint responses are instant.
-/// </summary>
 public sealed partial class DashboardService(
     DashboardDetector detector,
     ILogger<DashboardService> logger,
@@ -12,14 +8,10 @@ public sealed partial class DashboardService(
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private volatile IReadOnlyList<DashboardDefinition> _available = [];
 
-    /// <summary>
-    ///     Returns cached list of detected dashboards.
-    /// </summary>
     public IReadOnlyList<DashboardDefinition> GetAvailable() => _available;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Initial delay to let ingestion warm up
         await Task.Delay(TimeSpan.FromSeconds(5), _timeProvider, stoppingToken).ConfigureAwait(false);
         await DetectAsync(stoppingToken).ConfigureAwait(false);
 

@@ -1,12 +1,6 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow;
 
-/// <summary>
-///     Per-stage system prompts. Replaces the monolithic
-///     <see cref="LoomAutofixPrompts.SystemPrompt" /> so each Executor agent has a
-///     bounded directive plus a typed sub-schema.
-/// </summary>
 internal static class AutofixStagePrompts
 {
     public const string Fixability = """

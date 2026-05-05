@@ -2,10 +2,6 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Insights;
 
-/// <summary>
-///     Computes latency percentiles, token spend, WoW trends, and error rates
-///     over a rolling 7-day window.
-/// </summary>
 internal static class ProfileMaterializer
 {
     public static async Task<string> MaterializeAsync(
@@ -19,7 +15,6 @@ internal static class ProfileMaterializer
         var sevenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-7));
         var fourteenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-14));
 
-        // Latency percentiles
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -49,7 +44,6 @@ internal static class ProfileMaterializer
             }
         }
 
-        // Daily token cost
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -70,7 +64,6 @@ internal static class ProfileMaterializer
             }
         }
 
-        // WoW cost trend
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -97,7 +90,6 @@ internal static class ProfileMaterializer
             }
         }
 
-        // Hottest operations
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -121,7 +113,6 @@ internal static class ProfileMaterializer
             }
         }
 
-        // Error rate
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """

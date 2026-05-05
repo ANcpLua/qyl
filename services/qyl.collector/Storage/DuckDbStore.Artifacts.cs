@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Artifact CRUD: store and retrieve shareable content produced by AI agents.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string ArtifactInsertSql = """

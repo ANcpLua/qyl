@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,29 +10,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators;
 
-/// <summary>
-///     Intercepts <c>WebApplicationBuilder.Build()</c> call sites to inject the qyl
-///     service-defaults convention pair (<c>TryUseQylConventions</c> +
-///     <c>MapQylDefaultEndpoints</c>) and auto-invoke the three <c>QylGeneratedRegistry</c>
-///     registration methods. Also owns the <c>[Meter]</c> and <c>[Traced]</c> pipelines
-///     because their discovered source names feed the builder interceptor's
-///     <c>AdditionalActivitySources</c> / <c>AdditionalMeterNames</c> configuration lambda.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Sibling generators handle the independent concerns:
-///         <see cref="DbInterceptorGenerator" /> (ADO.NET call-sites),
-///         <see cref="ToolManifestGenerator" /> (MCP tool types),
-///         <see cref="RegistryGenerator" /> (hosted-service / endpoint / DI / health-check registry).
-///     </para>
-///     <para>
-///         Runtime IChatClient + AIAgent instrumentation is NOT handled here — it lives in
-///         <c>qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs</c> and is
-///         composed at the composition root via <c>builder.UseQylTelemetry()</c> over
-///         <c>Microsoft.Extensions.AI</c>'s <c>UseOpenTelemetry()</c> middleware (2026-04 collapse).
-///     </para>
-///     <para>See <see href="https://github.com/dotnet/roslyn/blob/main/docs/features/interceptors.md" />.</para>
-/// </remarks>
 [Generator]
 public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 {
@@ -43,9 +19,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private const string MeterDiagnosticId = "QSG004";
     private const string TracedDiagnosticId = "QSG005";
 
-    // =========================================================================
-    // Template fragments
-    // =========================================================================
 
     private const string InterceptsLocationAttributeDeclaration = """
                                                                   using Qyl.Instrumentation;
@@ -107,8 +80,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.TracedCallSitesDiscovered);
 
-        // Builder interception — combines the three inputs (call sites, runtime gate, composed
-        // telemetry registration) and emits one Intercepts.g.cs covering every Build() site.
         var generatedRegistration = BuildGeneratedServiceRegistration(
             context, meterDefinitions, meterEnabled, tracedCallSites, tracedEnabled, toggles);
 
@@ -120,7 +91,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(builderInput, EmitBuilderInterceptors);
 
-        // Meter + Traced emit — independent outputs, same shape as sibling generators.
         GeneratorPipelineHelpers.RegisterCollectedEmitterPipeline(
             context, meterDefinitions, meterEnabled,
             MeterEmitter.Emit, MeterImplementationsFile, MeterDiagnosticId);
@@ -130,9 +100,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             TracedInterceptorEmitter.Emit, TracedInterceptorsFile, TracedDiagnosticId);
     }
 
-    // =========================================================================
-    // Builder call-site extraction
-    // =========================================================================
 
     private static bool CouldBeBuildInvocation(SyntaxNode node, CancellationToken _) =>
         string.Equals(IncrementalPipelineHelpers.GetInvokedMethodName(node), "Build", StringComparison.Ordinal);
@@ -146,7 +113,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         if (!IsWebApplicationBuilderBuildCall(invocation, context.SemanticModel.Compilation))
             return null;
 
-        // Another generator already intercepted this site — leave it alone.
         if (IncrementalPipelineHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
@@ -166,9 +132,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             compilation.GetTypeByMetadataName(GeneratorPipelineHelpers.WebApplicationBuilderTypeName),
             "Build");
 
-    // =========================================================================
-    // Builder interceptor emission
-    // =========================================================================
 
     private static void EmitBuilderInterceptors(SourceProductionContext context, BuilderInterceptorInput input)
     {
@@ -230,11 +193,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                         """);
     }
 
-    // =========================================================================
-    // Telemetry composition — merges current-assembly meter/traced names with
-    // names announced by referenced assemblies via [GeneratedActivitySource] /
-    // [GeneratedMeter] assembly-level attributes.
-    // =========================================================================
 
     private static IncrementalValueProvider<GeneratedServiceRegistration> BuildGeneratedServiceRegistration(
         IncrementalGeneratorInitializationContext context,

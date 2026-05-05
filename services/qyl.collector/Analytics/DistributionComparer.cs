@@ -1,15 +1,7 @@
 namespace Qyl.Collector.Analytics;
 
-/// <summary>
-///     Compares multi-dimensional keyed distributions using KL divergence,
-///     Shannon entropy, and Reciprocal Rank Fusion scoring.
-/// </summary>
 public static class DistributionComparer
 {
-    /// <summary>
-    ///     RRF-score with Box-Cox + Z-score filtering. Keys below the Z threshold
-    ///     on both entropy and KL are marked as filtered.
-    /// </summary>
     public static List<KeyScoreFiltered> KeyedRrfScoreWithFilter(
         KeyedValueCount[] baseline,
         KeyedValueCount[] outliers,
@@ -50,9 +42,6 @@ public static class DistributionComparer
         return results;
     }
 
-    // =========================================================================
-    // Internal distribution normalization pipeline
-    // =========================================================================
 
     private static List<(string Key, double[] Baseline, double[] Outliers)>
         GenNormalizedDistributions(
@@ -121,9 +110,7 @@ public static class DistributionComparer
             b.TryAdd(key, 0);
     }
 
-    /// <summary>Key, value, count triple representing one observation.</summary>
     public readonly record struct KeyedValueCount(string Key, string Value, double Count);
 
-    /// <summary>Key with score and filter flag.</summary>
     public readonly record struct KeyScoreFiltered(string Key, double Score, bool Filtered);
 }

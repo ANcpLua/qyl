@@ -4,10 +4,6 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for querying and triggering Loom triage assessments.
-///     Communicates with qyl.collector via HTTP REST API.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class TriageTools(HttpClient http)

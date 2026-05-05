@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     REST endpoints for managing organization-level Loom configuration.
-/// </summary>
 public static class LoomSettingsEndpoints
 {
     [QylMapEndpoints]

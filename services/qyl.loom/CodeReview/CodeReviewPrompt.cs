@@ -3,10 +3,6 @@ using ModelContextProtocol.Server;
 
 namespace Qyl.Loom.CodeReview;
 
-/// <summary>
-///     Prompt builder for LLM-based pull request code review.
-///     Exposed via MCP <c>prompts/list</c> so clients can fetch the structured review template.
-/// </summary>
 [McpServerPromptType]
 internal sealed class CodeReviewPrompt
 {

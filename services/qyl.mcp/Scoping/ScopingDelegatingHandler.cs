@@ -2,10 +2,6 @@ using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attribu
 
 namespace qyl.mcp.Scoping;
 
-/// <summary>
-///     HTTP delegating handler that appends scope query parameters to all collector requests.
-///     When QYL_SERVICE or QYL_SESSION is set, every outgoing request gets narrowed automatically.
-/// </summary>
 internal sealed class ScopingDelegatingHandler(QylScope scope) : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(
@@ -25,8 +21,6 @@ internal sealed class ScopingDelegatingHandler(QylScope scope) : DelegatingHandl
         if (scope.SessionId is not null)
         {
             parts.Add($"sessionId={Uri.EscapeDataString(scope.SessionId)}");
-            // OTel canonical: gen_ai.conversation.id. Conversations view rolls spans up
-            // by this attribute regardless of which transport produced them.
             Activity.Current?.SetTag(GenAiAttributes.ConversationId, scope.SessionId);
         }
 

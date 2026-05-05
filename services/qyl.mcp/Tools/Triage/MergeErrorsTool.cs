@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
-/// <summary>
-///     Merges duplicate error issues into a primary issue, consolidating all events under the primary.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class MergeErrorsTool(HttpClient client)

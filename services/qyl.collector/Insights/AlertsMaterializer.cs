@@ -2,9 +2,6 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Insights;
 
-/// <summary>
-///     Detects error spikes, cost drift, and slow operations in the last hour.
-/// </summary>
 internal static class AlertsMaterializer
 {
     public static async Task<string> MaterializeAsync(
@@ -21,7 +18,6 @@ internal static class AlertsMaterializer
 
         var hasAlerts = false;
 
-        // Error spikes (this hour vs prev hour)
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -46,7 +42,6 @@ internal static class AlertsMaterializer
             }
         }
 
-        // Cost drift (this hour vs 24h avg)
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -73,7 +68,6 @@ internal static class AlertsMaterializer
             }
         }
 
-        // Slow operations (P95 > 2s this hour)
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """

@@ -9,7 +9,6 @@ public static class CollectorAuthExtensions
         IConfiguration config,
         IHostEnvironment environment)
     {
-        // OTLP CORS
         var otlpCorsOptions = new OtlpCorsOptions
         {
             AllowedOrigins = config["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
@@ -17,7 +16,6 @@ public static class CollectorAuthExtensions
         };
         services.AddSingleton(otlpCorsOptions);
 
-        // OTLP API key auth — fail closed in non-Development
         var configuredAuthMode = config["QYL_OTLP_AUTH_MODE"];
         var otlpApiKeyOptions = new OtlpApiKeyOptions
         {
@@ -38,7 +36,6 @@ public static class CollectorAuthExtensions
 
         services.AddSingleton(otlpApiKeyOptions);
 
-        // Dashboard token auth
         var token = config["QYL_TOKEN"] ?? TokenGenerator.Generate();
         services.AddSingleton(new TokenAuthOptions
         {
@@ -53,7 +50,6 @@ public static class CollectorAuthExtensions
             ]
         });
 
-        // Keycloak JWKS validator (for qyl.mcp client-credentials)
         var keycloakAuthority = config["QYL_KEYCLOAK_AUTHORITY"];
         var keycloakAudience = config["QYL_KEYCLOAK_AUDIENCE"];
 

@@ -23,7 +23,6 @@ public sealed class LogSourceEnricher
         if (!string.IsNullOrWhiteSpace(file) || line.HasValue || column.HasValue || !string.IsNullOrWhiteSpace(method))
             return new SourceLocation(file, line, column, method);
 
-        // Fallback to stacktrace parsing first.
         var stackTrace = attrs.GetValueOrDefault("exception.stacktrace")
                          ?? attrs.GetValueOrDefault("code.stacktrace");
 

@@ -1,9 +1,3 @@
-// =============================================================================
-// qyl Build System - Polyglot Instrumentation
-// =============================================================================
-// nuke JavaAgent         → download OTel Java agent + generate env config
-// nuke JavaAgent --instrument-path  → target a specific Java project directory
-// =============================================================================
 
 using System.IO;
 using Nuke.Common;
@@ -39,18 +33,15 @@ interface IInstrument : INukeBuild
             AbsolutePath targetDir = InstrumentPath;
             var agentPath = targetDir / JavaAgentFileName;
 
-            // Detect project type
             var isMaven = (targetDir / "pom.xml").FileExists();
             var isGradle = (targetDir / "build.gradle").FileExists() || (targetDir / "build.gradle.kts").FileExists();
 
             if (!isMaven && !isGradle)
                 Log.Warning("No pom.xml or build.gradle found in {Path} — proceeding anyway", targetDir);
 
-            // Resolve service name from project
             var serviceName = ServiceName
                               ?? targetDir.Name;
 
-            // Download agent if not present
             if (!agentPath.FileExists())
             {
                 Log.Information("Downloading OTel Java Agent v{Version}...", JavaAgentVersion);
@@ -65,7 +56,6 @@ interface IInstrument : INukeBuild
                 Log.Information("OTel Java Agent already exists at {Path}", agentPath);
             }
 
-            // Generate env file
             var envFile = targetDir / "qyl-otel.env";
             await File.WriteAllTextAsync(envFile,
                 $"""
@@ -82,7 +72,6 @@ interface IInstrument : INukeBuild
 
             Log.Information("Generated {EnvFile}", envFile);
 
-            // Add to .gitignore if not already there
             var gitignore = targetDir / ".gitignore";
             if (gitignore.FileExists())
             {
@@ -100,7 +89,6 @@ interface IInstrument : INukeBuild
                 }
             }
 
-            // Print usage instructions
             Log.Information("");
             Log.Information("╭─────────────────────────────────────────────────╮");
             Log.Information("│  qyl Java Agent ready                          │");

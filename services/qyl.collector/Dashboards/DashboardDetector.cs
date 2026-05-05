@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Dashboards;
 
-/// <summary>
-///     Detects which dashboards should be available based on telemetry in DuckDB.
-///     Each detection is a fast EXISTS query (returns immediately once one row matches).
-/// </summary>
 public sealed class DashboardDetector(DuckDbStore store)
 {
     private static readonly IReadOnlyList<DashboardTemplate> s_templates =
@@ -64,7 +60,6 @@ public sealed class DashboardDetector(DuckDbStore store)
         }
         catch
         {
-            // Table might not exist yet (no telemetry ingested)
             return false;
         }
     }

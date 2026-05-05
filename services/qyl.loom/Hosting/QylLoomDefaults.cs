@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,32 +12,10 @@ using AutofixOrchestrator = Qyl.Loom.Autofix.AutofixOrchestrator;
 
 namespace Qyl.Loom.Hosting;
 
-/// <summary>
-///     qyl.loom domain DI bundle. Replaces the verbose AddSingleton block in
-///     <c>Program.cs</c>. Single entry point per the Option A plan, with the seven
-///     concerns split into private named methods so future contributors can scan
-///     scope without spelunking the full registration list.
-/// </summary>
-/// <remarks>
-///     Concerns covered:
-///     <list type="bullet">
-///         <item>Outbound HTTP clients (collector + GitHub) with standard resilience.</item>
-///         <item>Three-builder pattern (chat-client → agents → workflow).</item>
-///         <item>Autofix workflow infrastructure (run state, registry, ledger, factory).</item>
-///         <item>Checkpoint persistence (file-backed JSON store).</item>
-///         <item>Background pipeline orchestrators (autofix orchestrator + runner).</item>
-///         <item>Exploration services (interactive investigation).</item>
-///         <item>Code review service.</item>
-///     </list>
-/// </remarks>
 public static class QylLoomDefaults
 {
     extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        /// <summary>
-        ///     Wire every loom-domain singleton + the two HTTP clients in one call.
-        ///     Returns the builder so it composes after <c>AddQylServiceDefaults()</c>.
-        /// </summary>
         public TBuilder AddQylLoomDefaults()
         {
             Guard.NotNull(builder);
@@ -74,9 +51,6 @@ public static class QylLoomDefaults
 
     private static void AddThreeBuilderPattern(IServiceCollection services)
     {
-        // chat-client → agents → workflow. Every AIAgent and every Workflow flows
-        // through these singletons so the .AsBuilder().UseQylAgentTelemetry().Build()
-        // wrap is centralized and the workflow topology is constructed once.
         services.AddSingleton<IQylLoomChatClientBuilder, QylLoomChatClientBuilder>();
         services.AddSingleton<IQylLoomAgentsBuilder, QylLoomAgentsBuilder>();
         services.AddSingleton<IQylLoomWorkflowBuilder, QylLoomWorkflowBuilder>();
@@ -84,8 +58,6 @@ public static class QylLoomDefaults
 
     private static void AddAutofixInfrastructure(IServiceCollection services)
     {
-        // Per-run state, run registry, step ledger, lifecycle bus, workflow factory.
-        // All singleton; per-run state keyed by runId.
         services.AddSingleton<AutofixReportAssemblyState>();
         services.AddSingleton<AutofixRunRegistry>();
         services.AddSingleton<AutofixContextLoader>();
@@ -95,18 +67,12 @@ public static class QylLoomDefaults
         services.AddSingleton<AutofixRunConfigStore>();
         services.AddSingleton<AutofixWorkflowFactory>();
 
-        // Background pipelines — TriagePipelineService, AutofixAgentService, and
-        // RegressionDetectionService auto-register via [QylHostedService] through
-        // the generator's QylGeneratedRegistry.RegisterQylHostedServices hook.
         services.AddSingleton<AutofixOrchestrator>();
         services.AddSingleton<LoomAutofixRunner>();
     }
 
     private static void AddCheckpointPersistence(IServiceCollection services)
     {
-        // File-backed JsonCheckpointStore so workflow runs survive process restart
-        // and dashboard refresh. Root path configurable via QYL_AUTOFIX_CHECKPOINT_ROOT;
-        // otherwise falls under the OS temp dir.
         services.AddSingleton<FileSystemAutofixCheckpointStore>();
         services.AddSingleton(sp =>
             CheckpointManager.CreateJson(sp.GetRequiredService<FileSystemAutofixCheckpointStore>()));

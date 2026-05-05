@@ -1,9 +1,5 @@
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     Static system prompt for the root cause analysis agent.
-///     Kept static to enable LLM provider prompt caching.
-/// </summary>
 internal static class RcaPrompt
 {
     internal const string Prompt = """

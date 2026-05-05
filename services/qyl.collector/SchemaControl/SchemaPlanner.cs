@@ -2,10 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace Qyl.Collector.SchemaControl;
 
-/// <summary>
-///     Plans schema changes by generating safe, additive DDL statements.
-///     Never produces destructive DDL (DROP TABLE, DROP COLUMN).
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlanner> logger)
 {
@@ -15,9 +11,6 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex DestructiveDdlPattern();
 
-    /// <summary>
-    ///     Generates a migration plan for the requested schema change.
-    /// </summary>
     public async Task<SchemaPromotionRecord> PlanPromotionAsync(
         PromotionRequest request,
         CancellationToken ct = default)
@@ -52,16 +45,10 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         return record;
     }
 
-    /// <summary>
-    ///     Returns all promotions with status 'pending'.
-    /// </summary>
     public Task<IReadOnlyList<SchemaPromotionRecord>> GetPendingPromotionsAsync(
         CancellationToken ct = default) =>
         store.GetSchemaPromotionsByStatusAsync("pending", ct);
 
-    /// <summary>
-    ///     Gets a single promotion by its ID.
-    /// </summary>
     public Task<SchemaPromotionRecord?> GetPromotionAsync(
         string promotionId,
         CancellationToken ct = default) =>
@@ -84,9 +71,6 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
             throw new InvalidOperationException("Destructive DDL (DROP) is not allowed in schema promotions.");
     }
 
-    // ==========================================================================
-    // LoggerMessage — structured, zero-allocation logging
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Schema promotion planned: {PromotionId} ({ChangeType} on {TargetTable})")]

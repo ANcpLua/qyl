@@ -1,12 +1,3 @@
-// =============================================================================
-// qyl.instrumentation - MCP Server Instrumentation
-// One-line facade that wraps an IMcpServerBuilder with the qyl telemetry stack:
-// JSON-RPC envelope spans, gen_ai.execute_tool spans for tools/call,
-// mcp.resource.read / mcp.prompt.get spans for the other two MCP primitives,
-// silent-error capture (IsError on CallToolResult), thrown-exception recording,
-// and PII-gated input/output capture. Mirrors the surface of
-// Sentry.wrapMcpServerWithSentry while staying inside qyl's OTel SemConv stack.
-// =============================================================================
 
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,70 +9,19 @@ using RpcAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attribute
 
 namespace Qyl.Instrumentation.Instrumentation.Mcp;
 
-/// <summary>
-///     PII-gated capture controls + transport metadata for the MCP-server filter
-///     stack. Mirrors Sentry's <c>recordInputs</c> / <c>recordOutputs</c> + the
-///     OTel <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c> opt-in shape.
-///     Mutable class (not a record) so callers can use the <c>Action&lt;Options&gt;</c>
-///     overload of <c>UseQylMcpInstrumentation</c> with familiar property assignment.
-/// </summary>
 public sealed class QylMcpInstrumentationOptions
 {
-    /// <summary>
-    ///     When <c>true</c>, capture <c>tools/call</c> arguments and <c>prompts/get</c>
-    ///     parameters on the span. Off by default — arguments may carry user PII.
-    /// </summary>
     public bool RecordInputs { get; set; }
 
-    /// <summary>
-    ///     When <c>true</c>, capture <c>tools/call</c> result text, <c>resources/read</c>
-    ///     content size, and <c>prompts/get</c> message count on the span. Off by default.
-    /// </summary>
     public bool RecordOutputs { get; set; }
 
-    /// <summary>
-    ///     Per-attribute character cap when <see cref="RecordInputs" /> or
-    ///     <see cref="RecordOutputs" /> is on. Long arguments and results are truncated
-    ///     to this length with an ellipsis suffix to stay below collector limits.
-    /// </summary>
     public int MaxAttributeValueLength { get; set; } = 4_000;
 
-    /// <summary>
-    ///     Transport label tagged on every span as <c>mcp.transport</c>. Used by
-    ///     dashboards to group traffic by transport (Sentry's "Transport Distribution"
-    ///     widget). Composition roots that know the transport at wire-up time
-    ///     (qyl.mcp's <c>McpTransportMode</c> switch, qyl.loom's hard-coded HTTP)
-    ///     should set this. Leave <c>null</c> if the transport is decided per-request.
-    /// </summary>
     public string? Transport { get; set; }
 }
 
-/// <summary>
-///     Wires qyl's MCP-server telemetry stack onto an <see cref="IMcpServerBuilder" />.
-///     One call replaces ~80 lines of inline filter wiring and brings parity with
-///     Sentry's <c>wrapMcpServerWithSentry</c>: every JSON-RPC envelope, tool call,
-///     resource read, and prompt retrieval becomes a span; thrown exceptions and
-///     silent <c>IsError</c> tool results both surface on the span as errors.
-/// </summary>
 public static class QylMcpServerInstrumentation
 {
-    /// <summary>
-    ///     Wraps an <see cref="IMcpServerBuilder" /> with qyl's MCP-server telemetry.
-    /// </summary>
-    /// <param name="builder">The MCP server builder to wrap.</param>
-    /// <param name="activitySource">
-    ///     ActivitySource the wrapped filters emit spans on. Callers typically pass
-    ///     a service-scoped source (for example <c>new ActivitySource("qyl.mcp")</c>)
-    ///     so the spans land on the same trace as the host's other telemetry.
-    /// </param>
-    /// <param name="configure">Optional PII-gating override.</param>
-    /// <returns>The same builder, for chaining.</returns>
-    /// <remarks>
-    ///     Must be called *after* the transport (<c>WithStdioServerTransport</c> or
-    ///     <c>WithHttpTransport</c>) is configured but before tools/resources/prompts
-    ///     are registered, so the filter pipeline wraps every primitive the builder
-    ///     subsequently adds.
-    /// </remarks>
     public static IMcpServerBuilder UseQylMcpInstrumentation(
         this IMcpServerBuilder builder,
         ActivitySource activitySource,
@@ -129,7 +69,7 @@ public static class QylMcpServerInstrumentation
                 }
                 catch (Exception ex) when (RecordAndPropagate(activity, ex))
                 {
-                    throw; // unreachable — RecordAndPropagate returns false
+                    throw;
                 }
             });
 
@@ -279,11 +219,6 @@ public static class QylMcpServerInstrumentation
         return builder;
     }
 
-    /// Stamps every span with the per-server context: client name/version (Sentry's
-    /// "Traffic by Client"), session id (Sentry's "session id grouping"), and the
-    /// transport (Sentry's "Transport Distribution"). Pulls all three from the
-    /// <see cref="McpServer" /> directly so we don't need separate overloads for
-    /// <c>RequestContext&lt;T&gt;</c> vs <c>MessageContext</c>.
     private static void TagServerContext(Activity? activity, McpServer server, string? transport)
     {
         if (activity is null) return;
@@ -301,9 +236,6 @@ public static class QylMcpServerInstrumentation
             activity.SetTag(McpAttr.McpTransport, transport);
     }
 
-    // Observe-only exception recorder. Returning false from a `when` filter means the
-    // catch clause never runs and the exception propagates with its original stack
-    // trace preserved, while still tagging the span with status + recorded exception.
     private static bool RecordAndPropagate(Activity? activity, Exception ex)
     {
         activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -329,13 +261,6 @@ public static class QylMcpServerInstrumentation
         value.Length <= maxLength ? value : string.Concat(value.AsSpan(0, maxLength), "...");
 }
 
-/// MCP-specific span attribute keys. The OTel working group has not finalised an
-/// <c>mcp.*</c> namespace yet, so these are temporary inline constants until
-/// <c>eng/semconv/model/qyl/mcp.yaml</c> is added and the weaver pass emits a
-/// <c>QylAttr.Mcp</c> generator-output. The standard <c>rpc.*</c> + <c>jsonrpc.*</c>
-/// keys are NOT duplicated here — they come from
-/// <c>Qyl.OpenTelemetry.SemanticConventions.Incubating</c>'s
-/// <c>RpcAttributes</c> + <c>JsonrpcAttributes</c>.
 internal static class McpAttr
 {
     public const string McpClientName = "mcp.client.name";

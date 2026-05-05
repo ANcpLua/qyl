@@ -6,21 +6,12 @@ using Microsoft.IdentityModel.Tokens;
 using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Auth;
 
-// ── Keycloak JWKS validation ──────────────────────────────────────────────────
 
-/// <summary>
-///     Validates a JWT via Keycloak's JWKS endpoint and returns the claims on success,
-///     or <see langword="null" /> on failure.
-/// </summary>
 public interface IKeycloakJwksValidator
 {
     ValueTask<IReadOnlyDictionary<string, string>?> ValidateAsync(string token, CancellationToken ct = default);
 }
 
-/// <summary>
-///     No-op sentinel used when <c>QYL_KEYCLOAK_AUTHORITY</c> is not set.
-///     Always returns <see langword="null" />, preserving existing auth behaviour unchanged.
-/// </summary>
 internal sealed class NullKeycloakJwksValidator : IKeycloakJwksValidator
 {
     public static readonly NullKeycloakJwksValidator Instance = new();
@@ -29,11 +20,6 @@ internal sealed class NullKeycloakJwksValidator : IKeycloakJwksValidator
         => ValueTask.FromResult<IReadOnlyDictionary<string, string>?>(null);
 }
 
-/// <summary>
-///     Validates JWTs against Keycloak's JWKS endpoint.
-///     Signing keys are cached for <see cref="s_keysCacheDuration" /> and refreshed automatically
-///     on <see cref="SecurityTokenSignatureKeyNotFoundException" />.
-/// </summary>
 internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, IDisposable
 {
     private static readonly JsonWebTokenHandler s_tokenHandler = new();
@@ -68,7 +54,6 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         var keys = await GetKeysAsync(ct).ConfigureAwait(false);
         var result = await ValidateWithKeysAsync(token, keys).ConfigureAwait(false);
 
-        // On stale signing key: force-refresh keys and retry once
         if (result is { IsValid: false, Exception: SecurityTokenSignatureKeyNotFoundException })
         {
             LogKeysExpired();
@@ -93,14 +78,12 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
     {
         var now = TimeProvider.System.GetUtcNow();
 
-        // Fast path: return cached keys without acquiring the semaphore
         if (_cachedKeys.Count > 0 && now < _keysExpiry)
             return _cachedKeys;
 
         await _refreshLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            // Re-check after acquiring lock (another caller may have refreshed)
             if (_cachedKeys.Count > 0 && TimeProvider.System.GetUtcNow() < _keysExpiry)
                 return _cachedKeys;
 
@@ -127,13 +110,11 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         }
         catch (HttpRequestException ex)
         {
-            // Network failure (Keycloak unreachable): return stale keys rather than breaking auth
             LogKeysRefreshFailed(jwksUri, ex.Message);
             return _cachedKeys;
         }
         catch (JsonException ex)
         {
-            // Malformed JWKS JSON: return stale keys
             LogKeysRefreshFailed(jwksUri, ex.Message);
             return _cachedKeys;
         }
@@ -196,34 +177,18 @@ public static class TokenGenerator
 
 public sealed class TokenAuthOptions
 {
-    /// <summary>
-    ///     HTTP header name for MCP API key authentication (Aspire pattern).
-    /// </summary>
     public const string McpApiKeyHeader = "x-mcp-api-key";
 
-    /// <summary>
-    ///     <see cref="HttpContext.Items" /> key under which validated Keycloak claims are stored.
-    ///     Value is an <see cref="IReadOnlyDictionary{TKey,TValue}" /> of claim type → value.
-    /// </summary>
     public const string KeycloakClaimsKey = QylAttr.Auth.KeycloakClaims;
 
-    /// <summary>
-    ///     Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
-    /// </summary>
     public string Token
     {
         get => field ??= TokenGenerator.Generate();
         set;
     }
 
-    /// <summary>
-    ///     Gets or sets the cookie name for auth token storage.
-    /// </summary>
     public string CookieName { get; set; } = "qyl_options.Token";
 
-    /// <summary>
-    ///     Gets or sets cookie expiration in days. Must be positive.
-    /// </summary>
     public int CookieExpirationDays
     {
         get;
@@ -232,16 +197,8 @@ public sealed class TokenAuthOptions
             : throw new ArgumentOutOfRangeException(nameof(value), "Cookie expiration must be positive");
     } = 3;
 
-    /// <summary>
-    ///     Gets or sets the query parameter name for token in URL.
-    /// </summary>
     public string QueryParameterName { get; set; } = "t";
 
-    /// <summary>
-    ///     Gets or sets paths excluded from token authentication.
-    ///     Only health probes and OTLP ingestion paths are excluded.
-    ///     All /api/* endpoints REQUIRE authentication.
-    /// </summary>
     public string[] ExcludedPaths { get; set; } =
         ["/health", "/alive", "/health/ui", "/v1/traces", "/v1/logs", "/v1/metrics"];
 }
@@ -255,7 +212,6 @@ public sealed class TokenAuthMiddleware(
     {
         var path = context.Request.Path.Value ?? "/";
 
-        // Allow dashboard root and static files without auth
         if (path == "/" || IsStaticFile(path))
         {
             await next(context).ConfigureAwait(false);
@@ -298,7 +254,6 @@ public sealed class TokenAuthMiddleware(
                 return;
             }
 
-            // Symmetric check failed; try Keycloak JWKS for JWT Bearer tokens (contain '.')
             if (keycloakValidator is not NullKeycloakJwksValidator && bearerToken.Contains('.'))
             {
                 var claims = await keycloakValidator
@@ -314,7 +269,6 @@ public sealed class TokenAuthMiddleware(
             }
         }
 
-        // Check x-mcp-api-key header (Aspire pattern for MCP server authentication)
         var mcpApiKey = context.Request.Headers[TokenAuthOptions.McpApiKeyHeader].FirstOrDefault();
         if (!string.IsNullOrEmpty(mcpApiKey) && ValidateToken(mcpApiKey))
         {
@@ -367,7 +321,6 @@ public sealed class TokenAuthMiddleware(
 
     private static bool IsStaticFile(string path)
     {
-        // Common static file extensions for dashboard assets
         ReadOnlySpan<string> staticExtensions =
         [
             ".js", ".css", ".html", ".htm", ".json",

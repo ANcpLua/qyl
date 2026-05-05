@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 # Qyl.Collector - Telemetry API Backend
 # Build from repository root:
 #   docker build -f services/qyl.collector/Dockerfile -t qyl-collector .
@@ -6,7 +6,7 @@
 # ============================================================================
 # STAGE 1: Build React Dashboard
 # ============================================================================
-FROM node:22-slim AS dashboard
+FROM node:22-slim@sha256:d415caac2f1f77b98caaf9415c5f807e14bc8d7bdea62561ea2fef4fbd08a73c AS dashboard
 
 WORKDIR /dashboard
 
@@ -23,7 +23,7 @@ RUN npm run build && \
 # STAGE 2: Build .NET
 # ============================================================================
 # Using Debian (not Alpine) because DuckDB native libs require glibc
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:8a90a473da5205a16979de99d2fc20975e922c68304f5c79d564e666dc3982fc AS build
 
 WORKDIR /src
 
@@ -34,6 +34,7 @@ COPY eng/ eng/
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
 COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
+COPY packages/Qyl.Telemetry/*.csproj packages/Qyl.Telemetry/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
@@ -50,6 +51,7 @@ RUN dotnet restore
 WORKDIR /src
 COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
+COPY packages/Qyl.Telemetry/ packages/Qyl.Telemetry/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/ packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
@@ -73,7 +75,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
 # ============================================================================
 # STAGE 3: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:55e37c7795bfaf6b9cc5d77c155811d9569f529d86e20647704bc1d7dd9741d4 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"

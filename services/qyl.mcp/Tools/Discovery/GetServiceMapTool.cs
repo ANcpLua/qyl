@@ -5,20 +5,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
-/// <summary>
-///     MCP tool that retrieves the service dependency map showing nodes and edges between services.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetServiceMapTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves the service dependency map with service nodes and inter-service call edges.
-    /// </summary>
-    /// <param name="projectSlug">Optional project slug filter.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the service map topology.</returns>
     [QylCapability("service_discovery", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_service_map", Title = "Get Service Map",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

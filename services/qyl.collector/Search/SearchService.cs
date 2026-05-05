@@ -1,22 +1,9 @@
 namespace Qyl.Collector.Search;
 
-/// <summary>
-///     Service layer for DuckDB full-text search. Operates against the
-///     <c>search_documents</c>, <c>search_terms</c>, and <c>search_query_audit</c>
-///     tables for document-indexed search with relevance scoring.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class SearchService(DuckDbStore store, ILogger<SearchService> logger)
 {
-    // ==========================================================================
-    // Full-Text Search
-    // ==========================================================================
 
-    /// <summary>
-    ///     Searches across indexed documents using text matching with relevance scoring.
-    ///     Results combine term-frequency scoring from the inverted index with
-    ///     document boost factors.
-    /// </summary>
     public async Task<IReadOnlyList<SearchDocumentResult>> SearchDocumentsAsync(
         string queryText,
         string? entityType = null,
@@ -86,22 +73,13 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
             });
         }
 
-        // Audit the query inline — cost is dominated by the insert, which LogQueryAuditAsync
-        // handles via ExecuteWriteAsync (OperationCanceledException and DuckDBException are
-        // swallowed inside to keep audit best-effort).
         await LogQueryAuditAsync(queryText, entityType, projectId, results.Count, ct).ConfigureAwait(false);
 
         LogSearchExecuted(queryText, results.Count);
         return results;
     }
 
-    // ==========================================================================
-    // Suggestions
-    // ==========================================================================
 
-    /// <summary>
-    ///     Returns autocomplete suggestions based on indexed search terms.
-    /// </summary>
     public async Task<IReadOnlyList<SearchTermSuggestion>> GetSuggestionsAsync(
         string prefix,
         int limit = 20,
@@ -139,14 +117,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         return suggestions;
     }
 
-    // ==========================================================================
-    // Query Audit
-    // ==========================================================================
 
-    /// <summary>
-    ///     Records a search query in the audit log. Records clicks when a user
-    ///     selects a result, enabling relevance tuning.
-    /// </summary>
     public async Task RecordClickAsync(
         string queryAuditId,
         string clickedResultId,
@@ -167,9 +138,6 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Private Methods
-    // ==========================================================================
 
     private async Task LogQueryAuditAsync(
         string queryText,
@@ -208,7 +176,6 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         }
         catch (OperationCanceledException ex)
         {
-            // Expected on shutdown — audit is best-effort.
             Debug.WriteLine(ex);
         }
         catch (DuckDBException ex)
@@ -217,9 +184,6 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         }
     }
 
-    // ==========================================================================
-    // Log Messages
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Search executed: '{QueryText}' returned {ResultCount} results")]
@@ -230,13 +194,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
     private partial void LogAuditFailed(Exception ex);
 }
 
-// =============================================================================
-// Search Storage Records
-// =============================================================================
 
-/// <summary>
-///     Search result from the document index with relevance scoring.
-/// </summary>
 public sealed record SearchDocumentResult
 {
     public required string Id { get; init; }
@@ -251,9 +209,6 @@ public sealed record SearchDocumentResult
     public required double RelevanceScore { get; init; }
 }
 
-/// <summary>
-///     Autocomplete suggestion from the inverted term index.
-/// </summary>
 public sealed record SearchTermSuggestion
 {
     public required string Term { get; init; }

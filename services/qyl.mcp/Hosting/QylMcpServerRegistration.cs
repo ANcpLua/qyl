@@ -14,18 +14,6 @@ using qyl.mcp.Scoping;
 
 namespace qyl.mcp.Hosting;
 
-/// <summary>
-///     Wires the qyl MCP server into DI: transport (stdio or Streamable HTTP), authorization, the qyl telemetry
-///     facade, and the generator-emitted tool manifest. Telemetry is delegated to
-///     <see cref="QylMcpServerInstrumentation.UseQylMcpInstrumentation" /> — the facade emits one
-///     <c>ActivityKind.Server</c> span per inbound JSON-RPC message and child spans for <c>tools/call</c>,
-///     <c>resources/read</c>, and <c>prompts/get</c>, parented via <c>Activity.Current</c>; W3C trace context
-///     flows through <c>params._meta.traceparent</c> as supplied by the SDK. The remaining inline filter handles
-///     business concerns (admin tool denial, scope injection, anthropic max-result-size meta) that have nothing
-///     to do with telemetry. MAF runtime is intentionally NOT imported here — dispatch is owned by the MCP SDK,
-///     and layering a MAF <c>Executor</c> on top would double-dispatch every <c>tools/call</c>. qyl.loom is where
-///     the MAF workflow runtime actually runs.
-/// </summary>
 internal static class QylMcpServerRegistration
 {
     public static void Configure(
@@ -36,10 +24,6 @@ internal static class QylMcpServerRegistration
         McpHostOptions? hostOptions,
         Func<IServiceProvider?> serviceProviderAccessor)
     {
-        // Shared task store for tools declared with TaskSupport = Required|Optional.
-        // Singleton — the MCP SDK uses it to persist long-running task state across
-        // tools/call turns (GET resumption, SSE reconnect, cancellation).
-        // TTLs + limits chosen for a single-node dev/prod deployment; tune per profile.
         services.AddSingleton<IMcpTaskStore>(_ => new InMemoryMcpTaskStore(
             TimeSpan.FromHours(1),
             TimeSpan.FromHours(6),
@@ -55,9 +39,6 @@ internal static class QylMcpServerRegistration
             options.ServerInstructions = QylServerMetadata.Instructions;
         });
 
-        // Wire the task store onto the server options via the DI-built singleton, so
-        // one instance is shared between McpServerOptions.TaskStore and any tool that
-        // resolves IMcpTaskStore through DI.
         services.AddOptions<McpServerOptions>()
             .Configure<IMcpTaskStore>((options, taskStore) => options.TaskStore = taskStore);
 

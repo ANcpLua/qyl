@@ -8,12 +8,6 @@ using Microsoft.Extensions.Hosting;
 
 namespace Qyl.Instrumentation.Instrumentation.Inventory;
 
-/// <summary>
-///     Minimal-API endpoint exposing the inventory snapshot. Gated behind the
-///     <c>QylAdmin</c> authorization policy when configured, falling back to dev-only
-///     mapping when no auth scheme is registered. Endpoint surface is recon-relevant
-///     (agent keys + instructions hashes) — never expose unprotected in prod.
-/// </summary>
 public static class QylAgentInventoryEndpoint
 {
     public const string AdminPolicy = "QylAdmin";
@@ -37,9 +31,6 @@ public static class QylAgentInventoryEndpoint
             return app;
         }
 
-        // Production with no auth wired: refuse to expose the surface. Inventory entries
-        // include agent keys + instructions hashes, which are recon material for prompt
-        // injection — never serve them anonymously outside dev.
         app.MapGet(Path, static () => Results.NotFound());
         return app;
     }

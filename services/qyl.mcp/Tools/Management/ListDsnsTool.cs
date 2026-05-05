@@ -6,20 +6,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that lists all DSNs for a project.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ListDsnsTool(HttpClient client)
 {
-    /// <summary>
-    ///     Lists all DSNs configured for a project, used by client SDKs to send telemetry data.
-    /// </summary>
-    /// <param name="projectSlug">The project slug to list DSNs for.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown list of DSNs with labels and creation dates.</returns>
     [McpServerTool(
         Name = "list_dsns",
         Title = "List DSNs",

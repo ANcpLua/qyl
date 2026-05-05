@@ -2,17 +2,12 @@ using Qyl.Collector.Identity;
 
 namespace Qyl.Collector.Autofix;
 
-/// <summary>Result of a pull-request creation attempt.</summary>
 public sealed record PrCreationResult(
     bool Success,
     string? PrUrl,
     int? PrNumber,
     string? Error);
 
-/// <summary>
-///     Applies the <c>changes_json</c> from a fix run to a GitHub repository:
-///     creates a branch, commits each patched file, and opens a pull request.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class PrCreationService(
     GitHubService github,
@@ -45,7 +40,6 @@ public sealed partial class PrCreationService(
         if (patch is null || patch.Files is not { Count: > 0 })
             return new PrCreationResult(false, null, null, "No file patches in changes_json.");
 
-        // Resolve base branch (default: repo default branch)
         var effectiveBase = baseBranch ?? "main";
         var baseSha = await github.GetBranchShaAsync(repoFullName, effectiveBase, ct).ConfigureAwait(false);
         if (baseSha is null)
@@ -54,7 +48,6 @@ public sealed partial class PrCreationService(
                 $"Could not resolve SHA for branch '{effectiveBase}' in {repoFullName}. Check QYL_GITHUB_TOKEN and repo name.");
         }
 
-        // Create fix branch
         var branchName =
             $"qyl/fix-{run.IssueId[..Math.Min(8, run.IssueId.Length)]}-{run.RunId[..Math.Min(8, run.RunId.Length)]}";
         var branchCreated = await github.CreateBranchAsync(repoFullName, branchName, baseSha, ct).ConfigureAwait(false);
@@ -66,7 +59,6 @@ public sealed partial class PrCreationService(
 
         LogBranchCreated(branchName, repoFullName);
 
-        // Apply and commit each patched file
         List<string> committedFiles = [];
         List<string> patchErrors = [];
 
@@ -86,7 +78,6 @@ public sealed partial class PrCreationService(
                 $"No files could be committed. Errors: {string.Join("; ", patchErrors)}");
         }
 
-        // Open the pull request
         var prTitle = patch.PrTitle ?? $"fix: automated fix for issue {run.IssueId[..Math.Min(8, run.IssueId.Length)]}";
         var prBody = BuildPrBody(patch, run, committedFiles, patchErrors);
 
@@ -101,7 +92,6 @@ public sealed partial class PrCreationService(
 
         LogPrCreated(prUrl, run.IssueId);
 
-        // Update fix run with PR URL in the description
         await store.UpdateFixRunAsync(
             runId, "applied",
             $"PR: {prUrl}",
@@ -112,13 +102,11 @@ public sealed partial class PrCreationService(
         return new PrCreationResult(true, prUrl, null, null);
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
 
     private async Task<string> CommitFileAsync(
         string repoFullName, PatchFile file, string branch, string runId,
         CancellationToken ct)
     {
-        // Fetch current file content + SHA (needed for update)
         var existing = await github
             .GetFileContentAsync(repoFullName, file.Path, branch, ct)
             .ConfigureAwait(false);
@@ -126,13 +114,11 @@ public sealed partial class PrCreationService(
         string currentContent;
         if (existing is not null && existing.Content is not null)
         {
-            // GitHub returns base64 with newlines
             var cleanBase64 = existing.Content.Replace("\n", "").Replace("\r", "");
             currentContent = Encoding.UTF8.GetString(Convert.FromBase64String(cleanBase64));
         }
         else
         {
-            // File doesn't exist yet — will be created
             currentContent = string.Empty;
         }
 
@@ -153,11 +139,6 @@ public sealed partial class PrCreationService(
         return ok ? file.Path : $"error: failed to commit {file.Path}";
     }
 
-    /// <summary>
-    ///     Applies all hunks to <paramref name="content" />.
-    ///     Returns <c>null</c> if any hunk cannot be located, so the caller can skip
-    ///     committing the file rather than writing corrupt content.
-    /// </summary>
     private static string? TryApplyHunks(PatchFile file, string content)
     {
         foreach (var hunk in file.Hunks ?? [])
@@ -167,7 +148,7 @@ public sealed partial class PrCreationService(
 
             var patched = FindAndReplace(content, hunk.OriginalLines, hunk.ReplacementLines ?? []);
             if (patched is null)
-                return null; // Hunk failed — caller decides; never corrupt the file.
+                return null;
 
             content = patched;
         }
@@ -175,12 +156,6 @@ public sealed partial class PrCreationService(
         return content;
     }
 
-    /// <summary>
-    ///     Finds <paramref name="originalLines" /> inside <paramref name="content" /> using
-    ///     a line-by-line trimmed comparison (handles indentation divergence from LLM output)
-    ///     and replaces that block with <paramref name="replacementLines" />, preserving the
-    ///     original indentation of the first matched line.
-    /// </summary>
     private static string? FindAndReplace(
         string content,
         IReadOnlyList<string> originalLines,
@@ -206,8 +181,6 @@ public sealed partial class PrCreationService(
 
             if (!match) continue;
 
-            // Preserve the leading whitespace of the first matched line so the replacement
-            // fits the file's existing indentation style.
             var leadingWhitespace = contentLines[i][..(contentLines[i].Length - contentLines[i].TrimStart().Length)];
 
             List<string> result = new(contentLines.Length - origLen + replacementLines.Count);
@@ -215,7 +188,6 @@ public sealed partial class PrCreationService(
 
             foreach (var line in replacementLines)
             {
-                // Re-indent: apply leading whitespace unless the line already has it.
                 result.Add(line.Length > 0 && !line.StartsWithOrdinal(leadingWhitespace)
                     ? leadingWhitespace + line.TrimStart()
                     : line);
@@ -225,7 +197,7 @@ public sealed partial class PrCreationService(
             return string.Join("\n", result);
         }
 
-        return null; // Block not found even with whitespace normalisation.
+        return null;
     }
 
     private static string BuildPrBody(
@@ -270,9 +242,6 @@ public sealed partial class PrCreationService(
     private partial void LogPrCreated(string prUrl, string issueId);
 }
 
-// =============================================================================
-// Patch document DTOs — matches changes_json schema_version=1
-// =============================================================================
 
 public sealed record PatchDocument
 {

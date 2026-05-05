@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
-/// <summary>
-///     Adds an annotation with optional tags to a trace for triage purposes.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class AnnotateTraceTool(HttpClient client)

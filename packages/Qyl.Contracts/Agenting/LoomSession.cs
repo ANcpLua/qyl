@@ -1,10 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Typed continuation token for multi-turn specialist execution.
-///     Encodes resume point so a session can be continued across turns,
-///     across specialists, and across process restarts.
-/// </summary>
 public sealed record LoomContinuationToken
 {
     public required string SessionId { get; init; }
@@ -17,9 +12,6 @@ public sealed record LoomContinuationToken
     public string? CorrelationId { get; init; }
 }
 
-/// <summary>
-///     Which specialist owns the current turn.
-/// </summary>
 public enum LoomSpecialistRole
 {
     User,
@@ -30,9 +22,6 @@ public enum LoomSpecialistRole
     Orchestrator
 }
 
-/// <summary>
-///     A single message in a Loom session transcript.
-/// </summary>
 public sealed record LoomSessionEntry
 {
     public required LoomSpecialistRole Role { get; init; }
@@ -42,10 +31,6 @@ public sealed record LoomSessionEntry
     public string? ArtifactId { get; init; }
 }
 
-/// <summary>
-///     Typed session snapshot — everything needed to resume a Loom investigation.
-///     This is the business truth, not MAF execution state.
-/// </summary>
 public sealed record LoomSessionSnapshot
 {
     public required string SessionId { get; init; }
@@ -61,9 +46,6 @@ public sealed record LoomSessionSnapshot
     public int TurnCount { get; init; }
     public required IReadOnlyList<LoomSessionEntry> Transcript { get; init; }
 
-    /// <summary>
-    ///     Issues a continuation token from the current session state.
-    /// </summary>
     public LoomContinuationToken IssueContinuation(LoomSpecialistRole lastSpecialist, AgentRunPhase resumePhase) =>
         new()
         {

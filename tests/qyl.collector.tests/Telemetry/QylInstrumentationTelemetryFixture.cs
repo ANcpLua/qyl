@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using ANcpLua.Agents.Testing.ChatClients;
 using ANcpLua.Agents.Testing.Conformance;
@@ -13,15 +12,6 @@ using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Collector.Tests.Telemetry;
 
-/// <summary>
-///     Fixture binding qyl's telemetry pipeline (<c>WithQylTelemetry</c> +
-///     <c>UseQylAgentTelemetry</c>) to the provider-agnostic
-///     <see cref="TelemetryConformanceTests{TFixture}" /> base. A
-///     <see cref="FakeChatClient" /> at the bottom of the decorator chain emits a
-///     scripted response, the chat-client wrap emits <c>qyl.genai</c> spans, and the
-///     agent wrap emits <c>qyl.agent</c> spans — exactly the pair every qyl
-///     composition root produces in production.
-/// </summary>
 public sealed class QylInstrumentationTelemetryFixture : IAgentFixture, ITelemetryAssertingFixture
 {
     private FakeChatClient? _fake;
@@ -29,13 +19,10 @@ public sealed class QylInstrumentationTelemetryFixture : IAgentFixture, ITelemet
     private AIAgent? _agent;
     private ServiceProvider? _services;
 
-    /// <inheritdoc />
     public AIAgent Agent => _agent ?? throw new InvalidOperationException("Fixture not initialized.");
 
-    /// <inheritdoc />
     public IReadOnlyCollection<string> ExpectedActivitySources => ["qyl.genai", "qyl.agent"];
 
-    /// <inheritdoc />
     public ValueTask InitializeAsync()
     {
         _services = new ServiceCollection()
@@ -68,7 +55,6 @@ public sealed class QylInstrumentationTelemetryFixture : IAgentFixture, ITelemet
         return ValueTask.CompletedTask;
     }
 
-    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
@@ -78,10 +64,8 @@ public sealed class QylInstrumentationTelemetryFixture : IAgentFixture, ITelemet
             await _services.DisposeAsync().ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
     public Task<IReadOnlyList<ChatMessage>> GetChatHistoryAsync(AIAgent agent, AgentSession session) =>
         Task.FromResult<IReadOnlyList<ChatMessage>>([]);
 
-    /// <inheritdoc />
     public Task DeleteSessionAsync(AgentSession session) => Task.CompletedTask;
 }

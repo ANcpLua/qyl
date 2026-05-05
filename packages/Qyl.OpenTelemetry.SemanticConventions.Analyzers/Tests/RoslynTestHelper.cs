@@ -6,11 +6,6 @@ namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests;
 
 internal static class RoslynTestHelper
 {
-    /// <summary>
-    ///     Builds a minimal C# compilation from <paramref name="code" /> and returns all diagnostics
-    ///     emitted by <paramref name="analyzers" />. Compilation errors are ignored — we only care
-    ///     about analyzer diagnostics.
-    /// </summary>
     public static async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(
         string code,
         params DiagnosticAnalyzer[] analyzers)

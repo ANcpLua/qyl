@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Analytics;
 
-/// <summary>
-///     Minimal API endpoints for Z-score anomaly detection, baseline statistics,
-///     and period comparison. Routes: <c>/api/v1/analytics/anomaly/*</c>
-/// </summary>
 internal static class AnomalyEndpoints
 {
     [QylMapEndpoints]

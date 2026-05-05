@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     Storage record for a GitHub webhook event. Maps to the github_events DuckDB table.
-/// </summary>
 public sealed record GitHubEventRecord
 {
     public required string EventId { get; init; }

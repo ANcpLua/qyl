@@ -2,10 +2,6 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Realtime;
 
-/// <summary>
-///     Shared projection helpers for streaming/searching log rows as UI-friendly DTOs.
-///     Kept separate from endpoint wiring to avoid duplicate mapping logic.
-/// </summary>
 internal static class LiveLogProjection
 {
     public static LiveLogDto ToDto(LogStorageRow log, int repeatCount = 1, bool isDuplicateSummary = false)

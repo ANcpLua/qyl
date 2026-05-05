@@ -1,17 +1,5 @@
 namespace qyl.mcp.Capabilities;
 
-/// <summary>
-///     Declares a capability definition on a marker class. The generator joins this with
-///     <see cref="QylCapabilityAttribute" /> occurrences on tool methods to produce
-///     <c>QylToolManifest.Capabilities[]</c>. Tool references are resolved against
-///     <c>[McpServerTool(Name = ...)]</c> at compile time — dangling references become
-///     generator diagnostics instead of silent runtime holes.
-/// </summary>
-/// <remarks>
-///     Two constructors: use the single-arg form for "core" capabilities that are always enabled
-///     (e.g. server introspection). Use the two-arg form when the capability is gated on a skill
-///     family via <see cref="SkillConfiguration.IsEnabled" />.
-/// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 internal sealed class QylCapabilityDefinitionAttribute : Attribute
 {

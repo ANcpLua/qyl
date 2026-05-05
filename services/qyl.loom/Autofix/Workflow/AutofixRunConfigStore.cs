@@ -1,11 +1,6 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow;
 
-/// Per-trigger workflow-config registry. Callers (dashboard /code-it-up,
-/// triage auto-route, future REST API) Set a config keyed by runId before
-/// AutofixAgentService picks the run up. The runner consults the store; if
-/// nothing is registered it falls back to AutofixWorkflowDefaults.Autonomous.
 internal sealed class AutofixRunConfigStore
 {
     private readonly ConcurrentDictionary<string, AutofixWorkflowConfig> _configs =

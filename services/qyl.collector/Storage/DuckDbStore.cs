@@ -2,29 +2,11 @@ using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     DuckDB storage with separated read/write paths for optimal concurrency.
-///     - Single writer connection (channel-buffered, batched)
-///     - Pooled read connections (parallel queries, bounded concurrency)
-///     - Schema aligned with generated DuckDbSchema.g.cs (OTel 1.40)
-/// </summary>
 public sealed partial class DuckDbStore : IAsyncDisposable
 {
-    // ==========================================================================
-    // Multi-Row Batch Insert Constants
-    // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named.
-    // ==========================================================================
 
-    /// <summary>
-    ///     Maximum spans per multi-row INSERT statement.
-    ///     24 columns per span * 100 spans = 2400 parameters (well under DuckDB limits).
-    /// </summary>
     private const int MaxSpansPerBatch = 100;
 
-    /// <summary>
-    ///     Maximum logs per multi-row INSERT statement.
-    ///     16 columns per log * 150 logs = 2400 parameters.
-    /// </summary>
     private const int MaxLogsPerBatch = 150;
 
     private const int SpanColumnCount = 26;
@@ -76,9 +58,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                              baggage_json, schema_url, created_at
                                              """;
 
-    // ==========================================================================
-    // Error Operations
-    // ==========================================================================
 
     private const string ErrorUpsertSql = """
                                           INSERT INTO errors
@@ -113,30 +92,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                               END
                                           """;
 
-    // ==========================================================================
-    // Private Methods - Multi-Row Insert SQL Builders (with caching)
-    // ==========================================================================
 
-    /// <summary>
-    ///     Maximum profiles per multi-row INSERT statement.
-    ///     Generator produces ProfileStorageRow.ColumnCount; 50 * ColumnCount stays under DuckDB parameter limit.
-    /// </summary>
     private const int MaxProfilesPerBatch = 50;
 
-    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
     private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
     private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
 
-    // ==========================================================================
-    // Clear All Operations (for dashboard controls)
-    // ==========================================================================
 
     private static readonly FrozenSet<string> s_allowedClearTables = FrozenSet.Create(
         StringComparer.Ordinal, "spans", "logs", "profiles", "session_entities");
 
-    // ==========================================================================
-    // Instance Fields
-    // ==========================================================================
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Counter<long> _droppedJobs;
@@ -154,9 +119,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     private int _disposed;
 
-    // ==========================================================================
-    // Constructor
-    // ==========================================================================
 
     public DuckDbStore(
         string databasePath = "qyl.duckdb",
@@ -178,8 +140,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = false
         });
 
-        // For in-memory databases, share the write connection for reads (DuckDB isolation issue)
-        // Each :memory: connection creates a separate isolated database instance
         _readPolicy = new ReadConnectionPolicy(databasePath, _isInMemory ? Connection : null);
         _readPool = new DefaultObjectPool<DuckDBConnection>(_readPolicy, maxRetainedReadConnections);
         _readGate = new SemaphoreSlim(maxConcurrentReads, maxConcurrentReads);
@@ -187,21 +147,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         _writerTask = Task.Run(WriterLoopAsync);
     }
 
-    // ==========================================================================
-    // Properties
-    // ==========================================================================
 
-    /// <summary>
-    ///     Exposes the write connection for legacy compatibility (SessionQueryService).
-    ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
-    /// </summary>
     public DuckDBConnection Connection { get; }
 
     private string DatabasePath { get; }
 
-    // ==========================================================================
-    // Lifecycle
-    // ==========================================================================
 
     public async ValueTask DisposeAsync()
     {
@@ -210,7 +160,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         _jobs.Writer.TryComplete();
 
-        // Graceful shutdown: 3s to drain, then cancel
         try
         {
             await _writerTask.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
@@ -224,13 +173,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             }
             catch (TimeoutException ex)
             {
-                // Writer did not finish in 1s — proceed with cleanup.
                 Debug.WriteLine(ex);
             }
         }
         catch (OperationCanceledException ex)
         {
-            // Expected during shutdown.
             Debug.WriteLine(ex);
         }
 
@@ -241,25 +188,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         _meter.Dispose();
     }
 
-    // ==========================================================================
-    // Connection Management
-    // ==========================================================================
 
-    /// <summary>
-    ///     Provides pooled read connection for query services.
-    ///     Returns a leased connection that must be disposed after use.
-    /// </summary>
     public ValueTask<ReadLease> GetReadConnectionAsync(CancellationToken ct = default) =>
         RentReadAsync(ct);
 
-    // ==========================================================================
-    // Generic Write Channel
-    // ==========================================================================
 
-    /// <summary>
-    ///     Executes a write operation through the serialized write channel.
-    ///     Use this for any INSERT/UPDATE/DELETE that must go through the single writer.
-    /// </summary>
     public async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
         CancellationToken ct = default)
     {
@@ -269,9 +202,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return await job.Task.ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Executes a write operation through the serialized write channel (no return value).
-    /// </summary>
     public async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation,
         CancellationToken ct = default)
     {
@@ -285,14 +215,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await job.Task.ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // Span Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Enqueues a batch for async writing. With DropOldest, TryWrite always succeeds
-    ///     but may drop the oldest queued item (whose OnAborted will be called by WriterLoop).
-    /// </summary>
     public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -310,14 +233,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 _droppedSpans.Add(spanCount);
             });
 
-        // DropOldest: Always succeeds, drops oldest if full (acceptable for telemetry)
         _jobs.Writer.TryWrite(job);
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>
-    ///     Writes a batch directly (for testing). Bypasses the queue and writes synchronously.
-    /// </summary>
     public async Task WriteBatchAsync(SpanBatch batch, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -410,9 +329,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return spans;
     }
 
-    // ==========================================================================
-    // Storage Statistics
-    // ==========================================================================
 
     public async Task<StorageStats> GetStorageStatsAsync(CancellationToken ct = default)
     {
@@ -487,17 +403,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return new GenAiStats();
     }
 
-    /// <summary>
-    ///     Gets the approximate storage size in bytes.
-    ///     For file-based databases, returns the file size.
-    ///     For in-memory databases, queries DuckDB's internal memory usage.
-    /// </summary>
     public long GetStorageSizeBytes()
     {
         if (Read(ref _disposed) is not 0)
             return 0;
 
-        // For file-based databases, use file size (fast, no DB query needed)
         if (!_isInMemory)
         {
             try
@@ -508,7 +418,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             }
             catch (IOException ex)
             {
-                // Fall through to return 0 if file access fails.
                 Debug.WriteLine(ex);
             }
             catch (UnauthorizedAccessException ex)
@@ -519,7 +428,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             return 0;
         }
 
-        // For in-memory databases, query DuckDB's memory usage via PRAGMA
         try
         {
             using var cmd = Connection.CreateCommand();
@@ -535,16 +443,12 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }
         catch (DuckDBException ex)
         {
-            // Return 0 if the PRAGMA is unavailable on this DuckDB build.
             Debug.WriteLine(ex);
         }
 
         return 0;
     }
 
-    // ==========================================================================
-    // Cleanup Operations
-    // ==========================================================================
 
     public async Task<long> GetSpanCountAsync(CancellationToken ct = default)
     {
@@ -621,13 +525,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Clears all telemetry data (spans, logs, sessions) from the database.
-    /// </summary>
     public async Task<ClearTelemetryResult> ClearAllTelemetryAsync(CancellationToken ct = default) =>
         await ExecuteWriteAsync(static async (con, token) =>
         {
-            // Use transaction for atomic clear
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
             int spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted;
@@ -672,13 +572,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted);
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Insight Materialization Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Gets the content hash for a specific insight tier. Returns null if not yet materialized.
-    /// </summary>
     public async Task<string?> GetInsightHashAsync(string tier, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -692,9 +586,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return result as string;
     }
 
-    /// <summary>
-    ///     Gets all materialized insight rows.
-    /// </summary>
     public async Task<IReadOnlyList<InsightRow>> GetAllInsightsAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -724,9 +615,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return rows;
     }
 
-    /// <summary>
-    ///     Upserts a materialized insight tier via the write queue.
-    /// </summary>
     public async Task UpsertInsightAsync(
         string tier,
         string markdown,
@@ -756,9 +644,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Log Operations
-    // ==========================================================================
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
@@ -848,9 +733,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return logs;
     }
 
-    // ==========================================================================
-    // Profile Operations (OTel Profiles v1development)
-    // ==========================================================================
 
     public async Task InsertProfilesAsync(IReadOnlyList<ProfileConversionResult> results,
         CancellationToken ct = default)
@@ -861,12 +743,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        // Insert header rows — uses generated AddParameters / ColumnList / ColumnCount from [DuckDbTable("profiles")]
         var headers = results.Select(static r => r.Profile).ToList();
         await InsertRowsBatchedAsync(tx, ProfileStorageRow.TableName, ProfileStorageRow.ColumnList,
             ProfileStorageRow.ColumnCount, headers, ProfileStorageRow.AddParameters, MaxProfilesPerBatch, ct);
 
-        // Insert child rows — collect across all profiles, insert per table
         await InsertRowsBatchedAsync(tx, "profile_functions",
             "profile_id, ordinal, name, system_name, filename, start_line", 6,
             results.SelectMany(static r => r.Functions).ToList(),
@@ -1009,7 +889,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        // Header
         ProfileStorageRow? header = null;
         await using (var cmd = lease.Connection.CreateCommand())
         {
@@ -1022,7 +901,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         if (header is null) return null;
 
-        // Child tables — all keyed by profile_id
         var functions = await ReadChildRows(lease.Connection, profileId,
             "SELECT profile_id, ordinal, name, system_name, filename, start_line FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
             static r => new ProfileFunctionRow
@@ -1119,10 +997,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
     }
 
-    /// <summary>
-    ///     Upserts an error event. On fingerprint conflict, increments occurrence_count,
-    ///     updates last_seen, merges affected_services, and appends to sample_traces (max 10).
-    /// </summary>
     public async Task UpsertErrorAsync(ErrorEvent error, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -1133,9 +1007,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets errors with optional filtering by category, status, and service name.
-    /// </summary>
     public async Task<IReadOnlyList<ErrorRow>> GetErrorsAsync(
         string? category = null,
         string? status = null,
@@ -1177,9 +1048,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return rows;
     }
 
-    /// <summary>
-    ///     Gets aggregated error statistics grouped by category.
-    /// </summary>
     public async Task<ErrorStats> GetErrorStatsAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -1227,9 +1095,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             SampleTraces = reader.Col(13).AsString
         };
 
-    /// <summary>
-    ///     Updates the status (and optionally assigned_to) for a specific error.
-    /// </summary>
     public async Task UpdateErrorStatusAsync(string errorId, string status, string? assignedTo = null,
         CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
@@ -1247,9 +1112,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a single error by its ID. Returns null if not found.
-    /// </summary>
     public async Task<ErrorRow?> GetErrorByIdAsync(string errorId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -1268,9 +1130,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapErrorRow(reader) : null;
     }
 
-    // ==========================================================================
-    // Archiving
-    // ==========================================================================
 
     public async Task<int> ArchiveToParquetAsync(
         string outputDirectory,
@@ -1280,9 +1139,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             (con, token) => ArchiveInternalAsync(con, outputDirectory, olderThan, token),
             ct).ConfigureAwait(false);
 
-    // ==========================================================================
-    // Private Methods - Writing
-    // ==========================================================================
 
     private async Task WriterLoopAsync()
     {
@@ -1302,12 +1158,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }
         catch (OperationCanceledException ex)
         {
-            // Expected during shutdown.
             Debug.WriteLine(ex);
         }
         finally
         {
-            // Drain remaining jobs on shutdown
             while (_jobs.Reader.TryRead(out var leftover))
                 leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
         }
@@ -1347,8 +1201,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await tx.CommitAsync(ct).ConfigureAwait(false);
 
-        // Writer-side error extraction: runs on the single writer thread after span commit.
-        // Zero additional channel pressure — errors are extracted inline within the existing job.
         await ExtractAndUpsertErrorsAsync(con, batch.Spans, ct).ConfigureAwait(false);
     }
 
@@ -1432,10 +1284,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return count;
     }
 
-    /// <summary>
-    ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
-    ///     Caches SQL for common batch sizes to reduce allocations.
-    /// </summary>
     private static string BuildMultiRowSpanInsertSql(int spanCount)
     {
         Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
@@ -1467,10 +1315,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         });
     }
 
-    /// <summary>
-    ///     Gets or builds a multi-row INSERT statement for logs (no ON CONFLICT).
-    ///     Caches SQL for common batch sizes to reduce allocations.
-    /// </summary>
     private static string BuildMultiRowLogInsertSql(int logCount)
     {
         Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
@@ -1501,9 +1345,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         });
     }
 
-    /// <summary>
-    ///     Builds a multi-row INSERT SQL statement for any table.
-    /// </summary>
     private static string BuildMultiRowInsertSql(string table, string columns, int colCount, int rowCount)
     {
         var sb = new StringBuilder(256);
@@ -1524,19 +1365,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return sb.ToString();
     }
 
-    /// <summary>
-    ///     Adds span parameters to command in column order.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddSpanParameters(DuckDBCommand cmd, SpanStorageRow span)
     {
-        // Identity (4 columns)
         cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
 
-        // Core fields (8 columns) - UBIGINT passed as decimal for DuckDB.NET
         cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.StartTimeUnixNano });
@@ -1546,7 +1382,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
 
-        // GenAI fields (10 columns)
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiProviderName ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiRequestModel ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiResponseModel ?? (object)DBNull.Value });
@@ -1558,18 +1393,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
 
-        // JSON storage (2 columns)
         cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
 
-        // W3C Baggage and OTel Schema URL (2 columns)
         cmd.Parameters.Add(new DuckDBParameter { Value = span.BaggageJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.SchemaUrl ?? (object)DBNull.Value });
     }
 
-    /// <summary>
-    ///     Adds log parameters to command in column order.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddLogParameters(DuckDBCommand cmd, LogStorageRow log)
     {
@@ -1594,9 +1424,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceMethod ?? (object)DBNull.Value });
     }
 
-    // ==========================================================================
-    // Private Methods - Reading
-    // ==========================================================================
 
     private async Task<T?> ReadOneAsync<T>(
         string sql, Action<DuckDBCommand>? addParams, Func<DbDataReader, T> mapper,
@@ -1632,7 +1459,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         await _readGate.WaitAsync(ct).ConfigureAwait(false);
 
-        // In-memory databases cannot share connections, so use the main connection
         if (_isInMemory)
             return new ReadLease(this, Connection, true);
 
@@ -1670,13 +1496,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }
     }
 
-    // ==========================================================================
-    // Private Methods - Schema & Mapping
-    // ==========================================================================
 
     private static void InitializeSchema(DuckDBConnection con)
     {
-        // Manual DDLs run BEFORE generated schema so CREATE TABLE IF NOT EXISTS in generated DDL is a no-op
         using var manualFixRunsCmd = con.CreateCommand();
         manualFixRunsCmd.CommandText = DuckDbSchema.ManualFixRunsDdl;
         manualFixRunsCmd.ExecuteNonQuery();
@@ -1685,7 +1507,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         manualLogsCmd.CommandText = DuckDbSchema.ManualLogsDdl;
         manualLogsCmd.ExecuteNonQuery();
 
-        // OTel Profiles (v1development) — normalized: 6 tables
         using var profilesCmd = con.CreateCommand();
         profilesCmd.CommandText = string.Concat(
             DuckDbSchema.ProfilesDdl, "\n",
@@ -1701,7 +1522,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.CommandText = NormalizeGeneratedSchemaDdl(DuckDbSchema.GetSchemaDdl());
         cmd.ExecuteNonQuery();
 
-        // Manual schema extensions (not yet in TypeSpec)
         using var extCmd = con.CreateCommand();
         extCmd.CommandText = DuckDbSchema.WorkflowExecutionsDdl;
         extCmd.ExecuteNonQuery();
@@ -1727,7 +1547,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                 """;
         errorsCmd.ExecuteNonQuery();
 
-        // Identity domain: workspaces, projects, environments, handshake challenges
         using var identityCmd = con.CreateCommand();
         identityCmd.CommandText = string.Concat(
             DuckDbSchema.WorkspacesDdl, "\n",
@@ -1737,19 +1556,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.GitHubTokensDdl);
         identityCmd.ExecuteNonQuery();
 
-        // Provisioning domain: config selections, generation jobs
         using var provisioningCmd = con.CreateCommand();
         provisioningCmd.CommandText = string.Concat(
             DuckDbSchema.ConfigSelectionsDdl, "\n",
             DuckDbSchema.GenerationJobsDdl);
         provisioningCmd.ExecuteNonQuery();
 
-        // Issue lifecycle events
         using var issueEventsCmd = con.CreateCommand();
         issueEventsCmd.CommandText = IssueEventsDdl;
         issueEventsCmd.ExecuteNonQuery();
 
-        // Agent audit tables: runs, tool calls, and decision events
         using var agentRunsCmd = con.CreateCommand();
         agentRunsCmd.CommandText = string.Concat(
             DuckDbSchema.AgentRunsDdl, "\n",
@@ -1757,44 +1573,36 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.AgentDecisionsDdl);
         agentRunsCmd.ExecuteNonQuery();
 
-        // Semantic span clusters (Phase 5 — EmbeddingClusterWorker)
         using var spanClustersCmd = con.CreateCommand();
         spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
         spanClustersCmd.ExecuteNonQuery();
 
-        // Coding agent runs + Loom settings
         using var codingAgentCmd = con.CreateCommand();
         codingAgentCmd.CommandText = string.Concat(
             DuckDbSchema.CodingAgentRunsDdl, "\n",
             DuckDbSchema.LoomSettingsDdl);
         codingAgentCmd.ExecuteNonQuery();
 
-        // Loom triage pipeline
         using var triageCmd = con.CreateCommand();
         triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
         triageCmd.ExecuteNonQuery();
 
-        // Autofix step tracking (within fix runs)
         using var autofixStepsCmd = con.CreateCommand();
         autofixStepsCmd.CommandText = DuckDbSchema.AutofixStepsDdl;
         autofixStepsCmd.ExecuteNonQuery();
 
-        // Agent handoffs
         using var handoffsCmd = con.CreateCommand();
         handoffsCmd.CommandText = DuckDbSchema.AgentHandoffsDdl;
         handoffsCmd.ExecuteNonQuery();
 
-        // GitHub events
         using var githubEventsCmd = con.CreateCommand();
         githubEventsCmd.CommandText = DuckDbSchema.GitHubEventsDdl;
         githubEventsCmd.ExecuteNonQuery();
 
-        // Schema promotions
         using var schemaPromotionsCmd = con.CreateCommand();
         schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;
         schemaPromotionsCmd.ExecuteNonQuery();
 
-        // Service registry (telemetry-derived auto-detection)
         using var serviceRegistryCmd = con.CreateCommand();
         serviceRegistryCmd.CommandText = ServiceInstancesDdl;
         serviceRegistryCmd.ExecuteNonQuery();
@@ -1803,12 +1611,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         servicesViewCmd.CommandText = ServicesViewDdl;
         servicesViewCmd.ExecuteNonQuery();
 
-        // Artifact storage
         using var artifactsCmd = con.CreateCommand();
         artifactsCmd.CommandText = DuckDbSchema.ArtifactsDdl;
         artifactsCmd.ExecuteNonQuery();
 
-        // Cost engine: model pricing tables + pre-aggregated view
         using var costCmd = con.CreateCommand();
         costCmd.CommandText = string.Concat(
             DuckDbSchema.ModelPricingDdl, "\n",
@@ -1816,9 +1622,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
 
-        // PRD #173: conversations view rolls spans up by session_id for the
-        // dashboard thread view. Stays a view (not a materialization) so
-        // capture-gate toggles are honored on read without rebuilding state.
         using var conversationsCmd = con.CreateCommand();
         conversationsCmd.CommandText = DuckDbSchema.ConversationsViewDdl;
         conversationsCmd.ExecuteNonQuery();
@@ -1917,29 +1720,21 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             throw new ArgumentException("Invalid path characters detected", nameof(fullPath));
     }
 
-    /// <summary>
-    ///     Validates archive output directory to prevent path traversal attacks.
-    ///     Defense-in-depth: validates before AND after path canonicalization.
-    /// </summary>
     private static void ValidateArchiveDirectory(string outputDirectory)
     {
         Guard.NotNullOrWhiteSpace(outputDirectory);
 
-        // Block path traversal sequences before canonicalization
         if (outputDirectory.Contains("..") || outputDirectory.Contains('\0'))
         {
             throw new ArgumentException("Output directory contains invalid traversal sequences",
                 nameof(outputDirectory));
         }
 
-        // Canonicalize and verify path
         var fullPath = Path.GetFullPath(outputDirectory);
 
-        // Post-canonicalization check (defense-in-depth against symlink attacks)
         if (fullPath.Contains(".."))
             throw new ArgumentException("Canonicalized path still contains traversal", nameof(outputDirectory));
 
-        // Block system directories
         string[] dangerousPrefixes = OperatingSystem.IsWindows()
             ? [@"C:\Windows", @"C:\Program Files", @"C:\Program Files (x86)"]
             : ["/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/var/run", "/System"];
@@ -1956,13 +1751,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 
-    // ==========================================================================
-    // Nested Types
-    // ==========================================================================
 
-    /// <summary>
-    ///     RAII-style lease for pooled read connections.
-    /// </summary>
     public readonly struct ReadLease : IAsyncDisposable, IDisposable
     {
         private readonly DuckDbStore _store;
@@ -1978,7 +1767,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         public void Dispose()
         {
-            // Don't return shared connections (in-memory mode)
             if (_isShared)
             {
                 _store._readGate.Release();
@@ -2049,23 +1837,18 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    ///     Lightweight query builder for dynamic DuckDB WHERE clauses with positional parameters.
-    /// </summary>
     private struct QueryBuilder()
     {
         private readonly List<string> _conditions = [];
         private readonly List<DuckDBParameter> _parameters = [];
         private int _paramIndex = 1;
 
-        /// <summary>Adds a condition with a single positional parameter. $N is replaced with the next index.</summary>
         public void Add(string condition, object value)
         {
             _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
             _parameters.Add(new DuckDBParameter { Value = value });
         }
 
-        /// <summary>Adds a condition with no parameters (e.g. IS NOT NULL checks).</summary>
         public readonly void AddCondition(string condition) => _conditions.Add(condition);
 
         public readonly string WhereClause =>
@@ -2083,12 +1866,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         public override DuckDBConnection Create()
         {
-            // For in-memory databases, reuse the shared (write) connection
-            // Each :memory: connection creates a separate isolated database instance
             if (sharedConnection is not null)
                 return sharedConnection;
 
-            // For file-based databases, create read-only connections
             var connString = $"DataSource={path};ACCESS_MODE=READ_ONLY";
             var con = new DuckDBConnection(connString);
             con.Open();
@@ -2108,7 +1888,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 }
                 catch (DuckDBException ex)
                 {
-                    // Best effort cleanup — connection may already be disposed.
                     Debug.WriteLine(ex);
                 }
             }
@@ -2116,13 +1895,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     }
 }
 
-// ==========================================================================
-// Insight Materialization Operations
-// ==========================================================================
 
-/// <summary>
-///     Row from the materialized_insights table.
-/// </summary>
 public sealed record InsightRow(
     string Tier,
     string ContentMarkdown,
@@ -2131,15 +1904,7 @@ public sealed record InsightRow(
     long SpanCountAtMaterialization,
     double DurationMs);
 
-/// <summary>
-///     Result of clearing all telemetry data from the database.
-/// </summary>
-/// <param name="SpansDeleted">Number of spans deleted.</param>
-/// <param name="LogsDeleted">Number of logs deleted.</param>
-/// <param name="ProfilesDeleted">Number of profiles deleted.</param>
-/// <param name="SessionsDeleted">Number of sessions deleted.</param>
 public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted, int SessionsDeleted)
 {
-    /// <summary>Total number of records deleted across all tables.</summary>
     public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted + SessionsDeleted;
 }

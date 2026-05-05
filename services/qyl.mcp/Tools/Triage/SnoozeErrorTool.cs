@@ -7,10 +7,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Triage;
 
-/// <summary>
-///     Snoozes an error issue for a specified duration, temporarily suppressing it from triage views.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class SnoozeErrorTool(HttpClient client)

@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Insights;
 
-/// <summary>
-///     Discovers services, AI models, and top errors from ingested spans.
-/// </summary>
 internal static class TopologyMaterializer
 {
     public static async Task<string> MaterializeAsync(
@@ -12,7 +9,6 @@ internal static class TopologyMaterializer
         var sb = new StringBuilder();
         sb.AppendLine("## Topology (discovered)");
 
-        // Services with span counts
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -36,7 +32,6 @@ internal static class TopologyMaterializer
                 sb.AppendLine("- No services discovered yet.");
         }
 
-        // AI models with usage %
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -62,7 +57,6 @@ internal static class TopologyMaterializer
                 sb.AppendLine($"- {models.Count} AI model(s): {string.Join(", ", models)}");
         }
 
-        // Top errors by service
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
@@ -79,7 +73,6 @@ internal static class TopologyMaterializer
                 var service = reader.Col(0).AsString ?? "unknown";
                 var message = reader.GetString(1);
                 var count = reader.GetInt64(2);
-                // Truncate long error messages
                 if (message.Length > 80)
                     message = string.Concat(message.AsSpan(0, 77), "...");
                 sb.AppendLine($"- Top error: {message} in {service} ({count:N0} occurrences)");

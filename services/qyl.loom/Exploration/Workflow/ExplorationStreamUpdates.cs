@@ -1,14 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Contracts.Copilot;
 
 namespace Qyl.Loom.Exploration.Workflow;
 
-/// <summary>
-///     Factory helpers for the <see cref="StreamUpdate" /> shapes emitted by exploration executors.
-///     Centralized so every executor produces identically-shaped progress, content, error, and completion
-///     events without duplicating the <c>Timestamp</c>/<c>Kind</c> boilerplate.
-/// </summary>
 internal static class ExplorationStreamUpdates
 {
     public static StreamUpdate Progress(int percent, string message) => new()

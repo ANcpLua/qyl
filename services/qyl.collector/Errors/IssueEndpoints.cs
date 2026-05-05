@@ -2,22 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Errors;
 
-/// <summary>
-///     Minimal API endpoints for the v2 error issue engine.
-///     Routes: <c>/api/v1/issues/*</c>
-/// </summary>
 public static class IssueEndpoints
 {
-    /// <summary>
-    ///     Maps issue CRUD, lifecycle, event, and breadcrumb endpoints.
-    /// </summary>
     [QylMapEndpoints]
     public static IEndpointRouteBuilder MapIssueEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/issues")
             .WithTags("Issues");
 
-        // --- Issue CRUD ---
 
         group.MapGet("/", static async (
                 [FromServices] IssueService service,
@@ -44,7 +36,6 @@ public static class IssueEndpoints
             .WithName("GetIssue")
             .WithSummary("Get a single error issue by ID");
 
-        // --- Issue Lifecycle ---
 
         group.MapPatch("/{issueId}/status", static async Task<IResult> (
                 string issueId, IssueStatusTransition body,
@@ -109,7 +100,6 @@ public static class IssueEndpoints
             .WithName("SetIssuePriority")
             .WithSummary("Set issue priority");
 
-        // --- Issue Events ---
 
         group.MapGet("/{issueId}/events", static async (
                 string issueId, [FromServices] IssueService service, int? limit, CancellationToken ct) =>
@@ -121,7 +111,6 @@ public static class IssueEndpoints
             .WithName("GetIssueEvents")
             .WithSummary("Get error events linked to an issue");
 
-        // --- Breadcrumbs ---
 
         group.MapGet("/{issueId}/events/{eventId}/breadcrumbs", static async (
                 string _, string eventId,
@@ -138,15 +127,9 @@ public static class IssueEndpoints
     }
 }
 
-// =============================================================================
-// Request DTOs
-// =============================================================================
 
-/// <summary>Request body for issue status transition.</summary>
 public sealed record IssueStatusTransition(string? Status, string? Reason = null);
 
-/// <summary>Request body for issue owner assignment.</summary>
 public sealed record IssueAssignment(string? Owner);
 
-/// <summary>Request body for issue priority update.</summary>
 public sealed record IssuePriorityUpdate(string? Priority);

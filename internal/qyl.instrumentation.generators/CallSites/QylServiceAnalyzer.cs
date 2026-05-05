@@ -4,16 +4,10 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Discovers classes tagged with <c>[QylService(lifetime, asInterface?)]</c> for
-///     auto-DI registration.
-/// </summary>
 internal static class QylServiceAnalyzer
 {
     internal const string QylServiceAttributeMetadataName = "Qyl.Contracts.Observability.QylServiceAttribute";
 
-    // Keep in sync with QylLifetime enum. Uses string names so the emitter can produce the
-    // exact ServiceCollection* extension-method call.
     private static readonly string[] s_lifetimeNames = ["Singleton", "Scoped", "Transient"];
 
     public static bool CouldBeQylServiceClass(SyntaxNode node, CancellationToken _) =>

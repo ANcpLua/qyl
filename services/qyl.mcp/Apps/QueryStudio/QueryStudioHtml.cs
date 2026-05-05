@@ -1,10 +1,5 @@
 namespace qyl.mcp.Apps.QueryStudio;
 
-/// <summary>
-///     Holds the Query Studio HTML as a compile-time constant.
-///     Loaded by <see cref="QueryStudioResource" /> to serve via MCP resource protocol.
-///     The HTML file at <c>query-studio.html</c> is the source of truth — keep in sync.
-/// </summary>
 internal static class QueryStudioHtml
 {
     public const string Content = """

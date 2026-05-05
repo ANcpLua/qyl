@@ -7,10 +7,6 @@ using Qyl.Contracts.Loom;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools for managing autofix fix runs:
-///     list, detail, steps, approve, and reject.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class AutofixMcpTools(HttpClient http)

@@ -56,10 +56,6 @@ public static class ErrorExtractor
         };
     }
 
-    /// <summary>
-    ///     Parses a JSON attributes string to a string dictionary.
-    ///     Shared utility for attribute deserialization across the collector.
-    /// </summary>
     internal static Dictionary<string, string> ParseAttributesJson(string? json)
     {
         if (string.IsNullOrEmpty(json)) return [];

@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
@@ -40,8 +39,6 @@ internal sealed class ConfidenceExecutor(
             _ => "low"
         };
 
-        // retry_iteration is tracked on HypothesisVerdict — bump-counter lives in the
-        // judge. Gate retry_requested on the budget so the back-edge cycle terminates.
         var hypothesisIter = state.Snapshot(draft.RunId).Hypothesis?.RetryIteration ?? 0;
         var withinRetryBudget = hypothesisIter < config.MaxConfidenceRetries;
 

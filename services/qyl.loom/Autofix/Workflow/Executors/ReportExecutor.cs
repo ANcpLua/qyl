@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 namespace Qyl.Loom.Autofix.Workflow.Executors;
 
@@ -59,13 +58,6 @@ internal sealed class ReportExecutor(
         await ctx.YieldOutputAsync(new AutofixWorkflowResult(audit.RunId, report), ct).ConfigureAwait(false);
     }
 
-    /// In-process state.Snapshot is fast but volatile across process restarts.
-    /// When a checkpoint resumes the workflow in a fresh process, the in-memory
-    /// dictionary is empty — fall back to the durable workflow state that every
-    /// upstream executor wrote via QueueStateUpdateAsync into the
-    /// AutofixAssemblyKeys.Scope scope. The fallback only fires for fields that
-    /// are missing from in-memory state, so the common path stays one dictionary
-    /// lookup.
     private async ValueTask<AutofixReportAssemblyState.RunSnapshot> ResolveSnapshotAsync(
         ConfidenceAudit audit, IWorkflowContext ctx, CancellationToken ct)
     {

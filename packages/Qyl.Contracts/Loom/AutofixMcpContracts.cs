@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Qyl.Contracts.Loom;
 
-/// <summary>
-///     Request body for creating a new Loom autofix run.
-/// </summary>
 public sealed record LoomFixRunCreateRequest(
     [property: JsonPropertyName("policy")] string? Policy = null,
     [property: JsonPropertyName("instruction")]
@@ -12,7 +9,6 @@ public sealed record LoomFixRunCreateRequest(
     [property: JsonPropertyName("stoppingPoint")]
     string? StoppingPoint = null);
 
-/// <summary>Payload of a Collector autofix run object.</summary>
 public sealed record LoomFixRunDto
 {
     [JsonPropertyName("runId")] public required string RunId { get; init; }
@@ -29,14 +25,12 @@ public sealed record LoomFixRunDto
     [JsonPropertyName("completedAt")] public DateTime? CompletedAt { get; init; }
 }
 
-/// <summary>List result returned by GET /api/v1/issues/{id}/fix-runs.</summary>
 public sealed record LoomFixRunList
 {
     [JsonPropertyName("items")] public required IReadOnlyList<LoomFixRunDto> Items { get; init; }
     [JsonPropertyName("total")] public required int Total { get; init; }
 }
 
-/// <summary>Autofix step payload returned by GET /api/v1/issues/{id}/fix-runs/{runId}/steps.</summary>
 public sealed record LoomAutofixStepDto
 {
     [JsonPropertyName("stepId")] public required string StepId { get; init; }
@@ -52,25 +46,19 @@ public sealed record LoomAutofixStepDto
     [JsonPropertyName("createdAt")] public DateTime? CreatedAt { get; init; }
 }
 
-/// <summary>List result for autofix step output.</summary>
 public sealed record LoomAutofixStepList
 {
     [JsonPropertyName("items")] public required IReadOnlyList<LoomAutofixStepDto> Items { get; init; }
     [JsonPropertyName("total")] public required int Total { get; init; }
 }
 
-/// <summary>Response body for approve/reject operations.</summary>
 public sealed record LoomFixRunTransitionResponse(
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("runId")] string RunId);
 
-/// <summary>Error shape returned by several collector endpoints.</summary>
 public sealed record LoomErrorResponse(
     [property: JsonPropertyName("error")] string Error);
 
-/// <summary>
-///     Envelope used by mcp tools to return typed, non-string JSON for tool transport.
-/// </summary>
 public sealed record LoomToolEnvelope<T>
 {
     [JsonPropertyName("success")] public required bool Success { get; init; }
@@ -84,9 +72,6 @@ public sealed record LoomToolEnvelope<T>
     public string? Error { get; init; }
 }
 
-/// <summary>
-///     Factory methods for <see cref="LoomToolEnvelope{T}" /> that avoid CA1000 (static members on generic types).
-/// </summary>
 public static class LoomToolEnvelope
 {
     public static LoomToolEnvelope<T> Ok<T>(T data) => new() { Success = true, Data = data };

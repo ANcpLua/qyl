@@ -1,19 +1,11 @@
 namespace Qyl.Collector.Cost;
 
-/// <summary>
-///     Manages model pricing: seeds from JSON on first boot, caches in memory,
-///     computes per-span cost at ingestion time.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
 {
     private readonly Lock _lock = new();
     private FrozenDictionary<string, PricingEntry> _cache = FrozenDictionary<string, PricingEntry>.Empty;
 
-    /// <summary>
-    ///     Loads pricing from DuckDB into memory. If table is empty, seeds from
-    ///     <c>data/model-pricing.json</c> first.
-    /// </summary>
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         var count = await GetPricingCountAsync(ct);
@@ -25,10 +17,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         await RefreshCacheAsync(ct);
     }
 
-    /// <summary>
-    ///     Computes cost in USD for a span's token usage.
-    ///     Returns null if provider/model has no pricing entry.
-    /// </summary>
     public double? ComputeCost(string? provider, string? model, long? inputTokens, long? outputTokens)
     {
         if (provider is null || model is null)
@@ -40,7 +28,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         var key = MakeCacheKey(provider, model);
         if (!_cache.TryGetValue(key, out var pricing))
         {
-            // Try model-only lookup (provider may vary across deployments)
             key = MakeCacheKey("*", model);
             if (!_cache.TryGetValue(key, out pricing))
                 return null;
@@ -52,10 +39,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         return cost;
     }
 
-    /// <summary>
-    ///     Returns a new batch with computed costs filled in.
-    ///     Spans that already have a <c>gen_ai_cost_usd</c> value are passed through unchanged.
-    /// </summary>
     public SpanBatch EnrichBatchWithCost(SpanBatch batch)
     {
         var spans = batch.Spans;
@@ -89,10 +72,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         return new SpanBatch(enriched);
     }
 
-    /// <summary>
-    ///     Reloads the in-memory pricing cache from DuckDB.
-    ///     Called after pricing updates.
-    /// </summary>
     public async Task RefreshCacheAsync(CancellationToken ct = default)
     {
         var entries = new Dictionary<string, PricingEntry>(StringComparer.OrdinalIgnoreCase);
@@ -150,7 +129,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
         var seedPath = Path.Combine(AppContext.BaseDirectory, "data", "model-pricing.json");
         if (!File.Exists(seedPath))
         {
-            // Also check relative to working directory
             seedPath = Path.Combine("data", "model-pricing.json");
             if (!File.Exists(seedPath))
             {
@@ -215,7 +193,6 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
     private partial void LogSeedDataLoaded(int count, string path);
 }
 
-/// <summary>Pricing entry cached in memory. All costs are per 1M tokens.</summary>
 public sealed record PricingEntry(
     decimal InputCostPerMillion,
     decimal OutputCostPerMillion,
@@ -223,7 +200,6 @@ public sealed record PricingEntry(
     decimal? CacheReadCostPerMillion,
     decimal? CacheWriteCostPerMillion);
 
-/// <summary>Shape of entries in data/model-pricing.json.</summary>
 public sealed class SeedPricingEntry
 {
     [JsonPropertyName("provider")] public required string Provider { get; init; }

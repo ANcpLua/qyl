@@ -8,22 +8,12 @@ using qyl.mcp.Tools;
 
 namespace qyl.mcp.Apps.ErrorExplorer;
 
-/// <summary>
-///     MCP ext-app tool that returns error groups with a UI resource link.
-///     Detail/timeline queries reuse existing <see cref="ErrorTools" />.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Apps)]
 public sealed partial class ErrorExplorerTools(HttpClient client)
 {
     private const string AppUri = "ui://qyl/error-explorer";
 
-    /// <summary>
-    ///     Returns error groups as Markdown text and signals the interactive Error Explorer UI resource.
-    /// </summary>
-    /// <param name="status">Filter by issue status: unresolved, resolved, or ignored.</param>
-    /// <param name="service">Filter by originating service name.</param>
-    /// <param name="limit">Maximum number of error groups to return.</param>
     [QylCapability("mcp_apps")]
     [McpServerTool(Name = "qyl.app.error_explorer", Title = "Error Explorer",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

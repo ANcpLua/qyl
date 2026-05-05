@@ -38,10 +38,8 @@ public sealed record SpanDto
 
     [JsonPropertyName("genai")] public GenAiSpanDataDto? GenAi { get; init; }
 
-    /// <summary>W3C Baggage key-value pairs for cross-cutting concern propagation</summary>
     public IReadOnlyDictionary<string, string>? Baggage { get; init; }
 
-    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)</summary>
     public string? SchemaUrl { get; init; }
 }
 

@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Grpc;
 
-/// <summary>
-///     Request message for LogsService.Export (protobuf wire format).
-///     Proto: opentelemetry.proto.collector.logs.v1.ExportLogsServiceRequest
-/// </summary>
 public sealed class ExportLogsServiceRequestProto
 {
     public List<OtlpResourceLogsProto> ResourceLogs { get; } = [];
@@ -81,10 +77,6 @@ public sealed class OtlpScopeLogsProto : IProtobufParseable
     }
 }
 
-/// <summary>
-///     LogRecord from OTLP proto.
-///     Field numbers: opentelemetry.proto.logs.v1.LogRecord
-/// </summary>
 public sealed class OtlpLogRecordProto : IProtobufParseable
 {
     public ulong TimeUnixNano { get; set; }
@@ -103,32 +95,32 @@ public sealed class OtlpLogRecordProto : IProtobufParseable
         {
             switch (tag.FieldNumber)
             {
-                case 1: // time_unix_nano (fixed64)
+                case 1:
                     TimeUnixNano = reader.ReadFixed64();
                     break;
-                case 2: // severity_number (enum)
+                case 2:
                     SeverityNumber = (int)reader.ReadVarint();
                     break;
-                case 3: // severity_text
+                case 3:
                     SeverityText = reader.ReadString();
                     break;
-                case 5: // body (AnyValue)
+                case 5:
                     Body = new OtlpAnyValueProto();
                     reader.ReadMessage(Body);
                     break;
-                case 6: // attributes
+                case 6:
                     Attributes ??= [];
                     var attr = new OtlpKeyValueProto();
                     reader.ReadMessage(attr);
                     Attributes.Add(attr);
                     break;
-                case 9: // trace_id (bytes)
+                case 9:
                     TraceId = reader.ReadBytesAsHex();
                     break;
-                case 10: // span_id (bytes)
+                case 10:
                     SpanId = reader.ReadBytesAsHex();
                     break;
-                case 11: // observed_time_unix_nano (fixed64)
+                case 11:
                     ObservedTimeUnixNano = reader.ReadFixed64();
                     break;
                 default:

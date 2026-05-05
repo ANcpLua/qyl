@@ -1,9 +1,5 @@
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     Static system prompt for the trace summary agent.
-///     Kept static to enable LLM provider prompt caching.
-/// </summary>
 internal static class TraceSummaryPrompt
 {
     internal const string Prompt = """

@@ -10,68 +10,49 @@ public static class CollectorEndpointExtensions
 {
     public static WebApplication MapQylCollectorEndpoints(this WebApplication app)
     {
-        // gRPC OTLP ingestion on port 4317
         app.MapGrpcService<TraceServiceImpl>();
 
-        // OTLP ingestion route group (/v1)
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
         otlp.MapPost("/profiles", IngestOtlpProfilesAsync);
 
-        // REST API route group (/api/v1)
         var api = app.MapGroup("/api/v1");
 
-        // Sessions
         api.MapGet("/sessions", GetSessionsAsync);
         api.MapGet("/sessions/{sessionId}", GetSessionByIdAsync);
         api.MapGet("/sessions/{sessionId}/spans", SpanEndpoints.GetSessionSpansAsync);
 
-        // Traces
         api.MapGet("/traces", GetTracesAsync);
         api.MapGet("/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
-        // Native ingest
         api.MapPost("/ingest", IngestNativeAsync);
 
-        // Logs
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/logs/live", StreamLogsLiveAsync);
 
-        // Profiles
         api.MapGet("/profiles", GetProfilesAsync);
         api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
         api.MapGet("/traces/{traceId}/profiles", GetTraceProfilesAsync);
 
-        // GenAI
         api.MapGet("/genai/stats", GetGenAiStatsAsync);
         api.MapGet("/genai/spans", GetGenAiSpansAsync);
 
-        // Telemetry management
         api.MapDelete("/telemetry", ClearTelemetryAsync);
         api.MapGet("/telemetry/stats", GetTelemetryStatsAsync);
 
-        // Meta
         api.MapGet("/meta", GetMeta);
 
-        // All Map*Endpoints extensions tagged [QylMapEndpoints] are dispatched here
-        // via the generator-emitted QylGeneratedRegistry.MapQylGeneratedEndpoints.
-        // Add a new endpoint module by tagging its Map*Endpoints method — no edit here.
         app.MapQylGeneratedEndpoints();
 
-        // Browser SDK
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
             Results.File(Path.Combine(env.WebRootPath, "qyl.js"), "application/javascript"));
 
-        // SPA fallback
         app.MapFallback(FallbackHandler);
 
         return app;
     }
 
-    // =========================================================================
-    // OTLP Ingestion
-    // =========================================================================
 
     private static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
@@ -169,9 +150,6 @@ public static class CollectorEndpointExtensions
         }
     }
 
-    // =========================================================================
-    // Sessions
-    // =========================================================================
 
     private static async Task<IResult> GetSessionsAsync(
         SessionQueryService queryService,
@@ -192,9 +170,6 @@ public static class CollectorEndpointExtensions
             ? Results.NotFound()
             : Results.Ok(SessionMapper.ToDto(session));
 
-    // =========================================================================
-    // Traces
-    // =========================================================================
 
     private static async Task<IResult> GetTracesAsync(
         DuckDbStore store,
@@ -206,9 +181,6 @@ public static class CollectorEndpointExtensions
         return Results.Ok(new { items = spans, total = spans.Count });
     }
 
-    // =========================================================================
-    // Native Ingest
-    // =========================================================================
 
     private static async Task<IResult> IngestNativeAsync(
         HttpContext context,
@@ -237,9 +209,6 @@ public static class CollectorEndpointExtensions
         return Results.Accepted();
     }
 
-    // =========================================================================
-    // Logs
-    // =========================================================================
 
     private static async Task<IResult> GetLogsAsync(
         DuckDbStore store,
@@ -317,9 +286,6 @@ public static class CollectorEndpointExtensions
         }
     }
 
-    // =========================================================================
-    // Profiles (OTel Profiles v1development)
-    // =========================================================================
 
     private static async Task<IResult> IngestOtlpProfilesAsync(
         HttpContext context,
@@ -387,9 +353,6 @@ public static class CollectorEndpointExtensions
         return Results.Ok(new { profiles, total = profiles.Count });
     }
 
-    // =========================================================================
-    // GenAI
-    // =========================================================================
 
     private static async Task<IResult> GetGenAiStatsAsync(
         SessionQueryService queryService,
@@ -449,9 +412,6 @@ public static class CollectorEndpointExtensions
         return Results.Ok(new { spans = items, total = spans.Count });
     }
 
-    // =========================================================================
-    // Telemetry Management
-    // =========================================================================
 
     private static async Task<IResult> ClearTelemetryAsync(
         DuckDbStore store,
@@ -492,9 +452,6 @@ public static class CollectorEndpointExtensions
         return Results.Ok(stats);
     }
 
-    // =========================================================================
-    // Meta
-    // =========================================================================
 
     private static IResult GetMeta(
         CollectorPortOptions ports,
@@ -543,9 +500,6 @@ public static class CollectorEndpointExtensions
         });
     }
 
-    // =========================================================================
-    // SPA Fallback
-    // =========================================================================
 
     private static Task FallbackHandler(HttpContext context)
     {
@@ -559,14 +513,12 @@ public static class CollectorEndpointExtensions
             return Task.CompletedTask;
         }
 
-        // Embedded dashboard middleware handles its own SPA fallback
         if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
         {
             context.Response.StatusCode = 404;
             return Task.CompletedTask;
         }
 
-        // Physical files: SPA fallback — serve index.html for client-side routes
         var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
         var webRootPath = env.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRootPath))

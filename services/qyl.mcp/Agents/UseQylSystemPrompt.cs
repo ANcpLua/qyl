@@ -1,9 +1,5 @@
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     Static system prompt for the use_qyl meta-agent.
-///     Kept static to enable LLM provider prompt caching.
-/// </summary>
 internal static class UseQylSystemPrompt
 {
     internal const string Prompt = """

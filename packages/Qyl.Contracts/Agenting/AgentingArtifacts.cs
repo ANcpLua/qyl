@@ -1,8 +1,5 @@
 namespace Qyl.Contracts.Agenting;
 
-/// <summary>
-///     Canonical artifact reference for a run.
-/// </summary>
 public sealed record AgentRunArtifactRef
 {
     public required string ArtifactId { get; init; }
@@ -18,9 +15,6 @@ public sealed record AgentRunArtifactRef
     public IReadOnlyList<string>? Labels { get; init; }
 }
 
-/// <summary>
-///     Snapshot of an execution artifact payload.
-/// </summary>
 public sealed record AgentRunArtifact
 {
     public required string ArtifactId { get; init; }
@@ -34,9 +28,6 @@ public sealed record AgentRunArtifact
     public string? SourceStep { get; init; }
 }
 
-/// <summary>
-///     Input/output boundaries for evidence and artifact exchange between planes.
-/// </summary>
 public sealed record AgentRunEvidencePack
 {
     public required string PackId { get; init; }

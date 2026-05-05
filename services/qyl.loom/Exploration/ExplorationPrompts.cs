@@ -1,9 +1,5 @@
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     LLM prompt templates for the interactive exploration workflow.
-///     Separate from <see cref="Qyl.Loom.Autofix.LoomAutofixPrompts" /> which drive the background pipeline.
-/// </summary>
 internal static class ExplorationPrompts
 {
     internal const string InsightGeneration = """

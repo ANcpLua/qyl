@@ -8,21 +8,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Errors;
 
-/// <summary>
-///     MCP tool that lists attachments (screenshots, logs, minidumps) for an error event.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetAttachmentsTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves the list of attachments for an error event, optionally scoped to a specific event.
-    /// </summary>
-    /// <param name="issueId">The error issue ID to retrieve attachments for.</param>
-    /// <param name="eventId">Optional event ID to scope attachments to a specific event.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown table of attachments with download links.</returns>
     [McpServerTool(Name = "get_attachments", Title = "Get Event Attachments",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     public async partial Task<string> GetAttachmentsAsync(

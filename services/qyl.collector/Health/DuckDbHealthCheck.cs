@@ -2,10 +2,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Qyl.Collector.Health;
 
-/// <summary>
-///     Health check that verifies DuckDB database connectivity.
-///     Executes a simple query to validate the connection is alive.
-/// </summary>
 [QylHealthCheck("duckdb", "db", "storage", QylEndpoints.ReadyTag)]
 public sealed class DuckDbHealthCheck(DuckDbStore store) : IHealthCheck
 {

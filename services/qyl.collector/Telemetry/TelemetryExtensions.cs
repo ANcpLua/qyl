@@ -1,7 +1,3 @@
-// =============================================================================
-// qyl Telemetry DI Extensions - .NET 10 Full Setup
-// Configures logging enrichment, redaction, buffering, HTTP logging
-// =============================================================================
 
 using Microsoft.Extensions.Diagnostics.Buffering;
 using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
@@ -9,47 +5,32 @@ using Microsoft.Extensions.Diagnostics.Latency;
 
 namespace Qyl.Collector.Telemetry;
 
-/// <summary>
-///     Extension methods for configuring qyl telemetry in DI.
-/// </summary>
 public static class TelemetryExtensions
 {
-    /// <summary>
-    ///     Adds full qyl telemetry configuration.
-    ///     Includes: enrichment, redaction, buffering.
-    /// </summary>
     public static void AddQylTelemetry(this IServiceCollection services)
     {
-        // HTTP context for request enrichment
         services.AddHttpContextAccessor();
 
-        // Configure redaction
         services.AddRedaction(static builder => builder.AddQylRedactors());
 
-        // HTTP logging for incoming requests (redaction applied via AddRedaction above)
         services.AddHttpLogging();
 
-        // Exception summarization for safe error logging
         services.AddExceptionSummarizer(static builder =>
         {
             builder.AddHttpProvider();
         });
 
-        // Configure logging with enrichment, redaction, and buffering
         services.AddLogging(static logging =>
         {
-            // Enable log enrichment
             logging.EnableEnrichment(static options =>
             {
                 options.CaptureStackTraces = true;
                 options.IncludeExceptionMessage = true;
-                options.MaxStackTraceLength = 2048; // Min allowed by validator
+                options.MaxStackTraceLength = 2048;
             });
 
-            // Enable redaction in logs
             logging.EnableRedaction();
 
-            // .NET 10+ Log buffering - buffer Debug logs, flush on exception
             logging.AddGlobalBuffer(static options =>
             {
                 options.Rules.Add(new LogBufferingFilterRule(logLevel: LogLevel.Debug));
@@ -57,11 +38,9 @@ public static class TelemetryExtensions
             });
         });
 
-        // Add enrichers
         services.AddLogEnricher<QylLogEnricher>();
         services.AddLogEnricher<QylRequestEnricher>();
 
-        // Add application log enricher (built-in)
         services.AddApplicationLogEnricher(static options =>
         {
             options.ApplicationName = true;
@@ -69,7 +48,6 @@ public static class TelemetryExtensions
             options.EnvironmentName = true;
         });
 
-        // Register latency monitoring checkpoints
         services.RegisterCheckpointNames(
             "db.query",
             "span.ingest",
@@ -88,29 +66,19 @@ public static class TelemetryExtensions
             "gen_ai.request.model",
             "span.count");
 
-        // Addotnet nuget list sourced latency context
         services.AddLatencyContext();
 
-        // AsyncState for request-scoped context across async boundaries
         services.AddAsyncState();
     }
 
-    /// <summary>
-    ///     Configures the application pipeline with telemetry middleware.
-    ///     Skips latency telemetry in Production with CreateSlimBuilder to avoid service registration issues.
-    /// </summary>
     public static void UseQylTelemetry(this IApplicationBuilder app)
     {
         var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
-        // HTTP logging with redaction
         app.UseHttpLogging();
 
-        // Skip latency telemetry in testing environment or when ILatencyContext isn't available
-        // WebApplicationFactory with CreateSlimBuilder doesn't properly register all telemetry services
         if (!env.IsEnvironment("Testing"))
         {
-            // Check if latency context is actually registered before using middleware
             var latencyContext = app.ApplicationServices.GetService<ILatencyContext>();
             if (latencyContext is not null)
             {
@@ -120,17 +88,10 @@ public static class TelemetryExtensions
     }
 }
 
-/// <summary>
-///     Logging builder extensions for qyl-specific configuration.
-/// </summary>
 public static class QylLoggingBuilderExtensions
 {
-    /// <summary>
-    ///     Configures qyl logging based on environment.
-    /// </summary>
     public static ILoggingBuilder AddQylLogging(this ILoggingBuilder builder, IHostEnvironment environment)
     {
-        // Suppress noisy framework logs in all environments
         builder.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
         builder.AddFilter("Microsoft.Hosting", LogLevel.Warning);
         builder.AddFilter("System.Net.Http", LogLevel.Warning);

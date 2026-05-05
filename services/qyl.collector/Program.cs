@@ -8,8 +8,6 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddQylServiceDefaults(options =>
 {
-    // Collector is an OTLP backend — disable OpenAPI (we ship our own generated openapi.yaml)
-    // and auto-discovery (collector never phones out to another collector).
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
     options.AdditionalActivitySources.Add("Qyl.Collector");

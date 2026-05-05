@@ -2,11 +2,6 @@ using Qyl.Loom.Agents;
 
 namespace Qyl.Loom.Exploration;
 
-/// <summary>
-///     Generates pre-investigation insights for the sidebar panel.
-///     Produces "What Happened" / "Initial Guess" / "In the Trace" summary.
-///     Uses <see cref="CollectorClient" /> instead of direct DuckDB access.
-/// </summary>
 public sealed partial class ExplorationInsightService(
     CollectorClient collector,
     ILogger<ExplorationInsightService> logger,

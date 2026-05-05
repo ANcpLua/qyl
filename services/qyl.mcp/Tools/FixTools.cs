@@ -6,10 +6,6 @@ using Qyl.Contracts.Loom;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tool that submits and tracks Loom fix jobs at the collector boundary.
-///     All generation work is executed in collector-side Loom workers.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class FixTools(HttpClient http)

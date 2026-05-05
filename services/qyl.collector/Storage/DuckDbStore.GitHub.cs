@@ -2,10 +2,6 @@ using Qyl.Collector.Autofix;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with GitHub webhook event
-///     storage operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string GitHubEventSelectSql = """
@@ -14,9 +10,6 @@ public sealed partial class DuckDbStore
                                                 FROM github_events
                                                 """;
 
-    /// <summary>
-    ///     Inserts a new GitHub event record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertGitHubEventAsync(GitHubEventRecord @event, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -40,9 +33,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets GitHub events with optional filtering by event type and repository.
-    /// </summary>
     public async Task<IReadOnlyList<GitHubEventRecord>> GetGitHubEventsAsync(
         int limit = 50, string? eventType = null, string? repoFullName = null,
         CancellationToken ct = default)

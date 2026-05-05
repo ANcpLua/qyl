@@ -1,15 +1,8 @@
-// =============================================================================
-// SessionQueryService - Pure DuckDB queries with SpanQueryBuilder
-// =============================================================================
 
 using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     Session query service using SpanQueryBuilder for type-safe query construction.
-///     All aggregations computed in DuckDB - no in-memory state.
-/// </summary>
 public sealed class SessionQueryService(DuckDbStore store)
 {
     private const string SessionSelectColumns = """
@@ -29,9 +22,6 @@ public sealed class SessionQueryService(DuckDbStore store)
                                                 FROM spans
                                                 """;
 
-    // =========================================================================
-    // List Sessions
-    // =========================================================================
 
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         int limit = 100,
@@ -40,8 +30,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         DateTime? after = null,
         CancellationToken ct = default)
     {
-        // Using raw SQL for complex COALESCE + GROUP BY pattern
-        // SpanQueryBuilder is better for simpler queries
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = SessionSelectColumns
@@ -55,9 +43,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         return await ExecuteSessionQueryAsync(cmd, ct);
     }
 
-    // =========================================================================
-    // Get Single Session
-    // =========================================================================
 
     public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
@@ -73,13 +58,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         return results.Count > 0 ? results[0] : null;
     }
 
-    // =========================================================================
-    // Session Spans - Using SpanQueryBuilder
-    // =========================================================================
 
-    // =========================================================================
-    // GenAI Stats - Using SpanQueryBuilder
-    // =========================================================================
 
     public async Task<SessionGenAiStats> GetGenAiStatsAsync(
         string? sessionId = null,
@@ -121,9 +100,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         return new SessionGenAiStats();
     }
 
-    // =========================================================================
-    // Spans by Trace - Using SpanQueryBuilder
-    // =========================================================================
 
     public async Task<IReadOnlyList<SpanStorageRow>> GetSpansByTraceAsync(
         string traceId,
@@ -149,9 +125,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         return spans;
     }
 
-    // =========================================================================
-    // GenAI Spans Only - Using SpanQueryBuilder
-    // =========================================================================
 
     public async Task<IReadOnlyList<SpanStorageRow>> GetGenAiSpansAsync(
         string? sessionId = null,
@@ -188,9 +161,6 @@ public sealed class SessionQueryService(DuckDbStore store)
         return spans;
     }
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     private static void AddAfterParam(DuckDBCommand cmd, DateTime? after)
     {
@@ -225,7 +195,6 @@ public sealed class SessionQueryService(DuckDbStore store)
 
         while (await reader.ReadAsync(ct))
         {
-            // UBIGINT timestamps converted to DateTime
             var startTimeNano = reader.Col(1).GetUInt64(0);
             var lastActivityNano = reader.Col(2).GetUInt64(0);
             var startTime = TimeConversions.UnixNanoToDateTime(startTimeNano);
@@ -265,10 +234,9 @@ public sealed class SessionQueryService(DuckDbStore store)
             return [];
 
         var value = reader.GetValue(ordinal);
-        // DuckDB.NET 1.4.3 returns List<string> for LIST columns
         return value switch
         {
-            IReadOnlyList<string> list => list, // Covers string[], List<string>, etc.
+            IReadOnlyList<string> list => list,
             object[] arr => Array.ConvertAll(arr, static x => x.ToString() ?? ""),
             _ => []
         };
@@ -277,14 +245,7 @@ public sealed class SessionQueryService(DuckDbStore store)
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByName(reader);
 }
 
-// =============================================================================
-// DTOs
-// =============================================================================
 
-/// <summary>
-///     Internal query result for session aggregation.
-///     Not the same as Qyl.Models.SessionQueryRow (protocol type).
-/// </summary>
 public sealed record SessionQueryRow
 {
     public required string SessionId { get; init; }

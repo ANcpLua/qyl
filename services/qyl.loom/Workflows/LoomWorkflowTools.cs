@@ -1,5 +1,4 @@
 using ANcpLua.Roslyn.Utilities;
-// Copyright (c) 2025-2026 ancplua
 
 using System.ComponentModel;
 using ModelContextProtocol.Server;
@@ -7,19 +6,9 @@ using Qyl.Loom.Workflows.ReviewBot;
 
 namespace Qyl.Loom.Workflows;
 
-/// <summary>
-///     MCP tools that expose Loom's workflow-router + detection + review-bot primitives to
-///     external callers. Every tool is a thin wrapper around the pure static primitives —
-///     no LLM, no side effects.
-/// </summary>
 [McpServerToolType]
 public sealed partial class LoomWorkflowTools
 {
-    /// <summary>
-    ///     Route a user request across the Loom workflow shapes. Returns a
-    ///     <see cref="LoomRouteDecision" /> — inspect <c>Kind</c> for the workflow and
-    ///     <c>PromptIds</c> for the MCP prompts the caller should fetch next.
-    /// </summary>
     [McpServerTool(Name = "loom_route", Title = "Loom Workflow Router",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     public static partial LoomRouteDecision Route(
@@ -36,11 +25,6 @@ public sealed partial class LoomWorkflowTools
         return LoomWorkflowRouter.Route(userRequest, signals);
     }
 
-    /// <summary>
-    ///     Parse a JSON array of GitHub PR review comments through the deterministic
-    ///     <see cref="ReviewBotCommentParser" />. Non-bot authors are dropped; extra bot
-    ///     logins may be opted in via <paramref name="additionalBotLoginsJson" />.
-    /// </summary>
     [McpServerTool(Name = "loom_parse_review_bot_comments", Title = "Parse review-bot PR comments",
         ReadOnly = true, Idempotent = true, Destructive = false, OpenWorld = false)]
     [Description(
@@ -75,26 +59,17 @@ public sealed partial class LoomWorkflowTools
     }
 }
 
-/// <summary>Parsed review-bot comments returned by <see cref="LoomWorkflowTools.ParseReviewBotComments" />.</summary>
 public sealed record LoomReviewBotParseResult
 {
-    /// <summary>Number of raw comments deserialised from the JSON input.</summary>
     public required int InputCount { get; init; }
 
-    /// <summary>Number of comments that passed the bot-login filter.</summary>
     public required int ParsedCount { get; init; }
 
-    /// <summary>Human-readable summary, ordered by severity/confidence.</summary>
     public required string Summary { get; init; }
 
-    /// <summary>Structured parsed comments.</summary>
     public required ReviewBotComment[] Comments { get; init; }
 }
 
-/// <summary>
-///     Source-gen JSON context for <see cref="LoomWorkflowTools" />. Emits camelCase
-///     property names; avoids runtime reflection, satisfies trim / AOT analysis.
-/// </summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ReviewBotRawComment[]))]
 [JsonSerializable(typeof(string[]))]

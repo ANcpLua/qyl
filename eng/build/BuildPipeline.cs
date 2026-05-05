@@ -1,8 +1,3 @@
-// =============================================================================
-// qyl Build System - Code Generation Pipeline
-// =============================================================================
-// TypeSpec native emitters + Weaver (OTel semconv). One command: nuke Generate.
-// =============================================================================
 
 using System;
 using System.IO;
@@ -48,11 +43,9 @@ interface IPipeline : IHazSourcePaths
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
         .Executes(() =>
         {
-            // 1. Ensure submodule
             ProcessTasks.StartProcess("git", "submodule update --init .tools/semconv-upstream",
                 RootDirectory, logOutput: true).AssertZeroExitCode();
 
-            // 2. Bootstrap Weaver binary + legacy semconv outputs (semconv.ts, SQL, JSON)
             var bootstrap = SemconvDirectory / "bootstrap-weaver.sh";
             var script = SemconvDirectory / "run-weaver.sh";
             if (!script.FileExists())
@@ -60,9 +53,6 @@ interface IPipeline : IHazSourcePaths
             ProcessTasks.StartProcess("bash", bootstrap, logOutput: true).AssertZeroExitCode();
             ProcessTasks.StartProcess("bash", script, logOutput: true).AssertZeroExitCode();
 
-            // 3. Determine Weaver binary (bootstrap ensures it exists).
-            // Use IsOSPlatform over OSDescription.Contains("Darwin") — OSDescription
-            // on newer macOS (26+) may not include the "Darwin" substring.
             var weaverArch = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                     ? "aarch64-apple-darwin"
@@ -81,8 +71,7 @@ interface IPipeline : IHazSourcePaths
             RunWeaver(weaverBin, qylModel, templatesDir, "csharp_qyl",
                 RootDirectory / "packages" / "Qyl.SemanticConventions");
 
-            // 5. Copy OTel schema to both OTel packages (embedded resource)
-            var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.40.0";
+            var schemaSource = RootDirectory / ".tools" / "semconv-upstream" / "schemas" / "1.41.0";
             if (File.Exists(schemaSource))
             {
                 ReadOnlySpan<string> otelPackages =
@@ -91,7 +80,7 @@ interface IPipeline : IHazSourcePaths
                 {
                     var schemasDir = RootDirectory / "packages" / pkg / "schemas";
                     Directory.CreateDirectory(schemasDir);
-                    File.Copy(schemaSource, schemasDir / "1.40.0.yaml", true);
+                    File.Copy(schemaSource, schemasDir / "1.41.0.yaml", true);
                 }
             }
 

@@ -6,22 +6,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that updates an existing project's name or description.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Build)]
 public sealed partial class UpdateProjectTool(HttpClient client)
 {
-    /// <summary>
-    ///     Updates the name and/or description of an existing project.
-    /// </summary>
-    /// <param name="slug">The project slug to update.</param>
-    /// <param name="name">Optional new display name.</param>
-    /// <param name="description">Optional new description.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A success message confirming the project was updated.</returns>
     [McpServerTool(
         Name = "update_project",
         Title = "Update Project",

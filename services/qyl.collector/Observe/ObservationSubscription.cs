@@ -1,10 +1,5 @@
 namespace Qyl.Collector.Observe;
 
-/// <summary>
-///     An active observability subscription: a named filter wired to a live OTLP export pipeline.
-///     Disposing tears down the ActivityListener (HasListeners() flips back to false) then drains
-///     and disposes the export pipeline, returning the monitored ActivitySource to zero-cost dormancy.
-/// </summary>
 internal sealed class ObservationSubscription : IDisposable
 {
     private readonly ActivityListener _listener;
@@ -42,9 +37,6 @@ internal sealed class ObservationSubscription : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
-        // Order matters:
-        // 1. Stop the listener first — HasListeners() flips to false, no new spans enter the pipeline
-        // 2. Dispose the pipeline — drains in-flight spans and flushes to the exporter
         _listener.Dispose();
         _pipeline.Dispose();
     }

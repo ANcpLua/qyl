@@ -4,25 +4,10 @@ using DbAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Db.DbAttri
 
 namespace Qyl.Instrumentation.Instrumentation.Db;
 
-/// <summary>
-///     Instrumentation helpers for ADO.NET database calls.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Called by generated interceptors to wrap DbCommand methods with OpenTelemetry spans.
-///     </para>
-///     <para>
-///         Note: Activity covers command execution, not reader iteration.
-///         This matches OTel semantic conventions for db.query spans.
-///     </para>
-/// </remarks>
 public static class DbInstrumentation
 {
     private static readonly ConcurrentDictionary<Type, string> s_dbSystemCache = new();
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteReaderAsync(CancellationToken)" /> with instrumentation.
-    /// </summary>
     public static async Task<DbDataReader> ExecuteReaderAsync(
         DbCommand command,
         CancellationToken cancellationToken = default)
@@ -40,9 +25,6 @@ public static class DbInstrumentation
         }
     }
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteReader()" /> with instrumentation.
-    /// </summary>
     public static DbDataReader ExecuteReader(DbCommand command)
     {
         using var activity = StartDbActivity(command, "ExecuteReader");
@@ -58,9 +40,6 @@ public static class DbInstrumentation
         }
     }
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteNonQueryAsync(CancellationToken)" /> with instrumentation.
-    /// </summary>
     public static async Task<int> ExecuteNonQueryAsync(
         DbCommand command,
         CancellationToken cancellationToken = default)
@@ -78,9 +57,6 @@ public static class DbInstrumentation
         }
     }
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteNonQuery()" /> with instrumentation.
-    /// </summary>
     public static int ExecuteNonQuery(DbCommand command)
     {
         using var activity = StartDbActivity(command, "ExecuteNonQuery");
@@ -96,9 +72,6 @@ public static class DbInstrumentation
         }
     }
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteScalarAsync(CancellationToken)" /> with instrumentation.
-    /// </summary>
     public static async Task<object?> ExecuteScalarAsync(
         DbCommand command,
         CancellationToken cancellationToken = default)
@@ -116,9 +89,6 @@ public static class DbInstrumentation
         }
     }
 
-    /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteScalar()" /> with instrumentation.
-    /// </summary>
     public static object? ExecuteScalar(DbCommand command)
     {
         using var activity = StartDbActivity(command, "ExecuteScalar");
@@ -136,11 +106,9 @@ public static class DbInstrumentation
 
     private static Activity? StartDbActivity(DbCommand command, string fallbackOperationName)
     {
-        // Parse SQL to extract operation type per OTel semconv, fallback to ADO.NET method name
         var operationName = SqlOperationParser.TryParse(command.CommandText) ?? fallbackOperationName;
         var collectionName = SqlOperationParser.TryParseCollectionName(command.CommandText);
 
-        // OTel semconv: span name = "{db.operation.name} {db.collection.name}" or just "{db.operation.name}"
         var spanName = collectionName is not null
             ? $"{operationName} {collectionName}"
             : operationName;
@@ -169,9 +137,6 @@ public static class DbInstrumentation
     private static void SetErrorStatus(Activity? activity, Exception ex) =>
         ActivityExceptionTelemetry.Record(activity, ex);
 
-    /// <summary>
-    ///     Maps a DbConnection type to its OTel db.system.name value.
-    /// </summary>
     private static string GetDbSystem(DbConnection? connection)
     {
         if (connection is null)
@@ -181,23 +146,14 @@ public static class DbInstrumentation
             MapTypeNameToDbSystem(type.FullName ?? type.Name));
     }
 
-    /// <summary>
-    ///     Gets the database system name for a type name. Exposed for testing.
-    /// </summary>
     internal static string GetDbSystemForTesting(string typeName) =>
         MapTypeNameToDbSystem(typeName);
 
-    /// <summary>
-    ///     Maps a type name to the OTel db.system.name semantic convention value.
-    /// </summary>
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch
         {
-            // "duckdb" is a qyl extension — not in upstream OTel semconv registry.
             _ when typeName.ContainsIgnoreCase("DuckDB") => "duckdb",
             _ when typeName.ContainsIgnoreCase("Npgsql") => DbAttributes.SystemNameValues.Postgresql,
-            // "mssql", "oracle", "firebird" preserved as legacy qyl values — upstream renamed
-            // these to "microsoft.sql_server", "oracle.db", "firebirdsql" in semconv 1.40.
             _ when typeName.ContainsIgnoreCase("SqlClient") => "mssql",
             _ when typeName.ContainsIgnoreCase("Sqlite") => DbAttributes.SystemNameValues.Sqlite,
             _ when typeName.ContainsIgnoreCase("Oracle") => "oracle",

@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Dashboards;
 
-/// <summary>
-///     DI registration for dashboard services.
-/// </summary>
 public static class DashboardServiceExtensions
 {
     public static IServiceCollection AddDashboardServices(this IServiceCollection services)

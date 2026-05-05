@@ -1,10 +1,5 @@
 namespace Qyl.Collector.Meta;
 
-/// <summary>
-///     Server capabilities, configuration status, and connection metadata.
-///     Capabilities = what the binary can do (static/compiled-in).
-///     Status = what is currently enabled (dynamic/runtime).
-/// </summary>
 public sealed record MetaResponse
 {
     public required string Version { get; init; }
@@ -16,9 +11,6 @@ public sealed record MetaResponse
     public required MetaPorts Ports { get; init; }
 }
 
-/// <summary>
-///     Build information for version tracking and diagnostics.
-/// </summary>
 public sealed record MetaBuild
 {
     public string? Commit { get; init; }
@@ -28,9 +20,6 @@ public sealed record MetaBuild
     public string? DashboardBuiltAtUtc { get; init; }
 }
 
-/// <summary>
-///     Static capabilities — what features are compiled into this binary.
-/// </summary>
 public sealed record MetaCapabilities
 {
     public bool Tracing { get; init; }
@@ -41,18 +30,12 @@ public sealed record MetaCapabilities
     public bool EmbeddedDashboard { get; init; }
 }
 
-/// <summary>
-///     Dynamic status — what is currently enabled and how.
-/// </summary>
 public sealed record MetaStatus
 {
     public bool GrpcEnabled { get; init; }
     public required string AuthMode { get; init; }
 }
 
-/// <summary>
-///     Connection URLs for service discovery (A2A-style).
-/// </summary>
 public sealed record MetaLinks
 {
     public string? Dashboard { get; init; }
@@ -60,9 +43,6 @@ public sealed record MetaLinks
     public string? OtlpGrpc { get; init; }
 }
 
-/// <summary>
-///     Port assignments for the current instance.
-/// </summary>
 public sealed record MetaPorts
 {
     public int Http { get; init; }

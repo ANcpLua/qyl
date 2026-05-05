@@ -2,19 +2,9 @@ using Qyl.Collector.Provisioning;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with provisioning operations:
-///     config selections, generation job CRUD, and job queue queries.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    // ==========================================================================
-    // Config Selection Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Upserts a workspace's instrumentation profile selection.
-    /// </summary>
     public async Task UpsertConfigSelectionAsync(
         string workspaceId,
         string profileId,
@@ -37,9 +27,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets the current profile selection for a workspace.
-    /// </summary>
     public async Task<ConfigSelectionRecord?> GetConfigSelectionAsync(
         string workspaceId,
         CancellationToken ct = default)
@@ -62,13 +49,7 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    // ==========================================================================
-    // Generation Job Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new generation job record.
-    /// </summary>
     public async Task InsertGenerationJobAsync(
         GenerationJobRecord job,
         CancellationToken ct = default) =>
@@ -91,9 +72,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a generation job by its ID.
-    /// </summary>
     public async Task<GenerationJobRecord?> GetGenerationJobAsync(
         string jobId,
         CancellationToken ct = default)
@@ -117,9 +95,6 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    /// <summary>
-    ///     Updates a generation job (status, output, error, completion time).
-    /// </summary>
     public async Task UpdateGenerationJobAsync(
         GenerationJobRecord job,
         CancellationToken ct = default) =>
@@ -142,9 +117,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Lists generation jobs for a workspace, ordered by creation time descending.
-    /// </summary>
     public async Task<IReadOnlyList<GenerationJobRecord>> GetGenerationJobsByWorkspaceAsync(
         string workspaceId,
         int limit = 50,
@@ -171,9 +143,6 @@ public sealed partial class DuckDbStore
         return jobs;
     }
 
-    // ==========================================================================
-    // Private Methods - Provisioning Mapping
-    // ==========================================================================
 
     private static ConfigSelectionRecord MapConfigSelection(DbDataReader reader)
     {

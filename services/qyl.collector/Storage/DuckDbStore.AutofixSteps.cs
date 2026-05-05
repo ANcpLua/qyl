@@ -1,14 +1,7 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with autofix step
-///     tracking operations for the Loom autofix pipeline.
-/// </summary>
 public sealed partial class DuckDbStore
 {
-    /// <summary>
-    ///     Inserts a new autofix step via the channel-buffered write path.
-    /// </summary>
     public async Task InsertAutofixStepAsync(AutofixStepRecord step, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -28,9 +21,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Creates a new autofix step with auto-generated ID. Returns the created record.
-    /// </summary>
     public async Task<AutofixStepRecord> CreateAutofixStepAsync(
         string runId, string stepName, string? description = null, CancellationToken ct = default)
     {
@@ -48,11 +38,6 @@ public sealed partial class DuckDbStore
         return step;
     }
 
-    /// <summary>
-    ///     Updates an autofix step status and output. Scoped to (runId, stepId) so a
-    ///     mismatched pair (e.g., stepId from another run) is a no-op instead of
-    ///     silently mutating the wrong record.
-    /// </summary>
     public async Task UpdateAutofixStepAsync(
         string runId, string stepId, string status, string? outputJson = null,
         string? errorMessage = null, CancellationToken ct = default) =>
@@ -76,9 +61,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets all steps for a specific fix run, ordered by step number.
-    /// </summary>
     public Task<IReadOnlyList<AutofixStepRecord>> GetAutofixStepsAsync(
         string runId, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -93,9 +75,6 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
             MapAutofixStep, ct);
 
-    /// <summary>
-    ///     Returns fix runs with status 'pending' that are ready for agent processing.
-    /// </summary>
     public Task<IReadOnlyList<FixRunRecord>> GetPendingFixRunsAsync(
         int limit = 10, CancellationToken ct = default) =>
         ReadManyAsync(

@@ -1,8 +1,3 @@
-// =============================================================================
-// Manual schema extension for semantic span clusters.
-// Not yet in the TypeSpec model — span_clusters stores per-span cluster
-// assignments produced by EmbeddingClusterWorker.
-// =============================================================================
 
 namespace Qyl.Collector.Storage;
 

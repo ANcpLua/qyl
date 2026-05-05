@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -9,21 +8,12 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
-/// <summary>
-///     Fires a Warning when a deprecated OTel semantic-convention ID is used as a string literal
-///     in a tag-setter call, or when an <c>[Obsolete]</c> constant from
-///     <c>Qyl.OpenTelemetry.SemanticConventions.*</c> is referenced. Each deprecated entry in
-///     the upstream OTel registry has its own rule id (QYLSC0001..QYLSC0245) so severity can be
-///     tuned per entry via <c>.editorconfig</c>.
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
 {
-    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         DeprecatedDiagnostics.AllDescriptors;
 
-    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();
@@ -55,7 +45,6 @@ public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
         }
         catch
         {
-            // Suppress analyzer exceptions so they don't produce AD0001.
         }
     }
 
@@ -68,12 +57,10 @@ public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
             if (symbol is null)
                 return;
 
-            // Only care about members inside Qyl.OpenTelemetry.SemanticConventions.*
             var ns = symbol.ContainingNamespace?.ToDisplayString();
             if (ns is null || !ns.StartsWith("Qyl.OpenTelemetry.SemanticConventions", StringComparison.Ordinal))
                 return;
 
-            // Check for [Obsolete] attribute.
             var obsoleteAttributeType = ctx.Compilation.GetTypeByMetadataName("System.ObsoleteAttribute");
             if (obsoleteAttributeType is null)
                 return;
@@ -91,7 +78,6 @@ public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
             if (!isObsolete)
                 return;
 
-            // Prefer the constant value so we can pick the precise per-entry descriptor.
             var constValue = ctx.SemanticModel.GetConstantValue(memberAccess);
             if (constValue.HasValue && constValue.Value is string strVal &&
                 DeprecatedDiagnostics.ByDeprecatedId.TryGetValue(strVal, out var entry))
@@ -101,7 +87,6 @@ public sealed class DeprecatedAttributeAnalyzer : DiagnosticAnalyzer
         }
         catch
         {
-            // Suppress analyzer exceptions so they don't produce AD0001.
         }
     }
 }

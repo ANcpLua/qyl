@@ -1,8 +1,5 @@
 namespace Qyl.Collector;
 
-/// <summary>
-///     Span API endpoints.
-/// </summary>
 internal static class SpanEndpoints
 {
     public static async Task<IResult> GetSessionSpansAsync(string sessionId, DuckDbStore store,
@@ -10,7 +7,6 @@ internal static class SpanEndpoints
     {
         var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
 
-        // Extract service name from first span's attributes if available
         var serviceName = "unknown";
         if (spans.Count > 0 && spans[0].AttributesJson is { } attrJson)
         {
@@ -23,7 +19,6 @@ internal static class SpanEndpoints
             }
             catch (JsonException ex)
             {
-                // resource.attributes may be malformed — fall through to default serviceName.
                 Debug.WriteLine(ex);
             }
         }

@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix.Workflow.Executors;
@@ -74,15 +73,11 @@ internal sealed class AutofixWorkflowFactory(
 
         var critique = new SelfCritiqueRouter("loom.autofix.self_critique", state);
 
-        // Initial linear path:
-        //   fixability → context → fan-out → branches → fan-in barrier → judge
         var workflowBuilder = new WorkflowBuilder(fixability)
             .AddEdge(fixability, context)
             .AddFanOutEdge<ContextSummary>(context, [.. branches], targetSelector: null)
             .AddFanInBarrierEdge([.. branches], judge);
 
-        // Stopping point #1 — pre-solution review (HITL). Pattern04 shape: judge
-        // emits HypothesisVerdict directly into the port, no bridge needed.
         if (config.StoppingPointAfterHypothesis)
         {
             workflowBuilder = workflowBuilder
@@ -96,8 +91,6 @@ internal sealed class AutofixWorkflowFactory(
 
         workflowBuilder = workflowBuilder.AddEdge(solution, confidence);
 
-        // Stopping point #2 — pre-commit review (HITL). Pattern06 shape: switch needs an
-        // executor target and the port needs an executor source — one passthrough fills both.
         ExecutorBinding commitTarget;
         if (config.StoppingPointBeforeCommit)
         {
@@ -112,10 +105,6 @@ internal sealed class AutofixWorkflowFactory(
             commitTarget = report;
         }
 
-        // Self-critique back-edge — Confidence routes either through the retry loop
-        // (back to the hypothesis branches with augmented context) or forward to the
-        // commit target. The retry budget is enforced inside ConfidenceExecutor via
-        // AutofixWorkflowConfig.MaxConfidenceRetries so the cycle terminates.
         workflowBuilder = workflowBuilder
             .AddSwitch(confidence, sw => sw
                 .AddCase<ConfidenceAudit>(audit => audit is { RetryRequested: true }, critique)

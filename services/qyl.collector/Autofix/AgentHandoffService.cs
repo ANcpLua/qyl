@@ -1,10 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     Manages the lifecycle of coding agent handoffs: creating handoff contexts
-///     from fix runs, accepting/completing/failing handoffs, and retrieving context
-///     for agents to work with.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class AgentHandoffService(
     DuckDbStore store,
@@ -13,10 +8,6 @@ public sealed partial class AgentHandoffService(
 {
     private readonly int _timeoutMinutes = configuration.GetValue("QYL_HANDOFF_TIMEOUT_MINUTES", 30);
 
-    /// <summary>
-    ///     Creates a new handoff from a fix run, assembling the full RCA + solution plan
-    ///     context for the coding agent.
-    /// </summary>
     public async Task<AgentHandoffRecord> CreateHandoffAsync(
         string runId, string agentType, CancellationToken ct)
     {
@@ -54,10 +45,6 @@ public sealed partial class AgentHandoffService(
         return record;
     }
 
-    /// <summary>
-    ///     Marks a pending handoff as accepted by an agent.
-    ///     Uses atomic status check to prevent TOCTOU race conditions.
-    /// </summary>
     public async Task<AgentHandoffRecord?> AcceptHandoffAsync(string handoffId, CancellationToken ct)
     {
         var affected = await store.UpdateHandoffStatusAsync(
@@ -70,9 +57,6 @@ public sealed partial class AgentHandoffService(
         return await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Submits the result of a completed handoff.
-    /// </summary>
     public async Task<AgentHandoffRecord?> SubmitHandoffResultAsync(
         string handoffId, string resultJson, CancellationToken ct)
     {
@@ -87,9 +71,6 @@ public sealed partial class AgentHandoffService(
         return await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Marks a pending or accepted handoff as failed.
-    /// </summary>
     public async Task<AgentHandoffRecord?> FailHandoffAsync(
         string handoffId, string errorMessage, CancellationToken ct)
     {
@@ -104,16 +85,12 @@ public sealed partial class AgentHandoffService(
         return await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Returns the context JSON for a handoff (the full RCA + plan for the agent).
-    /// </summary>
     public async Task<string?> GetHandoffContextAsync(string handoffId, CancellationToken ct)
     {
         var handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
         return handoff?.ContextJson;
     }
 
-    // ── LoggerMessage source-generated log methods ──────────────────────────
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Handoff {HandoffId} created for run {RunId} with agent type {AgentType}")]
@@ -132,10 +109,6 @@ public sealed partial class AgentHandoffService(
     private partial void LogHandoffFailed(string handoffId, string error);
 }
 
-/// <summary>
-///     Assembled context passed to a coding agent for a handoff, including
-///     the fix run details and all autofix step outputs.
-/// </summary>
 public sealed record HandoffContext(
     string RunId,
     string IssueId,
@@ -144,9 +117,6 @@ public sealed record HandoffContext(
     string? ChangesJson,
     IReadOnlyList<HandoffStepSummary> Steps);
 
-/// <summary>
-///     Summary of a single autofix step included in the handoff context.
-/// </summary>
 public sealed record HandoffStepSummary(string StepName, string? OutputJson);
 
 [JsonSerializable(typeof(HandoffContext))]

@@ -3,10 +3,6 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-/// <summary>
-///     gRPC implementation of the OTLP TraceService for span ingestion on port 4317.
-///     Uses OtlpConverter for conversion (shared with HTTP endpoint).
-/// </summary>
 public sealed class TraceServiceImpl(
     DuckDbStore store,
     ITelemetrySseBroadcaster broadcaster,
@@ -19,9 +15,6 @@ public sealed class TraceServiceImpl(
     private readonly SpanRingBuffer _ringBuffer = Guard.NotNull(ringBuffer);
     private readonly DuckDbStore _store = Guard.NotNull(store);
 
-    /// <summary>
-    ///     Implements opentelemetry.proto.collector.trace.v1.TraceService.Export
-    /// </summary>
     public override async Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,
         ServerCallContext context)
@@ -32,11 +25,9 @@ public sealed class TraceServiceImpl(
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 
-            // Apply Codex transformations + cost enrichment
             var batch = _pricingService.EnrichBatchWithCost(
                 new SpanBatch(spans).WithCodexTransformations());
 
-            // Push to ring buffer for real-time queries
             _ringBuffer.PushRange([.. batch.Spans.Select(SpanMapper.ToRecord)]);
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);

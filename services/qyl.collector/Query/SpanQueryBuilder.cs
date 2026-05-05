@@ -1,18 +1,6 @@
-// =============================================================================
-// SpanQueryBuilder - Type-safe query construction with positional parameters
-// =============================================================================
 
 namespace Qyl.Collector.Query;
 
-/// <summary>
-///     Fluent query builder for span queries with promoted field optimization.
-///     Uses positional parameters ($1, $2, etc.) for DuckDB.NET 1.4.3 compatibility.
-/// </summary>
-/// <remarks>
-///     CRITICAL: DuckDB.NET 1.4.3 has a bug where named parameters ($session_id)
-///     don't work with quoted column names ("session.id"). Always use positional
-///     parameters ($1, $2, etc.) with DuckDBParameter { Value = ... }.
-/// </remarks>
 public sealed class SpanQueryBuilder
 {
     private readonly bool _distinct;
@@ -50,23 +38,15 @@ public sealed class SpanQueryBuilder
         _offsetIsParam = offsetIsParam;
     }
 
-    /// <summary>Current parameter count (1-indexed for next param).</summary>
     private int NextParamIndex => _parameters.Count + 1;
 
-    /// <summary>Create new builder for spans table.</summary>
     public static SpanQueryBuilder Create() => new([], [], [], [], [], 0, 0, false, false, false);
 
-    // =========================================================================
-    // SELECT
-    // =========================================================================
 
-    /// <summary>Select all columns.</summary>
     public SpanQueryBuilder SelectAll() => Select("*");
 
-    /// <summary>Select specific column.</summary>
     public SpanQueryBuilder Select(SpanColumn col) => Select(col.ToSql());
 
-    /// <summary>Select raw expression.</summary>
     public SpanQueryBuilder Select(string expr)
     {
         var cols = new List<string>(_selectCols) { expr };
@@ -74,31 +54,22 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Select COUNT(*).</summary>
     public SpanQueryBuilder SelectCount(string alias = "count") => Select($"COUNT(*) AS {alias}");
 
-    /// <summary>Select SUM(col).</summary>
     public SpanQueryBuilder SelectSum(SpanColumn col, string alias)
         => Select($"COALESCE(SUM({col.ToSql()}), 0) AS {alias}");
 
-    /// <summary>Select PERCENTILE_CONT.</summary>
     public SpanQueryBuilder SelectPercentile(SpanColumn col, double percentile, string alias)
         => Select($"PERCENTILE_CONT({percentile:F2}) WITHIN GROUP (ORDER BY {col.ToSql()}) AS {alias}");
 
-    /// <summary>Select LIST(DISTINCT col) FILTER.</summary>
     public SpanQueryBuilder SelectDistinctList(SpanColumn col, string alias)
         => Select($"LIST(DISTINCT {col.ToSql()}) FILTER (WHERE {col.ToSql()} IS NOT NULL) AS {alias}");
 
-    /// <summary>Select DISTINCT.</summary>
     public SpanQueryBuilder Distinct()
         => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, _limit, _offset, true,
             _limitIsParam, _offsetIsParam);
 
-    // =========================================================================
-    // WHERE - Typed value methods (recommended)
-    // =========================================================================
 
-    /// <summary>Add WHERE col = value (adds parameter automatically).</summary>
     public SpanQueryBuilder WhereEq(SpanColumn col, object? value)
     {
         var newParams = new List<object?>(_parameters) { value };
@@ -108,7 +79,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE col IS NOT NULL.</summary>
     public SpanQueryBuilder WhereNotNull(SpanColumn col)
     {
         var clause = new WhereClause(col.ToSql(), CompareOp.IsNotNull, null);
@@ -117,11 +87,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE ($param IS NULL OR col IS NOT DISTINCT FROM $param) - optional filter.</summary>
-    /// <remarks>
-    ///     DuckDB.NET 1.4.3 BUG: = operator doesn't work correctly for VARCHAR columns in WHERE.
-    ///     Using IS NOT DISTINCT FROM as workaround.
-    /// </remarks>
     public SpanQueryBuilder WhereOptional(SpanColumn col, object? value)
     {
         var idx = NextParamIndex;
@@ -133,7 +98,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE with raw SQL (no parameters added).</summary>
     public SpanQueryBuilder WhereRaw(string sql)
     {
         var clause = new WhereClause(sql, CompareOp.Raw, null);
@@ -142,7 +106,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE with fallback (col = value OR (col IS NULL AND other = value)).</summary>
     public SpanQueryBuilder WhereWithFallback(SpanColumn primary, SpanColumn fallback, object? value)
     {
         var idx = NextParamIndex;
@@ -154,11 +117,7 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    // =========================================================================
-    // WHERE - Index-based methods (for complex scenarios)
-    // =========================================================================
 
-    /// <summary>Add WHERE clause referencing parameter by index (1-based).</summary>
     public SpanQueryBuilder Where(SpanColumn col, CompareOp op, int paramIndex)
     {
         var clause = new WhereClause(col.ToSql(), op, $"${paramIndex}");
@@ -167,13 +126,10 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE col = $paramIndex (index-based).</summary>
     public SpanQueryBuilder WhereEq(SpanColumn col, int paramIndex) => Where(col, CompareOp.Eq, paramIndex);
 
-    /// <summary>Add WHERE ($paramIndex IS NULL OR col = $paramIndex) - optional filter (index-based).</summary>
     public SpanQueryBuilder WhereOptional(SpanColumn col, int paramIndex)
     {
-        // DuckDB.NET 1.4.3 BUG: = operator doesn't work for VARCHAR in WHERE
         var sql = $"(${paramIndex}::VARCHAR IS NULL OR {col.ToSql()} IS NOT DISTINCT FROM ${paramIndex})";
         var clause = new WhereClause(sql, CompareOp.Raw, null);
         var clauses = new List<WhereClause>(_whereClauses) { clause };
@@ -181,7 +137,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add WHERE with fallback (col = $p OR (col IS NULL AND other = $p)) (index-based).</summary>
     public SpanQueryBuilder WhereWithFallback(SpanColumn primary, SpanColumn fallback, int paramIndex)
     {
         var sql =
@@ -192,11 +147,7 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    // =========================================================================
-    // GROUP BY / ORDER BY
-    // =========================================================================
 
-    /// <summary>Add GROUP BY col.</summary>
     public SpanQueryBuilder GroupBy(SpanColumn col)
     {
         var cols = new List<string>(_groupByCols) { col.ToSql() };
@@ -204,7 +155,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add GROUP BY expression.</summary>
     public SpanQueryBuilder GroupBy(string expr)
     {
         var cols = new List<string>(_groupByCols) { expr };
@@ -212,7 +162,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add ORDER BY col.</summary>
     public SpanQueryBuilder OrderBy(SpanColumn col, bool descending = false)
     {
         var order = new OrderByClause(col.ToSql(), descending);
@@ -221,7 +170,6 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add ORDER BY expression.</summary>
     public SpanQueryBuilder OrderBy(string expr, bool descending = false)
     {
         var order = new OrderByClause(expr, descending);
@@ -230,47 +178,32 @@ public sealed class SpanQueryBuilder
             _distinct, _limitIsParam, _offsetIsParam);
     }
 
-    /// <summary>Add ORDER BY col DESC.</summary>
     public SpanQueryBuilder OrderByDesc(SpanColumn col) => OrderBy(col, true);
 
-    /// <summary>Add ORDER BY expr DESC.</summary>
     public SpanQueryBuilder OrderByDesc(string expr) => OrderBy(expr, true);
 
-    // =========================================================================
-    // LIMIT / OFFSET
-    // =========================================================================
 
-    /// <summary>Set LIMIT with literal value.</summary>
     public SpanQueryBuilder Limit(int limit)
         => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, limit, _offset, _distinct, false,
             _offsetIsParam);
 
-    /// <summary>Set LIMIT via parameter index (1-based).</summary>
     public SpanQueryBuilder LimitParam(int paramIndex)
         => new(_selectCols, _whereClauses, _groupByCols, _orderByCols, _parameters, paramIndex, _offset, _distinct,
             true, _offsetIsParam);
 
-    // =========================================================================
-    // BUILD
-    // =========================================================================
 
-    /// <summary>Build SQL string only.</summary>
     public string Build() => BuildQuery().Sql;
 
-    /// <summary>Build SQL string and parameter list.</summary>
     public SpanQuery BuildQuery()
     {
         var sb = new StringBuilder();
 
-        // SELECT
         sb.Append("SELECT ");
         if (_distinct) sb.Append("DISTINCT ");
         sb.AppendLine(_selectCols.Count > 0 ? string.Join(", ", _selectCols) : "*");
 
-        // FROM
         sb.AppendLine("FROM spans");
 
-        // WHERE
         if (_whereClauses.Count > 0)
         {
             sb.Append("WHERE ");
@@ -283,32 +216,27 @@ public sealed class SpanQueryBuilder
             sb.AppendLine();
         }
 
-        // GROUP BY
         if (_groupByCols.Count > 0)
         {
             sb.Append("GROUP BY ");
             sb.AppendLine(string.Join(", ", _groupByCols));
         }
 
-        // ORDER BY
         if (_orderByCols.Count > 0)
         {
             sb.Append("ORDER BY ");
             sb.AppendLine(string.Join(", ", _orderByCols.Select(static o => o.ToSql())));
         }
 
-        // LIMIT
         if (_limit > 0)
             sb.AppendLine(_limitIsParam ? $"LIMIT ${_limit}" : $"LIMIT {_limit}");
 
-        // OFFSET
         if (_offset > 0)
             sb.AppendLine(_offsetIsParam ? $"OFFSET ${_offset}" : $"OFFSET {_offset}");
 
         return new SpanQuery(sb.ToString().TrimEnd(), _parameters);
     }
 
-    /// <summary>Apply parameters to a DuckDB command.</summary>
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Build();
@@ -321,14 +249,9 @@ public sealed class SpanQueryBuilder
     public override string ToString() => Build();
 }
 
-// =============================================================================
-// SpanQuery - Result of building a query
-// =============================================================================
 
-/// <summary>Built query with SQL and parameters.</summary>
 public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Parameters)
 {
-    /// <summary>Apply to a DuckDB command.</summary>
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Sql;
@@ -338,7 +261,6 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
         }
     }
 
-    /// <summary>Create DuckDB parameters list.</summary>
     public IReadOnlyList<DuckDBParameter> ToDuckDbParameters()
         =>
         [
@@ -346,23 +268,13 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
         ];
 }
 
-// =============================================================================
-// SpanColumn - Type-safe column references matching DuckDbSchema.g.cs
-// =============================================================================
 
-/// <summary>
-///     Typed column references for the <c>spans</c> table. Not a complete schema mirror —
-///     only the columns actually referenced by live queries are exposed as typed properties.
-///     Use <see cref="Column" /> for any column not represented here, and for computed expressions
-///     like <c>duration_ns / 1000000.0</c>.
-/// </summary>
 public readonly struct SpanColumn
 {
     private readonly string _name;
 
     private SpanColumn(string name) => _name = name;
 
-    /// <summary>Get SQL representation.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToSql() => _name;
 
@@ -376,13 +288,9 @@ public readonly struct SpanColumn
     public static SpanColumn GenAiInputTokens => new("gen_ai_input_tokens");
     public static SpanColumn GenAiOutputTokens => new("gen_ai_output_tokens");
 
-    /// <summary>Create column reference for an arbitrary column name or computed expression.</summary>
     public static SpanColumn Column(string name) => new(name);
 }
 
-// =============================================================================
-// Supporting types
-// =============================================================================
 
 public enum CompareOp
 {

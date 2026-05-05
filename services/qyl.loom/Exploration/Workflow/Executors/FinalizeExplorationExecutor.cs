@@ -1,15 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows;
 
 namespace Qyl.Loom.Exploration.Workflow.Executors;
 
-/// <summary>
-///     Terminal executor. Emits the closing progress + completion updates for the non-error path, logs the
-///     outcome at the same verbosity the previous orchestrator used, and yields the accumulated state so the
-///     workflow completes. Error and interruption paths surface their own terminal updates upstream; this
-///     executor leaves them alone.
-/// </summary>
 [YieldsOutput(typeof(ExplorationRunState))]
 internal sealed partial class FinalizeExplorationExecutor(ILogger<FinalizeExplorationExecutor> logger)
     : Executor<ExplorationRunState>("exploration.finalize")

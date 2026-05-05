@@ -6,10 +6,6 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Metrics;
 
-/// <summary>
-///     Lists all available metrics, optionally filtered by project, showing name, type, unit, and description.
-/// </summary>
-/// <param name="client">The HTTP client for backend API communication.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ListMetricsTool(HttpClient client)

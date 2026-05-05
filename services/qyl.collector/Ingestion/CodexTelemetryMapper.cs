@@ -1,40 +1,8 @@
-// =============================================================================
-// qyl Codex Telemetry Mapper - Transforms Codex custom events to OTel GenAI
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
-// =============================================================================
-//
-// Codex (OpenAI's CLI) emits custom codex.* prefixed telemetry.
-// This mapper transforms Codex events to standard OTel GenAI semantic conventions.
-//
-// Codex Event Types:
-// - codex.conversation_starts: Session/conversation initialization
-// - codex.api_request: API call attempts with status/duration
-// - codex.sse_event: Streaming events with token counts on response.completed
-// - codex.user_prompt: User input (content redacted unless enabled)
-// - codex.tool_decision: Tool approval/denial decisions
-// - codex.tool_result: Tool execution results
-//
-// Target GenAI Semconv (OTel 1.40):
-// - gen_ai.provider.name = "openai"
-// - gen_ai.operation.name = derived from event type
-// - gen_ai.request.model / gen_ai.response.model
-// - gen_ai.usage.input_tokens / gen_ai.usage.output_tokens
-// - gen_ai.conversation.id
-// - gen_ai.response.finish_reasons
-// - gen_ai.tool.name / gen_ai.tool.call.id
-// =============================================================================
 
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Transforms Codex custom telemetry events to OTel GenAI semantic conventions.
-///     Integrated as a preprocessing step in the OTLP ingestion pipeline.
-/// </summary>
 public static class CodexTelemetryMapper
 {
-    // =========================================================================
-    // Codex Event Name Constants (codex.* prefix)
-    // =========================================================================
 
     private const string CodexPrefix = "codex.";
     private const string ConversationStarts = "codex.conversation_starts";
@@ -44,10 +12,6 @@ public static class CodexTelemetryMapper
     private const string ToolDecision = "codex.tool_decision";
     private const string ToolResult = "codex.tool_result";
 
-    // =========================================================================
-    // Codex Attribute Keys (source attributes)
-    // Used attributes are mapped to GenAI semconv, others preserved for context
-    // =========================================================================
 
     private const string CodexModel = "codex.model";
     private const string CodexConversationId = "codex.conversation_id";
@@ -61,42 +25,19 @@ public static class CodexTelemetryMapper
     private const string CodexToolOutput = "codex.tool_output";
     private const string CodexFinishReason = "codex.finish_reason";
 
-    // Future expansion: These Codex attributes are preserved in AttributesJson
-    // but not currently mapped to GenAI semconv:
-    // - codex.reasoning_enabled, codex.reasoning_effort (reasoning config)
-    // - codex.approval_policy, codex.sandbox_policy (security config)
-    // - codex.attempt, codex.status, codex.duration_ms (request lifecycle)
-    // - codex.event_kind (SSE event classification)
-    // - codex.total_tokens, codex.prompt_length (additional metrics)
-    // - codex.tool_approved, codex.tool_denied (approval decisions)
-    // - codex.tool_duration_ms, codex.tool_success (tool execution metrics)
 
-    // =========================================================================
-    // Public API
-    // =========================================================================
 
-    /// <summary>
-    ///     Determines if a span contains Codex telemetry that should be transformed.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCodexSpan(string? spanName) =>
         spanName is not null &&
         spanName.StartsWithOrdinal(CodexPrefix);
 
-    /// <summary>
-    ///     Determines if attributes contain Codex telemetry.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasCodexAttributes(IDictionary<string, string> attributes) =>
         attributes.ContainsKey(CodexModel) ||
         attributes.ContainsKey(CodexConversationId) ||
         attributes.ContainsKey(CodexThreadId);
 
-    /// <summary>
-    ///     Transforms Codex attributes to OTel GenAI semantic conventions.
-    ///     Mutates the attributes dictionary in-place for efficiency.
-    /// </summary>
-    /// <returns>True if transformation was applied, false otherwise.</returns>
     public static bool TransformAttributes(string? spanName, IDictionary<string, string> attributes)
     {
         if (!IsCodexSpan(spanName) && !HasCodexAttributes(attributes))
@@ -104,56 +45,39 @@ public static class CodexTelemetryMapper
 
         var transformed = false;
 
-        // Always set provider to OpenAI for Codex telemetry
         transformed |= attributes.TryAdd(GenAiAttributes.ProviderName, GenAiAttributes.ProviderNameValues.Openai);
 
-        // Map operation name from span name
         transformed |= MapOperationName(spanName, attributes);
 
-        // Map model
         transformed |= MapModel(attributes);
 
-        // Map conversation/thread ID
         transformed |= MapConversationId(attributes);
 
-        // Map token usage
         transformed |= MapTokenUsage(attributes);
 
-        // Map finish reasons
         transformed |= MapFinishReasons(attributes);
 
-        // Map tool attributes
         transformed |= MapToolAttributes(attributes);
 
-        // Map error attributes
         transformed |= MapErrorAttributes(attributes);
 
         return transformed;
     }
 
-    /// <summary>
-    ///     Transforms a SpanStorageRow with Codex telemetry to use GenAI attributes.
-    ///     Creates a new row with transformed attributes.
-    /// </summary>
     public static SpanStorageRow TransformSpan(SpanStorageRow span)
     {
-        // Parse existing attributes
         if (ParseAttributes(span.AttributesJson) is not { } attributes)
             return span;
 
-        // Apply transformations
         if (!TransformAttributes(span.Name, attributes))
             return span;
 
-        // Extract promoted GenAI fields from transformed attributes
         var genAi = ExtractGenAiFields(attributes);
 
-        // Serialize updated attributes
         var newAttributesJson = JsonSerializer.Serialize(
             attributes,
             QylSerializerContext.Default.DictionaryStringString);
 
-        // Create new span with updated fields
         return span with
         {
             GenAiProviderName = genAi.ProviderName ?? span.GenAiProviderName,
@@ -168,9 +92,6 @@ public static class CodexTelemetryMapper
         };
     }
 
-    /// <summary>
-    ///     Transforms a batch of spans, applying Codex transformations where applicable.
-    /// </summary>
     public static List<SpanStorageRow> TransformBatch(IReadOnlyList<SpanStorageRow> spans)
     {
         var result = new List<SpanStorageRow>(spans.Count);
@@ -190,9 +111,6 @@ public static class CodexTelemetryMapper
         return result;
     }
 
-    // =========================================================================
-    // Mapping Helpers
-    // =========================================================================
 
     private static bool MapOperationName(string? spanName, IDictionary<string, string> attributes)
     {
@@ -235,7 +153,6 @@ public static class CodexTelemetryMapper
 
     private static bool MapConversationId(IDictionary<string, string> attributes)
     {
-        // Try conversation_id first, then thread_id
         if (!attributes.TryGetValue(CodexConversationId, out var conversationId))
             attributes.TryGetValue(CodexThreadId, out conversationId);
 
@@ -249,11 +166,9 @@ public static class CodexTelemetryMapper
     {
         var transformed = false;
 
-        // Map input tokens
         transformed |= attributes.TryGetValue(CodexInputTokens, out var inputTokens) &&
                        attributes.TryAdd(GenAiAttributes.UsageInputTokens, inputTokens);
 
-        // Map output tokens
         transformed |= attributes.TryGetValue(CodexOutputTokens, out var outputTokens) &&
                        attributes.TryAdd(GenAiAttributes.UsageOutputTokens, outputTokens);
 
@@ -268,8 +183,6 @@ public static class CodexTelemetryMapper
         if (attributes.ContainsKey(GenAiAttributes.ResponseFinishReasons))
             return false;
 
-        // OTel expects an array format for finish_reasons
-        // Serialize as JSON array for consistency
         var reasonsArray = JsonSerializer.Serialize(
             [finishReason],
             QylSerializerContext.Default.StringArray);
@@ -282,14 +195,11 @@ public static class CodexTelemetryMapper
     {
         var transformed = false;
 
-        // Map tool name
         transformed |= attributes.TryGetValue(CodexToolName, out var toolName) &&
                        attributes.TryAdd(GenAiAttributes.ToolName, toolName);
 
-        // Map tool type (Codex tools are function-based)
         transformed |= toolName is not null && attributes.TryAdd(GenAiAttributes.ToolType, "function");
 
-        // Map tool result to tool.call.result
         transformed |= attributes.TryGetValue(CodexToolOutput, out var toolOutput) &&
                        attributes.TryAdd(GenAiAttributes.ToolCallResult, toolOutput);
 
@@ -300,20 +210,15 @@ public static class CodexTelemetryMapper
     {
         var transformed = false;
 
-        // Map error type
         transformed |= attributes.TryGetValue(CodexErrorType, out var errorType) &&
                        attributes.TryAdd(ErrorAttributes.Type, errorType);
 
-        // Map error message to exception.message
         transformed |= attributes.TryGetValue(CodexErrorMessage, out var errorMessage) &&
                        attributes.TryAdd(ExceptionAttributes.Message, errorMessage);
 
         return transformed;
     }
 
-    // =========================================================================
-    // Extraction Helpers
-    // =========================================================================
 
     private static Dictionary<string, string>? ParseAttributes(string? attributesJson)
     {
@@ -326,7 +231,6 @@ public static class CodexTelemetryMapper
 
     private static bool HasCodexAttributesFromJson(string? attributesJson) =>
         !string.IsNullOrEmpty(attributesJson) &&
-        // Quick string check before parsing
         attributesJson.ContainsOrdinal("codex.");
 
     private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes) =>
@@ -355,18 +259,10 @@ public static class CodexTelemetryMapper
         string? ToolCallId);
 }
 
-/// <summary>
-///     Extension methods for integrating Codex transformation into OTLP pipeline.
-/// </summary>
 public static class CodexTelemetryExtensions
 {
-    /// <summary>
-    ///     Applies Codex transformations to a span batch before storage.
-    ///     Call this in the OTLP ingestion pipeline.
-    /// </summary>
     public static SpanBatch WithCodexTransformations(this SpanBatch batch)
     {
-        // Quick check: if no spans need transformation, return original
         var needsTransform = batch.Spans.Any(static span => CodexTelemetryMapper.IsCodexSpan(span.Name));
 
         if (!needsTransform)

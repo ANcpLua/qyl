@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-// ProfilesDdl (the base profiles table) is emitted by SchemaGenerator from TypeSpec.
-// This partial adds the profile sub-tables (functions/locations/mappings/samples/stacks)
-// that are not yet modeled in TypeSpec and therefore still hand-written.
 public static partial class DuckDbSchema
 {
     public const string ProfileFunctionsDdl = """

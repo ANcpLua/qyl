@@ -1,18 +1,11 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
 namespace Qyl.Loom.Patterns.Patterns;
 
-/// <summary>
-///     Pattern 01 — <c>WorkflowBuilder.AddSwitch</c> + <c>AddCase&lt;T&gt;</c> + <c>WithDefault</c>.
-///     Triages an <see cref="IncidentSignal" /> by severity and routes it to the matching
-///     analyzer. Pure predicate routing — no custom router executor required.
-/// </summary>
 public static class Pattern01_SwitchRouting
 {
-    /// <summary>Runs the switch-routing demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
         var intake = new IntakeExecutor("patterns/01/intake");
@@ -31,7 +24,7 @@ public static class Pattern01_SwitchRouting
             .WithName("LoomPatterns/01/SwitchRouting")
             .Build();
 
-        _ = agents; // agents unused here — routing demo is pure topology.
+        _ = agents;
 
         IncidentSignal[] fleet =
         [
@@ -56,11 +49,7 @@ public static class Pattern01_SwitchRouting
         }
     }
 
-    // ── Executors ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    ///     Intake — logs the signal and forwards it unchanged so AddSwitch can pattern-match.
-    /// </summary>
     private sealed class IntakeExecutor(string id) : Executor<IncidentSignal, IncidentSignal>(id)
     {
         public override ValueTask<IncidentSignal> HandleAsync(
@@ -71,10 +60,6 @@ public static class Pattern01_SwitchRouting
         }
     }
 
-    /// <summary>
-    ///     Terminal branch handler — prints which severity bucket matched and yields the
-    ///     bucket name as the workflow output.
-    /// </summary>
     [YieldsOutput(typeof(string))]
     private sealed class SeverityHandler(string id, string severity) : Executor<IncidentSignal>(id)
     {

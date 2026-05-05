@@ -1,20 +1,11 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     Applies an LSP <c>WorkspaceEdit</c> to disk. Edits per file are applied bottom-up so earlier
-///     positions remain valid while later ones are rewritten. Phase 1 supports text edits only
-///     (<c>TextDocumentEdit</c> in <c>documentChanges</c> and the legacy <c>changes</c> map).
-///     Resource operations (create/rename/delete files) are out of scope; csharp-ls does not emit
-///     them for <c>textDocument/rename</c>.
-/// </summary>
 internal sealed partial class WorkspaceEditApplier(ILogger<WorkspaceEditApplier> logger)
 {
-    /// <summary>Applies a <c>WorkspaceEdit</c>.</summary>
     public async Task<ApplySummary> ApplyAsync(JsonNode workspaceEdit, CancellationToken ct)
     {
         List<string> filesChanged = [];
@@ -41,7 +32,6 @@ internal sealed partial class WorkspaceEditApplier(ILogger<WorkspaceEditApplier>
         {
             foreach (var change in documentChanges.OfType<JsonObject>())
             {
-                // Resource ops (kind=create|rename|delete) are out of scope — skip.
                 if (change["kind"] is not null)
                     continue;
                 if (change["textDocument"]?["uri"]?.GetValue<string>() is not { } uri)
@@ -73,7 +63,6 @@ internal sealed partial class WorkspaceEditApplier(ILogger<WorkspaceEditApplier>
         var original = await File.ReadAllTextAsync(filePath, ct).ConfigureAwait(false);
         var lineOffsets = BuildLineOffsets(original);
 
-        // Bottom-up order keeps earlier positions valid while later ones are rewritten.
         var ordered = edits
             .OfType<JsonObject>()
             .Select(ParseEdit)
@@ -145,9 +134,6 @@ internal sealed partial class WorkspaceEditApplier(ILogger<WorkspaceEditApplier>
         return Math.Clamp(lineStart + character, lineStart, textLength);
     }
 
-    /// <summary>Summary of an applied <c>WorkspaceEdit</c>.</summary>
-    /// <param name="FilesChanged">Files whose contents changed on disk.</param>
-    /// <param name="EditsPerFile">Map from file path to edit count.</param>
     public sealed record ApplySummary(
         IReadOnlyList<string> FilesChanged,
         IReadOnlyDictionary<string, int> EditsPerFile);

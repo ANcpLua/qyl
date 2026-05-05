@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace Qyl.Contracts.Loom;
 
-/// <summary>
-///     Storage record for a fix run. Maps to the fix_runs DuckDB table.
-/// </summary>
 public sealed record FixRunRecord
 {
     public required string RunId { get; init; }
@@ -16,23 +13,14 @@ public sealed record FixRunRecord
     public double? ConfidenceScore { get; init; }
     public string? ChangesJson { get; init; }
 
-    /// <summary>Optional user-provided hint injected into the RCA prompt.</summary>
     public string? Instruction { get; init; }
 
-    /// <summary>
-    ///     Controls how far the pipeline runs: <c>root_cause</c>, <c>solution</c>,
-    ///     <c>code_changes</c>, or <c>null</c> for the full pipeline.
-    /// </summary>
     public string? StoppingPoint { get; init; }
 
     public DateTime? CreatedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
 }
 
-/// <summary>
-///     Storage record for an individual step within a fix run.
-///     Maps to the autofix_steps DuckDB table.
-/// </summary>
 public sealed record AutofixStepRecord
 {
     public required string StepId { get; init; }
@@ -48,7 +36,6 @@ public sealed record AutofixStepRecord
     public DateTime? CreatedAt { get; init; }
 }
 
-/// <summary>LLM confidence scoring result.</summary>
 public sealed record ConfidenceResult
 {
     [JsonPropertyName("confidence")] public double Confidence { get; init; }
@@ -60,7 +47,6 @@ public sealed record ConfidenceResult
     [JsonPropertyName("recommendation")] public string? Recommendation { get; init; }
 }
 
-/// <summary>LLM impact assessment for an issue — advisory output from the autofix fan-out.</summary>
 public sealed record ImpactAssessmentResult
 {
     [JsonPropertyName("one_line_description")]
@@ -80,7 +66,6 @@ public sealed record ImpactEntry
     [JsonPropertyName("evidence")] public string? Evidence { get; init; }
 }
 
-/// <summary>LLM suspect-commit + assignee triage for an issue — advisory output from the autofix fan-out.</summary>
 public sealed record AutofixTriageInfo
 {
     [JsonPropertyName("suspect_commit")] public SuspectCommit? SuspectCommit { get; init; }

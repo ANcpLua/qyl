@@ -5,11 +5,6 @@ using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tool for generating test code from error context.
-///     Fetches error details, stack trace, and events, then uses
-///     an LLM to generate a regression test that would catch the error.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Loom)]
 internal sealed partial class TestGenerationTools(HttpClient http, IQylMcpAgentsBuilder agents)
@@ -33,7 +28,6 @@ internal sealed partial class TestGenerationTools(HttpClient http, IQylMcpAgents
                 _ => "C# with xUnit v3"
             };
 
-            // Fetch error details
             using var issueResp = await http
                 .GetAsync($"/api/v1/errors/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
@@ -44,7 +38,6 @@ internal sealed partial class TestGenerationTools(HttpClient http, IQylMcpAgents
             issueResp.EnsureSuccessStatusCode();
             var issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
-            // Fetch recent events for stack traces
             using var eventsResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
                 .ConfigureAwait(false);

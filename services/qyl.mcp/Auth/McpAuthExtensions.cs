@@ -5,30 +5,18 @@ using Microsoft.Extensions.Options;
 
 namespace qyl.mcp.Auth;
 
-/// <summary>
-///     Extension methods for configuring MCP authentication.
-/// </summary>
 public static class McpAuthExtensions
 {
-    /// <summary>
-    ///     Adds MCP authentication services to the service collection.
-    ///     Reads token from configuration or environment variables.
-    ///     When Keycloak is configured, fetches a JWT via client-credentials and forwards it as Bearer.
-    ///     Falls back to x-mcp-api-key when Keycloak is not configured.
-    /// </summary>
     public static IServiceCollection AddMcpAuth(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<McpAuthOptions>(options =>
         {
-            // First try configuration section
             configuration.GetSection(McpAuthOptions.SectionName).Bind(options);
 
-            // API-key: environment variable takes precedence over config
             var envToken = Environment.GetEnvironmentVariable(McpAuthOptions.TokenEnvVar);
             if (!string.IsNullOrWhiteSpace(envToken))
                 options.Token = envToken;
 
-            // Keycloak OAuth2 client-credentials
             var authority = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakAuthorityEnvVar);
             if (!string.IsNullOrWhiteSpace(authority))
                 options.KeycloakAuthority = authority;
@@ -42,11 +30,9 @@ public static class McpAuthExtensions
                 options.KeycloakClientSecret = clientSecret;
         });
 
-        // Named HttpClient for Keycloak token endpoint with resilience (retry + circuit-breaker)
         services.AddHttpClient(KeycloakTokenProvider.HttpClientName)
             .AddStandardResilienceHandler();
 
-        // KeycloakTokenProvider: singleton — caches JWT and realm roles across tool calls
         services.AddSingleton<KeycloakTokenProvider>(sp =>
             new KeycloakTokenProvider(
                 sp.GetRequiredService<IOptions<McpAuthOptions>>(),
@@ -54,19 +40,13 @@ public static class McpAuthExtensions
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILogger<KeycloakTokenProvider>>()));
 
-        // Admin tool filter: gates destructive tools behind qyl:admin realm role
         services.AddSingleton<McpAdminToolFilter>();
 
-        // Register the handler for DI
         services.AddTransient<McpAuthHandler>();
 
         return services;
     }
 
-    /// <summary>
-    ///     Adds the MCP authentication handler to the HTTP client builder.
-    ///     This handler adds Bearer JWT (Keycloak) or x-mcp-api-key header to all requests.
-    /// </summary>
     public static IHttpClientBuilder AddMcpAuthHandler(this IHttpClientBuilder builder) =>
         builder.AddHttpMessageHandler<McpAuthHandler>();
 }

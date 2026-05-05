@@ -1,21 +1,8 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Microsoft.Agents.AI.Workflows.Checkpointing;
 
 namespace Qyl.Loom.Autofix.Workflow;
 
-/// File-backed JsonCheckpointStore — survives process restart so a workflow
-/// run can resume from the last super-step after the host crashes or the
-/// dashboard tab is reloaded. Writes one JSON file per checkpoint under
-/// <c>{root}/{sessionId}/{checkpointId}.json</c>; lists by directory
-/// enumeration. Configure the root via the
-/// <c>QYL_AUTOFIX_CHECKPOINT_ROOT</c> environment variable; default lives
-/// under the OS temp folder so dev hosts don't clutter the user profile.
-///
-/// Path-traversal hardening — every <c>sessionId</c> / <c>checkpointId</c> is
-/// validated against <see cref="IsSafeIdentifier" /> (alphanumeric +
-/// dash/underscore only) before it touches <c>Path.Combine</c>, so a
-/// malicious <c>"../foo"</c> id can't escape the checkpoint root.
 internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configuration) : JsonCheckpointStore
 {
     private readonly string _root = ResolveRoot(configuration);
@@ -75,11 +62,6 @@ internal sealed class FileSystemAutofixCheckpointStore(IConfiguration configurat
 
     private string SessionDir(string sessionId) => Path.Combine(_root, SafeFileName(sessionId));
 
-    /// Reject any id that could collapse <c>Path.Combine</c> back up to
-    /// the checkpoint root or beyond. The contract between MAF and this store
-    /// only ever passes mint-fresh GUID-like ids, so the validation just
-    /// fail-closes on anything else; there is no caller-controlled use case
-    /// for <c>../</c> in a checkpoint identifier.
     private static string SafeFileName(string id)
     {
         if (string.IsNullOrEmpty(id) || !IsSafeIdentifier(id))

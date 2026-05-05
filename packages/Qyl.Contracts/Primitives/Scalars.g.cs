@@ -1,18 +1,8 @@
-// =============================================================================
-// AUTO-GENERATED FILE - DO NOT EDIT
-// =============================================================================
-//     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-04-09T04:24:58.5956120+00:00
-//     Strongly-typed scalar primitives
-// =============================================================================
-// To modify: update TypeSpec in core/specs/ then run: nuke Generate
-// =============================================================================
 
 #nullable enable
 
 namespace Qyl.Common;
 
-/// <summary>Cost in USD (floating point)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(CostUsdJsonConverter))]
 public readonly partial record struct CostUsd(double Value)
 {
@@ -28,7 +18,6 @@ public sealed class CostUsdJsonConverter : System.Text.Json.Serialization.JsonCo
     public override void Write(System.Text.Json.Utf8JsonWriter writer, CostUsd value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Generic non-negative counter</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(CountJsonConverter))]
 public readonly partial record struct Count(long Value)
 {
@@ -44,7 +33,6 @@ public sealed class CountJsonConverter : System.Text.Json.Serialization.JsonConv
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Count value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Duration in milliseconds</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(DurationMsJsonConverter))]
 public readonly partial record struct DurationMs(double Value)
 {
@@ -60,7 +48,6 @@ public sealed class DurationMsJsonConverter : System.Text.Json.Serialization.Jso
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationMs value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Duration in nanoseconds</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(DurationNsJsonConverter))]
 public readonly partial record struct DurationNs(long Value)
 {
@@ -76,7 +63,6 @@ public sealed class DurationNsJsonConverter : System.Text.Json.Serialization.Jso
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationNs value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Duration in seconds</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(DurationSJsonConverter))]
 public readonly partial record struct DurationS(double Value)
 {
@@ -92,7 +78,6 @@ public sealed class DurationSJsonConverter : System.Text.Json.Serialization.Json
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationS value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>IP address (IPv4 or IPv6)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(IpAddressJsonConverter))]
 public readonly partial record struct IpAddress(string Value)
 {
@@ -108,7 +93,6 @@ public sealed class IpAddressJsonConverter : System.Text.Json.Serialization.Json
     public override void Write(System.Text.Json.Utf8JsonWriter writer, IpAddress value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>Percentage value (0.0 to 100.0)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(PercentageJsonConverter))]
 public readonly partial record struct Percentage(double Value)
 {
@@ -124,7 +108,6 @@ public sealed class PercentageJsonConverter : System.Text.Json.Serialization.Jso
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Percentage value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Ratio value (0.0 to 1.0)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(RatioJsonConverter))]
 public readonly partial record struct Ratio(double Value)
 {
@@ -140,7 +123,6 @@ public sealed class RatioJsonConverter : System.Text.Json.Serialization.JsonConv
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Ratio value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Semantic version string (e.g., 1.2.3)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(SemVerJsonConverter))]
 public readonly partial record struct SemVer(string Value)
 {
@@ -157,7 +139,6 @@ public sealed class SemVerJsonConverter : System.Text.Json.Serialization.JsonCon
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SemVer value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>Unique session identifier</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(SessionIdJsonConverter))]
 public readonly partial record struct SessionId(string Value)
 {
@@ -173,7 +154,6 @@ public sealed class SessionIdJsonConverter : System.Text.Json.Serialization.Json
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SessionId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>Unique span identifier (16 lowercase hex characters)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(SpanIdJsonConverter))]
 public readonly partial record struct SpanId(string Value) : System.IParsable<SpanId>, System.ISpanFormattable
 {
@@ -223,7 +203,6 @@ public sealed class SpanIdJsonConverter : System.Text.Json.Serialization.JsonCon
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SpanId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>Temperature setting for LLM requests (0.0-2.0)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TemperatureJsonConverter))]
 public readonly partial record struct Temperature(double Value)
 {
@@ -239,7 +218,6 @@ public sealed class TemperatureJsonConverter : System.Text.Json.Serialization.Js
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Temperature value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Token count (for LLM operations)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TokenCountJsonConverter))]
 public readonly partial record struct TokenCount(long Value)
 {
@@ -255,7 +233,6 @@ public sealed class TokenCountJsonConverter : System.Text.Json.Serialization.Jso
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TokenCount value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
 }
 
-/// <summary>Unique trace identifier (32 lowercase hex characters)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TraceIdJsonConverter))]
 public readonly partial record struct TraceId(string Value) : System.IParsable<TraceId>, System.ISpanFormattable
 {
@@ -305,7 +282,6 @@ public sealed class TraceIdJsonConverter : System.Text.Json.Serialization.JsonCo
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TraceId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>W3C Trace Context tracestate header (vendor-specific key-value pairs)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TraceStateJsonConverter))]
 public readonly partial record struct TraceState(string Value)
 {
@@ -321,7 +297,6 @@ public sealed class TraceStateJsonConverter : System.Text.Json.Serialization.Jso
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TraceState value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>URL string (absolute)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(UrlStringJsonConverter))]
 public readonly partial record struct UrlString(string Value)
 {
@@ -337,7 +312,6 @@ public sealed class UrlStringJsonConverter : System.Text.Json.Serialization.Json
     public override void Write(System.Text.Json.Utf8JsonWriter writer, UrlString value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>User agent string</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(UserAgentJsonConverter))]
 public readonly partial record struct UserAgent(string Value)
 {
@@ -353,7 +327,6 @@ public sealed class UserAgentJsonConverter : System.Text.Json.Serialization.Json
     public override void Write(System.Text.Json.Utf8JsonWriter writer, UserAgent value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
-/// <summary>User identifier (pseudonymized for privacy)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(UserIdJsonConverter))]
 public readonly partial record struct UserId(string Value)
 {

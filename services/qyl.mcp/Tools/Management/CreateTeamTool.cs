@@ -5,22 +5,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Management;
 
-/// <summary>
-///     MCP tool that creates a new team for organizing projects and members.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class CreateTeamTool(HttpClient client)
 {
-    /// <summary>
-    ///     Creates a new team with the specified name, optional slug, and optional description.
-    /// </summary>
-    /// <param name="name">Display name for the team.</param>
-    /// <param name="slug">Optional URL-safe slug identifier; auto-generated from name if omitted.</param>
-    /// <param name="description">Optional team description.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing the created team details.</returns>
     [McpServerTool(
         Name = "create_team",
         Title = "Create Team",

@@ -3,11 +3,6 @@ using ANcpLua.Roslyn.Utilities.Text;
 
 namespace qyl.mcp.Agents;
 
-/// <summary>
-///     qyl-flavored entry point that preserves <c>QYL_AGENT_MAX_DEPTH</c> /
-///     <c>QYL_AGENT_MAX_SPAWNS</c> environment variables. Delegates to
-///     <see cref="AgentCallLineage" /> in ANcpLua.Agents.Governance.
-/// </summary>
 internal static class InvestigationLineage
 {
     public static AgentCallLineageResult TryEnter() =>

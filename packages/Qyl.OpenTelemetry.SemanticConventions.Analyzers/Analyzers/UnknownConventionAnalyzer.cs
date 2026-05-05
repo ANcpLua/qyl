@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
@@ -9,18 +8,11 @@ using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
-/// <summary>
-///     QYL-SEMCONV-003 — Fires when a string literal in a tag-setter is not in any known registry:
-///     Warning if it starts with a known OTel prefix (likely a typo/drift), Info otherwise.
-///     Suggests the closest valid ID when Levenshtein distance ≤ 3.
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
 {
-    /// <summary>Diagnostic ID for unknown OTel-prefixed attribute.</summary>
     public const string OtelUnknownId = "QYLSC003A";
 
-    /// <summary>Diagnostic ID for unregistered qyl attribute.</summary>
     public const string QylUnregisteredId = "QYLSC003B";
 
     private static readonly DiagnosticDescriptor s_otelUnknown = new(
@@ -41,11 +33,9 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
         true,
         "Attributes under 'qyl.' must be registered in the qyl semantic conventions model.");
 
-    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(s_otelUnknown, s_qylUnregistered);
 
-    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();
@@ -66,29 +56,24 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
             var dep = DeprecationIndex.Instance;
             var reg = RegistryIndex.Instance;
 
-            // Skip if it's already handled by 001 or 002
             if (dep.DeprecatedIds.Contains(value) || reg.IsValid(value))
                 return;
 
-            // qyl-unregistered: starts with "qyl." but not in valid set
             if (value.StartsWith("qyl.", StringComparison.OrdinalIgnoreCase))
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(s_qylUnregistered, literal.GetLocation(), value));
                 return;
             }
 
-            // otel-unknown: starts with a known OTel prefix
             if (reg.HasOtelPrefix(value))
             {
                 var suggestion = FindClosestMatch(value, reg.ValidIds);
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     s_otelUnknown, literal.GetLocation(), value, suggestion ?? "(no close match)"));
             }
-            // Else: genuinely custom one-off → no diagnostic (Info would be too noisy)
         }
         catch
         {
-            // Suppress analyzer exceptions so they don't produce AD0001.
         }
     }
 
@@ -98,7 +83,6 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
         var bestDist = int.MaxValue;
         const int maxDist = 3;
 
-        // Only compare against IDs sharing the same prefix for performance
         var dot = candidate.IndexOf('.');
         var prefix = dot > 0 ? candidate.Substring(0, dot) : candidate;
 
@@ -118,7 +102,6 @@ public sealed class UnknownConventionAnalyzer : DiagnosticAnalyzer
         return best;
     }
 
-    // Simple iterative Levenshtein — bounded so we bail early at maxDist
     private static int Levenshtein(string a, string b)
     {
         if (a.Length == 0) return b.Length;

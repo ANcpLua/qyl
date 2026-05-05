@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with fix run
-///     storage operations for the autofix module.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string FixRunSelectSql = """
@@ -14,9 +10,6 @@ public sealed partial class DuckDbStore
                                            FROM fix_runs
                                            """;
 
-    /// <summary>
-    ///     Inserts a new fix run record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertFixRunAsync(FixRunRecord record, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -42,17 +35,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Updates a fix run's status, description, confidence score, changes, and instruction.
-    /// </summary>
-    /// <remarks>
-    ///     <paramref name="instructionAppend" /> uses append-semantics: when supplied, the
-    ///     new text is concatenated to the existing <c>instruction</c> column separated
-    ///     by <c>---</c>. Pass <c>null</c> to leave the column untouched. This supports
-    ///     the <c>loom_autofix_update</c> MCP tool which accumulates caller guidance across
-    ///     invocations — the in-flight agent still reads <c>run.Instruction</c> once at
-    ///     startup, so the appended text takes effect on the next run.
-    /// </remarks>
     public async Task UpdateFixRunAsync(
         string runId, string status, string? description = null,
         double? confidence = null, string? changesJson = null,
@@ -83,9 +65,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Creates a new fix run with auto-generated ID. Returns the created record.
-    /// </summary>
     public async Task<FixRunRecord> CreateFixRunAsync(
         string issueId, FixPolicy policy, CancellationToken ct = default)
     {
@@ -100,9 +79,6 @@ public sealed partial class DuckDbStore
         return record;
     }
 
-    /// <summary>
-    ///     Gets fix runs by status, ordered by creation time ascending.
-    /// </summary>
     public Task<IReadOnlyList<FixRunRecord>> GetFixRunsByStatusAsync(
         string status, int limit = 50, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -114,18 +90,12 @@ public sealed partial class DuckDbStore
             },
             MapFixRun, ct);
 
-    /// <summary>
-    ///     Gets a single fix run by run_id.
-    /// </summary>
     public Task<FixRunRecord?> GetFixRunAsync(string runId, CancellationToken ct = default) =>
         ReadOneAsync(
             FixRunSelectSql + " WHERE run_id = $1",
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
             MapFixRun, ct);
 
-    /// <summary>
-    ///     Gets fix runs for a specific issue, ordered by creation time descending.
-    /// </summary>
     public Task<IReadOnlyList<FixRunRecord>> GetFixRunsAsync(
         string issueId, int limit = 50, CancellationToken ct = default) =>
         ReadManyAsync(

@@ -3,11 +3,6 @@ using Qyl.Contracts.Intelligence;
 
 namespace Qyl.Collector.Intelligence;
 
-/// <summary>
-///     Pure computation engine for matching observed telemetry signals against
-///     diagnostic patterns, building causal graphs, and selecting investigation strategies.
-///     No I/O, no LLM, no side effects. Deterministic: same input → same output.
-/// </summary>
 public sealed class PatternEngine(
     IReadOnlyList<DiagnosticPattern> patterns,
     IReadOnlyList<CausalRule> causalRules,
@@ -75,7 +70,6 @@ public sealed class PatternEngine(
         var patternId = primaryMatch.Pattern.Id;
         var categoryTrigger = $"category:{primaryMatch.Pattern.Category.ToString().ToLowerInvariant()}";
 
-        // Exact pattern ID match first, then category-wide trigger
         return strategies.FirstOrDefault(s => s.TriggerPattern.EqualsOrdinal(patternId))
                ?? strategies.FirstOrDefault(s => s.TriggerPattern.EqualsIgnoreCase(categoryTrigger));
     }

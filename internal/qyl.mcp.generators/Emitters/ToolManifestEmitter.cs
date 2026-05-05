@@ -216,17 +216,6 @@ internal static class ToolManifestEmitter
         }
     }
 
-    /// <summary>
-    ///     Emits <c>QylToolManifest.RegisterTools(IMcpServerBuilder, SkillConfiguration, JsonSerializerOptions)</c>.
-    /// </summary>
-    /// <remarks>
-    ///     Moved to explicit <c>McpServerTool.Create(...)</c> with <c>McpServerToolCreateOptions.Meta</c>
-    ///     because <c>WithTools&lt;T&gt;()</c> has no per-tool <c>Meta</c> attachment point. Reflection/trim
-    ///     is not the driver; Meta attachment is. The emitter mirrors the SDK's internal dispatch in
-    ///     <c>McpServerBuilderExtensions.WithTools&lt;T&gt;</c> — a factory that resolves the owning type
-    ///     from DI per invocation, wrapping each method in an <c>ActivatorUtilities.CreateInstance</c>
-    ///     lambda. Skill-gating is one <c>if</c> per owning class, not per method.
-    /// </remarks>
     private static void EmitRegisterToolsMethod(IndentedStringBuilder sb, ToolTypeEntry[] sorted)
     {
         sb.AppendLine("public static void RegisterTools(");
@@ -256,10 +245,6 @@ internal static class ToolManifestEmitter
         ToolTypeEntry entry,
         ToolMethodEntry method)
     {
-        // Analyzer filters on IsStatic:false today, so every method here is an instance method.
-        // Target factory resolves the owning type from DI per invocation, matching WithTools<T>() dispatch.
-        // Static-extension form is required here because the generated file has no using directives
-        // (it relies on global:: qualification only).
         sb.AppendLine(
             "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<global::ModelContextProtocol.Server.McpServerTool>(");
         sb.AppendLine("    mcpBuilder.Services,");
@@ -283,7 +268,6 @@ internal static class ToolManifestEmitter
         ToolMethodEntry method,
         string baseIndent)
     {
-        // Omit Meta entirely when no skill/capability attribution is present, rather than emitting Meta = null.
         if (entry.SkillKindName is null && method.Capabilities.IsEmpty)
             return;
 

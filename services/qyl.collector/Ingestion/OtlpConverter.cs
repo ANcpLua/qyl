@@ -1,7 +1,3 @@
-// =============================================================================
-// qyl OTLP Conversion - Single Source of Truth for OTLP → SpanStorageRow
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
-// =============================================================================
 
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Services;
@@ -9,10 +5,6 @@ using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 
-/// <summary>
-///     Converts OTLP protobuf/JSON to SpanStorageRow.
-///     Single source of truth for both gRPC (port 4317) and HTTP (POST /v1/traces) endpoints.
-/// </summary>
 public static class OtlpConverter
 {
     private static readonly LogSourceEnricher s_logSourceEnricher =
@@ -20,10 +12,6 @@ public static class OtlpConverter
 
     #region Proto Conversion (gRPC endpoint)
 
-    /// <summary>
-    ///     Converts gRPC OTLP ExportTraceServiceRequest (proto) to storage rows.
-    ///     Used by: TraceServiceImpl (gRPC :4317)
-    /// </summary>
     public static List<SpanStorageRow> ConvertProtoToStorageRows(ExportTraceServiceRequest request)
     {
         var spans = new List<SpanStorageRow>();
@@ -39,7 +27,6 @@ public static class OtlpConverter
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
             {
-                // Use scope schema URL if available, otherwise resource-level
                 var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
                     ? scopeSpan.SchemaUrl
                     : schemaUrl;
@@ -110,7 +97,6 @@ public static class OtlpConverter
     {
         if (value is null) return null;
 
-        // Priority order matches protobuf oneof semantics
         if (value.StringValue is not null) return value.StringValue;
         if (value.IntValue.HasValue) return value.IntValue.Value.ToString();
         if (value.DoubleValue.HasValue) return value.DoubleValue.Value.ToString(CultureInfo.InvariantCulture);
@@ -147,10 +133,6 @@ public static class OtlpConverter
 
     #region JSON Conversion (HTTP endpoint)
 
-    /// <summary>
-    ///     Converts HTTP OTLP JSON request to storage rows.
-    ///     Used by: Program.cs (POST /v1/traces)
-    /// </summary>
     public static List<SpanStorageRow> ConvertJsonToStorageRows(OtlpExportTraceServiceRequest otlp)
     {
         var spans = new List<SpanStorageRow>();
@@ -165,7 +147,6 @@ public static class OtlpConverter
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
             {
-                // Use scope schema URL if available, otherwise resource-level
                 var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
                     ? scopeSpan.SchemaUrl
                     : schemaUrl;
@@ -263,10 +244,6 @@ public static class OtlpConverter
         };
     }
 
-    /// <summary>
-    ///     Extracts a ServiceInstanceRecord from OTLP resource attributes.
-    ///     Returns null if service.name is "unknown" or missing.
-    /// </summary>
     public static ServiceInstanceRecord? ExtractServiceInstance(
         IReadOnlyDictionary<string, string> resourceAttributes,
         IReadOnlyDictionary<string, string>? spanAttributes,
@@ -278,7 +255,6 @@ public static class OtlpConverter
 
         var serviceType = ServiceClassifier.Classify(resourceAttributes, spanAttributes);
 
-        // Extract compile-time capability manifest (qyl.capability.* Resource attributes)
         string? metadataJson = null;
         Dictionary<string, string>? capabilities = null;
         foreach (var (key, value) in resourceAttributes)
@@ -312,10 +288,6 @@ public static class OtlpConverter
         };
     }
 
-    /// <summary>
-    ///     Extracts service instances from an OTLP JSON trace request.
-    ///     One record per unique resource in the request.
-    /// </summary>
     public static List<ServiceInstanceRecord> ExtractServiceInstancesFromJson(OtlpExportTraceServiceRequest otlp)
     {
         var instances = new List<ServiceInstanceRecord>();
@@ -333,7 +305,6 @@ public static class OtlpConverter
                 }
             }
 
-            // Use first span's attributes for classification
             var firstSpan = resourceSpan.ScopeSpans?.FirstOrDefault()?.Spans?.FirstOrDefault();
             Dictionary<string, string>? spanAttrs = null;
             ulong timestamp = 0;
@@ -356,10 +327,6 @@ public static class OtlpConverter
         return instances;
     }
 
-    /// <summary>
-    ///     Extracts service instances from an OTLP proto trace request.
-    ///     One record per unique resource in the request.
-    /// </summary>
     public static List<ServiceInstanceRecord> ExtractServiceInstancesFromProto(ExportTraceServiceRequest request)
     {
         var instances = new List<ServiceInstanceRecord>();
@@ -368,7 +335,6 @@ public static class OtlpConverter
         {
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
 
-            // Use first span's attributes for classification
             OtlpSpanProto? firstSpan = null;
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
             {
@@ -438,11 +404,6 @@ public static class OtlpConverter
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
 
-    /// <summary>
-    ///     Extracts baggage from attributes prefixed with "baggage." and serializes to JSON.
-    ///     OTLP doesn't have a dedicated baggage field, so some instrumentations
-    ///     store baggage in span attributes with "baggage." prefix.
-    /// </summary>
     private static string? ExtractBaggageJson(IReadOnlyDictionary<string, string> attributes)
     {
         Dictionary<string, string>? baggage = null;
@@ -452,7 +413,7 @@ public static class OtlpConverter
             if (!kvp.Key.StartsWithOrdinal("baggage."))
                 continue;
 
-            var baggageKey = kvp.Key[8..]; // Remove "baggage." prefix
+            var baggageKey = kvp.Key[8..];
             if (string.IsNullOrEmpty(baggageKey))
                 continue;
 
@@ -466,9 +427,6 @@ public static class OtlpConverter
         return JsonSerializer.Serialize(baggage, QylSerializerContext.Default.DictionaryStringString);
     }
 
-    /// <summary>
-    ///     GenAI attribute extraction result.
-    /// </summary>
     private readonly record struct GenAiData(
         string? ProviderName,
         string? RequestModel,
@@ -481,9 +439,6 @@ public static class OtlpConverter
         string? ToolCallId,
         double? CostUsd);
 
-    /// <summary>
-    ///     Extracts GenAI attributes with fallback to deprecated OTel 1.38 names.
-    /// </summary>
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
         var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
@@ -505,9 +460,6 @@ public static class OtlpConverter
                          ?? attributes.GetValueOrDefault("gen_ai.response.finish_reason");
         var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
         var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
-        // Cost is not in OTel canonical and is not emitted by producers. The collector
-        // derives it from token counts × pricing in ModelPricingService.EnrichBatchWithCost.
-        // The fallback read covers external producers that emit a custom cost attribute.
         var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));
 
         return new GenAiData(
@@ -516,27 +468,21 @@ public static class OtlpConverter
             toolName, toolCallId, costUsd);
     }
 
-    /// <summary>
-    ///     Converts SpanKind int to byte (TINYINT in DuckDB).
-    /// </summary>
     private static byte ConvertSpanKindToByte(int? kind) => kind switch
     {
-        1 => 1, // INTERNAL
-        2 => 2, // SERVER
-        3 => 3, // CLIENT
-        4 => 4, // PRODUCER
-        5 => 5, // CONSUMER
-        _ => 0 // UNSPECIFIED
+        1 => 1,
+        2 => 2,
+        3 => 3,
+        4 => 4,
+        5 => 5,
+        _ => 0
     };
 
-    /// <summary>
-    ///     Converts StatusCode int to byte (TINYINT in DuckDB).
-    /// </summary>
     private static byte ConvertStatusCodeToByte(int? code) => code switch
     {
-        1 => 1, // OK
-        2 => 2, // ERROR
-        _ => 0 // UNSET
+        1 => 1,
+        2 => 2,
+        _ => 0
     };
 
     private static long? ParseNullableLong(string? value) =>
@@ -553,10 +499,6 @@ public static class OtlpConverter
 
     #region Logs Conversion
 
-    /// <summary>
-    ///     Converts HTTP OTLP JSON log request to storage rows.
-    ///     Used by: Program.cs (POST /v1/logs)
-    /// </summary>
     public static List<LogStorageRow> ConvertLogsToStorageRows(OtlpExportLogsServiceRequest otlp)
     {
         var logs = new List<LogStorageRow>();
@@ -604,9 +546,9 @@ public static class OtlpConverter
             TraceId = string.IsNullOrEmpty(log.TraceId) ? null : log.TraceId,
             SpanId = string.IsNullOrEmpty(log.SpanId) ? null : log.SpanId,
             SessionId = sessionId,
-            TimeUnixNano = log.TimeUnixNano, // ulong - store directly
+            TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
-            SeverityNumber = (byte)Math.Clamp(severityNumber, 0, 24), // TINYINT (byte)
+            SeverityNumber = (byte)Math.Clamp(severityNumber, 0, 24),
             SeverityText = severityText,
             Body = body,
             ServiceName = serviceName,
@@ -648,11 +590,6 @@ public static class OtlpConverter
 
     #region Profiles Conversion
 
-    /// <summary>
-    ///     Converts HTTP OTLP JSON profiles request to normalized storage rows.
-    ///     Dereferences all string table indices into resolved strings.
-    ///     Used by: CollectorEndpointExtensions (POST /v1/profiles)
-    /// </summary>
     public static List<ProfileConversionResult> ConvertProfilesToNormalizedRows(OtlpExportProfilesServiceRequest otlp)
     {
         var results = new List<ProfileConversionResult>();
@@ -699,7 +636,6 @@ public static class OtlpConverter
         var profileFrameType = profile.Attributes?
             .FirstOrDefault(static a => a.Key == "profile.frame.type")?.Value?.StringValue;
 
-        // Cross-signal correlation from first Link
         string? traceId = null;
         string? spanId = null;
         if (profile.LinkTable is { Count: > 0 })
@@ -708,11 +644,9 @@ public static class OtlpConverter
             spanId = profile.LinkTable[0].SpanId;
         }
 
-        // Resolve sample type/unit
         var sampleType = Resolve(profile.SampleType?.TypeStrindex);
         var sampleUnit = Resolve(profile.SampleType?.UnitStrindex);
 
-        // Header row
         var header = new ProfileStorageRow
         {
             ProfileId = profileId,
@@ -733,7 +667,6 @@ public static class OtlpConverter
             SchemaUrl = schemaUrl
         };
 
-        // Functions — dereference all string table indices
         var functions = new List<ProfileFunctionRow>();
         foreach (var (f, i) in (profile.FunctionTable ?? []).Select(static (f, i) => (f, i)))
         {
@@ -748,7 +681,6 @@ public static class OtlpConverter
             });
         }
 
-        // Locations — dereference lines with function ordinals preserved for joins
         var locations = new List<ProfileLocationRow>();
         foreach (var (loc, i) in (profile.LocationTable ?? []).Select(static (l, i) => (l, i)))
         {
@@ -772,7 +704,6 @@ public static class OtlpConverter
             });
         }
 
-        // Mappings — dereference filename
         var mappings = new List<ProfileMappingRow>();
         foreach (var (m, i) in (profile.MappingTable ?? []).Select(static (m, i) => (m, i)))
         {
@@ -787,7 +718,6 @@ public static class OtlpConverter
             });
         }
 
-        // Samples — resolve link references, serialize values/timestamps as JSON
         var samples = new List<ProfileSampleRow>();
         foreach (var (s, i) in (profile.Samples ?? []).Select(static (s, i) => (s, i)))
         {
@@ -813,7 +743,6 @@ public static class OtlpConverter
             });
         }
 
-        // Stacks — serialize location ordinals as JSON array
         var stacks = new List<ProfileStackRow>();
         foreach (var (st, i) in (profile.StackTable ?? []).Select(static (st, i) => (st, i)))
         {
@@ -845,10 +774,6 @@ public static class OtlpConverter
 
     #region Proto Log Conversion
 
-    /// <summary>
-    ///     Converts protobuf OTLP log request to storage rows.
-    ///     Maps proto → JSON DTO → reuses existing <see cref="ConvertLogsToStorageRows" />.
-    /// </summary>
     public static List<LogStorageRow> ConvertProtoLogsToStorageRows(ExportLogsServiceRequestProto proto)
     {
         var jsonDto = new OtlpExportLogsServiceRequest

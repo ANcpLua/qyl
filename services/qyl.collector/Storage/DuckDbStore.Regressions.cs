@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with read-only
-///     queries for regression events from the <c>issue_events</c> table.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string RegressionEventSelectSql = """
@@ -12,9 +8,6 @@ public sealed partial class DuckDbStore
                                                     WHERE event_type = 'regression'
                                                     """;
 
-    /// <summary>
-    ///     Gets regression events across all issues, ordered by most recent first.
-    /// </summary>
     public async Task<IReadOnlyList<RegressionEventRow>> GetRegressionEventsAsync(
         int limit, DateTime? since = null, CancellationToken ct = default)
     {
@@ -39,9 +32,6 @@ public sealed partial class DuckDbStore
             MapRegressionEventRow, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Gets regression events for a specific issue, ordered by most recent first.
-    /// </summary>
     public Task<IReadOnlyList<RegressionEventRow>> GetIssueRegressionEventsAsync(
         string issueId, int limit, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -69,9 +59,6 @@ public sealed partial class DuckDbStore
         };
 }
 
-/// <summary>
-///     Projection of a regression event from the <c>issue_events</c> table.
-/// </summary>
 public sealed record RegressionEventRow
 {
     public required string EventId { get; init; }

@@ -1,19 +1,10 @@
 namespace Qyl.Collector.Identity;
 
-/// <summary>
-///     Handshake session state machine with PKCE challenge/verifier validation.
-///     State transitions: pending -> verified -> expired.
-///     Singleton service — writes via DuckDbStore channel, reads via pooled connections.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class HandshakeService(DuckDbStore store, ILogger<HandshakeService> logger)
 {
     private static readonly TimeSpan s_handshakeExpiry = TimeSpan.FromMinutes(10);
 
-    /// <summary>
-    ///     Initiates a handshake session with a PKCE code_challenge.
-    ///     Generates a workspace ID and stores the session in pending state.
-    /// </summary>
     public async Task<HandshakeResponse> StartHandshakeAsync(
         HandshakeRequest request,
         CancellationToken ct = default)
@@ -35,7 +26,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
 
         await store.UpsertWorkspaceAsync(workspace, ct).ConfigureAwait(false);
 
-        // Store PKCE challenge alongside the handshake session
         if (request.CodeChallenge is not null)
         {
             await store.UpsertHandshakeChallengeAsync(workspaceId, request.CodeChallenge, now, ct)
@@ -46,11 +36,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         return new HandshakeResponse(workspaceId, "pending");
     }
 
-    /// <summary>
-    ///     Verifies the handshake using a PKCE code_verifier, transitions state to verified,
-    ///     and generates a bearer token for the workspace.
-    /// </summary>
-    /// <returns>Token string on success; null if the workspace is not found or PKCE fails.</returns>
     public async Task<HandshakeVerifyResult?> VerifyHandshakeAsync(
         string workspaceId,
         string codeVerifier,
@@ -60,11 +45,9 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         if (existing is null || existing.Status != "pending")
             return null;
 
-        // Validate PKCE: SHA256(code_verifier) must match stored code_challenge
         if (await store.GetHandshakeChallengeAsync(workspaceId, ct).ConfigureAwait(false) is not { } challenge)
             return null;
 
-        // Check expiry
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         if (now - challenge.CreatedAt > s_handshakeExpiry)
         {
@@ -79,7 +62,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
             return null;
         }
 
-        // Transition to verified and generate token
         var token = GenerateToken();
         var updated = existing with { Status = "active" };
         await store.UpsertWorkspaceAsync(updated, ct).ConfigureAwait(false);
@@ -89,9 +71,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         return new HandshakeVerifyResult(workspaceId, token, "active");
     }
 
-    /// <summary>
-    ///     Completes a handshake by marking the workspace as active (non-PKCE flow).
-    /// </summary>
     public async Task<HandshakeResponse?> CompleteHandshakeAsync(
         string workspaceId,
         CancellationToken ct = default)
@@ -106,9 +85,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         return new HandshakeResponse(workspaceId, "active");
     }
 
-    /// <summary>
-    ///     Expires a pending handshake session.
-    /// </summary>
     public async Task<bool> ExpireHandshakeAsync(
         string workspaceId,
         CancellationToken ct = default)
@@ -122,9 +98,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         return true;
     }
 
-    // ==========================================================================
-    // PKCE Helpers
-    // ==========================================================================
 
     private static bool ValidatePkce(string codeVerifier, string codeChallenge) =>
         Pkce.ValidateS256(codeVerifier, codeChallenge);
@@ -143,9 +116,6 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         await store.DeleteHandshakeChallengeAsync(workspaceId, ct).ConfigureAwait(false);
     }
 
-    // ==========================================================================
-    // LoggerMessage -- structured, zero-allocation logging
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Handshake started: {WorkspaceId} for service {ServiceName}")]
@@ -164,13 +134,7 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
     private partial void LogPkceValidationFailed(string workspaceId);
 }
 
-// =============================================================================
-// Handshake Records
-// =============================================================================
 
-/// <summary>
-///     Request to initiate a workspace handshake, optionally with PKCE challenge.
-/// </summary>
 public sealed record HandshakeRequest(
     string ServiceName,
     string? SdkVersion = null,
@@ -179,19 +143,10 @@ public sealed record HandshakeRequest(
     string? GitCommit = null,
     string? CodeChallenge = null);
 
-/// <summary>
-///     Response from a workspace handshake start or complete operation.
-/// </summary>
 public sealed record HandshakeResponse(string WorkspaceId, string Status);
 
-/// <summary>
-///     Result of a successful PKCE handshake verification.
-/// </summary>
 public sealed record HandshakeVerifyResult(string WorkspaceId, string Token, string Status);
 
-/// <summary>
-///     Stored PKCE challenge for a pending handshake session.
-/// </summary>
 public sealed record HandshakeChallengeRecord(
     string WorkspaceId,
     string CodeChallenge,

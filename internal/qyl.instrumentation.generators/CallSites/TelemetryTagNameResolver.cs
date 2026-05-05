@@ -2,22 +2,6 @@ using Microsoft.CodeAnalysis;
 
 namespace Qyl.Instrumentation.Generators.CallSites;
 
-/// <summary>
-///     Centralized name resolution for telemetry tags.
-/// </summary>
-/// <remarks>
-///     <para>
-///         The generator supports two orthogonal concerns:
-///     </para>
-///     <para>
-///         1. Capture markers such as <c>[TracedTag]</c> and <c>[Tag]</c> decide whether a member
-///         participates in emitted telemetry.
-///     </para>
-///     <para>
-///         2. <c>[OTel]</c> provides the canonical OpenTelemetry semantic-convention key when the
-///         capture marker does not specify an explicit name.
-///     </para>
-/// </remarks>
 internal static class TelemetryTagNameResolver
 {
     private const string OTelAttributeMetadataName = "Qyl.Instrumentation.Instrumentation.OTelAttribute";

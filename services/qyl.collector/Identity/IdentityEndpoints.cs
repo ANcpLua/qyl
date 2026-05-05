@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Qyl.Collector.Identity;
 
-/// <summary>
-///     Minimal API endpoints for workspace identity, project management, and onboarding.
-///     Routes: /api/v1/workspaces/*, /api/v1/onboarding/*
-/// </summary>
 public static class IdentityEndpoints
 {
     [QylMapEndpoints]
@@ -21,9 +17,6 @@ public static class IdentityEndpoints
         MapMcpProjectRoutes(mcpProjects);
     }
 
-    // ==========================================================================
-    // Workspace Routes
-    // ==========================================================================
 
     private static void MapWorkspaceRoutes(RouteGroupBuilder group)
     {
@@ -55,7 +48,6 @@ public static class IdentityEndpoints
             return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         });
 
-        // --- Project sub-routes under workspace ---
 
         group.MapGet("/{workspaceId}/projects", static async (
             string workspaceId, [FromServices] ProjectService service,
@@ -73,7 +65,6 @@ public static class IdentityEndpoints
             if (string.IsNullOrWhiteSpace(request.Name))
                 return TypedResults.BadRequest(new { error = "Name is required" });
 
-            // Bind workspace ID from route
             var bound = request with { WorkspaceId = workspaceId };
             var project = await service.CreateProjectAsync(bound, ct);
             return TypedResults.Created($"/api/v1/workspaces/{workspaceId}/projects/{project.ProjectId}", project);
@@ -101,7 +92,6 @@ public static class IdentityEndpoints
             return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         });
 
-        // --- Environment sub-routes under project ---
 
         group.MapGet("/{workspaceId}/projects/{projectId}/environments", static async (
             string workspaceId, string projectId,
@@ -137,9 +127,6 @@ public static class IdentityEndpoints
         });
     }
 
-    // ==========================================================================
-    // MCP Project Routes
-    // ==========================================================================
 
     private static void MapMcpProjectRoutes(RouteGroupBuilder group)
     {
@@ -178,7 +165,6 @@ public static class IdentityEndpoints
 
             await store.ExecuteWriteAsync(async (con, token) =>
             {
-                // Ensure retention config table exists
                 await using var ddlCmd = con.CreateCommand();
                 ddlCmd.CommandText = """
                                      CREATE TABLE IF NOT EXISTS project_retention (
@@ -207,9 +193,6 @@ public static class IdentityEndpoints
         });
     }
 
-    // ==========================================================================
-    // Onboarding Routes (Handshake)
-    // ==========================================================================
 
     private static void MapOnboardingRoutes(RouteGroupBuilder group)
     {
@@ -250,20 +233,11 @@ public static class IdentityEndpoints
     }
 }
 
-// =============================================================================
-// Endpoint-specific DTOs
-// =============================================================================
 
-/// <summary>
-///     Request to add an environment to a project.
-/// </summary>
 public sealed record AddEnvironmentRequest(
     string Name,
     string? Description = null);
 
-/// <summary>
-///     Request to verify a handshake with a PKCE code_verifier.
-/// </summary>
 public sealed record HandshakeVerifyRequest(
     string WorkspaceId,
     string CodeVerifier);

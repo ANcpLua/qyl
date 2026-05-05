@@ -6,16 +6,6 @@ using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
-/// <summary>
-///     MCP tools that fetch observability data via HTTP, then feed it to a
-///     <c>ChatClientAgent</c> for structured summarization. Agents are sourced
-///     from <see cref="IQylMcpAgentsBuilder" /> so the
-///     <c>.AsBuilder().UseQylAgentTelemetry().Build()</c> wrap is centralized and
-///     <c>QYL0135</c> is satisfied at the construction site. No tools are attached
-///     — these are pure LLM-as-summarizer calls, so the default
-///     <c>FunctionInvokingChatClient</c> inserted by <c>AsAIAgent</c> is a no-op
-///     passthrough.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Agent)]
 internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuilder agents)
@@ -30,7 +20,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            // Fetch error data + recent events concurrently
             var issueTask = client.GetFromJsonAsync<SummaryIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
                 SummaryJsonContext.Default.SummaryIssueDto, ct);
@@ -47,7 +36,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
 
-            // Build data context for LLM
             StringBuilder sb = new();
             sb.AppendLine($"Error Issue: {issue.Title}");
             sb.AppendLine($"Type: {issue.ErrorType}, Category: {issue.Category}");
@@ -85,7 +73,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            // Fetch trace data (list of spans)
             var spans = await client.GetFromJsonAsync<List<TraceSpanDto>>(
                 $"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
                 SummaryJsonContext.Default.ListTraceSpanDto, ct).ConfigureAwait(false);
@@ -93,7 +80,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
             if (spans is null || spans.Count is 0)
                 return $"Trace '{traceId}' not found or contains no spans.";
 
-            // Build data context for LLM
             StringBuilder sb = new();
             sb.AppendLine($"Trace ID: {traceId}");
             sb.AppendLine($"Total Spans: {spans.Count}");
@@ -138,7 +124,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            // Fetch session metadata and spans concurrently
             var sessionTask = client.GetFromJsonAsync<SessionDto>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}",
                 SummaryJsonContext.Default.SessionDto, ct);
@@ -153,7 +138,6 @@ internal sealed partial class SummaryTools(HttpClient client, IQylMcpAgentsBuild
             if (session is null)
                 return $"Session '{sessionId}' not found.";
 
-            // Build data context for LLM
             StringBuilder sb = new();
             sb.AppendLine($"Session ID: {session.SessionId}");
             if (session.ServiceName is not null)

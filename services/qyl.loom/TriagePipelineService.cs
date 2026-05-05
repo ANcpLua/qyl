@@ -4,11 +4,6 @@ using Qyl.Loom.Autofix;
 
 namespace Qyl.Loom;
 
-/// <summary>
-///     Background service that periodically scans for untriaged error issues,
-///     scores their fixability (via LLM or heuristic fallback), generates
-///     summaries, and routes high-confidence issues to the autofix pipeline.
-/// </summary>
 [QylHostedService]
 public sealed partial class TriagePipelineService(
     CollectorClient collector,
@@ -32,7 +27,6 @@ public sealed partial class TriagePipelineService(
             return;
         }
 
-        // Warmup delay — let ingestion pipeline settle
         await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken).ConfigureAwait(false);
         LogTriageStarted(_intervalSeconds);
 
@@ -50,10 +44,6 @@ public sealed partial class TriagePipelineService(
         }
     }
 
-    /// <summary>
-    ///     Triages a single specific issue by ID. Used by the REST endpoint
-    ///     to avoid side effects on unrelated issues.
-    /// </summary>
     internal async Task<TriageResult?> TriageSingleIssueAsync(string issueId, CancellationToken ct)
     {
         var issue = await collector.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
@@ -97,7 +87,6 @@ public sealed partial class TriagePipelineService(
             await collector.InsertTriageResultAsync(result, perItemCt).ConfigureAwait(false);
             LogIssueTriaged(issueId, result.FixabilityScore, result.AutomationLevel);
 
-            // Route auto-fixable issues to the autofix pipeline
             if (result.FixabilityScore >= _autoThreshold)
             {
                 var run = await orchestrator.CreateFixRunAsync(
@@ -149,18 +138,15 @@ public sealed partial class TriagePipelineService(
             LogLlmScoringFailed(issue.IssueId, ex);
         }
 
-        // Fallback to heuristic if LLM fails
         return ScoreWithHeuristic(issue);
     }
 
     internal static TriageResult ScoreWithHeuristic(IssueSummary issue)
     {
-        // Heuristic scoring based on error characteristics
-        var score = 0.3; // Base score
+        var score = 0.3;
 
         switch (issue.EventCount)
         {
-            // High occurrence count suggests reproducible -> more fixable
             case >= 10:
                 score += 0.15;
                 break;
@@ -169,13 +155,11 @@ public sealed partial class TriagePipelineService(
                 break;
         }
 
-        // Known error types are more fixable
         if (issue.ErrorType.ContainsIgnoreCase("NullReference") ||
             issue.ErrorType.ContainsIgnoreCase("ArgumentException") ||
             issue.ErrorType.ContainsIgnoreCase("InvalidOperation"))
             score += 0.2;
 
-        // Recent errors are more actionable
         var age = TimeProvider.System.GetUtcNow().UtcDateTime - issue.LastSeen;
         if (age < TimeSpan.FromHours(1)) score += 0.1;
         else if (age < TimeSpan.FromDays(1)) score += 0.05;
@@ -204,7 +188,6 @@ public sealed partial class TriagePipelineService(
 
     private static LlmTriageResponse? TryParseResponse(string text)
     {
-        // Extract JSON from potential markdown code blocks
         var jsonStart = text.IndexOf('{');
         var jsonEnd = text.LastIndexOf('}');
         if (jsonStart < 0 || jsonEnd <= jsonStart) return null;

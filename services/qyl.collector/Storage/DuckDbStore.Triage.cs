@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with triage result
-///     storage operations for the Loom triage pipeline.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string TriageSelectSql = """
@@ -13,9 +9,6 @@ public sealed partial class DuckDbStore
                                            FROM triage_results
                                            """;
 
-    /// <summary>
-    ///     Inserts a new triage result via the channel-buffered write path.
-    /// </summary>
     public async Task InsertTriageResultAsync(TriageResult result, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -40,9 +33,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Updates a triage result's fix_run_id after routing to autofix.
-    /// </summary>
     public async Task UpdateTriageFixRunAsync(string triageId, string fixRunId, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -53,27 +43,18 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets a single triage result by triage_id.
-    /// </summary>
     public Task<TriageResult?> GetTriageResultAsync(string triageId, CancellationToken ct = default) =>
         ReadOneAsync(
             TriageSelectSql + " WHERE triage_id = $1",
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = triageId }),
             MapTriageResult, ct);
 
-    /// <summary>
-    ///     Gets the latest triage result for a specific issue.
-    /// </summary>
     public Task<TriageResult?> GetLatestTriageForIssueAsync(string issueId, CancellationToken ct = default) =>
         ReadOneAsync(
             TriageSelectSql + " WHERE issue_id = $1 ORDER BY created_at DESC LIMIT 1",
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = issueId }),
             MapTriageResult, ct);
 
-    /// <summary>
-    ///     Gets triage results with optional filtering by automation level.
-    /// </summary>
     public async Task<IReadOnlyList<TriageResult>> GetTriageResultsAsync(
         string? automationLevel = null, int limit = 50, CancellationToken ct = default)
     {
@@ -91,9 +72,6 @@ public sealed partial class DuckDbStore
             MapTriageResult, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Returns issue IDs that have no triage result yet (untriaged errors).
-    /// </summary>
     public Task<IReadOnlyList<string>> GetUntriagedIssueIdsAsync(
         int limit = 100, CancellationToken ct = default) =>
         ReadManyAsync(

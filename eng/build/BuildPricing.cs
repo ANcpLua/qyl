@@ -1,9 +1,3 @@
-// =============================================================================
-// qyl Build System - GenAI Pricing Mirror
-// =============================================================================
-// nuke UpdatePricing — pull LiteLLM model_prices_and_context_window.json,
-// hash it, log provenance, write the snapshot consumed by QylPricingTable.
-// =============================================================================
 
 using System;
 using System.Globalization;

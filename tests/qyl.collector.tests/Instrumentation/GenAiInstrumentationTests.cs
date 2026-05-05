@@ -5,7 +5,6 @@ using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Collector.Tests.Instrumentation;
 
-/// <summary>Tests for <see cref="GenAiInstrumentation" />.</summary>
 public sealed class GenAiInstrumentationTests
 {
     [Fact]
@@ -16,7 +15,6 @@ public sealed class GenAiInstrumentationTests
 
         var result = otel.WithQylTelemetry();
 
-        // OTel client gets wrapped with tool instrumentation on top
         result.Should().BeOfType<ToolDecoratingChatClient>();
     }
 
@@ -38,9 +36,6 @@ public sealed class GenAiInstrumentationTests
 
         var result = inner.WithQylTelemetry();
 
-        // Pipeline: inner → OpenTelemetry → ToolInstrumenting
         result.Should().NotBeSameAs(inner);
     }
 }
-
-// FakeChatClient supersedes the file-scoped CapturingInnerClient that lived here.

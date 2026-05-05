@@ -1,8 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-/// <summary>
-///     Partial class extending <see cref="DuckDbStore" /> with agent run and tool call operations.
-/// </summary>
 public sealed partial class DuckDbStore
 {
     private const string AgentRunSelectSql = """
@@ -14,13 +11,7 @@ public sealed partial class DuckDbStore
                                              FROM agent_runs
                                              """;
 
-    // ==========================================================================
-    // Agent Run Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new agent run record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertAgentRunAsync(AgentRunRecord run, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -58,9 +49,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Updates an existing agent run (status, tokens, cost) on completion.
-    /// </summary>
     public async Task UpdateAgentRunAsync(
         string runId,
         string status,
@@ -111,9 +99,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Lists agent runs with optional filtering by agent name and status.
-    /// </summary>
     public async Task<IReadOnlyList<AgentRunRecord>> GetAgentRunsAsync(
         int limit = 50,
         int offset = 0,
@@ -148,18 +133,12 @@ public sealed partial class DuckDbStore
             MapAgentRun, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Gets a single agent run by its run ID.
-    /// </summary>
     public Task<AgentRunRecord?> GetAgentRunAsync(string runId, CancellationToken ct = default) =>
         ReadOneAsync(
             AgentRunSelectSql + " WHERE run_id = $1",
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
             MapAgentRun, ct);
 
-    /// <summary>
-    ///     Finds agent runs associated with a specific trace ID.
-    /// </summary>
     public Task<IReadOnlyList<AgentRunRecord>> GetAgentRunsByTraceAsync(
         string traceId, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -167,13 +146,7 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = traceId }),
             MapAgentRun, ct);
 
-    // ==========================================================================
-    // Tool Call Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts a new tool call record via the channel-buffered write path.
-    /// </summary>
     public async Task InsertToolCallAsync(ToolCallRecord toolCall, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -190,9 +163,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Gets all tool calls for a specific agent run, ordered by sequence number.
-    /// </summary>
     public Task<IReadOnlyList<ToolCallRecord>> GetToolCallsAsync(
         string runId, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -207,13 +177,7 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
             MapToolCall, ct);
 
-    // ==========================================================================
-    // Agent Decision Operations
-    // ==========================================================================
 
-    /// <summary>
-    ///     Inserts or updates a decision event associated with an agent run.
-    /// </summary>
     public async Task InsertAgentDecisionAsync(AgentDecisionRecord decision, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -240,9 +204,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    /// <summary>
-    ///     Lists all decisions for a run in chronological order.
-    /// </summary>
     public Task<IReadOnlyList<AgentDecisionRecord>> GetAgentDecisionsAsync(
         string runId, CancellationToken ct = default) =>
         ReadManyAsync(
@@ -257,9 +218,6 @@ public sealed partial class DuckDbStore
             cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
             MapAgentDecision, ct);
 
-    // ==========================================================================
-    // Private Methods - Agent Run Mapping
-    // ==========================================================================
 
     private static void AddAgentRunParameters(DuckDBCommand cmd, AgentRunRecord run)
     {
@@ -394,13 +352,7 @@ public sealed partial class DuckDbStore
         };
 }
 
-// =============================================================================
-// Agent Run & Tool Call Records
-// =============================================================================
 
-/// <summary>
-///     Storage record for an agent run. Maps to the agent_runs DuckDB table.
-/// </summary>
 public sealed record AgentRunRecord
 {
     public required string RunId { get; init; }
@@ -425,9 +377,6 @@ public sealed record AgentRunRecord
     public int EvidenceCount { get; init; }
 }
 
-/// <summary>
-///     Storage record for a tool call. Maps to the tool_calls DuckDB table.
-/// </summary>
 public sealed record ToolCallRecord
 {
     public required string CallId { get; init; }
@@ -446,10 +395,6 @@ public sealed record ToolCallRecord
     public int SequenceNumber { get; init; }
 }
 
-/// <summary>
-///     Storage record for a decision emitted by an agent run.
-///     Maps to the agent_decisions DuckDB table.
-/// </summary>
 public sealed record AgentDecisionRecord
 {
     public required string DecisionId { get; init; }

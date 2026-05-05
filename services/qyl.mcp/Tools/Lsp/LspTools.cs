@@ -1,4 +1,3 @@
-// Copyright (c) 2025-2026 ancplua
 
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
@@ -6,15 +5,10 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools.Lsp;
 
-/// <summary>
-///     MCP facade for six LSP-backed code-intelligence tools. Gated behind
-///     <see cref="Debug" /> — opt-in via <c>QYL_SKILLS=debug</c>.
-/// </summary>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Debug)]
 internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditApplier editApplier)
 {
-    /// <summary>Go to definition of the symbol at the given 1-based position.</summary>
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_goto_definition", Title = "Go to Definition",
@@ -33,7 +27,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
             return FormatLocations("# Definition", result);
         });
 
-    /// <summary>Find all references to the symbol at the given 1-based position.</summary>
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_find_references", Title = "Find References",
@@ -54,11 +47,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
             return FormatLocations("# References", result);
         });
 
-    /// <summary>
-    ///     List symbols in a document, or query workspace symbols. <paramref name="query" /> triggers
-    ///     a workspace-wide search; <paramref name="filePath" /> is required in both modes (it seeds
-    ///     the workspace root for workspace/symbol).
-    /// </summary>
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_symbols", Title = "Symbols",
@@ -81,7 +69,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
             return FormatSymbols($"# Workspace symbols matching '{query}'", results);
         });
 
-    /// <summary>Pull-model diagnostics for a single file.</summary>
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_diagnostics", Title = "Diagnostics",
@@ -97,7 +84,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
             return FormatDiagnostics(opened.Uri, result);
         });
 
-    /// <summary>Check whether the symbol at the given position is renameable.</summary>
     [QylCapability("lsp_code_intelligence")]
     [McpServerTool(
         Name = "lsp_prepare_rename", Title = "Prepare Rename",
@@ -117,7 +103,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
                 : "valid=true";
         });
 
-    /// <summary>Rename the symbol at the given position across the workspace. Writes to disk.</summary>
     [QylCapability("lsp_code_intelligence", QylCapabilityRole.FollowUp)]
     [McpServerTool(
         Name = "lsp_rename", Title = "Rename Symbol",
@@ -137,7 +122,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
             var opened = await wrapper.OpenAsync(filePath, ct).ConfigureAwait(false);
             var (line0, char0) = LspClientWrapper.ToZeroBased(line, column);
 
-            // Validity gate — lsp_rename never runs without a successful prepareRename first.
             var prepare = await opened.Client.PrepareRenameAsync(opened.Uri, line0, char0, ct).ConfigureAwait(false);
             if (prepare is null)
                 return "Rename rejected: prepareRename returned null (symbol is not renameable at this position).";
@@ -283,7 +267,6 @@ internal sealed partial class LspTools(LspClientWrapper wrapper, WorkspaceEditAp
         return sb.ToString();
     }
 
-    // Common LSP SymbolKind values from the spec. Less common kinds fall through to "symbol".
     private static string SymbolKindLabel(int kind) =>
         kind switch
         {

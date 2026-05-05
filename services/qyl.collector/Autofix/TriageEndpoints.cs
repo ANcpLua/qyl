@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     REST endpoints for querying triage assessments.
-///     Triage execution is owned by qyl.loom — collector only stores/reads results.
-/// </summary>
 public static class TriageEndpoints
 {
     [QylMapEndpoints]

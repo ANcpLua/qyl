@@ -5,20 +5,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
-/// <summary>
-///     MCP tool that lists detected services with instance counts and last-seen timestamps.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class ListServicesTool(HttpClient client)
 {
-    /// <summary>
-    ///     Lists detected services with instance count and last-seen timestamp, optionally filtered by project.
-    /// </summary>
-    /// <param name="projectSlug">Optional project slug filter.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown table of detected services.</returns>
     [QylCapability("service_discovery")]
     [McpServerTool(Name = "list_services", Title = "List Services",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]

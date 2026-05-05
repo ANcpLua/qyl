@@ -8,21 +8,10 @@ using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Discovery;
 
-/// <summary>
-///     MCP tool that retrieves health and adoption metrics for a specific release.
-/// </summary>
-/// <param name="client">The HTTP client used to communicate with the qyl API.</param>
 [McpServerToolType]
 [QylSkill(QylSkillKind.Inspect)]
 public sealed partial class GetReleaseHealthTool(HttpClient client)
 {
-    /// <summary>
-    ///     Retrieves crash-free rate, error count, session count, and adoption percentage for a release.
-    /// </summary>
-    /// <param name="version">The release version to inspect (e.g. '1.2.3' or 'abc123').</param>
-    /// <param name="projectSlug">Optional project slug filter.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A formatted markdown string containing release health metrics.</returns>
     [QylCapability("service_discovery", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "get_release_health", Title = "Get Release Health",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]

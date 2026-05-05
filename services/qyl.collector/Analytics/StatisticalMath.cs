@@ -2,37 +2,20 @@ namespace Qyl.Collector.Analytics;
 
 public static class StatisticalMath
 {
-    // =========================================================================
-    // SciPy Vendored — Convex Analysis (BSD-3-Clause)
-    // https://github.com/scipy/scipy/blob/ce4b4309/scipy/special/_convex_analysis.pxd
-    // =========================================================================
 
-    /// <summary>
-    ///     Elementwise function for computing entropy: <c>-x * ln(x)</c>.
-    /// </summary>
     private static double Entr(double x) =>
         double.IsNaN(x) ? x :
         x > 0 ? -x * Math.Log(x) :
         x is 0 ? 0 :
         double.NegativeInfinity;
 
-    /// <summary>
-    ///     Relative entropy: <c>x * ln(x / y)</c>.
-    /// </summary>
     public static double RelEntr(double x, double y) =>
         double.IsNaN(x) || double.IsNaN(y) ? double.NaN :
         x > 0 && y > 0 ? x * Math.Log(x / y) :
         x is 0 && y >= 0 ? 0 :
         double.PositiveInfinity;
 
-    // =========================================================================
-    // Probability & Information Theory
-    // =========================================================================
 
-    /// <summary>
-    ///     Laplace smooth a probability distribution to remove zeros while
-    ///     preserving relative proportions. Default alpha = 1e-3.
-    /// </summary>
     public static double[] LaplaceSmooth(ReadOnlySpan<double> probabilities, double alpha = 1e-3)
     {
         double total = 0;
@@ -47,10 +30,6 @@ public static class StatisticalMath
         return result;
     }
 
-    /// <summary>
-    ///     Shannon entropy: <c>H = -Σ p(x) log(p(x))</c>.
-    ///     Input is normalized to sum to 1.
-    /// </summary>
     public static double Entropy(ReadOnlySpan<double> xs)
     {
         double total = 0;
@@ -66,9 +45,6 @@ public static class StatisticalMath
         return result;
     }
 
-    /// <summary>
-    ///     Elementwise relative entropy between two distributions.
-    /// </summary>
     private static double[] RelativeEntropy(ReadOnlySpan<double> a, ReadOnlySpan<double> b)
     {
         if (a.Length != b.Length)
@@ -85,9 +61,6 @@ public static class StatisticalMath
         return result.AsSpan(0, idx).ToArray();
     }
 
-    /// <summary>
-    ///     Kullback–Leibler divergence: <c>D_KL(a || b) = Σ rel_entr(a_i, b_i)</c>.
-    /// </summary>
     public static double KlDivergence(ReadOnlySpan<double> a, ReadOnlySpan<double> b)
     {
         var re = RelativeEntropy(a, b);
@@ -97,14 +70,7 @@ public static class StatisticalMath
         return sum;
     }
 
-    // =========================================================================
-    // Ranking & Fusion
-    // =========================================================================
 
-    /// <summary>
-    ///     Reciprocal Rank Fusion score combining entropy and KL rankings.
-    ///     Alphas must sum to 1.0.
-    /// </summary>
     public static double[] RrfScore(
         ReadOnlySpan<double> entropyScores,
         ReadOnlySpan<double> klScores,
@@ -130,9 +96,6 @@ public static class StatisticalMath
         return result;
     }
 
-    /// <summary>
-    ///     Assign dense ranks to values using min-rank strategy.
-    /// </summary>
     private static int[] RankMin(ReadOnlySpan<double> xs, bool ascending = false)
     {
         var sorted = new SortedSet<double>(xs.ToArray());
@@ -153,14 +116,7 @@ public static class StatisticalMath
         return result;
     }
 
-    // =========================================================================
-    // Box-Cox Transform
-    // =========================================================================
 
-    /// <summary>
-    ///     Apply Box-Cox transformation. If <paramref name="lambdaParam" /> is null,
-    ///     finds the optimal lambda via MLE with ternary search.
-    /// </summary>
     public static (double[] Transformed, double Lambda) BoxCoxTransform(
         ReadOnlySpan<double> values, double? lambdaParam = null)
     {
@@ -203,9 +159,6 @@ public static class StatisticalMath
         return (transformed, lambda);
     }
 
-    /// <summary>
-    ///     Box-Cox log-likelihood function using numerically stable log-space arithmetic.
-    /// </summary>
     internal static double BoxCoxLlf(double lambdaParam, ReadOnlySpan<double> values)
     {
         var n = values.Length;
@@ -250,9 +203,6 @@ public static class StatisticalMath
         return ((lambdaParam - 1) * logSum) - (n / 2.0 * logvar);
     }
 
-    /// <summary>
-    ///     Find optimal Box-Cox lambda via MLE with ternary search over [-2, 2].
-    /// </summary>
     internal static double BoxCoxNormMax(ReadOnlySpan<double> values, int maxIters = 100)
     {
         if (values.IsEmpty) return 0.0;
@@ -275,13 +225,7 @@ public static class StatisticalMath
         return (left + right) / 2;
     }
 
-    // =========================================================================
-    // Z-Scores
-    // =========================================================================
 
-    /// <summary>
-    ///     Calculate Z-scores for a list of values: <c>(x - μ) / σ</c>.
-    /// </summary>
     public static double[] CalculateZScores(ReadOnlySpan<double> values)
     {
         if (values.IsEmpty) return [];

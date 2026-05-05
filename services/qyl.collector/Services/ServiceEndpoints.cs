@@ -37,9 +37,6 @@ internal static class ServiceEndpoints
             ? TypedResults.NotFound()
             : TypedResults.Ok(detail);
 
-    /// <summary>
-    ///     GET /api/v1/mcp/services/map — service dependency map derived from span parent relationships.
-    /// </summary>
     private static async Task<IResult> GetServiceMapAsync(
         DuckDbStore store,
         CancellationToken ct)
@@ -47,7 +44,6 @@ internal static class ServiceEndpoints
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
-        // Build edges from parent-child span relationships across services
         cmd.CommandText = """
                           SELECT
                               COALESCE(parent.service_name, 'unknown') as source,
@@ -79,7 +75,6 @@ internal static class ServiceEndpoints
             });
         }
 
-        // Collect distinct nodes from edges
         var nodeSet = new HashSet<string>();
         foreach (var edge in edges)
         {
@@ -91,9 +86,6 @@ internal static class ServiceEndpoints
     }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// DTOs
-// ═════════════════════════════════════════════════════════════════════════════
 
 public sealed record ServiceSummary
 {
@@ -149,9 +141,6 @@ public sealed record ServiceDetail
     public required IReadOnlyList<ServiceInstanceDto> Instances { get; init; }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Response wrappers
-// ═════════════════════════════════════════════════════════════════════════════
 
 internal sealed record ServicesResponse
 {
@@ -159,9 +148,6 @@ internal sealed record ServicesResponse
     public int Total { get; init; }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// JSON serializer context (AOT-compatible)
-// ═════════════════════════════════════════════════════════════════════════════
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -172,9 +158,6 @@ internal sealed record ServicesResponse
 [JsonSerializable(typeof(ServicesResponse))]
 internal sealed partial class ServiceSerializerContext : JsonSerializerContext;
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MCP Service Map DTOs
-// ═════════════════════════════════════════════════════════════════════════════
 
 internal sealed record McpServiceEdgeDto
 {

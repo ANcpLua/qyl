@@ -1,8 +1,5 @@
 namespace Qyl.Loom;
 
-/// <summary>
-///     LLM prompt templates for the Loom triage pipeline.
-/// </summary>
 internal static class TriagePrompts
 {
     public const string FixabilityScoring = """

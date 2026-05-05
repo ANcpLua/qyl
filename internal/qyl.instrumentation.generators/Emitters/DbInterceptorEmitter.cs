@@ -3,9 +3,6 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
 
-/// <summary>
-///     Emits interceptor source code for ADO.NET DbCommand method invocations.
-/// </summary>
 internal static class DbInterceptorEmitter
 {
     public static string Emit(ImmutableArray<DbCallSite> callSites)

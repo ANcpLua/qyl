@@ -44,8 +44,6 @@ internal static class McpCollectorHttpClientExtensions
             .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()))
             .AddExtendedHttpClientLogging();
 
-        // Most MCP tools ask for a bare HttpClient. Make that default resolve to the
-        // collector-configured named client so tool constructors stay simple.
         services.Replace(ServiceDescriptor.Transient<HttpClient>(static sp =>
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(CollectorClientName)));
 

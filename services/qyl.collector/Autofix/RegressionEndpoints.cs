@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     REST endpoints for regression detection data.
-///     Active regression scanning is owned by qyl.loom.
-/// </summary>
 public static class RegressionEndpoints
 {
     [QylMapEndpoints]

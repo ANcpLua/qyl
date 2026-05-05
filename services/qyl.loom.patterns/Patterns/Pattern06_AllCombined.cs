@@ -1,31 +1,13 @@
-// Copyright (c) 2025-2026 ancplua
 
 using Qyl.Loom.Patterns.Agents;
 using Qyl.Loom.Patterns.Contracts;
 
 namespace Qyl.Loom.Patterns.Patterns;
 
-/// <summary>
-///     Pattern 06 — autofix-shaped end-to-end demonstration that combines every MAF-1.1
-///     composition primitive in one graph.
-///     <list type="bullet">
-///         <item><c>StreamingRun.SessionId</c> — caller-minted, round-tripped through <c>RunStreamingAsync</c>.</item>
-///         <item><c>AddSwitch</c> + <c>AddCase&lt;T&gt;</c> + <c>WithDefault</c> — severity triage.</item>
-///         <item><c>Workflow.BindAsExecutor</c> — inner <c>rca → solution</c> sub-workflow as a single node.</item>
-///         <item><c>StatefulExecutor&lt;TState, TInput, TOutput&gt;</c> + <c>InvokeWithStateAsync</c> — intake counter.</item>
-///         <item><c>ctx.AddEventAsync</c> + <see cref="StageObserved" /> — lifecycle events.</item>
-///         <item><c>AddExternalCall&lt;TReq, TResp&gt;</c> — one-line HITL port.</item>
-///         <item><c>ForwardMessage&lt;TResp&gt;</c> with a predicate — typed fan-out to approve / reject sinks.</item>
-///         <item><c>CheckpointManager</c> + <c>SuperStepCompletedEvent.CompletionInfo.Checkpoint</c> — auto-snapshotting.</item>
-///         <item><c>StreamingRun.GetStatusAsync</c> — post-run diagnostics.</item>
-///     </list>
-/// </summary>
 public static class Pattern06_AllCombined
 {
-    /// <summary>Runs the combined autofix demonstration end-to-end.</summary>
     public static async Task RunAsync(IQylLoomPatternsAgentsBuilder agents, CancellationToken ct)
     {
-        // ── Inner autofix sub-workflow: rca → solution ───────────────────────
         var rca = new RcaStep("loom.patterns.rca", agents.BuildRcaAgent());
         var solution = new SolutionStep("loom.patterns.solution", agents.BuildSolutionAgent());
 
@@ -37,7 +19,6 @@ public static class Pattern06_AllCombined
 
         var autofixSubflow = innerAutofix.BindAsExecutor("loom.patterns.autofix.subflow");
 
-        // ── Outer graph ──────────────────────────────────────────────────────
         var intake = new StatefulIntake("loom.patterns.intake");
         var triage = new TriageRouter("loom.patterns.triage");
         var planBridge = new PlanBridge("loom.patterns.bridge");
@@ -47,17 +28,11 @@ public static class Pattern06_AllCombined
 
         var workflow = new WorkflowBuilder(intake)
             .AddEdge(intake, triage)
-            // Severity fan-out — critical/warning enter the autofix subflow, info short-circuits.
             .AddSwitch(triage, sw => sw
                 .AddCase<IncidentSignal>(s => s is { Severity: "critical" or "warning" }, autofixSubflow)
                 .WithDefault(infoAck))
-            // Subflow's SolutionPlan output flows into the pass-through bridge. The bridge is a
-            // regular executor, so the port's bidirectional back-edge (port → bridge) doesn't
-            // interfere with the subflow's own protocol.
             .AddEdge(autofixSubflow, planBridge)
-            // One-line HITL — AddExternalCall creates the port + both edges.
             .AddExternalCall<SolutionPlan, ConfidenceVerdict>(planBridge, "loom.patterns.review")
-            // Typed forward: verdict dispatches to approve vs. reject sink based on the boolean.
             .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [approve], v => v.Approved)
             .ForwardMessage<ConfidenceVerdict>("loom.patterns.review", [reject], v => !v.Approved)
             .WithOutputFrom(approve)
@@ -66,7 +41,6 @@ public static class Pattern06_AllCombined
             .WithName("LoomPatterns/06/Combined")
             .Build();
 
-        // ── Run with checkpointing + HITL resolution ─────────────────────────
         var cm = CheckpointManager.Default;
         var checkpoints = new List<CheckpointInfo>();
         var sessionId = Guid.NewGuid().ToString("N");
@@ -113,9 +87,7 @@ public static class Pattern06_AllCombined
         }
     }
 
-    // ── Lifecycle event ──────────────────────────────────────────────────────
 
-    /// <summary>Lifecycle event for observability — emitted from <see cref="StatefulIntake" />.</summary>
     private sealed class StageObserved(string stage, int seenSoFar)
         : WorkflowEvent(new { stage, seenSoFar })
     {
@@ -123,7 +95,6 @@ public static class Pattern06_AllCombined
         public int SeenSoFar { get; } = seenSoFar;
     }
 
-    // ── Stateful intake ──────────────────────────────────────────────────────
 
     private sealed class StatefulIntake(string id)
         : StatefulExecutor<AutofixCombinedState, IncidentSignal, IncidentSignal>(
@@ -146,7 +117,6 @@ public static class Pattern06_AllCombined
         }
     }
 
-    // ── Simple transformer executors ─────────────────────────────────────────
 
     private sealed class TriageRouter(string id) : Executor<IncidentSignal, IncidentSignal>(id)
     {
@@ -158,12 +128,6 @@ public static class Pattern06_AllCombined
         }
     }
 
-    /// <summary>
-    ///     Trivial pass-through between the autofix subflow and the HITL port. Exists so the
-    ///     port's bidirectional back-edge (port → source) lands on a regular executor whose
-    ///     protocol matches the response type, rather than on the subflow binding whose entry
-    ///     executor consumes a different type.
-    /// </summary>
     private sealed class PlanBridge(string id) : Executor<SolutionPlan, SolutionPlan>(id)
     {
         public override ValueTask<SolutionPlan> HandleAsync(

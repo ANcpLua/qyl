@@ -2,10 +2,6 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Apps.QueryStudio;
 
-/// <summary>
-///     MCP resource serving the Query Studio HTML UI at <c>ui://qyl/query-studio</c>.
-///     Uses <c>McpServerResource.Create</c> with a delegate for programmatic registration.
-/// </summary>
 internal static class QueryStudioResource
 {
     public static McpServerResource Create() =>

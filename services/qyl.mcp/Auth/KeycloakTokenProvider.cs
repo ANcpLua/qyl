@@ -7,15 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace qyl.mcp.Auth;
 
-/// <summary>
-///     Fetches and caches a Keycloak JWT via OAuth2 client-credentials flow.
-///     Returns <see langword="null" /> when Keycloak is not configured — callers fall back to the API-key path.
-/// </summary>
 public sealed partial class KeycloakTokenProvider : IDisposable
 {
-    /// <summary>
-    ///     Named HTTP client identifier used for DI registration.
-    /// </summary>
     public const string HttpClientName = "KeycloakTokenProvider";
 
     private readonly HttpClient _httpClient;
@@ -29,13 +22,6 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     private string? _cachedToken;
     private DateTimeOffset _tokenExpiry = DateTimeOffset.MinValue;
 
-    /// <summary>
-    ///     Initializes a new instance of the <see cref="KeycloakTokenProvider" /> class.
-    /// </summary>
-    /// <param name="options">Authentication options containing Keycloak configuration.</param>
-    /// <param name="httpClient">HTTP client for communicating with the Keycloak token endpoint.</param>
-    /// <param name="time">Time provider for token expiry calculations.</param>
-    /// <param name="logger">Logger for token lifecycle events.</param>
     public KeycloakTokenProvider(
         IOptions<McpAuthOptions> options,
         HttpClient httpClient,
@@ -48,15 +34,8 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         _logger = logger;
     }
 
-    /// <summary>
-    ///     Disposes the underlying HTTP client.
-    /// </summary>
     public void Dispose() => _httpClient.Dispose();
 
-    /// <summary>
-    ///     Returns a valid Bearer token string, or <see langword="null" /> when Keycloak is not configured.
-    ///     Refreshes automatically when the cached token is within 60 seconds of expiry.
-    /// </summary>
     public async ValueTask<string?> GetTokenAsync(CancellationToken ct = default)
     {
         if (!_options.IsKeycloakEnabled)
@@ -74,18 +53,12 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         return await FetchTokenAsync(ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Returns the set of Keycloak realm roles from the most recently fetched token.
-    ///     Empty when no token has been fetched yet or Keycloak is not configured.
-    /// </summary>
     public FrozenSet<string> GetCachedRoles()
     {
         using (_lock.EnterScope())
             return _cachedRoles;
     }
 
-    // Network failures (HttpRequestException — Keycloak unreachable) intentionally propagate
-    // so the resilience handler on the named HttpClient can retry and circuit-break.
     private async ValueTask<string?> FetchTokenAsync(CancellationToken ct)
     {
         var authority = _options.KeycloakAuthority!.TrimEnd('/');
@@ -102,8 +75,6 @@ public sealed partial class KeycloakTokenProvider : IDisposable
             .PostAsync(tokenEndpoint, form, ct)
             .ConfigureAwait(false);
 
-        // Non-2xx from Keycloak (bad credentials, realm not found, etc.) — log and return null
-        // so callers can fall back to the API-key path rather than crashing the MCP server.
         if (!response.IsSuccessStatusCode)
         {
             LogTokenHttpError((int)response.StatusCode, tokenEndpoint);
@@ -143,11 +114,6 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         return tokenResponse.AccessToken;
     }
 
-    /// <summary>
-    ///     Decodes the JWT payload without signature validation (the token was just fetched directly
-    ///     from Keycloak's token endpoint, so its provenance is trusted) and extracts
-    ///     <c>realm_access.roles</c>.
-    /// </summary>
     private static FrozenSet<string> ExtractRoles(string jwt)
     {
         ReadOnlySpan<char> span = jwt;
@@ -213,7 +179,6 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     private partial void LogTokenJsonError(JsonException ex);
 }
 
-// ── Token response DTO ────────────────────────────────────────────────────────
 
 internal sealed record TokenResponse(
     [property: JsonPropertyName("access_token")]

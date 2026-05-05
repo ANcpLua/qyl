@@ -4,12 +4,6 @@ using Qyl.Contracts.Generated;
 
 namespace Qyl.Collector.Observe;
 
-/// <summary>
-///     Manages dynamic observability subscriptions that activate dormant ActivitySources on demand.
-///     Each subscription wires an ActivityListener (flipping HasListeners() to true) into a
-///     BatchExportProcessor backed by an OtlpTraceExporter. When unsubscribed, the pipeline
-///     is torn down cleanly and the source returns to zero-cost dormancy.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 internal sealed class SubscriptionManager : IDisposable
 {
@@ -21,12 +15,8 @@ internal sealed class SubscriptionManager : IDisposable
             Unsubscribe(id);
     }
 
-    /// <summary>
-    ///     Creates a new subscription with optional schema version declaration.
-    /// </summary>
     public ObservationSubscription Subscribe(string filter, string endpoint, string? schemaVersion)
     {
-        // Idempotency: reuse if same filter+endpoint already active (schemaVersion is metadata, not identity)
         foreach (var existing in _subscriptions.Values)
         {
             if (string.Equals(existing.Filter, filter, StringComparison.Ordinal) &&
@@ -53,16 +43,9 @@ internal sealed class SubscriptionManager : IDisposable
         return subscription;
     }
 
-    /// <summary>
-    ///     Creates a new subscription (backward-compatible overload without schema version).
-    /// </summary>
     public ObservationSubscription Subscribe(string filter, string endpoint)
         => Subscribe(filter, endpoint, null);
 
-    /// <summary>
-    ///     Removes and disposes the subscription with the given id.
-    ///     Returns true if found and removed, false if unknown.
-    /// </summary>
     public bool Unsubscribe(string id)
     {
         if (!_subscriptions.TryRemove(id, out var subscription))
@@ -74,14 +57,7 @@ internal sealed class SubscriptionManager : IDisposable
 
     public IReadOnlyCollection<ObservationSubscription> GetAll() => _subscriptions.Values.ToArray();
 
-    // ── Filter matching ───────────────────────────────────────────────────────
 
-    /// <summary>
-    ///     Matches source names against glob-style filters:
-    ///     - "gen_ai.*"  → matches any source starting with "gen_ai."
-    ///     - "my.source" → exact match
-    ///     - "*"         → matches everything
-    /// </summary>
     private static bool MatchesFilter(string sourceName, string filter)
     {
         if (filter is "*")
@@ -89,7 +65,7 @@ internal sealed class SubscriptionManager : IDisposable
 
         if (filter.EndsWithOrdinal(".*"))
         {
-            var prefix = filter[..^2]; // strip trailing ".*"
+            var prefix = filter[..^2];
             return sourceName.StartsWithOrdinal(prefix) &&
                    (sourceName.Length == prefix.Length || sourceName[prefix.Length] == '.');
         }
@@ -97,10 +73,6 @@ internal sealed class SubscriptionManager : IDisposable
         return string.Equals(sourceName, filter, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    ///     Resolves the contract hash for the given filter by matching against known domain sources.
-    ///     Returns null if the filter matches zero or multiple domains (wildcard = no single contract).
-    /// </summary>
     private static string? ResolveContractHash(string filter)
     {
         string? matchedSource = null;
@@ -110,7 +82,7 @@ internal sealed class SubscriptionManager : IDisposable
                 continue;
 
             if (matchedSource is not null)
-                return null; // Multiple matches (e.g., wildcard "qyl.*") → no single contract
+                return null;
 
             matchedSource = domain.Source;
         }
@@ -120,14 +92,7 @@ internal sealed class SubscriptionManager : IDisposable
             : null;
     }
 
-    // ── Export pipeline ───────────────────────────────────────────────────────
 
-    /// <summary>
-    ///     Holds an OtlpTraceExporter and its BatchActivityExportProcessor together so the
-    ///     disposal chain is explicit and verifiable. The exporter is assigned as a field,
-    ///     disposed in the constructor's catch block if processor creation fails, and disposed
-    ///     by the processor's own Dispose() in the success path.
-    /// </summary>
     private sealed class ExportPipeline : IDisposable
     {
         private readonly OtlpTraceExporter _exporter;
@@ -152,11 +117,10 @@ internal sealed class SubscriptionManager : IDisposable
 
         public void Dispose()
         {
-            _processor.Dispose(); // drains queue and flushes before disposing _exporter transitively
-            _exporter.Dispose(); // explicit: satisfies CA2213; BaseExporter.Dispose() is idempotent
+            _processor.Dispose();
+            _exporter.Dispose();
         }
 
-        /// <summary>Routes a completed activity through the batch processor.</summary>
         public void OnEnd(Activity activity) => _processor.OnEnd(activity);
     }
 }

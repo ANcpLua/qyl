@@ -2,17 +2,9 @@ using ANcpLua.Roslyn.Utilities.Time;
 
 namespace Qyl.Collector.Analytics;
 
-/// <summary>
-///     Z-score anomaly detection service operating against the <c>spans</c> table
-///     via DuckDB time-bucketed aggregations. Supports error rate, latency percentiles,
-///     request count, token usage, and cost metrics.
-/// </summary>
 [QylService(QylLifetime.Singleton)]
 public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalyService> logger)
 {
-    // ==========================================================================
-    // Whitelisted Metrics
-    // ==========================================================================
 
     private static readonly FrozenDictionary<string, string> s_metricExpressions =
         new Dictionary<string, string>
@@ -30,15 +22,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
                 "SUM(CAST(attributes_json->>'gen_ai.response.cost' AS DOUBLE)) FILTER (WHERE attributes_json->>'gen_ai.response.cost' IS NOT NULL)"
         }.ToFrozenDictionary();
 
-    // ==========================================================================
-    // Anomaly Detection
-    // ==========================================================================
 
-    /// <summary>
-    ///     Detects Z-score anomalies in hourly-bucketed metric values over the
-    ///     specified lookback window. Points exceeding the sensitivity threshold
-    ///     are returned as anomalies.
-    /// </summary>
     public async Task<AnomalyDetectionResult> DetectAnomaliesAsync(
         string metric,
         int hours = 24,
@@ -93,14 +77,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         return new AnomalyDetectionResult(metric, hours, sensitivity, mean, stddev, anomalies);
     }
 
-    // ==========================================================================
-    // Baseline Statistics
-    // ==========================================================================
 
-    /// <summary>
-    ///     Computes baseline statistics (mean, stddev, percentiles) for a metric
-    ///     over hourly buckets within the specified lookback window.
-    /// </summary>
     public async Task<BaselineResult> GetBaselineAsync(
         string metric,
         int hours = 24,
@@ -148,14 +125,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
     }
 
-    // ==========================================================================
-    // Period Comparison
-    // ==========================================================================
 
-    /// <summary>
-    ///     Compares baseline statistics between two time periods, computing
-    ///     the mean delta and percentage change.
-    /// </summary>
     public async Task<PeriodComparisonResult> ComparePeriodAsync(
         string metric,
         DateTime period1Start,
@@ -182,9 +152,6 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         return new PeriodComparisonResult(metric, period1, period2, meanDelta, meanDeltaPercent);
     }
 
-    // ==========================================================================
-    // Private Helpers
-    // ==========================================================================
 
     private async Task<BaselineResult> GetPeriodBaselineAsync(
         string metric,
@@ -255,9 +222,6 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
     private static long DateTimeToUnixNano(DateTime dt) =>
         TimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
 
-    // ==========================================================================
-    // Structured Log Messages
-    // ==========================================================================
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Anomaly detection for {Metric} over {Hours}h found {Count} anomalies")]
@@ -272,9 +236,6 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
     private partial void LogPeriodComparison(string metric, double meanDelta, double meanDeltaPercent);
 }
 
-// =============================================================================
-// Response Types
-// =============================================================================
 
 public sealed record AnomalyDetectionResult(
     string Metric,

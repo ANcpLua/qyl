@@ -99,7 +99,6 @@ public static class StartupBanner
         Console.ResetColor();
         Console.WriteLine();
 
-        // Protocol hint for OTLP HTTP users
         if (otlpHttpPort > 0)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -112,7 +111,6 @@ public static class StartupBanner
             Console.WriteLine();
         }
 
-        // OTLP CORS/Auth status
         if (corsOptions?.IsEnabled == true)
         {
             Console.ForegroundColor = ConsoleColor.Green;

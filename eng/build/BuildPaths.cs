@@ -1,8 +1,3 @@
-// =============================================================================
-// qyl Build System - Path Definitions & Versioning
-// =============================================================================
-// Foundation: IHazSourcePaths, CodegenPaths, IVersionize
-// =============================================================================
 
 using System;
 using Nuke.Common;
@@ -12,9 +7,6 @@ using Nuke.Components;
 
 namespace Qyl.Build;
 
-// ════════════════════════════════════════════════════════════════════════════════
-// IHazSourcePaths - qyl project directory structure
-// ════════════════════════════════════════════════════════════════════════════════
 
 interface IHazSourcePaths : IHazSolution, IHazArtifacts
 {
@@ -31,9 +23,6 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// CodegenPaths - Paths for SchemaGenerator and IVerify
-// ════════════════════════════════════════════════════════════════════════════════
 
 sealed record CodegenPaths(AbsolutePath Root)
 {
@@ -49,9 +38,6 @@ sealed record CodegenPaths(AbsolutePath Root)
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// IVersionize - Conventional Commits & Changelog
-// ════════════════════════════════════════════════════════════════════════════════
 
 interface IVersionize : IHazSourcePaths
 {

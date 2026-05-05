@@ -2,10 +2,6 @@ using System.Net;
 
 namespace qyl.mcp.Formatting;
 
-/// <summary>
-///     Formats errors for LLM consumption with transport-aware detail levels.
-///     HTTP: generic (user can't fix server config). Stdio: detailed (dev can fix locally).
-/// </summary>
 internal static class ErrorFormatter
 {
     public static string FormatForLlm(Exception error, McpTransportMode transport) =>

@@ -44,8 +44,6 @@ public static class CollectorMiddlewareExtensions
 
         app.UseQylTelemetry();
 
-        // Physical files (Docker: wwwroot copied at container stage) take priority.
-        // Embedded resources (single-binary: EmbeddedResource in csproj) are the fallback.
         var webRoot = app.Environment.WebRootPath;
         if (string.IsNullOrEmpty(webRoot))
         {

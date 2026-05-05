@@ -1,9 +1,5 @@
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     Storage record for a deployment event. Maps to the deployments DuckDB table.
-///     Used by the regression detection service to correlate error spikes with deploys.
-/// </summary>
 public sealed record DeploymentRecord
 {
     public required string DeploymentId { get; init; }

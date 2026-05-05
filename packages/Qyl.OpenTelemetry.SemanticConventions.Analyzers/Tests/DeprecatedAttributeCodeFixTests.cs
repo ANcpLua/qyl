@@ -18,7 +18,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public async Task DirectModeReplacesLiteralAsync()
     {
-        // android.state (mode=direct, replacements=[android.app.state])
         const string code = """
                             class C { void M(object a) { a.SetTag("android.state", "x"); } }
                             """;
@@ -32,7 +31,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public async Task AlternativeModeOffersOneActionPerReplacementAsync()
     {
-        // http.host (mode=alternative, 3 replacements)
         const string code = """
                             class C { void M(object a) { a.SetTag("http.host", "x"); } }
                             """;
@@ -47,8 +45,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public async Task FieldMappingModeHasNoAutofixWhenReplacementsEmptyAsync()
     {
-        // The only field_mapping entry in the registry (event.name) has no replacement target
-        // because the migration is structural (value moves to LogRecord.EventName).
         var fmEntry = DeprecatedDiagnostics.ByDeprecatedId.Values
             .Single(e => e.Mode == DeprecatedReplacementMode.FieldMapping);
         Assert.Empty(fmEntry.Replacements);
@@ -62,7 +58,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public async Task RemovedModeStripsStatementAsync()
     {
-        // db.jdbc.driver_classname (mode=removed)
         const string code = """
                             class C
                             {
@@ -83,7 +78,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public async Task CompositeModeOffersNoFixAsync()
     {
-        // db.connection_string (mode=composite)
         const string code = """
                             class C { void M(object a) { a.SetTag("db.connection_string", "x"); } }
                             """;
@@ -95,8 +89,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     [Fact]
     public void All245RuleIdsAreFixable()
     {
-        // Guarantees that if the diagnostic fires, the codefix at least sees it — even when
-        // the mode has no auto-action. This is the contract: every deprecated ID is routable.
         Assert.Equal(245, s_fix.FixableDiagnosticIds.Length);
         foreach (var descriptor in s_analyzer.SupportedDiagnostics)
             Assert.Contains(descriptor.Id, s_fix.FixableDiagnosticIds);
