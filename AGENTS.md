@@ -126,13 +126,14 @@ Endpoint implementations under `services/qyl.collector/**Endpoints.cs` track `co
 
 ## HTTP client error handling
 
-In `services/qyl.loom/CollectorClient.cs` and any other `HttpClient`-consuming code, the established pattern:
+In `services/qyl.loom/CollectorClient.cs` and any other `HttpClient`-consuming code:
 
-- Before `ReadFromJsonAsync` on a non-success response, check
-  `Content.Headers.ContentType?.MediaType == "application/json"` and `ContentLength > 0`; otherwise fall back to
-  `StatusCode`.
-- `ReadFromJsonAsync` is wrapped in `try/catch (JsonException)` on non-success paths.
-- Failures return a structured DTO. Throwing on expected HTTP error status is the exception, not the rule.
+- Default: `response.EnsureSuccessStatusCode()` → `ReadFromJsonAsync(CollectorClientJsonContext.Default.<Type>, ct)`.
+  Let unexpected HTTP failures throw; the AOT-friendly `JsonTypeInfo` context is mandatory — never the reflection
+  overload.
+- For endpoints with a documented failure body (e.g. `CreatePullRequestAsync` at `CollectorClient.cs:148-178`),
+  branch on `IsSuccessStatusCode` and read either the success or failure DTO. Reserve this shape for contracts that
+  actually define a structured error payload.
 
 ## Codegen boundaries
 
@@ -195,9 +196,6 @@ In `services/qyl.mcp/`:
 
 For `services/qyl.loom/`, `services/qyl.loom.patterns/`, `services/qyl.mcp/Agents/`.
 
-References worth reading before editing agent/workflow code: `~/.claude/skills/microsoft-agent-framework-qyl/SKILL.md` (
-qyl overlay) and `~/.claude/skills/microsoft-agent-framework/SKILL.md` (core MAF).
-
 Local invariants:
 
 - qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory per
@@ -214,14 +212,14 @@ Reach for these before hand-rolling. Each row points at a concrete qyl call-site
 
 | Layer                         | Entry point                                                                                                                                                                                                                                   | qyl call-site                                                                                                                                      |
 |-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Agent — standalone**        | `llm.AsAIAgent(new ChatClientAgentOptions { Name, Description, ChatOptions = new() { Instructions } }).AsBuilder().UseQylAgentTelemetry().Build()`                                                                                            | `services/qyl.loom/Autofix/Workflow/Executors/RcaExecutor.cs:35-40` and every sibling executor                                                     |
-| **Agent — non-streaming**     | `await agent.RunAsync(userMessage, cancellationToken: ct)`                                                                                                                                                                                    | `RcaExecutor.cs:42` — the universal shape across Autofix executors and `TriagePipelineService`                                                     |
-| **Agent — streaming**         | `await foreach (var evt in streamingRun.WatchStreamAsync(ct)) { … }`                                                                                                                                                                          | `services/qyl.loom/Autofix/AutofixAgentService.cs:66-77`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                            |
+| **Agent — standalone**        | `llm.AsAIAgent(new ChatClientAgentOptions { Name, Description, ChatOptions = new() { Instructions } }).AsBuilder().UseQylAgentTelemetry().Build()`                                                                                            | `services/qyl.loom/Agents/QylLoomAgentsBuilder.cs:82-85` (every `Build*Agent()` factory)                                                           |
+| **Agent — non-streaming**     | `await agent.RunAsync(userMessage, cancellationToken: ct)`                                                                                                                                                                                    | `services/qyl.loom/Autofix/Workflow/Executors/HypothesisExecutor.cs:38-40` — universal shape across Autofix executors                              |
+| **Agent — streaming**         | `await foreach (var evt in streamingRun.WatchStreamAsync(ct)) { … }`                                                                                                                                                                          | `services/qyl.loom/Autofix/LoomAutofixRunner.cs:188`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                                |
 | **Agent — structured output** | `await agent.RunAsync<T>(prompt)` → `AgentResponse<T>.Result`                                                                                                                                                                                 | When `T` is a `LoomToolEnvelope<TData>` verdict (see `services/qyl.mcp/Tools/`)                                                                    |
 | **Session**                   | `agent.CreateSessionAsync()` • `SerializeSessionAsync` / `DeserializeSessionAsync`                                                                                                                                                            | When the same agent must preserve context across MCP tool calls — gate on `LoomRunState`                                                           |
-| **Tools — local**             | `AIFunctionFactory.Create(methodInfo, instanceFactory, new AIFunctionFactoryOptions { Name, ... })`                                                                                                                                           | `internal/qyl.instrumentation/Instrumentation/Loom/LoomToolFactoryBridge.cs:99-119`                                                                |
+| **Tools — local**             | `AIFunctionFactory.Create(methodInfo, new AIFunctionFactoryOptions { Name = "qyl.<area>.<verb>" })`                                                                                                                                           | `services/qyl.loom/Autofix/Workflow/AutofixContextToolFactories.cs:9-15`                                                                           |
 | **Workflow — build**          | `new WorkflowBuilder(start).AddEdge(a, b).AddFanOutEdge(src, [t1, t2, t3]).WithOutputFrom(last).Build()`                                                                                                                                      | `services/qyl.loom/Autofix/Workflow/AutofixWorkflowFactory.cs:44-51`, `services/qyl.loom/Exploration/Workflow/ExplorationWorkflowFactory.cs:23-28` |
-| **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                                                                                          | `AutofixAgentService.cs:66`, `ExplorationOrchestrator.cs:37`                                                                                       |
+| **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                                                                                          | `services/qyl.loom/Autofix/LoomAutofixRunner.cs:182-188`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                            |
 | **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap both layers — wrapping one halves the spans. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                                            |
 
 ## MAF.Advanced.Patterns — consume, don't duplicate
