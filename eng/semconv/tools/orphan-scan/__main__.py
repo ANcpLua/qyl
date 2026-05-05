@@ -9,7 +9,7 @@ Run:
 
 Registry inputs (each optional, skipped if missing):
     - .tools/semconv-upstream/model/**/*.yaml        (upstream OTel registry)
-    - eng/semconv/qyl/model/**/*.yaml                (qyl-custom additions)
+    - eng/semconv/model/qyl/**/*.yaml                (qyl-custom additions)
 
 Scan inputs:
     services/**/*.cs
@@ -198,7 +198,7 @@ def main() -> int:
     registry_dirs = [
         repo_root / p for p in (
             args.registry_dir
-            or [".tools/semconv-upstream/model", "eng/semconv/qyl/model"]
+            or [".tools/semconv-upstream/model", "eng/semconv/model/qyl"]
         )
     ]
     scan_dirs = args.scan_dir or ["services", "packages"]

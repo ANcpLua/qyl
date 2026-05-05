@@ -22,7 +22,7 @@ Flags:
 | Flag              | Default                                                         |
 |-------------------|-----------------------------------------------------------------|
 | `--repo-root`     | `.`                                                             |
-| `--registry-dir`  | repeatable; defaults to `.tools/semconv-upstream/model` and `eng/semconv/qyl/model` |
+| `--registry-dir`  | repeatable; defaults to `.tools/semconv-upstream/model` and `eng/semconv/model/qyl` |
 | `--scan-dir`      | repeatable; defaults to `services` and `packages`               |
 | `--report`        | JSON output file (stdout if omitted)                            |
 | `--limit`         | cap reported orphans                                            |
@@ -51,7 +51,7 @@ Flags:
 ## Rules
 
 - Registry sources are the upstream OTel model YAMLs (`.tools/semconv-upstream`)
-  plus any qyl-custom registry under `eng/semconv/qyl/model`. Missing dirs are
+  plus any qyl-custom registry under `eng/semconv/model/qyl`. Missing dirs are
   silently skipped.
 - Scanning only reports literals passed as the first argument to known
   tag-setter methods (`SetTag`, `AddTag`, `SetAttribute`, `AddAttribute`,
