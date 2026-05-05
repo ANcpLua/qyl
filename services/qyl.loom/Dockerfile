@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 # Qyl.Loom - AI Investigation Microservice
 # Build from repository root:
 #   docker build -f services/qyl.loom/Dockerfile -t qyl-loom .
@@ -6,7 +6,7 @@
 # ============================================================================
 # STAGE 1: Build .NET
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:8a90a473da5205a16979de99d2fc20975e922c68304f5c79d564e666dc3982fc AS build
 
 WORKDIR /src
 
@@ -55,7 +55,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:55e37c7795bfaf6b9cc5d77c155811d9569f529d86e20647704bc1d7dd9741d4 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.loom"
 LABEL org.opencontainers.image.description="qyl AI Investigation Microservice"

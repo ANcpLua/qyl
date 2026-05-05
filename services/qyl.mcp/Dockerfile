@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 # qyl.mcp - MCP Server for AI Agent Queries
 # Default container mode is remote Streamable HTTP for OpenAI / Anthropic connectors.
 #
@@ -8,7 +8,7 @@
 # ============================================================================
 # STAGE 1: Build .NET Native AOT
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:0191ff386e93923edf795d363ea0ae0669ce467ada4010b370644b670fa495c1 AS build
 
 # Install native AOT prerequisites
 RUN apk add --no-cache clang build-base zlib-dev
@@ -59,7 +59,7 @@ RUN dotnet publish -c Release -o /app -r linux-musl-x64 --no-restore \
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine@sha256:4f08c162590324de60f31937f5b5fa9f2b5eddaa4f0aaec3c872f855bf16c36c AS runtime
 
 # Labels for container registries
 LABEL org.opencontainers.image.title="qyl.mcp"
