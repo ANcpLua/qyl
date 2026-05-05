@@ -34,6 +34,7 @@ COPY eng/ eng/
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
 COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
+COPY packages/Qyl.Telemetry/*.csproj packages/Qyl.Telemetry/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
@@ -50,6 +51,7 @@ RUN dotnet restore
 WORKDIR /src
 COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
+COPY packages/Qyl.Telemetry/ packages/Qyl.Telemetry/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/ packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
