@@ -42,7 +42,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@typespec/ts-http-runtime": "0.2.1",
+    "@typespec/ts-http-runtime": "0.3.5",
     "uri-template": "^2.0.0"
   },
   "devDependencies": {
