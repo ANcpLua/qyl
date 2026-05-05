@@ -1,24 +1,18 @@
-# =============================================================================
-# Auto-merge for Trusted PRs
-# -----------------------------------------------------------------------------
-# Tiers:
-#   1. Renovate: Auto-approve + auto-merge
-#   2. AI Agents (copilot/jules/claude): Auto-merge when CI passes
-#   3. CodeRabbit approved: Auto-merge when CI passes
-#   4. Governance bot: Auto-merge action version governance PRs
-#   5. Owner PRs: Auto-merge when CI passes
+# Common tiers (Dependabot, Renovate, AI Agent, CodeRabbit, Owner) delegate
+# to the reusable workflow at ANcpLua/renovate-config. The Governance bot
+# tier is qyl-specific and stays local.
 #
-# Uses pull_request_target for security (runs in base branch context).
-# All merges wait for required status checks before completing.
-# =============================================================================
+# Required secrets:
+#   AUTOMERGE_APP_ID, AUTOMERGE_APP_PRIVATE_KEY
+# See https://github.com/ANcpLua/renovate-config#auto-merge-reusable-workflow
 
 name: Auto-merge
 
 on:
   pull_request_target:
-    types: [ opened, synchronize, reopened, ready_for_review ]
+    types: [opened, synchronize, reopened, ready_for_review]
   pull_request_review:
-    types: [ submitted ]
+    types: [submitted]
 
 permissions:
   contents: write
@@ -29,80 +23,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  renovate-auto-merge:
-    name: Renovate auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'renovate[bot]' &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Auto-approve Renovate PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL"
-
-      - name: Enable auto-merge for Renovate
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  ai-agent-auto-merge:
-    name: AI Agent auto-merge
-    runs-on: ubuntu-latest
-    if: |
-      (github.actor == 'copilot[bot]' || github.actor == 'jules[bot]' || github.actor == 'claude-code[bot]') &&
-      (
-        startsWith(github.event.pull_request.head.ref, 'copilot/') ||
-        startsWith(github.event.pull_request.head.ref, 'jules/') ||
-        startsWith(github.event.pull_request.head.ref, 'claude/')
-      )
-
-    steps:
-      - name: Identify AI agent
-        id: agent
-        env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          if [[ "$BRANCH" == copilot/* ]]; then
-            echo "agent=Copilot" >> "$GITHUB_OUTPUT"
-          elif [[ "$BRANCH" == jules/* ]]; then
-            echo "agent=Jules" >> "$GITHUB_OUTPUT"
-          elif [[ "$BRANCH" == claude/* ]]; then
-            echo "agent=Claude" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Auto-approve AI agent PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AGENT: ${{ steps.agent.outputs.agent }}
-        run: |
-          echo "Auto-approving $AGENT PR"
-          gh pr review --approve "$PR_URL" --body "✅ Auto-approved: $AGENT autonomous fix PR"
-
-      - name: Enable auto-merge for AI agent PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  coderabbit-auto-merge:
-    name: CodeRabbit auto-merge
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request_review' &&
-      github.event.review.state == 'approved' &&
-      github.event.review.user.login == 'coderabbitai[bot]'
-
-    steps:
-      - name: Enable auto-merge for CodeRabbit approved PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
+  auto-merge:
+    uses: ANcpLua/renovate-config/.github/workflows/auto-merge-reusable.yml@main
+    secrets: inherit
 
   governance-auto-merge:
     name: Governance bot auto-merge
@@ -111,12 +34,17 @@ jobs:
       github.event.pull_request.user.login == 'github-actions[bot]' &&
       github.event.pull_request.head.ref == 'chore/action-governance' &&
       github.event.pull_request.draft == false
-
     steps:
+      - uses: actions/create-github-app-token@67e27a7eb7db372a1c61a7f9bdab8699e9ee57f7 # v2.1.4
+        id: app-token
+        with:
+          app-id: ${{ secrets.AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.AUTOMERGE_APP_PRIVATE_KEY }}
+
       - name: Verify only .github files changed
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
           files=$(gh pr diff "$PR_URL" --name-only)
@@ -129,7 +57,7 @@ jobs:
       - name: Auto-approve governance PR
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           gh pr review --approve "$PR_URL" \
             --body "✅ Auto-approved: action governance update (scoped to .github/)"
@@ -137,19 +65,5 @@ jobs:
       - name: Enable auto-merge
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  owner-auto-merge:
-    name: Owner auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == github.event.repository.owner.login &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Enable auto-merge for owner PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh pr merge --auto --squash "$PR_URL"
