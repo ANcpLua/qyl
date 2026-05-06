@@ -5,7 +5,7 @@
 // the canonical YAML registry under eng/semconv/model/qyl/.
 //
 // Attribute constants are now generated via:
-//   nuke GenerateSemconv (or nuke Generate)
+//   nuke OtelConventions (or nuke Generate)
 //
 // Outputs:
 //   packages/Qyl.Telemetry/Conventions/Qyl.g.cs   (C# static constants)
