@@ -1,5 +1,3 @@
-using ANcpLua.Roslyn.Utilities.Text;
-
 namespace qyl.mcp.Scoping;
 
 public sealed class QylScope
@@ -17,8 +15,14 @@ public sealed class QylScope
     public bool HasScope => ServiceName is not null || SessionId is not null;
 
     public static QylScope FromEnvironment() =>
-        new(EnvConfig.ReadString("QYL_SERVICE"), EnvConfig.ReadString("QYL_SESSION"));
+        new(Read("QYL_SERVICE"), Read("QYL_SESSION"));
 
     internal static QylScope ForTest(string? serviceName = null, string? sessionId = null) =>
         new(serviceName, sessionId);
+
+    private static string? Read(string name)
+    {
+        var raw = Environment.GetEnvironmentVariable(name);
+        return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
+    }
 }

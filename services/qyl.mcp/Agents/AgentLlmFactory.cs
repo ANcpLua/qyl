@@ -1,4 +1,4 @@
-using ANcpLua.Agents.Factory;
+using ANcpLua.Agents.Hosting.OpenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Qyl.Instrumentation.Instrumentation.GenAi;
