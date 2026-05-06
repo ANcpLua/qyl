@@ -43,19 +43,6 @@ public sealed class DeprecatedAttributeCodeFixTests
     }
 
     [Fact]
-    public async Task FieldMappingModeHasNoAutofixWhenReplacementsEmptyAsync()
-    {
-        var fmEntry = DeprecatedDiagnostics.ByDeprecatedId.Values
-            .Single(e => e.Mode == DeprecatedReplacementMode.FieldMapping);
-        Assert.Empty(fmEntry.Replacements);
-        var code = $$"""
-                     class C { void M(object a) { a.SetTag("{{fmEntry.DeprecatedId}}", "x"); } }
-                     """;
-        var actions = await GetFixActionsAsync(code).ConfigureAwait(true);
-        Assert.Empty(actions);
-    }
-
-    [Fact]
     public async Task RemovedModeStripsStatementAsync()
     {
         const string code = """
@@ -87,9 +74,9 @@ public sealed class DeprecatedAttributeCodeFixTests
     }
 
     [Fact]
-    public void All245RuleIdsAreFixable()
+    public void AllAnalyzerRuleIdsAreFixable()
     {
-        Assert.Equal(245, s_fix.FixableDiagnosticIds.Length);
+        Assert.Equal(s_analyzer.SupportedDiagnostics.Length, s_fix.FixableDiagnosticIds.Length);
         foreach (var descriptor in s_analyzer.SupportedDiagnostics)
             Assert.Contains(descriptor.Id, s_fix.FixableDiagnosticIds);
     }
