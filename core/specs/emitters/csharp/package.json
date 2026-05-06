@@ -17,11 +17,11 @@
     "test": "echo \"(smoke tested via core/specs compile)\""
   },
   "peerDependencies": {
-    "@typespec/compiler": "^1.11.0"
+    "@typespec/compiler": "^1.12.0-dev"
   },
   "devDependencies": {
     "@types/node": "25.6.0",
-    "@typespec/compiler": "1.11.0",
+    "@typespec/compiler": "1.12.0-dev.6",
     "typescript": "5.9.3"
   }
 }
