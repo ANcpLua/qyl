@@ -31,13 +31,13 @@ interface IPipeline : IHazSourcePaths
         .Description(
             "Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
         .DependsOn(TypeSpecInstall)
-        .DependsOn(GenerateSemconv)
+        .DependsOn(OtelConventions)
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Executes(() => NpmTasks.NpmRun(s => s
             .SetProcessWorkingDirectory<NpmRunSettings>(TypeSpecDirectory)
             .SetCommand("compile")));
 
-    Target GenerateSemconv => d => d
+    Target OtelConventions => d => d
         .Unlisted()
         .Description("Weaver → semconv.ts + C# OTel/qyl packages (idempotent)")
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
@@ -91,14 +91,14 @@ interface IPipeline : IHazSourcePaths
                 ProcessTasks.StartProcess(weaver,
                     $"registry generate --registry \"{registry}\" --templates \"{templates}\" {templateSet} \"{outputDir}\"",
                     logOutput: true).AssertZeroExitCode();
-                Log.Information("GenerateSemconv: {Template} → {Output}", templateSet, outputDir);
+                Log.Information("OtelConventions: {Template} → {Output}", templateSet, outputDir);
             }
         });
 
     Target Generate => d => d
         .Description("Regenerate ALL code from TypeSpec + Weaver")
         .DependsOn(TypeSpecCompile)
-        .DependsOn(GenerateSemconv);
+        .DependsOn(OtelConventions);
 
     Target FrontendInstall => d => d
         .Unlisted()

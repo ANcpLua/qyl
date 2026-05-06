@@ -19,7 +19,7 @@ params:
   semconv_commit: "e018fe6f91862f5ed63c082f87697cddac596784"
   package_namespace: "Qyl.OpenTelemetry.SemanticConventions"
 
-  # Reserved attrs verified present by the NUKE GenerateSemconvCsharp target.
+  # Reserved attrs verified present by the NUKE OtelConventions target.
   # If any are missing from generated output, the build fails.
   reserved_attrs:
     - "error.type"
