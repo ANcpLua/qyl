@@ -4,6 +4,30 @@
 
 namespace Qyl.OTel.Enums;
 
+public enum SpanKind
+{
+    Unspecified = 0,
+    Internal = 1,
+    Server = 2,
+    Client = 3,
+    Producer = 4,
+    Consumer = 5
+}
+
+public enum SpanStatusCode
+{
+    Unset = 0,
+    Ok = 1,
+    Error = 2
+}
+
+public enum SpanFlags
+{
+    None = 0,
+    Sampled = 1,
+    Random = 2
+}
+
 public enum SeverityNumber
 {
     Unspecified = 0,
@@ -31,30 +55,6 @@ public enum SeverityNumber
     Fatal2 = 22,
     Fatal3 = 23,
     Fatal4 = 24
-}
-
-public enum SpanKind
-{
-    Unspecified = 0,
-    Internal = 1,
-    Server = 2,
-    Client = 3,
-    Producer = 4,
-    Consumer = 5
-}
-
-public enum SpanStatusCode
-{
-    Unset = 0,
-    Ok = 1,
-    Error = 2
-}
-
-public enum SpanFlags
-{
-    None = 0,
-    Sampled = 1,
-    Random = 2
 }
 
 public enum SeverityText

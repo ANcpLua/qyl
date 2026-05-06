@@ -43,19 +43,19 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database management system identifier")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Database namespace (database name, schema, etc.)")
-  @encodedName("application/json", "db.namespace")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.Namespace)
   `namespace`?: string;
 
   @doc("Database operation name (query, insert, delete, etc.)")
-  @encodedName("application/json", "db.operation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationName)
   operationName?: DbOperationName;
 
   @doc("Batch size (number of statements in batch)")
-  @encodedName("application/json", "db.operation.batch.size")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationBatchSize)
   batchSize?: int32;
 
   // ---------------------------------------------------------------------------
@@ -63,15 +63,15 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database statement (query text, may be sanitized)")
-  @encodedName("application/json", "db.query.text")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.QueryText)
   queryText?: string;
 
   @doc("Parameterized query template")
-  @encodedName("application/json", "db.query.summary")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.QuerySummary)
   querySummary?: string;
 
   @doc("Query parameters (for prepared statements). Keys map to db.query.parameter.<key>")
-  @encodedName("application/json", "db.query.parameter")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.QueryParameter)
   queryParameters?: Record<string>;
 
   // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Table name")
-  @encodedName("application/json", "db.collection.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.CollectionName)
   collectionName?: string;
 
   // ---------------------------------------------------------------------------
@@ -87,11 +87,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Number of rows affected/returned")
-  @encodedName("application/json", "db.response.returned_rows")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ResponseReturnedRows)
   returnedRows?: int64;
 
   @doc("Status code from database")
-  @encodedName("application/json", "db.response.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ResponseStatusCode)
   responseStatusCode?: string;
 
   // ---------------------------------------------------------------------------
@@ -99,11 +99,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database server address")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   serverAddress?: string;
 
   @doc("Database server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   serverPort?: Port;
 
   // ---------------------------------------------------------------------------
@@ -111,11 +111,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Connection pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   connectionPoolName?: string;
 
   @doc("Connection state")
-  @encodedName("application/json", "db.client.connection.state")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionState)
   connectionState?: DbConnectionState;
 
   // ---------------------------------------------------------------------------
@@ -123,22 +123,22 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database name (deprecated - use db.namespace)")
-  @encodedName("application/json", "db.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.Name)
   @removed(DbVersions.v1_24)
   dbName?: string;
 
   @doc("Database statement (deprecated - use db.query.text)")
-  @encodedName("application/json", "db.statement")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.Statement)
   @removed(DbVersions.v1_24)
   statement?: string;
 
   @doc("Database operation (deprecated - use db.operation.name)")
-  @encodedName("application/json", "db.operation")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.Operation)
   @removed(DbVersions.v1_24)
   operation?: string;
 
   @doc("Database user (deprecated)")
-  @encodedName("application/json", "db.user")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.User)
   @removed(DbVersions.v1_24)
   user?: string;
 }
@@ -593,23 +593,23 @@ model DbClientOperationDurationMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Database namespace")
-  @encodedName("application/json", "db.namespace")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.Namespace)
   `namespace`?: string;
 
   @doc("Operation name")
-  @encodedName("application/json", "db.operation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationName)
   operationName: DbOperationName;
 
   @doc("Collection/table name")
-  @encodedName("application/json", "db.collection.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.CollectionName)
   collectionName?: string;
 
   @doc("Error type if failed")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType?: string;
 }
 
@@ -622,15 +622,15 @@ model DbConnectionPoolSizeMetric {
   unit: "{connection}";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 
   @doc("Connection state")
-  @encodedName("application/json", "db.client.connection.state")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionState)
   state: DbConnectionState;
 }
 
@@ -643,11 +643,11 @@ model DbConnectionCreateTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -660,11 +660,11 @@ model DbConnectionWaitTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -677,11 +677,11 @@ model DbConnectionUseTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -694,11 +694,11 @@ model DbConnectionPendingRequestsMetric {
   unit: "{request}";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -711,11 +711,11 @@ model DbConnectionTimeoutsMetric {
   unit: "{timeout}";
 
   @doc("Database system")
-  @encodedName("application/json", "db.system.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", "db.client.connection.pool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 

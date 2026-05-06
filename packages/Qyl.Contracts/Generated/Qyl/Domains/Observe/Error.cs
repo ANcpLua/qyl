@@ -109,6 +109,13 @@ public sealed class ErrorTypeStats
     public required Qyl.Domains.Observe.Error.ErrorStatus Status { get; init; }
 }
 
+public sealed class ErrorEntityMergePatchUpdate
+{
+    public Qyl.Domains.Observe.Error.ErrorStatus? Status { get; init; }
+    public object? AssignedTo { get; init; }
+    public object? IssueUrl { get; init; }
+}
+
 public enum ErrorCategory
 {
     Client,

@@ -35,6 +35,15 @@ sealed record CodegenPaths(AbsolutePath Root)
     public AbsolutePath Migrations => CollectorStorage / "Migrations";
     public AbsolutePath Dashboard => Root / "services" / "qyl.dashboard";
     public AbsolutePath InstrumentationGenerator => Root / "internal" / "qyl.instrumentation.generators";
+
+    public static string[] WeaverOutputs =>
+    [
+        "services/qyl.dashboard/src/lib/semconv.ts",
+        "core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json",
+        "packages/qyl-client/src/conventions.ts",
+        "docs/attributes/qyl.attrs.md",
+    ];
+
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
 }
 

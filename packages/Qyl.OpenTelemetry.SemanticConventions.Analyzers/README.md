@@ -1,13 +1,13 @@
 # Qyl.OpenTelemetry.SemanticConventions.Analyzers
 
 Roslyn analyzers and code fixes that enforce OpenTelemetry semantic
-conventions v1.40.0 in C# code.
+conventions v1.41.0 in C# code.
 
 ## Diagnostics
 
 | Range                   | Kind    | What it flags                                                                                                                                       |
 |-------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `QYLSC0001`–`QYLSC0245` | Warning | Each deprecated OTel attribute / metric / event / entity / enum member gets its own rule id so severity can be tuned per entry via `.editorconfig`. |
+| `QYLSC0001`–`QYLSC0260` | Warning | Each deprecated OTel attribute / metric / event / entity / enum member gets its own rule id so severity can be tuned per entry via `.editorconfig`. |
 | `QYLSC002`              | Info    | Magic-string attribute id — suggests replacing with a typed constant.                                                                               |
 | `QYLSC003A`             | Warning | String literal that looks OTel-namespaced but isn't in the registry; offers a Levenshtein suggestion.                                               |
 | `QYLSC003B`             | Warning | Unregistered `qyl.*` attribute — must be registered under `eng/semconv/model/qyl`.                                                                  |

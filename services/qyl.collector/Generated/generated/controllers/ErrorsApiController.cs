@@ -89,7 +89,7 @@ namespace Qyl.Api.Controllers
         [HttpPatch]
         [Route("/api/v1/errors/{errorId}")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ErrorEntity))]
-        public virtual async Task<IActionResult> Update(string errorId, ErrorUpdate body)
+        public virtual async Task<IActionResult> Update(string errorId, ErrorEntityMergePatchUpdate body)
         {
             var result = await ErrorsApiImpl.UpdateAsync(errorId, body);
             return Ok(result);

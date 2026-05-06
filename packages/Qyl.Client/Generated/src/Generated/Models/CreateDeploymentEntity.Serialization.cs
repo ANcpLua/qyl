@@ -8,71 +8,70 @@ using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
-using Qyl.Domains.Ops.Deployment;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Ops.Deployment
 {
-    /// <summary> Deployment creation request. </summary>
-    public partial class DeploymentCreate : IJsonModel<DeploymentCreate>
+    /// <summary> Complete deployment record. </summary>
+    public partial class CreateDeploymentEntity : IJsonModel<CreateDeploymentEntity>
     {
-        /// <summary> Initializes a new instance of <see cref="DeploymentCreate"/> for deserialization. </summary>
-        internal DeploymentCreate()
+        /// <summary> Initializes a new instance of <see cref="CreateDeploymentEntity"/> for deserialization. </summary>
+        internal CreateDeploymentEntity()
         {
         }
 
         /// <param name="data"> The data to parse. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        protected virtual DeploymentCreate PersistableModelCreateCore(BinaryData data, ModelReaderWriterOptions options)
+        protected virtual CreateDeploymentEntity PersistableModelCreateCore(BinaryData data, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<DeploymentCreate>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateDeploymentEntity>)this).GetFormatFromOptions(options) : options.Format;
             switch (format)
             {
                 case "J":
                     using (JsonDocument document = JsonDocument.Parse(data, ModelSerializationExtensions.JsonDocumentOptions))
                     {
-                        return DeserializeDeploymentCreate(document.RootElement, options);
+                        return DeserializeCreateDeploymentEntity(document.RootElement, options);
                     }
                 default:
-                    throw new FormatException($"The model {nameof(DeploymentCreate)} does not support reading '{options.Format}' format.");
+                    throw new FormatException($"The model {nameof(CreateDeploymentEntity)} does not support reading '{options.Format}' format.");
             }
         }
 
         /// <param name="options"> The client options for reading and writing models. </param>
         protected virtual BinaryData PersistableModelWriteCore(ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<DeploymentCreate>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateDeploymentEntity>)this).GetFormatFromOptions(options) : options.Format;
             switch (format)
             {
                 case "J":
                     return ModelReaderWriter.Write(this, options, QylClientContext.Default);
                 default:
-                    throw new FormatException($"The model {nameof(DeploymentCreate)} does not support writing '{options.Format}' format.");
+                    throw new FormatException($"The model {nameof(CreateDeploymentEntity)} does not support writing '{options.Format}' format.");
             }
         }
 
         /// <param name="options"> The client options for reading and writing models. </param>
-        BinaryData IPersistableModel<DeploymentCreate>.Write(ModelReaderWriterOptions options) => PersistableModelWriteCore(options);
+        BinaryData IPersistableModel<CreateDeploymentEntity>.Write(ModelReaderWriterOptions options) => PersistableModelWriteCore(options);
 
         /// <param name="data"> The data to parse. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        DeploymentCreate IPersistableModel<DeploymentCreate>.Create(BinaryData data, ModelReaderWriterOptions options) => PersistableModelCreateCore(data, options);
+        CreateDeploymentEntity IPersistableModel<CreateDeploymentEntity>.Create(BinaryData data, ModelReaderWriterOptions options) => PersistableModelCreateCore(data, options);
 
         /// <param name="options"> The client options for reading and writing models. </param>
-        string IPersistableModel<DeploymentCreate>.GetFormatFromOptions(ModelReaderWriterOptions options) => "J";
+        string IPersistableModel<CreateDeploymentEntity>.GetFormatFromOptions(ModelReaderWriterOptions options) => "J";
 
-        /// <param name="deploymentCreate"> The <see cref="DeploymentCreate"/> to serialize into <see cref="BinaryContent"/>. </param>
-        public static implicit operator BinaryContent(DeploymentCreate deploymentCreate)
+        /// <param name="createDeploymentEntity"> The <see cref="CreateDeploymentEntity"/> to serialize into <see cref="BinaryContent"/>. </param>
+        public static implicit operator BinaryContent(CreateDeploymentEntity createDeploymentEntity)
         {
-            if (deploymentCreate == null)
+            if (createDeploymentEntity == null)
             {
                 return null;
             }
-            return BinaryContent.Create(deploymentCreate, ModelSerializationExtensions.WireOptions);
+            return BinaryContent.Create(createDeploymentEntity, ModelSerializationExtensions.WireOptions);
         }
 
         /// <param name="writer"> The JSON writer. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        void IJsonModel<DeploymentCreate>.Write(Utf8JsonWriter writer, ModelReaderWriterOptions options)
+        void IJsonModel<CreateDeploymentEntity>.Write(Utf8JsonWriter writer, ModelReaderWriterOptions options)
         {
             writer.WriteStartObject();
             JsonModelWriteCore(writer, options);
@@ -83,14 +82,14 @@ namespace Qyl.Api
         /// <param name="options"> The client options for reading and writing models. </param>
         protected virtual void JsonModelWriteCore(Utf8JsonWriter writer, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<DeploymentCreate>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateDeploymentEntity>)this).GetFormatFromOptions(options) : options.Format;
             if (format != "J")
             {
-                throw new FormatException($"The model {nameof(DeploymentCreate)} does not support writing '{format}' format.");
+                throw new FormatException($"The model {nameof(CreateDeploymentEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("service_name"u8);
+            writer.WritePropertyName("service.name"u8);
             writer.WriteStringValue(ServiceName);
-            writer.WritePropertyName("service_version"u8);
+            writer.WritePropertyName("service.version"u8);
             writer.WriteStringValue(ServiceVersion);
             writer.WritePropertyName("environment"u8);
             writer.WriteStringValue(Environment.ToSerialString());
@@ -130,24 +129,24 @@ namespace Qyl.Api
 
         /// <param name="reader"> The JSON reader. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        DeploymentCreate IJsonModel<DeploymentCreate>.Create(ref Utf8JsonReader reader, ModelReaderWriterOptions options) => JsonModelCreateCore(ref reader, options);
+        CreateDeploymentEntity IJsonModel<CreateDeploymentEntity>.Create(ref Utf8JsonReader reader, ModelReaderWriterOptions options) => JsonModelCreateCore(ref reader, options);
 
         /// <param name="reader"> The JSON reader. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        protected virtual DeploymentCreate JsonModelCreateCore(ref Utf8JsonReader reader, ModelReaderWriterOptions options)
+        protected virtual CreateDeploymentEntity JsonModelCreateCore(ref Utf8JsonReader reader, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<DeploymentCreate>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateDeploymentEntity>)this).GetFormatFromOptions(options) : options.Format;
             if (format != "J")
             {
-                throw new FormatException($"The model {nameof(DeploymentCreate)} does not support reading '{format}' format.");
+                throw new FormatException($"The model {nameof(CreateDeploymentEntity)} does not support reading '{format}' format.");
             }
             using JsonDocument document = JsonDocument.ParseValue(ref reader);
-            return DeserializeDeploymentCreate(document.RootElement, options);
+            return DeserializeCreateDeploymentEntity(document.RootElement, options);
         }
 
         /// <param name="element"> The JSON element to deserialize. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        internal static DeploymentCreate DeserializeDeploymentCreate(JsonElement element, ModelReaderWriterOptions options)
+        internal static CreateDeploymentEntity DeserializeCreateDeploymentEntity(JsonElement element, ModelReaderWriterOptions options)
         {
             if (element.ValueKind == JsonValueKind.Null)
             {
@@ -163,12 +162,12 @@ namespace Qyl.Api
             IDictionary<string, BinaryData> additionalBinaryDataProperties = new ChangeTrackingDictionary<string, BinaryData>();
             foreach (var prop in element.EnumerateObject())
             {
-                if (prop.NameEquals("service_name"u8))
+                if (prop.NameEquals("service.name"u8))
                 {
                     serviceName = prop.Value.GetString();
                     continue;
                 }
-                if (prop.NameEquals("service_version"u8))
+                if (prop.NameEquals("service.version"u8))
                 {
                     serviceVersion = prop.Value.GetString();
                     continue;
@@ -203,7 +202,7 @@ namespace Qyl.Api
                     additionalBinaryDataProperties.Add(prop.Name, BinaryData.FromString(prop.Value.GetRawText()));
                 }
             }
-            return new DeploymentCreate(
+            return new CreateDeploymentEntity(
                 serviceName,
                 serviceVersion,
                 environment,

@@ -469,11 +469,11 @@ interface ErrorsApi {
   get(@path errorId: string): ErrorEntity | NotFoundError | InternalServerError;
 
   @doc("Update error status")
-  @patch(#{ implicitOptionality: true })
+  @patch
   @route("/{errorId}")
   update(
     @path errorId: string,
-    @body update: ErrorUpdate,
+    @body update: MergePatchUpdate<ErrorEntity>,
   ): ErrorEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get error statistics")
@@ -491,19 +491,6 @@ interface ErrorsApi {
   getCorrelations(@path errorId: string): ErrorCorrelation | NotFoundError | InternalServerError;
 }
 
-@doc("Error update request")
-model ErrorUpdate {
-  @doc("New status")
-  status?: ErrorStatus;
-
-  @doc("Assignee")
-  @encodedName("application/json", "assigned_to")
-  assignedTo?: string;
-
-  @doc("Issue URL")
-  @encodedName("application/json", "issue_url")
-  issueUrl?: UrlString;
-}
 
 // =============================================================================
 // Deployments API
@@ -531,14 +518,14 @@ interface DeploymentsApi {
 
   @doc("Record new deployment")
   @post
-  create(@body deployment: DeploymentCreate): DeploymentEntity | ValidationError | InternalServerError;
+  create(@body deployment: Create<DeploymentEntity>): DeploymentEntity | ValidationError | InternalServerError;
 
   @doc("Update deployment status")
-  @patch(#{ implicitOptionality: true })
+  @patch
   @route("/{deploymentId}")
   update(
     @path deploymentId: string,
-    @body update: DeploymentUpdate,
+    @body update: MergePatchUpdate<DeploymentEntity>,
   ): DeploymentEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get DORA metrics")
@@ -550,49 +537,6 @@ interface DeploymentsApi {
     @query @doc("Start time") startTime?: utcDateTime,
     @query @doc("End time") endTime?: utcDateTime,
   ): DoraMetrics | InternalServerError;
-}
-
-@doc("Deployment creation request")
-model DeploymentCreate {
-  @doc("Service name")
-  @encodedName("application/json", "service_name")
-  serviceName: string;
-
-  @doc("Service version")
-  @encodedName("application/json", "service_version")
-  serviceVersion: SemVer;
-
-  @doc("Environment")
-  environment: DeploymentEnvironment;
-
-  @doc("Strategy")
-  strategy: DeploymentStrategy;
-
-  @doc("Deployed by")
-  @encodedName("application/json", "deployed_by")
-  deployedBy?: string;
-
-  @doc("Git commit SHA")
-  @encodedName("application/json", "git_commit")
-  gitCommit?: string;
-
-  @doc("Git branch")
-  @encodedName("application/json", "git_branch")
-  gitBranch?: string;
-}
-
-@doc("Deployment update request")
-model DeploymentUpdate {
-  @doc("New status")
-  status?: DeploymentStatus;
-
-  @doc("Healthy replicas")
-  @encodedName("application/json", "healthy_replicas")
-  healthyReplicas?: int32;
-
-  @doc("Error message")
-  @encodedName("application/json", "error_message")
-  errorMessage?: string;
 }
 
 @doc("DORA metrics response")
@@ -806,24 +750,12 @@ interface WorkspacesApi {
   @doc("Create a new project")
   @post
   @route("/projects")
-  createProject(@body project: ProjectCreateRequest): ProjectEntity | ValidationError | InternalServerError;
+  createProject(@body project: Create<ProjectEntity>): ProjectEntity | ValidationError | InternalServerError;
 
   @doc("List environments for a project")
   @get
   @route("/projects/{projectId}/environments")
   listEnvironments(@path projectId: string): ProjectEnvironmentEntity[] | NotFoundError | InternalServerError;
-}
-
-@doc("Project creation request")
-model ProjectCreateRequest {
-  @doc("Project name")
-  name: string;
-
-  @doc("Project slug (URL-safe)")
-  slug: string;
-
-  @doc("Project description")
-  description?: string;
 }
 
 // =============================================================================
@@ -911,7 +843,7 @@ interface ConfiguratorApi {
   @doc("Create generation profile")
   @post
   @route("/profiles")
-  createProfile(@body profile: GenerationProfileCreateRequest): GenerationProfileEntity | ValidationError | InternalServerError;
+  createProfile(@body profile: Create<GenerationProfileEntity>): GenerationProfileEntity | ValidationError | InternalServerError;
 
   @doc("Get generation selections for a workspace")
   @get
@@ -928,7 +860,7 @@ interface ConfiguratorApi {
   @doc("Create a generation job")
   @post
   @route("/jobs")
-  createJob(@body job: GenerationJobCreateRequest): GenerationJobEntity | ValidationError | InternalServerError;
+  createJob(@body job: Create<GenerationJobEntity>): GenerationJobEntity | ValidationError | InternalServerError;
 
   @doc("Get generation job status")
   @get
@@ -936,51 +868,13 @@ interface ConfiguratorApi {
   getJob(@path jobId: string): GenerationJobEntity | NotFoundError | InternalServerError;
 }
 
-@doc("Generation profile creation request")
-model GenerationProfileCreateRequest {
-  @doc("Profile name")
-  name: string;
-
-  @doc("Target framework")
-  @encodedName("application/json", "target_framework")
-  targetFramework: string;
-
-  @doc("Profile description")
-  description?: string;
-
-  @doc("Feature flags")
-  @encodedName("application/json", "features_json")
-  featuresJson?: string;
-}
-
-@doc("Save generation selections request")
+@doc("Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys")
 model GenerationSelectionSaveRequest {
-  @doc("Workspace ID")
-  @encodedName("application/json", "workspace_id")
-  workspaceId: string;
+  ...PickProperties<GenerationSelectionEntity, "workspaceId" | "profileId">;
 
-  @doc("Profile ID")
-  @encodedName("application/json", "profile_id")
-  profileId: string;
-
-  @doc("Selected semconv keys")
-  @encodedName("application/json", "selected_keys_json")
-  selectedKeysJson: string;
-}
-
-@doc("Generation job creation request")
-model GenerationJobCreateRequest {
-  @doc("Workspace ID")
-  @encodedName("application/json", "workspace_id")
-  workspaceId: string;
-
-  @doc("Profile ID")
-  @encodedName("application/json", "profile_id")
-  profileId: string;
-
-  @doc("Job type")
-  @encodedName("application/json", "job_type")
-  jobType: GenerationJobType;
+  @doc("Array of selection keys to enable in a single round-trip")
+  @encodedName("application/json", "selected_keys")
+  selectedKeys: string[];
 }
 
 // =============================================================================
@@ -1009,11 +903,11 @@ interface IssuesApi {
   get(@path issueId: string): ErrorIssueEntity | NotFoundError | InternalServerError;
 
   @doc("Update issue status")
-  @patch(#{ implicitOptionality: true })
+  @patch
   @route("/{issueId}")
   update(
     @path issueId: string,
-    @body update: IssueUpdateRequest,
+    @body update: MergePatchUpdate<ErrorIssueEntity>,
   ): ErrorIssueEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get issue events")
@@ -1034,18 +928,6 @@ interface IssuesApi {
   ): ErrorBreadcrumbEntity[] | NotFoundError | InternalServerError;
 }
 
-@doc("Issue update request")
-model IssueUpdateRequest {
-  @doc("New status")
-  status?: IssueStatus;
-
-  @doc("New priority")
-  priority?: IssuePriority;
-
-  @doc("Assignee")
-  @encodedName("application/json", "assigned_to")
-  assignedTo?: string;
-}
 
 // =============================================================================
 // Workflow API

@@ -29,6 +29,15 @@ import "@typespec/sse";
 import "@typespec/events";
 
 // =============================================================================
+// Generated semantic-convention key constants (Weaver — DO NOT EDIT)
+// =============================================================================
+// Regenerated from .tools/semconv-upstream/model (pinned v1.41.0) by
+// ./eng/semconv/run-weaver.sh. See core/specs/generated/README.md.
+// =============================================================================
+
+import "./generated/otel-keys.gen.tsp";
+
+// =============================================================================
 // Common Infrastructure
 // =============================================================================
 
@@ -58,10 +67,10 @@ import "./otel/storage.tsp";
 // =============================================================================
 // QYL Domain Models
 // =============================================================================
-// qyl-specific models (stats, entities, aggregations). Semconv attribute keys
-// are used directly as string literals on @encodedName — the earlier typed
-// Keys.* TSP bridge was imported but never referenced, so dropped with its
-// 6953-line generated semconv.g.tsp.
+// qyl-specific models (stats, entities, aggregations). OTel semconv attribute
+// keys come from Qyl.OTel.Keys.<Domain>.<Name> (generated/otel-keys.gen.tsp);
+// hand-typed dotted strings inside @encodedName(...) are not allowed for
+// upstream-OTel attribute names.
 // =============================================================================
 
 // AI Domain - GenAI stats and cost models

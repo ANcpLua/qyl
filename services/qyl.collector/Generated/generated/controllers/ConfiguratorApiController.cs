@@ -88,7 +88,7 @@ namespace Qyl.Api.Controllers
         [HttpPost]
         [Route("/api/v1/configurator/profiles")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(GenerationProfileEntity))]
-        public virtual async Task<IActionResult> CreateProfile(GenerationProfileCreateRequest body)
+        public virtual async Task<IActionResult> CreateProfile(CreateGenerationProfileEntity body)
         {
             var result = await ConfiguratorApiImpl.CreateProfileAsync(body);
             return Ok(result);
@@ -124,7 +124,7 @@ namespace Qyl.Api.Controllers
         [HttpPost]
         [Route("/api/v1/configurator/jobs")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(GenerationJobEntity))]
-        public virtual async Task<IActionResult> CreateJob(GenerationJobCreateRequest body)
+        public virtual async Task<IActionResult> CreateJob(CreateGenerationJobEntity body)
         {
             var result = await ConfiguratorApiImpl.CreateJobAsync(body);
             return Ok(result);

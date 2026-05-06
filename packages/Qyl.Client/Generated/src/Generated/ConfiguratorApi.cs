@@ -216,7 +216,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="profile"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual ClientResult<GenerationProfileEntity> CreateProfile(GenerationProfileCreateRequest profile, CancellationToken cancellationToken = default)
+        public virtual ClientResult<GenerationProfileEntity> CreateProfile(CreateGenerationProfileEntity profile, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(profile, nameof(profile));
 
@@ -229,7 +229,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="profile"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual async Task<ClientResult<GenerationProfileEntity>> CreateProfileAsync(GenerationProfileCreateRequest profile, CancellationToken cancellationToken = default)
+        public virtual async Task<ClientResult<GenerationProfileEntity>> CreateProfileAsync(CreateGenerationProfileEntity profile, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(profile, nameof(profile));
 
@@ -438,7 +438,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="job"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual ClientResult<GenerationJobEntity> CreateJob(GenerationJobCreateRequest job, CancellationToken cancellationToken = default)
+        public virtual ClientResult<GenerationJobEntity> CreateJob(CreateGenerationJobEntity job, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(job, nameof(job));
 
@@ -451,7 +451,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="job"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual async Task<ClientResult<GenerationJobEntity>> CreateJobAsync(GenerationJobCreateRequest job, CancellationToken cancellationToken = default)
+        public virtual async Task<ClientResult<GenerationJobEntity>> CreateJobAsync(CreateGenerationJobEntity job, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(job, nameof(job));
 

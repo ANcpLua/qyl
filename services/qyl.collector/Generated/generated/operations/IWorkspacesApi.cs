@@ -72,7 +72,7 @@ namespace Qyl.Api
         ///<summary>
         /// Create a new project
         ///</summary>
-        Task<ProjectEntity> CreateProjectAsync(ProjectCreateRequest body);
+        Task<ProjectEntity> CreateProjectAsync(CreateProjectEntity body);
         ///<summary>
         /// List environments for a project
         ///</summary>

@@ -112,6 +112,13 @@ public sealed class ErrorReleaseMarkerEntity
     public required DateTimeOffset CreatedAt { get; init; }
 }
 
+public sealed class ErrorIssueEntityMergePatchUpdate
+{
+    public Qyl.Domains.Issues.IssueStatus? Status { get; init; }
+    public Qyl.Domains.Issues.IssuePriority? Priority { get; init; }
+    public object? AssignedTo { get; init; }
+}
+
 public enum IssueLevel
 {
     Debug,

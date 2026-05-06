@@ -112,7 +112,7 @@ namespace Qyl.Api.Controllers
         [HttpPost]
         [Route("/api/v1/workspaces/projects")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ProjectEntity))]
-        public virtual async Task<IActionResult> CreateProject(ProjectCreateRequest body)
+        public virtual async Task<IActionResult> CreateProject(CreateProjectEntity body)
         {
             var result = await WorkspacesApiImpl.CreateProjectAsync(body);
             return Ok(result);

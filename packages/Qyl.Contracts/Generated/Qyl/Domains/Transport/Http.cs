@@ -30,7 +30,7 @@ public sealed class HttpAttributes
     public string? ResponseContentType { get; init; }
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? RequestHeaders { get; init; }
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? ResponseHeaders { get; init; }
-    public string? ClientAddress { get; init; }
+    public object? ClientAddress { get; init; }
     public int? ClientPort { get; init; }
     public Qyl.Domains.Transport.Http.HttpConnectionState? ConnectionState { get; init; }
     public int? RequestResendCount { get; init; }

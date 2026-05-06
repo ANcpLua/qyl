@@ -85,8 +85,11 @@ namespace Qyl.Domains.Configurator
             {
                 throw new FormatException($"The model {nameof(GenerationSelectionEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("id"u8);
-            writer.WriteStringValue(Id);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("id"u8);
+                writer.WriteStringValue(Id);
+            }
             writer.WritePropertyName("workspace_id"u8);
             writer.WriteStringValue(WorkspaceId);
             writer.WritePropertyName("profile_id"u8);
@@ -102,10 +105,16 @@ namespace Qyl.Domains.Configurator
                 writer.WritePropertyName("config_json"u8);
                 writer.WriteStringValue(ConfigJson);
             }
-            writer.WritePropertyName("created_at"u8);
-            writer.WriteStringValue(CreatedAt, "O");
-            writer.WritePropertyName("updated_at"u8);
-            writer.WriteStringValue(UpdatedAt, "O");
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("created_at"u8);
+                writer.WriteStringValue(CreatedAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("updated_at"u8);
+                writer.WriteStringValue(UpdatedAt, "O");
+            }
             if (options.Format != "W" && _additionalBinaryDataProperties != null)
             {
                 foreach (var item in _additionalBinaryDataProperties)

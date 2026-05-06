@@ -85,41 +85,74 @@ namespace Qyl.Domains.Issues
             {
                 throw new FormatException($"The model {nameof(ErrorIssueEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("id"u8);
-            writer.WriteStringValue(Id);
-            writer.WritePropertyName("project_id"u8);
-            writer.WriteStringValue(ProjectId);
-            writer.WritePropertyName("fingerprint"u8);
-            writer.WriteStringValue(Fingerprint);
-            writer.WritePropertyName("title"u8);
-            writer.WriteStringValue(Title);
-            if (Optional.IsDefined(Culprit))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("id"u8);
+                writer.WriteStringValue(Id);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("project_id"u8);
+                writer.WriteStringValue(ProjectId);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("fingerprint"u8);
+                writer.WriteStringValue(Fingerprint);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("title"u8);
+                writer.WriteStringValue(Title);
+            }
+            if (options.Format != "W" && Optional.IsDefined(Culprit))
             {
                 writer.WritePropertyName("culprit"u8);
                 writer.WriteStringValue(Culprit);
             }
-            writer.WritePropertyName("error_type"u8);
-            writer.WriteStringValue(ErrorType);
-            writer.WritePropertyName("category"u8);
-            writer.WriteStringValue(Category);
-            writer.WritePropertyName("level"u8);
-            writer.WriteStringValue(Level.ToSerialString());
-            if (Optional.IsDefined(Platform))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("error_type"u8);
+                writer.WriteStringValue(ErrorType);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("category"u8);
+                writer.WriteStringValue(Category);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("level"u8);
+                writer.WriteStringValue(Level.ToSerialString());
+            }
+            if (options.Format != "W" && Optional.IsDefined(Platform))
             {
                 writer.WritePropertyName("platform"u8);
                 writer.WriteStringValue(Platform);
             }
-            writer.WritePropertyName("first_seen_at"u8);
-            writer.WriteStringValue(FirstSeenAt, "O");
-            writer.WritePropertyName("last_seen_at"u8);
-            writer.WriteStringValue(LastSeenAt, "O");
-            writer.WritePropertyName("occurrence_count"u8);
-            writer.WriteNumberValue(OccurrenceCount);
-            writer.WritePropertyName("affected_users_count"u8);
-            writer.WriteNumberValue(AffectedUsersCount);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("first_seen_at"u8);
+                writer.WriteStringValue(FirstSeenAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("last_seen_at"u8);
+                writer.WriteStringValue(LastSeenAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("occurrence_count"u8);
+                writer.WriteNumberValue(OccurrenceCount);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("affected_users_count"u8);
+                writer.WriteNumberValue(AffectedUsersCount);
+            }
             writer.WritePropertyName("status"u8);
             writer.WriteStringValue(Status.ToSerialString());
-            if (Optional.IsDefined(Substatus))
+            if (options.Format != "W" && Optional.IsDefined(Substatus))
             {
                 writer.WritePropertyName("substatus"u8);
                 writer.WriteStringValue(Substatus);
@@ -131,37 +164,46 @@ namespace Qyl.Domains.Issues
                 writer.WritePropertyName("assigned_to"u8);
                 writer.WriteStringValue(AssignedTo);
             }
-            if (Optional.IsDefined(ResolvedAt))
+            if (options.Format != "W" && Optional.IsDefined(ResolvedAt))
             {
                 writer.WritePropertyName("resolved_at"u8);
                 writer.WriteStringValue(ResolvedAt.Value, "O");
             }
-            if (Optional.IsDefined(ResolvedBy))
+            if (options.Format != "W" && Optional.IsDefined(ResolvedBy))
             {
                 writer.WritePropertyName("resolved_by"u8);
                 writer.WriteStringValue(ResolvedBy);
             }
-            writer.WritePropertyName("regression_count"u8);
-            writer.WriteNumberValue(RegressionCount);
-            if (Optional.IsDefined(LastRelease))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("regression_count"u8);
+                writer.WriteNumberValue(RegressionCount);
+            }
+            if (options.Format != "W" && Optional.IsDefined(LastRelease))
             {
                 writer.WritePropertyName("last_release"u8);
                 writer.WriteStringValue(LastRelease);
             }
-            if (Optional.IsDefined(TagsJson))
+            if (options.Format != "W" && Optional.IsDefined(TagsJson))
             {
                 writer.WritePropertyName("tags_json"u8);
                 writer.WriteStringValue(TagsJson);
             }
-            if (Optional.IsDefined(MetadataJson))
+            if (options.Format != "W" && Optional.IsDefined(MetadataJson))
             {
                 writer.WritePropertyName("metadata_json"u8);
                 writer.WriteStringValue(MetadataJson);
             }
-            writer.WritePropertyName("created_at"u8);
-            writer.WriteStringValue(CreatedAt, "O");
-            writer.WritePropertyName("updated_at"u8);
-            writer.WriteStringValue(UpdatedAt, "O");
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("created_at"u8);
+                writer.WriteStringValue(CreatedAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("updated_at"u8);
+                writer.WriteStringValue(UpdatedAt, "O");
+            }
             if (options.Format != "W" && _additionalBinaryDataProperties != null)
             {
                 foreach (var item in _additionalBinaryDataProperties)

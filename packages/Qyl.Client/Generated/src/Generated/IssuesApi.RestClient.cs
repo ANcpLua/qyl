@@ -81,7 +81,7 @@ namespace Qyl.Api
             uri.AppendPath(issueId, true);
             PipelineMessage message = Pipeline.CreateMessage(uri.ToUri(), "PATCH", PipelineMessageClassifier200);
             PipelineRequest request = message.Request;
-            request.Headers.Set("Content-Type", "application/json");
+            request.Headers.Set("Content-Type", "application/merge-patch+json");
             request.Headers.Set("Accept", "application/json");
             request.Content = content;
             message.Apply(options);
