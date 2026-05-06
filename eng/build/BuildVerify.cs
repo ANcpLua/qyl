@@ -204,14 +204,6 @@ interface IVerify : IHazSourcePaths
 
             string[] generatedSuffixes = [".g.cs", ".g.sql", ".g.tsp", ".g.ts"];
 
-            string[] weaverOutputs =
-            [
-                "services/qyl.dashboard/src/lib/semconv.ts",
-                "core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json",
-                "packages/qyl-client/src/conventions.ts",
-                "docs/attributes/qyl.attrs.md",
-            ];
-
             string[] weaverSchemaPrefixes =
             [
                 "packages/Qyl.OpenTelemetry.SemanticConventions/schemas/",
@@ -224,8 +216,8 @@ interface IVerify : IHazSourcePaths
                 .Where(f =>
                     generatedSuffixes.Any(s => f.EndsWith(s, StringComparison.OrdinalIgnoreCase)) ||
                     f.Contains("core/openapi/", StringComparison.OrdinalIgnoreCase) ||
-                    weaverOutputs.Contains(f, StringComparer.OrdinalIgnoreCase) ||
-                    weaverSchemaPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+                    CodegenPaths.WeaverOutputs.Contains(f, StringComparer.OrdinalIgnoreCase) ||
+                    weaverSchemaPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase) && (f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))))
                 .ToList();
 
             if (dirtyFiles.Count is 0)
