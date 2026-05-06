@@ -3075,7 +3075,7 @@ export interface HttpAttributes {
   responseContentType?: string;
   requestHeaders?: Record<string, string[]>;
   responseHeaders?: Record<string, string[]>;
-  clientAddress?: string;
+  clientAddress?: unknown;
   clientPort?: number;
   connectionState?: HttpConnectionState;
   requestResendCount?: number;
@@ -3914,7 +3914,7 @@ export interface UserAttributes {
 }
 
 export interface ClientAttributes {
-  address?: string;
+  address?: unknown;
   port?: number;
 }
 
@@ -3942,7 +3942,7 @@ export interface DestinationAttributes {
 }
 
 export interface SourceAttributes {
-  address?: string;
+  address?: unknown;
   port?: number;
 }
 

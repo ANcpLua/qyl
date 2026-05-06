@@ -47,9 +47,9 @@ model UserAttributes {
 
 @doc("Client attributes")
 model ClientAttributes {
-  @doc("Client IP address")
+  @doc("Client address (IP, hostname, or Unix socket path)")
   @encodedName("application/json", Qyl.OTel.Keys.Client.Address)
-  address?: IpAddress;
+  address?: IpAddress | string;
 
   @doc("Client port")
   @encodedName("application/json", Qyl.OTel.Keys.Client.Port)
@@ -134,9 +134,9 @@ model DestinationAttributes {
 
 @doc("Source attributes")
 model SourceAttributes {
-  @doc("Source address")
+  @doc("Source address (IP, hostname, or Unix socket path)")
   @encodedName("application/json", Qyl.OTel.Keys.Source.Address)
-  address?: IpAddress;
+  address?: IpAddress | string;
 
   @doc("Source port")
   @encodedName("application/json", Qyl.OTel.Keys.Source.Port)

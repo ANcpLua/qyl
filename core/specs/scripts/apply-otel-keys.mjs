@@ -33,7 +33,13 @@ const dryRun = args.includes("--dry-run");
 const explicitFiles = args.filter((a) => !a.startsWith("--"));
 
 // ── Build {dotted.key → "Qyl.OTel.Keys.<Domain>.<Ident>"} from the generated TSP.
-const generated = readFileSync(GENERATED, "utf8");
+let generated;
+try {
+  generated = readFileSync(GENERATED, "utf8");
+} catch (err) {
+  console.error(`No consts parsed from ${GENERATED}. Run ./eng/semconv/run-weaver.sh first.`);
+  process.exit(1);
+}
 const keyMap = new Map();
 const nsRe = /^namespace (Qyl\.OTel\.Keys\.[A-Za-z0-9]+) \{/;
 const constRe = /^\s*const ([A-Z][A-Za-z0-9_]+): string = "([^"]+)"/;

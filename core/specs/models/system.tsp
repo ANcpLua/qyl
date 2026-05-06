@@ -218,7 +218,7 @@ model SystemNetworkConnectionsMetric {
   protocol: string;
 
   @doc("Network state")
-  @encodedName("application/json", Qyl.OTel.Keys.System.NetworkState)
+  @encodedName("application/json", Qyl.OTel.Keys.Network.ConnectionState)
   state: SystemNetworkState;
 }
 

@@ -164,9 +164,9 @@ model HttpAttributes {
   // Client IP Attributes (Server-Side)
   // ---------------------------------------------------------------------------
 
-  @doc("Client IP address")
+  @doc("Client address (IP, hostname, or Unix socket path)")
   @encodedName("application/json", Qyl.OTel.Keys.Client.Address)
-  clientAddress?: IpAddress;
+  clientAddress?: IpAddress | string;
 
   @doc("Client port")
   @encodedName("application/json", Qyl.OTel.Keys.Client.Port)

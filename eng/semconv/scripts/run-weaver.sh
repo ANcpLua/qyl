@@ -15,6 +15,7 @@ case "${UNAME_S}:${UNAME_M}" in
   Darwin:arm64|Darwin:aarch64) WEAVER_ARCH="aarch64-apple-darwin" ;;
   Darwin:x86_64)               WEAVER_ARCH="x86_64-apple-darwin" ;;
   Linux:x86_64)                WEAVER_ARCH="x86_64-unknown-linux-gnu" ;;
+  Linux:arm64|Linux:aarch64)   WEAVER_ARCH="aarch64-unknown-linux-gnu" ;;
   *) echo "Unsupported platform: ${UNAME_S}/${UNAME_M}" >&2; exit 1 ;;
 esac
 
