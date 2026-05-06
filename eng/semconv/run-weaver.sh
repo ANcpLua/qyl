@@ -34,7 +34,7 @@ TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
 # Must be a non-empty absolute path other than "/", since `rm -rf "${STAGING_DIR}/..."`
 # runs unconditionally below — a bad value (empty, "/", relative) would delete outside the
 # intended workspace.
-STAGING_DIR="${SEMCONV_STAGING_DIR:-${REPO_ROOT}/Artifacts/semconv}"
+STAGING_DIR="${SEMCONV_STAGING_DIR-${REPO_ROOT}/Artifacts/semconv}"
 case "${STAGING_DIR}" in
   ""|"/")
     echo "ERROR: STAGING_DIR must be a non-empty absolute path other than '/'" >&2
