@@ -1,6 +1,3 @@
-// Auto-flattened single-file TypeSpec for build convenience.
-// Generated at 2026-05-06T03:04:02.228Z from specified qyl/core/specs modules.
-
 // =============================
 // External Imports
 // =============================
