@@ -4,8 +4,8 @@ import { WorkspacesApiClientContext } from "./workspacesApiClientContext.js";
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { jsonArrayProjectEnvironmentEntityToApplicationTransform, jsonCursorPageToApplicationTransform_10 as jsonCursorPageToApplicationTransform, jsonProjectCreateRequestToTransportTransform, jsonProjectEntityToApplicationTransform, jsonWorkspaceEnvelopeEntityToApplicationTransform } from "../../models/internal/serializers.js";
-import { ProjectCreateRequest, ProjectEntity, type ProjectEnvironmentEntity, type WorkspaceEnvelopeEntity } from "../../models/models.js";
+import { jsonArrayProjectEnvironmentEntityToApplicationTransform, jsonCreateProjectEntityToTransportTransform, jsonCursorPageToApplicationTransform_10 as jsonCursorPageToApplicationTransform, jsonProjectEntityToApplicationTransform, jsonWorkspaceEnvelopeEntityToApplicationTransform } from "../../models/internal/serializers.js";
+import { CreateProjectEntity, ProjectEntity, type ProjectEnvironmentEntity, type WorkspaceEnvelopeEntity } from "../../models/models.js";
 
 export interface GetCurrentOptions extends OperationOptions {}
 /**
@@ -156,17 +156,17 @@ export interface CreateProjectOptions extends OperationOptions {}
  * Create a new project
  *
  * @param {WorkspacesApiClientContext} client
- * @param {ProjectCreateRequest} project
+ * @param {CreateProjectEntity} project
  * @param {CreateProjectOptions} [options]
  */
 export async function createProject(
   client: WorkspacesApiClientContext,
-  project: ProjectCreateRequest,
+  project: CreateProjectEntity,
   options?: CreateProjectOptions,
 ): Promise<ProjectEntity> {
   const path = parse("/api/v1/workspaces/projects").expand({});
   const httpRequestOptions = {
-    headers: {},body: jsonProjectCreateRequestToTransportTransform(project),
+    headers: {},body: jsonCreateProjectEntityToTransportTransform(project),
   };
   const response = await client.pathUnchecked(path).post(httpRequestOptions);
 

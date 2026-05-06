@@ -85,8 +85,11 @@ namespace Qyl.Domains.Ops.Deployment
             {
                 throw new FormatException($"The model {nameof(DeploymentEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("deployment.id"u8);
-            writer.WriteStringValue(DeploymentId);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("deployment.id"u8);
+                writer.WriteStringValue(DeploymentId);
+            }
             writer.WritePropertyName("service.name"u8);
             writer.WriteStringValue(ServiceName);
             writer.WritePropertyName("service.version"u8);
@@ -97,14 +100,17 @@ namespace Qyl.Domains.Ops.Deployment
             writer.WriteStringValue(Status.ToSerialString());
             writer.WritePropertyName("strategy"u8);
             writer.WriteStringValue(Strategy.ToSerialString());
-            writer.WritePropertyName("start_time"u8);
-            writer.WriteStringValue(StartTime, "O");
-            if (Optional.IsDefined(EndTime))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("start_time"u8);
+                writer.WriteStringValue(StartTime, "O");
+            }
+            if (options.Format != "W" && Optional.IsDefined(EndTime))
             {
                 writer.WritePropertyName("end_time"u8);
                 writer.WriteStringValue(EndTime.Value, "O");
             }
-            if (Optional.IsDefined(DurationS))
+            if (options.Format != "W" && Optional.IsDefined(DurationS))
             {
                 writer.WritePropertyName("duration_s"u8);
                 writer.WriteNumberValue(DurationS.Value);
@@ -124,17 +130,17 @@ namespace Qyl.Domains.Ops.Deployment
                 writer.WritePropertyName("git_branch"u8);
                 writer.WriteStringValue(GitBranch);
             }
-            if (Optional.IsDefined(PreviousVersion))
+            if (options.Format != "W" && Optional.IsDefined(PreviousVersion))
             {
                 writer.WritePropertyName("previous_version"u8);
                 writer.WriteStringValue(PreviousVersion);
             }
-            if (Optional.IsDefined(RollbackTarget))
+            if (options.Format != "W" && Optional.IsDefined(RollbackTarget))
             {
                 writer.WritePropertyName("rollback_target"u8);
                 writer.WriteStringValue(RollbackTarget);
             }
-            if (Optional.IsDefined(ReplicaCount))
+            if (options.Format != "W" && Optional.IsDefined(ReplicaCount))
             {
                 writer.WritePropertyName("replica_count"u8);
                 writer.WriteNumberValue(ReplicaCount.Value);

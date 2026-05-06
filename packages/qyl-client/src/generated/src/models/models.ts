@@ -2423,9 +2423,9 @@ export interface ErrorEntity {
  */
 export type UrlString = string;
 /**
- * Patchable subset of ErrorEntity
+ * Error entity for tracking and analysis
  */
-export interface ErrorPatchMergePatchUpdate {
+export interface ErrorEntityMergePatchUpdate {
   /**
    * Status
    */
@@ -2809,9 +2809,9 @@ export enum DeploymentStrategy {
  */
 export type DurationS = number;
 /**
- * Deployment creation request
+ * Complete deployment record
  */
-export interface DeploymentCreate {
+export interface CreateDeploymentEntity {
   /**
    * Service name
    */
@@ -2829,7 +2829,7 @@ export interface DeploymentCreate {
    */
   strategy: DeploymentStrategy;
   /**
-   * Deployed by
+   * Deployed by (user/system)
    */
   deployedBy?: string;
   /**
@@ -2842,9 +2842,9 @@ export interface DeploymentCreate {
   gitBranch?: string;
 }
 /**
- * Patchable subset of DeploymentEntity
+ * Complete deployment record
  */
-export interface DeploymentPatchMergePatchUpdate {
+export interface DeploymentEntityMergePatchUpdate {
   /**
    * Status
    */
@@ -3199,15 +3199,15 @@ export interface ProjectEntity {
   archivedAt?: Date;
 }
 /**
- * Project creation request
+ * Project registry: top-level organizational unit
  */
-export interface ProjectCreateRequest {
+export interface CreateProjectEntity {
   /**
    * Project name
    */
   name: string;
   /**
-   * Project slug (URL-safe)
+   * URL-safe slug (unique)
    */
   slug: string;
   /**
@@ -3432,25 +3432,37 @@ export interface GenerationProfileEntity {
   updatedAt: Date;
 }
 /**
- * Generation profile creation request
+ * Named instrumentation profile for code generation
  */
-export interface GenerationProfileCreateRequest {
+export interface CreateGenerationProfileEntity {
   /**
    * Profile name
    */
   name: string;
   /**
-   * Target framework
-   */
-  targetFramework: string;
-  /**
    * Profile description
    */
   description?: string;
   /**
-   * Feature flags
+   * Target framework (e.g. net10.0)
    */
-  featuresJson?: string;
+  targetFramework: string;
+  /**
+   * Target language
+   */
+  targetLanguage: string;
+  /**
+   * Semantic conventions version
+   */
+  semconvVersion: string;
+  /**
+   * Enabled features/modules
+   */
+  featuresJson: string;
+  /**
+   * Template customizations
+   */
+  templateOverridesJson?: string;
 }
 /**
  * Selected semconv/feature per workspace for code generation
@@ -3494,32 +3506,32 @@ export interface GenerationSelectionEntity {
   updatedAt: Date;
 }
 /**
- * Save generation selections request
+ * Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys
  */
 export interface GenerationSelectionSaveRequest {
   /**
-   * Workspace ID
+   * Workspace
    */
   workspaceId: string;
   /**
-   * Profile ID
+   * Profile
    */
   profileId: string;
   /**
-   * Selected semconv keys
+   * JSON array of selection keys to enable in a single round-trip
    */
   selectedKeysJson: string;
 }
 /**
- * Generation job creation request
+ * Code generation job entry
  */
-export interface GenerationJobCreateRequest {
+export interface CreateGenerationJobEntity {
   /**
-   * Workspace ID
+   * Workspace
    */
   workspaceId: string;
   /**
-   * Profile ID
+   * Profile
    */
   profileId: string;
   /**
@@ -3836,9 +3848,9 @@ export interface ErrorIssueEntity {
   updatedAt: Date;
 }
 /**
- * Patchable subset of ErrorIssueEntity
+ * Error issue aggregate with lifecycle tracking
  */
-export interface IssuePatchMergePatchUpdate {
+export interface ErrorIssueEntityMergePatchUpdate {
   /**
    * Issue status
    */

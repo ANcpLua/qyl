@@ -26,6 +26,7 @@ using Qyl.OTel.Metrics;
 using Qyl.OTel.Resource;
 using Qyl.OTel.Traces;
 using Qyl.Storage;
+using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Client
 {
@@ -518,7 +519,7 @@ namespace Qyl.Client
         /// <param name="timeBucket"> Time bucket (for time series). </param>
         /// <param name="topN"> Top N results. </param>
         /// <returns> A new <see cref="Domains.Observe.Log.LogAggregation"/> instance for mocking. </returns>
-        public static LogAggregation LogAggregation(IEnumerable<string> groupBy = default, Domains.Observe.Log.AggregationFunction function = default, string @field = default, Domains.Observe.Log.TimeBucket? timeBucket = default, int? topN = default)
+        public static LogAggregation LogAggregation(IEnumerable<string> groupBy = default, AggregationFunction function = default, string @field = default, TimeBucket? timeBucket = default, int? topN = default)
         {
             groupBy ??= new ChangeTrackingList<string>();
 
@@ -1125,18 +1126,18 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Deployment creation request. </summary>
+        /// <summary> Complete deployment record. </summary>
         /// <param name="serviceName"> Service name. </param>
         /// <param name="serviceVersion"> Service version. </param>
         /// <param name="environment"> Environment. </param>
         /// <param name="strategy"> Strategy. </param>
-        /// <param name="deployedBy"> Deployed by. </param>
+        /// <param name="deployedBy"> Deployed by (user/system). </param>
         /// <param name="gitCommit"> Git commit SHA. </param>
         /// <param name="gitBranch"> Git branch. </param>
-        /// <returns> A new <see cref="Api.DeploymentCreate"/> instance for mocking. </returns>
-        public static DeploymentCreate DeploymentCreate(string serviceName = default, string serviceVersion = default, DeploymentEnvironment environment = default, DeploymentStrategy strategy = default, string deployedBy = default, string gitCommit = default, string gitBranch = default)
+        /// <returns> A new <see cref="Domains.Ops.Deployment.CreateDeploymentEntity"/> instance for mocking. </returns>
+        public static CreateDeploymentEntity CreateDeploymentEntity(string serviceName = default, string serviceVersion = default, DeploymentEnvironment environment = default, DeploymentStrategy strategy = default, string deployedBy = default, string gitCommit = default, string gitBranch = default)
         {
-            return new DeploymentCreate(
+            return new CreateDeploymentEntity(
                 serviceName,
                 serviceVersion,
                 environment,
@@ -1347,14 +1348,14 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Project creation request. </summary>
+        /// <summary> Project registry: top-level organizational unit. </summary>
         /// <param name="name"> Project name. </param>
-        /// <param name="slug"> Project slug (URL-safe). </param>
+        /// <param name="slug"> URL-safe slug (unique). </param>
         /// <param name="description"> Project description. </param>
-        /// <returns> A new <see cref="Api.ProjectCreateRequest"/> instance for mocking. </returns>
-        public static ProjectCreateRequest ProjectCreateRequest(string name = default, string slug = default, string description = default)
+        /// <returns> A new <see cref="Domains.Workspace.CreateProjectEntity"/> instance for mocking. </returns>
+        public static CreateProjectEntity CreateProjectEntity(string name = default, string slug = default, string description = default)
         {
-            return new ProjectCreateRequest(name, slug, description, additionalBinaryDataProperties: null);
+            return new CreateProjectEntity(name, slug, description, additionalBinaryDataProperties: null);
         }
 
         /// <summary> Environment row per project (dev, staging, prod). </summary>
@@ -1480,15 +1481,26 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Generation profile creation request. </summary>
+        /// <summary> Named instrumentation profile for code generation. </summary>
         /// <param name="name"> Profile name. </param>
-        /// <param name="targetFramework"> Target framework. </param>
         /// <param name="description"> Profile description. </param>
-        /// <param name="featuresJson"> Feature flags. </param>
-        /// <returns> A new <see cref="Api.GenerationProfileCreateRequest"/> instance for mocking. </returns>
-        public static GenerationProfileCreateRequest GenerationProfileCreateRequest(string name = default, string targetFramework = default, string description = default, string featuresJson = default)
+        /// <param name="targetFramework"> Target framework (e.g. net10.0). </param>
+        /// <param name="targetLanguage"> Target language. </param>
+        /// <param name="semconvVersion"> Semantic conventions version. </param>
+        /// <param name="featuresJson"> Enabled features/modules. </param>
+        /// <param name="templateOverridesJson"> Template customizations. </param>
+        /// <returns> A new <see cref="Domains.Configurator.CreateGenerationProfileEntity"/> instance for mocking. </returns>
+        public static CreateGenerationProfileEntity CreateGenerationProfileEntity(string name = default, string description = default, string targetFramework = default, string targetLanguage = default, string semconvVersion = default, string featuresJson = default, string templateOverridesJson = default)
         {
-            return new GenerationProfileCreateRequest(name, targetFramework, description, featuresJson, additionalBinaryDataProperties: null);
+            return new CreateGenerationProfileEntity(
+                name,
+                description,
+                targetFramework,
+                targetLanguage,
+                semconvVersion,
+                featuresJson,
+                templateOverridesJson,
+                additionalBinaryDataProperties: null);
         }
 
         /// <summary> Selected semconv/feature per workspace for code generation. </summary>
@@ -1517,24 +1529,24 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Save generation selections request. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
-        /// <param name="selectedKeysJson"> Selected semconv keys. </param>
+        /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys. </summary>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
+        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
         /// <returns> A new <see cref="Api.GenerationSelectionSaveRequest"/> instance for mocking. </returns>
         public static GenerationSelectionSaveRequest GenerationSelectionSaveRequest(string workspaceId = default, string profileId = default, string selectedKeysJson = default)
         {
             return new GenerationSelectionSaveRequest(workspaceId, profileId, selectedKeysJson, additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Generation job creation request. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
+        /// <summary> Code generation job entry. </summary>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
         /// <param name="jobType"> Job type. </param>
-        /// <returns> A new <see cref="Api.GenerationJobCreateRequest"/> instance for mocking. </returns>
-        public static GenerationJobCreateRequest GenerationJobCreateRequest(string workspaceId = default, string profileId = default, GenerationJobType jobType = default)
+        /// <returns> A new <see cref="Domains.Configurator.CreateGenerationJobEntity"/> instance for mocking. </returns>
+        public static CreateGenerationJobEntity CreateGenerationJobEntity(string workspaceId = default, string profileId = default, GenerationJobType jobType = default)
         {
-            return new GenerationJobCreateRequest(workspaceId, profileId, jobType, additionalBinaryDataProperties: null);
+            return new CreateGenerationJobEntity(workspaceId, profileId, jobType, additionalBinaryDataProperties: null);
         }
 
         /// <summary> Code generation job entry. </summary>

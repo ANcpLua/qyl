@@ -11,7 +11,7 @@ using Qyl.Client;
 
 namespace Qyl.Api
 {
-    /// <summary> Save generation selections request. </summary>
+    /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys. </summary>
     public partial class GenerationSelectionSaveRequest : IJsonModel<GenerationSelectionSaveRequest>
     {
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/> for deserialization. </summary>

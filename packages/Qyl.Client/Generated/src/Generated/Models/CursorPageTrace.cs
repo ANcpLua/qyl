@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Qyl.OTel.Traces;
+using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Common.Pagination
 {

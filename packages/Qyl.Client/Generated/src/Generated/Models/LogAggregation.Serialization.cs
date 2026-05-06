@@ -7,6 +7,8 @@ using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
+using Qyl.OTel.Metrics;
+using Qyl.Common.Pagination;
 
 namespace Qyl.Domains.Observe.Log
 {

@@ -14,22 +14,14 @@ namespace Qyl.Domains.Configurator
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="GenerationJobEntity"/>. </summary>
-        /// <param name="id"> Job ID. </param>
         /// <param name="workspaceId"> Workspace. </param>
         /// <param name="profileId"> Profile. </param>
         /// <param name="jobType"> Job type. </param>
-        /// <param name="status"> Job status. </param>
-        /// <param name="priority"> Priority (higher = more urgent). </param>
-        /// <param name="queuedAt"> Queue timestamp. </param>
-        internal GenerationJobEntity(string id, string workspaceId, string profileId, GenerationJobType jobType, JobStatus status, int priority, DateTimeOffset queuedAt)
+        internal GenerationJobEntity(string workspaceId, string profileId, GenerationJobType jobType)
         {
-            Id = id;
             WorkspaceId = workspaceId;
             ProfileId = profileId;
             JobType = jobType;
-            Status = status;
-            Priority = priority;
-            QueuedAt = queuedAt;
         }
 
         /// <summary> Initializes a new instance of <see cref="GenerationJobEntity"/>. </summary>

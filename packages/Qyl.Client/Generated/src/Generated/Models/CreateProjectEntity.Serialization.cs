@@ -9,69 +9,69 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Workspace
 {
-    /// <summary> Generation profile creation request. </summary>
-    public partial class GenerationProfileCreateRequest : IJsonModel<GenerationProfileCreateRequest>
+    /// <summary> Project registry: top-level organizational unit. </summary>
+    public partial class CreateProjectEntity : IJsonModel<CreateProjectEntity>
     {
-        /// <summary> Initializes a new instance of <see cref="GenerationProfileCreateRequest"/> for deserialization. </summary>
-        internal GenerationProfileCreateRequest()
+        /// <summary> Initializes a new instance of <see cref="CreateProjectEntity"/> for deserialization. </summary>
+        internal CreateProjectEntity()
         {
         }
 
         /// <param name="data"> The data to parse. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        protected virtual GenerationProfileCreateRequest PersistableModelCreateCore(BinaryData data, ModelReaderWriterOptions options)
+        protected virtual CreateProjectEntity PersistableModelCreateCore(BinaryData data, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<GenerationProfileCreateRequest>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateProjectEntity>)this).GetFormatFromOptions(options) : options.Format;
             switch (format)
             {
                 case "J":
                     using (JsonDocument document = JsonDocument.Parse(data, ModelSerializationExtensions.JsonDocumentOptions))
                     {
-                        return DeserializeGenerationProfileCreateRequest(document.RootElement, options);
+                        return DeserializeCreateProjectEntity(document.RootElement, options);
                     }
                 default:
-                    throw new FormatException($"The model {nameof(GenerationProfileCreateRequest)} does not support reading '{options.Format}' format.");
+                    throw new FormatException($"The model {nameof(CreateProjectEntity)} does not support reading '{options.Format}' format.");
             }
         }
 
         /// <param name="options"> The client options for reading and writing models. </param>
         protected virtual BinaryData PersistableModelWriteCore(ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<GenerationProfileCreateRequest>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateProjectEntity>)this).GetFormatFromOptions(options) : options.Format;
             switch (format)
             {
                 case "J":
                     return ModelReaderWriter.Write(this, options, QylClientContext.Default);
                 default:
-                    throw new FormatException($"The model {nameof(GenerationProfileCreateRequest)} does not support writing '{options.Format}' format.");
+                    throw new FormatException($"The model {nameof(CreateProjectEntity)} does not support writing '{options.Format}' format.");
             }
         }
 
         /// <param name="options"> The client options for reading and writing models. </param>
-        BinaryData IPersistableModel<GenerationProfileCreateRequest>.Write(ModelReaderWriterOptions options) => PersistableModelWriteCore(options);
+        BinaryData IPersistableModel<CreateProjectEntity>.Write(ModelReaderWriterOptions options) => PersistableModelWriteCore(options);
 
         /// <param name="data"> The data to parse. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        GenerationProfileCreateRequest IPersistableModel<GenerationProfileCreateRequest>.Create(BinaryData data, ModelReaderWriterOptions options) => PersistableModelCreateCore(data, options);
+        CreateProjectEntity IPersistableModel<CreateProjectEntity>.Create(BinaryData data, ModelReaderWriterOptions options) => PersistableModelCreateCore(data, options);
 
         /// <param name="options"> The client options for reading and writing models. </param>
-        string IPersistableModel<GenerationProfileCreateRequest>.GetFormatFromOptions(ModelReaderWriterOptions options) => "J";
+        string IPersistableModel<CreateProjectEntity>.GetFormatFromOptions(ModelReaderWriterOptions options) => "J";
 
-        /// <param name="generationProfileCreateRequest"> The <see cref="GenerationProfileCreateRequest"/> to serialize into <see cref="BinaryContent"/>. </param>
-        public static implicit operator BinaryContent(GenerationProfileCreateRequest generationProfileCreateRequest)
+        /// <param name="createProjectEntity"> The <see cref="CreateProjectEntity"/> to serialize into <see cref="BinaryContent"/>. </param>
+        public static implicit operator BinaryContent(CreateProjectEntity createProjectEntity)
         {
-            if (generationProfileCreateRequest == null)
+            if (createProjectEntity == null)
             {
                 return null;
             }
-            return BinaryContent.Create(generationProfileCreateRequest, ModelSerializationExtensions.WireOptions);
+            return BinaryContent.Create(createProjectEntity, ModelSerializationExtensions.WireOptions);
         }
 
         /// <param name="writer"> The JSON writer. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        void IJsonModel<GenerationProfileCreateRequest>.Write(Utf8JsonWriter writer, ModelReaderWriterOptions options)
+        void IJsonModel<CreateProjectEntity>.Write(Utf8JsonWriter writer, ModelReaderWriterOptions options)
         {
             writer.WriteStartObject();
             JsonModelWriteCore(writer, options);
@@ -82,24 +82,19 @@ namespace Qyl.Api
         /// <param name="options"> The client options for reading and writing models. </param>
         protected virtual void JsonModelWriteCore(Utf8JsonWriter writer, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<GenerationProfileCreateRequest>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateProjectEntity>)this).GetFormatFromOptions(options) : options.Format;
             if (format != "J")
             {
-                throw new FormatException($"The model {nameof(GenerationProfileCreateRequest)} does not support writing '{format}' format.");
+                throw new FormatException($"The model {nameof(CreateProjectEntity)} does not support writing '{format}' format.");
             }
             writer.WritePropertyName("name"u8);
             writer.WriteStringValue(Name);
-            writer.WritePropertyName("target_framework"u8);
-            writer.WriteStringValue(TargetFramework);
+            writer.WritePropertyName("slug"u8);
+            writer.WriteStringValue(Slug);
             if (Optional.IsDefined(Description))
             {
                 writer.WritePropertyName("description"u8);
                 writer.WriteStringValue(Description);
-            }
-            if (Optional.IsDefined(FeaturesJson))
-            {
-                writer.WritePropertyName("features_json"u8);
-                writer.WriteStringValue(FeaturesJson);
             }
             if (options.Format != "W" && _additionalBinaryDataProperties != null)
             {
@@ -120,33 +115,32 @@ namespace Qyl.Api
 
         /// <param name="reader"> The JSON reader. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        GenerationProfileCreateRequest IJsonModel<GenerationProfileCreateRequest>.Create(ref Utf8JsonReader reader, ModelReaderWriterOptions options) => JsonModelCreateCore(ref reader, options);
+        CreateProjectEntity IJsonModel<CreateProjectEntity>.Create(ref Utf8JsonReader reader, ModelReaderWriterOptions options) => JsonModelCreateCore(ref reader, options);
 
         /// <param name="reader"> The JSON reader. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        protected virtual GenerationProfileCreateRequest JsonModelCreateCore(ref Utf8JsonReader reader, ModelReaderWriterOptions options)
+        protected virtual CreateProjectEntity JsonModelCreateCore(ref Utf8JsonReader reader, ModelReaderWriterOptions options)
         {
-            string format = options.Format == "W" ? ((IPersistableModel<GenerationProfileCreateRequest>)this).GetFormatFromOptions(options) : options.Format;
+            string format = options.Format == "W" ? ((IPersistableModel<CreateProjectEntity>)this).GetFormatFromOptions(options) : options.Format;
             if (format != "J")
             {
-                throw new FormatException($"The model {nameof(GenerationProfileCreateRequest)} does not support reading '{format}' format.");
+                throw new FormatException($"The model {nameof(CreateProjectEntity)} does not support reading '{format}' format.");
             }
             using JsonDocument document = JsonDocument.ParseValue(ref reader);
-            return DeserializeGenerationProfileCreateRequest(document.RootElement, options);
+            return DeserializeCreateProjectEntity(document.RootElement, options);
         }
 
         /// <param name="element"> The JSON element to deserialize. </param>
         /// <param name="options"> The client options for reading and writing models. </param>
-        internal static GenerationProfileCreateRequest DeserializeGenerationProfileCreateRequest(JsonElement element, ModelReaderWriterOptions options)
+        internal static CreateProjectEntity DeserializeCreateProjectEntity(JsonElement element, ModelReaderWriterOptions options)
         {
             if (element.ValueKind == JsonValueKind.Null)
             {
                 return null;
             }
             string name = default;
-            string targetFramework = default;
+            string slug = default;
             string description = default;
-            string featuresJson = default;
             IDictionary<string, BinaryData> additionalBinaryDataProperties = new ChangeTrackingDictionary<string, BinaryData>();
             foreach (var prop in element.EnumerateObject())
             {
@@ -155,9 +149,9 @@ namespace Qyl.Api
                     name = prop.Value.GetString();
                     continue;
                 }
-                if (prop.NameEquals("target_framework"u8))
+                if (prop.NameEquals("slug"u8))
                 {
-                    targetFramework = prop.Value.GetString();
+                    slug = prop.Value.GetString();
                     continue;
                 }
                 if (prop.NameEquals("description"u8))
@@ -165,17 +159,12 @@ namespace Qyl.Api
                     description = prop.Value.GetString();
                     continue;
                 }
-                if (prop.NameEquals("features_json"u8))
-                {
-                    featuresJson = prop.Value.GetString();
-                    continue;
-                }
                 if (options.Format != "W")
                 {
                     additionalBinaryDataProperties.Add(prop.Name, BinaryData.FromString(prop.Value.GetRawText()));
                 }
             }
-            return new GenerationProfileCreateRequest(name, targetFramework, description, featuresJson, additionalBinaryDataProperties);
+            return new CreateProjectEntity(name, slug, description, additionalBinaryDataProperties);
         }
     }
 }

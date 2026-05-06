@@ -8,16 +8,16 @@ using Qyl.Client;
 
 namespace Qyl.Api
 {
-    /// <summary> Save generation selections request. </summary>
+    /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys. </summary>
     public partial class GenerationSelectionSaveRequest
     {
         /// <summary> Keeps track of any properties unknown to the library. </summary>
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/>. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
-        /// <param name="selectedKeysJson"> Selected semconv keys. </param>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
+        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="workspaceId"/>, <paramref name="profileId"/> or <paramref name="selectedKeysJson"/> is null. </exception>
         public GenerationSelectionSaveRequest(string workspaceId, string profileId, string selectedKeysJson)
         {
@@ -31,9 +31,9 @@ namespace Qyl.Api
         }
 
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/>. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
-        /// <param name="selectedKeysJson"> Selected semconv keys. </param>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
+        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
         internal GenerationSelectionSaveRequest(string workspaceId, string profileId, string selectedKeysJson, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
@@ -43,13 +43,13 @@ namespace Qyl.Api
             _additionalBinaryDataProperties = additionalBinaryDataProperties;
         }
 
-        /// <summary> Workspace ID. </summary>
+        /// <summary> Workspace. </summary>
         public string WorkspaceId { get; }
 
-        /// <summary> Profile ID. </summary>
+        /// <summary> Profile. </summary>
         public string ProfileId { get; }
 
-        /// <summary> Selected semconv keys. </summary>
+        /// <summary> JSON array of selection keys to enable in a single round-trip. </summary>
         public string SelectedKeysJson { get; }
     }
 }

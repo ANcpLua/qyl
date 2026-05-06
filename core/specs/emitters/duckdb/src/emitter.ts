@@ -26,14 +26,43 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const program = context.program;
   if (program.compilerOptions.noEmit) return;
 
-  const tables: Table[] = [];
+  // Dedupe by table name: TypeSpec visibility transforms (Create<T>, MergePatchUpdate<T>, …)
+  // produce mutated model instances that inherit the `@@duckdbTable` augment from the source
+  // entity. Without dedupe, every Create<T> / MergePatchUpdate<T> reference in routes.tsp
+  // would emit a competing DDL constant with the visibility-filtered subset of columns.
+  // The canonical entity always has the most columns (transforms only ever subset), so
+  // prefer the column-count winner.
+  const tablesByName = new Map<string, Table>();
   navigateProgram(program, {
     model: (m) => {
       const name = getTableName(program, m);
       if (!name) return;
-      tables.push(collectTable(program, m, name));
+      const candidate = collectTable(program, m, name);
+      const existing = tablesByName.get(name);
+      if (!existing) {
+        tablesByName.set(name, candidate);
+      } else {
+        // Check for strict superset relationship
+        const existingCols = new Set(existing.columns.map((c) => c.name));
+        const candidateCols = new Set(candidate.columns.map((c) => c.name));
+        const candidateIsSuperset = [...existingCols].every((c) => candidateCols.has(c)) && candidateCols.size > existingCols.size;
+        const existingIsSuperset = [...candidateCols].every((c) => existingCols.has(c)) && existingCols.size > candidateCols.size;
+        if (candidateIsSuperset) {
+          tablesByName.set(name, candidate);
+        } else if (!existingIsSuperset) {
+          // Neither is a strict superset - conflict detected
+          const existingColsStr = [...existingCols].sort().join(", ");
+          const candidateColsStr = [...candidateCols].sort().join(", ");
+          throw new Error(
+            `Table name conflict for "${name}": Neither column set is a strict superset.\n` +
+            `Existing columns: [${existingColsStr}]\n` +
+            `Candidate columns: [${candidateColsStr}]`
+          );
+        }
+      }
     },
   });
+  const tables = [...tablesByName.values()];
 
   if (tables.length === 0) return;
 

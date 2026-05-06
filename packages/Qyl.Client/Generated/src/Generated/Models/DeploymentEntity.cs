@@ -14,22 +14,18 @@ namespace Qyl.Domains.Ops.Deployment
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="DeploymentEntity"/>. </summary>
-        /// <param name="deploymentId"> Deployment ID. </param>
         /// <param name="serviceName"> Service name. </param>
         /// <param name="serviceVersion"> Service version. </param>
         /// <param name="environment"> Environment. </param>
         /// <param name="status"> Status. </param>
         /// <param name="strategy"> Strategy. </param>
-        /// <param name="startTime"> Start time. </param>
-        internal DeploymentEntity(string deploymentId, string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStatus status, DeploymentStrategy strategy, DateTimeOffset startTime)
+        internal DeploymentEntity(string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStatus status, DeploymentStrategy strategy)
         {
-            DeploymentId = deploymentId;
             ServiceName = serviceName;
             ServiceVersion = serviceVersion;
             Environment = environment;
             Status = status;
             Strategy = strategy;
-            StartTime = startTime;
         }
 
         /// <summary> Initializes a new instance of <see cref="DeploymentEntity"/>. </summary>

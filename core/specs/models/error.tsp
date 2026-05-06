@@ -85,54 +85,68 @@ enum ErrorCategory {
 model ErrorEntity {
   @doc("Error ID")
   @key
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "error_id")
   errorId: string;
 
   @doc("Error type (class name or code)")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType: string;
 
   @doc("Error message")
+  @visibility(Lifecycle.Read)
   message: string;
 
   @doc("Error category")
+  @visibility(Lifecycle.Read)
   category: ErrorCategory;
 
   @doc("Fingerprint for grouping")
+  @visibility(Lifecycle.Read)
   fingerprint: string;
 
   @doc("First occurrence")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "first_seen")
   firstSeen: utcDateTime;
 
   @doc("Last occurrence")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "last_seen")
   lastSeen: utcDateTime;
 
   @doc("Occurrence count")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "occurrence_count")
   occurrenceCount: Count;
 
   @doc("Affected users count")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "affected_users")
   affectedUsers?: Count;
 
   @doc("Affected services")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "affected_services")
   affectedServices?: string[];
 
   @doc("Status")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   status: ErrorStatus;
 
   @doc("Assigned to")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "assigned_to")
   assignedTo?: string;
 
   @doc("Issue tracker URL")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "issue_url")
   issueUrl?: UrlString;
 
   @doc("Sample trace IDs")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "sample_traces")
   sampleTraces?: TraceId[];
 }

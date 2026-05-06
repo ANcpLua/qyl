@@ -4,8 +4,8 @@ import { IssuesApiClientContext } from "./issuesApiClientContext.js";
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { dateRfc3339Serializer, jsonArrayErrorBreadcrumbEntityToApplicationTransform, jsonCursorPageToApplicationTransform_12 as jsonCursorPageToApplicationTransform, jsonCursorPageToApplicationTransform_13 as jsonCursorPageToApplicationTransform_2, jsonErrorIssueEntityToApplicationTransform, jsonIssuePatchMergePatchUpdateToTransportTransform } from "../../models/internal/serializers.js";
-import { type ErrorBreadcrumbEntity, ErrorIssueEntity, ErrorIssueEventEntity, type IssueLevel, IssuePatchMergePatchUpdate, type IssuePriority, type IssueStatus } from "../../models/models.js";
+import { dateRfc3339Serializer, jsonArrayErrorBreadcrumbEntityToApplicationTransform, jsonCursorPageToApplicationTransform_12 as jsonCursorPageToApplicationTransform, jsonCursorPageToApplicationTransform_13 as jsonCursorPageToApplicationTransform_2, jsonErrorIssueEntityMergePatchUpdateToTransportTransform, jsonErrorIssueEntityToApplicationTransform } from "../../models/internal/serializers.js";
+import { type ErrorBreadcrumbEntity, ErrorIssueEntity, ErrorIssueEntityMergePatchUpdate, ErrorIssueEventEntity, type IssueLevel, type IssuePriority, type IssueStatus } from "../../models/models.js";
 
 export interface ListOptions extends OperationOptions {
   projectId?: string
@@ -115,13 +115,13 @@ export interface UpdateOptions extends OperationOptions {}
  *
  * @param {IssuesApiClientContext} client
  * @param {string} issueId
- * @param {IssuePatchMergePatchUpdate} update
+ * @param {ErrorIssueEntityMergePatchUpdate} update
  * @param {UpdateOptions} [options]
  */
 export async function update(
   client: IssuesApiClientContext,
   issueId: string,
-  update: IssuePatchMergePatchUpdate,
+  update: ErrorIssueEntityMergePatchUpdate,
   options?: UpdateOptions,
 ): Promise<ErrorIssueEntity> {
   const path = parse("/api/v1/issues/{issueId}").expand({
@@ -130,7 +130,7 @@ export async function update(
   const httpRequestOptions = {
     headers: {
 
-    },body: jsonIssuePatchMergePatchUpdateToTransportTransform(update),
+    },body: jsonErrorIssueEntityMergePatchUpdateToTransportTransform(update),
   };
   const response = await client.pathUnchecked(path).patch(httpRequestOptions);
 

@@ -22,26 +22,33 @@ namespace Qyl.Domains.Workspace;
 model ProjectEntity {
   @doc("Project ID")
   @key
+  @visibility(Lifecycle.Read)
   id: string;
 
   @doc("Project name")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   name: string;
 
   @doc("URL-safe slug (unique)")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   slug: string;
 
   @doc("Project description")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   description?: string;
 
   @doc("Creation timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "created_at")
   createdAt: utcDateTime;
 
   @doc("Last update timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "updated_at")
   updatedAt: utcDateTime;
 
   @doc("Archive timestamp (null if active)")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "archived_at")
   archivedAt?: utcDateTime;
 }

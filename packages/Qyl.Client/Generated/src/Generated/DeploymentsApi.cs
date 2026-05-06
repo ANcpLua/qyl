@@ -234,7 +234,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="deployment"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual ClientResult<DeploymentEntity> Create(DeploymentCreate deployment, CancellationToken cancellationToken = default)
+        public virtual ClientResult<DeploymentEntity> Create(CreateDeploymentEntity deployment, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(deployment, nameof(deployment));
 
@@ -247,7 +247,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="deployment"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual async Task<ClientResult<DeploymentEntity>> CreateAsync(DeploymentCreate deployment, CancellationToken cancellationToken = default)
+        public virtual async Task<ClientResult<DeploymentEntity>> CreateAsync(CreateDeploymentEntity deployment, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(deployment, nameof(deployment));
 
