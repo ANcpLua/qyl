@@ -19,27 +19,27 @@ namespace Qyl.Domains.Observe.Log;
 @doc("Log record attributes")
 model LogAttributes {
   @doc("Log record unique identifier")
-  @encodedName("application/json", "log.record.uid")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.RecordUid)
   recordUid?: string;
 
   @doc("Original log file name")
-  @encodedName("application/json", "log.file.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.FileName)
   fileName?: string;
 
   @doc("Full path to log file")
-  @encodedName("application/json", "log.file.path")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.FilePath)
   filePath?: string;
 
   @doc("Original log file name resolved")
-  @encodedName("application/json", "log.file.name_resolved")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.FileNameResolved)
   fileNameResolved?: string;
 
   @doc("Full path to log file resolved")
-  @encodedName("application/json", "log.file.path_resolved")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.FilePathResolved)
   filePathResolved?: string;
 
   @doc("Log iostream (stdout/stderr)")
-  @encodedName("application/json", "log.iostream")
+  @encodedName("application/json", Qyl.OTel.Keys.Log.Iostream)
   iostream?: LogIostream;
 }
 

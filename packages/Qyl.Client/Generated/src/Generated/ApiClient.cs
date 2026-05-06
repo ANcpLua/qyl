@@ -69,6 +69,7 @@ namespace Qyl.Api
 
         /// <summary> Initializes a new instance of ApiClient from a <see cref="ApiClientSettings"/>. </summary>
         /// <param name="settings"> The settings for ApiClient. </param>
+        [Experimental("SCME0002")]
         public ApiClient(ApiClientSettings settings) : this(AuthenticationPolicy.Create(settings), settings?.Endpoint, settings?.Options)
         {
         }
