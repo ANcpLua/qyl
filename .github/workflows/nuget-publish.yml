@@ -98,6 +98,8 @@ jobs:
       - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/Directory.Packages.props'
       - name: Build Qyl.SemanticConventions
         run: dotnet build packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj -c Release -p:Version=${{ needs.version.outputs.version }}
       - name: Build Qyl.OpenTelemetry.SemanticConventions
@@ -143,6 +145,8 @@ jobs:
       - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/Directory.Packages.props'
 
       - name: Pack ${{ matrix.package.id }}
         run: |
