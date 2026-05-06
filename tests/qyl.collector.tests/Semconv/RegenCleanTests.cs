@@ -29,12 +29,12 @@ public sealed class RegenCleanTests
         ProcessResult nukeResult;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var buildScript = Path.Combine(repoRoot, "eng", "build.ps1");
+            var buildScript = Path.Join(repoRoot, "eng", "build.ps1");
             nukeResult = await RunAsync(repoRoot, "pwsh", buildScript, "OtelConventions");
         }
         else
         {
-            var buildScript = Path.Combine(repoRoot, "eng", "build.sh");
+            var buildScript = Path.Join(repoRoot, "eng", "build.sh");
             nukeResult = await RunAsync(repoRoot, buildScript, "OtelConventions");
         }
         Assert.True(
@@ -57,7 +57,7 @@ public sealed class RegenCleanTests
     static string LocateRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "qyl.slnx")))
+        while (dir is not null && !File.Exists(Path.Join(dir.FullName, "qyl.slnx")))
             dir = dir.Parent;
         if (dir is null)
             throw new InvalidOperationException(
