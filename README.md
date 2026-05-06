@@ -270,7 +270,6 @@ services/
   qyl.collector/                        # OTLP ingest, REST API, DuckDB storage
   qyl.mcp/                              # MCP tool surface
   qyl.loom/                             # Standalone agent exe (triage/RCA/fix)
-  qyl.loom.patterns/                    # MAF composition cookbook
   qyl.dashboard/                        # React 19 SPA
 internal/
   qyl.instrumentation/                  # .NET instrumentation SDK

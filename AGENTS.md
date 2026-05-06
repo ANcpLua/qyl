@@ -23,7 +23,7 @@ nuget.org. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
 **Already consumed by qyl** (see `Directory.Packages.props` + csproj `PackageReference` rows):
 
 - `ANcpLua.Agents` — `internal/qyl.instrumentation`, `services/qyl.mcp`
-- `ANcpLua.Agents.Testing` — `tests/qyl.collector.tests`, `services/qyl.loom.patterns`
+- `ANcpLua.Agents.Testing` — `tests/qyl.collector.tests`
 
 **Still pending in qyl** (no longer blocked — just not done):
 
@@ -32,12 +32,15 @@ nuget.org. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
 - Phase 8 — `services/qyl.loom/Program.cs` and `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs` cutover from
   the `qyl.instrumentation` ProjectReference to `ANcpLua.Agents` package APIs.
 - Phase 9 — delete `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` once Phase 8 is in.
-- Phase 10 — promote `services/qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree and drop
-  `qyl.loom.patterns` from `qyl.slnx`.
 - (Phase 5 from the original plan — `[QYL0135]` dual-symbol — is moot now that the consolidation took the publish
   path; analyzer cutover is single-jump when Phase 8 lands.)
 
-Phases 4 / 8 / 9 / 10 want a single coordinated PR (or stacked PRs) so `dotnet build qyl.slnx` stays green at every
+Phase 10 — promoting `services/qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree — landed as
+a stash on `chore/stash-qyl-loom-patterns`: the project was dropped from `qyl.slnx` and the folder removed. The six
+pattern files are still recoverable from git history (last commit on main before the drop) and should be revived in
+`ANcpLua.Agents/samples/qyl-loom-patterns/` once Phase 4 exposes the qyl-shaped facades from the package.
+
+Phases 4 / 8 / 9 want a single coordinated PR (or stacked PRs) so `dotnet build qyl.slnx` stays green at every
 step.
 
 ## Style the codebase has settled on
@@ -185,12 +188,12 @@ In `services/qyl.mcp/`:
 
 ## MAF agent composition
 
-For `services/qyl.loom/`, `services/qyl.loom.patterns/`, `services/qyl.mcp/Agents/`.
+For `services/qyl.loom/` and `services/qyl.mcp/Agents/`.
 
 Local invariants:
 
 - qyl three-builder pattern: `IXxxChatClientBuilder` → `IXxxAgentsBuilder` → workflow. One `Build*Agent()` factory per
-  bounded agent in `services/qyl.loom.patterns/Agents/IQylLoomPatternsAgentsBuilder.cs`. Returned `AIAgent` is
+  bounded agent (canonical example: `services/qyl.loom/Agents/QylLoomAgentsBuilder.cs`). Returned `AIAgent` is
   telemetry-wrapped at the construction site.
 - Composition-root decoration uses helpers from
   `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs`. Both `IChatClient` and `AIAgent` layers
@@ -272,5 +275,5 @@ Under `tests/qyl.collector.tests/`:
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
 | [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | PRD 1 — Observability roll-up (cost / conversations / inventory) on top of existing OTel + #172 |
-| Phases 4 / 8 / 9 / 10                                                       | qyl                   | Cut over `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}` to `ANcpLua.Agents` packages; promote `qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree. (Original PRD 2 retired with `MAF.Advanced.Patterns`.) |
+| Phases 4 / 8 / 9                                                            | qyl                   | Cut over `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}` to `ANcpLua.Agents` packages. (Phase 10 stashed on `chore/stash-qyl-loom-patterns`; PRD 2 retired with `MAF.Advanced.Patterns`.) |
 | [#172](https://github.com/Alexander-Nachtmann/qyl/pull/172)                 | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
