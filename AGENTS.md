@@ -25,20 +25,24 @@ nuget.org. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
 - `ANcpLua.Agents` — `internal/qyl.instrumentation`, `services/qyl.mcp`
 - `ANcpLua.Agents.Testing` — `tests/qyl.collector.tests`, `services/qyl.loom.patterns`
 
-**Still pending in qyl** (no longer blocked — just not done):
+**Local instrumentation is intentionally retained, not pending cutover.** The pre-retirement plan (Phases 4 / 8 / 9 /
+10 from the original `MAF.Advanced.Patterns` consolidation) assumed the upstream package would absorb qyl's telemetry
+facades. It didn't — `QylTelemetryExtensions` was one of the casualties of the retirement. What's actually shipped on
+nuget.org under `ANcpLua.Agents.*` is agent + workflow + hosting + testing-harness coverage, plus a per-AIFunction
+`TracedAIFunction` and the `ITelemetryAssertingFixture` test harness. None of it overlaps with what
+`internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` exposes:
 
-- Phase 4 — extract `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` and replace with calls into
-  `ANcpLua.Agents` core facades. Local copies still in tree.
-- Phase 8 — `services/qyl.loom/Program.cs` and `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs` cutover from
-  the `qyl.instrumentation` ProjectReference to `ANcpLua.Agents` package APIs.
-- Phase 9 — delete `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` once Phase 8 is in.
-- Phase 10 — promote `services/qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree and drop
-  `qyl.loom.patterns` from `qyl.slnx`.
-- (Phase 5 from the original plan — `[QYL0135]` dual-symbol — is moot now that the consolidation took the publish
-  path; analyzer cutover is single-jump when Phase 8 lands.)
+| qyl-local extension                       | layer                  | covered by `ANcpLua.Agents`? |
+|-------------------------------------------|------------------------|------------------------------|
+| `WithQylTelemetry(IChatClient)`           | `IChatClient` decorator | no                           |
+| `UseQylTelemetry(ChatClientBuilder)`      | fluent builder form     | no                           |
+| `UseQylAgentTelemetry(AIAgentBuilder)`    | `AIAgent` builder wrap  | no                           |
+| `UseQylMcpInstrumentation(IMcpServerBuilder)` | MCP transport spans | no                           |
 
-Phases 4 / 8 / 9 / 10 want a single coordinated PR (or stacked PRs) so `dotnet build qyl.slnx` stays green at every
-step.
+Composition, not consolidation: qyl owns telemetry decoration on `IChatClient` / `IMcpServerBuilder`,
+`ANcpLua.Agents.*` owns workflows / hosting bridges / testing fixtures, and the two layers cooperate at every agent
+composition root. Delete-and-cut-over is not on the roadmap. Future qyl-side helpers (e.g. a `QylClientModelExtensions`
+wrapper around `System.ClientModel`) belong here as siblings, not in the upstream package.
 
 ## Style the codebase has settled on
 
@@ -272,5 +276,5 @@ Under `tests/qyl.collector.tests/`:
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
 | [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | PRD 1 — Observability roll-up (cost / conversations / inventory) on top of existing OTel + #172 |
-| Phases 4 / 8 / 9 / 10                                                       | qyl                   | Cut over `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}` to `ANcpLua.Agents` packages; promote `qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree. (Original PRD 2 retired with `MAF.Advanced.Patterns`.) |
+| `Qyl.OpenTelemetry.Extensions` widening                                     | qyl                   | Add qyl-side wrappers (e.g. `QylClientModelExtensions` around `System.ClientModel`) as siblings to the local instrumentation, complementing `ANcpLua.Agents.*` rather than replacing it. |
 | [#172](https://github.com/Alexander-Nachtmann/qyl/pull/172)                 | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
