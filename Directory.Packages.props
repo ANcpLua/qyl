@@ -98,11 +98,12 @@
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
-    <!-- Transitive security overrides (via Nuke.Common): force patched versions that
-         close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging 6.12.1) and GHSA-37gx-xxp4-5rgx /
-         GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml 9.0.0). -->
-    <PackageVersion Include="NuGet.Packaging" Version="7.3.1"/>
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="9.0.15"/>
+    <!-- Transitive security overrides (via Nuke.Common): forced minimums that
+         close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging) and GHSA-37gx-xxp4-5rgx /
+         GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml). Versions live
+         in Version.props per the single-owner rule. -->
+    <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(SystemSecurityCryptographyXmlVersion)"/>
     <!-- OpenAPI YAML Parsing (for TypeSpec God Schema pipeline) -->
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
     <!-- Terminal UI -->

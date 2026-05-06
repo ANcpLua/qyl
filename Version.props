@@ -20,6 +20,9 @@
     <ANcpLuaAnalyzersVersion>1.29.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>1.4.1</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.1</ANcpLuaAgentsVersion>
+    <!-- ANcpLua.Agents.Hosting.OpenAI ships on a slower track than the core +
+         Testing pair (latest stable is the 1.4.1-alpha.1 prerelease as of
+         2026-05-06). Pin tracks upstream until a stable 1.4.x lands. -->
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.1-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
     <!-- MAF (Microsoft.Agents.AI.*) versions are sourced from
          framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props, imported
@@ -38,5 +41,11 @@
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
     <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
+    <!-- Transitive security overrides (via Nuke.Common): forced minimums that
+         close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging ≥ 6.12.1) and
+         GHSA-37gx-xxp4-5rgx / GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml
+         ≥ 9.0.x). -->
+    <NuGetPackagingVersion>7.3.1</NuGetPackagingVersion>
+    <SystemSecurityCryptographyXmlVersion>9.0.15</SystemSecurityCryptographyXmlVersion>
   </PropertyGroup>
 </Project>
