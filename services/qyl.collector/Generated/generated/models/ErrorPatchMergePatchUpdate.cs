@@ -12,26 +12,28 @@ namespace Qyl.Api
 {
 
     ///<summary>
-    /// Error update request
+    /// Patchable subset of ErrorEntity
     ///</summary>
-    public partial class ErrorUpdate
+    public partial class ErrorPatchMergePatchUpdate
     {
         ///<summary>
-        /// New status
+        /// Status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public ErrorStatus? Status { get; set; }
 
         ///<summary>
-        /// Assignee
+        /// Assigned to
         ///</summary>
         [JsonPropertyName("assigned_to")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string AssignedTo { get; set; }
 
         ///<summary>
-        /// Issue URL
+        /// Issue tracker URL
         ///</summary>
         [JsonPropertyName("issue_url")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string IssueUrl { get; set; }
 
 
