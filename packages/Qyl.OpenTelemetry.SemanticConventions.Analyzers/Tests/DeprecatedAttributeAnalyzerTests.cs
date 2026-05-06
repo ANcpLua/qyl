@@ -144,16 +144,19 @@ public sealed class DeprecatedAttributeAnalyzerTests
     [Fact]
     public void GeneratedTableContainsExpectedBucketCounts()
     {
-        Assert.Equal(245, DeprecatedDiagnostics.ByDeprecatedId.Count);
-        Assert.Equal(245, DeprecatedDiagnostics.AllDescriptors.Length);
-        Assert.Equal(245, DeprecatedDiagnostics.AllRuleIds.Length);
+        Assert.Equal(260, DeprecatedDiagnostics.ByDeprecatedId.Count);
+        Assert.Equal(260, DeprecatedDiagnostics.AllDescriptors.Length);
+        Assert.Equal(260, DeprecatedDiagnostics.AllRuleIds.Length);
 
         var byMode = DeprecatedDiagnostics.ByDeprecatedId.Values
             .GroupBy(e => e.Mode)
             .ToDictionary(g => g.Key, g => g.Count());
-        Assert.Equal(193, byMode[DeprecatedReplacementMode.Direct]);
-        Assert.Equal(31, byMode[DeprecatedReplacementMode.Removed]);
+        Assert.Equal(203, byMode[DeprecatedReplacementMode.Direct]);
+        Assert.Equal(27, byMode[DeprecatedReplacementMode.Removed]);
+        Assert.Equal(12, byMode[DeprecatedReplacementMode.Composite]);
+        Assert.Equal(9, byMode[DeprecatedReplacementMode.NoteOnly]);
         Assert.Equal(6, byMode[DeprecatedReplacementMode.Alternative]);
+        Assert.Equal(3, byMode[DeprecatedReplacementMode.Integrate]);
     }
 
     private static string ExpectStatus(DeprecatedEntry entry)
