@@ -469,11 +469,11 @@ interface ErrorsApi {
   get(@path errorId: string): ErrorEntity | NotFoundError | InternalServerError;
 
   @doc("Update error status")
-  @patch
+  @patch(#{ implicitOptionality: true })
   @route("/{errorId}")
   update(
     @path errorId: string,
-    @body update: MergePatchUpdate<ErrorPatch>,
+    @body update: ErrorUpdate,
   ): ErrorEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get error statistics")
@@ -491,8 +491,19 @@ interface ErrorsApi {
   getCorrelations(@path errorId: string): ErrorCorrelation | NotFoundError | InternalServerError;
 }
 
-@doc("Patchable subset of ErrorEntity")
-model ErrorPatch is PickProperties<ErrorEntity, "status" | "assignedTo" | "issueUrl">;
+@doc("Error update request")
+model ErrorUpdate {
+  @doc("New status")
+  status?: ErrorStatus;
+
+  @doc("Assignee")
+  @encodedName("application/json", "assigned_to")
+  assignedTo?: string;
+
+  @doc("Issue URL")
+  @encodedName("application/json", "issue_url")
+  issueUrl?: UrlString;
+}
 
 // =============================================================================
 // Deployments API
@@ -523,11 +534,11 @@ interface DeploymentsApi {
   create(@body deployment: DeploymentCreate): DeploymentEntity | ValidationError | InternalServerError;
 
   @doc("Update deployment status")
-  @patch
+  @patch(#{ implicitOptionality: true })
   @route("/{deploymentId}")
   update(
     @path deploymentId: string,
-    @body update: MergePatchUpdate<DeploymentPatch>,
+    @body update: DeploymentUpdate,
   ): DeploymentEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get DORA metrics")
@@ -570,8 +581,19 @@ model DeploymentCreate {
   gitBranch?: string;
 }
 
-@doc("Patchable subset of DeploymentEntity")
-model DeploymentPatch is PickProperties<DeploymentEntity, "status" | "healthyReplicas" | "errorMessage">;
+@doc("Deployment update request")
+model DeploymentUpdate {
+  @doc("New status")
+  status?: DeploymentStatus;
+
+  @doc("Healthy replicas")
+  @encodedName("application/json", "healthy_replicas")
+  healthyReplicas?: int32;
+
+  @doc("Error message")
+  @encodedName("application/json", "error_message")
+  errorMessage?: string;
+}
 
 @doc("DORA metrics response")
 model DoraMetrics {
@@ -987,11 +1009,11 @@ interface IssuesApi {
   get(@path issueId: string): ErrorIssueEntity | NotFoundError | InternalServerError;
 
   @doc("Update issue status")
-  @patch
+  @patch(#{ implicitOptionality: true })
   @route("/{issueId}")
   update(
     @path issueId: string,
-    @body update: MergePatchUpdate<IssuePatch>,
+    @body update: IssueUpdateRequest,
   ): ErrorIssueEntity | NotFoundError | ValidationError | InternalServerError;
 
   @doc("Get issue events")
@@ -1012,8 +1034,18 @@ interface IssuesApi {
   ): ErrorBreadcrumbEntity[] | NotFoundError | InternalServerError;
 }
 
-@doc("Patchable subset of ErrorIssueEntity")
-model IssuePatch is PickProperties<ErrorIssueEntity, "status" | "priority" | "assignedTo">;
+@doc("Issue update request")
+model IssueUpdateRequest {
+  @doc("New status")
+  status?: IssueStatus;
+
+  @doc("New priority")
+  priority?: IssuePriority;
+
+  @doc("Assignee")
+  @encodedName("application/json", "assigned_to")
+  assignedTo?: string;
+}
 
 // =============================================================================
 // Workflow API

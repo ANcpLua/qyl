@@ -6,33 +6,33 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Ops.Deployment;
+using Qyl.Domains.Issues;
 
 namespace Qyl.Api
 {
 
     ///<summary>
-    /// Patchable subset of DeploymentEntity
+    /// Issue update request
     ///</summary>
-    public partial class DeploymentPatch
+    public partial class IssueUpdateRequest
     {
         ///<summary>
-        /// Status
+        /// New status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
-        public DeploymentStatus Status { get; set; }
+        public IssueStatus? Status { get; set; }
 
         ///<summary>
-        /// Healthy replica count
+        /// New priority
         ///</summary>
-        [JsonPropertyName("healthy_replicas")]
-        public int? HealthyReplicas { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public IssuePriority? Priority { get; set; }
 
         ///<summary>
-        /// Error message (if failed)
+        /// Assignee
         ///</summary>
-        [JsonPropertyName("error_message")]
-        public string ErrorMessage { get; set; }
+        [JsonPropertyName("assigned_to")]
+        public string AssignedTo { get; set; }
 
 
     }

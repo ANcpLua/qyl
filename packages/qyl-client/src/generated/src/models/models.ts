@@ -2423,21 +2423,21 @@ export interface ErrorEntity {
  */
 export type UrlString = string;
 /**
- * Patchable subset of ErrorEntity
+ * Error update request
  */
-export interface ErrorPatchMergePatchUpdate {
+export interface ErrorUpdate {
   /**
-   * Status
+   * New status
    */
   status?: ErrorStatus;
   /**
-   * Assigned to
+   * Assignee
    */
-  assignedTo?: string | null;
+  assignedTo?: string;
   /**
-   * Issue tracker URL
+   * Issue URL
    */
-  issueUrl?: string | null;
+  issueUrl?: string;
 }
 /**
  * Error statistics
@@ -2842,21 +2842,21 @@ export interface DeploymentCreate {
   gitBranch?: string;
 }
 /**
- * Patchable subset of DeploymentEntity
+ * Deployment update request
  */
-export interface DeploymentPatchMergePatchUpdate {
+export interface DeploymentUpdate {
   /**
-   * Status
+   * New status
    */
   status?: DeploymentStatus;
   /**
-   * Healthy replica count
+   * Healthy replicas
    */
-  healthyReplicas?: number | null;
+  healthyReplicas?: number;
   /**
-   * Error message (if failed)
+   * Error message
    */
-  errorMessage?: string | null;
+  errorMessage?: string;
 }
 /**
  * DORA metrics response
@@ -3836,21 +3836,21 @@ export interface ErrorIssueEntity {
   updatedAt: Date;
 }
 /**
- * Patchable subset of ErrorIssueEntity
+ * Issue update request
  */
-export interface IssuePatchMergePatchUpdate {
+export interface IssueUpdateRequest {
   /**
-   * Issue status
+   * New status
    */
   status?: IssueStatus;
   /**
-   * Priority level
+   * New priority
    */
   priority?: IssuePriority;
   /**
-   * Assigned team member
+   * Assignee
    */
-  assignedTo?: string | null;
+  assignedTo?: string;
 }
 /**
  * Cursor-based paginated response wrapper

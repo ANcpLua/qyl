@@ -65,7 +65,7 @@ namespace Qyl.Api
         ///<summary>
         /// Update issue status
         ///</summary>
-        Task<ErrorIssueEntity> UpdateAsync(string issueId, IssuePatchMergePatchUpdate body);
+        Task<ErrorIssueEntity> UpdateAsync(string issueId, IssueUpdateRequest body);
         ///<summary>
         /// Get issue events
         ///</summary>
