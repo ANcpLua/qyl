@@ -1,4 +1,4 @@
-import type { AlertFiringAcknowledgement, AlertFiringEntity, AlertRuleEntity, Attribute, AttributeFilter, AttributeValue, CorrelatedError, CursorPage, CursorPage_10, CursorPage_11, CursorPage_12, CursorPage_13, CursorPage_14, CursorPage_15, CursorPage_16, CursorPage_17, CursorPage_18, CursorPage_2, CursorPage_3, CursorPage_4, CursorPage_5, CursorPage_6, CursorPage_7, CursorPage_8, CursorPage_9, DeploymentCreate, DeploymentEntity, DeploymentPatchMergePatchUpdate, DoraMetrics, ErrorBreadcrumbEntity, ErrorCategoryStats, ErrorCorrelation, ErrorEntity, ErrorIssueEntity, ErrorIssueEventEntity, ErrorPatchMergePatchUpdate, ErrorServiceStats, ErrorStats, ErrorTypeStats, FixRunEntity, GenerationJobCreateRequest, GenerationJobEntity, GenerationProfileCreateRequest, GenerationProfileEntity, GenerationSelectionEntity, GenerationSelectionSaveRequest, HandshakeSessionEntity, HandshakeStartRequest, HandshakeVerifyRequest, HandshakeVerifyResponse, InstrumentationScope, IssuePatchMergePatchUpdate, LogAggregation, LogAggregationBucket, LogAggregationRequest, LogAggregationResponse, LogBody, LogBodyArray, LogBodyBytes, LogBodyKvList, LogBodyString, LogCountByDimension, LogCountBySeverity, LogPattern, LogQuery, LogRecord, LogSeverityStats, LogStats, MetricDataPoint, MetricMetadata, MetricQueryRequest, MetricQueryResponse, MetricTimeSeries, OperationInfo, ProfileRecord, ProjectCreateRequest, ProjectEntity, ProjectEnvironmentEntity, Resource, SearchEntityType, SearchRequest, SearchResponse, SearchResult, ServiceDependency, ServiceDetails, ServiceInfo, SessionClientInfo, SessionCountryStats, SessionDeviceStats, SessionEntity, SessionGenAiUsage, SessionGeoInfo, SessionStats, Span, SpanEvent, SpanLink, SpanRecord, SpanStatus, StreamEventType, Trace, TraceQuery, WorkflowEventEntity, WorkflowNodeEntity, WorkflowRunEntity, WorkspaceEnvelopeEntity } from "../models.js";
+import type { AlertFiringAcknowledgement, AlertFiringEntity, AlertRuleEntity, Attribute, AttributeFilter, AttributeValue, CorrelatedError, CursorPage, CursorPage_10, CursorPage_11, CursorPage_12, CursorPage_13, CursorPage_14, CursorPage_15, CursorPage_16, CursorPage_17, CursorPage_18, CursorPage_2, CursorPage_3, CursorPage_4, CursorPage_5, CursorPage_6, CursorPage_7, CursorPage_8, CursorPage_9, DeploymentCreate, DeploymentEntity, DeploymentUpdate, DoraMetrics, ErrorBreadcrumbEntity, ErrorCategoryStats, ErrorCorrelation, ErrorEntity, ErrorIssueEntity, ErrorIssueEventEntity, ErrorServiceStats, ErrorStats, ErrorTypeStats, ErrorUpdate, FixRunEntity, GenerationJobCreateRequest, GenerationJobEntity, GenerationProfileCreateRequest, GenerationProfileEntity, GenerationSelectionEntity, GenerationSelectionSaveRequest, HandshakeSessionEntity, HandshakeStartRequest, HandshakeVerifyRequest, HandshakeVerifyResponse, InstrumentationScope, IssueUpdateRequest, LogAggregation, LogAggregationBucket, LogAggregationRequest, LogAggregationResponse, LogBody, LogBodyArray, LogBodyBytes, LogBodyKvList, LogBodyString, LogCountByDimension, LogCountBySeverity, LogPattern, LogQuery, LogRecord, LogSeverityStats, LogStats, MetricDataPoint, MetricMetadata, MetricQueryRequest, MetricQueryResponse, MetricTimeSeries, OperationInfo, ProfileRecord, ProjectCreateRequest, ProjectEntity, ProjectEnvironmentEntity, Resource, SearchEntityType, SearchRequest, SearchResponse, SearchResult, ServiceDependency, ServiceDetails, ServiceInfo, SessionClientInfo, SessionCountryStats, SessionDeviceStats, SessionEntity, SessionGenAiUsage, SessionGeoInfo, SessionStats, Span, SpanEvent, SpanLink, SpanRecord, SpanStatus, StreamEventType, Trace, TraceQuery, WorkflowEventEntity, WorkflowNodeEntity, WorkflowRunEntity, WorkspaceEnvelopeEntity } from "../models.js";
 
 export function decodeBase64(value: string): Uint8Array | undefined {
   if(!value) {
@@ -63,8 +63,8 @@ export function decodeBase64(value: string): Uint8Array | undefined {
   return jsonAlertFiringAcknowledgementToTransportTransform(payload)!;
 }export function searchPayloadToTransport(payload: SearchRequest) {
   return jsonSearchRequestToTransportTransform(payload)!;
-}export function updatePayloadToTransport(payload: IssuePatchMergePatchUpdate) {
-  return jsonIssuePatchMergePatchUpdateToTransportTransform(payload)!;
+}export function updatePayloadToTransport(payload: IssueUpdateRequest) {
+  return jsonIssueUpdateRequestToTransportTransform(payload)!;
 }export function createProfilePayloadToTransport(
   payload: GenerationProfileCreateRequest,
 ) {
@@ -91,14 +91,10 @@ export function decodeBase64(value: string): Uint8Array | undefined {
   return jsonProjectCreateRequestToTransportTransform(payload)!;
 }export function createPayloadToTransport(payload: DeploymentCreate) {
   return jsonDeploymentCreateToTransportTransform(payload)!;
-}export function updatePayloadToTransport_2(
-  payload: DeploymentPatchMergePatchUpdate,
-) {
-  return jsonDeploymentPatchMergePatchUpdateToTransportTransform(payload)!;
-}export function updatePayloadToTransport_3(
-  payload: ErrorPatchMergePatchUpdate,
-) {
-  return jsonErrorPatchMergePatchUpdateToTransportTransform(payload)!;
+}export function updatePayloadToTransport_2(payload: DeploymentUpdate) {
+  return jsonDeploymentUpdateToTransportTransform(payload)!;
+}export function updatePayloadToTransport_3(payload: ErrorUpdate) {
+  return jsonErrorUpdateToTransportTransform(payload)!;
 }export function queryPayloadToTransport(payload: MetricQueryRequest) {
   return jsonMetricQueryRequestToTransportTransform(payload)!;
 }export function searchPayloadToTransport_2(payload: LogQuery) {
@@ -1783,8 +1779,8 @@ export function decodeBase64(value: string): Uint8Array | undefined {
   }
 
   return _transformedArray as any;
-}export function jsonErrorPatchMergePatchUpdateToTransportTransform(
-  input_?: ErrorPatchMergePatchUpdate | null,
+}export function jsonErrorUpdateToTransportTransform(
+  input_?: ErrorUpdate | null,
 ): any {
   if(!input_) {
     return input_ as any;
@@ -1792,9 +1788,9 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return {
     status: input_.status,assigned_to: input_.assignedTo,issue_url: input_.issueUrl
   }!;
-}export function jsonErrorPatchMergePatchUpdateToApplicationTransform(
+}export function jsonErrorUpdateToApplicationTransform(
   input_?: any,
-): ErrorPatchMergePatchUpdate {
+): ErrorUpdate {
   if(!input_) {
     return input_ as any;
   }
@@ -2103,8 +2099,8 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return {
     serviceName: input_.service_name,serviceVersion: input_.service_version,environment: input_.environment,strategy: input_.strategy,deployedBy: input_.deployed_by,gitCommit: input_.git_commit,gitBranch: input_.git_branch
   }!;
-}export function jsonDeploymentPatchMergePatchUpdateToTransportTransform(
-  input_?: DeploymentPatchMergePatchUpdate | null,
+}export function jsonDeploymentUpdateToTransportTransform(
+  input_?: DeploymentUpdate | null,
 ): any {
   if(!input_) {
     return input_ as any;
@@ -2112,9 +2108,9 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return {
     status: input_.status,healthy_replicas: input_.healthyReplicas,error_message: input_.errorMessage
   }!;
-}export function jsonDeploymentPatchMergePatchUpdateToApplicationTransform(
+}export function jsonDeploymentUpdateToApplicationTransform(
   input_?: any,
-): DeploymentPatchMergePatchUpdate {
+): DeploymentUpdate {
   if(!input_) {
     return input_ as any;
   }
@@ -2823,8 +2819,8 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return {
     id: input_.id,projectId: input_.project_id,fingerprint: input_.fingerprint,title: input_.title,culprit: input_.culprit,errorType: input_.error_type,category: input_.category,level: input_.level,platform: input_.platform,firstSeenAt: dateDeserializer(input_.first_seen_at)!,lastSeenAt: dateDeserializer(input_.last_seen_at)!,occurrenceCount: input_.occurrence_count,affectedUsersCount: input_.affected_users_count,status: input_.status,substatus: input_.substatus,priority: input_.priority,assignedTo: input_.assigned_to,resolvedAt: dateDeserializer(input_.resolved_at)!,resolvedBy: input_.resolved_by,regressionCount: input_.regression_count,lastRelease: input_.last_release,tagsJson: input_.tags_json,metadataJson: input_.metadata_json,createdAt: dateDeserializer(input_.created_at)!,updatedAt: dateDeserializer(input_.updated_at)!
   }!;
-}export function jsonIssuePatchMergePatchUpdateToTransportTransform(
-  input_?: IssuePatchMergePatchUpdate | null,
+}export function jsonIssueUpdateRequestToTransportTransform(
+  input_?: IssueUpdateRequest | null,
 ): any {
   if(!input_) {
     return input_ as any;
@@ -2832,9 +2828,9 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return {
     status: input_.status,priority: input_.priority,assigned_to: input_.assignedTo
   }!;
-}export function jsonIssuePatchMergePatchUpdateToApplicationTransform(
+}export function jsonIssueUpdateRequestToApplicationTransform(
   input_?: any,
-): IssuePatchMergePatchUpdate {
+): IssueUpdateRequest {
   if(!input_) {
     return input_ as any;
   }

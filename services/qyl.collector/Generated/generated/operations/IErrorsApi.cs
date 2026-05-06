@@ -65,7 +65,7 @@ namespace Qyl.Api
         ///<summary>
         /// Update error status
         ///</summary>
-        Task<ErrorEntity> UpdateAsync(string errorId, ErrorPatchMergePatchUpdate body);
+        Task<ErrorEntity> UpdateAsync(string errorId, ErrorUpdate body);
         ///<summary>
         /// Get error statistics
         ///</summary>

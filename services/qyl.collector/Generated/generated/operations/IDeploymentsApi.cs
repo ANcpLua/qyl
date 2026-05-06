@@ -68,7 +68,7 @@ namespace Qyl.Api
         ///<summary>
         /// Update deployment status
         ///</summary>
-        Task<DeploymentEntity> UpdateAsync(string deploymentId, DeploymentPatchMergePatchUpdate body);
+        Task<DeploymentEntity> UpdateAsync(string deploymentId, DeploymentUpdate body);
         ///<summary>
         /// Get DORA metrics
         ///</summary>
