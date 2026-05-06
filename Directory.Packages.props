@@ -100,7 +100,7 @@
     <!-- Transitive security overrides (via Nuke.Common): force patched versions that
          close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging 6.12.1) and GHSA-37gx-xxp4-5rgx /
          GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml 9.0.0). -->
-    <PackageVersion Include="NuGet.Packaging" Version="6.12.5"/>
+    <PackageVersion Include="NuGet.Packaging" Version="6.14.3"/>
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="9.0.15"/>
     <!-- OpenAPI YAML Parsing (for TypeSpec God Schema pipeline) -->
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
