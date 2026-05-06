@@ -5,8 +5,10 @@
 # any `rm -rf "${STAGING_DIR}/..."` runs. Without it, a misconfigured CI
 # value could delete outside the workspace.
 #
-# Tests both negative paths (invalid values) and positive paths (valid absolute
-# paths). The positive test stops before invoking Weaver (out of scope).
+# Tests only the negative paths — the positive (valid absolute) path is
+# implicitly covered every CI run that calls run-weaver.sh with the default
+# STAGING_DIR; reproducing it here would require staging a fake Weaver
+# binary, which is out of scope for a guard regression test.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,30 +16,20 @@ RUN="${SCRIPT_DIR}/run-weaver.sh"
 failures=0
 
 test_rejected() {
-  local name="$1" value="$2" expect="$3" actual
-  if actual="$(SEMCONV_STAGING_DIR="$value" bash "$RUN" 2>&1)"; then
+  local name="$1" value="$2" expect="$3" actual_stderr
+  # Capture stderr only — `2>&1 >/dev/null` swaps fds so the subshell
+  # captures fd 2 while fd 1 is discarded. Avoids a false positive if the
+  # error were ever accidentally emitted on stdout.
+  if actual_stderr="$(SEMCONV_STAGING_DIR="$value" bash "$RUN" 2>&1 >/dev/null)"; then
     echo "FAIL: $name — expected non-zero exit, script succeeded"
     failures=$((failures + 1))
     return
   fi
-  if ! grep -qF "$expect" <<<"$actual"; then
+  if ! grep -qF "$expect" <<<"$actual_stderr"; then
     echo "FAIL: $name — stderr missing expected substring"
     echo "       expected: $expect"
     echo "       got:"
-    sed 's/^/        /' <<<"$actual"
-    failures=$((failures + 1))
-    return
-  fi
-  echo "PASS: $name"
-}
-
-test_accepted() {
-  local name="$1" value="$2" actual exit_code=0
-  if ! actual="$(SEMCONV_STAGING_DIR="$value" bash "$RUN" 2>&1)"; then
-    exit_code=$?
-    echo "FAIL: $name — expected zero exit, script failed with exit code $exit_code"
-    echo "       stderr:"
-    sed 's/^/        /' <<<"$actual"
+    sed 's/^/        /' <<<"$actual_stderr"
     failures=$((failures + 1))
     return
   fi
@@ -47,7 +39,6 @@ test_accepted() {
 test_rejected "empty value"     ""          "must be a non-empty absolute path"
 test_rejected "root path"       "/"         "must be a non-empty absolute path"
 test_rejected "relative path"   "rel/path"  "must be absolute"
-test_accepted "valid absolute path" "/tmp/valid"
 
 if (( failures > 0 )); then
   echo
