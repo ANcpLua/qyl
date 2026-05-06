@@ -11,27 +11,28 @@ namespace Qyl.Api
 {
 
     ///<summary>
-    /// Save generation selections request
+    /// Batch upsert request — workspace+profile scope from
+    /// GenerationSelectionEntity, plus an array of selection keys
     ///</summary>
     public partial class GenerationSelectionSaveRequest
     {
         ///<summary>
-        /// Workspace ID
+        /// Workspace
         ///</summary>
         [JsonPropertyName("workspace_id")]
         public string WorkspaceId { get; set; }
 
         ///<summary>
-        /// Profile ID
+        /// Profile
         ///</summary>
         [JsonPropertyName("profile_id")]
         public string ProfileId { get; set; }
 
         ///<summary>
-        /// Selected semconv keys
+        /// Array of selection keys to enable in a single round-trip
         ///</summary>
-        [JsonPropertyName("selected_keys_json")]
-        public string SelectedKeysJson { get; set; }
+        [JsonPropertyName("selected_keys")]
+        public string[] SelectedKeys { get; set; }
 
 
     }

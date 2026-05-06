@@ -85,10 +85,16 @@ namespace Qyl.Domains.Configurator
             {
                 throw new FormatException($"The model {nameof(GenerationProfileEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("id"u8);
-            writer.WriteStringValue(Id);
-            writer.WritePropertyName("project_id"u8);
-            writer.WriteStringValue(ProjectId);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("id"u8);
+                writer.WriteStringValue(Id);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("project_id"u8);
+                writer.WriteStringValue(ProjectId);
+            }
             writer.WritePropertyName("name"u8);
             writer.WriteStringValue(Name);
             if (Optional.IsDefined(Description))
@@ -111,10 +117,16 @@ namespace Qyl.Domains.Configurator
             }
             writer.WritePropertyName("is_default"u8);
             writer.WriteBooleanValue(IsDefault);
-            writer.WritePropertyName("created_at"u8);
-            writer.WriteStringValue(CreatedAt, "O");
-            writer.WritePropertyName("updated_at"u8);
-            writer.WriteStringValue(UpdatedAt, "O");
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("created_at"u8);
+                writer.WriteStringValue(CreatedAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("updated_at"u8);
+                writer.WriteStringValue(UpdatedAt, "O");
+            }
             if (options.Format != "W" && _additionalBinaryDataProperties != null)
             {
                 foreach (var item in _additionalBinaryDataProperties)

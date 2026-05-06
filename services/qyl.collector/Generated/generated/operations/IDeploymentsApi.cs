@@ -64,11 +64,11 @@ namespace Qyl.Api
         ///<summary>
         /// Record new deployment
         ///</summary>
-        Task<DeploymentEntity> CreateAsync(DeploymentCreate body);
+        Task<DeploymentEntity> CreateAsync(CreateDeploymentEntity body);
         ///<summary>
         /// Update deployment status
         ///</summary>
-        Task<DeploymentEntity> UpdateAsync(string deploymentId, DeploymentUpdate body);
+        Task<DeploymentEntity> UpdateAsync(string deploymentId, DeploymentEntityMergePatchUpdate body);
         ///<summary>
         /// Get DORA metrics
         ///</summary>

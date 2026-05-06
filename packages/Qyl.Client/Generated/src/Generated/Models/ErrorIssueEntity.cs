@@ -14,40 +14,12 @@ namespace Qyl.Domains.Issues
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="ErrorIssueEntity"/>. </summary>
-        /// <param name="id"> Issue ID. </param>
-        /// <param name="projectId"> Owning project. </param>
-        /// <param name="fingerprint"> Error fingerprint for grouping. </param>
-        /// <param name="title"> Issue title. </param>
-        /// <param name="errorType"> Error type (exception class name or code). </param>
-        /// <param name="category"> Error category. </param>
-        /// <param name="level"> Severity level. </param>
-        /// <param name="firstSeenAt"> First occurrence. </param>
-        /// <param name="lastSeenAt"> Last occurrence. </param>
-        /// <param name="occurrenceCount"> Total occurrence count. </param>
-        /// <param name="affectedUsersCount"> Affected unique users count. </param>
         /// <param name="status"> Issue status. </param>
         /// <param name="priority"> Priority level. </param>
-        /// <param name="regressionCount"> Number of regressions. </param>
-        /// <param name="createdAt"> Creation timestamp. </param>
-        /// <param name="updatedAt"> Last update timestamp. </param>
-        internal ErrorIssueEntity(string id, string projectId, string fingerprint, string title, string errorType, string category, IssueLevel level, DateTimeOffset firstSeenAt, DateTimeOffset lastSeenAt, long occurrenceCount, int affectedUsersCount, IssueStatus status, IssuePriority priority, int regressionCount, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        internal ErrorIssueEntity(IssueStatus status, IssuePriority priority)
         {
-            Id = id;
-            ProjectId = projectId;
-            Fingerprint = fingerprint;
-            Title = title;
-            ErrorType = errorType;
-            Category = category;
-            Level = level;
-            FirstSeenAt = firstSeenAt;
-            LastSeenAt = lastSeenAt;
-            OccurrenceCount = occurrenceCount;
-            AffectedUsersCount = affectedUsersCount;
             Status = status;
             Priority = priority;
-            RegressionCount = regressionCount;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
         }
 
         /// <summary> Initializes a new instance of <see cref="ErrorIssueEntity"/>. </summary>

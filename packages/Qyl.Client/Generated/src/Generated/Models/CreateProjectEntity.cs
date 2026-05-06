@@ -6,19 +6,19 @@ using System;
 using System.Collections.Generic;
 using Qyl.Client;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Workspace
 {
-    /// <summary> Project creation request. </summary>
-    public partial class ProjectCreateRequest
+    /// <summary> Project registry: top-level organizational unit. </summary>
+    public partial class CreateProjectEntity
     {
         /// <summary> Keeps track of any properties unknown to the library. </summary>
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
-        /// <summary> Initializes a new instance of <see cref="ProjectCreateRequest"/>. </summary>
+        /// <summary> Initializes a new instance of <see cref="CreateProjectEntity"/>. </summary>
         /// <param name="name"> Project name. </param>
-        /// <param name="slug"> Project slug (URL-safe). </param>
+        /// <param name="slug"> URL-safe slug (unique). </param>
         /// <exception cref="ArgumentNullException"> <paramref name="name"/> or <paramref name="slug"/> is null. </exception>
-        public ProjectCreateRequest(string name, string slug)
+        public CreateProjectEntity(string name, string slug)
         {
             Argument.AssertNotNull(name, nameof(name));
             Argument.AssertNotNull(slug, nameof(slug));
@@ -27,12 +27,12 @@ namespace Qyl.Api
             Slug = slug;
         }
 
-        /// <summary> Initializes a new instance of <see cref="ProjectCreateRequest"/>. </summary>
+        /// <summary> Initializes a new instance of <see cref="CreateProjectEntity"/>. </summary>
         /// <param name="name"> Project name. </param>
-        /// <param name="slug"> Project slug (URL-safe). </param>
+        /// <param name="slug"> URL-safe slug (unique). </param>
         /// <param name="description"> Project description. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal ProjectCreateRequest(string name, string slug, string description, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal CreateProjectEntity(string name, string slug, string description, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             Name = name;
             Slug = slug;
@@ -43,7 +43,7 @@ namespace Qyl.Api
         /// <summary> Project name. </summary>
         public string Name { get; }
 
-        /// <summary> Project slug (URL-safe). </summary>
+        /// <summary> URL-safe slug (unique). </summary>
         public string Slug { get; }
 
         /// <summary> Project description. </summary>

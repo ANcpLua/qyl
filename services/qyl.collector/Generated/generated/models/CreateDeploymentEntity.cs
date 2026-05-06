@@ -6,27 +6,26 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Ops.Deployment;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Ops.Deployment
 {
 
     ///<summary>
-    /// Deployment creation request
+    /// Complete deployment record
     ///</summary>
-    public partial class DeploymentCreate
+    public partial class CreateDeploymentEntity
     {
         ///<summary>
         /// Service name
         ///</summary>
-        [JsonPropertyName("service_name")]
+        [JsonPropertyName("service.name")]
         public string ServiceName { get; set; }
 
         ///<summary>
         /// Service version
         ///</summary>
         [StringConstraint(Pattern = @"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")]
-        [JsonPropertyName("service_version")]
+        [JsonPropertyName("service.version")]
         public string ServiceVersion { get; set; }
 
         ///<summary>
@@ -42,7 +41,7 @@ namespace Qyl.Api
         public DeploymentStrategy Strategy { get; set; }
 
         ///<summary>
-        /// Deployed by
+        /// Deployed by (user/system)
         ///</summary>
         [JsonPropertyName("deployed_by")]
         public string DeployedBy { get; set; }

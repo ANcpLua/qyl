@@ -14,18 +14,12 @@ namespace Qyl.Domains.Workspace
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="ProjectEntity"/>. </summary>
-        /// <param name="id"> Project ID. </param>
         /// <param name="name"> Project name. </param>
         /// <param name="slug"> URL-safe slug (unique). </param>
-        /// <param name="createdAt"> Creation timestamp. </param>
-        /// <param name="updatedAt"> Last update timestamp. </param>
-        internal ProjectEntity(string id, string name, string slug, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        internal ProjectEntity(string name, string slug)
         {
-            Id = id;
             Name = name;
             Slug = slug;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
         }
 
         /// <summary> Initializes a new instance of <see cref="ProjectEntity"/>. </summary>

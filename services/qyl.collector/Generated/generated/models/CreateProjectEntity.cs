@@ -7,35 +7,28 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Workspace
 {
 
     ///<summary>
-    /// Generation profile creation request
+    /// Project registry: top-level organizational unit
     ///</summary>
-    public partial class GenerationProfileCreateRequest
+    public partial class CreateProjectEntity
     {
         ///<summary>
-        /// Profile name
+        /// Project name
         ///</summary>
         public string Name { get; set; }
 
         ///<summary>
-        /// Target framework
+        /// URL-safe slug (unique)
         ///</summary>
-        [JsonPropertyName("target_framework")]
-        public string TargetFramework { get; set; }
+        public string Slug { get; set; }
 
         ///<summary>
-        /// Profile description
+        /// Project description
         ///</summary>
         public string Description { get; set; }
-
-        ///<summary>
-        /// Feature flags
-        ///</summary>
-        [JsonPropertyName("features_json")]
-        public string FeaturesJson { get; set; }
 
 
     }

@@ -34,7 +34,7 @@ import { createWorkflowsApiClientContext, type WorkflowsApiClientContext, type W
 import { approveStep, type ApproveStepOptions, getRun, getRunEvents, type GetRunEventsOptions, getRunNodes, type GetRunNodesOptions, type GetRunOptions, listRuns, type ListRunsOptions, resumeRun, type ResumeRunOptions } from "./api/workflowsApiClient/workflowsApiClientOperations.js";
 import { createWorkspacesApiClientContext, type WorkspacesApiClientContext, type WorkspacesApiClientOptions } from "./api/workspacesApiClient/workspacesApiClientContext.js";
 import { createProject, type CreateProjectOptions, getCurrent, type GetCurrentOptions, getProject, type GetProjectOptions, heartbeat, type HeartbeatOptions, listEnvironments, type ListEnvironmentsOptions, listProjects, type ListProjectsOptions } from "./api/workspacesApiClient/workspacesApiClientOperations.js";
-import type { AlertFiringAcknowledgement, AlertRuleEntity, DeploymentCreate, DeploymentUpdate, ErrorUpdate, GenerationJobCreateRequest, GenerationProfileCreateRequest, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, IssueUpdateRequest, LogAggregationRequest, LogQuery, MetricQueryRequest, ProjectCreateRequest, SearchRequest, TraceQuery } from "./models/models.js";
+import type { AlertFiringAcknowledgement, AlertRuleEntity, CreateDeploymentEntity, CreateGenerationJobEntity, CreateGenerationProfileEntity, CreateProjectEntity, DeploymentEntityMergePatchUpdate, ErrorEntityMergePatchUpdate, ErrorIssueEntityMergePatchUpdate, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, LogAggregationRequest, LogQuery, MetricQueryRequest, SearchRequest, TraceQuery } from "./models/models.js";
 
 export class ApiClient {
   #context: ApiClientContext
@@ -159,7 +159,7 @@ export class IssuesApiClient {
   };
   async update(
     issueId: string,
-    update: IssueUpdateRequest,
+    update: ErrorIssueEntityMergePatchUpdate,
     options?: UpdateOptions_3,
   ) {
     return update_3(this.#context, issueId, update, options);
@@ -187,7 +187,7 @@ export class ConfiguratorApiClient {
     return getProfile(this.#context, profileId, options);
   };
   async createProfile(
-    profile: GenerationProfileCreateRequest,
+    profile: CreateGenerationProfileEntity,
     options?: CreateProfileOptions,
   ) {
     return createProfile(this.#context, profile, options);
@@ -201,7 +201,7 @@ export class ConfiguratorApiClient {
   ) {
     return saveSelections(this.#context, selections, options);
   };
-  async createJob(job: GenerationJobCreateRequest, options?: CreateJobOptions) {
+  async createJob(job: CreateGenerationJobEntity, options?: CreateJobOptions) {
     return createJob(this.#context, job, options);
   };
   async getJob(jobId: string, options?: GetJobOptions) {
@@ -256,7 +256,7 @@ export class WorkspacesApiClient {
     return getProject(this.#context, projectId, options);
   };
   async createProject(
-    project: ProjectCreateRequest,
+    project: CreateProjectEntity,
     options?: CreateProjectOptions,
   ) {
     return createProject(this.#context, project, options);
@@ -318,12 +318,12 @@ export class DeploymentsApiClient {
   async get(deploymentId: string, options?: GetOptions_5) {
     return get_5(this.#context, deploymentId, options);
   };
-  async create(deployment: DeploymentCreate, options?: CreateOptions) {
+  async create(deployment: CreateDeploymentEntity, options?: CreateOptions) {
     return create(this.#context, deployment, options);
   };
   async update(
     deploymentId: string,
-    update: DeploymentUpdate,
+    update: DeploymentEntityMergePatchUpdate,
     options?: UpdateOptions_2,
   ) {
     return update_2(this.#context, deploymentId, update, options);
@@ -347,7 +347,11 @@ export class ErrorsApiClient {
   async get(errorId: string, options?: GetOptions_4) {
     return get_4(this.#context, errorId, options);
   };
-  async update(errorId: string, update: ErrorUpdate, options?: UpdateOptions) {
+  async update(
+    errorId: string,
+    update: ErrorEntityMergePatchUpdate,
+    options?: UpdateOptions,
+  ) {
     return update(this.#context, errorId, update, options);
   };
   async getStats(options?: GetStatsOptions_3) {

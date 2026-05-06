@@ -22,49 +22,61 @@ namespace Qyl.Domains.Configurator;
 model GenerationProfileEntity {
   @doc("Profile ID")
   @key
+  @visibility(Lifecycle.Read)
   id: string;
 
   @doc("Owning project")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "project_id")
   projectId: string;
 
   @doc("Profile name")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   name: string;
 
   @doc("Profile description")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   description?: string;
 
   @doc("Target framework (e.g. net10.0)")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "target_framework")
   targetFramework: string;
 
   @doc("Target language")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "target_language")
   targetLanguage: string;
 
   @doc("Semantic conventions version")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "semconv_version")
   semconvVersion: string;
 
   @doc("Enabled features/modules")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @encodedName("application/json", "features_json")
   @extension("x-duckdb-type", "JSON")
   featuresJson: string;
 
   @doc("Template customizations")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @encodedName("application/json", "template_overrides_json")
   @extension("x-duckdb-type", "JSON")
   templateOverridesJson?: string;
 
   @doc("Whether this is the default profile")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "is_default")
   isDefault: boolean;
 
   @doc("Creation timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "created_at")
   createdAt: utcDateTime;
 
   @doc("Last update timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "updated_at")
   updatedAt: utcDateTime;
 }
@@ -79,37 +91,46 @@ model GenerationProfileEntity {
 model GenerationSelectionEntity {
   @doc("Selection ID")
   @key
+  @visibility(Lifecycle.Read)
   id: string;
 
   @doc("Workspace")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "workspace_id")
   workspaceId: string;
 
   @doc("Profile")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "profile_id")
   profileId: string;
 
   @doc("Selection type (semconv_group, feature, custom_attribute)")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "selection_type")
   selectionType: string;
 
   @doc("Selection key (e.g. http, db, genai)")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "selection_key")
   selectionKey: string;
 
   @doc("Whether enabled")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   enabled: boolean;
 
   @doc("Selection-specific configuration")
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @encodedName("application/json", "config_json")
   @extension("x-duckdb-type", "JSON")
   configJson?: string;
 
   @doc("Creation timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "created_at")
   createdAt: utcDateTime;
 
   @doc("Last update timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "updated_at")
   updatedAt: utcDateTime;
 }
@@ -124,55 +145,69 @@ model GenerationSelectionEntity {
 model GenerationJobEntity {
   @doc("Job ID")
   @key
+  @visibility(Lifecycle.Read)
   id: string;
 
   @doc("Workspace")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "workspace_id")
   workspaceId: string;
 
   @doc("Profile")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "profile_id")
   profileId: string;
 
   @doc("Job type")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "job_type")
   jobType: GenerationJobType;
 
   @doc("Job status")
+  @visibility(Lifecycle.Read)
   status: JobStatus;
 
   @doc("Priority (higher = more urgent)")
+  @visibility(Lifecycle.Read)
   priority: int32;
 
   @doc("Hash of inputs for dedup")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "input_hash")
   inputHash?: string;
 
   @doc("Local path where output was written")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "output_path")
   outputPath?: string;
 
   @doc("Hash of generated output")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "output_hash")
   outputHash?: string;
 
   @doc("Error message if failed")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "error_message")
   errorMessage?: string;
 
   @doc("Queue timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "queued_at")
   queuedAt: utcDateTime;
 
   @doc("Start timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "started_at")
   startedAt?: utcDateTime;
 
   @doc("Completion timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "completed_at")
   completedAt?: utcDateTime;
 
   @doc("Duration in milliseconds")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "duration_ms")
   durationMs?: int32;
 }

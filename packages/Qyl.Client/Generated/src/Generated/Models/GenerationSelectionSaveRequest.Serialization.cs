@@ -11,7 +11,7 @@ using Qyl.Client;
 
 namespace Qyl.Api
 {
-    /// <summary> Save generation selections request. </summary>
+    /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys. </summary>
     public partial class GenerationSelectionSaveRequest : IJsonModel<GenerationSelectionSaveRequest>
     {
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/> for deserialization. </summary>
@@ -91,8 +91,18 @@ namespace Qyl.Api
             writer.WriteStringValue(WorkspaceId);
             writer.WritePropertyName("profile_id"u8);
             writer.WriteStringValue(ProfileId);
-            writer.WritePropertyName("selected_keys_json"u8);
-            writer.WriteStringValue(SelectedKeysJson);
+            writer.WritePropertyName("selected_keys"u8);
+            writer.WriteStartArray();
+            foreach (string item in SelectedKeys)
+            {
+                if (item == null)
+                {
+                    writer.WriteNullValue();
+                    continue;
+                }
+                writer.WriteStringValue(item);
+            }
+            writer.WriteEndArray();
             if (options.Format != "W" && _additionalBinaryDataProperties != null)
             {
                 foreach (var item in _additionalBinaryDataProperties)
@@ -137,7 +147,7 @@ namespace Qyl.Api
             }
             string workspaceId = default;
             string profileId = default;
-            string selectedKeysJson = default;
+            IList<string> selectedKeys = default;
             IDictionary<string, BinaryData> additionalBinaryDataProperties = new ChangeTrackingDictionary<string, BinaryData>();
             foreach (var prop in element.EnumerateObject())
             {
@@ -151,9 +161,21 @@ namespace Qyl.Api
                     profileId = prop.Value.GetString();
                     continue;
                 }
-                if (prop.NameEquals("selected_keys_json"u8))
+                if (prop.NameEquals("selected_keys"u8))
                 {
-                    selectedKeysJson = prop.Value.GetString();
+                    List<string> array = new List<string>();
+                    foreach (var item in prop.Value.EnumerateArray())
+                    {
+                        if (item.ValueKind == JsonValueKind.Null)
+                        {
+                            array.Add(null);
+                        }
+                        else
+                        {
+                            array.Add(item.GetString());
+                        }
+                    }
+                    selectedKeys = array;
                     continue;
                 }
                 if (options.Format != "W")
@@ -161,7 +183,7 @@ namespace Qyl.Api
                     additionalBinaryDataProperties.Add(prop.Name, BinaryData.FromString(prop.Value.GetRawText()));
                 }
             }
-            return new GenerationSelectionSaveRequest(workspaceId, profileId, selectedKeysJson, additionalBinaryDataProperties);
+            return new GenerationSelectionSaveRequest(workspaceId, profileId, selectedKeys, additionalBinaryDataProperties);
         }
     }
 }

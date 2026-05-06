@@ -78,31 +78,6 @@ public sealed class MetricDataPoint
     public required double Value { get; init; }
 }
 
-public sealed class ErrorUpdate
-{
-    public Qyl.Domains.Observe.Error.ErrorStatus? Status { get; init; }
-    public string? AssignedTo { get; init; }
-    public string? IssueUrl { get; init; }
-}
-
-public sealed class DeploymentCreate
-{
-    public required string ServiceName { get; init; }
-    public required string ServiceVersion { get; init; }
-    public required Qyl.Domains.Ops.Deployment.DeploymentEnvironment Environment { get; init; }
-    public required Qyl.Domains.Ops.Deployment.DeploymentStrategy Strategy { get; init; }
-    public string? DeployedBy { get; init; }
-    public string? GitCommit { get; init; }
-    public string? GitBranch { get; init; }
-}
-
-public sealed class DeploymentUpdate
-{
-    public Qyl.Domains.Ops.Deployment.DeploymentStatus? Status { get; init; }
-    public int? HealthyReplicas { get; init; }
-    public string? ErrorMessage { get; init; }
-}
-
 public sealed class DoraMetrics
 {
     public required double DeploymentFrequency { get; init; }
@@ -146,13 +121,6 @@ public sealed class OperationInfo
     public required double P99DurationMs { get; init; }
 }
 
-public sealed class ProjectCreateRequest
-{
-    public required string Name { get; init; }
-    public required string Slug { get; init; }
-    public string? Description { get; init; }
-}
-
 public sealed class HandshakeStartRequest
 {
     public required string CodeChallenge { get; init; }
@@ -172,33 +140,11 @@ public sealed class HandshakeVerifyResponse
     public required string WorkspaceId { get; init; }
 }
 
-public sealed class GenerationProfileCreateRequest
-{
-    public required string Name { get; init; }
-    public required string TargetFramework { get; init; }
-    public string? Description { get; init; }
-    public string? FeaturesJson { get; init; }
-}
-
 public sealed class GenerationSelectionSaveRequest
 {
     public required string WorkspaceId { get; init; }
     public required string ProfileId { get; init; }
-    public required string SelectedKeysJson { get; init; }
-}
-
-public sealed class GenerationJobCreateRequest
-{
-    public required string WorkspaceId { get; init; }
-    public required string ProfileId { get; init; }
-    public required Qyl.Domains.Configurator.GenerationJobType JobType { get; init; }
-}
-
-public sealed class IssueUpdateRequest
-{
-    public Qyl.Domains.Issues.IssueStatus? Status { get; init; }
-    public Qyl.Domains.Issues.IssuePriority? Priority { get; init; }
-    public string? AssignedTo { get; init; }
+    public required IReadOnlyList<string> SelectedKeys { get; init; }
 }
 
 public sealed class AlertFiringAcknowledgement

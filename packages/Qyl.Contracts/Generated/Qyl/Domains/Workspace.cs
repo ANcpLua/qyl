@@ -111,6 +111,13 @@ public sealed class PortLeaseEntity
     public DateTimeOffset? ReleasedAt { get; init; }
 }
 
+public sealed class CreateProjectEntity
+{
+    public required string Name { get; init; }
+    public required string Slug { get; init; }
+    public string? Description { get; init; }
+}
+
 public enum NodeStatus
 {
     Online,

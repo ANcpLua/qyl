@@ -6,32 +6,32 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Issues;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Issues
 {
 
     ///<summary>
-    /// Issue update request
+    /// Error issue aggregate with lifecycle tracking
     ///</summary>
-    public partial class IssueUpdateRequest
+    public partial class ErrorIssueEntityMergePatchUpdate
     {
         ///<summary>
-        /// New status
+        /// Issue status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public IssueStatus? Status { get; set; }
 
         ///<summary>
-        /// New priority
+        /// Priority level
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public IssuePriority? Priority { get; set; }
 
         ///<summary>
-        /// Assignee
+        /// Assigned team member
         ///</summary>
         [JsonPropertyName("assigned_to")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string AssignedTo { get; set; }
 
 

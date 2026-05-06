@@ -17,11 +17,11 @@ namespace Qyl.Domains.Transport.Messaging;
 @doc("Messaging span attributes")
 model MessagingAttributes {
   @doc("The messaging system (e.g., kafka, rabbitmq, aws_sqs)")
-  @encodedName("application/json", "messaging.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.System)
   system: MessagingSystem;
 
   @doc("Message destination name (queue or topic)")
-  @encodedName("application/json", "messaging.destination.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationName)
   destinationName?: string;
 
   @doc("Destination kind (queue or topic)")
@@ -29,55 +29,55 @@ model MessagingAttributes {
   destinationKind?: MessagingDestinationKind;
 
   @doc("Whether the destination is temporary")
-  @encodedName("application/json", "messaging.destination.temporary")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationTemporary)
   destinationTemporary?: boolean;
 
   @doc("Whether the destination is anonymous")
-  @encodedName("application/json", "messaging.destination.anonymous")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationAnonymous)
   destinationAnonymous?: boolean;
 
   @doc("Partition number (for partitioned systems)")
-  @encodedName("application/json", "messaging.destination.partition.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationPartitionId)
   destinationPartitionId?: string;
 
   @doc("Destination template (e.g., for subscription patterns)")
-  @encodedName("application/json", "messaging.destination.template")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationTemplate)
   destinationTemplate?: string;
 
   @doc("Message ID")
-  @encodedName("application/json", "messaging.message.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.MessageId)
   messageId?: string;
 
   @doc("Conversation/correlation ID")
-  @encodedName("application/json", "messaging.message.conversation_id")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.MessageConversationId)
   messageConversationId?: string;
 
   @doc("Message body size in bytes")
-  @encodedName("application/json", "messaging.message.body.size")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.MessageBodySize)
   messageBodySize?: ByteSize;
 
   @doc("Total message size including metadata")
-  @encodedName("application/json", "messaging.message.envelope.size")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.MessageEnvelopeSize)
   messageEnvelopeSize?: ByteSize;
 
   @doc("Messaging operation type")
-  @encodedName("application/json", "messaging.operation.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.OperationType)
   operationType?: MessagingOperationType;
 
   @doc("Operation name")
-  @encodedName("application/json", "messaging.operation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.OperationName)
   operationName?: string;
 
   @doc("Batch message count")
-  @encodedName("application/json", "messaging.batch.message_count")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.BatchMessageCount)
   batchMessageCount?: int32;
 
   @doc("Consumer group name")
-  @encodedName("application/json", "messaging.consumer.group.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.ConsumerGroupName)
   consumerGroupName?: string;
 
   @doc("Consumer ID")
-  @encodedName("application/json", "messaging.client.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.ClientId)
   clientId?: string;
 
   // ---------------------------------------------------------------------------
@@ -85,19 +85,19 @@ model MessagingAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Kafka consumer group")
-  @encodedName("application/json", "messaging.kafka.consumer.group")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.KafkaConsumerGroup)
   kafkaConsumerGroup?: string;
 
   @doc("Kafka message key")
-  @encodedName("application/json", "messaging.kafka.message.key")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.KafkaMessageKey)
   kafkaMessageKey?: string;
 
   @doc("Kafka message offset")
-  @encodedName("application/json", "messaging.kafka.message.offset")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.KafkaMessageOffset)
   kafkaMessageOffset?: int64;
 
   @doc("Kafka message tombstone")
-  @encodedName("application/json", "messaging.kafka.message.tombstone")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.KafkaMessageTombstone)
   kafkaMessageTombstone?: boolean;
 
   // ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ model MessagingAttributes {
   rabbitmqDeliveryTag?: int64;
 
   @doc("RabbitMQ routing key")
-  @encodedName("application/json", "messaging.rabbitmq.destination.routing_key")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.RabbitmqDestinationRoutingKey)
   rabbitmqRoutingKey?: string;
 
   // ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ model MessagingAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Azure Service Bus message enqueued time")
-  @encodedName("application/json", "messaging.servicebus.message.enqueued_time")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.ServicebusMessageEnqueuedTime)
   servicebusEnqueuedTime?: utcDateTime;
 }
 
@@ -240,11 +240,11 @@ model MessagingPublishDurationMetric {
   unit: "s";
 
   @doc("Messaging system")
-  @encodedName("application/json", "messaging.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.System)
   system: MessagingSystem;
 
   @doc("Destination name")
-  @encodedName("application/json", "messaging.destination.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationName)
   destinationName: string;
 }
 
@@ -257,15 +257,15 @@ model MessagingReceiveDurationMetric {
   unit: "s";
 
   @doc("Messaging system")
-  @encodedName("application/json", "messaging.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.System)
   system: MessagingSystem;
 
   @doc("Destination name")
-  @encodedName("application/json", "messaging.destination.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationName)
   destinationName: string;
 
   @doc("Consumer group")
-  @encodedName("application/json", "messaging.consumer.group.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.ConsumerGroupName)
   consumerGroupName?: string;
 }
 
@@ -278,11 +278,11 @@ model MessagingProcessDurationMetric {
   unit: "s";
 
   @doc("Messaging system")
-  @encodedName("application/json", "messaging.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.System)
   system: MessagingSystem;
 
   @doc("Destination name")
-  @encodedName("application/json", "messaging.destination.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationName)
   destinationName: string;
 }
 
@@ -295,10 +295,10 @@ model MessagingPublishMessagesMetric {
   unit: "{message}";
 
   @doc("Messaging system")
-  @encodedName("application/json", "messaging.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.System)
   system: MessagingSystem;
 
   @doc("Destination name")
-  @encodedName("application/json", "messaging.destination.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Messaging.DestinationName)
   destinationName: string;
 }

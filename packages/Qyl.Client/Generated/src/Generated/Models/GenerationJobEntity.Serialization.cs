@@ -85,51 +85,63 @@ namespace Qyl.Domains.Configurator
             {
                 throw new FormatException($"The model {nameof(GenerationJobEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("id"u8);
-            writer.WriteStringValue(Id);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("id"u8);
+                writer.WriteStringValue(Id);
+            }
             writer.WritePropertyName("workspace_id"u8);
             writer.WriteStringValue(WorkspaceId);
             writer.WritePropertyName("profile_id"u8);
             writer.WriteStringValue(ProfileId);
             writer.WritePropertyName("job_type"u8);
             writer.WriteStringValue(JobType.ToSerialString());
-            writer.WritePropertyName("status"u8);
-            writer.WriteStringValue(Status.ToSerialString());
-            writer.WritePropertyName("priority"u8);
-            writer.WriteNumberValue(Priority);
-            if (Optional.IsDefined(InputHash))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("status"u8);
+                writer.WriteStringValue(Status.ToSerialString());
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("priority"u8);
+                writer.WriteNumberValue(Priority);
+            }
+            if (options.Format != "W" && Optional.IsDefined(InputHash))
             {
                 writer.WritePropertyName("input_hash"u8);
                 writer.WriteStringValue(InputHash);
             }
-            if (Optional.IsDefined(OutputPath))
+            if (options.Format != "W" && Optional.IsDefined(OutputPath))
             {
                 writer.WritePropertyName("output_path"u8);
                 writer.WriteStringValue(OutputPath);
             }
-            if (Optional.IsDefined(OutputHash))
+            if (options.Format != "W" && Optional.IsDefined(OutputHash))
             {
                 writer.WritePropertyName("output_hash"u8);
                 writer.WriteStringValue(OutputHash);
             }
-            if (Optional.IsDefined(ErrorMessage))
+            if (options.Format != "W" && Optional.IsDefined(ErrorMessage))
             {
                 writer.WritePropertyName("error_message"u8);
                 writer.WriteStringValue(ErrorMessage);
             }
-            writer.WritePropertyName("queued_at"u8);
-            writer.WriteStringValue(QueuedAt, "O");
-            if (Optional.IsDefined(StartedAt))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("queued_at"u8);
+                writer.WriteStringValue(QueuedAt, "O");
+            }
+            if (options.Format != "W" && Optional.IsDefined(StartedAt))
             {
                 writer.WritePropertyName("started_at"u8);
                 writer.WriteStringValue(StartedAt.Value, "O");
             }
-            if (Optional.IsDefined(CompletedAt))
+            if (options.Format != "W" && Optional.IsDefined(CompletedAt))
             {
                 writer.WritePropertyName("completed_at"u8);
                 writer.WriteStringValue(CompletedAt.Value, "O");
             }
-            if (Optional.IsDefined(DurationMs))
+            if (options.Format != "W" && Optional.IsDefined(DurationMs))
             {
                 writer.WritePropertyName("duration_ms"u8);
                 writer.WriteNumberValue(DurationMs.Value);

@@ -14,24 +14,18 @@ namespace Qyl.Domains.Configurator
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionEntity"/>. </summary>
-        /// <param name="id"> Selection ID. </param>
         /// <param name="workspaceId"> Workspace. </param>
         /// <param name="profileId"> Profile. </param>
         /// <param name="selectionType"> Selection type (semconv_group, feature, custom_attribute). </param>
         /// <param name="selectionKey"> Selection key (e.g. http, db, genai). </param>
         /// <param name="enabled"> Whether enabled. </param>
-        /// <param name="createdAt"> Creation timestamp. </param>
-        /// <param name="updatedAt"> Last update timestamp. </param>
-        internal GenerationSelectionEntity(string id, string workspaceId, string profileId, string selectionType, string selectionKey, bool enabled, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        internal GenerationSelectionEntity(string workspaceId, string profileId, string selectionType, string selectionKey, bool enabled)
         {
-            Id = id;
             WorkspaceId = workspaceId;
             ProfileId = profileId;
             SelectionType = selectionType;
             SelectionKey = selectionKey;
             Enabled = enabled;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
         }
 
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionEntity"/>. </summary>
