@@ -66,6 +66,7 @@
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="ANcpLua.Agents"/>
+    <PackageReference Include="ANcpLua.Agents.Hosting.OpenAI"/>
     <!-- Qyl.Contracts is now a ProjectReference in the monorepo -->
     <!-- <PackageReference Include="Qyl.Contracts"/> -->
     <PackageReference Include="ModelContextProtocol"/>
