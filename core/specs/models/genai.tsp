@@ -57,11 +57,11 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("The name of the GenAI provider (e.g., 'openai', 'anthropic', 'google', 'azure')")
-  @encodedName("application/json", "gen_ai.provider.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ProviderName)
   providerName: GenAiProvider;
 
   @doc("The name of the GenAI system/product (e.g., 'ChatGPT', 'Claude', 'Gemini')")
-  @encodedName("application/json", "gen_ai.system")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.System)
   @removed(GenAiVersions.v1_37)
   system?: string;
 
@@ -70,7 +70,7 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("The type of GenAI operation being performed")
-  @encodedName("application/json", "gen_ai.operation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OperationName)
   operationName: GenAiOperationType;
 
   // ---------------------------------------------------------------------------
@@ -78,48 +78,48 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("The model ID requested by the client (e.g., 'gpt-4o', 'claude-3-opus-20240229')")
-  @encodedName("application/json", "gen_ai.request.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestModel)
   requestModel: string;
 
   @doc("The temperature parameter for randomness control")
-  @encodedName("application/json", "gen_ai.request.temperature")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTemperature)
   @minValue(0.0)
   @maxValue(2.0)
   requestTemperature?: float64;
 
   @doc("The top_p (nucleus sampling) parameter")
-  @encodedName("application/json", "gen_ai.request.top_p")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTopP)
   @minValue(0.0)
   @maxValue(1.0)
   requestTopP?: float64;
 
   @doc("Number of highest probability tokens to consider for sampling")
-  @encodedName("application/json", "gen_ai.request.top_k")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTopK)
   requestTopK?: float64;
 
   @doc("Maximum tokens to generate in the response")
-  @encodedName("application/json", "gen_ai.request.max_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestMaxTokens)
   @minValue(1)
   requestMaxTokens?: int64;
 
   @doc("Stop sequences that will halt generation")
-  @encodedName("application/json", "gen_ai.request.stop_sequences")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestStopSequences)
   requestStopSequences?: string[];
 
   @doc("Frequency penalty to reduce repetition (-2.0 to 2.0)")
-  @encodedName("application/json", "gen_ai.request.frequency_penalty")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestFrequencyPenalty)
   @minValue(-2.0)
   @maxValue(2.0)
   requestFrequencyPenalty?: float64;
 
   @doc("Presence penalty for new topics (-2.0 to 2.0)")
-  @encodedName("application/json", "gen_ai.request.presence_penalty")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestPresencePenalty)
   @minValue(-2.0)
   @maxValue(2.0)
   requestPresencePenalty?: float64;
 
   @doc("Seed for deterministic sampling")
-  @encodedName("application/json", "gen_ai.request.seed")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestSeed)
   requestSeed?: int64;
 
   @doc("Encoding format for embeddings")
@@ -136,15 +136,15 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("The actual model used (may differ from request)")
-  @encodedName("application/json", "gen_ai.response.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseModel)
   responseModel?: string;
 
   @doc("Response ID from the provider")
-  @encodedName("application/json", "gen_ai.response.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseId)
   responseId?: string;
 
   @doc("Reasons why generation stopped")
-  @encodedName("application/json", "gen_ai.response.finish_reasons")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseFinishReasons)
   responseFinishReasons?: GenAiFinishReason[];
 
   // ---------------------------------------------------------------------------
@@ -152,11 +152,11 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Number of input/prompt tokens consumed")
-  @encodedName("application/json", "gen_ai.usage.input_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageInputTokens)
   usageInputTokens?: TokenCount;
 
   @doc("Number of output/completion tokens generated")
-  @encodedName("application/json", "gen_ai.usage.output_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageOutputTokens)
   usageOutputTokens?: TokenCount;
 
   @doc("Total tokens (deprecated - use input + output)")
@@ -175,12 +175,12 @@ model GenAiSpanAttributes {
   usageOutputTokensReasoning?: TokenCount;
 
   @doc("Number of cache read input tokens (prompt caching)")
-  @encodedName("application/json", "gen_ai.usage.cache_read.input_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageCacheReadInputTokens)
   @added(GenAiVersions.v1_40)
   usageCacheReadInputTokens?: TokenCount;
 
   @doc("Number of cache creation input tokens")
-  @encodedName("application/json", "gen_ai.usage.cache_creation.input_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageCacheCreationInputTokens)
   @added(GenAiVersions.v1_40)
   usageCacheCreationInputTokens?: TokenCount;
 
@@ -189,12 +189,12 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Prompt tokens (deprecated - use gen_ai.usage.input_tokens)")
-  @encodedName("application/json", "gen_ai.usage.prompt_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsagePromptTokens)
   @removed(GenAiVersions.v1_28)
   usagePromptTokens?: TokenCount;
 
   @doc("Completion tokens (deprecated - use gen_ai.usage.output_tokens)")
-  @encodedName("application/json", "gen_ai.usage.completion_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageCompletionTokens)
   @removed(GenAiVersions.v1_28)
   usageCompletionTokens?: TokenCount;
 
@@ -203,22 +203,22 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Unique identifier for the AI agent")
-  @encodedName("application/json", "gen_ai.agent.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.AgentId)
   @added(GenAiVersions.v1_38)
   agentId?: string;
 
   @doc("Human-readable name of the AI agent")
-  @encodedName("application/json", "gen_ai.agent.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.AgentName)
   @added(GenAiVersions.v1_38)
   agentName?: string;
 
   @doc("Description of the agent's purpose")
-  @encodedName("application/json", "gen_ai.agent.description")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.AgentDescription)
   @added(GenAiVersions.v1_38)
   agentDescription?: string;
 
   @doc("Version of the AI agent")
-  @encodedName("application/json", "gen_ai.agent.version")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.AgentVersion)
   @added(GenAiVersions.v1_40)
   agentVersion?: string;
 
@@ -227,7 +227,7 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Conversation identifier for multi-turn interactions")
-  @encodedName("application/json", "gen_ai.conversation.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ConversationId)
   conversationId?: string;
 
   @doc("Names of tools available to the model")
@@ -239,11 +239,11 @@ model GenAiSpanAttributes {
   requestToolChoice?: GenAiToolChoice;
 
   @doc("The name of the tool utilized")
-  @encodedName("application/json", "gen_ai.tool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolName)
   toolName?: string;
 
   @doc("The tool call identifier")
-  @encodedName("application/json", "gen_ai.tool.call.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolCallId)
   toolCallId?: string;
 
   // ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Error type if the request failed")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType?: GenAiErrorType;
 
   // ---------------------------------------------------------------------------
@@ -259,23 +259,23 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Identifier for the data source being used")
-  @encodedName("application/json", "gen_ai.data_source.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.DataSourceId)
   dataSourceId?: string;
 
   @doc("Explanation from an evaluation")
-  @encodedName("application/json", "gen_ai.evaluation.explanation")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.EvaluationExplanation)
   evaluationExplanation?: string;
 
   @doc("Name of the evaluation being performed")
-  @encodedName("application/json", "gen_ai.evaluation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.EvaluationName)
   evaluationName?: string;
 
   @doc("Label for the evaluation score")
-  @encodedName("application/json", "gen_ai.evaluation.score.label")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.EvaluationScoreLabel)
   evaluationScoreLabel?: string;
 
   @doc("Numeric value of the evaluation score")
-  @encodedName("application/json", "gen_ai.evaluation.score.value")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.EvaluationScoreValue)
   evaluationScoreValue?: float64;
 
   // ---------------------------------------------------------------------------
@@ -283,31 +283,31 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Input messages content (may be redacted)")
-  @encodedName("application/json", "gen_ai.input.messages")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.InputMessages)
   inputMessages?: string;
 
   @doc("Output messages content (may be redacted)")
-  @encodedName("application/json", "gen_ai.output.messages")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OutputMessages)
   outputMessages?: string;
 
   @doc("Output type (text, json, image, etc.)")
-  @encodedName("application/json", "gen_ai.output.type")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OutputType)
   outputType?: GenAiOutputType;
 
   @doc("Prompt content (may be redacted)")
-  @encodedName("application/json", "gen_ai.prompt")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.Prompt)
   prompt?: string;
 
   @doc("Name of the prompt template being used")
-  @encodedName("application/json", "gen_ai.prompt.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.PromptName)
   promptName?: string;
 
   @doc("System instructions provided to the model")
-  @encodedName("application/json", "gen_ai.system_instructions")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.SystemInstructions)
   systemInstructions?: string;
 
   @doc("Completion content (may be redacted)")
-  @encodedName("application/json", "gen_ai.completion")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.Completion)
   completion?: string;
 
   // ---------------------------------------------------------------------------
@@ -315,12 +315,12 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Number of choices/completions requested")
-  @encodedName("application/json", "gen_ai.request.choice.count")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestChoiceCount)
   @minValue(1)
   requestChoiceCount?: int32;
 
   @doc("Encoding formats requested for embeddings")
-  @encodedName("application/json", "gen_ai.request.encoding_formats")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestEncodingFormats)
   requestEncodingFormats?: string[];
 
   // ---------------------------------------------------------------------------
@@ -328,27 +328,27 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Arguments passed to the tool call (JSON)")
-  @encodedName("application/json", "gen_ai.tool.call.arguments")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolCallArguments)
   toolCallArguments?: string;
 
   @doc("Result returned from the tool call")
-  @encodedName("application/json", "gen_ai.tool.call.result")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolCallResult)
   toolCallResult?: string;
 
   @doc("Tool definitions provided to the model (JSON)")
-  @encodedName("application/json", "gen_ai.tool.definitions")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolDefinitions)
   toolDefinitions?: string;
 
   @doc("Description of the tool")
-  @encodedName("application/json", "gen_ai.tool.description")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolDescription)
   toolDescription?: string;
 
   @doc("Type of the tool (function, retrieval, etc.)")
-  @encodedName("application/json", "gen_ai.tool.type")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolType)
   toolType?: GenAiToolType;
 
   @doc("Token type for usage tracking")
-  @encodedName("application/json", "gen_ai.token.type")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.TokenType)
   tokenType?: GenAiTokenType;
 
   // ---------------------------------------------------------------------------
@@ -356,7 +356,7 @@ model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Number of dimensions in the embedding")
-  @encodedName("application/json", "gen_ai.embeddings.dimension.count")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.EmbeddingsDimensionCount)
   @minValue(1)
   embeddingsDimensionCount?: int32;
 }
@@ -368,74 +368,74 @@ model GenAiSpanAttributes {
 @doc("GenAI request-specific attributes")
 model GenAiRequestAttributes {
   @doc("The model ID for the request")
-  @encodedName("application/json", "gen_ai.request.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestModel)
   requestModel: string;
 
   @doc("Temperature parameter for randomness control")
-  @encodedName("application/json", "gen_ai.request.temperature")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTemperature)
   @minValue(0.0)
   @maxValue(2.0)
   temperature?: float64;
 
   @doc("Maximum tokens to generate")
-  @encodedName("application/json", "gen_ai.request.max_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestMaxTokens)
   @minValue(1)
   maxTokens?: int64;
 
   @doc("Top-p (nucleus sampling) parameter")
-  @encodedName("application/json", "gen_ai.request.top_p")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTopP)
   @minValue(0.0)
   @maxValue(1.0)
   topP?: float64;
 
   @doc("Number of highest probability tokens to consider for sampling")
-  @encodedName("application/json", "gen_ai.request.top_k")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestTopK)
   topK?: float64;
 
   @doc("Stop sequences that will halt generation")
-  @encodedName("application/json", "gen_ai.request.stop_sequences")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestStopSequences)
   stopSequences?: string[];
 
   @doc("Frequency penalty parameter")
-  @encodedName("application/json", "gen_ai.request.frequency_penalty")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestFrequencyPenalty)
   @minValue(-2.0)
   @maxValue(2.0)
   frequencyPenalty?: float64;
 
   @doc("Presence penalty parameter")
-  @encodedName("application/json", "gen_ai.request.presence_penalty")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestPresencePenalty)
   @minValue(-2.0)
   @maxValue(2.0)
   presencePenalty?: float64;
 
   @doc("Random seed for deterministic generation")
-  @encodedName("application/json", "gen_ai.request.seed")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestSeed)
   seed?: int64;
 }
 
 @doc("GenAI response-specific attributes")
 model GenAiResponseAttributes {
   @doc("The model ID returned by the provider")
-  @encodedName("application/json", "gen_ai.response.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseModel)
   responseModel?: string;
 
   @doc("Unique identifier for this completion")
-  @encodedName("application/json", "gen_ai.response.id")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseId)
   id?: string;
 
   @doc("Finish reasons for each choice")
-  @encodedName("application/json", "gen_ai.response.finish_reasons")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ResponseFinishReasons)
   finishReasons?: GenAiFinishReason[];
 }
 
 @doc("GenAI usage/token attributes")
 model GenAiUsageAttributes {
   @doc("Number of input/prompt tokens")
-  @encodedName("application/json", "gen_ai.usage.input_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageInputTokens)
   inputTokens: TokenCount;
 
   @doc("Number of output/completion tokens")
-  @encodedName("application/json", "gen_ai.usage.output_tokens")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.UsageOutputTokens)
   outputTokens: TokenCount;
 
   @doc("Total tokens (computed: inputTokens + outputTokens)")
@@ -1074,7 +1074,7 @@ model GenAiToolCallEvent {
   toolId: string;
 
   @doc("Tool/function name")
-  @encodedName("application/json", "gen_ai.tool.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ToolName)
   toolName: string;
 
   @doc("Tool arguments (JSON string)")
@@ -1118,15 +1118,15 @@ model GenAiTokenUsageMetric {
   unit: "{token}";
 
   @doc("Token type (input or output)")
-  @encodedName("application/json", "gen_ai.token.type")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.TokenType)
   tokenType: GenAiTokenType;
 
   @doc("Provider name")
-  @encodedName("application/json", "gen_ai.provider.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ProviderName)
   providerName: GenAiProvider;
 
   @doc("Model name")
-  @encodedName("application/json", "gen_ai.request.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestModel)
   requestModel: string;
 }
 
@@ -1139,19 +1139,19 @@ model GenAiOperationDurationMetric {
   unit: "s";
 
   @doc("Operation type")
-  @encodedName("application/json", "gen_ai.operation.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OperationName)
   operationName: GenAiOperationType;
 
   @doc("Provider name")
-  @encodedName("application/json", "gen_ai.provider.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ProviderName)
   providerName: GenAiProvider;
 
   @doc("Model name")
-  @encodedName("application/json", "gen_ai.request.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestModel)
   requestModel: string;
 
   @doc("Error type if failed")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType?: GenAiErrorType;
 }
 
@@ -1164,11 +1164,11 @@ model GenAiTimeToFirstTokenMetric {
   unit: "s";
 
   @doc("Provider name")
-  @encodedName("application/json", "gen_ai.provider.name")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.ProviderName)
   providerName: GenAiProvider;
 
   @doc("Model name")
-  @encodedName("application/json", "gen_ai.request.model")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.RequestModel)
   requestModel: string;
 }
 
@@ -1332,26 +1332,26 @@ model LatencyPercentiles {
 @doc("OpenAI-specific request attributes")
 model OpenAiRequestAttributes {
   @doc("Response format requested (text, json_object, json_schema)")
-  @encodedName("application/json", "gen_ai.openai.request.response_format")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OpenaiRequestResponseFormat)
   responseFormat?: OpenAiResponseFormat;
 
   @doc("Random seed for deterministic generation")
-  @encodedName("application/json", "gen_ai.openai.request.seed")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OpenaiRequestSeed)
   seed?: int64;
 
   @doc("Service tier for the request (auto, default, etc.)")
-  @encodedName("application/json", "gen_ai.openai.request.service_tier")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OpenaiRequestServiceTier)
   serviceTier?: string;
 }
 
 @doc("OpenAI-specific response attributes")
 model OpenAiResponseAttributes {
   @doc("Service tier used for the response")
-  @encodedName("application/json", "gen_ai.openai.response.service_tier")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OpenaiResponseServiceTier)
   serviceTier?: string;
 
   @doc("System fingerprint for reproducibility")
-  @encodedName("application/json", "gen_ai.openai.response.system_fingerprint")
+  @encodedName("application/json", Qyl.OTel.Keys.GenAi.OpenaiResponseSystemFingerprint)
   systemFingerprint?: string;
 }
 

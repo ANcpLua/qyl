@@ -19,19 +19,19 @@ namespace Qyl.Domains.Observe.Test;
 @doc("Test case attributes")
 model TestAttributes {
   @doc("Test case name")
-  @encodedName("application/json", "test.case.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.CaseName)
   caseName: string;
 
   @doc("Test case result")
-  @encodedName("application/json", "test.case.result.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.CaseResultStatus)
   caseResultStatus?: TestResultStatus;
 
   @doc("Test suite name")
-  @encodedName("application/json", "test.suite.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteName)
   suiteName?: string;
 
   @doc("Test suite run status")
-  @encodedName("application/json", "test.suite.run.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteRunStatus)
   suiteRunStatus?: TestSuiteRunStatus;
 }
 
@@ -255,11 +255,11 @@ model TestRunCountMetric {
   unit: "{run}";
 
   @doc("Suite name")
-  @encodedName("application/json", "test.suite.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteName)
   suiteName: string;
 
   @doc("Status")
-  @encodedName("application/json", "test.suite.run.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteRunStatus)
   status: TestSuiteRunStatus;
 }
 
@@ -272,11 +272,11 @@ model TestCaseCountMetric {
   unit: "{test}";
 
   @doc("Suite name")
-  @encodedName("application/json", "test.suite.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteName)
   suiteName: string;
 
   @doc("Result status")
-  @encodedName("application/json", "test.case.result.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.CaseResultStatus)
   resultStatus: TestResultStatus;
 }
 
@@ -289,7 +289,7 @@ model TestDurationMetric {
   unit: "s";
 
   @doc("Suite name")
-  @encodedName("application/json", "test.suite.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Test.SuiteName)
   suiteName: string;
 }
 

@@ -19,23 +19,23 @@ namespace Qyl.Domains.Runtime.System;
 @doc("Operating system resource attributes")
 model OsAttributes {
   @doc("Operating system type")
-  @encodedName("application/json", "os.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Type)
   osType?: OsType;
 
   @doc("Operating system description")
-  @encodedName("application/json", "os.description")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Description)
   description?: string;
 
   @doc("Operating system name")
-  @encodedName("application/json", "os.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Name)
   name?: string;
 
   @doc("Operating system version")
-  @encodedName("application/json", "os.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Version)
   version?: string;
 
   @doc("Operating system build ID")
-  @encodedName("application/json", "os.build_id")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.BuildId)
   buildId?: string;
 }
 
@@ -52,11 +52,11 @@ model SystemCpuUtilizationMetric {
   unit: "1";
 
   @doc("CPU state")
-  @encodedName("application/json", "system.cpu.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.CpuState)
   cpuState: SystemCpuState;
 
   @doc("CPU logical number")
-  @encodedName("application/json", "system.cpu.logical_number")
+  @encodedName("application/json", Qyl.OTel.Keys.System.CpuLogicalNumber)
   cpuLogicalNumber?: int32;
 }
 
@@ -69,11 +69,11 @@ model SystemCpuTimeMetric {
   unit: "s";
 
   @doc("CPU state")
-  @encodedName("application/json", "system.cpu.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.CpuState)
   cpuState: SystemCpuState;
 
   @doc("CPU logical number")
-  @encodedName("application/json", "system.cpu.logical_number")
+  @encodedName("application/json", Qyl.OTel.Keys.System.CpuLogicalNumber)
   cpuLogicalNumber?: int32;
 }
 
@@ -86,7 +86,7 @@ model SystemCpuFrequencyMetric {
   unit: "Hz";
 
   @doc("CPU logical number")
-  @encodedName("application/json", "system.cpu.logical_number")
+  @encodedName("application/json", Qyl.OTel.Keys.System.CpuLogicalNumber)
   cpuLogicalNumber?: int32;
 }
 
@@ -99,7 +99,7 @@ model SystemMemoryUsageMetric {
   unit: "By";
 
   @doc("Memory state")
-  @encodedName("application/json", "system.memory.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.MemoryState)
   memoryState: SystemMemoryState;
 }
 
@@ -112,7 +112,7 @@ model SystemMemoryUtilizationMetric {
   unit: "1";
 
   @doc("Memory state")
-  @encodedName("application/json", "system.memory.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.MemoryState)
   memoryState: SystemMemoryState;
 }
 
@@ -176,15 +176,15 @@ model SystemFilesystemUsageMetric {
   device: string;
 
   @doc("Filesystem mount point")
-  @encodedName("application/json", "system.filesystem.mountpoint")
+  @encodedName("application/json", Qyl.OTel.Keys.System.FilesystemMountpoint)
   mountpoint: string;
 
   @doc("Filesystem type")
-  @encodedName("application/json", "system.filesystem.type")
+  @encodedName("application/json", Qyl.OTel.Keys.System.FilesystemType)
   fsType: string;
 
   @doc("Filesystem state")
-  @encodedName("application/json", "system.filesystem.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.FilesystemState)
   state: SystemFilesystemState;
 }
 
@@ -218,7 +218,7 @@ model SystemNetworkConnectionsMetric {
   protocol: string;
 
   @doc("Network state")
-  @encodedName("application/json", "system.network.state")
+  @encodedName("application/json", Qyl.OTel.Keys.Network.ConnectionState)
   state: SystemNetworkState;
 }
 
@@ -231,7 +231,7 @@ model SystemPagingUsageMetric {
   unit: "By";
 
   @doc("Paging state")
-  @encodedName("application/json", "system.paging.state")
+  @encodedName("application/json", Qyl.OTel.Keys.System.PagingState)
   pagingState: SystemPagingState;
 
   @doc("Paging device")
@@ -248,11 +248,11 @@ model SystemPagingOperationsMetric {
   unit: "{operation}";
 
   @doc("Paging type")
-  @encodedName("application/json", "system.paging.type")
+  @encodedName("application/json", Qyl.OTel.Keys.System.PagingType)
   pagingType: SystemPagingType;
 
   @doc("Paging direction")
-  @encodedName("application/json", "system.paging.direction")
+  @encodedName("application/json", Qyl.OTel.Keys.System.PagingDirection)
   pagingDirection: string;
 }
 
@@ -265,7 +265,7 @@ model SystemProcessCountMetric {
   unit: "{process}";
 
   @doc("Process status")
-  @encodedName("application/json", "system.process.status")
+  @encodedName("application/json", Qyl.OTel.Keys.System.ProcessStatus)
   processStatus: SystemProcessStatus;
 }
 

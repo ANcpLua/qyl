@@ -43,25 +43,25 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("HTTP request method")
-  @encodedName("application/json", "http.request.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestMethod)
   requestMethod: HttpMethod;
 
   @doc("Original HTTP method (before any rewrites)")
-  @encodedName("application/json", "http.request.method_original")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestMethodOriginal)
   requestMethodOriginal?: string;
 
   @doc("HTTP response status code")
-  @encodedName("application/json", "http.response.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseStatusCode)
   @minValue(100)
   @maxValue(599)
   responseStatusCode?: int32;
 
   @doc("Error type if request failed")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType?: HttpErrorType;
 
   @doc("HTTP protocol version")
-  @encodedName("application/json", "network.protocol.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Network.ProtocolVersion)
   networkProtocolVersion?: HttpProtocolVersion;
 
   // ---------------------------------------------------------------------------
@@ -69,15 +69,15 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("The matched route template (e.g., '/users/{userId}')")
-  @encodedName("application/json", "http.route")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Route)
   route?: string;
 
   @doc("Server address (hostname or IP)")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   serverAddress?: string;
 
   @doc("Server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   serverPort?: Port;
 
   // ---------------------------------------------------------------------------
@@ -85,19 +85,19 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Full request target URL")
-  @encodedName("application/json", "url.full")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Full)
   urlFull?: UrlString;
 
   @doc("URL path component")
-  @encodedName("application/json", "url.path")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Path)
   urlPath?: UrlPath;
 
   @doc("URL query string (without leading ?)")
-  @encodedName("application/json", "url.query")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Query)
   urlQuery?: UrlQuery;
 
   @doc("URL scheme (http or https)")
-  @encodedName("application/json", "url.scheme")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Scheme)
   urlScheme?: UrlScheme;
 
   // ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Size of the request body in bytes")
-  @encodedName("application/json", "http.request.body.size")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestBodySize)
   requestBodySize?: ByteSize;
 
   @doc("Request content length header value")
@@ -117,7 +117,7 @@ model HttpAttributes {
   requestContentType?: ContentType;
 
   @doc("Request User-Agent header")
-  @encodedName("application/json", "user_agent.original")
+  @encodedName("application/json", Qyl.OTel.Keys.UserAgent.Original)
   userAgentOriginal?: UserAgent;
 
   @doc("Request Accept header")
@@ -137,7 +137,7 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Size of the response body in bytes")
-  @encodedName("application/json", "http.response.body.size")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseBodySize)
   responseBodySize?: ByteSize;
 
   @doc("Response content length header value")
@@ -153,23 +153,23 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("HTTP request headers. Keys map to http.request.header.<key>")
-  @encodedName("application/json", "http.request.header")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestHeader)
   requestHeaders?: Record<string[]>;
 
   @doc("HTTP response headers. Keys map to http.response.header.<key>")
-  @encodedName("application/json", "http.response.header")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseHeader)
   responseHeaders?: Record<string[]>;
 
   // ---------------------------------------------------------------------------
   // Client IP Attributes (Server-Side)
   // ---------------------------------------------------------------------------
 
-  @doc("Client IP address")
-  @encodedName("application/json", "client.address")
-  clientAddress?: IpAddress;
+  @doc("Client address (IP, hostname, or Unix socket path)")
+  @encodedName("application/json", Qyl.OTel.Keys.Client.Address)
+  clientAddress?: IpAddress | string;
 
   @doc("Client port")
-  @encodedName("application/json", "client.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Client.Port)
   clientPort?: Port;
 
   // ---------------------------------------------------------------------------
@@ -177,11 +177,11 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("State of the HTTP connection")
-  @encodedName("application/json", "http.connection.state")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ConnectionState)
   connectionState?: HttpConnectionState;
 
   @doc("Number of retries for the request")
-  @encodedName("application/json", "http.request.resend_count")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestResendCount)
   requestResendCount?: int32;
 
   // ---------------------------------------------------------------------------
@@ -189,32 +189,32 @@ model HttpAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Request target (deprecated - use url.path + url.query)")
-  @encodedName("application/json", "http.target")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Target)
   @removed(HttpVersions.v1_23)
   target?: string;
 
   @doc("Request URL (deprecated - use url.full)")
-  @encodedName("application/json", "http.url")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Url)
   @removed(HttpVersions.v1_23)
   url?: UrlString;
 
   @doc("HTTP method (deprecated - use http.request.method)")
-  @encodedName("application/json", "http.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Method)
   @removed(HttpVersions.v1_23)
   method?: string;
 
   @doc("Status code (deprecated - use http.response.status_code)")
-  @encodedName("application/json", "http.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.StatusCode)
   @removed(HttpVersions.v1_23)
   statusCode?: int32;
 
   @doc("Request content length (deprecated)")
-  @encodedName("application/json", "http.request_content_length")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestContentLength)
   @removed(HttpVersions.v1_23)
   requestContentLengthLegacy?: ByteSize;
 
   @doc("Response content length (deprecated)")
-  @encodedName("application/json", "http.response_content_length")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseContentLength)
   @removed(HttpVersions.v1_23)
   responseContentLengthLegacy?: ByteSize;
 }
@@ -439,19 +439,19 @@ model HttpServerRequestDurationMetric {
   unit: "s";
 
   @doc("HTTP method")
-  @encodedName("application/json", "http.request.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestMethod)
   requestMethod: HttpMethod;
 
   @doc("HTTP route")
-  @encodedName("application/json", "http.route")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Route)
   route: string;
 
   @doc("Response status code")
-  @encodedName("application/json", "http.response.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseStatusCode)
   responseStatusCode: int32;
 
   @doc("URL scheme")
-  @encodedName("application/json", "url.scheme")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Scheme)
   urlScheme: UrlScheme;
 }
 
@@ -464,15 +464,15 @@ model HttpServerActiveRequestsMetric {
   unit: "{request}";
 
   @doc("HTTP method")
-  @encodedName("application/json", "http.request.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestMethod)
   requestMethod: HttpMethod;
 
   @doc("HTTP route")
-  @encodedName("application/json", "http.route")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.Route)
   route?: string;
 
   @doc("URL scheme")
-  @encodedName("application/json", "url.scheme")
+  @encodedName("application/json", Qyl.OTel.Keys.Url.Scheme)
   urlScheme: UrlScheme;
 }
 
@@ -485,23 +485,23 @@ model HttpClientRequestDurationMetric {
   unit: "s";
 
   @doc("HTTP method")
-  @encodedName("application/json", "http.request.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.RequestMethod)
   requestMethod: HttpMethod;
 
   @doc("Server address")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   serverAddress: string;
 
   @doc("Server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   serverPort: Port;
 
   @doc("Response status code")
-  @encodedName("application/json", "http.response.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Http.ResponseStatusCode)
   responseStatusCode?: int32;
 
   @doc("Error type if failed")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType?: HttpErrorType;
 }
 

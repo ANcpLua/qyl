@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 namespace Qyl.Api
 {
     /// <summary> Represents the settings used to configure a <see cref="ApiClient"/> that can be loaded from an <see cref="IConfigurationSection"/>. </summary>
+    [Experimental("SCME0002")]
     public partial class ApiClientSettings : ClientSettings
     {
         /// <summary> Gets or sets the Endpoint. </summary>

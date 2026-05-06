@@ -10,17 +10,17 @@ public sealed class Attribute
     public required object Value { get; init; }
 }
 
-public sealed class Attributes
-{
-    public required IReadOnlyList<Qyl.Common.Attribute> Items { get; init; }
-}
-
 public sealed class InstrumentationScope
 {
     public required string ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
     public IReadOnlyList<Qyl.Common.Attribute>? ScopeAttributes { get; init; }
     public long? DroppedAttributesCount { get; init; }
+}
+
+public sealed class Attributes
+{
+    public required IReadOnlyList<Qyl.Common.Attribute> Items { get; init; }
 }
 
 public enum OTelVersion

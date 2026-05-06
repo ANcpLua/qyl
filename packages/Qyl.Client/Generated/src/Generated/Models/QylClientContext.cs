@@ -23,8 +23,6 @@ using Qyl.OTel.Metrics;
 using Qyl.OTel.Resource;
 using Qyl.OTel.Traces;
 using Qyl.Storage;
-using Trace = Qyl.OTel.Traces.Trace;
-using Attribute = Qyl.Common.Attribute;
 
 namespace Qyl.Client
 {

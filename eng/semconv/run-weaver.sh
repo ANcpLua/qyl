@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# Generate qyl's semconv outputs into the final src/ destinations via Weaver.
-#
-# Pass 1 — upstream OTel registry:
-#   - services/qyl.dashboard/src/lib/semconv.ts                                  (TypeScript const keys)
-#   - services/qyl.collector/Storage/promoted-columns.g.sql                      (DuckDB columns)
-#   - core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json     (flat attr registry for lint)
-#
-# Pass 2 — qyl-owned attribute registry (eng/semconv/model/qyl/):
-#   - packages/Qyl.Telemetry/Conventions/Qyl.g.cs                                (C# static constants)
-#   - packages/qyl-client/src/conventions.ts                                     (TS string constants)
-#   - docs/attributes/qyl.*.md                                                   (per-namespace docs)
-#
-# Bootstrap once per clone: ./eng/semconv/bootstrap-weaver.sh
-
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
