@@ -868,13 +868,13 @@ interface ConfiguratorApi {
   getJob(@path jobId: string): GenerationJobEntity | NotFoundError | InternalServerError;
 }
 
-@doc("Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys")
+@doc("Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys")
 model GenerationSelectionSaveRequest {
   ...PickProperties<GenerationSelectionEntity, "workspaceId" | "profileId">;
 
-  @doc("JSON array of selection keys to enable in a single round-trip")
-  @encodedName("application/json", "selected_keys_json")
-  selectedKeysJson: string;
+  @doc("Array of selection keys to enable in a single round-trip")
+  @encodedName("application/json", "selected_keys")
+  selectedKeys: string[];
 }
 
 // =============================================================================

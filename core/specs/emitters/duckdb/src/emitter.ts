@@ -39,8 +39,26 @@ export async function $onEmit(context: EmitContext): Promise<void> {
       if (!name) return;
       const candidate = collectTable(program, m, name);
       const existing = tablesByName.get(name);
-      if (!existing || candidate.columns.length > existing.columns.length) {
+      if (!existing) {
         tablesByName.set(name, candidate);
+      } else {
+        // Check for strict superset relationship
+        const existingCols = new Set(existing.columns.map((c) => c.name));
+        const candidateCols = new Set(candidate.columns.map((c) => c.name));
+        const candidateIsSuperset = [...existingCols].every((c) => candidateCols.has(c)) && candidateCols.size > existingCols.size;
+        const existingIsSuperset = [...candidateCols].every((c) => existingCols.has(c)) && existingCols.size > candidateCols.size;
+        if (candidateIsSuperset) {
+          tablesByName.set(name, candidate);
+        } else if (!existingIsSuperset) {
+          // Neither is a strict superset - conflict detected
+          const existingColsStr = [...existingCols].sort().join(", ");
+          const candidateColsStr = [...candidateCols].sort().join(", ");
+          throw new Error(
+            `Table name conflict for "${name}": Neither column set is a strict superset.\n` +
+            `Existing columns: [${existingColsStr}]\n` +
+            `Candidate columns: [${candidateColsStr}]`
+          );
+        }
       }
     },
   });
