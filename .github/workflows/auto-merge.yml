@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   auto-merge:
-    uses: ANcpLua/renovate-config/.github/workflows/auto-merge-reusable.yml@b1465ceb2114314338c273fa3160aa664dfe21f2 # main
+    uses: ANcpLua/renovate-config/.github/workflows/auto-merge-reusable.yml@8ccccb6efcf7404fd1cabcfc29b6a05b239d9ac8 # main (PR #11 — adds --auto-then-fallback for CLEAN PRs)
     secrets: inherit
 
   governance-auto-merge:
@@ -66,4 +66,6 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh pr merge --auto --squash "$PR_URL"
+        # Fall back to direct --squash if --auto refuses on CLEAN PRs (matches the
+        # pattern used by the reusable workflow's tiers).
+        run: gh pr merge --auto --squash "$PR_URL" || gh pr merge --squash "$PR_URL"
