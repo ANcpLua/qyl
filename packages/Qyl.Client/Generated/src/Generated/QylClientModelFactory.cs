@@ -1529,14 +1529,16 @@ namespace Qyl.Client
                 additionalBinaryDataProperties: null);
         }
 
-        /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys. </summary>
+        /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys. </summary>
         /// <param name="workspaceId"> Workspace. </param>
         /// <param name="profileId"> Profile. </param>
-        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
+        /// <param name="selectedKeys"> Array of selection keys to enable in a single round-trip. </param>
         /// <returns> A new <see cref="Api.GenerationSelectionSaveRequest"/> instance for mocking. </returns>
-        public static GenerationSelectionSaveRequest GenerationSelectionSaveRequest(string workspaceId = default, string profileId = default, string selectedKeysJson = default)
+        public static GenerationSelectionSaveRequest GenerationSelectionSaveRequest(string workspaceId = default, string profileId = default, IEnumerable<string> selectedKeys = default)
         {
-            return new GenerationSelectionSaveRequest(workspaceId, profileId, selectedKeysJson, additionalBinaryDataProperties: null);
+            selectedKeys ??= new ChangeTrackingList<string>();
+
+            return new GenerationSelectionSaveRequest(workspaceId, profileId, selectedKeys.ToList(), additionalBinaryDataProperties: null);
         }
 
         /// <summary> Code generation job entry. </summary>

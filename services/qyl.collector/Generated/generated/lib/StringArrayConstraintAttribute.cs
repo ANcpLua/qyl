@@ -44,7 +44,7 @@ namespace TypeSpec.Helpers.JsonConverters
                 resultStandardArray.InnerConverterFactory = (c, o) => new StringJsonConverter(MinItemLength, MaxItemLength, Pattern, o);
                 return resultStandardArray;
             }
-            throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with StringArrayConstraintAttribute(MinItemLength={MinItemLength}, MaxItemLength={MaxItemLength}, Pattern={Pattern})");
+            throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with {this}");
         }
     }
 }

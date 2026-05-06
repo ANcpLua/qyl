@@ -12,7 +12,7 @@ namespace Qyl.Api
 
     ///<summary>
     /// Batch upsert request — workspace+profile scope from
-    /// GenerationSelectionEntity, plus a JSON array of keys
+    /// GenerationSelectionEntity, plus an array of selection keys
     ///</summary>
     public partial class GenerationSelectionSaveRequest
     {
@@ -29,10 +29,10 @@ namespace Qyl.Api
         public string ProfileId { get; set; }
 
         ///<summary>
-        /// JSON array of selection keys to enable in a single round-trip
+        /// Array of selection keys to enable in a single round-trip
         ///</summary>
-        [JsonPropertyName("selected_keys_json")]
-        public string SelectedKeysJson { get; set; }
+        [JsonPropertyName("selected_keys")]
+        public string[] SelectedKeys { get; set; }
 
 
     }
