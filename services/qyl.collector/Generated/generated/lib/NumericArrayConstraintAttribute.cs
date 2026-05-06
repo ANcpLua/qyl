@@ -45,7 +45,7 @@ namespace TypeSpec.Helpers.JsonConverters
                 resultStandardArray.InnerConverterFactory = (c, o) => new NumericJsonConverter<T>(MinValue, MaxValue, MinValueExclusive, MaxValueExclusive, o);
                 return resultStandardArray;
             }
-            throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with {this}");
+            throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with {GetType().FullName}");
         }
     }
 }
