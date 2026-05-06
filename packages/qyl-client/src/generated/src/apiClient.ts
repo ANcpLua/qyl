@@ -34,7 +34,7 @@ import { createWorkflowsApiClientContext, type WorkflowsApiClientContext, type W
 import { approveStep, type ApproveStepOptions, getRun, getRunEvents, type GetRunEventsOptions, getRunNodes, type GetRunNodesOptions, type GetRunOptions, listRuns, type ListRunsOptions, resumeRun, type ResumeRunOptions } from "./api/workflowsApiClient/workflowsApiClientOperations.js";
 import { createWorkspacesApiClientContext, type WorkspacesApiClientContext, type WorkspacesApiClientOptions } from "./api/workspacesApiClient/workspacesApiClientContext.js";
 import { createProject, type CreateProjectOptions, getCurrent, type GetCurrentOptions, getProject, type GetProjectOptions, heartbeat, type HeartbeatOptions, listEnvironments, type ListEnvironmentsOptions, listProjects, type ListProjectsOptions } from "./api/workspacesApiClient/workspacesApiClientOperations.js";
-import type { AlertFiringAcknowledgement, AlertRuleEntity, DeploymentCreate, DeploymentPatchMergePatchUpdate, ErrorPatchMergePatchUpdate, GenerationJobCreateRequest, GenerationProfileCreateRequest, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, IssuePatchMergePatchUpdate, LogAggregationRequest, LogQuery, MetricQueryRequest, ProjectCreateRequest, SearchRequest, TraceQuery } from "./models/models.js";
+import type { AlertFiringAcknowledgement, AlertRuleEntity, DeploymentCreate, DeploymentUpdate, ErrorUpdate, GenerationJobCreateRequest, GenerationProfileCreateRequest, GenerationSelectionSaveRequest, HandshakeStartRequest, HandshakeVerifyRequest, IssueUpdateRequest, LogAggregationRequest, LogQuery, MetricQueryRequest, ProjectCreateRequest, SearchRequest, TraceQuery } from "./models/models.js";
 
 export class ApiClient {
   #context: ApiClientContext
@@ -159,7 +159,7 @@ export class IssuesApiClient {
   };
   async update(
     issueId: string,
-    update: IssuePatchMergePatchUpdate,
+    update: IssueUpdateRequest,
     options?: UpdateOptions_3,
   ) {
     return update_3(this.#context, issueId, update, options);
@@ -323,7 +323,7 @@ export class DeploymentsApiClient {
   };
   async update(
     deploymentId: string,
-    update: DeploymentPatchMergePatchUpdate,
+    update: DeploymentUpdate,
     options?: UpdateOptions_2,
   ) {
     return update_2(this.#context, deploymentId, update, options);
@@ -347,11 +347,7 @@ export class ErrorsApiClient {
   async get(errorId: string, options?: GetOptions_4) {
     return get_4(this.#context, errorId, options);
   };
-  async update(
-    errorId: string,
-    update: ErrorPatchMergePatchUpdate,
-    options?: UpdateOptions,
-  ) {
+  async update(errorId: string, update: ErrorUpdate, options?: UpdateOptions) {
     return update(this.#context, errorId, update, options);
   };
   async getStats(options?: GetStatsOptions_3) {

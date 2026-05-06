@@ -100,7 +100,7 @@ namespace Qyl.Api.Controllers
         [HttpPatch]
         [Route("/api/v1/deployments/{deploymentId}")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(DeploymentEntity))]
-        public virtual async Task<IActionResult> Update(string deploymentId, DeploymentPatchMergePatchUpdate body)
+        public virtual async Task<IActionResult> Update(string deploymentId, DeploymentUpdate body)
         {
             var result = await DeploymentsApiImpl.UpdateAsync(deploymentId, body);
             return Ok(result);
