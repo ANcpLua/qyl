@@ -4,11 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Qyl.Client;
 
 namespace Qyl.Api
 {
-    /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys. </summary>
+    /// <summary> Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys. </summary>
     public partial class GenerationSelectionSaveRequest
     {
         /// <summary> Keeps track of any properties unknown to the library. </summary>
@@ -17,29 +18,29 @@ namespace Qyl.Api
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/>. </summary>
         /// <param name="workspaceId"> Workspace. </param>
         /// <param name="profileId"> Profile. </param>
-        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
-        /// <exception cref="ArgumentNullException"> <paramref name="workspaceId"/>, <paramref name="profileId"/> or <paramref name="selectedKeysJson"/> is null. </exception>
-        public GenerationSelectionSaveRequest(string workspaceId, string profileId, string selectedKeysJson)
+        /// <param name="selectedKeys"> Array of selection keys to enable in a single round-trip. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="workspaceId"/>, <paramref name="profileId"/> or <paramref name="selectedKeys"/> is null. </exception>
+        public GenerationSelectionSaveRequest(string workspaceId, string profileId, IEnumerable<string> selectedKeys)
         {
             Argument.AssertNotNull(workspaceId, nameof(workspaceId));
             Argument.AssertNotNull(profileId, nameof(profileId));
-            Argument.AssertNotNull(selectedKeysJson, nameof(selectedKeysJson));
+            Argument.AssertNotNull(selectedKeys, nameof(selectedKeys));
 
             WorkspaceId = workspaceId;
             ProfileId = profileId;
-            SelectedKeysJson = selectedKeysJson;
+            SelectedKeys = selectedKeys.ToList();
         }
 
         /// <summary> Initializes a new instance of <see cref="GenerationSelectionSaveRequest"/>. </summary>
         /// <param name="workspaceId"> Workspace. </param>
         /// <param name="profileId"> Profile. </param>
-        /// <param name="selectedKeysJson"> JSON array of selection keys to enable in a single round-trip. </param>
+        /// <param name="selectedKeys"> Array of selection keys to enable in a single round-trip. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal GenerationSelectionSaveRequest(string workspaceId, string profileId, string selectedKeysJson, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal GenerationSelectionSaveRequest(string workspaceId, string profileId, IList<string> selectedKeys, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             WorkspaceId = workspaceId;
             ProfileId = profileId;
-            SelectedKeysJson = selectedKeysJson;
+            SelectedKeys = selectedKeys;
             _additionalBinaryDataProperties = additionalBinaryDataProperties;
         }
 
@@ -49,7 +50,7 @@ namespace Qyl.Api
         /// <summary> Profile. </summary>
         public string ProfileId { get; }
 
-        /// <summary> JSON array of selection keys to enable in a single round-trip. </summary>
-        public string SelectedKeysJson { get; }
+        /// <summary> Array of selection keys to enable in a single round-trip. </summary>
+        public IList<string> SelectedKeys { get; }
     }
 }

@@ -144,7 +144,7 @@ public sealed class GenerationSelectionSaveRequest
 {
     public required string WorkspaceId { get; init; }
     public required string ProfileId { get; init; }
-    public required string SelectedKeysJson { get; init; }
+    public required IReadOnlyList<string> SelectedKeys { get; init; }
 }
 
 public sealed class AlertFiringAcknowledgement

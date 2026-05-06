@@ -3506,7 +3506,7 @@ export interface GenerationSelectionEntity {
   updatedAt: Date;
 }
 /**
- * Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus a JSON array of keys
+ * Batch upsert request — workspace+profile scope from GenerationSelectionEntity, plus an array of selection keys
  */
 export interface GenerationSelectionSaveRequest {
   /**
@@ -3518,9 +3518,9 @@ export interface GenerationSelectionSaveRequest {
    */
   profileId: string;
   /**
-   * JSON array of selection keys to enable in a single round-trip
+   * Array of selection keys to enable in a single round-trip
    */
-  selectedKeysJson: string;
+  selectedKeys: Array<string>;
 }
 /**
  * Code generation job entry

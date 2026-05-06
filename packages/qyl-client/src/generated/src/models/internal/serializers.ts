@@ -2712,7 +2712,7 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return input_ as any;
   }
     return {
-    workspace_id: input_.workspaceId,profile_id: input_.profileId,selected_keys_json: input_.selectedKeysJson
+    workspace_id: input_.workspaceId,profile_id: input_.profileId,selected_keys: jsonArrayStringToTransportTransform(input_.selectedKeys)
   }!;
 }export function jsonGenerationSelectionSaveRequestToApplicationTransform(
   input_?: any,
@@ -2721,7 +2721,7 @@ export function decodeBase64(value: string): Uint8Array | undefined {
     return input_ as any;
   }
     return {
-    workspaceId: input_.workspace_id,profileId: input_.profile_id,selectedKeysJson: input_.selected_keys_json
+    workspaceId: input_.workspace_id,profileId: input_.profile_id,selectedKeys: jsonArrayStringToApplicationTransform(input_.selected_keys)
   }!;
 }export function jsonCreateGenerationJobEntityToTransportTransform(
   input_?: CreateGenerationJobEntity | null,
