@@ -16,7 +16,7 @@ namespace Qyl.Api
 
         private static PipelineMessageClassifier PipelineMessageClassifier200 => _pipelineMessageClassifier200 ??= PipelineMessageClassifier.Create(stackalloc ushort[] { 200 });
 
-        internal PipelineMessage CreateGetAllRequest(string serviceName, long? minDurationMs, long? maxDurationMs, int status, DateTimeOffset? startTime, DateTimeOffset? endTime, int? limit, string cursor, RequestOptions options)
+        internal PipelineMessage CreateGetAllRequest(string serviceName, long? minDurationMs, long? maxDurationMs, int? status, DateTimeOffset? startTime, DateTimeOffset? endTime, int? limit, string cursor, RequestOptions options)
         {
             ClientUriBuilder uri = new ClientUriBuilder();
             uri.Reset(_endpoint);

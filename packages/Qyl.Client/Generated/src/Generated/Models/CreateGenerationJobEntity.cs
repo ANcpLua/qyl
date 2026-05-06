@@ -5,22 +5,21 @@
 using System;
 using System.Collections.Generic;
 using Qyl.Client;
-using Qyl.Domains.Configurator;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Configurator
 {
-    /// <summary> Generation job creation request. </summary>
-    public partial class GenerationJobCreateRequest
+    /// <summary> Code generation job entry. </summary>
+    public partial class CreateGenerationJobEntity
     {
         /// <summary> Keeps track of any properties unknown to the library. </summary>
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
-        /// <summary> Initializes a new instance of <see cref="GenerationJobCreateRequest"/>. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
+        /// <summary> Initializes a new instance of <see cref="CreateGenerationJobEntity"/>. </summary>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
         /// <param name="jobType"> Job type. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="workspaceId"/> or <paramref name="profileId"/> is null. </exception>
-        public GenerationJobCreateRequest(string workspaceId, string profileId, GenerationJobType jobType)
+        public CreateGenerationJobEntity(string workspaceId, string profileId, GenerationJobType jobType)
         {
             Argument.AssertNotNull(workspaceId, nameof(workspaceId));
             Argument.AssertNotNull(profileId, nameof(profileId));
@@ -30,12 +29,12 @@ namespace Qyl.Api
             JobType = jobType;
         }
 
-        /// <summary> Initializes a new instance of <see cref="GenerationJobCreateRequest"/>. </summary>
-        /// <param name="workspaceId"> Workspace ID. </param>
-        /// <param name="profileId"> Profile ID. </param>
+        /// <summary> Initializes a new instance of <see cref="CreateGenerationJobEntity"/>. </summary>
+        /// <param name="workspaceId"> Workspace. </param>
+        /// <param name="profileId"> Profile. </param>
         /// <param name="jobType"> Job type. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal GenerationJobCreateRequest(string workspaceId, string profileId, GenerationJobType jobType, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal CreateGenerationJobEntity(string workspaceId, string profileId, GenerationJobType jobType, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             WorkspaceId = workspaceId;
             ProfileId = profileId;
@@ -43,10 +42,10 @@ namespace Qyl.Api
             _additionalBinaryDataProperties = additionalBinaryDataProperties;
         }
 
-        /// <summary> Workspace ID. </summary>
+        /// <summary> Workspace. </summary>
         public string WorkspaceId { get; }
 
-        /// <summary> Profile ID. </summary>
+        /// <summary> Profile. </summary>
         public string ProfileId { get; }
 
         /// <summary> Job type. </summary>

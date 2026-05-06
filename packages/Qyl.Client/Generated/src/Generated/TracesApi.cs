@@ -11,6 +11,7 @@ using Qyl.Client;
 using Qyl.Common.Pagination;
 using Qyl.OTel.Enums;
 using Qyl.OTel.Traces;
+using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Api
 {
@@ -99,7 +100,7 @@ namespace Qyl.Api
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
         public virtual ClientResult<CursorPageTrace> GetAll(string serviceName = default, long? minDurationMs = default, long? maxDurationMs = default, SpanStatusCode? status = default, DateTimeOffset? startTime = default, DateTimeOffset? endTime = default, int? limit = default, string cursor = default, CancellationToken cancellationToken = default)
         {
-            ClientResult result = this.GetAll(serviceName, minDurationMs, maxDurationMs, (int)status?, startTime, endTime, limit, cursor, cancellationToken.ToRequestOptions());
+            ClientResult result = this.GetAll(serviceName, minDurationMs, maxDurationMs, (int?)status, startTime, endTime, limit, cursor, cancellationToken.ToRequestOptions());
             return ClientResult.FromValue((CursorPageTrace)result, result.GetRawResponse());
         }
 
@@ -116,7 +117,7 @@ namespace Qyl.Api
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
         public virtual async Task<ClientResult<CursorPageTrace>> GetAllAsync(string serviceName = default, long? minDurationMs = default, long? maxDurationMs = default, SpanStatusCode? status = default, DateTimeOffset? startTime = default, DateTimeOffset? endTime = default, int? limit = default, string cursor = default, CancellationToken cancellationToken = default)
         {
-            ClientResult result = await this.GetAllAsync(serviceName, minDurationMs, maxDurationMs, (int)status?, startTime, endTime, limit, cursor, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            ClientResult result = await this.GetAllAsync(serviceName, minDurationMs, maxDurationMs, (int?)status, startTime, endTime, limit, cursor, cancellationToken.ToRequestOptions()).ConfigureAwait(false);
             return ClientResult.FromValue((CursorPageTrace)result, result.GetRawResponse());
         }
 

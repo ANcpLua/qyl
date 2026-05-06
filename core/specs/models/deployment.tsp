@@ -115,67 +115,84 @@ enum DeploymentStrategy {
 model DeploymentEntity {
   @doc("Deployment ID")
   @key
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", Qyl.OTel.Keys.Deployment.Id)
   deploymentId: string;
 
   @doc("Service name")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Service version")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", Qyl.OTel.Keys.Service.Version)
   serviceVersion: SemVer;
 
   @doc("Environment")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   environment: DeploymentEnvironment;
 
   @doc("Status")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   status: DeploymentStatus;
 
   @doc("Strategy")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   strategy: DeploymentStrategy;
 
   @doc("Start time")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "start_time")
   startTime: utcDateTime;
 
   @doc("End time")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "end_time")
   endTime?: utcDateTime;
 
   @doc("Duration in seconds")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "duration_s")
   durationS?: DurationS;
 
   @doc("Deployed by (user/system)")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "deployed_by")
   deployedBy?: string;
 
   @doc("Git commit SHA")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "git_commit")
   gitCommit?: string;
 
   @doc("Git branch")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @encodedName("application/json", "git_branch")
   gitBranch?: string;
 
   @doc("Previous version")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "previous_version")
   previousVersion?: SemVer;
 
   @doc("Rollback target (if rolled back)")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "rollback_target")
   rollbackTarget?: string;
 
   @doc("Replica count")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "replica_count")
   replicaCount?: int32;
 
   @doc("Healthy replica count")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "healthy_replicas")
   healthyReplicas?: int32;
 
   @doc("Error message (if failed)")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "error_message")
   errorMessage?: string;
 }

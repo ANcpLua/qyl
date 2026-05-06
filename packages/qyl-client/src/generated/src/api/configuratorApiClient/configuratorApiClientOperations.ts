@@ -4,8 +4,8 @@ import { ConfiguratorApiClientContext } from "./configuratorApiClientContext.js"
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { jsonArrayGenerationSelectionEntityToApplicationTransform, jsonCursorPageToApplicationTransform_11 as jsonCursorPageToApplicationTransform, jsonGenerationJobCreateRequestToTransportTransform, jsonGenerationJobEntityToApplicationTransform, jsonGenerationProfileCreateRequestToTransportTransform, jsonGenerationProfileEntityToApplicationTransform, jsonGenerationSelectionEntityToApplicationTransform, jsonGenerationSelectionSaveRequestToTransportTransform } from "../../models/internal/serializers.js";
-import { GenerationJobCreateRequest, type GenerationJobEntity, GenerationProfileCreateRequest, GenerationProfileEntity, type GenerationSelectionEntity, GenerationSelectionSaveRequest } from "../../models/models.js";
+import { jsonArrayGenerationSelectionEntityToApplicationTransform, jsonCreateGenerationJobEntityToTransportTransform, jsonCreateGenerationProfileEntityToTransportTransform, jsonCursorPageToApplicationTransform_11 as jsonCursorPageToApplicationTransform, jsonGenerationJobEntityToApplicationTransform, jsonGenerationProfileEntityToApplicationTransform, jsonGenerationSelectionEntityToApplicationTransform, jsonGenerationSelectionSaveRequestToTransportTransform } from "../../models/internal/serializers.js";
+import { CreateGenerationJobEntity, CreateGenerationProfileEntity, type GenerationJobEntity, GenerationProfileEntity, type GenerationSelectionEntity, GenerationSelectionSaveRequest } from "../../models/models.js";
 
 export interface ListProfilesOptions extends OperationOptions {
   limit?: number
@@ -102,19 +102,19 @@ export interface CreateProfileOptions extends OperationOptions {}
  * Create generation profile
  *
  * @param {ConfiguratorApiClientContext} client
- * @param {GenerationProfileCreateRequest} profile
+ * @param {CreateGenerationProfileEntity} profile
  * @param {CreateProfileOptions} [options]
  */
 export async function createProfile(
   client: ConfiguratorApiClientContext,
-  profile: GenerationProfileCreateRequest,
+  profile: CreateGenerationProfileEntity,
   options?: CreateProfileOptions,
 ): Promise<GenerationProfileEntity> {
   const path = parse("/api/v1/configurator/profiles").expand({});
   const httpRequestOptions = {
     headers: {
 
-    },body: jsonGenerationProfileCreateRequestToTransportTransform(profile),
+    },body: jsonCreateGenerationProfileEntityToTransportTransform(profile),
   };
   const response = await client.pathUnchecked(path).post(httpRequestOptions);
 
@@ -195,17 +195,17 @@ export interface CreateJobOptions extends OperationOptions {}
  * Create a generation job
  *
  * @param {ConfiguratorApiClientContext} client
- * @param {GenerationJobCreateRequest} job
+ * @param {CreateGenerationJobEntity} job
  * @param {CreateJobOptions} [options]
  */
 export async function createJob(
   client: ConfiguratorApiClientContext,
-  job: GenerationJobCreateRequest,
+  job: CreateGenerationJobEntity,
   options?: CreateJobOptions,
 ): Promise<GenerationJobEntity> {
   const path = parse("/api/v1/configurator/jobs").expand({});
   const httpRequestOptions = {
-    headers: {},body: jsonGenerationJobCreateRequestToTransportTransform(job),
+    headers: {},body: jsonCreateGenerationJobEntityToTransportTransform(job),
   };
   const response = await client.pathUnchecked(path).post(httpRequestOptions);
 

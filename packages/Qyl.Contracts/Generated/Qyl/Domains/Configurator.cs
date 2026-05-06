@@ -102,6 +102,24 @@ public sealed class SchemaChangeEventEntity
     public required DateTimeOffset Timestamp { get; init; }
 }
 
+public sealed class CreateGenerationProfileEntity
+{
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public required string TargetFramework { get; init; }
+    public required string TargetLanguage { get; init; }
+    public required string SemconvVersion { get; init; }
+    public required string FeaturesJson { get; init; }
+    public string? TemplateOverridesJson { get; init; }
+}
+
+public sealed class CreateGenerationJobEntity
+{
+    public required string WorkspaceId { get; init; }
+    public required string ProfileId { get; init; }
+    public required Qyl.Domains.Configurator.GenerationJobType JobType { get; init; }
+}
+
 public enum GenerationJobType
 {
     Full,

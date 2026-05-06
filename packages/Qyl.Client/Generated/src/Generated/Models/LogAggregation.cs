@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Qyl.Client;
+using Qyl.OTel.Metrics;
+using Qyl.Common.Pagination;
 
 namespace Qyl.Domains.Observe.Log
 {

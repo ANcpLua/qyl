@@ -108,7 +108,7 @@ namespace Qyl.Api
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
         public virtual ClientResult<CursorPageLogRecord> GetAll(string serviceName = default, SeverityNumber? severityMin = default, SeverityNumber? severityMax = default, string traceId = default, DateTimeOffset? startTime = default, DateTimeOffset? endTime = default, string query = default, int? limit = default, string cursor = default, LogOrderBy? orderBy = default, CancellationToken cancellationToken = default)
         {
-            ClientResult result = this.GetAll(serviceName, (int)severityMin?, (int)severityMax?, traceId, startTime, endTime, query, limit, cursor, orderBy?.ToSerialString(), cancellationToken.ToRequestOptions());
+            ClientResult result = this.GetAll(serviceName, (int?)severityMin, (int?)severityMax, traceId, startTime, endTime, query, limit, cursor, orderBy?.ToSerialString(), cancellationToken.ToRequestOptions());
             return ClientResult.FromValue((CursorPageLogRecord)result, result.GetRawResponse());
         }
 
@@ -127,7 +127,7 @@ namespace Qyl.Api
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
         public virtual async Task<ClientResult<CursorPageLogRecord>> GetAllAsync(string serviceName = default, SeverityNumber? severityMin = default, SeverityNumber? severityMax = default, string traceId = default, DateTimeOffset? startTime = default, DateTimeOffset? endTime = default, string query = default, int? limit = default, string cursor = default, LogOrderBy? orderBy = default, CancellationToken cancellationToken = default)
         {
-            ClientResult result = await this.GetAllAsync(serviceName, (int)severityMin?, (int)severityMax?, traceId, startTime, endTime, query, limit, cursor, orderBy?.ToSerialString(), cancellationToken.ToRequestOptions()).ConfigureAwait(false);
+            ClientResult result = await this.GetAllAsync(serviceName, (int?)severityMin, (int?)severityMax, traceId, startTime, endTime, query, limit, cursor, orderBy?.ToSerialString(), cancellationToken.ToRequestOptions()).ConfigureAwait(false);
             return ClientResult.FromValue((CursorPageLogRecord)result, result.GetRawResponse());
         }
 

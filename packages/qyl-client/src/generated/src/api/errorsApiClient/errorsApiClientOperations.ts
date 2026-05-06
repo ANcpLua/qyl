@@ -4,8 +4,8 @@ import { ErrorsApiClientContext } from "./errorsApiClientContext.js";
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { dateRfc3339Serializer, jsonCursorPageToApplicationTransform_6 as jsonCursorPageToApplicationTransform, jsonErrorCorrelationToApplicationTransform, jsonErrorEntityToApplicationTransform, jsonErrorPatchMergePatchUpdateToTransportTransform, jsonErrorStatsToApplicationTransform } from "../../models/internal/serializers.js";
-import { type ErrorCategory, type ErrorCorrelation, ErrorEntity, ErrorPatchMergePatchUpdate, type ErrorStats, type ErrorStatus } from "../../models/models.js";
+import { dateRfc3339Serializer, jsonCursorPageToApplicationTransform_6 as jsonCursorPageToApplicationTransform, jsonErrorCorrelationToApplicationTransform, jsonErrorEntityMergePatchUpdateToTransportTransform, jsonErrorEntityToApplicationTransform, jsonErrorStatsToApplicationTransform } from "../../models/internal/serializers.js";
+import { type ErrorCategory, type ErrorCorrelation, ErrorEntity, ErrorEntityMergePatchUpdate, type ErrorStats, type ErrorStatus } from "../../models/models.js";
 
 export interface ListOptions extends OperationOptions {
   serviceName?: string
@@ -113,13 +113,13 @@ export interface UpdateOptions extends OperationOptions {}
  *
  * @param {ErrorsApiClientContext} client
  * @param {string} errorId
- * @param {ErrorPatchMergePatchUpdate} update
+ * @param {ErrorEntityMergePatchUpdate} update
  * @param {UpdateOptions} [options]
  */
 export async function update(
   client: ErrorsApiClientContext,
   errorId: string,
-  update: ErrorPatchMergePatchUpdate,
+  update: ErrorEntityMergePatchUpdate,
   options?: UpdateOptions,
 ): Promise<ErrorEntity> {
   const path = parse("/api/v1/errors/{errorId}").expand({
@@ -128,7 +128,7 @@ export async function update(
   const httpRequestOptions = {
     headers: {
 
-    },body: jsonErrorPatchMergePatchUpdateToTransportTransform(update),
+    },body: jsonErrorEntityMergePatchUpdateToTransportTransform(update),
   };
   const response = await client.pathUnchecked(path).patch(httpRequestOptions);
 

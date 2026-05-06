@@ -26,14 +26,25 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const program = context.program;
   if (program.compilerOptions.noEmit) return;
 
-  const tables: Table[] = [];
+  // Dedupe by table name: TypeSpec visibility transforms (Create<T>, MergePatchUpdate<T>, …)
+  // produce mutated model instances that inherit the `@@duckdbTable` augment from the source
+  // entity. Without dedupe, every Create<T> / MergePatchUpdate<T> reference in routes.tsp
+  // would emit a competing DDL constant with the visibility-filtered subset of columns.
+  // The canonical entity always has the most columns (transforms only ever subset), so
+  // prefer the column-count winner.
+  const tablesByName = new Map<string, Table>();
   navigateProgram(program, {
     model: (m) => {
       const name = getTableName(program, m);
       if (!name) return;
-      tables.push(collectTable(program, m, name));
+      const candidate = collectTable(program, m, name);
+      const existing = tablesByName.get(name);
+      if (!existing || candidate.columns.length > existing.columns.length) {
+        tablesByName.set(name, candidate);
+      }
     },
   });
+  const tables = [...tablesByName.values()];
 
   if (tables.length === 0) return;
 

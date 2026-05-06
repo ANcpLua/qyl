@@ -23,94 +23,119 @@ namespace Qyl.Domains.Issues;
 model ErrorIssueEntity {
   @doc("Issue ID")
   @key
+  @visibility(Lifecycle.Read)
   id: string;
 
   @doc("Owning project")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "project_id")
   projectId: string;
 
   @doc("Error fingerprint for grouping")
+  @visibility(Lifecycle.Read)
   fingerprint: string;
 
   @doc("Issue title")
+  @visibility(Lifecycle.Read)
   title: string;
 
   @doc("Culprit (function/module causing the error)")
+  @visibility(Lifecycle.Read)
   culprit?: string;
 
   @doc("Error type (exception class name or code)")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "error_type")
   errorType: string;
 
   @doc("Error category")
+  @visibility(Lifecycle.Read)
   category: string;
 
   @doc("Severity level")
+  @visibility(Lifecycle.Read)
   level: IssueLevel;
 
   @doc("Platform (csharp, javascript, python, etc.)")
+  @visibility(Lifecycle.Read)
   platform?: string;
 
   @doc("First occurrence")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "first_seen_at")
   firstSeenAt: utcDateTime;
 
   @doc("Last occurrence")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "last_seen_at")
   lastSeenAt: utcDateTime;
 
   @doc("Total occurrence count")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "occurrence_count")
   occurrenceCount: int64;
 
   @doc("Affected unique users count")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "affected_users_count")
   affectedUsersCount: int32;
 
   @doc("Issue status")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   status: IssueStatus;
 
   @doc("Issue substatus")
+  @visibility(Lifecycle.Read)
   substatus?: string;
 
   @doc("Priority level")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   priority: IssuePriority;
 
   @doc("Assigned team member")
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @encodedName("application/json", "assigned_to")
   assignedTo?: string;
 
   @doc("Resolution timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "resolved_at")
   resolvedAt?: utcDateTime;
 
   @doc("Resolved by")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "resolved_by")
   resolvedBy?: string;
 
   @doc("Number of regressions")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "regression_count")
   regressionCount: int32;
 
   @doc("Last associated release")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "last_release")
   lastRelease?: string;
 
   @doc("Issue tags")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "tags_json")
   @extension("x-duckdb-type", "JSON")
   tagsJson?: string;
 
   @doc("Issue metadata")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "metadata_json")
   @extension("x-duckdb-type", "JSON")
   metadataJson?: string;
 
   @doc("Creation timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "created_at")
   createdAt: utcDateTime;
 
   @doc("Last update timestamp")
+  @visibility(Lifecycle.Read)
   @encodedName("application/json", "updated_at")
   updatedAt: utcDateTime;
 }

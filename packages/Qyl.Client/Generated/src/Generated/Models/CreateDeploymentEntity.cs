@@ -5,23 +5,22 @@
 using System;
 using System.Collections.Generic;
 using Qyl.Client;
-using Qyl.Domains.Ops.Deployment;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Ops.Deployment
 {
-    /// <summary> Deployment creation request. </summary>
-    public partial class DeploymentCreate
+    /// <summary> Complete deployment record. </summary>
+    public partial class CreateDeploymentEntity
     {
         /// <summary> Keeps track of any properties unknown to the library. </summary>
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
-        /// <summary> Initializes a new instance of <see cref="DeploymentCreate"/>. </summary>
+        /// <summary> Initializes a new instance of <see cref="CreateDeploymentEntity"/>. </summary>
         /// <param name="serviceName"> Service name. </param>
         /// <param name="serviceVersion"> Service version. </param>
         /// <param name="environment"> Environment. </param>
         /// <param name="strategy"> Strategy. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="serviceName"/> or <paramref name="serviceVersion"/> is null. </exception>
-        public DeploymentCreate(string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStrategy strategy)
+        public CreateDeploymentEntity(string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStrategy strategy)
         {
             Argument.AssertNotNull(serviceName, nameof(serviceName));
             Argument.AssertNotNull(serviceVersion, nameof(serviceVersion));
@@ -32,16 +31,16 @@ namespace Qyl.Api
             Strategy = strategy;
         }
 
-        /// <summary> Initializes a new instance of <see cref="DeploymentCreate"/>. </summary>
+        /// <summary> Initializes a new instance of <see cref="CreateDeploymentEntity"/>. </summary>
         /// <param name="serviceName"> Service name. </param>
         /// <param name="serviceVersion"> Service version. </param>
         /// <param name="environment"> Environment. </param>
         /// <param name="strategy"> Strategy. </param>
-        /// <param name="deployedBy"> Deployed by. </param>
+        /// <param name="deployedBy"> Deployed by (user/system). </param>
         /// <param name="gitCommit"> Git commit SHA. </param>
         /// <param name="gitBranch"> Git branch. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal DeploymentCreate(string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStrategy strategy, string deployedBy, string gitCommit, string gitBranch, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal CreateDeploymentEntity(string serviceName, string serviceVersion, DeploymentEnvironment environment, DeploymentStrategy strategy, string deployedBy, string gitCommit, string gitBranch, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             ServiceName = serviceName;
             ServiceVersion = serviceVersion;
@@ -65,7 +64,7 @@ namespace Qyl.Api
         /// <summary> Strategy. </summary>
         public DeploymentStrategy Strategy { get; }
 
-        /// <summary> Deployed by. </summary>
+        /// <summary> Deployed by (user/system). </summary>
         public string DeployedBy { get; set; }
 
         /// <summary> Git commit SHA. </summary>

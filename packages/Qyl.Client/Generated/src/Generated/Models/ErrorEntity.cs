@@ -15,25 +15,9 @@ namespace Qyl.Domains.Observe.Error
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="ErrorEntity"/>. </summary>
-        /// <param name="errorId"> Error ID. </param>
-        /// <param name="errorType"> Error type (class name or code). </param>
-        /// <param name="message"> Error message. </param>
-        /// <param name="category"> Error category. </param>
-        /// <param name="fingerprint"> Fingerprint for grouping. </param>
-        /// <param name="firstSeen"> First occurrence. </param>
-        /// <param name="lastSeen"> Last occurrence. </param>
-        /// <param name="occurrenceCount"> Occurrence count. </param>
         /// <param name="status"> Status. </param>
-        internal ErrorEntity(string errorId, string errorType, string message, ErrorCategory category, string fingerprint, DateTimeOffset firstSeen, DateTimeOffset lastSeen, long occurrenceCount, ErrorStatus status)
+        internal ErrorEntity(ErrorStatus status)
         {
-            ErrorId = errorId;
-            ErrorType = errorType;
-            Message = message;
-            Category = category;
-            Fingerprint = fingerprint;
-            FirstSeen = firstSeen;
-            LastSeen = lastSeen;
-            OccurrenceCount = occurrenceCount;
             AffectedServices = new ChangeTrackingList<string>();
             Status = status;
             SampleTraces = new ChangeTrackingList<string>();
@@ -55,7 +39,7 @@ namespace Qyl.Domains.Observe.Error
         /// <param name="issueUrl"> Issue tracker URL. </param>
         /// <param name="sampleTraces"> Sample trace IDs. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal ErrorEntity(string errorId, string errorType, string message, ErrorCategory category, string fingerprint, DateTimeOffset firstSeen, DateTimeOffset lastSeen, long occurrenceCount, long? affectedUsers, IList<string> affectedServices, ErrorStatus status, string assignedTo, string issueUrl, IList<string> sampleTraces, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal ErrorEntity(string errorId, string errorType, string message, ErrorCategory category, string fingerprint, DateTimeOffset firstSeen, DateTimeOffset lastSeen, long occurrenceCount, long? affectedUsers, IReadOnlyList<string> affectedServices, ErrorStatus status, string assignedTo, string issueUrl, IReadOnlyList<string> sampleTraces, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             ErrorId = errorId;
             ErrorType = errorType;
@@ -102,7 +86,7 @@ namespace Qyl.Domains.Observe.Error
         public long? AffectedUsers { get; }
 
         /// <summary> Affected services. </summary>
-        public IList<string> AffectedServices { get; }
+        public IReadOnlyList<string> AffectedServices { get; }
 
         /// <summary> Status. </summary>
         public ErrorStatus Status { get; }
@@ -114,6 +98,6 @@ namespace Qyl.Domains.Observe.Error
         public string IssueUrl { get; }
 
         /// <summary> Sample trace IDs. </summary>
-        public IList<string> SampleTraces { get; }
+        public IReadOnlyList<string> SampleTraces { get; }
     }
 }
