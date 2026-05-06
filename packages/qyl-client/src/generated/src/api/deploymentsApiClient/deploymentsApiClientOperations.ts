@@ -4,8 +4,8 @@ import { DeploymentsApiClientContext } from "./deploymentsApiClientContext.js";
 import { createRestError } from "../../helpers/error.js";
 import type { OperationOptions } from "../../helpers/interfaces.js";
 import { buildPagedAsyncIterator, type PagedAsyncIterableIterator } from "../../helpers/pagingHelpers.js";
-import { dateRfc3339Serializer, jsonCursorPageToApplicationTransform_7 as jsonCursorPageToApplicationTransform, jsonDeploymentCreateToTransportTransform, jsonDeploymentEntityToApplicationTransform, jsonDeploymentUpdateToTransportTransform, jsonDoraMetricsToApplicationTransform } from "../../models/internal/serializers.js";
-import { DeploymentCreate, DeploymentEntity, type DeploymentEnvironment, type DeploymentStatus, DeploymentUpdate, type DoraMetrics } from "../../models/models.js";
+import { dateRfc3339Serializer, jsonCreateDeploymentEntityToTransportTransform, jsonCursorPageToApplicationTransform_7 as jsonCursorPageToApplicationTransform, jsonDeploymentEntityMergePatchUpdateToTransportTransform, jsonDeploymentEntityToApplicationTransform, jsonDoraMetricsToApplicationTransform } from "../../models/internal/serializers.js";
+import { CreateDeploymentEntity, DeploymentEntity, DeploymentEntityMergePatchUpdate, type DeploymentEnvironment, type DeploymentStatus, type DoraMetrics } from "../../models/models.js";
 
 export interface ListOptions extends OperationOptions {
   serviceName?: string
@@ -112,17 +112,19 @@ export interface CreateOptions extends OperationOptions {}
  * Record new deployment
  *
  * @param {DeploymentsApiClientContext} client
- * @param {DeploymentCreate} deployment
+ * @param {CreateDeploymentEntity} deployment
  * @param {CreateOptions} [options]
  */
 export async function create(
   client: DeploymentsApiClientContext,
-  deployment: DeploymentCreate,
+  deployment: CreateDeploymentEntity,
   options?: CreateOptions,
 ): Promise<DeploymentEntity> {
   const path = parse("/api/v1/deployments").expand({});
   const httpRequestOptions = {
-    headers: {},body: jsonDeploymentCreateToTransportTransform(deployment),
+    headers: {
+
+    },body: jsonCreateDeploymentEntityToTransportTransform(deployment),
   };
   const response = await client.pathUnchecked(path).post(httpRequestOptions);
 
@@ -142,20 +144,22 @@ export interface UpdateOptions extends OperationOptions {}
  *
  * @param {DeploymentsApiClientContext} client
  * @param {string} deploymentId
- * @param {DeploymentUpdate} update
+ * @param {DeploymentEntityMergePatchUpdate} update
  * @param {UpdateOptions} [options]
  */
 export async function update(
   client: DeploymentsApiClientContext,
   deploymentId: string,
-  update: DeploymentUpdate,
+  update: DeploymentEntityMergePatchUpdate,
   options?: UpdateOptions,
 ): Promise<DeploymentEntity> {
   const path = parse("/api/v1/deployments/{deploymentId}").expand({
     deploymentId: deploymentId
   });
   const httpRequestOptions = {
-    headers: {},body: jsonDeploymentUpdateToTransportTransform(update),
+    headers: {
+
+    },body: jsonDeploymentEntityMergePatchUpdateToTransportTransform(update),
   };
   const response = await client.pathUnchecked(path).patch(httpRequestOptions);
 

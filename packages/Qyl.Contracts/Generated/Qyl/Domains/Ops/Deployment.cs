@@ -93,6 +93,24 @@ public sealed class DoraMttrMetric
     public string? ServiceName { get; init; }
 }
 
+public sealed class CreateDeploymentEntity
+{
+    public required string ServiceName { get; init; }
+    public required string ServiceVersion { get; init; }
+    public required Qyl.Domains.Ops.Deployment.DeploymentEnvironment Environment { get; init; }
+    public required Qyl.Domains.Ops.Deployment.DeploymentStrategy Strategy { get; init; }
+    public string? DeployedBy { get; init; }
+    public string? GitCommit { get; init; }
+    public string? GitBranch { get; init; }
+}
+
+public sealed class DeploymentEntityMergePatchUpdate
+{
+    public Qyl.Domains.Ops.Deployment.DeploymentStatus? Status { get; init; }
+    public object? HealthyReplicas { get; init; }
+    public object? ErrorMessage { get; init; }
+}
+
 public enum DeploymentStatus
 {
     Pending,

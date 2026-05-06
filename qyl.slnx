@@ -53,7 +53,6 @@
   </Folder>
 
   <Folder Name="/core/specs/">
-    <File Path="core/specs/main.all.tsp" />
     <File Path="core/specs/main.tsp" />
     <File Path="core/specs/package.json" />
     <File Path="core/specs/tspconfig.yaml" />

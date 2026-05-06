@@ -14,28 +14,20 @@ namespace Qyl.Domains.Configurator
         private protected readonly IDictionary<string, BinaryData> _additionalBinaryDataProperties;
 
         /// <summary> Initializes a new instance of <see cref="GenerationProfileEntity"/>. </summary>
-        /// <param name="id"> Profile ID. </param>
-        /// <param name="projectId"> Owning project. </param>
         /// <param name="name"> Profile name. </param>
         /// <param name="targetFramework"> Target framework (e.g. net10.0). </param>
         /// <param name="targetLanguage"> Target language. </param>
         /// <param name="semconvVersion"> Semantic conventions version. </param>
         /// <param name="featuresJson"> Enabled features/modules. </param>
         /// <param name="isDefault"> Whether this is the default profile. </param>
-        /// <param name="createdAt"> Creation timestamp. </param>
-        /// <param name="updatedAt"> Last update timestamp. </param>
-        internal GenerationProfileEntity(string id, string projectId, string name, string targetFramework, string targetLanguage, string semconvVersion, string featuresJson, bool isDefault, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        internal GenerationProfileEntity(string name, string targetFramework, string targetLanguage, string semconvVersion, string featuresJson, bool isDefault)
         {
-            Id = id;
-            ProjectId = projectId;
             Name = name;
             TargetFramework = targetFramework;
             TargetLanguage = targetLanguage;
             SemconvVersion = semconvVersion;
             FeaturesJson = featuresJson;
             IsDefault = isDefault;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
         }
 
         /// <summary> Initializes a new instance of <see cref="GenerationProfileEntity"/>. </summary>

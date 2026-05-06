@@ -183,7 +183,11 @@ interface IQylTest : ITest, IHazSourcePaths
             .ReportTrx($"{project.Name}.trx")
             .IgnoreExitCode(8);
 
+        // Heavy/opt-in tests (Category=regen — shell out to Weaver, Category=integration etc.)
+        // are excluded from the default Test run; pass --IQylTest.TestFilter to include them.
         if (TestFilter is { Length: > 0 } f) mtp.FilterQuery(f);
+        else mtp.FilterNotTrait("Category", "regen");
+
         if (StopOnFail == true) mtp.StopOnFail();
         if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 

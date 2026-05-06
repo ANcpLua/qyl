@@ -16,7 +16,7 @@ public sealed class UserAttributes
 
 public sealed class ClientAttributes
 {
-    public string? Address { get; init; }
+    public object? Address { get; init; }
     public int? Port { get; init; }
 }
 
@@ -49,7 +49,7 @@ public sealed class DestinationAttributes
 
 public sealed class SourceAttributes
 {
-    public string? Address { get; init; }
+    public object? Address { get; init; }
     public int? Port { get; init; }
 }
 

@@ -85,28 +85,52 @@ namespace Qyl.Domains.Observe.Error
             {
                 throw new FormatException($"The model {nameof(ErrorEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("error_id"u8);
-            writer.WriteStringValue(ErrorId);
-            writer.WritePropertyName("error.type"u8);
-            writer.WriteStringValue(ErrorType);
-            writer.WritePropertyName("message"u8);
-            writer.WriteStringValue(Message);
-            writer.WritePropertyName("category"u8);
-            writer.WriteStringValue(Category.ToSerialString());
-            writer.WritePropertyName("fingerprint"u8);
-            writer.WriteStringValue(Fingerprint);
-            writer.WritePropertyName("first_seen"u8);
-            writer.WriteStringValue(FirstSeen, "O");
-            writer.WritePropertyName("last_seen"u8);
-            writer.WriteStringValue(LastSeen, "O");
-            writer.WritePropertyName("occurrence_count"u8);
-            writer.WriteNumberValue(OccurrenceCount);
-            if (Optional.IsDefined(AffectedUsers))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("error_id"u8);
+                writer.WriteStringValue(ErrorId);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("error.type"u8);
+                writer.WriteStringValue(ErrorType);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("message"u8);
+                writer.WriteStringValue(Message);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("category"u8);
+                writer.WriteStringValue(Category.ToSerialString());
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("fingerprint"u8);
+                writer.WriteStringValue(Fingerprint);
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("first_seen"u8);
+                writer.WriteStringValue(FirstSeen, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("last_seen"u8);
+                writer.WriteStringValue(LastSeen, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("occurrence_count"u8);
+                writer.WriteNumberValue(OccurrenceCount);
+            }
+            if (options.Format != "W" && Optional.IsDefined(AffectedUsers))
             {
                 writer.WritePropertyName("affected_users"u8);
                 writer.WriteNumberValue(AffectedUsers.Value);
             }
-            if (Optional.IsCollectionDefined(AffectedServices))
+            if (options.Format != "W" && Optional.IsCollectionDefined(AffectedServices))
             {
                 writer.WritePropertyName("affected_services"u8);
                 writer.WriteStartArray();
@@ -133,7 +157,7 @@ namespace Qyl.Domains.Observe.Error
                 writer.WritePropertyName("issue_url"u8);
                 writer.WriteStringValue(IssueUrl);
             }
-            if (Optional.IsCollectionDefined(SampleTraces))
+            if (options.Format != "W" && Optional.IsCollectionDefined(SampleTraces))
             {
                 writer.WritePropertyName("sample_traces"u8);
                 writer.WriteStartArray();
@@ -199,11 +223,11 @@ namespace Qyl.Domains.Observe.Error
             DateTimeOffset lastSeen = default;
             long occurrenceCount = default;
             long? affectedUsers = default;
-            IList<string> affectedServices = default;
+            IReadOnlyList<string> affectedServices = default;
             ErrorStatus status = default;
             string assignedTo = default;
             string issueUrl = default;
-            IList<string> sampleTraces = default;
+            IReadOnlyList<string> sampleTraces = default;
             IDictionary<string, BinaryData> additionalBinaryDataProperties = new ChangeTrackingDictionary<string, BinaryData>();
             foreach (var prop in element.EnumerateObject())
             {

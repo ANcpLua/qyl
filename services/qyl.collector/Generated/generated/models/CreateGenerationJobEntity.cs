@@ -6,24 +6,23 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Configurator;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Configurator
 {
 
     ///<summary>
-    /// Generation job creation request
+    /// Code generation job entry
     ///</summary>
-    public partial class GenerationJobCreateRequest
+    public partial class CreateGenerationJobEntity
     {
         ///<summary>
-        /// Workspace ID
+        /// Workspace
         ///</summary>
         [JsonPropertyName("workspace_id")]
         public string WorkspaceId { get; set; }
 
         ///<summary>
-        /// Profile ID
+        /// Profile
         ///</summary>
         [JsonPropertyName("profile_id")]
         public string ProfileId { get; set; }

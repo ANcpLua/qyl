@@ -17,23 +17,23 @@ namespace Qyl.Domains.Transport.Rpc;
 @doc("RPC span attributes")
 model RpcAttributes {
   @doc("The RPC system (e.g., grpc, wcf, java_rmi)")
-  @encodedName("application/json", "rpc.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.System)
   system: RpcSystem;
 
   @doc("The RPC service name")
-  @encodedName("application/json", "rpc.service")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Service)
   service?: string;
 
   @doc("The RPC method name")
-  @encodedName("application/json", "rpc.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Method)
   method?: string;
 
   @doc("Server address")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   serverAddress?: string;
 
   @doc("Server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   serverPort?: Port;
 
   // ---------------------------------------------------------------------------
@@ -41,15 +41,15 @@ model RpcAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("gRPC status code")
-  @encodedName("application/json", "rpc.grpc.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.GrpcStatusCode)
   grpcStatusCode?: GrpcStatusCode;
 
   @doc("gRPC request metadata. Keys map to rpc.grpc.request.metadata.<key>")
-  @encodedName("application/json", "rpc.grpc.request.metadata")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.GrpcRequestMetadata)
   grpcRequestMetadata?: Record<string[]>;
 
   @doc("gRPC response metadata. Keys map to rpc.grpc.response.metadata.<key>")
-  @encodedName("application/json", "rpc.grpc.response.metadata")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.GrpcResponseMetadata)
   grpcResponseMetadata?: Record<string[]>;
 
   // ---------------------------------------------------------------------------
@@ -57,19 +57,19 @@ model RpcAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Message type (SENT or RECEIVED)")
-  @encodedName("application/json", "rpc.message.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.MessageType)
   messageType?: RpcMessageType;
 
   @doc("Message ID (sequence number)")
-  @encodedName("application/json", "rpc.message.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.MessageId)
   messageId?: int64;
 
   @doc("Compressed message size in bytes")
-  @encodedName("application/json", "rpc.message.compressed_size")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.MessageCompressedSize)
   messageCompressedSize?: ByteSize;
 
   @doc("Uncompressed message size in bytes")
-  @encodedName("application/json", "rpc.message.uncompressed_size")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.MessageUncompressedSize)
   messageUncompressedSize?: ByteSize;
 
   // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ model RpcAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Connect RPC error code")
-  @encodedName("application/json", "rpc.connect_rpc.error_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.ConnectRpcErrorCode)
   connectRpcErrorCode?: ConnectRpcErrorCode;
 
   // ---------------------------------------------------------------------------
@@ -85,19 +85,19 @@ model RpcAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("JSON-RPC error code")
-  @encodedName("application/json", "rpc.jsonrpc.error_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.JsonrpcErrorCode)
   jsonrpcErrorCode?: int32;
 
   @doc("JSON-RPC error message")
-  @encodedName("application/json", "rpc.jsonrpc.error_message")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.JsonrpcErrorMessage)
   jsonrpcErrorMessage?: string;
 
   @doc("JSON-RPC request ID")
-  @encodedName("application/json", "rpc.jsonrpc.request_id")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.JsonrpcRequestId)
   jsonrpcRequestId?: string;
 
   @doc("JSON-RPC version")
-  @encodedName("application/json", "rpc.jsonrpc.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.JsonrpcVersion)
   jsonrpcVersion?: string;
 }
 
@@ -259,19 +259,19 @@ model RpcServerDurationMetric {
   unit: "s";
 
   @doc("RPC system")
-  @encodedName("application/json", "rpc.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.System)
   system: RpcSystem;
 
   @doc("RPC service")
-  @encodedName("application/json", "rpc.service")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Service)
   service: string;
 
   @doc("RPC method")
-  @encodedName("application/json", "rpc.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Method)
   method: string;
 
   @doc("gRPC status code")
-  @encodedName("application/json", "rpc.grpc.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.GrpcStatusCode)
   grpcStatusCode?: GrpcStatusCode;
 }
 
@@ -284,26 +284,26 @@ model RpcClientDurationMetric {
   unit: "s";
 
   @doc("RPC system")
-  @encodedName("application/json", "rpc.system")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.System)
   system: RpcSystem;
 
   @doc("RPC service")
-  @encodedName("application/json", "rpc.service")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Service)
   service: string;
 
   @doc("RPC method")
-  @encodedName("application/json", "rpc.method")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.Method)
   method: string;
 
   @doc("Server address")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   serverAddress: string;
 
   @doc("Server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   serverPort: Port;
 
   @doc("gRPC status code")
-  @encodedName("application/json", "rpc.grpc.status_code")
+  @encodedName("application/json", Qyl.OTel.Keys.Rpc.GrpcStatusCode)
   grpcStatusCode?: GrpcStatusCode;
 }

@@ -64,7 +64,7 @@ namespace Qyl.Api
         ///<summary>
         /// Create generation profile
         ///</summary>
-        Task<GenerationProfileEntity> CreateProfileAsync(GenerationProfileCreateRequest body);
+        Task<GenerationProfileEntity> CreateProfileAsync(CreateGenerationProfileEntity body);
         ///<summary>
         /// Get generation selections for a workspace
         ///</summary>
@@ -76,7 +76,7 @@ namespace Qyl.Api
         ///<summary>
         /// Create a generation job
         ///</summary>
-        Task<GenerationJobEntity> CreateJobAsync(GenerationJobCreateRequest body);
+        Task<GenerationJobEntity> CreateJobAsync(CreateGenerationJobEntity body);
         ///<summary>
         /// Get generation job status
         ///</summary>

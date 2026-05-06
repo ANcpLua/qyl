@@ -18,31 +18,31 @@ namespace Qyl.OTel.Resource;
 @doc("Resource describes the entity producing telemetry")
 model Resource {
   @doc("Service name (required)")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Service namespace for grouping")
-  @encodedName("application/json", "service.namespace")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Namespace)
   serviceNamespace?: string;
 
   @doc("Service instance ID (unique per instance)")
-  @encodedName("application/json", "service.instance.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.InstanceId)
   serviceInstanceId?: string;
 
   @doc("Service version")
-  @encodedName("application/json", "service.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Version)
   serviceVersion?: SemVer;
 
   @doc("Telemetry SDK name")
-  @encodedName("application/json", "telemetry.sdk.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkName)
   telemetrySdkName?: string;
 
   @doc("Telemetry SDK language")
-  @encodedName("application/json", "telemetry.sdk.language")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkLanguage)
   telemetrySdkLanguage?: Enums.TelemetrySdkLanguage;
 
   @doc("Telemetry SDK version")
-  @encodedName("application/json", "telemetry.sdk.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkVersion)
   telemetrySdkVersion?: SemVer;
 
   @doc("Auto-instrumentation agent name")
@@ -50,87 +50,87 @@ model Resource {
   telemetryAutoVersion?: SemVer;
 
   @doc("Deployment environment (e.g., production, staging)")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   deploymentEnvironment?: string;
 
   @doc("Cloud provider")
-  @encodedName("application/json", "cloud.provider")
+  @encodedName("application/json", Qyl.OTel.Keys.Cloud.Provider)
   cloudProvider?: CloudProvider;
 
   @doc("Cloud region")
-  @encodedName("application/json", "cloud.region")
+  @encodedName("application/json", Qyl.OTel.Keys.Cloud.Region)
   cloudRegion?: string;
 
   @doc("Cloud availability zone")
-  @encodedName("application/json", "cloud.availability_zone")
+  @encodedName("application/json", Qyl.OTel.Keys.Cloud.AvailabilityZone)
   cloudAvailabilityZone?: string;
 
   @doc("Cloud account ID")
-  @encodedName("application/json", "cloud.account.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Cloud.AccountId)
   cloudAccountId?: string;
 
   @doc("Cloud platform (e.g., aws_ecs, gcp_cloud_run)")
-  @encodedName("application/json", "cloud.platform")
+  @encodedName("application/json", Qyl.OTel.Keys.Cloud.Platform)
   cloudPlatform?: string;
 
   @doc("Host name")
-  @encodedName("application/json", "host.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Host.Name)
   hostName?: string;
 
   @doc("Host ID")
-  @encodedName("application/json", "host.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Host.Id)
   hostId?: string;
 
   @doc("Host type (e.g., n1-standard-1)")
-  @encodedName("application/json", "host.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Host.Type)
   hostType?: string;
 
   @doc("Host architecture (e.g., amd64, arm64)")
-  @encodedName("application/json", "host.arch")
+  @encodedName("application/json", Qyl.OTel.Keys.Host.Arch)
   hostArch?: HostArch;
 
   @doc("Operating system type")
-  @encodedName("application/json", "os.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Type)
   osType?: OsType;
 
   @doc("Operating system description")
-  @encodedName("application/json", "os.description")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Description)
   osDescription?: string;
 
   @doc("Operating system version")
-  @encodedName("application/json", "os.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Os.Version)
   osVersion?: string;
 
   @doc("Process ID")
-  @encodedName("application/json", "process.pid")
+  @encodedName("application/json", Qyl.OTel.Keys.Process.Pid)
   processPid?: int64;
 
   @doc("Process executable name")
-  @encodedName("application/json", "process.executable.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Process.ExecutableName)
   processExecutableName?: string;
 
   @doc("Process command line")
-  @encodedName("application/json", "process.command_line")
+  @encodedName("application/json", Qyl.OTel.Keys.Process.CommandLine)
   processCommandLine?: string;
 
   @doc("Process runtime name")
-  @encodedName("application/json", "process.runtime.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Process.RuntimeName)
   processRuntimeName?: string;
 
   @doc("Process runtime version")
-  @encodedName("application/json", "process.runtime.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Process.RuntimeVersion)
   processRuntimeVersion?: string;
 
   @doc("Container ID")
-  @encodedName("application/json", "container.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Container.Id)
   containerId?: string;
 
   @doc("Container name")
-  @encodedName("application/json", "container.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Container.Name)
   containerName?: string;
 
   @doc("Container image name")
-  @encodedName("application/json", "container.image.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Container.ImageName)
   containerImageName?: string;
 
   @doc("Container image tag")
@@ -138,23 +138,23 @@ model Resource {
   containerImageTag?: string;
 
   @doc("Kubernetes cluster name")
-  @encodedName("application/json", "k8s.cluster.name")
+  @encodedName("application/json", Qyl.OTel.Keys.K8s.ClusterName)
   k8sClusterName?: string;
 
   @doc("Kubernetes namespace")
-  @encodedName("application/json", "k8s.namespace.name")
+  @encodedName("application/json", Qyl.OTel.Keys.K8s.NamespaceName)
   k8sNamespaceName?: string;
 
   @doc("Kubernetes pod name")
-  @encodedName("application/json", "k8s.pod.name")
+  @encodedName("application/json", Qyl.OTel.Keys.K8s.PodName)
   k8sPodName?: string;
 
   @doc("Kubernetes pod UID")
-  @encodedName("application/json", "k8s.pod.uid")
+  @encodedName("application/json", Qyl.OTel.Keys.K8s.PodUid)
   k8sPodUid?: string;
 
   @doc("Kubernetes deployment name")
-  @encodedName("application/json", "k8s.deployment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.K8s.DeploymentName)
   k8sDeploymentName?: string;
 
   @doc("Additional resource attributes")

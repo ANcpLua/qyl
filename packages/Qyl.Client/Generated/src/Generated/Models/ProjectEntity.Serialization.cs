@@ -85,8 +85,11 @@ namespace Qyl.Domains.Workspace
             {
                 throw new FormatException($"The model {nameof(ProjectEntity)} does not support writing '{format}' format.");
             }
-            writer.WritePropertyName("id"u8);
-            writer.WriteStringValue(Id);
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("id"u8);
+                writer.WriteStringValue(Id);
+            }
             writer.WritePropertyName("name"u8);
             writer.WriteStringValue(Name);
             writer.WritePropertyName("slug"u8);
@@ -96,11 +99,17 @@ namespace Qyl.Domains.Workspace
                 writer.WritePropertyName("description"u8);
                 writer.WriteStringValue(Description);
             }
-            writer.WritePropertyName("created_at"u8);
-            writer.WriteStringValue(CreatedAt, "O");
-            writer.WritePropertyName("updated_at"u8);
-            writer.WriteStringValue(UpdatedAt, "O");
-            if (Optional.IsDefined(ArchivedAt))
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("created_at"u8);
+                writer.WriteStringValue(CreatedAt, "O");
+            }
+            if (options.Format != "W")
+            {
+                writer.WritePropertyName("updated_at"u8);
+                writer.WriteStringValue(UpdatedAt, "O");
+            }
+            if (options.Format != "W" && Optional.IsDefined(ArchivedAt))
             {
                 writer.WritePropertyName("archived_at"u8);
                 writer.WriteStringValue(ArchivedAt.Value, "O");

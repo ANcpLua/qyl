@@ -6,32 +6,33 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Observe.Error;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Observe.Error
 {
 
     ///<summary>
-    /// Error update request
+    /// Error entity for tracking and analysis
     ///</summary>
-    public partial class ErrorUpdate
+    public partial class ErrorEntityMergePatchUpdate
     {
         ///<summary>
-        /// New status
+        /// Status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public ErrorStatus? Status { get; set; }
 
         ///<summary>
-        /// Assignee
+        /// Assigned to
         ///</summary>
         [JsonPropertyName("assigned_to")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string AssignedTo { get; set; }
 
         ///<summary>
-        /// Issue URL
+        /// Issue tracker URL
         ///</summary>
         [JsonPropertyName("issue_url")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string IssueUrl { get; set; }
 
 

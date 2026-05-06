@@ -320,7 +320,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="project"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual ClientResult<ProjectEntity> CreateProject(ProjectCreateRequest project, CancellationToken cancellationToken = default)
+        public virtual ClientResult<ProjectEntity> CreateProject(CreateProjectEntity project, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(project, nameof(project));
 
@@ -333,7 +333,7 @@ namespace Qyl.Api
         /// <param name="cancellationToken"> The cancellation token that can be used to cancel the operation. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="project"/> is null. </exception>
         /// <exception cref="ClientResultException"> Service returned a non-success status code. </exception>
-        public virtual async Task<ClientResult<ProjectEntity>> CreateProjectAsync(ProjectCreateRequest project, CancellationToken cancellationToken = default)
+        public virtual async Task<ClientResult<ProjectEntity>> CreateProjectAsync(CreateProjectEntity project, CancellationToken cancellationToken = default)
         {
             Argument.AssertNotNull(project, nameof(project));
 

@@ -19,11 +19,11 @@ namespace Qyl.Domains.Observe.Session;
 @doc("Session span/event attributes")
 model SessionAttributes {
   @doc("Session ID")
-  @encodedName("application/json", "session.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Session.Id)
   id: SessionId;
 
   @doc("Previous session ID (for session continuity)")
-  @encodedName("application/json", "session.previous_id")
+  @encodedName("application/json", Qyl.OTel.Keys.Session.PreviousId)
   previousId?: SessionId;
 }
 
@@ -38,7 +38,7 @@ model SessionEvent {
   eventName: SessionEventName;
 
   @doc("Session ID")
-  @encodedName("application/json", "session.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Session.Id)
   sessionId: SessionId;
 
   @doc("Event timestamp")
@@ -68,11 +68,11 @@ enum SessionEventName {
 model SessionEntity {
   @doc("Session ID")
   @key
-  @encodedName("application/json", "session.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Session.Id)
   sessionId: SessionId;
 
   @doc("User ID (if authenticated)")
-  @encodedName("application/json", "user.id")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Id)
   userId?: UserId;
 
   @doc("Session start time")

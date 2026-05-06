@@ -204,12 +204,20 @@ interface IVerify : IHazSourcePaths
 
             string[] generatedSuffixes = [".g.cs", ".g.sql", ".g.tsp", ".g.ts"];
 
+            string[] weaverSchemaPrefixes =
+            [
+                "packages/Qyl.OpenTelemetry.SemanticConventions/schemas/",
+                "packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/schemas/",
+            ];
+
             var dirtyFiles = diffOutput
                 .Select(static o => o.Text.Trim())
                 .Where(static f => f.Length > 0)
                 .Where(f =>
                     generatedSuffixes.Any(s => f.EndsWith(s, StringComparison.OrdinalIgnoreCase)) ||
-                    f.Contains("core/openapi/", StringComparison.OrdinalIgnoreCase))
+                    f.Contains("core/openapi/", StringComparison.OrdinalIgnoreCase) ||
+                    CodegenPaths.WeaverOutputs.Contains(f, StringComparer.OrdinalIgnoreCase) ||
+                    weaverSchemaPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase) && (f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))))
                 .ToList();
 
             if (dirtyFiles.Count is 0)

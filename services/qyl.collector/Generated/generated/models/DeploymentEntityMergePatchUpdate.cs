@@ -6,32 +6,32 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Domains.Ops.Deployment;
 
-namespace Qyl.Api
+namespace Qyl.Domains.Ops.Deployment
 {
 
     ///<summary>
-    /// Deployment update request
+    /// Complete deployment record
     ///</summary>
-    public partial class DeploymentUpdate
+    public partial class DeploymentEntityMergePatchUpdate
     {
         ///<summary>
-        /// New status
+        /// Status
         ///</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public DeploymentStatus? Status { get; set; }
 
         ///<summary>
-        /// Healthy replicas
+        /// Healthy replica count
         ///</summary>
         [JsonPropertyName("healthy_replicas")]
         public int? HealthyReplicas { get; set; }
 
         ///<summary>
-        /// Error message
+        /// Error message (if failed)
         ///</summary>
         [JsonPropertyName("error_message")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public string ErrorMessage { get; set; }
 
 
