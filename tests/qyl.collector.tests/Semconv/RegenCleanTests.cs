@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Qyl.Collector.Tests.Semconv;
@@ -25,8 +26,17 @@ public sealed class RegenCleanTests
                 $"Uncommitted changes:\n{preRunPorcelain.StdOut}");
         }
 
-        var buildScript = Path.Combine(repoRoot, "eng", "build.sh");
-        var nukeResult = await RunAsync(repoRoot, buildScript, "OtelConventions");
+        ProcessResult nukeResult;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var buildScript = Path.Combine(repoRoot, "eng", "build.ps1");
+            nukeResult = await RunAsync(repoRoot, "pwsh", buildScript, "OtelConventions");
+        }
+        else
+        {
+            var buildScript = Path.Combine(repoRoot, "eng", "build.sh");
+            nukeResult = await RunAsync(repoRoot, buildScript, "OtelConventions");
+        }
         Assert.True(
             nukeResult.ExitCode == 0,
             $"nuke OtelConventions exited {nukeResult.ExitCode}.\nstdout:\n{nukeResult.StdOut}\nstderr:\n{nukeResult.StdErr}");
