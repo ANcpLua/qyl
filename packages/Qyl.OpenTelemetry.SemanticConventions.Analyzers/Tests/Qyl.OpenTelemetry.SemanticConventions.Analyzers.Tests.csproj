@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0"/>
     <!-- xUnit v3 with Microsoft Testing Platform integration -->
     <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2"/>
-    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.2.2"/>
   </ItemGroup>
 
 </Project>
