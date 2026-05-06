@@ -6,48 +6,39 @@ to this file.
 These are the conventions the codebase already follows. The analyzer ruleset shipped via `ANcpLua.NET.Sdk` enforces most
 of them — when you write code that fits the patterns below, the build stays green by default.
 
-## ⚠ Consolidation status — BLOCKED on cross-repo NuGet decision (paused 2026-04-29)
+## Consolidation status — `MAF.Advanced.Patterns` retired into `ANcpLua.Agents`
 
-The `ANcpLua.Agents` → `MAF.Advanced.Patterns` consolidation is **70% complete** but stalled. Next session: **ASK
-the user how they want to wire qyl → MAF.Advanced.Patterns before touching Phases 4–10.** Don't pick an approach
-unilaterally; the user explicitly declined both `nuget.org publish` and `local NuGet feed` on this date.
+The framework consolidation shipped. `MAF.Advanced.Patterns` was folded back into the `ANcpLua/ANcpLua.Agents` repo
+(retirement commit `12ff08c Retire MAF.Advanced.Patterns into ANcpLua.Agents`) and the package family is published on
+nuget.org. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
 
-**Done (already shipped to `Alexander-Nachtmann/MAF.Advanced.Patterns@main`):**
+**Published packages** (1.3.x stable + previews on nuget.org):
 
-- ✅ Phase 1 — audit (16 vendored types confirmed still `internal` in MAF 1.3; testing harness ports as-is)
-- ✅ Phase 2 — charter rewrite: facade catalog → MAF consumer toolkit (3 pillars, 3 contracts)
-- ✅ Phase 3 — sibling csproj scaffolding (`Governance`, `Testing`, `Testing.Workflows`)
-- ✅ Phase 6 — Governance migration from `ANcpLua.Agents/Governance/` (commit `12a746f`)
-- ✅ Phase 7 — Testing harness migration from `ANcpLua.Agents.Testing*` (110 files, commit `bae3d2e`)
+- `ANcpLua.Agents` — provider-agnostic core (1.3.1)
+- `ANcpLua.Agents.Workflows` — workflow runtime + visualization
+- `ANcpLua.Agents.Testing` (1.3.1) and `ANcpLua.Agents.Testing.Workflows` (1.3.1)
+- `ANcpLua.Agents.Foundry` (1.3.1-rc1)
+- `ANcpLua.Agents.Hosting.{Anthropic,Azure,DevUI,Foundry,OpenAI}` — provider/host pins (preview / alpha)
 
-**Blocked (need user decision before touching):**
+**Already consumed by qyl** (see `Directory.Packages.props` + csproj `PackageReference` rows):
 
-- ⏸ Phase 4 — extract `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` → `MAF.Advanced.Patterns/src` core
-  facades. Additive-only on the MAF.Advanced.Patterns side; useless until qyl can consume it.
-- ⏸ Phase 5 — `[QYL0135] AgentCompositionRootAnalyzer` dual-symbol pass: accept both
-  `Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation.UseQylAgentTelemetry` (old) and
-  `Qyl.Hosting.UseQylAgentTelemetry` (new) during cutover.
-- ⏸ Phase 8 — qyl `Program.cs` cutover: `services/qyl.loom/Program.cs` and `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs`
-  switch from `qyl.instrumentation` ProjectReference to `MAF.Advanced.Patterns` PackageReference, namespace
-  changes from `Qyl.Instrumentation.Instrumentation.{GenAi,Mcp}` → `Qyl.Hosting`.
-- ⏸ Phase 9 — drop dual-symbol from `[QYL0135]`, delete `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/`.
-- ⏸ Phase 10 — promote `services/qyl.loom.patterns/Patterns/01-06` → `MAF.Advanced.Patterns/samples/QylLoomCookbook/`,
-  delete `qyl.loom.patterns` from `qyl.slnx`. Depends on Phase 4 (cookbook uses `UseQylTelemetry` from `qyl.instrumentation/GenAi`)
-  and Phase 7 (cookbook uses `FakeChatClient` from `ANcpLua.Agents.Testing` — now in `MAF.Advanced.Patterns.Testing`).
+- `ANcpLua.Agents` — `internal/qyl.instrumentation`, `services/qyl.mcp`
+- `ANcpLua.Agents.Testing` — `tests/qyl.collector.tests`, `services/qyl.loom.patterns`
 
-**The blocker:** all five blocked phases require qyl to consume MAF.Advanced.Patterns. `qyl/nuget.config` points only
-at `nuget.org`; qyl currently has zero `<PackageReference Include="MAF.Advanced.Patterns*" />`. To unblock, the user
-must pick one of:
+**Still pending in qyl** (no longer blocked — just not done):
 
-1. **Publish MAF.Advanced.Patterns to nuget.org** as `1.3.x` or `1.4.0-preview` and add `<PackageReference>` rows to
-   `services/qyl.loom/qyl.loom.csproj` + `services/qyl.mcp/qyl.mcp.csproj`. Permanent and visible.
-2. **Local NuGet feed** — `dotnet pack` MAF.Advanced.Patterns to `~/local-nuget/`, add `<add key="local" value="…" />`
-   to `qyl/nuget.config`, consume locally. Works on this machine; CI needs separate wiring.
-3. **Submodule + ProjectReference** — add `MAF.Advanced.Patterns/` as a git submodule under `qyl/external/`, use
-   `ProjectReference` instead of `PackageReference`. Tightest coupling; one repo of truth, one branch to keep in sync.
+- Phase 4 — extract `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` and replace with calls into
+  `ANcpLua.Agents` core facades. Local copies still in tree.
+- Phase 8 — `services/qyl.loom/Program.cs` and `services/qyl.mcp/Hosting/QylMcpServerRegistration.cs` cutover from
+  the `qyl.instrumentation` ProjectReference to `ANcpLua.Agents` package APIs.
+- Phase 9 — delete `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` once Phase 8 is in.
+- Phase 10 — promote `services/qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree and drop
+  `qyl.loom.patterns` from `qyl.slnx`.
+- (Phase 5 from the original plan — `[QYL0135]` dual-symbol — is moot now that the consolidation took the publish
+  path; analyzer cutover is single-jump when Phase 8 lands.)
 
-When picked, the follow-up PR should land Phases 4-5-8-9-10 in this order, with `dotnet build qyl.slnx` and
-`dotnet build MAF.Advanced.Patterns.slnx` both green at every step.
+Phases 4 / 8 / 9 / 10 want a single coordinated PR (or stacked PRs) so `dotnet build qyl.slnx` stays green at every
+step.
 
 ## Style the codebase has settled on
 
@@ -222,46 +213,40 @@ Reach for these before hand-rolling. Each row points at a concrete qyl call-site
 | **Workflow — run**            | `InProcessExecution.RunStreamingAsync(workflow, input)` + `run.WatchStreamAsync(ct)`                                                                                                                                                          | `services/qyl.loom/Autofix/LoomAutofixRunner.cs:182-188`, `services/qyl.loom/Exploration/ExplorationOrchestrator.cs:37`                            |
 | **Observability**             | `IChatClient` decoration (`.WithQylTelemetry` short form or `.UseQylTelemetry` on `ChatClientBuilder` fluent form) **and** `agent.AsBuilder().UseQylAgentTelemetry().Build()` on `AIAgent`. Wrap both layers — wrapping one halves the spans. | All executors + `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs:53,100,141`                                            |
 
-## MAF.Advanced.Patterns — consume, don't duplicate
+## ANcpLua.Agents — consume, don't duplicate
 
-Local checkout: `/Users/ancplua/framework/MAF.Advanced.Patterns/`. Five packages: `MAF.Advanced.Patterns` (core,
-provider-agnostic) + `.Azure` + `.Foundry` + `.Foundry.Hosting` + `.OpenAI`. End-to-end usage showcase:
-`samples/QylLoomShowcase/Program.cs`. That repo is the curated source of truth for MAF consumer patterns —
-provider-agnostic core, provider-pinned siblings, channel-isolated alpha.
+Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/` (repo `https://github.com/ANcpLua/ANcpLua.Agents`). The
+package family is published on nuget.org and is the canonical home of the `Qyl*` consumer-pattern facades. When
+working in `services/qyl.loom*`, `services/qyl.mcp`, or new `internal/qyl.instrumentation` code, reach for the
+matching `<PackageReference>` instead of hand-rolling inside qyl.
 
-When working in `services/qyl.loom*` or `services/qyl.mcp/Agents`, reach for the matching `<PackageReference>` to a
-`MAF.Advanced.Patterns.*` pack rather than hand-rolling inside qyl. Tracked in qyl issue #173 (PRD 1) +
-MAF.Advanced.Patterns issue #1 (PRD 2). Audit triage when migrating an existing extension: `keep-in-qyl` (
-qyl-domain-specific), `move-to-MAF.Advanced.Patterns` (provider-agnostic, would benefit other consumers), `delete` (
-duplicate of an existing facade).
+Audit triage when migrating an existing extension: `keep-in-qyl` (qyl-domain-specific), `move-to-ANcpLua.Agents`
+(provider-agnostic, would benefit other consumers), `delete` (duplicate of an existing facade).
 
-### Core package extension surface (`src/MAF.Advanced.Patterns/`)
+### Package → public extension surface
 
-| Module                                          | Key entry points                                                                                                                                |
-|-------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `QylAnthropicClientExtensions`                  | `AsQylAnthropicAgent`, `RunQylAnthropicStreamingAsync`                                                                                          |
-| `QylA2AExtensions` / `QylA2AClientExtensions`   | `AddQylA2A`, A2A client wiring                                                                                                                  |
-| `QylAGUIExtensions` / `QylAGUIClientExtensions` | `MapQylAGUI`, AGUI client wiring                                                                                                                |
-| `QylCheckpointStoreExtensions`                  | `AddQylFileSystemCheckpointing`, `AddQylInMemoryCheckpointing`                                                                                  |
-| `QylCosmosNoSqlExtensions`                      | `WithQylCosmosChatHistory`, `CreateQylCosmosCheckpointStore`                                                                                    |
-| `QylCopilotStudioExtensions`                    | `AsQylCopilotStudioAgent`, `RunQylCopilotStudioStreamingAsync`                                                                                  |
-| `QylDeclarativeAgentExtensions`                 | `CreateQylAgentAsync`, `TryCreateQylAgentAsync`, `CreateQylAgentFromYamlAsync`, `CreateQylAgentFromFileAsync`, `AsQylPromptAgentFactory`, `CreateQylChatClientFactory`, `AggregateQylFactories` |
-| `QylDeclarativeMcpExtensions`                   | `CreateQylMcpToolHandler`, `CreateQylBearerMcpToolHandler` — factory shims that construct a `QylMcpToolHandler` for `DeclarativeWorkflowOptions.McpToolHandler` |
-| `QylMcpToolHandler`                             | Public `sealed class : IMcpToolHandler, IAsyncDisposable` — mirrors `DefaultMcpToolHandler` (not yet on NuGet); pools `McpClient` per (URL + headers hash); `HttpClient` injection for per-server auth |
-| `QylDeclarativeWorkflowExtensions`              | `BuildQylFromYaml`, `EjectQylCSharp`, `BuildAndStreamQylFromYamlAsync`                                                                          |
-| `QylExecutorFactoryExtensions`                  | `QylFunction`, `QylFunctionAsync`, `QylCollect`, `QylSum`, `QylAgentExecutor`                                                                   |
-| `QylGitHubCopilotExtensions`                    | `AsQylGitHubCopilotAgent`, `RunQylGitHubCopilotStreamingAsync`                                                                                  |
-| `QylListenPortExtensions`                       | `UseQylListenPort` — Railway-style `$PORT` binding                                                                                              |
-| `QylMcpExtensions`                              | `AddQylMcpServer`, `MapQylMcp`, `CreateQylMcpClientAsync`, `CreateQylMcpToolsetAsync`, `CreateQylMcpStdioToolsetAsync`                          |
-| `QylOpenAIClientExtensions`                     | `AsQylOpenAIAgent`                                                                                                                              |
-| `QylPurviewExtensions`                          | `WithQylPurview`, `QylPurviewChatMiddleware`, `QylPurviewAgentMiddleware`                                                                       |
-| `QylTelemetryExtensions`                        | `WithQylTelemetry` (workflow-level OTel wrap)                                                                                                   |
-| `QylWorkflowBuilderExtensions`                  | `AddQylChain`, `AddQylSwitch`, `AddQylHumanInTheLoop`, `ForwardQyl`, `ForwardQylExcept`                                                         |
-| `QylWorkflowContextExtensions`                  | `SendQylAsync`, `SendQylToAsync`, `YieldQylAsync`, `ReadQylAsync`, `PersistQylAsync`                                                            |
-| `QylWorkflowExecutionExtensions`                | `RunQylAsync`, `StreamQylAsync`, `StreamQylCheckpointedAsync`, `ResumeQylAsync`, `BindAsQylSubWorkflow`, `AsQylAIAgent`, `StreamQylAgentsAsync` |
-| `QylWorkflowFactoryExtensions`                  | `AddQylWorkflow<TFactory>`, `GetQylWorkflow`                                                                                                    |
-| `QylWorkflowVisualizationExtensions`            | `ToQylDot`, `ToQylMermaid`, `SaveQylDiagramsAsync`                                                                                              |
-| `WorkflowsGenerator.csproj`                     | Source generator — emits executor registration code                                                                                             |
+Names verified against `~/framework/ANcpLua.Agents/src/**/Qyl*Extensions.cs`. Inspect the source for full method
+signatures — qyl/AGENTS.md only tracks the package mapping, not the per-method API (which would rot fast).
+
+| Package                              | Extension classes (in `src/<package>/**/Facades/` and siblings)                                                                                                                                                                                                                                                       |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ANcpLua.Agents`                     | provider-agnostic core — verify against `src/ANcpLua.Agents/**`                                                                                                                                                                                                                                                       |
+| `ANcpLua.Agents.Workflows`           | `QylWorkflowBuilderExtensions`, `QylWorkflowContextExtensions`, `QylWorkflowExecutionExtensions`, `QylWorkflowFactoryExtensions`, `QylWorkflowVisualizationExtensions`, `QylAgentWorkflowExtensions`, `QylExecutorFactoryExtensions`, `QylCheckpointStoreExtensions`                                                  |
+| `ANcpLua.Agents.Foundry`             | `QylFoundryAgentExtensions`, `QylFoundryDeclarativeWorkflowExtensions`, `QylFoundryEvalExtensions`, `QylFoundryMemoryExtensions`                                                                                                                                                                                       |
+| `ANcpLua.Agents.Hosting.OpenAI`      | `QylOpenAIClientExtensions`, `QylOpenAIHostingExtensions`                                                                                                                                                                                                                                                              |
+| `ANcpLua.Agents.Hosting.Anthropic`   | `QylAnthropicAgentExtensions`                                                                                                                                                                                                                                                                                          |
+| `ANcpLua.Agents.Hosting.Azure`       | `QylAzureFunctionsHostingExtensions`                                                                                                                                                                                                                                                                                   |
+| `ANcpLua.Agents.Hosting.Foundry`     | `QylFoundryHostingExtensions`                                                                                                                                                                                                                                                                                          |
+| `ANcpLua.Agents.Hosting.DevUI`       | `QylDevUIExtensions`                                                                                                                                                                                                                                                                                                   |
+| `ANcpLua.Agents.Testing`             | `IChatClient` doubles + harness — replaces hand-rolled `Mock<IChatClient>` (already consumed by qyl tests)                                                                                                                                                                                                            |
+| `ANcpLua.Agents.Testing.Workflows`   | workflow-fixture harness                                                                                                                                                                                                                                                                                               |
+
+Several facades from the pre-retirement `MAF.Advanced.Patterns` table did **not** survive the consolidation —
+notably `QylA2AExtensions`, `QylAGUIExtensions`, `QylCosmosNoSqlExtensions`, `QylCopilotStudioExtensions`,
+`QylDeclarativeAgentExtensions`, `QylDeclarativeMcpExtensions`, `QylGitHubCopilotExtensions`, `QylListenPortExtensions`,
+`QylMcpExtensions`, `QylPurviewExtensions`, `QylTelemetryExtensions`. If you reach for one of these from an old
+sample and it's missing, check the `ANcpLua.Agents` source for an equivalent under the new package layout before
+re-implementing inside qyl.
 
 ## Test project conventions
 
@@ -287,5 +272,5 @@ Under `tests/qyl.collector.tests/`:
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
 | [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | PRD 1 — Observability roll-up (cost / conversations / inventory) on top of existing OTel + #172 |
-| [#1](https://github.com/Alexander-Nachtmann/MAF.Advanced.Patterns/issues/1) | MAF.Advanced.Patterns | PRD 2 — `MAF.Advanced.Patterns` as canonical MAF consumer-pattern catalog                       |
+| Phases 4 / 8 / 9 / 10                                                       | qyl                   | Cut over `internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}` to `ANcpLua.Agents` packages; promote `qyl.loom.patterns/Patterns/01-06` into the `ANcpLua.Agents` samples tree. (Original PRD 2 retired with `MAF.Advanced.Patterns`.) |
 | [#172](https://github.com/Alexander-Nachtmann/qyl/pull/172)                 | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
