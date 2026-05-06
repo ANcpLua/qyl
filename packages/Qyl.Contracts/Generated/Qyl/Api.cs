@@ -78,9 +78,9 @@ public sealed class MetricDataPoint
     public required double Value { get; init; }
 }
 
-public sealed class ErrorUpdate
+public sealed class ErrorPatch
 {
-    public Qyl.Domains.Observe.Error.ErrorStatus? Status { get; init; }
+    public required Qyl.Domains.Observe.Error.ErrorStatus Status { get; init; }
     public string? AssignedTo { get; init; }
     public string? IssueUrl { get; init; }
 }
@@ -96,9 +96,9 @@ public sealed class DeploymentCreate
     public string? GitBranch { get; init; }
 }
 
-public sealed class DeploymentUpdate
+public sealed class DeploymentPatch
 {
-    public Qyl.Domains.Ops.Deployment.DeploymentStatus? Status { get; init; }
+    public required Qyl.Domains.Ops.Deployment.DeploymentStatus Status { get; init; }
     public int? HealthyReplicas { get; init; }
     public string? ErrorMessage { get; init; }
 }
@@ -194,16 +194,37 @@ public sealed class GenerationJobCreateRequest
     public required Qyl.Domains.Configurator.GenerationJobType JobType { get; init; }
 }
 
-public sealed class IssueUpdateRequest
+public sealed class IssuePatch
 {
-    public Qyl.Domains.Issues.IssueStatus? Status { get; init; }
-    public Qyl.Domains.Issues.IssuePriority? Priority { get; init; }
+    public required Qyl.Domains.Issues.IssueStatus Status { get; init; }
+    public required Qyl.Domains.Issues.IssuePriority Priority { get; init; }
     public string? AssignedTo { get; init; }
 }
 
 public sealed class AlertFiringAcknowledgement
 {
     public required string AcknowledgedBy { get; init; }
+}
+
+public sealed class ErrorPatchMergePatchUpdate
+{
+    public Qyl.Domains.Observe.Error.ErrorStatus? Status { get; init; }
+    public object? AssignedTo { get; init; }
+    public object? IssueUrl { get; init; }
+}
+
+public sealed class DeploymentPatchMergePatchUpdate
+{
+    public Qyl.Domains.Ops.Deployment.DeploymentStatus? Status { get; init; }
+    public object? HealthyReplicas { get; init; }
+    public object? ErrorMessage { get; init; }
+}
+
+public sealed class IssuePatchMergePatchUpdate
+{
+    public Qyl.Domains.Issues.IssueStatus? Status { get; init; }
+    public Qyl.Domains.Issues.IssuePriority? Priority { get; init; }
+    public object? AssignedTo { get; init; }
 }
 
 public enum DoraPerformanceLevel
