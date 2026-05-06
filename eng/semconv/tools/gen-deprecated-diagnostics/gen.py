@@ -4,7 +4,7 @@
 Generates DeprecatedDiagnostics.g.cs from
 eng/semconv/deprecated-lookup/master-programmatic.yaml.
 
-One DiagnosticDescriptor is emitted per deprecated entry (QYLSC0001..QYLSC0245),
+One DiagnosticDescriptor is emitted per deprecated entry (QYLSC0001 onward),
 so consumers can tune severity per entry via .editorconfig.
 
 Usage:
@@ -109,22 +109,22 @@ def make_message(entry: dict) -> str:
     return f"'{{0}}' is deprecated."
 
 
-def make_help_link(entry: dict) -> str:
+def make_help_link(entry: dict, tag: str) -> str:
     src_file = entry.get("source_file") or ""
     src_line = entry.get("source_line") or 0
     if not src_file:
         return "https://github.com/open-telemetry/semantic-conventions"
     return (
         "https://github.com/open-telemetry/semantic-conventions/"
-        f"blob/v1.40.0/{src_file}#L{src_line}"
+        f"blob/{tag}/{src_file}#L{src_line}"
     )
 
 
-def make_description(entry: dict) -> str:
+def make_description(entry: dict, tag: str) -> str:
     basis = entry.get("resolution_basis") or ""
     kind = entry.get("kind") or ""
     folder = entry.get("folder") or ""
-    parts = [f"OTel semconv v1.40.0 deprecated {kind}"]
+    parts = [f"OTel semconv {tag} deprecated {kind}"]
     if folder:
         parts.append(f"(folder: {folder})")
     if basis:
@@ -231,7 +231,7 @@ def entry_record(entry: dict, rule_id: str) -> str:
     )
 
 
-def render(entries: list[dict]) -> str:
+def render(entries: list[dict], tag: str) -> str:
     # Deterministic order: by (folder, kind, deprecated_id).
     entries_sorted = sorted(
         entries,
@@ -266,8 +266,8 @@ def render(entries: list[dict]) -> str:
                 rule_id=rule_id,
                 title=make_title(entry),
                 message=make_message(entry),
-                desc=make_description(entry),
-                help_link=make_help_link(entry),
+                desc=make_description(entry, tag),
+                help_link=make_help_link(entry, tag),
             ).replace("\n", "\n    ").rstrip()
             + "\n"
         )
@@ -323,7 +323,8 @@ def main() -> int:
         print("[gen-deprecated-diagnostics] no entries found", file=sys.stderr)
         return 1
 
-    text = render(entries)
+    tag = ((doc.get("source") or {}).get("tag")) or "main"
+    text = render(entries, tag)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8-sig")
     print(f"[gen-deprecated-diagnostics] wrote {out_path} ({len(entries)} entries)")

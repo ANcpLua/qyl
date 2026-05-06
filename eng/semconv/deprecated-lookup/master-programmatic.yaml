@@ -1,17 +1,17 @@
 schema_version: 1
-dataset: semconv-v1.40.0-programmatic-master
+dataset: semconv-v1.41.0-programmatic-master
 source:
   repository: open-telemetry/semantic-conventions
-  tag: v1.40.0
-  commit: 7fe537301d17919af7d7eb65b32e9be35da2c497
+  tag: v1.41.0
+  commit: e018fe6f91862f5ed63c082f87697cddac596784
 counts:
-  total_entries: 245
+  total_entries: 260
   by_kind:
-    attribute: 147
-    metric: 76
-    event: 8
+    attribute: 148
     entity: 1
-    enum_member: 13
+    enum_member: 22
+    event: 7
+    metric: 82
   by_folder:
     android: 1
     azure: 3
@@ -19,18 +19,18 @@ counts:
     code: 5
     container: 3
     cpu: 3
-    db: 47
+    db: 52
     deployment: 1
     enduser: 2
     error: 1
     event: 1
     exceptions: 1
     feature-flags: 4
-    gen-ai: 16
+    gen-ai: 20
     http: 14
     ios: 1
     jvm: 1
-    k8s: 31
+    k8s: 37
     linux: 1
     messaging: 18
     network: 15
@@ -85,6 +85,125 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: azure.service.request.id
+  resolution_basis: deprecated.renamed_to
+- folder: azure
+  kind: event
+  deprecated_id: az.resource.log
+  status: renamed
+  replacements:
+  - azure.resource.log
+  source_file: model/azure/deprecated/events-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: azure.resource.log
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.resource.log
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_aks
+  status: renamed
+  replacements:
+  - azure.aks
+  source_file: model/cloud/registry.yaml
+  source_line: 224
+  source_renamed_to_raw: azure.aks
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.aks
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_app_service
+  status: renamed
+  replacements:
+  - azure.app_service
+  source_file: model/cloud/registry.yaml
+  source_line: 244
+  source_renamed_to_raw: azure.app_service
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.app_service
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_container_apps
+  status: renamed
+  replacements:
+  - azure.container_apps
+  source_file: model/cloud/registry.yaml
+  source_line: 204
+  source_renamed_to_raw: azure.container_apps
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.container_apps
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_container_instances
+  status: renamed
+  replacements:
+  - azure.container_instances
+  source_file: model/cloud/registry.yaml
+  source_line: 214
+  source_renamed_to_raw: azure.container_instances
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.container_instances
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_functions
+  status: renamed
+  replacements:
+  - azure.functions
+  source_file: model/cloud/registry.yaml
+  source_line: 234
+  source_renamed_to_raw: azure.functions
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.functions
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_openshift
+  status: renamed
+  replacements:
+  - azure.openshift
+  source_file: model/cloud/registry.yaml
+  source_line: 254
+  source_renamed_to_raw: azure.openshift
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.openshift
+  resolution_basis: deprecated.renamed_to
+- folder: cloud
+  kind: enum_member
+  parent_id: cloud.platform
+  deprecated_member_id: azure_vm
+  status: renamed
+  replacements:
+  - azure.vm
+  source_file: model/cloud/registry.yaml
+  source_line: 194
+  source_renamed_to_raw: azure.vm
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.vm
   resolution_basis: deprecated.renamed_to
 - folder: code
   kind: attribute
@@ -199,6 +318,48 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: container.runtime.name
+  resolution_basis: deprecated.renamed_to
+- folder: cpu
+  kind: metric
+  deprecated_id: cpu.frequency
+  status: renamed
+  replacements:
+  - system.cpu.frequency
+  source_file: model/cpu/deprecated.yaml
+  source_line: 38
+  source_renamed_to_raw: system.cpu.frequency
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.cpu.frequency
+  resolution_basis: deprecated.renamed_to
+- folder: cpu
+  kind: metric
+  deprecated_id: cpu.time
+  status: renamed
+  replacements:
+  - system.cpu.time
+  source_file: model/cpu/deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: system.cpu.time
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.cpu.time
+  resolution_basis: deprecated.renamed_to
+- folder: cpu
+  kind: metric
+  deprecated_id: cpu.utilization
+  status: renamed
+  replacements:
+  - system.cpu.utilization
+  source_file: model/cpu/deprecated.yaml
+  source_line: 20
+  source_renamed_to_raw: system.cpu.utilization
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.cpu.utilization
   resolution_basis: deprecated.renamed_to
 - folder: db
   kind: attribute
@@ -330,18 +491,16 @@ entries:
   kind: attribute
   deprecated_id: db.connection_string
   status: uncategorized
-  replacements:
+  replacements: &id001
   - server.address
   - server.port
   source_file: model/db/deprecated/registry-deprecated.yaml
   source_line: 9
   source_renamed_to_raw: null
   source_note_raw: Replaced by `server.address` and `server.port`.
-  source_note_targets:
-  - server.address
-  - server.port
+  source_note_targets: *id001
   replacement_mode: composite
-  resolution_text: server.address + server.port
+  resolution_text: server.address, server.port
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -410,7 +569,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -537,10 +696,8 @@ entries:
   source_note_raw: Removed, no general replacement at this time. For Elasticsearch, use `db.elasticsearch.node.name` instead.
   source_note_targets:
   - db.elasticsearch.node.name
-  context:
-    applies_when: Elasticsearch
-  replacement_mode: conditional
-  resolution_text: removed generally; for Elasticsearch use db.elasticsearch.node.name
+  replacement_mode: direct
+  resolution_text: db.elasticsearch.node.name
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -553,7 +710,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -580,7 +737,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -615,32 +772,29 @@ entries:
   deprecated_id: db.redis.database_index
   status: uncategorized
   replacements:
-  - db.namespace
+  - Use `db.namespace` instead.
   source_file: model/db/deprecated/registry-deprecated.yaml
   source_line: 83
   source_renamed_to_raw: Use `db.namespace` instead.
   source_note_raw: null
   source_note_targets: []
   replacement_mode: direct
-  resolution_text: db.namespace
-  resolution_basis: deprecated.renamed_to_text
+  resolution_text: Use `db.namespace` instead.
+  resolution_basis: deprecated.renamed_to
 - folder: db
   kind: attribute
   deprecated_id: db.sql.table
   status: uncategorized
-  replacements:
+  replacements: &id002
   - db.collection.name
+  - db.query.text
   source_file: model/db/deprecated/registry-deprecated.yaml
   source_line: 75
   source_renamed_to_raw: null
   source_note_raw: Replaced by `db.collection.name`, but only if not extracting the value from `db.query.text`.
-  source_note_targets:
-  - db.collection.name
-  - db.query.text
-  context:
-    unless_extracted_from: db.query.text
-  replacement_mode: conditional
-  resolution_text: db.collection.name (if not extracting from db.query.text)
+  source_note_targets: *id002
+  replacement_mode: composite
+  resolution_text: db.collection.name, db.query.text
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -681,7 +835,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: db
   kind: attribute
@@ -710,6 +864,237 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: db.client.connection.state
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: enum_member
+  parent_id: db.system
+  deprecated_member_id: cache
+  status: renamed
+  replacements:
+  - intersystems_cache
+  source_file: model/db/deprecated/registry-deprecated.yaml
+  source_line: 385
+  source_renamed_to_raw: intersystems_cache
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: intersystems_cache
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: enum_member
+  parent_id: db.system
+  deprecated_member_id: cloudscape
+  status: renamed
+  replacements:
+  - other_sql
+  source_file: model/db/deprecated/registry-deprecated.yaml
+  source_line: 404
+  source_renamed_to_raw: other_sql
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: other_sql
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: enum_member
+  parent_id: db.system
+  deprecated_member_id: coldfusion
+  status: obsoleted
+  replacements: []
+  source_file: model/db/deprecated/registry-deprecated.yaml
+  source_line: 415
+  source_renamed_to_raw: null
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: ''
+  resolution_basis: deprecated.reason
+- folder: db
+  kind: enum_member
+  parent_id: db.system
+  deprecated_member_id: firstsql
+  status: renamed
+  replacements:
+  - other_sql
+  source_file: model/db/deprecated/registry-deprecated.yaml
+  source_line: 461
+  source_renamed_to_raw: other_sql
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: other_sql
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: enum_member
+  parent_id: db.system
+  deprecated_member_id: mssqlcompact
+  status: renamed
+  replacements:
+  - other_sql
+  source_file: model/db/deprecated/registry-deprecated.yaml
+  source_line: 532
+  source_renamed_to_raw: other_sql
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: other_sql
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.create_time
+  status: uncategorized
+  replacements: &id003
+  - db.client.connection.create_time
+  - s
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 106
+  source_renamed_to_raw: null
+  source_note_raw: Replaced by `db.client.connection.create_time` with unit `s`.
+  source_note_targets: *id003
+  replacement_mode: composite
+  resolution_text: db.client.connection.create_time, s
+  resolution_basis: deprecated.note
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.idle.max
+  status: renamed
+  replacements:
+  - db.client.connection.idle.max
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 21
+  source_renamed_to_raw: db.client.connection.idle.max
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.idle.max
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.idle.min
+  status: renamed
+  replacements:
+  - db.client.connection.idle.min
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 38
+  source_renamed_to_raw: db.client.connection.idle.min
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.idle.min
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.max
+  status: renamed
+  replacements:
+  - db.client.connection.max
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 55
+  source_renamed_to_raw: db.client.connection.max
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.max
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.pending_requests
+  status: renamed
+  replacements:
+  - db.client.connection.pending_requests
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 72
+  source_renamed_to_raw: db.client.connection.pending_requests
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.pending_requests
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.timeouts
+  status: renamed
+  replacements:
+  - db.client.connection.timeouts
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 89
+  source_renamed_to_raw: db.client.connection.timeouts
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.timeouts
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.usage
+  status: renamed
+  replacements:
+  - db.client.connection.count
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: db.client.connection.count
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: db.client.connection.count
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.use_time
+  status: uncategorized
+  replacements: &id004
+  - db.client.connection.use_time
+  - s
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 140
+  source_renamed_to_raw: null
+  source_note_raw: Replaced by `db.client.connection.use_time` with unit `s`.
+  source_note_targets: *id004
+  replacement_mode: composite
+  resolution_text: db.client.connection.use_time, s
+  resolution_basis: deprecated.note
+- folder: db
+  kind: metric
+  deprecated_id: db.client.connections.wait_time
+  status: uncategorized
+  replacements: &id005
+  - db.client.connection.wait_time
+  - s
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 123
+  source_renamed_to_raw: null
+  source_note_raw: Replaced by `db.client.connection.wait_time` with unit `s`.
+  source_note_targets: *id005
+  replacement_mode: composite
+  resolution_text: db.client.connection.wait_time, s
+  resolution_basis: deprecated.note
+- folder: db
+  kind: metric
+  deprecated_id: db.client.cosmosdb.active_instance.count
+  status: renamed
+  replacements:
+  - azure.cosmosdb.client.active_instance.count
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 195
+  source_renamed_to_raw: azure.cosmosdb.client.active_instance.count
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.cosmosdb.client.active_instance.count
+  resolution_basis: deprecated.renamed_to
+- folder: db
+  kind: metric
+  deprecated_id: db.client.cosmosdb.operation.request_charge
+  status: renamed
+  replacements:
+  - azure.cosmosdb.client.operation.request_charge
+  source_file: model/db/deprecated/metrics-deprecated.yaml
+  source_line: 157
+  source_renamed_to_raw: azure.cosmosdb.client.operation.request_charge
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.cosmosdb.client.operation.request_charge
   resolution_basis: deprecated.renamed_to
 - folder: deployment
   kind: attribute
@@ -751,7 +1136,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: error
   kind: attribute
@@ -762,11 +1147,27 @@ entries:
   source_file: model/error/deprecated/registry-deprecated.yaml
   source_line: 8
   source_renamed_to_raw: null
-  source_note_raw: Use domain-specific error message attribute. For example, use `feature_flag.error.message` for feature flag errors.
+  source_note_raw: Use domain-specific error message attribute. For example, use `feature_flag.error.message` for feature
+    flag errors.
   source_note_targets:
   - feature_flag.error.message
-  replacement_mode: example
-  resolution_text: use a domain-specific error message attribute, e.g. feature_flag.error.message
+  replacement_mode: direct
+  resolution_text: feature_flag.error.message
+  resolution_basis: deprecated.note
+- folder: event
+  kind: attribute
+  deprecated_id: event.name
+  status: uncategorized
+  replacements: []
+  source_file: model/event/deprecated/registry-deprecated.yaml
+  source_line: 8
+  source_renamed_to_raw: null
+  source_note_raw: The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate
+    that the LogRecord represents an Event.
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate
+    that the LogRecord represents an Event.
   resolution_basis: deprecated.note
 - folder: exceptions
   kind: attribute
@@ -778,8 +1179,8 @@ entries:
   source_renamed_to_raw: null
   source_note_raw: It's no longer recommended to record exceptions that are handled and do not escape the scope of a span.
   source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
+  replacement_mode: note_only
+  resolution_text: It's no longer recommended to record exceptions that are handled and do not escape the scope of a span.
   resolution_basis: deprecated.note
 - folder: feature-flags
   kind: attribute
@@ -848,7 +1249,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: gen-ai
   kind: attribute
@@ -931,7 +1332,7 @@ entries:
   source_note_raw: Removed, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: gen-ai
   kind: attribute
@@ -940,7 +1341,7 @@ entries:
   replacements:
   - gen_ai.provider.name
   source_file: model/gen-ai/deprecated/registry-deprecated.yaml
-  source_line: 8
+  source_line: 47
   source_renamed_to_raw: gen_ai.provider.name
   source_note_raw: null
   source_note_targets: []
@@ -975,6 +1376,161 @@ entries:
   replacement_mode: direct
   resolution_text: gen_ai.usage.input_tokens
   resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: enum_member
+  parent_id: gen_ai.system
+  deprecated_member_id: az.ai.inference
+  status: renamed
+  replacements:
+  - azure.ai.inference
+  source_file: model/gen-ai/deprecated/registry-deprecated.yaml
+  source_line: 99
+  source_renamed_to_raw: azure.ai.inference
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.ai.inference
+  resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: enum_member
+  parent_id: gen_ai.system
+  deprecated_member_id: az.ai.openai
+  status: renamed
+  replacements:
+  - azure.ai.openai
+  source_file: model/gen-ai/deprecated/registry-deprecated.yaml
+  source_line: 106
+  source_renamed_to_raw: azure.ai.openai
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: azure.ai.openai
+  resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: enum_member
+  parent_id: gen_ai.system
+  deprecated_member_id: gemini
+  status: renamed
+  replacements:
+  - gcp.gemini
+  source_file: model/gen-ai/deprecated/registry-deprecated.yaml
+  source_line: 84
+  source_renamed_to_raw: gcp.gemini
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: gcp.gemini
+  resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: enum_member
+  parent_id: gen_ai.system
+  deprecated_member_id: vertex_ai
+  status: renamed
+  replacements:
+  - gcp.vertex_ai
+  source_file: model/gen-ai/deprecated/registry-deprecated.yaml
+  source_line: 77
+  source_renamed_to_raw: gcp.vertex_ai
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: gcp.vertex_ai
+  resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: enum_member
+  parent_id: gen_ai.token.type
+  deprecated_member_id: completion
+  status: renamed
+  replacements:
+  - output
+  source_file: model/gen-ai/registry.yaml
+  source_line: 236
+  source_renamed_to_raw: output
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: output
+  resolution_basis: deprecated.renamed_to
+- folder: gen-ai
+  kind: event
+  deprecated_id: gen_ai.assistant.message
+  status: uncategorized
+  replacements: &id006
+  - gen_ai.input.messages
+  - gen_ai.client.inference.operation.details
+  source_file: model/gen-ai/deprecated/events-deprecated.yaml
+  source_line: 78
+  source_renamed_to_raw: null
+  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details`
+    event.
+  source_note_targets: *id006
+  replacement_mode: alternative
+  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
+  resolution_basis: deprecated.note
+- folder: gen-ai
+  kind: event
+  deprecated_id: gen_ai.choice
+  status: uncategorized
+  replacements: &id007
+  - gen_ai.output.messages
+  - gen_ai.client.inference.operation.details
+  source_file: model/gen-ai/deprecated/events-deprecated.yaml
+  source_line: 207
+  source_renamed_to_raw: null
+  source_note_raw: Chat history is reported on `gen_ai.output.messages` attribute on spans or `gen_ai.client.inference.operation.details`
+    event.
+  source_note_targets: *id007
+  replacement_mode: alternative
+  resolution_text: gen_ai.output.messages, gen_ai.client.inference.operation.details
+  resolution_basis: deprecated.note
+- folder: gen-ai
+  kind: event
+  deprecated_id: gen_ai.system.message
+  status: uncategorized
+  replacements: &id008
+  - gen_ai.system_instructions
+  - gen_ai.client.inference.operation.details
+  source_file: model/gen-ai/deprecated/events-deprecated.yaml
+  source_line: 10
+  source_renamed_to_raw: null
+  source_note_raw: Chat history is reported on `gen_ai.system_instructions` attribute on spans or `gen_ai.client.inference.operation.details`
+    event.
+  source_note_targets: *id008
+  replacement_mode: alternative
+  resolution_text: gen_ai.system_instructions, gen_ai.client.inference.operation.details
+  resolution_basis: deprecated.note
+- folder: gen-ai
+  kind: event
+  deprecated_id: gen_ai.tool.message
+  status: uncategorized
+  replacements: &id009
+  - gen_ai.input.messages
+  - gen_ai.client.inference.operation.details
+  source_file: model/gen-ai/deprecated/events-deprecated.yaml
+  source_line: 166
+  source_renamed_to_raw: null
+  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details`
+    event.
+  source_note_targets: *id009
+  replacement_mode: alternative
+  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
+  resolution_basis: deprecated.note
+- folder: gen-ai
+  kind: event
+  deprecated_id: gen_ai.user.message
+  status: uncategorized
+  replacements: &id010
+  - gen_ai.input.messages
+  - gen_ai.client.inference.operation.details
+  source_file: model/gen-ai/deprecated/events-deprecated.yaml
+  source_line: 44
+  source_renamed_to_raw: null
+  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details`
+    event.
+  source_note_targets: *id010
+  replacement_mode: alternative
+  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
+  resolution_basis: deprecated.note
 - folder: http
   kind: attribute
   deprecated_id: http.client_ip
@@ -993,24 +1549,22 @@ entries:
   kind: attribute
   deprecated_id: http.flavor
   status: uncategorized
-  replacements:
+  replacements: &id011
   - network.protocol.name
   - network.protocol.version
   source_file: model/http/deprecated/registry-deprecated.yaml
   source_line: 104
   source_renamed_to_raw: null
   source_note_raw: Split into `network.protocol.name` and `network.protocol.version`
-  source_note_targets:
-  - network.protocol.name
-  - network.protocol.version
+  source_note_targets: *id011
   replacement_mode: composite
-  resolution_text: network.protocol.name + network.protocol.version
+  resolution_text: network.protocol.name, network.protocol.version
   resolution_basis: deprecated.note
 - folder: http
   kind: attribute
   deprecated_id: http.host
   status: uncategorized
-  replacements:
+  replacements: &id012
   - server.address
   - client.address
   - http.request.header.host
@@ -1018,12 +1572,9 @@ entries:
   source_line: 71
   source_renamed_to_raw: null
   source_note_raw: Replaced by one of `server.address`, `client.address` or `http.request.header.host`, depending on the usage.
-  source_note_targets:
-  - server.address
-  - client.address
-  - http.request.header.host
+  source_note_targets: *id012
   replacement_mode: alternative
-  resolution_text: server.address or client.address or http.request.header.host, depending on usage
+  resolution_text: server.address, client.address, http.request.header.host
   resolution_basis: deprecated.note
 - folder: http
   kind: attribute
@@ -1043,16 +1594,14 @@ entries:
   kind: attribute
   deprecated_id: http.request_content_length
   status: uncategorized
-  replacements:
-  - http.request.header.content-length
+  replacements: []
   source_file: model/http/deprecated/registry-deprecated.yaml
   source_line: 47
   source_renamed_to_raw: null
   source_note_raw: Replaced by `http.request.header.content-length`.
-  source_note_targets:
-  - http.request.header.content-length
-  replacement_mode: direct
-  resolution_text: http.request.header.content-length
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: Replaced by `http.request.header.content-length`.
   resolution_basis: deprecated.note
 - folder: http
   kind: attribute
@@ -1072,16 +1621,14 @@ entries:
   kind: attribute
   deprecated_id: http.response_content_length
   status: uncategorized
-  replacements:
-  - http.response.header.content-length
+  replacements: []
   source_file: model/http/deprecated/registry-deprecated.yaml
   source_line: 55
   source_renamed_to_raw: null
   source_note_raw: Replaced by `http.response.header.content-length`.
-  source_note_targets:
-  - http.response.header.content-length
-  replacement_mode: direct
-  resolution_text: http.response.header.content-length
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: Replaced by `http.response.header.content-length`.
   resolution_basis: deprecated.note
 - folder: http
   kind: attribute
@@ -1143,18 +1690,16 @@ entries:
   kind: attribute
   deprecated_id: http.target
   status: obsoleted
-  replacements:
+  replacements: &id013
   - url.path
   - url.query
   source_file: model/http/deprecated/registry-deprecated.yaml
   source_line: 39
   source_renamed_to_raw: null
   source_note_raw: Split to `url.path` and `url.query`.
-  source_note_targets:
-  - url.path
-  - url.query
+  source_note_targets: *id013
   replacement_mode: composite
-  resolution_text: url.path + url.query
+  resolution_text: url.path, url.query
   resolution_basis: deprecated.note
 - folder: http
   kind: attribute
@@ -1198,6 +1743,20 @@ entries:
   replacement_mode: direct
   resolution_text: ios.app.state
   resolution_basis: deprecated.renamed_to
+- folder: jvm
+  kind: metric
+  deprecated_id: jvm.buffer.memory.usage
+  status: renamed
+  replacements:
+  - jvm.buffer.memory.used
+  source_file: model/jvm/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: jvm.buffer.memory.used
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: jvm.buffer.memory.used
+  resolution_basis: deprecated.renamed_to
 - folder: k8s
   kind: attribute
   deprecated_id: k8s.pod.labels
@@ -1211,6 +1770,510 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: k8s.pod.label
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.cpu.limit
+  status: renamed
+  replacements:
+  - k8s.container.cpu.limit.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 514
+  source_renamed_to_raw: k8s.container.cpu.limit.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.cpu.limit.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.cpu.limit_utilization
+  status: renamed
+  replacements:
+  - k8s.container.cpu.limit.utilization
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 529
+  source_renamed_to_raw: k8s.container.cpu.limit.utilization
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.cpu.limit.utilization
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.cpu.request
+  status: renamed
+  replacements:
+  - k8s.container.cpu.request.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 544
+  source_renamed_to_raw: k8s.container.cpu.request.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.cpu.request.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.cpu.request_utilization
+  status: renamed
+  replacements:
+  - k8s.container.cpu.request.utilization
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 559
+  source_renamed_to_raw: k8s.container.cpu.request.utilization
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.cpu.request.utilization
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.memory.limit
+  status: renamed
+  replacements:
+  - k8s.container.memory.limit.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 574
+  source_renamed_to_raw: k8s.container.memory.limit.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.memory.limit.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.container.memory.request
+  status: renamed
+  replacements:
+  - k8s.container.memory.request.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 589
+  source_renamed_to_raw: k8s.container.memory.request.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.container.memory.request.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.cronjob.active_jobs
+  status: renamed
+  replacements:
+  - k8s.cronjob.job.active
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 205
+  source_renamed_to_raw: k8s.cronjob.job.active
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.cronjob.job.active
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.daemonset.current_scheduled_nodes
+  status: renamed
+  replacements:
+  - k8s.daemonset.node.current_scheduled
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 41
+  source_renamed_to_raw: k8s.daemonset.node.current_scheduled
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.daemonset.node.current_scheduled
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.daemonset.desired_scheduled_nodes
+  status: renamed
+  replacements:
+  - k8s.daemonset.node.desired_scheduled
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 59
+  source_renamed_to_raw: k8s.daemonset.node.desired_scheduled
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.daemonset.node.desired_scheduled
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.daemonset.misscheduled_nodes
+  status: renamed
+  replacements:
+  - k8s.daemonset.node.misscheduled
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 77
+  source_renamed_to_raw: k8s.daemonset.node.misscheduled
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.daemonset.node.misscheduled
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.daemonset.ready_nodes
+  status: renamed
+  replacements:
+  - k8s.daemonset.node.ready
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 95
+  source_renamed_to_raw: k8s.daemonset.node.ready
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.daemonset.node.ready
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.deployment.available_pods
+  status: renamed
+  replacements:
+  - k8s.deployment.pod.available
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 269
+  source_renamed_to_raw: k8s.deployment.pod.available
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.deployment.pod.available
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.deployment.desired_pods
+  status: renamed
+  replacements:
+  - k8s.deployment.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 251
+  source_renamed_to_raw: k8s.deployment.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.deployment.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.hpa.current_pods
+  status: renamed
+  replacements:
+  - k8s.hpa.pod.current
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 414
+  source_renamed_to_raw: k8s.hpa.pod.current
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.hpa.pod.current
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.hpa.desired_pods
+  status: renamed
+  replacements:
+  - k8s.hpa.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 396
+  source_renamed_to_raw: k8s.hpa.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.hpa.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.hpa.max_pods
+  status: renamed
+  replacements:
+  - k8s.hpa.pod.max
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 432
+  source_renamed_to_raw: k8s.hpa.pod.max
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.hpa.pod.max
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.hpa.min_pods
+  status: renamed
+  replacements:
+  - k8s.hpa.pod.min
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 450
+  source_renamed_to_raw: k8s.hpa.pod.min
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.hpa.pod.min
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.job.active_pods
+  status: renamed
+  replacements:
+  - k8s.job.pod.active
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 114
+  source_renamed_to_raw: k8s.job.pod.active
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.job.pod.active
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.job.desired_successful_pods
+  status: renamed
+  replacements:
+  - k8s.job.pod.desired_successful
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 168
+  source_renamed_to_raw: k8s.job.pod.desired_successful
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.job.pod.desired_successful
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.job.failed_pods
+  status: renamed
+  replacements:
+  - k8s.job.pod.failed
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 132
+  source_renamed_to_raw: k8s.job.pod.failed
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.job.pod.failed
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.job.max_parallel_pods
+  status: renamed
+  replacements:
+  - k8s.job.pod.max_parallel
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 186
+  source_renamed_to_raw: k8s.job.pod.max_parallel
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.job.pod.max_parallel
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.job.successful_pods
+  status: renamed
+  replacements:
+  - k8s.job.pod.successful
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 150
+  source_renamed_to_raw: k8s.job.pod.successful
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.job.pod.successful
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.node.allocatable.cpu
+  status: renamed
+  replacements:
+  - k8s.node.cpu.allocatable
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 468
+  source_renamed_to_raw: k8s.node.cpu.allocatable
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.node.cpu.allocatable
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.node.allocatable.ephemeral_storage
+  status: renamed
+  replacements:
+  - k8s.node.ephemeral_storage.allocatable
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 483
+  source_renamed_to_raw: k8s.node.ephemeral_storage.allocatable
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.node.ephemeral_storage.allocatable
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.node.allocatable.memory
+  status: renamed
+  replacements:
+  - k8s.node.memory.allocatable
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 498
+  source_renamed_to_raw: k8s.node.memory.allocatable
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.node.memory.allocatable
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.node.allocatable.pods
+  status: renamed
+  replacements:
+  - k8s.node.pod.allocatable
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 236
+  source_renamed_to_raw: k8s.node.pod.allocatable
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.node.pod.allocatable
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replicaset.available_pods
+  status: renamed
+  replacements:
+  - k8s.replicaset.pod.available
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 306
+  source_renamed_to_raw: k8s.replicaset.pod.available
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicaset.pod.available
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replicaset.desired_pods
+  status: renamed
+  replacements:
+  - k8s.replicaset.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 288
+  source_renamed_to_raw: k8s.replicaset.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicaset.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replication_controller.available_pods
+  status: renamed
+  replacements:
+  - k8s.replicationcontroller.pod.available
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 15
+  source_renamed_to_raw: k8s.replicationcontroller.pod.available
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicationcontroller.pod.available
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replication_controller.desired_pods
+  status: renamed
+  replacements:
+  - k8s.replicationcontroller.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: k8s.replicationcontroller.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicationcontroller.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replicationcontroller.available_pods
+  status: renamed
+  replacements:
+  - k8s.replicationcontroller.pod.available
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 223
+  source_renamed_to_raw: k8s.replicationcontroller.pod.available
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicationcontroller.pod.available
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.replicationcontroller.desired_pods
+  status: renamed
+  replacements:
+  - k8s.replicationcontroller.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 28
+  source_renamed_to_raw: k8s.replicationcontroller.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.replicationcontroller.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.statefulset.current_pods
+  status: renamed
+  replacements:
+  - k8s.statefulset.pod.current
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 360
+  source_renamed_to_raw: k8s.statefulset.pod.current
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.statefulset.pod.current
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.statefulset.desired_pods
+  status: renamed
+  replacements:
+  - k8s.statefulset.pod.desired
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 324
+  source_renamed_to_raw: k8s.statefulset.pod.desired
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.statefulset.pod.desired
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.statefulset.ready_pods
+  status: renamed
+  replacements:
+  - k8s.statefulset.pod.ready
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 342
+  source_renamed_to_raw: k8s.statefulset.pod.ready
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.statefulset.pod.ready
+  resolution_basis: deprecated.renamed_to
+- folder: k8s
+  kind: metric
+  deprecated_id: k8s.statefulset.updated_pods
+  status: renamed
+  replacements:
+  - k8s.statefulset.pod.updated
+  source_file: model/k8s/deprecated/metrics-deprecated.yaml
+  source_line: 378
+  source_renamed_to_raw: k8s.statefulset.pod.updated
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: k8s.statefulset.pod.updated
   resolution_basis: deprecated.renamed_to
 - folder: linux
   kind: attribute
@@ -1251,7 +2314,7 @@ entries:
   source_note_raw: Removed. No replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: messaging
   kind: attribute
@@ -1264,7 +2327,7 @@ entries:
   source_note_raw: Removed. No replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: messaging
   kind: attribute
@@ -1349,11 +2412,8 @@ entries:
   source_note_raw: Replaced by `messaging.consumer.group.name` on the consumer spans. No replacement for producer spans.
   source_note_targets:
   - messaging.consumer.group.name
-  context:
-    consumer_span: messaging.consumer.group.name
-    producer_span: null
-  replacement_mode: conditional
-  resolution_text: messaging.consumer.group.name on consumer spans; no producer replacement
+  replacement_mode: direct
+  resolution_text: messaging.consumer.group.name
   resolution_basis: deprecated.note
 - folder: messaging
   kind: attribute
@@ -1368,6 +2428,120 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: messaging.destination.subscription.name
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: enum_member
+  parent_id: messaging.operation.type
+  deprecated_member_id: deliver
+  status: renamed
+  replacements:
+  - process
+  source_file: model/messaging/registry.yaml
+  source_line: 134
+  source_renamed_to_raw: process
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: process
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: enum_member
+  parent_id: messaging.operation.type
+  deprecated_member_id: publish
+  status: renamed
+  replacements:
+  - send
+  source_file: model/messaging/registry.yaml
+  source_line: 141
+  source_renamed_to_raw: send
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: send
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.client.published.messages
+  status: renamed
+  replacements:
+  - messaging.client.sent.messages
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 77
+  source_renamed_to_raw: messaging.client.sent.messages
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.sent.messages
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.process.messages
+  status: renamed
+  replacements:
+  - messaging.client.consumed.messages
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 32
+  source_renamed_to_raw: messaging.client.consumed.messages
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.consumed.messages
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.publish.duration
+  status: renamed
+  replacements:
+  - messaging.client.operation.duration
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: messaging.client.operation.duration
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.operation.duration
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.publish.messages
+  status: renamed
+  replacements:
+  - messaging.client.sent.messages
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 47
+  source_renamed_to_raw: messaging.client.sent.messages
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.sent.messages
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.receive.duration
+  status: renamed
+  replacements:
+  - messaging.client.operation.duration
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 17
+  source_renamed_to_raw: messaging.client.operation.duration
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.operation.duration
+  resolution_basis: deprecated.renamed_to
+- folder: messaging
+  kind: metric
+  deprecated_id: messaging.receive.messages
+  status: renamed
+  replacements:
+  - messaging.client.consumed.messages
+  source_file: model/messaging/deprecated/metrics-deprecated.yaml
+  source_line: 62
+  source_renamed_to_raw: messaging.client.consumed.messages
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: messaging.client.consumed.messages
   resolution_basis: deprecated.renamed_to
 - folder: network
   kind: attribute
@@ -1429,41 +2603,31 @@ entries:
   kind: attribute
   deprecated_id: net.peer.name
   status: uncategorized
-  replacements:
+  replacements: &id014
   - server.address
   - client.address
   source_file: model/network/deprecated/registry-deprecated.yaml
   source_line: 32
   source_renamed_to_raw: null
   source_note_raw: Replaced by `server.address` on client spans and `client.address` on server spans.
-  source_note_targets:
-  - server.address
-  - client.address
-  context:
-    client_span: server.address
-    server_span: client.address
-  replacement_mode: contextual
-  resolution_text: 'client span: server.address / server span: client.address'
+  source_note_targets: *id014
+  replacement_mode: composite
+  resolution_text: server.address, client.address
   resolution_basis: deprecated.note
 - folder: network
   kind: attribute
   deprecated_id: net.peer.port
   status: uncategorized
-  replacements:
+  replacements: &id015
   - server.port
   - client.port
   source_file: model/network/deprecated/registry-deprecated.yaml
   source_line: 40
   source_renamed_to_raw: null
   source_note_raw: Replaced by `server.port` on client spans and `client.port` on server spans.
-  source_note_targets:
-  - server.port
-  - client.port
-  context:
-    client_span: server.port
-    server_span: client.port
-  replacement_mode: contextual
-  resolution_text: 'client span: server.port / server span: client.port'
+  source_note_targets: *id015
+  replacement_mode: composite
+  resolution_text: server.port, client.port
   resolution_basis: deprecated.note
 - folder: network
   kind: attribute
@@ -1497,18 +2661,16 @@ entries:
   kind: attribute
   deprecated_id: net.sock.family
   status: uncategorized
-  replacements:
+  replacements: &id016
   - network.transport
   - network.type
   source_file: model/network/deprecated/registry-deprecated.yaml
   source_line: 142
   source_renamed_to_raw: null
   source_note_raw: Split to `network.transport` and `network.type`.
-  source_note_targets:
-  - network.transport
-  - network.type
+  source_note_targets: *id016
   replacement_mode: composite
-  resolution_text: network.transport + network.type
+  resolution_text: network.transport, network.type
   resolution_basis: deprecated.note
 - folder: network
   kind: attribute
@@ -1563,7 +2725,7 @@ entries:
   source_note_raw: Removed. No replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: network
   kind: attribute
@@ -1593,6 +2755,21 @@ entries:
   replacement_mode: direct
   resolution_text: network.transport
   resolution_basis: deprecated.renamed_to
+- folder: os
+  kind: enum_member
+  parent_id: os.type
+  deprecated_member_id: z_os
+  status: renamed
+  replacements:
+  - zos
+  source_file: model/os/registry.yaml
+  source_line: 54
+  source_renamed_to_raw: zos
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: zos
+  resolution_basis: deprecated.renamed_to
 - folder: otel
   kind: attribute
   deprecated_id: otel.library.name
@@ -1620,6 +2797,101 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: otel.scope.version
+  resolution_basis: deprecated.renamed_to
+- folder: otel
+  kind: entity
+  deprecated_id: entity.otel.scope
+  status: obsoleted
+  replacements: []
+  source_file: model/otel/deprecated/entities-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: null
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: ''
+  resolution_basis: deprecated.reason
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.exporter.span.exported.count
+  status: renamed
+  replacements:
+  - otel.sdk.exporter.span.exported
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 53
+  source_renamed_to_raw: otel.sdk.exporter.span.exported
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: otel.sdk.exporter.span.exported
+  resolution_basis: deprecated.renamed_to
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.exporter.span.inflight.count
+  status: renamed
+  replacements:
+  - otel.sdk.exporter.span.inflight
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 40
+  source_renamed_to_raw: otel.sdk.exporter.span.inflight
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: otel.sdk.exporter.span.inflight
+  resolution_basis: deprecated.renamed_to
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.processor.span.processed.count
+  status: renamed
+  replacements:
+  - otel.sdk.processor.span.processed
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 27
+  source_renamed_to_raw: otel.sdk.processor.span.processed
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: otel.sdk.processor.span.processed
+  resolution_basis: deprecated.renamed_to
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.span.ended
+  status: obsoleted
+  replacements: []
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 66
+  source_renamed_to_raw: null
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: ''
+  resolution_basis: deprecated.reason
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.span.ended.count
+  status: obsoleted
+  replacements: []
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 15
+  source_renamed_to_raw: null
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: note_only
+  resolution_text: ''
+  resolution_basis: deprecated.reason
+- folder: otel
+  kind: metric
+  deprecated_id: otel.sdk.span.live.count
+  status: renamed
+  replacements:
+  - otel.sdk.span.live
+  source_file: model/otel/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: otel.sdk.span.live
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: otel.sdk.span.live
   resolution_basis: deprecated.renamed_to
 - folder: peer
   kind: attribute
@@ -1691,6 +2963,20 @@ entries:
   replacement_mode: direct
   resolution_text: system.paging.fault.type
   resolution_basis: deprecated.renamed_to
+- folder: process
+  kind: metric
+  deprecated_id: process.open_file_descriptor.count
+  status: renamed
+  replacements:
+  - process.unix.file_descriptor.count
+  source_file: model/process/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: process.unix.file_descriptor.count
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: process.unix.file_descriptor.count
+  resolution_basis: deprecated.renamed_to
 - folder: rpc
   kind: attribute
   deprecated_id: message.compressed_size
@@ -1702,7 +2988,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1715,7 +3001,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1728,7 +3014,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1741,7 +3027,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1826,7 +3112,7 @@ entries:
   source_note_targets:
   - rpc.response.status_code
   replacement_mode: direct
-  resolution_text: rpc.response.status_code (string representation)
+  resolution_text: rpc.response.status_code
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1841,7 +3127,7 @@ entries:
   source_note_targets:
   - rpc.response.status_code
   replacement_mode: direct
-  resolution_text: rpc.response.status_code (string representation)
+  resolution_text: rpc.response.status_code
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1854,7 +3140,7 @@ entries:
   source_note_raw: Use the span status description when reporting JSON-RPC spans.
   source_note_targets: []
   replacement_mode: note_only
-  resolution_text: use the span status description
+  resolution_text: Use the span status description when reporting JSON-RPC spans.
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1895,7 +3181,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1908,7 +3194,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1921,7 +3207,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1934,7 +3220,7 @@ entries:
   source_note_raw: Deprecated, no replacement at this time.
   source_note_targets: []
   replacement_mode: removed
-  resolution_text: removed
+  resolution_text: removed, no replacement
   resolution_basis: deprecated.note
 - folder: rpc
   kind: attribute
@@ -1965,6 +3251,153 @@ entries:
   replacement_mode: direct
   resolution_text: rpc.system.name
   resolution_basis: deprecated.renamed_to
+- folder: rpc
+  kind: event
+  deprecated_id: rpc.message
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/events-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: null
+  source_note_raw: Deprecated, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.client.duration
+  status: uncategorized
+  replacements: &id017
+  - rpc.client.call.duration
+  - s
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 98
+  source_renamed_to_raw: null
+  source_note_raw: Replaced by `rpc.client.call.duration` with unit `s`.
+  source_note_targets: *id017
+  replacement_mode: composite
+  resolution_text: rpc.client.call.duration, s
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.client.request.size
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 153
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.client.requests_per_rpc
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.client.response.size
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 170
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.client.responses_per_rpc
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 21
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.server.duration
+  status: uncategorized
+  replacements: &id018
+  - rpc.server.call.duration
+  - s
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 78
+  source_renamed_to_raw: null
+  source_note_raw: Replaced by `rpc.server.call.duration` with unit `s`.
+  source_note_targets: *id018
+  replacement_mode: composite
+  resolution_text: rpc.server.call.duration, s
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.server.request.size
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 119
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.server.requests_per_rpc
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 40
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.server.response.size
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 136
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
+- folder: rpc
+  kind: metric
+  deprecated_id: rpc.server.responses_per_rpc
+  status: obsoleted
+  replacements: []
+  source_file: model/rpc/deprecated/metrics-deprecated.yaml
+  source_line: 59
+  source_renamed_to_raw: null
+  source_note_raw: Removed, no replacement at this time.
+  source_note_targets: []
+  replacement_mode: removed
+  resolution_text: removed, no replacement
+  resolution_basis: deprecated.note
 - folder: system
   kind: attribute
   deprecated_id: system.cpu.logical_number
@@ -2049,6 +3482,106 @@ entries:
   replacement_mode: direct
   resolution_text: process.state
   resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: enum_member
+  parent_id: system.memory.state
+  deprecated_member_id: shared
+  status: uncategorized
+  replacements:
+  - metric.system.memory.linux.shared
+  source_file: model/system/registry.yaml
+  source_line: 35
+  source_renamed_to_raw: null
+  source_note_raw: Removed, report shared memory usage with `metric.system.memory.linux.shared` metric
+  source_note_targets:
+  - metric.system.memory.linux.shared
+  replacement_mode: direct
+  resolution_text: metric.system.memory.linux.shared
+  resolution_basis: deprecated.note
+- folder: system
+  kind: metric
+  deprecated_id: system.linux.memory.available
+  status: renamed
+  replacements:
+  - system.memory.linux.available
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 78
+  source_renamed_to_raw: system.memory.linux.available
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.memory.linux.available
+  resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: metric
+  deprecated_id: system.linux.memory.slab.usage
+  status: renamed
+  replacements:
+  - system.memory.linux.slab.usage
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 94
+  source_renamed_to_raw: system.memory.linux.slab.usage
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.memory.linux.slab.usage
+  resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: metric
+  deprecated_id: system.memory.shared
+  status: renamed
+  replacements:
+  - system.memory.linux.shared
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: system.memory.linux.shared
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.memory.linux.shared
+  resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: metric
+  deprecated_id: system.network.connections
+  status: renamed
+  replacements:
+  - system.network.connection.count
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 18
+  source_renamed_to_raw: system.network.connection.count
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.network.connection.count
+  resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: metric
+  deprecated_id: system.network.dropped
+  status: renamed
+  replacements:
+  - system.network.packet.dropped
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 34
+  source_renamed_to_raw: system.network.packet.dropped
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.network.packet.dropped
+  resolution_basis: deprecated.renamed_to
+- folder: system
+  kind: metric
+  deprecated_id: system.network.packets
+  status: renamed
+  replacements:
+  - system.network.packet.count
+  source_file: model/system/deprecated/metrics-deprecated.yaml
+  source_line: 59
+  source_renamed_to_raw: system.network.packet.count
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: system.network.packet.count
+  resolution_basis: deprecated.renamed_to
 - folder: tls
   kind: attribute
   deprecated_id: tls.client.server_name
@@ -2062,6 +3595,34 @@ entries:
   source_note_targets: []
   replacement_mode: direct
   resolution_text: server.address
+  resolution_basis: deprecated.renamed_to
+- folder: v8js
+  kind: metric
+  deprecated_id: v8js.heap.space.available_size
+  status: renamed
+  replacements:
+  - v8js.memory.heap.space.available_size
+  source_file: model/v8js/deprecated/metrics-deprecated.yaml
+  source_line: 2
+  source_renamed_to_raw: v8js.memory.heap.space.available_size
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: v8js.memory.heap.space.available_size
+  resolution_basis: deprecated.renamed_to
+- folder: v8js
+  kind: metric
+  deprecated_id: v8js.heap.space.physical_size
+  status: renamed
+  replacements:
+  - v8js.memory.heap.space.physical_size
+  source_file: model/v8js/deprecated/metrics-deprecated.yaml
+  source_line: 18
+  source_renamed_to_raw: v8js.memory.heap.space.physical_size
+  source_note_raw: null
+  source_note_targets: []
+  replacement_mode: direct
+  resolution_text: v8js.memory.heap.space.physical_size
   resolution_basis: deprecated.renamed_to
 - folder: vcs
   kind: attribute
@@ -2133,1394 +3694,6 @@ entries:
   replacement_mode: direct
   resolution_text: vcs.ref.head.type
   resolution_basis: deprecated.renamed_to
-- folder: cpu
-  kind: metric
-  deprecated_id: metric.cpu.frequency
-  status: renamed
-  replacements:
-  - system.cpu.frequency
-  source_file: model/cpu/deprecated.yaml
-  source_line: 38
-  source_renamed_to_raw: system.cpu.frequency
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.cpu.frequency
-  resolution_basis: deprecated.renamed_to
-- folder: cpu
-  kind: metric
-  deprecated_id: metric.cpu.time
-  status: renamed
-  replacements:
-  - system.cpu.time
-  source_file: model/cpu/deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: system.cpu.time
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.cpu.time
-  resolution_basis: deprecated.renamed_to
-- folder: cpu
-  kind: metric
-  deprecated_id: metric.cpu.utilization
-  status: renamed
-  replacements:
-  - system.cpu.utilization
-  source_file: model/cpu/deprecated.yaml
-  source_line: 20
-  source_renamed_to_raw: system.cpu.utilization
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.cpu.utilization
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.create_time
-  status: uncategorized
-  replacements:
-  - db.client.connection.create_time
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 106
-  source_renamed_to_raw: null
-  source_note_raw: Replaced by `db.client.connection.create_time` with unit `s`.
-  source_note_targets:
-  - db.client.connection.create_time
-  - s
-  replacement_unit: s
-  replacement_mode: direct
-  resolution_text: db.client.connection.create_time (unit -> s)
-  resolution_basis: deprecated.note
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.idle.max
-  status: renamed
-  replacements:
-  - db.client.connection.idle.max
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 21
-  source_renamed_to_raw: db.client.connection.idle.max
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.idle.max
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.idle.min
-  status: renamed
-  replacements:
-  - db.client.connection.idle.min
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 38
-  source_renamed_to_raw: db.client.connection.idle.min
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.idle.min
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.max
-  status: renamed
-  replacements:
-  - db.client.connection.max
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 55
-  source_renamed_to_raw: db.client.connection.max
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.max
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.pending_requests
-  status: renamed
-  replacements:
-  - db.client.connection.pending_requests
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 72
-  source_renamed_to_raw: db.client.connection.pending_requests
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.pending_requests
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.timeouts
-  status: renamed
-  replacements:
-  - db.client.connection.timeouts
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 89
-  source_renamed_to_raw: db.client.connection.timeouts
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.timeouts
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.usage
-  status: renamed
-  replacements:
-  - db.client.connection.count
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: db.client.connection.count
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: db.client.connection.count
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.use_time
-  status: uncategorized
-  replacements:
-  - db.client.connection.use_time
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 140
-  source_renamed_to_raw: null
-  source_note_raw: Replaced by `db.client.connection.use_time` with unit `s`.
-  source_note_targets:
-  - db.client.connection.use_time
-  - s
-  replacement_unit: s
-  replacement_mode: direct
-  resolution_text: db.client.connection.use_time (unit -> s)
-  resolution_basis: deprecated.note
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.connections.wait_time
-  status: uncategorized
-  replacements:
-  - db.client.connection.wait_time
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 123
-  source_renamed_to_raw: null
-  source_note_raw: Replaced by `db.client.connection.wait_time` with unit `s`.
-  source_note_targets:
-  - db.client.connection.wait_time
-  - s
-  replacement_unit: s
-  replacement_mode: direct
-  resolution_text: db.client.connection.wait_time (unit -> s)
-  resolution_basis: deprecated.note
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.cosmosdb.active_instance.count
-  status: renamed
-  replacements:
-  - azure.cosmosdb.client.active_instance.count
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 195
-  source_renamed_to_raw: azure.cosmosdb.client.active_instance.count
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.cosmosdb.client.active_instance.count
-  resolution_basis: deprecated.renamed_to
-- folder: db
-  kind: metric
-  deprecated_id: metric.db.client.cosmosdb.operation.request_charge
-  status: renamed
-  replacements:
-  - azure.cosmosdb.client.operation.request_charge
-  source_file: model/db/deprecated/metrics-deprecated.yaml
-  source_line: 157
-  source_renamed_to_raw: azure.cosmosdb.client.operation.request_charge
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.cosmosdb.client.operation.request_charge
-  resolution_basis: deprecated.renamed_to
-- folder: jvm
-  kind: metric
-  deprecated_id: metric.jvm.buffer.memory.usage
-  status: renamed
-  replacements:
-  - jvm.buffer.memory.used
-  source_file: model/jvm/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: jvm.buffer.memory.used
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: jvm.buffer.memory.used
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.cronjob.active_jobs
-  status: renamed
-  replacements:
-  - k8s.cronjob.job.active
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 205
-  source_renamed_to_raw: k8s.cronjob.job.active
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.cronjob.job.active
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.daemonset.current_scheduled_nodes
-  status: renamed
-  replacements:
-  - k8s.daemonset.node.current_scheduled
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 41
-  source_renamed_to_raw: k8s.daemonset.node.current_scheduled
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.daemonset.node.current_scheduled
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.daemonset.desired_scheduled_nodes
-  status: renamed
-  replacements:
-  - k8s.daemonset.node.desired_scheduled
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 59
-  source_renamed_to_raw: k8s.daemonset.node.desired_scheduled
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.daemonset.node.desired_scheduled
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.daemonset.misscheduled_nodes
-  status: renamed
-  replacements:
-  - k8s.daemonset.node.misscheduled
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 77
-  source_renamed_to_raw: k8s.daemonset.node.misscheduled
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.daemonset.node.misscheduled
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.daemonset.ready_nodes
-  status: renamed
-  replacements:
-  - k8s.daemonset.node.ready
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 95
-  source_renamed_to_raw: k8s.daemonset.node.ready
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.daemonset.node.ready
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.deployment.available_pods
-  status: renamed
-  replacements:
-  - k8s.deployment.pod.available
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 269
-  source_renamed_to_raw: k8s.deployment.pod.available
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.deployment.pod.available
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.deployment.desired_pods
-  status: renamed
-  replacements:
-  - k8s.deployment.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 251
-  source_renamed_to_raw: k8s.deployment.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.deployment.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.hpa.current_pods
-  status: renamed
-  replacements:
-  - k8s.hpa.pod.current
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 414
-  source_renamed_to_raw: k8s.hpa.pod.current
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.hpa.pod.current
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.hpa.desired_pods
-  status: renamed
-  replacements:
-  - k8s.hpa.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 396
-  source_renamed_to_raw: k8s.hpa.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.hpa.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.hpa.max_pods
-  status: renamed
-  replacements:
-  - k8s.hpa.pod.max
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 432
-  source_renamed_to_raw: k8s.hpa.pod.max
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.hpa.pod.max
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.hpa.min_pods
-  status: renamed
-  replacements:
-  - k8s.hpa.pod.min
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 450
-  source_renamed_to_raw: k8s.hpa.pod.min
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.hpa.pod.min
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.job.active_pods
-  status: renamed
-  replacements:
-  - k8s.job.pod.active
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 114
-  source_renamed_to_raw: k8s.job.pod.active
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.job.pod.active
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.job.desired_successful_pods
-  status: renamed
-  replacements:
-  - k8s.job.pod.desired_successful
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 168
-  source_renamed_to_raw: k8s.job.pod.desired_successful
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.job.pod.desired_successful
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.job.failed_pods
-  status: renamed
-  replacements:
-  - k8s.job.pod.failed
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 132
-  source_renamed_to_raw: k8s.job.pod.failed
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.job.pod.failed
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.job.max_parallel_pods
-  status: renamed
-  replacements:
-  - k8s.job.pod.max_parallel
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 186
-  source_renamed_to_raw: k8s.job.pod.max_parallel
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.job.pod.max_parallel
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.job.successful_pods
-  status: renamed
-  replacements:
-  - k8s.job.pod.successful
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 150
-  source_renamed_to_raw: k8s.job.pod.successful
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.job.pod.successful
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.node.allocatable.cpu
-  status: renamed
-  replacements:
-  - k8s.node.cpu.allocatable
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 468
-  source_renamed_to_raw: k8s.node.cpu.allocatable
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.node.cpu.allocatable
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.node.allocatable.ephemeral_storage
-  status: renamed
-  replacements:
-  - k8s.node.ephemeral_storage.allocatable
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 483
-  source_renamed_to_raw: k8s.node.ephemeral_storage.allocatable
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.node.ephemeral_storage.allocatable
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.node.allocatable.memory
-  status: renamed
-  replacements:
-  - k8s.node.memory.allocatable
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 498
-  source_renamed_to_raw: k8s.node.memory.allocatable
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.node.memory.allocatable
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.node.allocatable.pods
-  status: renamed
-  replacements:
-  - k8s.node.pod.allocatable
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 236
-  source_renamed_to_raw: k8s.node.pod.allocatable
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.node.pod.allocatable
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replicaset.available_pods
-  status: renamed
-  replacements:
-  - k8s.replicaset.pod.available
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 306
-  source_renamed_to_raw: k8s.replicaset.pod.available
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicaset.pod.available
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replicaset.desired_pods
-  status: renamed
-  replacements:
-  - k8s.replicaset.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 288
-  source_renamed_to_raw: k8s.replicaset.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicaset.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replication_controller.available_pods
-  status: renamed
-  replacements:
-  - k8s.replicationcontroller.pod.available
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 15
-  source_renamed_to_raw: k8s.replicationcontroller.pod.available
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicationcontroller.pod.available
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replication_controller.desired_pods
-  status: renamed
-  replacements:
-  - k8s.replicationcontroller.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: k8s.replicationcontroller.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicationcontroller.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replicationcontroller.available_pods
-  status: renamed
-  replacements:
-  - k8s.replicationcontroller.pod.available
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 223
-  source_renamed_to_raw: k8s.replicationcontroller.pod.available
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicationcontroller.pod.available
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.replicationcontroller.desired_pods
-  status: renamed
-  replacements:
-  - k8s.replicationcontroller.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 28
-  source_renamed_to_raw: k8s.replicationcontroller.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.replicationcontroller.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.statefulset.current_pods
-  status: renamed
-  replacements:
-  - k8s.statefulset.pod.current
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 360
-  source_renamed_to_raw: k8s.statefulset.pod.current
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.statefulset.pod.current
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.statefulset.desired_pods
-  status: renamed
-  replacements:
-  - k8s.statefulset.pod.desired
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 324
-  source_renamed_to_raw: k8s.statefulset.pod.desired
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.statefulset.pod.desired
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.statefulset.ready_pods
-  status: renamed
-  replacements:
-  - k8s.statefulset.pod.ready
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 342
-  source_renamed_to_raw: k8s.statefulset.pod.ready
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.statefulset.pod.ready
-  resolution_basis: deprecated.renamed_to
-- folder: k8s
-  kind: metric
-  deprecated_id: metric.k8s.statefulset.updated_pods
-  status: renamed
-  replacements:
-  - k8s.statefulset.pod.updated
-  source_file: model/k8s/deprecated/metrics-deprecated.yaml
-  source_line: 378
-  source_renamed_to_raw: k8s.statefulset.pod.updated
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: k8s.statefulset.pod.updated
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.client.published.messages
-  status: renamed
-  replacements:
-  - messaging.client.sent.messages
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 77
-  source_renamed_to_raw: messaging.client.sent.messages
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.sent.messages
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.process.messages
-  status: renamed
-  replacements:
-  - messaging.client.consumed.messages
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 32
-  source_renamed_to_raw: messaging.client.consumed.messages
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.consumed.messages
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.publish.duration
-  status: renamed
-  replacements:
-  - messaging.client.operation.duration
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: messaging.client.operation.duration
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.operation.duration
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.publish.messages
-  status: renamed
-  replacements:
-  - messaging.client.sent.messages
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 47
-  source_renamed_to_raw: messaging.client.sent.messages
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.sent.messages
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.receive.duration
-  status: renamed
-  replacements:
-  - messaging.client.operation.duration
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 17
-  source_renamed_to_raw: messaging.client.operation.duration
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.operation.duration
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: metric
-  deprecated_id: metric.messaging.receive.messages
-  status: renamed
-  replacements:
-  - messaging.client.consumed.messages
-  source_file: model/messaging/deprecated/metrics-deprecated.yaml
-  source_line: 62
-  source_renamed_to_raw: messaging.client.consumed.messages
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: messaging.client.consumed.messages
-  resolution_basis: deprecated.renamed_to
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.exporter.span.exported.count
-  status: renamed
-  replacements:
-  - otel.sdk.exporter.span.exported
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 53
-  source_renamed_to_raw: otel.sdk.exporter.span.exported
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: otel.sdk.exporter.span.exported
-  resolution_basis: deprecated.renamed_to
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.exporter.span.inflight.count
-  status: renamed
-  replacements:
-  - otel.sdk.exporter.span.inflight
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 40
-  source_renamed_to_raw: otel.sdk.exporter.span.inflight
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: otel.sdk.exporter.span.inflight
-  resolution_basis: deprecated.renamed_to
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.processor.span.processed.count
-  status: renamed
-  replacements:
-  - otel.sdk.processor.span.processed
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 27
-  source_renamed_to_raw: otel.sdk.processor.span.processed
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: otel.sdk.processor.span.processed
-  resolution_basis: deprecated.renamed_to
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.span.ended
-  status: obsoleted
-  replacements: []
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 66
-  source_renamed_to_raw: null
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.reason
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.span.ended.count
-  status: obsoleted
-  replacements: []
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 15
-  source_renamed_to_raw: null
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.reason
-- folder: otel
-  kind: metric
-  deprecated_id: metric.otel.sdk.span.live.count
-  status: renamed
-  replacements:
-  - otel.sdk.span.live
-  source_file: model/otel/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: otel.sdk.span.live
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: otel.sdk.span.live
-  resolution_basis: deprecated.renamed_to
-- folder: process
-  kind: metric
-  deprecated_id: metric.process.open_file_descriptor.count
-  status: renamed
-  replacements:
-  - process.unix.file_descriptor.count
-  source_file: model/process/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: process.unix.file_descriptor.count
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: process.unix.file_descriptor.count
-  resolution_basis: deprecated.renamed_to
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.client.duration
-  status: uncategorized
-  replacements:
-  - rpc.client.call.duration
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 98
-  source_renamed_to_raw: null
-  source_note_raw: Replaced by `rpc.client.call.duration` with unit `s`.
-  source_note_targets:
-  - rpc.client.call.duration
-  - s
-  replacement_unit: s
-  replacement_mode: direct
-  resolution_text: rpc.client.call.duration (unit -> s)
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.client.request.size
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 153
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.client.requests_per_rpc
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.client.response.size
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 170
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.client.responses_per_rpc
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 21
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.server.duration
-  status: uncategorized
-  replacements:
-  - rpc.server.call.duration
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 78
-  source_renamed_to_raw: null
-  source_note_raw: Replaced by `rpc.server.call.duration` with unit `s`.
-  source_note_targets:
-  - rpc.server.call.duration
-  - s
-  replacement_unit: s
-  replacement_mode: direct
-  resolution_text: rpc.server.call.duration (unit -> s)
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.server.request.size
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 119
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.server.requests_per_rpc
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 40
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.server.response.size
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 136
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: metric
-  deprecated_id: metric.rpc.server.responses_per_rpc
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/metrics-deprecated.yaml
-  source_line: 59
-  source_renamed_to_raw: null
-  source_note_raw: Removed, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.linux.memory.available
-  status: renamed
-  replacements:
-  - system.memory.linux.available
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 78
-  source_renamed_to_raw: system.memory.linux.available
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.memory.linux.available
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.linux.memory.slab.usage
-  status: renamed
-  replacements:
-  - system.memory.linux.slab.usage
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 94
-  source_renamed_to_raw: system.memory.linux.slab.usage
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.memory.linux.slab.usage
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.memory.shared
-  status: renamed
-  replacements:
-  - system.memory.linux.shared
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: system.memory.linux.shared
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.memory.linux.shared
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.network.connections
-  status: renamed
-  replacements:
-  - system.network.connection.count
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 18
-  source_renamed_to_raw: system.network.connection.count
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.network.connection.count
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.network.dropped
-  status: renamed
-  replacements:
-  - system.network.packet.dropped
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 34
-  source_renamed_to_raw: system.network.packet.dropped
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.network.packet.dropped
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: metric
-  deprecated_id: metric.system.network.packets
-  status: renamed
-  replacements:
-  - system.network.packet.count
-  source_file: model/system/deprecated/metrics-deprecated.yaml
-  source_line: 59
-  source_renamed_to_raw: system.network.packet.count
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: system.network.packet.count
-  resolution_basis: deprecated.renamed_to
-- folder: v8js
-  kind: metric
-  deprecated_id: metric.v8js.heap.space.available_size
-  status: renamed
-  replacements:
-  - v8js.memory.heap.space.available_size
-  source_file: model/v8js/deprecated/metrics-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: v8js.memory.heap.space.available_size
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: v8js.memory.heap.space.available_size
-  resolution_basis: deprecated.renamed_to
-- folder: v8js
-  kind: metric
-  deprecated_id: metric.v8js.heap.space.physical_size
-  status: renamed
-  replacements:
-  - v8js.memory.heap.space.physical_size
-  source_file: model/v8js/deprecated/metrics-deprecated.yaml
-  source_line: 18
-  source_renamed_to_raw: v8js.memory.heap.space.physical_size
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: v8js.memory.heap.space.physical_size
-  resolution_basis: deprecated.renamed_to
-- folder: azure
-  kind: event
-  deprecated_id: event.az.resource.log
-  status: renamed
-  replacements:
-  - azure.resource.log
-  source_file: model/azure/deprecated/events-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: azure.resource.log
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.resource.log
-  resolution_basis: deprecated.renamed_to
-- folder: event
-  kind: event
-  deprecated_id: event.name
-  status: uncategorized
-  replacements: []
-  source_file: model/event/deprecated/registry-deprecated.yaml
-  source_line: 8
-  source_renamed_to_raw: null
-  source_note_raw: The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate that the LogRecord represents an Event.
-  source_note_targets: []
-  replacement_mode: field_mapping
-  resolution_text: set as the EventName field on the LogRecord
-  resolution_basis: deprecated.note
-- folder: gen-ai
-  kind: event
-  deprecated_id: event.gen_ai.assistant.message
-  status: uncategorized
-  replacements:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  source_file: model/gen-ai/deprecated/events-deprecated.yaml
-  source_line: 78
-  source_renamed_to_raw: null
-  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details` event.
-  source_note_targets:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  replacement_mode: alternative
-  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
-  resolution_basis: deprecated.note
-- folder: gen-ai
-  kind: event
-  deprecated_id: event.gen_ai.choice
-  status: uncategorized
-  replacements:
-  - gen_ai.output.messages
-  - gen_ai.client.inference.operation.details
-  source_file: model/gen-ai/deprecated/events-deprecated.yaml
-  source_line: 207
-  source_renamed_to_raw: null
-  source_note_raw: Chat history is reported on `gen_ai.output.messages` attribute on spans or `gen_ai.client.inference.operation.details` event.
-  source_note_targets:
-  - gen_ai.output.messages
-  - gen_ai.client.inference.operation.details
-  replacement_mode: alternative
-  resolution_text: gen_ai.output.messages, gen_ai.client.inference.operation.details
-  resolution_basis: deprecated.note
-- folder: gen-ai
-  kind: event
-  deprecated_id: event.gen_ai.system.message
-  status: uncategorized
-  replacements:
-  - gen_ai.system_instructions
-  - gen_ai.client.inference.operation.details
-  source_file: model/gen-ai/deprecated/events-deprecated.yaml
-  source_line: 10
-  source_renamed_to_raw: null
-  source_note_raw: Chat history is reported on `gen_ai.system_instructions` attribute on spans or `gen_ai.client.inference.operation.details` event.
-  source_note_targets:
-  - gen_ai.system_instructions
-  - gen_ai.client.inference.operation.details
-  replacement_mode: alternative
-  resolution_text: gen_ai.system_instructions, gen_ai.client.inference.operation.details
-  resolution_basis: deprecated.note
-- folder: gen-ai
-  kind: event
-  deprecated_id: event.gen_ai.tool.message
-  status: uncategorized
-  replacements:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  source_file: model/gen-ai/deprecated/events-deprecated.yaml
-  source_line: 166
-  source_renamed_to_raw: null
-  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details` event.
-  source_note_targets:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  replacement_mode: alternative
-  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
-  resolution_basis: deprecated.note
-- folder: gen-ai
-  kind: event
-  deprecated_id: event.gen_ai.user.message
-  status: uncategorized
-  replacements:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  source_file: model/gen-ai/deprecated/events-deprecated.yaml
-  source_line: 44
-  source_renamed_to_raw: null
-  source_note_raw: Chat history is reported on `gen_ai.input.messages` attribute on spans or `gen_ai.client.inference.operation.details` event.
-  source_note_targets:
-  - gen_ai.input.messages
-  - gen_ai.client.inference.operation.details
-  replacement_mode: alternative
-  resolution_text: gen_ai.input.messages, gen_ai.client.inference.operation.details
-  resolution_basis: deprecated.note
-- folder: rpc
-  kind: event
-  deprecated_id: event.rpc.message
-  status: obsoleted
-  replacements: []
-  source_file: model/rpc/deprecated/events-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: null
-  source_note_raw: Deprecated, no replacement at this time.
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.note
-- folder: otel
-  kind: entity
-  deprecated_id: entity.otel.scope
-  status: obsoleted
-  replacements: []
-  source_file: model/otel/deprecated/entities-deprecated.yaml
-  source_line: 2
-  source_renamed_to_raw: null
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: removed
-  resolution_text: removed
-  resolution_basis: deprecated.reason
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_aks
-  status: renamed
-  replacements:
-  - azure.aks
-  source_file: model/cloud/registry.yaml
-  source_line: 224
-  source_renamed_to_raw: azure.aks
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.aks
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_app_service
-  status: renamed
-  replacements:
-  - azure.app_service
-  source_file: model/cloud/registry.yaml
-  source_line: 244
-  source_renamed_to_raw: azure.app_service
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.app_service
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_container_apps
-  status: renamed
-  replacements:
-  - azure.container_apps
-  source_file: model/cloud/registry.yaml
-  source_line: 204
-  source_renamed_to_raw: azure.container_apps
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.container_apps
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_container_instances
-  status: renamed
-  replacements:
-  - azure.container_instances
-  source_file: model/cloud/registry.yaml
-  source_line: 214
-  source_renamed_to_raw: azure.container_instances
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.container_instances
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_functions
-  status: renamed
-  replacements:
-  - azure.functions
-  source_file: model/cloud/registry.yaml
-  source_line: 234
-  source_renamed_to_raw: azure.functions
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.functions
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_openshift
-  status: renamed
-  replacements:
-  - azure.openshift
-  source_file: model/cloud/registry.yaml
-  source_line: 254
-  source_renamed_to_raw: azure.openshift
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.openshift
-  resolution_basis: deprecated.renamed_to
-- folder: cloud
-  kind: enum_member
-  parent_id: cloud.platform
-  deprecated_member_id: azure_vm
-  status: renamed
-  replacements:
-  - azure.vm
-  source_file: model/cloud/registry.yaml
-  source_line: 194
-  source_renamed_to_raw: azure.vm
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: azure.vm
-  resolution_basis: deprecated.renamed_to
-- folder: gen-ai
-  kind: enum_member
-  parent_id: gen_ai.token.type
-  deprecated_member_id: completion
-  status: renamed
-  replacements:
-  - output
-  source_file: model/gen-ai/registry.yaml
-  source_line: 217
-  source_renamed_to_raw: output
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: output
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: enum_member
-  parent_id: messaging.operation.type
-  deprecated_member_id: deliver
-  status: renamed
-  replacements:
-  - process
-  source_file: model/messaging/registry.yaml
-  source_line: 134
-  source_renamed_to_raw: process
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: process
-  resolution_basis: deprecated.renamed_to
-- folder: messaging
-  kind: enum_member
-  parent_id: messaging.operation.type
-  deprecated_member_id: publish
-  status: renamed
-  replacements:
-  - send
-  source_file: model/messaging/registry.yaml
-  source_line: 141
-  source_renamed_to_raw: send
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: send
-  resolution_basis: deprecated.renamed_to
-- folder: os
-  kind: enum_member
-  parent_id: os.type
-  deprecated_member_id: z_os
-  status: renamed
-  replacements:
-  - zos
-  source_file: model/os/registry.yaml
-  source_line: 54
-  source_renamed_to_raw: zos
-  source_note_raw: null
-  source_note_targets: []
-  replacement_mode: direct
-  resolution_text: zos
-  resolution_basis: deprecated.renamed_to
-- folder: system
-  kind: enum_member
-  parent_id: system.memory.state
-  deprecated_member_id: shared
-  status: uncategorized
-  replacements:
-  - metric.system.memory.linux.shared
-  source_file: model/system/registry.yaml
-  source_line: 35
-  source_renamed_to_raw: null
-  source_note_raw: Removed, report shared memory usage with `metric.system.memory.linux.shared` metric
-  source_note_targets:
-  - metric.system.memory.linux.shared
-  replacement_mode: direct
-  resolution_text: metric.system.memory.linux.shared
-  resolution_basis: deprecated.note
 - folder: vcs
   kind: enum_member
   parent_id: vcs.provider.name

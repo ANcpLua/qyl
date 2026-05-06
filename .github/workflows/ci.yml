@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: .tools/weaver
-          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh') }}
+          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh', 'eng/semconv/bootstrap-weaver.ps1', 'eng/semconv/scripts/bootstrap-weaver.sh', 'eng/semconv/scripts/bootstrap-weaver.ps1') }}
 
       # packages/Qyl.Contracts/Generated/ is gitignored (regenerated from TypeSpec on every
       # build). The .NET compile references those types, so we regenerate before `dotnet build`.
@@ -196,7 +196,7 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: .tools/weaver
-          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh') }}
+          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh', 'eng/semconv/bootstrap-weaver.ps1', 'eng/semconv/scripts/bootstrap-weaver.sh', 'eng/semconv/scripts/bootstrap-weaver.ps1') }}
 
       - name: Restore build tool dependencies
         run: dotnet restore eng/build/build.csproj

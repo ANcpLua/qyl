@@ -17,26 +17,26 @@ namespace Qyl.Domains.Observe.Otel;
 @doc("Telemetry SDK resource attributes")
 model TelemetrySdkAttributes {
   @doc("SDK name")
-  @encodedName("application/json", "telemetry.sdk.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkName)
   name: string;
 
   @doc("SDK language")
-  @encodedName("application/json", "telemetry.sdk.language")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkLanguage)
   language: TelemetrySdkLanguage;
 
   @doc("SDK version")
-  @encodedName("application/json", "telemetry.sdk.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.SdkVersion)
   version: SemVer;
 }
 
 @doc("Telemetry distro attributes")
 model TelemetryDistroAttributes {
   @doc("Distro name")
-  @encodedName("application/json", "telemetry.distro.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.DistroName)
   name?: string;
 
   @doc("Distro version")
-  @encodedName("application/json", "telemetry.distro.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Telemetry.DistroVersion)
   version?: SemVer;
 }
 

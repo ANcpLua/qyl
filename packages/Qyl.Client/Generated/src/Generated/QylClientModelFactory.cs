@@ -26,7 +26,6 @@ using Qyl.OTel.Metrics;
 using Qyl.OTel.Resource;
 using Qyl.OTel.Traces;
 using Qyl.Storage;
-using Trace = Qyl.OTel.Traces.Trace;
 
 namespace Qyl.Client
 {
@@ -519,7 +518,7 @@ namespace Qyl.Client
         /// <param name="timeBucket"> Time bucket (for time series). </param>
         /// <param name="topN"> Top N results. </param>
         /// <returns> A new <see cref="Domains.Observe.Log.LogAggregation"/> instance for mocking. </returns>
-        public static LogAggregation LogAggregation(IEnumerable<string> groupBy = default, AggregationFunction function = default, string @field = default, TimeBucket? timeBucket = default, int? topN = default)
+        public static LogAggregation LogAggregation(IEnumerable<string> groupBy = default, Domains.Observe.Log.AggregationFunction function = default, string @field = default, Domains.Observe.Log.TimeBucket? timeBucket = default, int? topN = default)
         {
             groupBy ??= new ChangeTrackingList<string>();
 

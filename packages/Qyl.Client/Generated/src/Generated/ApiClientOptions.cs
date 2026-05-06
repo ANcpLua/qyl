@@ -29,6 +29,7 @@ namespace Qyl.Api
 
         /// <summary> Initializes a new instance of ApiClientOptions from configuration. </summary>
         /// <param name="section"> The configuration section. </param>
+        [Experimental("SCME0002")]
         internal ApiClientOptions(IConfigurationSection section) : base(section)
         {
             Version = "2026-01-26";

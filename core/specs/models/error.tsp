@@ -19,7 +19,7 @@ namespace Qyl.Domains.Observe.Error;
 @doc("Error type attribute (OTel stable)")
 model ErrorAttributes {
   @doc("Error type - full exception class name or error code")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType: string;
 }
 
@@ -89,7 +89,7 @@ model ErrorEntity {
   errorId: string;
 
   @doc("Error type (class name or code)")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType: string;
 
   @doc("Error message")
@@ -231,7 +231,7 @@ model ErrorRateMetric {
   unit: "1";
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Error category")
@@ -251,11 +251,11 @@ model ErrorCountMetric {
   unit: "{error}";
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Error type")
-  @encodedName("application/json", "error.type")
+  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
   errorType: string;
 
   @doc("Error category")

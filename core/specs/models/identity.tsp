@@ -17,27 +17,27 @@ namespace Qyl.Domains.Identity;
 @doc("User attributes")
 model UserAttributes {
   @doc("User ID (unique identifier)")
-  @encodedName("application/json", "user.id")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Id)
   id?: UserId;
 
   @doc("User name (may be pseudonymized)")
-  @encodedName("application/json", "user.name")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Name)
   name?: string;
 
   @doc("User email (may be hashed)")
-  @encodedName("application/json", "user.email")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Email)
   email?: string;
 
   @doc("User full name")
-  @encodedName("application/json", "user.full_name")
+  @encodedName("application/json", Qyl.OTel.Keys.User.FullName)
   fullName?: string;
 
   @doc("User hash (for privacy)")
-  @encodedName("application/json", "user.hash")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Hash)
   hash?: string;
 
   @doc("User roles")
-  @encodedName("application/json", "user.roles")
+  @encodedName("application/json", Qyl.OTel.Keys.User.Roles)
   roles?: string[];
 }
 
@@ -48,11 +48,11 @@ model UserAttributes {
 @doc("Client attributes")
 model ClientAttributes {
   @doc("Client IP address")
-  @encodedName("application/json", "client.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Client.Address)
   address?: IpAddress;
 
   @doc("Client port")
-  @encodedName("application/json", "client.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Client.Port)
   port?: Port;
 }
 
@@ -63,19 +63,19 @@ model ClientAttributes {
 @doc("Service resource attributes")
 model ServiceAttributes {
   @doc("Service name (required)")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   name: string;
 
   @doc("Service namespace")
-  @encodedName("application/json", "service.namespace")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Namespace)
   `namespace`?: string;
 
   @doc("Service instance ID (unique per instance)")
-  @encodedName("application/json", "service.instance.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.InstanceId)
   instanceId?: string;
 
   @doc("Service version")
-  @encodedName("application/json", "service.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Version)
   version?: SemVer;
 }
 
@@ -105,11 +105,11 @@ model AppAttributes {
 @doc("Server attributes")
 model ServerAttributes {
   @doc("Server address (hostname or IP)")
-  @encodedName("application/json", "server.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
   address?: string;
 
   @doc("Server port")
-  @encodedName("application/json", "server.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
   port?: Port;
 }
 
@@ -120,11 +120,11 @@ model ServerAttributes {
 @doc("Destination attributes (for client spans)")
 model DestinationAttributes {
   @doc("Destination address")
-  @encodedName("application/json", "destination.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Destination.Address)
   address?: string;
 
   @doc("Destination port")
-  @encodedName("application/json", "destination.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Destination.Port)
   port?: Port;
 }
 
@@ -135,11 +135,11 @@ model DestinationAttributes {
 @doc("Source attributes")
 model SourceAttributes {
   @doc("Source address")
-  @encodedName("application/json", "source.address")
+  @encodedName("application/json", Qyl.OTel.Keys.Source.Address)
   address?: IpAddress;
 
   @doc("Source port")
-  @encodedName("application/json", "source.port")
+  @encodedName("application/json", Qyl.OTel.Keys.Source.Port)
   port?: Port;
 }
 

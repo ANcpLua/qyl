@@ -19,19 +19,19 @@ namespace Qyl.Domains.Ops.Deployment;
 @doc("Deployment resource attributes")
 model DeploymentAttributes {
   @doc("Deployment environment name")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environmentName?: string;
 
   @doc("Deployment ID")
-  @encodedName("application/json", "deployment.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Id)
   id?: string;
 
   @doc("Deployment name")
-  @encodedName("application/json", "deployment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Name)
   name?: string;
 
   @doc("Deployment status")
-  @encodedName("application/json", "deployment.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Status)
   status?: DeploymentStatus;
 }
 
@@ -115,15 +115,15 @@ enum DeploymentStrategy {
 model DeploymentEntity {
   @doc("Deployment ID")
   @key
-  @encodedName("application/json", "deployment.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Id)
   deploymentId: string;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Service version")
-  @encodedName("application/json", "service.version")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Version)
   serviceVersion: SemVer;
 
   @doc("Environment")
@@ -191,15 +191,15 @@ model DeploymentEvent {
   eventName: DeploymentEventName;
 
   @doc("Deployment ID")
-  @encodedName("application/json", "deployment.id")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Id)
   deploymentId: string;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Status")
@@ -243,15 +243,15 @@ model DeploymentDurationMetric {
   unit: "s";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Status")
-  @encodedName("application/json", "deployment.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Status)
   status: DeploymentStatus;
 }
 
@@ -264,15 +264,15 @@ model DeploymentCountMetric {
   unit: "{deployment}";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Status")
-  @encodedName("application/json", "deployment.status")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.Status)
   status: DeploymentStatus;
 }
 
@@ -289,11 +289,11 @@ model DoraDeploymentFrequencyMetric {
   unit: "{deployment}/d";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName?: string;
 }
 
@@ -306,11 +306,11 @@ model DoraLeadTimeMetric {
   unit: "h";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName?: string;
 }
 
@@ -323,11 +323,11 @@ model DoraChangeFailureRateMetric {
   unit: "1";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName?: string;
 }
 
@@ -340,10 +340,10 @@ model DoraMttrMetric {
   unit: "h";
 
   @doc("Environment")
-  @encodedName("application/json", "deployment.environment.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Deployment.EnvironmentName)
   environment: DeploymentEnvironment;
 
   @doc("Service name")
-  @encodedName("application/json", "service.name")
+  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
   serviceName?: string;
 }

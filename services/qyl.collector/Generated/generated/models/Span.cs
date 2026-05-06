@@ -114,7 +114,7 @@ namespace Qyl.OTel.Traces
         ///<summary>
         /// Resource describing the entity that produced this span
         ///</summary>
-        public Qyl.OTel.Resource.Resource Resource { get; set; }
+        public Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope
