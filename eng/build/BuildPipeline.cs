@@ -57,8 +57,15 @@ interface IPipeline : IHazSourcePaths
                 ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                     ? "aarch64-apple-darwin"
                     : "x86_64-apple-darwin"
-                : "x86_64-unknown-linux-gnu";
-            var weaverBin = RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / "weaver";
+                : RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                        ? "aarch64-pc-windows-msvc"
+                        : "x86_64-pc-windows-msvc"
+                    : RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                        ? "aarch64-unknown-linux-gnu"
+                        : "x86_64-unknown-linux-gnu";
+            var weaverExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "weaver.exe" : "weaver";
+            var weaverBin = RootDirectory / ".tools" / "weaver" / $"weaver-{weaverArch}" / weaverExecutable;
 
             var templatesDir = SemconvDirectory / "templates" / "registry";
             var upstreamModel = RootDirectory / ".tools" / "semconv-upstream" / "model";

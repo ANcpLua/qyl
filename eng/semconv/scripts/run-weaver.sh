@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Generate qyl's semconv outputs into their final destinations via Weaver.
 #
+# Assumes bootstrap already installed Weaver into .tools/weaver/ and initialized
+# the pinned upstream OpenTelemetry semantic-conventions submodule at
+# .tools/semconv-upstream.
+#
 # Pass 1: upstream OTel registry outputs.
 # Pass 2: qyl-owned attribute registry outputs.
 # Pass 3: upstream OTel registry to TypeSpec consts.
@@ -23,7 +27,20 @@ WEAVER_BIN="${REPO_ROOT}/.tools/weaver/weaver-${WEAVER_ARCH}/weaver"
 UPSTREAM_REGISTRY="${REPO_ROOT}/.tools/semconv-upstream/model"
 QYL_REGISTRY="${REPO_ROOT}/eng/semconv/model/qyl"
 TEMPLATES_ROOT="${REPO_ROOT}/eng/semconv/templates/registry"
-STAGING_DIR="${REPO_ROOT}/Artifacts/semconv"
+# Override with SEMCONV_STAGING_DIR for non-default workspace layouts (for example CI).
+# Reject values that could make the cleanup below target outside the intended tree.
+STAGING_DIR="${SEMCONV_STAGING_DIR-${REPO_ROOT}/Artifacts/semconv}"
+case "${STAGING_DIR}" in
+  ""|"/")
+    echo "ERROR: STAGING_DIR must be a non-empty absolute path other than '/'" >&2
+    echo "       Got: '${STAGING_DIR}' (set via SEMCONV_STAGING_DIR=${SEMCONV_STAGING_DIR-<unset>})" >&2
+    exit 1 ;;
+  /*) ;;
+  *)
+    echo "ERROR: STAGING_DIR must be absolute (start with '/')" >&2
+    echo "       Got: '${STAGING_DIR}' (set via SEMCONV_STAGING_DIR=${SEMCONV_STAGING_DIR-<unset>})" >&2
+    exit 1 ;;
+esac
 
 TS_DEST="${REPO_ROOT}/services/qyl.dashboard/src/lib/semconv.ts"
 SQL_DEST="${REPO_ROOT}/services/qyl.collector/Storage/promoted-columns.g.sql"

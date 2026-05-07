@@ -1,6 +1,13 @@
 [CmdletBinding()]
 Param()
 
+# Prepare the Weaver-based semconv toolchain for PowerShell.
+#
+# Reads the pinned semconv_version from
+# eng/semconv/templates/registry/qyl/weaver.yaml, uses pinned Weaver v0.23.0,
+# checks the pinned .tools/semconv-upstream submodule, and downloads the
+# platform-specific Weaver binary into .tools/weaver/.
+
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
@@ -61,6 +68,7 @@ elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Syste
     switch ($architecture)
     {
         "x64" { $weaverArch = "x86_64-unknown-linux-gnu" }
+        "arm64" { $weaverArch = "aarch64-unknown-linux-gnu" }
         default
         {
             Write-Error "Unsupported architecture: ${architecture}"
@@ -105,7 +113,24 @@ if (-not (Test-Path $WeaverBinary))
     $targetDir = Split-Path $WeaverBinary -Parent
     if ($archiveSuffix -eq "zip")
     {
-        Expand-Archive -Path $archiveFile -DestinationPath $targetDir -Force
+        $extractDir = Join-Path $WeaverDir "extract-${weaverArch}"
+        if (Test-Path $extractDir)
+        {
+            Remove-Item -Recurse -Force $extractDir
+        }
+
+        New-Item -ItemType Directory -Path $extractDir | Out-Null
+        Expand-Archive -Path $archiveFile -DestinationPath $extractDir -Force
+
+        $extractedBinary = Get-ChildItem -Path $extractDir -Recurse -Filter $binaryName | Select-Object -First 1
+        if (-not $extractedBinary)
+        {
+            Write-Error "Could not find ${binaryName} in ${ReleaseArchive}"
+            exit 1
+        }
+
+        Copy-Item -Path $extractedBinary.FullName -Destination $WeaverBinary -Force
+        Remove-Item -Recurse -Force $extractDir
     }
     else
     {

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Prepare the Weaver-based semconv pipeline.
+# Prepare the Weaver-based semconv toolchain on macOS/Linux.
 #
-# semconv-upstream is a git submodule at .tools/semconv-upstream pinned to a
-# semconv tag. This script refuses to proceed if the submodule is absent.
-# Weaver is downloaded per platform into .tools/weaver/ and ignored by git.
+# Reads the pinned semconv_version from
+# eng/semconv/templates/registry/qyl/weaver.yaml, uses pinned Weaver v0.23.0,
+# checks the pinned .tools/semconv-upstream submodule, and downloads the
+# platform-specific Weaver binary into .tools/weaver/.
 
 set -euo pipefail
 
@@ -33,6 +34,7 @@ case "${UNAME_S}:${UNAME_M}" in
   Darwin:arm64|Darwin:aarch64) WEAVER_ARCH="aarch64-apple-darwin" ;;
   Darwin:x86_64)               WEAVER_ARCH="x86_64-apple-darwin" ;;
   Linux:x86_64)                WEAVER_ARCH="x86_64-unknown-linux-gnu" ;;
+  Linux:arm64|Linux:aarch64)   WEAVER_ARCH="aarch64-unknown-linux-gnu" ;;
   *) echo "Unsupported platform: ${UNAME_S}/${UNAME_M}" >&2; exit 1 ;;
 esac
 
