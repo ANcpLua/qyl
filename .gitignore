@@ -175,3 +175,5 @@ images/
 eng/semconv/out/
 .DS_Store
 *.bak
+
+package-lock.json
