@@ -287,7 +287,6 @@ tests/                                  # xUnit v3 + MTP tests
 |--------------------------------------|---------------------------------------------------------------------|
 | `AGENTS.md`                          | Conventions + composition cheat sheet for agents in this repo       |
 | `CLAUDE.md`                          | Per-package conventions, MAF entry-points, MCP/agent telemetry      |
-| `docs/MAF-Primitiv + qyl-Pattern.md` | Design sketch — MAF primitives × qyl autofix patterns (12 sections) |
 | `docs/attributes/`                   | Compile-time attribute catalogues                                   |
 | `docs/superpowers/`                  | Long-form notes and historical design plans                         |
 
