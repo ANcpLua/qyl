@@ -22,10 +22,10 @@
 
   <ItemGroup>
     <!-- Roslyn compiler API — PrivateAssets=all so it doesn't leak to consumers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" PrivateAssets="all"/>
     <!-- Workspaces required for CodeFixProvider (Document, CodeFixContext, etc.) -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" PrivateAssets="all"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- Exclude the Tests/ subdirectory from this library project -->
