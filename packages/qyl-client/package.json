@@ -46,7 +46,7 @@
     "uri-template": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "18.19.130",
+    "@types/node": "24.12.2",
     "typescript": "6.0.3"
   },
   "publishConfig": {
