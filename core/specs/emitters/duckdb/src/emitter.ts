@@ -72,6 +72,10 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     path: `${context.emitterOutputDir}/DuckDbSchema.g.cs`,
     content: renderClass(tables, version),
   });
+  await emitFile(program, {
+    path: `${context.emitterOutputDir}/DuckDbSchema.g.sql`,
+    content: `-- QYL DuckDB Schema v${version}\n${ddlContent}`,
+  });
 }
 
 function collectTable(program: Program, model: Model, name: string): Table {
