@@ -1,8 +1,6 @@
 <Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
-    <TargetFramework></TargetFramework>
     <RootNamespace>Qyl.OpenTelemetry.Extensions</RootNamespace>
     <PackageId>Qyl.OpenTelemetry.Extensions</PackageId>
     <Description>Zero-boilerplate OpenTelemetry wiring for services that export to a qyl collector.</Description>

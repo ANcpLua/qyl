@@ -11,8 +11,8 @@ public static class QylOpenTelemetryServiceCollectionExtensions
         this IServiceCollection services,
         Action<QylOtelOptions> configure)
     {
-        Guard.NotNull(services, nameof(services));
-        Guard.NotNull(configure, nameof(configure));
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
 
         var options = new QylOtelOptions();
         configure(options);
