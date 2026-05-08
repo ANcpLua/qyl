@@ -30,7 +30,7 @@ env:
 jobs:
   backend:
     name: Backend (.NET)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
@@ -92,7 +92,7 @@ jobs:
 
   frontend:
     name: Frontend (React)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
@@ -139,7 +139,7 @@ jobs:
 
   frontend-coverage:
     name: Frontend Coverage
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: frontend
 
     steps:
@@ -176,7 +176,7 @@ jobs:
 
   schema-drift:
     name: Schema Drift (TypeSpec → Generated)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
@@ -233,7 +233,7 @@ jobs:
 
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
@@ -265,7 +265,7 @@ jobs:
     # on a clean checkout and asserts `git status --porcelain` is empty so that
     # any drift — generated, template-side, or registry — fails the PR loudly.
     name: Regen Clean (T2)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
