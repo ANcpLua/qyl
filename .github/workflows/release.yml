@@ -34,7 +34,7 @@ env:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout
@@ -195,7 +195,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   pack-nuget:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: build-and-release
     steps:
       - name: Checkout
@@ -246,7 +246,7 @@ jobs:
             --skip-duplicate
 
   pack-npm:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: build-and-release
     steps:
       - name: Checkout
@@ -295,7 +295,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   build-docker:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: build-and-release
 
     steps:
@@ -313,8 +313,8 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@722e97d12b1d06a961800dd6c05d79d951ad3c80 # v1
 
       - name: Login to Docker Hub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
@@ -330,7 +330,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: useblacksmith/build-push-action@fb9e3e6a9299c78462bfadd0d93352c316adc9b8 # v2
         with:
           context: .
           file: services/qyl.collector/Dockerfile
@@ -341,8 +341,6 @@ jobs:
             ancplua/qyl:latest
             ghcr.io/ancplua/qyl:${{ steps.version.outputs.version }}
             ghcr.io/ancplua/qyl:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           labels: |
             org.opencontainers.image.title=qyl
             org.opencontainers.image.description=AI Observability Platform - OpenTelemetry collector with DuckDB storage
