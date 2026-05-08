@@ -43,7 +43,12 @@ jobs:
         with:
           global-json-file: global.json
           cache: true
-          cache-dependency-path: '**/Directory.Packages.props'
+          cache-dependency-path: |
+            **/Directory.Packages.props
+            **/*.csproj
+            **/*.fsproj
+            **/packages.lock.json
+            **/nuget.config
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -194,7 +199,12 @@ jobs:
         with:
           global-json-file: global.json
           cache: true
-          cache-dependency-path: '**/Directory.Packages.props'
+          cache-dependency-path: |
+            **/Directory.Packages.props
+            **/*.csproj
+            **/*.fsproj
+            **/packages.lock.json
+            **/nuget.config
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -258,7 +268,12 @@ jobs:
         with:
           global-json-file: global.json
           cache: true
-          cache-dependency-path: '**/Directory.Packages.props'
+          cache-dependency-path: |
+            **/Directory.Packages.props
+            **/*.csproj
+            **/*.fsproj
+            **/packages.lock.json
+            **/nuget.config
 
       - name: Audit .NET dependencies
         run: dotnet list package --vulnerable --include-transitive
@@ -284,7 +299,12 @@ jobs:
         with:
           global-json-file: global.json
           cache: true
-          cache-dependency-path: '**/Directory.Packages.props'
+          cache-dependency-path: |
+            **/Directory.Packages.props
+            **/*.csproj
+            **/*.fsproj
+            **/packages.lock.json
+            **/nuget.config
 
       - name: Cache Weaver binary
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
