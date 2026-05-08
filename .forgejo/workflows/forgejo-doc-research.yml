@@ -1,0 +1,27 @@
+name: Forgejo doc research
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  research:
+    runs-on: docker
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+
+      - name: Build Forgejo research corpus
+        run: node eng/forgejo/research-forgejo-docs.mjs
+
+      - name: Print manifest
+        run: |
+          cat artifacts/forgejo-research/manifest.json
+          sed -n '1,160p' artifacts/forgejo-research/summary-api-notes.md
+
+      - name: Upload research corpus
+        uses: https://data.forgejo.org/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: forgejo-research
+          path: artifacts/forgejo-research
