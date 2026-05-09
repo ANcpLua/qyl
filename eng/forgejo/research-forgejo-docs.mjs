@@ -332,9 +332,11 @@ function excerpt(content, index) {
       if (!credentials.includes(':')) return match;
       return `${prefix}${flag} <redacted>`;
     })
+    .replaceAll(/(\s)(--auth_(?:username|password|token))(?:=|\s+)(\"[^\"]*\"|'[^']*'|[^\s\"'\\]+)/gi, (match, prefix, flag) => `${prefix}${flag} <redacted>`)
     .replaceAll(/Authorization:\s*(Bearer|token|Basic)\s+[A-Za-z0-9+/_=.-]+/gi, 'Authorization: $1 <redacted>')
-    .replaceAll(/\b(X-Forgejo-OTP:\s*)\d{6}\b/gi, '$1<redacted>')
-    .replaceAll(/([?&])(token|access_token)=([^&\s"'#]+)/gi, '$1$2=<redacted>')
+    .replaceAll(/\b(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}\b/gi, '$1<redacted>')
+    .replaceAll(/([?&])(token|access_token|auth_token)=([^&\s"'#]+)/gi, '$1$2=<redacted>')
+    .replaceAll(/("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)("[^"]*"|'[^']*'|[^,}\]\s]+)/gi, '$1<redacted>')
     .replaceAll(/(https?:\/\/)([^@\s/:]+):([^@\s/]+)@/gi, '$1<redacted>@')
     .replaceAll(/\b(token:\s*)[A-Fa-f0-9]{24,}\b/g, '$1<redacted>')
     .trim();

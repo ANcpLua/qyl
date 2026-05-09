@@ -12,8 +12,9 @@ internal static partial class SummaryCredentialRedactor
         var redacted = AuthorizationHeaderRegex().Replace(value, "$1<redacted>");
         redacted = EnvironmentTokenAssignmentRegex().Replace(redacted, "$1<redacted>");
         redacted = CurlUserRegex().Replace(redacted, "$1<redacted>");
+        redacted = CliAuthArgumentRegex().Replace(redacted, "$1<redacted>");
         redacted = TokenQueryParameterRegex().Replace(redacted, "$1<redacted>");
-        redacted = JsonTokenPropertyRegex().Replace(redacted, "$1<redacted>");
+        redacted = JsonCredentialPropertyRegex().Replace(redacted, "$1<redacted>");
         redacted = YamlTokenPropertyRegex().Replace(redacted, "$1<redacted>");
         redacted = ForgejoOtpRegex().Replace(redacted, "$1<redacted>");
         return UrlUserInfoRegex().Replace(redacted, "$1<redacted>@");
@@ -31,19 +32,23 @@ internal static partial class SummaryCredentialRedactor
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CurlUserRegex();
 
-    [GeneratedRegex("""([?&](?:token|access_token)=)[^&\s"'#]+""",
+    [GeneratedRegex("""(--auth_(?:username|password|token)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s;&|]+)""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CliAuthArgumentRegex();
+
+    [GeneratedRegex("""([?&](?:token|access_token|auth_token)=)[^&\s"'#]+""",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TokenQueryParameterRegex();
 
-    [GeneratedRegex("""("(?:token|access_token)"\s*:\s*)(?:"[^"]*"|'[^']*'|[^,}\]\s]+)""",
+    [GeneratedRegex("""("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)(?:"[^"]*"|'[^']*'|[^,}\]\s]+)""",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex JsonTokenPropertyRegex();
+    private static partial Regex JsonCredentialPropertyRegex();
 
     [GeneratedRegex("""(\btoken:\s*)[A-Fa-f0-9]{24,}""",
         RegexOptions.CultureInvariant)]
     private static partial Regex YamlTokenPropertyRegex();
 
-    [GeneratedRegex("""(X-Forgejo-OTP:\s*)\d{6}""",
+    [GeneratedRegex("""(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}""",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ForgejoOtpRegex();
 
