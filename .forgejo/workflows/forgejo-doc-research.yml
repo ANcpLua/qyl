@@ -24,4 +24,9 @@ jobs:
         uses: https://data.forgejo.org/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: forgejo-research
-          path: artifacts/forgejo-research
+          path: |
+            artifacts/forgejo-research/corpus.ndjson
+            artifacts/forgejo-research/manifest.json
+            artifacts/forgejo-research/route-index.json
+            artifacts/forgejo-research/summary-api-notes.md
+            artifacts/forgejo-research/source-metadata/forgejo-v15-swagger.json

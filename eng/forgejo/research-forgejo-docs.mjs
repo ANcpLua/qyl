@@ -91,6 +91,46 @@ const includedExtensions = new Set([
 ]);
 
 const maxBytes = 1_000_000;
+const requestTimeoutMs = 30_000;
+const maxRedirects = 5;
+const credentialRedactionRules = [
+  [
+    /\b((?:export\s+)?(?:FORGEJO_API_TOKEN|FORGEJO_TOKEN|GITEA_TOKEN|GITHUB_TOKEN|INPUTS_TOKEN|FORGEJO__security__INTERNAL_TOKEN)\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s;&|]+)/gi,
+    '$1<redacted>'
+  ],
+  [
+    /(\s(?:-u|--user)(?:=|\s+))(?:"[^"]+:[^"]*"|'[^']+:[^']+'|[^\s"']+:[^\s"']+)/gi,
+    '$1<redacted>'
+  ],
+  [
+    /(--auth_(?:username|password|token)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s;&|]+)/gi,
+    '$1<redacted>'
+  ],
+  [
+    /(Authorization:\s*(?:Bearer|token|Basic)\s+)[^\s"']+/gi,
+    '$1<redacted>'
+  ],
+  [
+    /(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}/gi,
+    '$1<redacted>'
+  ],
+  [
+    /([?&](?:token|access_token|auth_token)=)[^&\s"'#]+/gi,
+    '$1<redacted>'
+  ],
+  [
+    /("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)(?:"[^"]*"|'[^']*'|[^,}\]\s]+)/gi,
+    '$1<redacted>'
+  ],
+  [
+    /(https?:\/\/)[^@\s/:]+:[^@\s/]+@/gi,
+    '$1<redacted>@'
+  ],
+  [
+    /\b(token:\s*)[A-Fa-f0-9]{24,}\b/g,
+    '$1<redacted>'
+  ]
+];
 const searchTerms = [
   'actions/runners',
   'registration token',
@@ -316,30 +356,17 @@ function searchCorpus(corpus) {
 function excerpt(content, index) {
   const start = Math.max(0, index - 90);
   const end = Math.min(content.length, index + 180);
-  return content
+  return redactCredentialText(content
     .slice(start, end)
-    .replaceAll(/\s+/g, ' ')
-    .replaceAll(
-      /\b(export\s+)?(FORGEJO_API_TOKEN|FORGEJO_TOKEN|GITEA_TOKEN|GITHUB_TOKEN|INPUTS_TOKEN|FORGEJO__security__INTERNAL_TOKEN)\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s;&|]+)/gi,
-      (match, exportPrefix, name, rawValue) => {
-        const quote = rawValue.startsWith('"') || rawValue.startsWith("'") ? rawValue[0] : '';
-        const redactedValue = quote ? `${quote}<redacted>${quote}` : '<redacted>';
-        return `${exportPrefix || ''}${name}=${redactedValue}`;
-      }
-    )
-    .replaceAll(/(\s)(-u|--user)(?:=|\s+)(\"[^\"]+\"|'[^']+'|[^\s\"'\\]+)/gi, (match, prefix, flag, rawCredentials) => {
-      const credentials = rawCredentials.replaceAll(/^['"]|['"]$/g, '');
-      if (!credentials.includes(':')) return match;
-      return `${prefix}${flag} <redacted>`;
-    })
-    .replaceAll(/(\s)(--auth_(?:username|password|token))(?:=|\s+)(\"[^\"]*\"|'[^']*'|[^\s\"'\\]+)/gi, (match, prefix, flag) => `${prefix}${flag} <redacted>`)
-    .replaceAll(/Authorization:\s*(Bearer|token|Basic)\s+[A-Za-z0-9+/_=.-]+/gi, 'Authorization: $1 <redacted>')
-    .replaceAll(/\b(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}\b/gi, '$1<redacted>')
-    .replaceAll(/([?&])(token|access_token|auth_token)=([^&\s"'#]+)/gi, '$1$2=<redacted>')
-    .replaceAll(/("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)("[^"]*"|'[^']*'|[^,}\]\s]+)/gi, '$1<redacted>')
-    .replaceAll(/(https?:\/\/)([^@\s/:]+):([^@\s/]+)@/gi, '$1<redacted>@')
-    .replaceAll(/\b(token:\s*)[A-Fa-f0-9]{24,}\b/g, '$1<redacted>')
+    .replaceAll(/\s+/g, ' '))
     .trim();
+}
+
+function redactCredentialText(value) {
+  return credentialRedactionRules.reduce(
+    (redacted, [pattern, replacement]) => redacted.replaceAll(pattern, replacement),
+    value
+  );
 }
 
 function currentCommit(repoPath) {
@@ -355,26 +382,25 @@ function isProbablyBinary(file) {
   return sample.includes(0);
 }
 
-function download(url, destination, redirects = 0) {
+function download(url, destination, redirectsRemaining = maxRedirects) {
   return new Promise((resolve, reject) => {
     mkdirSync(dirname(destination), { recursive: true });
-    get(url, (response) => {
-      const status = response.statusCode ?? 0;
-
-      if (status >= 300 && status < 400 && response.headers.location) {
-        if (redirects >= 5) {
-          response.resume();
+    const request = get(url, (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        if (redirectsRemaining <= 0) {
           reject(new Error(`GET ${url} exceeded redirect limit`));
+          response.resume();
           return;
         }
-        const next = new URL(response.headers.location, url).toString();
+
         response.resume();
-        download(next, destination, redirects + 1).then(resolve, reject);
+        download(new URL(response.headers.location, url).toString(), destination, redirectsRemaining - 1)
+          .then(resolve, reject);
         return;
       }
 
-      if (status !== 200) {
-        reject(new Error(`GET ${url} failed with ${status}`));
+      if (response.statusCode !== 200) {
+        reject(new Error(`GET ${url} failed with ${response.statusCode}`));
         response.resume();
         return;
       }
@@ -386,6 +412,10 @@ function download(url, destination, redirects = 0) {
         resolve();
       });
     }).on('error', reject);
+
+    request.setTimeout(requestTimeoutMs, () => {
+      request.destroy(new Error(`GET ${url} timed out after ${requestTimeoutMs}ms`));
+    });
   });
 }
 
