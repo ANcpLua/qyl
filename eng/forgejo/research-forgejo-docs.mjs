@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
+import { once } from 'node:events';
 import { createWriteStream, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { get } from 'node:https';
 import { dirname, extname, join, relative } from 'node:path';
@@ -124,6 +125,12 @@ const searchTerms = [
   'session summary'
 ];
 
+// Capture qyl-workspace provenance BEFORE creating the artifacts/ tree, so the
+// manifest reflects the pre-run checkout state instead of marking the workspace
+// dirty because of the harness's own outputs.
+const workspaceCommit = currentCommit(workspaceRoot);
+const workspaceDirty = isDirty(workspaceRoot);
+
 mkdirSync(repoRoot, { recursive: true });
 mkdirSync(sourceMetadataRoot, { recursive: true });
 
@@ -161,13 +168,18 @@ for (const source of corpusSources) {
     const redactedContent = redactCredentialText(content);
     const digest = sha256(content);
     const path = relative(source.root, file);
-    corpusStream.write(JSON.stringify({
+    // Honour the WriteStream's backpressure signal: when the kernel/userland
+    // buffer fills, await 'drain' before writing the next NDJSON line so we do
+    // not silently rebuild the in-memory corpus we just dismantled.
+    if (!corpusStream.write(JSON.stringify({
       source: source.name,
       path,
       bytes,
       sha256: digest,
       content: redactedContent
-    }) + '\n');
+    }) + '\n')) {
+      await once(corpusStream, 'drain');
+    }
 
     // Match search terms against the redacted body during the walk so we don't
     // need to retain the full corpus in memory after the loop. Per-term cap is
@@ -195,8 +207,8 @@ for (const source of corpusSources) {
   manifest.push({
     source: source.name,
     root: source.local ? '.' : relative(workspaceRoot, source.root),
-    commit: source.local ? currentCommit(workspaceRoot) : currentCommit(source.root),
-    dirty: source.local ? isDirty(workspaceRoot) : isDirty(source.root),
+    commit: source.local ? workspaceCommit : currentCommit(source.root),
+    dirty: source.local ? workspaceDirty : isDirty(source.root),
     files: files.length,
     bytes: sourceBytes,
     redacted: true,
@@ -278,7 +290,19 @@ function shouldIncludeFile(file) {
     return false;
   }
 
-  const size = statSync(file).size;
+  // Files can disappear between `git ls-files` / `readdirSync` and this stat
+  // (e.g. branch switches, transient `obj/`, editor temp files). Treat ENOENT
+  // as "skip" instead of crashing the whole harness.
+  let size;
+  try {
+    size = statSync(file).size;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+
   if (size === 0 || size > maxBytes) {
     return false;
   }

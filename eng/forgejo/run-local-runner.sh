@@ -32,7 +32,16 @@ if ! [[ "${FORGEJO_RUNNER_UUID}" =~ ^[A-Za-z0-9_-]+$ ]]; then
 fi
 
 mkdir -p "${SECRETS_DIR}"
+if [[ -L "${SECRETS_DIR}" ]]; then
+  echo "Refusing to use symlinked secrets directory: ${SECRETS_DIR}" >&2
+  exit 2
+fi
 chmod 700 "${SECRETS_DIR}"
+
+if [[ -L "${TOKEN_FILE}" ]]; then
+  echo "Refusing to use symlinked token file: ${TOKEN_FILE}" >&2
+  exit 2
+fi
 
 if [[ -n "${FORGEJO_RUNNER_TOKEN:-}" ]]; then
   umask 077
