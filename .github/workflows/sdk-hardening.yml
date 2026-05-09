@@ -1,0 +1,60 @@
+name: sdk-hardening
+
+# Audits SDK adoption + held-back surface 4x/day so drift surfaces within hours.
+
+on:
+  schedule:
+    - cron: '37 1,7,13,19 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**/*.csproj'
+      - 'global.json'
+      - 'Directory.Packages.props'
+      - '.github/workflows/sdk-hardening.yml'
+      - '.github/scripts/sdk-hardening.sh'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-hardening-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Audit SDK adoption
+        env:
+          SDK_NAME: ANcpLua.NET.Sdk
+          # Two intentional Microsoft.NET.Sdk islands:
+          # - eng/build is the Nuke entry point, has its own conventions.
+          # - packages/Qyl.Client/Generated is the @typespec/http-client-csharp
+          #   emitter scaffold — gitignored by the root .gitignore, only the
+          #   top-level packages/Qyl.Client/Qyl.Client.csproj is the project
+          #   that actually ships.
+          ALLOW_MICROSOFT_NET_SDK: |
+            eng/build/build.csproj
+            packages/Qyl.Client/Generated/src/Qyl.Client.csproj
+          # Both held-back items intentionally opt out of CPM (manual
+          # Microsoft.CodeAnalysis.CSharp pins) which collides with the
+          # SDK's implicit Roslyn pin even with DisableImplicitRoslynPackageReference.
+          # See PR #295 body.
+          HELD_BACK: |
+            packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj|opts out of CPM with manual Roslyn pin — collides with SDK's implicit Roslyn ref
+            packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj|opts out of CPM with manual Roslyn pin — pairs with the analyzer above
+          BANNED_PACKAGES: |
+            PolySharp
+            FluentAssertions
+            Microsoft.NET.Test.Sdk
+          # Roslyn.Utilities[.Testing] msbuild-sdks pins are intentionally
+          # decoupled from the SDK release cadence — leaving them out of the
+          # freshness check.
+          SDK_PIN_PACKAGES: |
+            ANcpLua.NET.Sdk
+            ANcpLua.NET.Sdk.Web
+            ANcpLua.NET.Sdk.Test
+        run: bash .github/scripts/sdk-hardening.sh
