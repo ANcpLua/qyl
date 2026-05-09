@@ -16,8 +16,8 @@ if ! [[ "${RUNNER_CAPACITY}" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
-if ! [[ "${FORGEJO_URL}" =~ ^https?://[A-Za-z0-9.:_/-]+/$ ]]; then
-  echo "FORGEJO_URL must be an http(s) URL with a trailing slash." >&2
+if ! [[ "${FORGEJO_URL}" =~ ^https?://[^/[:space:]]+(/[^[:space:]]*)?/$ ]]; then
+  echo "FORGEJO_URL must be an http(s) URL with a non-empty host and a trailing slash." >&2
   exit 2
 fi
 

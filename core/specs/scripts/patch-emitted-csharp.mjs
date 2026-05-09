@@ -282,15 +282,29 @@ function addTraceAliasInModels(content, filePath) {
 //   output (just the type name) and trips the qyl-code-quality "default ToString"
 //   diagnostic. The exception type and branch are unchanged.
 function fixDefaultToStringInExceptionMessages(content, filePath) {
+    // The targeted exception message is the canonical drift signal: if the
+    // emitter ever changes wording or formatting, we want the build to fail
+    // loudly so this patch is updated, not silently skipped.
+    const template =
+        /throw new InvalidOperationException\(\$"Cannot create converter for \{typeToConvert\} with \{this\}"\)/;
+    const replaceOrThrow = (input, replacement) => {
+        if (!template.test(input)) {
+            throw new Error(
+                `patch-emitted-csharp: expected exception template not found in ${filePath}`,
+            );
+        }
+        return input.replace(template, replacement);
+    };
+
     if (filePath.endsWith("NumericArrayConstraintAttribute.cs")) {
-        return content.replace(
-            /throw new InvalidOperationException\(\$"Cannot create converter for \{typeToConvert\} with \{this\}"\)/,
+        return replaceOrThrow(
+            content,
             'throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with NumericArrayConstraintAttribute<{typeof(T).Name}> (MinValue={MinValue}, MaxValue={MaxValue}, MinValueExclusive={MinValueExclusive}, MaxValueExclusive={MaxValueExclusive})")',
         );
     }
     if (filePath.endsWith("StringArrayConstraintAttribute.cs")) {
-        return content.replace(
-            /throw new InvalidOperationException\(\$"Cannot create converter for \{typeToConvert\} with \{this\}"\)/,
+        return replaceOrThrow(
+            content,
             'throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with StringArrayConstraintAttribute (MinItemLength={MinItemLength}, MaxItemLength={MaxItemLength}, Pattern={Pattern})")',
         );
     }
