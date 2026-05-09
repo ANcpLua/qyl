@@ -18,6 +18,7 @@ public sealed class SummaryCredentialRedactorTests
                       https://root:admin1234@example.test/root/repo
                       GET /api/v1/repos/a/b/actions/runners?token=abc123&other=1
                       GET /api/v1/repos/migrate?auth_token=abc456&other=1
+                      PUT /api/v1/repos/a/b/actions/secrets/MY_SECRET {"data":"repo-secret-value"}
                       {"token":"runner-secret","access_token":"api-secret"}
                       {"auth_token":"migrate-token","auth_password":"migrate-password","auth_username":"migrate-user"}
                       token: {{syntheticRunnerToken}}
@@ -34,6 +35,7 @@ public sealed class SummaryCredentialRedactorTests
         Assert.DoesNotContain("alice:password", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("abc123", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("abc456", redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain("repo-secret-value", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("runner-secret", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("api-secret", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("migrate-token", redacted, StringComparison.Ordinal);

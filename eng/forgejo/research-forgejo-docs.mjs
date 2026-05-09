@@ -43,7 +43,8 @@ const corpusSources = [
   {
     name: 'qyl-workspace',
     root: workspaceRoot,
-    local: true
+    local: true,
+    trackedOnly: true
   },
   ...upstreamRepos.map((repo) => ({
     name: repo.name,
@@ -136,7 +137,7 @@ await download(
 const manifest = [];
 const corpus = [];
 for (const source of corpusSources) {
-  const files = collectFiles(source.root);
+  const files = collectFiles(source);
   let sourceBytes = 0;
   for (const file of files) {
     const content = readFileSync(file, 'utf8');
@@ -185,9 +186,24 @@ function refreshRepo(repo) {
   }
 }
 
-function collectFiles(root) {
+function collectFiles(source) {
+  if (source.trackedOnly) {
+    return collectTrackedFiles(source.root);
+  }
+
   const files = [];
-  walk(root, files);
+  walk(source.root, files);
+  files.sort();
+  return files;
+}
+
+function collectTrackedFiles(root) {
+  const result = run('git', ['-C', root, 'ls-files', '-z']);
+  const files = result.stdout
+    .split('\0')
+    .filter(Boolean)
+    .map((path) => join(root, path))
+    .filter(shouldIncludeFile);
   files.sort();
   return files;
 }
@@ -206,22 +222,24 @@ function walk(current, files) {
     }
 
     const file = join(current, entry.name);
-    const ext = extname(entry.name).toLowerCase();
-    if (!includedExtensions.has(ext)) {
-      continue;
+    if (shouldIncludeFile(file)) {
+      files.push(file);
     }
-
-    const size = statSync(file).size;
-    if (size === 0 || size > maxBytes) {
-      continue;
-    }
-
-    if (isProbablyBinary(file)) {
-      continue;
-    }
-
-    files.push(file);
   }
+}
+
+function shouldIncludeFile(file) {
+  const ext = extname(file).toLowerCase();
+  if (!includedExtensions.has(ext)) {
+    return false;
+  }
+
+  const size = statSync(file).size;
+  if (size === 0 || size > maxBytes) {
+    return false;
+  }
+
+  return !isProbablyBinary(file);
 }
 
 function buildRouteIndex(swaggerPath) {
@@ -315,7 +333,7 @@ function searchCorpus(corpus) {
         term,
         source: entry.source,
         path: entry.path,
-        excerpt: excerpt(entry.content, index)
+        excerpt: excerpt(entry.content, index, term)
       });
 
       if (hits.filter((hit) => hit.term === term).length >= 6) {
@@ -327,12 +345,15 @@ function searchCorpus(corpus) {
   return hits.slice(0, 80);
 }
 
-function excerpt(content, index) {
-  const start = Math.max(0, index - 90);
-  const end = Math.min(content.length, index + 180);
-  return redactCredentialText(content
+function excerpt(content, index, term) {
+  const redacted = redactCredentialText(content);
+  const redactedIndex = redacted.toLowerCase().indexOf(term.toLowerCase(), Math.max(0, index - 1_000));
+  const effectiveIndex = redactedIndex >= 0 ? redactedIndex : index;
+  const start = Math.max(0, effectiveIndex - 90);
+  const end = Math.min(redacted.length, effectiveIndex + 180);
+  return redacted
     .slice(start, end)
-    .replaceAll(/\s+/g, ' '))
+    .replaceAll(/\s+/g, ' ')
     .trim();
 }
 

@@ -2,6 +2,13 @@
 
 This file tracks the last 10 cron automation material changes. It is for automated runners, not developer release notes.
 
+## 2026-05-09T19:20:00Z - branch-hygiene-sweep
+
+- Quick gate reported work: missing configured repo paths, qyl PRs #300/#301, and ANcpLua/ancplua-claude-plugins PRs #241/#242.
+- qyl PR #300 review pass continued on `dev/forgejo-summary-research`: shared credential redaction patterns, tracked-only workspace corpus collection, pre-slice redaction, runner config hardening, and focused redactor tests.
+- Verification: `node --check eng/forgejo/research-forgejo-docs.mjs`, `node eng/forgejo/research-forgejo-docs.mjs --no-refresh`, `bash -n eng/forgejo/run-local-runner.sh`, and focused `dotnet test` for `SummaryCredentialRedactorTests`.
+- Remaining blockers: configured repo paths are missing locally; qyl PR #300 still needs pushed CI snapshot after this local commit.
+
 ## 2026-05-09T10:30:00Z - branch-hygiene-sweep
 
 - Pruned merged local branches across Arqio, qyl, ANcpLua.Analyzers, ANcpLua.Agents, and ErrorOrX after live merged-PR evidence.

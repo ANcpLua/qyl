@@ -37,7 +37,7 @@ public static class SummaryCredentialRedactor
     {
         var assemblyDir = Path.GetDirectoryName(typeof(SummaryCredentialRedactor).Assembly.Location)
             ?? throw new InvalidOperationException("Unable to determine assembly location");
-        var patternsPath = Path.Combine(assemblyDir, "credential-patterns.json");
+        var patternsPath = Path.Join(assemblyDir, "credential-patterns.json");
 
         if (!File.Exists(patternsPath))
         {
@@ -57,15 +57,15 @@ public static class SummaryCredentialRedactor
             var options = RegexOptions.None;
             var flags = pattern.Flags ?? "gi";
 
-            if (flags.Contains('i', StringComparison.Ordinal))
+            if (flags.ContainsOrdinal("i"))
             {
                 options |= RegexOptions.IgnoreCase;
             }
-            if (flags.Contains('m', StringComparison.Ordinal))
+            if (flags.ContainsOrdinal("m"))
             {
                 options |= RegexOptions.Multiline;
             }
-            if (flags.Contains('s', StringComparison.Ordinal))
+            if (flags.ContainsOrdinal("s"))
             {
                 options |= RegexOptions.Singleline;
             }

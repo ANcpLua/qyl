@@ -11,6 +11,10 @@ COMPOSE_FILE="${RUNNER_ROOT}/docker-compose.yml"
 FORGEJO_URL="${FORGEJO_URL:-https://v15.next.forgejo.org/}"
 FORGEJO_URL="${FORGEJO_URL%/}/"
 RUNNER_CAPACITY="${QYL_FORGEJO_RUNNER_CAPACITY:-4}"
+if ! [[ "${RUNNER_CAPACITY}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "QYL_FORGEJO_RUNNER_CAPACITY must be a positive integer." >&2
+  exit 2
+fi
 
 if [[ -z "${FORGEJO_RUNNER_UUID:-}" ]]; then
   echo "FORGEJO_RUNNER_UUID is required. Create a repository-scoped runner in Forgejo and export its UUID." >&2
@@ -29,6 +33,7 @@ if [[ ! -s "${TOKEN_FILE}" ]]; then
   echo "Runner token is missing. Put it in ${TOKEN_FILE} or export FORGEJO_RUNNER_TOKEN for this command." >&2
   exit 2
 fi
+chmod 600 "${TOKEN_FILE}"
 
 cat > "${CONFIG_FILE}" <<YAML
 log:
@@ -54,21 +59,21 @@ container:
 server:
   connections:
     qyl:
-      url: ${FORGEJO_URL}
-      uuid: ${FORGEJO_RUNNER_UUID}
+      url: "${FORGEJO_URL}"
+      uuid: "${FORGEJO_RUNNER_UUID}"
       token_url: file:/data/secrets/token
 YAML
 
 cat > "${COMPOSE_FILE}" <<'YAML'
 services:
   docker-in-docker:
-    image: docker:28-dind
+    image: docker.io/library/docker:28-dind@sha256:2a232a42256f70d78e3cc5d2b5d6b3276710a0de0596c145f627ecfae90282ac
     privileged: true
     command: ['dockerd', '-H', 'tcp://0.0.0.0:2375', '--tls=false']
     restart: unless-stopped
 
   runner:
-    image: data.forgejo.org/forgejo/runner:12
+    image: data.forgejo.org/forgejo/runner:12@sha256:3d49075f9115054ae2485d8cea2819296a904dfd4f00017285168028615d8533
     depends_on:
       docker-in-docker:
         condition: service_started
