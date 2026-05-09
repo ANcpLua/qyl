@@ -166,7 +166,12 @@ for (const source of corpusSources) {
     }
 
     const redactedContent = redactCredentialText(content);
-    const digest = sha256(content);
+    // Hash the redacted body so the stored sha256 matches the bytes we actually
+    // ship in corpus.ndjson. Hashing the original content would let a reader
+    // who suspects a particular plaintext token confirm it via brute-force,
+    // and would also leave the manifest's digest unverifiable from the
+    // artifact alone.
+    const digest = sha256(redactedContent);
     const path = relative(source.root, file);
     // Honour the WriteStream's backpressure signal: when the kernel/userland
     // buffer fills, await 'drain' before writing the next NDJSON line so we do
