@@ -76,8 +76,6 @@ Auto-generated from `eng/semconv/model/qyl/` via Weaver. Do not edit manually.
 | Attribute | Type | Stability | Description |
 |-----------|------|-----------|-------------|
 | `qyl.release.channel` | `enum` (4 values) | development | Release track the deployment belongs to |
-| `qyl.release.commit_sha` | `string` | development | Full 40-character git SHA for the release commit |
-| `qyl.release.environment` | `string` | development | Deployment environment name |
 | `qyl.release.version` | `string` | development | Semantic or calendar version identifier for the release |
 
 ## `qyl.run`
