@@ -93,10 +93,11 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
         Func<AIAgent> buildAgent,
         CancellationToken ct)
     {
+        var safeRawContext = SummaryCredentialRedactor.Redact(rawContext);
         if (!agents.IsConfigured)
-            return $"# {title} (raw data -- no LLM configured)\n\n{rawContext}";
+            return $"# {title} (raw data -- no LLM configured)\n\n{safeRawContext}";
 
-        var response = await buildAgent().RunAsync(rawContext, cancellationToken: ct).ConfigureAwait(false);
+        var response = await buildAgent().RunAsync(safeRawContext, cancellationToken: ct).ConfigureAwait(false);
         return response.Text is { Length: > 0 } text ? text : "Summary generation produced no output.";
     }
 
@@ -125,7 +126,7 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
         return sb.ToString();
     }
 
-    private static string RenderTraceContext(string traceId, IReadOnlyCollection<TraceSpanDto> spans)
+    private static string RenderTraceContext(string traceId, List<TraceSpanDto> spans)
     {
         StringBuilder sb = new();
         sb.AppendLine($"Trace ID: {traceId}");

@@ -319,7 +319,23 @@ function excerpt(content, index) {
   return content
     .slice(start, end)
     .replaceAll(/\s+/g, ' ')
-    .replaceAll(/Authorization:\s*(Bearer|token)\s+[A-Za-z0-9._-]+/gi, 'Authorization: $1 <redacted>')
+    .replaceAll(
+      /\b(export\s+)?(FORGEJO_API_TOKEN|FORGEJO_TOKEN|GITEA_TOKEN|GITHUB_TOKEN|INPUTS_TOKEN|FORGEJO__security__INTERNAL_TOKEN)\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s;&|]+)/gi,
+      (match, exportPrefix, name, rawValue) => {
+        const quote = rawValue.startsWith('"') || rawValue.startsWith("'") ? rawValue[0] : '';
+        const redactedValue = quote ? `${quote}<redacted>${quote}` : '<redacted>';
+        return `${exportPrefix || ''}${name}=${redactedValue}`;
+      }
+    )
+    .replaceAll(/(\s)(-u|--user)(?:=|\s+)(\"[^\"]+\"|'[^']+'|[^\s\"'\\]+)/gi, (match, prefix, flag, rawCredentials) => {
+      const credentials = rawCredentials.replaceAll(/^['"]|['"]$/g, '');
+      if (!credentials.includes(':')) return match;
+      return `${prefix}${flag} <redacted>`;
+    })
+    .replaceAll(/Authorization:\s*(Bearer|token|Basic)\s+[A-Za-z0-9+/_=.-]+/gi, 'Authorization: $1 <redacted>')
+    .replaceAll(/\b(X-Forgejo-OTP:\s*)\d{6}\b/gi, '$1<redacted>')
+    .replaceAll(/([?&])(token|access_token)=([^&\s"'#]+)/gi, '$1$2=<redacted>')
+    .replaceAll(/(https?:\/\/)([^@\s/:]+):([^@\s/]+)@/gi, '$1<redacted>@')
     .replaceAll(/\b(token:\s*)[A-Fa-f0-9]{24,}\b/g, '$1<redacted>')
     .trim();
 }
