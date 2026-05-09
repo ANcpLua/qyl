@@ -1,58 +1,79 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace qyl.mcp.Tools;
 
-internal static partial class SummaryCredentialRedactor
+/// <summary>
+/// Redacts credentials from summary text using shared credential patterns.
+/// </summary>
+public static class SummaryCredentialRedactor
 {
-    public static string Redact(string value)
-    {
-        if (value.Length is 0)
-            return value;
+    private static readonly Lazy<List<RedactionRule>> s_rules = new(LoadRules);
 
-        var redacted = AuthorizationHeaderRegex().Replace(value, "$1<redacted>");
-        redacted = EnvironmentTokenAssignmentRegex().Replace(redacted, "$1<redacted>");
-        redacted = CurlUserRegex().Replace(redacted, "$1<redacted>");
-        redacted = CliAuthArgumentRegex().Replace(redacted, "$1<redacted>");
-        redacted = TokenQueryParameterRegex().Replace(redacted, "$1<redacted>");
-        redacted = JsonCredentialPropertyRegex().Replace(redacted, "$1<redacted>");
-        redacted = YamlTokenPropertyRegex().Replace(redacted, "$1<redacted>");
-        redacted = ForgejoOtpRegex().Replace(redacted, "$1<redacted>");
-        return UrlUserInfoRegex().Replace(redacted, "$1<redacted>@");
+    private sealed record CredentialPattern(
+        string Description,
+        string Pattern,
+        string Replacement,
+        string? Flags);
+
+    private sealed record RedactionRule(Regex Regex, string Replacement);
+
+    /// <summary>
+    /// Redacts credentials and sensitive data from the input text.
+    /// </summary>
+    /// <param name="input">The text to redact.</param>
+    /// <returns>The redacted text with credentials replaced.</returns>
+    public static string Redact(string input)
+    {
+        var result = input;
+        foreach (var rule in s_rules.Value)
+        {
+            result = rule.Regex.Replace(result, rule.Replacement);
+        }
+        return result;
     }
 
-    [GeneratedRegex("""(Authorization:\s*(?:Bearer|token|Basic)\s+)[^\s"']+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex AuthorizationHeaderRegex();
+    private static List<RedactionRule> LoadRules()
+    {
+        var assemblyDir = Path.GetDirectoryName(typeof(SummaryCredentialRedactor).Assembly.Location)
+            ?? throw new InvalidOperationException("Unable to determine assembly location");
+        var patternsPath = Path.Combine(assemblyDir, "credential-patterns.json");
 
-    [GeneratedRegex("""\b((?:export\s+)?(?:FORGEJO_API_TOKEN|FORGEJO_TOKEN|GITEA_TOKEN|GITHUB_TOKEN|INPUTS_TOKEN|FORGEJO__security__INTERNAL_TOKEN)\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s;&|]+)""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex EnvironmentTokenAssignmentRegex();
+        if (!File.Exists(patternsPath))
+        {
+            throw new FileNotFoundException(
+                $"Credential patterns file not found at {patternsPath}");
+        }
 
-    [GeneratedRegex("""(\s(?:-u|--user)(?:=|\s+))(?:"[^"]+:[^"]*"|'[^']+:[^']+'|[^\s"']+:[^\s"']+)""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex CurlUserRegex();
+        var json = File.ReadAllText(patternsPath);
+        var patterns = JsonSerializer.Deserialize<List<CredentialPattern>>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        }) ?? throw new InvalidOperationException("Failed to deserialize credential patterns");
 
-    [GeneratedRegex("""(--auth_(?:username|password|token)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s;&|]+)""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex CliAuthArgumentRegex();
+        var rules = new List<RedactionRule>();
+        foreach (var pattern in patterns)
+        {
+            var options = RegexOptions.None;
+            var flags = pattern.Flags ?? "gi";
 
-    [GeneratedRegex("""([?&](?:token|access_token|auth_token)=)[^&\s"'#]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex TokenQueryParameterRegex();
+            if (flags.Contains('i', StringComparison.Ordinal))
+            {
+                options |= RegexOptions.IgnoreCase;
+            }
+            if (flags.Contains('m', StringComparison.Ordinal))
+            {
+                options |= RegexOptions.Multiline;
+            }
+            if (flags.Contains('s', StringComparison.Ordinal))
+            {
+                options |= RegexOptions.Singleline;
+            }
 
-    [GeneratedRegex("""("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)(?:"[^"]*"|'[^']*'|[^,}\]\s]+)""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex JsonCredentialPropertyRegex();
+            var regex = new Regex(pattern.Pattern, options | RegexOptions.Compiled);
+            rules.Add(new RedactionRule(regex, pattern.Replacement));
+        }
 
-    [GeneratedRegex("""(\btoken:\s*)[A-Fa-f0-9]{24,}""",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex YamlTokenPropertyRegex();
-
-    [GeneratedRegex("""(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex ForgejoOtpRegex();
-
-    [GeneratedRegex("""(https?://)[^@\s/:]+:[^@\s/]+@""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex UrlUserInfoRegex();
+        return rules;
+    }
 }

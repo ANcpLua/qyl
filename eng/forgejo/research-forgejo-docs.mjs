@@ -4,6 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { get } from 'node:https';
 import { dirname, extname, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const workspaceRoot = process.cwd();
 const outputRoot = join(workspaceRoot, 'artifacts', 'forgejo-research');
@@ -93,44 +94,17 @@ const includedExtensions = new Set([
 const maxBytes = 1_000_000;
 const requestTimeoutMs = 30_000;
 const maxRedirects = 5;
-const credentialRedactionRules = [
-  [
-    /\b((?:export\s+)?(?:FORGEJO_API_TOKEN|FORGEJO_TOKEN|GITEA_TOKEN|GITHUB_TOKEN|INPUTS_TOKEN|FORGEJO__security__INTERNAL_TOKEN)\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s;&|]+)/gi,
-    '$1<redacted>'
-  ],
-  [
-    /(\s(?:-u|--user)(?:=|\s+))(?:"[^"]+:[^"]*"|'[^']+:[^']+'|[^\s"']+:[^\s"']+)/gi,
-    '$1<redacted>'
-  ],
-  [
-    /(--auth_(?:username|password|token)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s;&|]+)/gi,
-    '$1<redacted>'
-  ],
-  [
-    /(Authorization:\s*(?:Bearer|token|Basic)\s+)[^\s"']+/gi,
-    '$1<redacted>'
-  ],
-  [
-    /(X-(?:Forgejo|Gitea)-OTP:\s*)\d{6}/gi,
-    '$1<redacted>'
-  ],
-  [
-    /([?&](?:token|access_token|auth_token)=)[^&\s"'#]+/gi,
-    '$1<redacted>'
-  ],
-  [
-    /("(?:token|access_token|auth_token|auth_username|auth_password)"\s*:\s*)(?:"[^"]*"|'[^']*'|[^,}\]\s]+)/gi,
-    '$1<redacted>'
-  ],
-  [
-    /(https?:\/\/)[^@\s/:]+:[^@\s/]+@/gi,
-    '$1<redacted>@'
-  ],
-  [
-    /\b(token:\s*)[A-Fa-f0-9]{24,}\b/g,
-    '$1<redacted>'
-  ]
-];
+
+// Load shared credential patterns from the same directory as this script
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const credentialPatterns = JSON.parse(
+  readFileSync(join(scriptDir, 'credential-patterns.json'), 'utf8')
+);
+const credentialRedactionRules = credentialPatterns.map((rule) => {
+  const flags = rule.flags || 'gi';
+  return [new RegExp(rule.pattern, flags), rule.replacement];
+});
+
 const searchTerms = [
   'actions/runners',
   'registration token',
