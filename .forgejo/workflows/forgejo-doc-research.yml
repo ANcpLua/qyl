@@ -25,7 +25,6 @@ jobs:
         with:
           name: forgejo-research
           path: |
-            artifacts/forgejo-research/corpus.ndjson
             artifacts/forgejo-research/manifest.json
             artifacts/forgejo-research/route-index.json
             artifacts/forgejo-research/summary-api-notes.md

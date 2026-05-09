@@ -8,12 +8,16 @@ public sealed class SummaryCredentialRedactorTests
     public void Redact_RemovesForgejoAndHttpCredentials()
     {
         var syntheticRunnerToken = new string('a', 40);
+        var quotedSyntheticRunnerToken = new string('b', 40);
         var input = $$"""
                       Authorization: Bearer abc.def-123
                       Authorization: Basic dXNlcjpwYXNz
                       export FORGEJO_API_TOKEN="secret-token"
+                      INPUT_TOKEN=github-action-input-token
                       curl --user root:admin1234 https://example.test
                       curl -u "alice:password" https://example.test
+                      forgejo actions register --secret "shared-secret-value"
+                      forgejo-runner register --token runner-registration-token
                       forgejo dump-repo --auth_token "cli-personal-token" --auth_password=cli-password --auth_username cli-user
                       https://root:admin1234@example.test/root/repo
                       GET /api/v1/repos/a/b/actions/runners?token=abc123&other=1
@@ -22,6 +26,7 @@ public sealed class SummaryCredentialRedactorTests
                       {"token":"runner-secret","access_token":"api-secret"}
                       {"auth_token":"migrate-token","auth_password":"migrate-password","auth_username":"migrate-user"}
                       token: {{syntheticRunnerToken}}
+                      token: "{{quotedSyntheticRunnerToken}}"
                       X-Forgejo-OTP: 123456
                       X-Gitea-OTP: 123456
                       """;
@@ -31,8 +36,11 @@ public sealed class SummaryCredentialRedactorTests
         Assert.DoesNotContain("abc.def-123", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("dXNlcjpwYXNz", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("secret-token", redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain("github-action-input-token", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("root:admin1234", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("alice:password", redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain("shared-secret-value", redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain("runner-registration-token", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("abc123", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("abc456", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("repo-secret-value", redacted, StringComparison.Ordinal);
@@ -45,6 +53,7 @@ public sealed class SummaryCredentialRedactorTests
         Assert.DoesNotContain("cli-password", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("cli-user", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain(syntheticRunnerToken, redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain(quotedSyntheticRunnerToken, redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("123456", redacted, StringComparison.Ordinal);
         Assert.Contains("<redacted>", redacted, StringComparison.Ordinal);
     }

@@ -8,6 +8,7 @@ namespace qyl.mcp.Tools;
 /// </summary>
 public static class SummaryCredentialRedactor
 {
+    private static readonly TimeSpan s_regexTimeout = TimeSpan.FromMilliseconds(250);
     private static readonly Lazy<List<RedactionRule>> s_rules = new(LoadRules);
 
     private sealed record CredentialPattern(
@@ -28,16 +29,22 @@ public static class SummaryCredentialRedactor
         var result = input;
         foreach (var rule in s_rules.Value)
         {
-            result = rule.Regex.Replace(result, rule.Replacement);
+            try
+            {
+                result = rule.Regex.Replace(result, rule.Replacement);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                result = "<redacted>";
+                break;
+            }
         }
         return result;
     }
 
     private static List<RedactionRule> LoadRules()
     {
-        var assemblyDir = Path.GetDirectoryName(typeof(SummaryCredentialRedactor).Assembly.Location)
-            ?? throw new InvalidOperationException("Unable to determine assembly location");
-        var patternsPath = Path.Join(assemblyDir, "credential-patterns.json");
+        var patternsPath = Path.Join(AppContext.BaseDirectory, "credential-patterns.json");
 
         if (!File.Exists(patternsPath))
         {
@@ -70,7 +77,7 @@ public static class SummaryCredentialRedactor
                 options |= RegexOptions.Singleline;
             }
 
-            var regex = new Regex(pattern.Pattern, options | RegexOptions.Compiled);
+            var regex = new Regex(pattern.Pattern, options | RegexOptions.Compiled, s_regexTimeout);
             rules.Add(new RedactionRule(regex, pattern.Replacement));
         }
 

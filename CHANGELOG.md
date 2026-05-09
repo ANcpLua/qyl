@@ -2,6 +2,13 @@
 
 This file tracks the last 10 cron automation material changes. It is for automated runners, not developer release notes.
 
+## 2026-05-09T22:20:00Z - branch-hygiene-sweep
+
+- Quick gate returned `NO_WORK=0`; configured local repos for Arqio, ANcpLua.Roslyn.Utilities, ANcpLua.NET.Sdk, ANcpLua.Analyzers, ANcpLua.Agents, ErrorOrX, typespec-otel-semconv, and renovate-config were still missing locally.
+- Advanced qyl PR #300 review fixes on `dev/forgejo-summary-research`: redacted corpus payloads, removed `corpus.ndjson` from uploaded artifacts, resolved repo root from git, reused cached Swagger for `--no-refresh`, bounded noninteractive git calls, added regex timeouts, included `credential-patterns.json` in publish/tool payloads, and covered `INPUT_TOKEN` plus quoted YAML tokens.
+- Verified qyl PR #300 locally with `node --check eng/forgejo/research-forgejo-docs.mjs`, `node eng/forgejo/research-forgejo-docs.mjs --no-refresh`, `bash -n eng/forgejo/run-local-runner.sh`, `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj --no-restore --filter-method '*SummaryCredentialRedactorTests*'`, `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj --no-restore --filter-method '*SummaryCredentialRedactorTests*' -- --report-trx --results-directory artifacts/TestResults/qyl-mcp-redactor`, and `dotnet publish services/qyl.mcp/qyl.mcp.csproj --no-restore -c Debug -o artifacts/tmp/qyl-mcp-publish-test`.
+- ANcpLua/ancplua-claude-plugins PR #241 and PR #242 remained open and blocked by review/merge-state evidence; no branch deletion was performed.
+
 ## 2026-05-09T19:20:02Z - branch-hygiene-sweep
 
 - qyl PR #301 (`renovate/react-monorepo`) was already merged upstream after live green CI, CodeQL, stability-days, and Claude review evidence; `origin/main` advanced to `76fc2e61`.

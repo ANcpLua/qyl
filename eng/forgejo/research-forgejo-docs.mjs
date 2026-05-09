@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { get } from 'node:https';
 import { dirname, extname, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const workspaceRoot = process.cwd();
+const gitTimeoutMs = 120_000;
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = resolveWorkspaceRoot(scriptDir);
 const outputRoot = join(workspaceRoot, 'artifacts', 'forgejo-research');
 const repoRoot = join(outputRoot, 'repos');
 const sourceMetadataRoot = join(outputRoot, 'source-metadata');
+const swaggerPath = join(sourceMetadataRoot, 'forgejo-v15-swagger.json');
 const noRefresh = process.argv.includes('--no-refresh');
 
 const upstreamRepos = [
@@ -93,11 +96,11 @@ const includedExtensions = new Set([
 ]);
 
 const maxBytes = 1_000_000;
+const maxSourceBytes = 50_000_000;
 const requestTimeoutMs = 30_000;
 const maxRedirects = 5;
 
 // Load shared credential patterns from the same directory as this script
-const scriptDir = dirname(fileURLToPath(import.meta.url));
 const credentialPatterns = JSON.parse(
   readFileSync(join(scriptDir, 'credential-patterns.json'), 'utf8')
 );
@@ -129,13 +132,17 @@ for (const repo of upstreamRepos) {
   refreshRepo(repo);
 }
 
-await download(
-  'https://v15.next.forgejo.org/swagger.v1.json',
-  join(sourceMetadataRoot, 'forgejo-v15-swagger.json')
-);
+if (!noRefresh || !exists(swaggerPath)) {
+  await download(
+    'https://v15.next.forgejo.org/swagger.v1.json',
+    swaggerPath
+  );
+}
 
 const manifest = [];
 const corpus = [];
+const corpusPath = join(outputRoot, 'corpus.ndjson');
+const corpusStream = createWriteStream(corpusPath, { encoding: 'utf8' });
 for (const source of corpusSources) {
   const files = collectFiles(source);
   let sourceBytes = 0;
@@ -143,13 +150,25 @@ for (const source of corpusSources) {
     const content = readFileSync(file, 'utf8');
     const bytes = Buffer.byteLength(content);
     sourceBytes += bytes;
+    if (sourceBytes > maxSourceBytes) {
+      throw new Error(`${source.name} exceeded ${maxSourceBytes} byte corpus limit`);
+    }
+
+    const redactedContent = redactCredentialText(content);
     corpus.push({
       source: source.name,
       path: relative(source.root, file),
       bytes,
       sha256: sha256(content),
-      content
+      content: redactedContent
     });
+    corpusStream.write(JSON.stringify({
+      source: source.name,
+      path: relative(source.root, file),
+      bytes,
+      sha256: sha256(content),
+      content: redactedContent
+    }) + '\n');
   }
 
   manifest.push({
@@ -158,12 +177,14 @@ for (const source of corpusSources) {
     commit: source.local ? currentCommit(workspaceRoot) : currentCommit(source.root),
     dirty: source.local ? isDirty(workspaceRoot) : isDirty(source.root),
     files: files.length,
-    bytes: sourceBytes
+    bytes: sourceBytes,
+    redacted: true,
+    truncated: false
   });
 }
 
-const routeIndex = buildRouteIndex(join(sourceMetadataRoot, 'forgejo-v15-swagger.json'));
-writeFileSync(join(outputRoot, 'corpus.ndjson'), corpus.map((entry) => JSON.stringify(entry)).join('\n') + '\n');
+await new Promise((resolve, reject) => corpusStream.end(resolve).on('error', reject));
+const routeIndex = buildRouteIndex(swaggerPath);
 writeFileSync(join(outputRoot, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 writeFileSync(join(outputRoot, 'route-index.json'), JSON.stringify(routeIndex, null, 2) + '\n');
 writeFileSync(join(outputRoot, 'summary-api-notes.md'), renderNotes(manifest, routeIndex, corpus));
@@ -177,12 +198,12 @@ function refreshRepo(repo) {
   const gitPath = join(checkoutPath, '.git');
 
   if (!exists(gitPath)) {
-    run('git', ['clone', '--depth', '1', repo.cloneUrl, checkoutPath]);
+    runGit(['clone', '--depth', '1', repo.cloneUrl, checkoutPath]);
     return;
   }
 
   if (!noRefresh) {
-    run('git', ['-C', checkoutPath, 'pull', '--ff-only']);
+    runGit(['-C', checkoutPath, 'pull', '--ff-only']);
   }
 }
 
@@ -198,7 +219,7 @@ function collectFiles(source) {
 }
 
 function collectTrackedFiles(root) {
-  const result = run('git', ['-C', root, 'ls-files', '-z']);
+  const result = runGit(['-C', root, 'ls-files', '-z']);
   const files = result.stdout
     .split('\0')
     .filter(Boolean)
@@ -365,11 +386,11 @@ function redactCredentialText(value) {
 }
 
 function currentCommit(repoPath) {
-  return run('git', ['-C', repoPath, 'rev-parse', '--short', 'HEAD']).stdout.trim();
+  return runGit(['-C', repoPath, 'rev-parse', '--short', 'HEAD']).stdout.trim();
 }
 
 function isDirty(repoPath) {
-  return run('git', ['-C', repoPath, 'status', '--porcelain']).stdout.trim().length > 0;
+  return runGit(['-C', repoPath, 'status', '--porcelain']).stdout.trim().length > 0;
 }
 
 function isProbablyBinary(file) {
@@ -414,12 +435,43 @@ function download(url, destination, redirectsRemaining = maxRedirects) {
   });
 }
 
-function run(command, args) {
+function resolveWorkspaceRoot(startPath) {
+  const result = spawnSync('git', ['-C', startPath, 'rev-parse', '--show-toplevel'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    timeout: gitTimeoutMs
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`Unable to resolve qyl repository root from ${startPath}\n${result.stderr || result.stdout}`);
+  }
+
+  return result.stdout.trim();
+}
+
+function runGit(args) {
+  return run('git', args, {
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    timeout: gitTimeoutMs
+  });
+}
+
+function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: workspaceRoot,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options
   });
+
+  if (result.error) {
+    throw result.error;
+  }
 
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed\n${result.stderr || result.stdout}`);

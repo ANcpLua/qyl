@@ -56,7 +56,12 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/"/>
-    <None Include="..\..\eng\forgejo\credential-patterns.json" Link="credential-patterns.json" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="..\..\eng\forgejo\credential-patterns.json"
+          Link="credential-patterns.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="tools/$(TargetFramework)/any/"/>
   </ItemGroup>
 
   <ItemGroup>
