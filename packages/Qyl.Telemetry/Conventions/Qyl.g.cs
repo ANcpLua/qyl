@@ -105,10 +105,6 @@ public static class Release
 {
     /// <summary>Release track the deployment belongs to</summary>
     public const string Channel = "qyl.release.channel";
-    /// <summary>Full 40-character git SHA for the release commit</summary>
-    public const string CommitSha = "qyl.release.commit_sha";
-    /// <summary>Deployment environment name</summary>
-    public const string Environment = "qyl.release.environment";
     /// <summary>Semantic or calendar version identifier for the release</summary>
     public const string Version = "qyl.release.version";
 }
