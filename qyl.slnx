@@ -41,6 +41,7 @@
     <Project Path="eng/build/build.csproj" />
     <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
     <File Path="eng/build.sh" />
+    <File Path="eng/automation/CHANGELOG.md" />
     <File Path="eng/compose.yaml" />
     <File Path="eng/semconv/bootstrap-weaver.sh" />
     <File Path="eng/semconv/deprecated-lookup/master-programmatic.yaml" />

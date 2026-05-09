@@ -1,7 +1,8 @@
 # Weaver template config for Qyl.OpenTelemetry.SemanticConventions.Incubating.
 # Outputs one .g.cs per root_namespace, plus SchemaUrl.g.cs and SchemaVersion.g.cs.
-# Stability filter: anything NOT stable (development, alpha, beta, release_candidate,
-# deprecated). Stable attrs ship in the sister Stable package.
+# Stability filter: anything NOT stable (development, alpha, beta, release_candidate).
+# `deprecated` is separate metadata, not a stability value. Stable attrs ship in
+# the sister Stable package.
 
 whitespace_control:
   trim_blocks: true
