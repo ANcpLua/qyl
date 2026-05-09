@@ -31,6 +31,14 @@ if ! [[ "${FORGEJO_RUNNER_UUID}" =~ ^[A-Za-z0-9_-]+$ ]]; then
   exit 2
 fi
 
+# Refuse symlinked secret paths BEFORE mkdir/chmod so an attacker who
+# pre-creates ${SECRETS_DIR} as a symlink cannot trick `mkdir -p` into
+# operating on the symlink target. Re-check after mkdir to narrow the
+# residual TOCTOU window.
+if [[ -L "${SECRETS_DIR}" ]]; then
+  echo "Refusing to use symlinked secrets directory: ${SECRETS_DIR}" >&2
+  exit 2
+fi
 mkdir -p "${SECRETS_DIR}"
 if [[ -L "${SECRETS_DIR}" ]]; then
   echo "Refusing to use symlinked secrets directory: ${SECRETS_DIR}" >&2
@@ -48,6 +56,10 @@ if [[ -n "${FORGEJO_RUNNER_TOKEN:-}" ]]; then
   printf '%s' "${FORGEJO_RUNNER_TOKEN}" > "${TOKEN_FILE}"
 fi
 
+if [[ -L "${TOKEN_FILE}" ]]; then
+  echo "Refusing to use symlinked token file: ${TOKEN_FILE}" >&2
+  exit 2
+fi
 if [[ ! -s "${TOKEN_FILE}" ]]; then
   echo "Runner token is missing. Put it in ${TOKEN_FILE} or export FORGEJO_RUNNER_TOKEN for this command." >&2
   exit 2
@@ -76,6 +88,12 @@ cache:
 
 container:
   docker_host: "-"
+  # An empty list disallows ALL workflow-controlled bind mounts into job
+  # containers. Job containers still talk to the DinD daemon via DOCKER_HOST,
+  # so this only blocks mounting host paths INTO the workflow's containers.
+  # Populate this with explicit allowed prefixes (e.g. "/var/run/docker.sock"
+  # or "${WORKDIR}") only after weighing the trust boundary against the
+  # workflows you intend to run.
   valid_volumes: []
 
 server:

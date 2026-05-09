@@ -157,13 +157,23 @@ const corpusStream = createWriteStream(corpusPath, { encoding: 'utf8' });
 for (const source of corpusSources) {
   const files = collectFiles(source);
   let sourceBytes = 0;
+  let acceptedFiles = 0;
   for (const file of files) {
-    const content = readFileSync(file, 'utf8');
-    const bytes = Buffer.byteLength(content);
+    // Read the raw bytes once and reuse them for both the binary check and the
+    // UTF-8 decode. `bytes` is now the actual on-disk size, not the encoded
+    // length of a string with U+FFFD replacement characters, so `sourceBytes`
+    // and the `maxSourceBytes` cap track the real file system footprint.
+    const buffer = readFileSync(file);
+    const bytes = buffer.length;
+    if (bufferIsProbablyBinary(buffer)) {
+      continue;
+    }
     sourceBytes += bytes;
     if (sourceBytes > maxSourceBytes) {
       throw new Error(`${source.name} exceeded ${maxSourceBytes} byte corpus limit`);
     }
+    acceptedFiles += 1;
+    const content = buffer.toString('utf8');
 
     const redactedContent = redactCredentialText(content);
     // Hash the redacted body so the stored sha256 matches the bytes we actually
@@ -214,12 +224,12 @@ for (const source of corpusSources) {
     root: source.local ? '.' : relative(workspaceRoot, source.root),
     commit: source.local ? workspaceCommit : currentCommit(source.root),
     dirty: source.local ? workspaceDirty : isDirty(source.root),
-    files: files.length,
+    files: acceptedFiles,
     bytes: sourceBytes,
     redacted: true,
     truncated: false
   });
-  totalFiles += files.length;
+  totalFiles += acceptedFiles;
   totalBytes += sourceBytes;
 }
 
@@ -312,7 +322,10 @@ function shouldIncludeFile(file) {
     return false;
   }
 
-  return !isProbablyBinary(file);
+  // Binary detection now happens once on the read buffer in the main loop
+  // (see `bufferIsProbablyBinary`), so we don't pay another 8KB of disk I/O
+  // here only to read the file again immediately afterwards.
+  return true;
 }
 
 function buildRouteIndex(swaggerPath) {
@@ -430,8 +443,8 @@ function isDirty(repoPath) {
   return runGit(['-C', repoPath, 'status', '--porcelain']).stdout.trim().length > 0;
 }
 
-function isProbablyBinary(file) {
-  const sample = readFileSync(file, { encoding: null }).subarray(0, 8000);
+function bufferIsProbablyBinary(buffer) {
+  const sample = buffer.subarray(0, 8000);
   return sample.includes(0);
 }
 
