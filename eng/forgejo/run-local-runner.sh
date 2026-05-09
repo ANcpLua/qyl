@@ -16,8 +16,18 @@ if ! [[ "${RUNNER_CAPACITY}" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
+if ! [[ "${FORGEJO_URL}" =~ ^https?://[A-Za-z0-9.:_/-]+/$ ]]; then
+  echo "FORGEJO_URL must be an http(s) URL with a trailing slash." >&2
+  exit 2
+fi
+
 if [[ -z "${FORGEJO_RUNNER_UUID:-}" ]]; then
   echo "FORGEJO_RUNNER_UUID is required. Create a repository-scoped runner in Forgejo and export its UUID." >&2
+  exit 2
+fi
+
+if ! [[ "${FORGEJO_RUNNER_UUID}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "FORGEJO_RUNNER_UUID may only contain alphanumerics, underscores, and hyphens." >&2
   exit 2
 fi
 

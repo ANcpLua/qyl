@@ -275,12 +275,35 @@ function addTraceAliasInModels(content, filePath) {
     );
 }
 
+// Patch 10 — replace `{this}` in generated InvalidOperationException messages with
+//   explicit, deterministic diagnostic data. The TypeSpec http-server-csharp emitter
+//   relies on default `object.ToString()` for `{this}` in
+//   {Numeric,String}ArrayConstraintAttribute.CreateConverter, which produces unhelpful
+//   output (just the type name) and trips the qyl-code-quality "default ToString"
+//   diagnostic. The exception type and branch are unchanged.
+function fixDefaultToStringInExceptionMessages(content, filePath) {
+    if (filePath.endsWith("NumericArrayConstraintAttribute.cs")) {
+        return content.replace(
+            /throw new InvalidOperationException\(\$"Cannot create converter for \{typeToConvert\} with \{this\}"\)/,
+            'throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with NumericArrayConstraintAttribute<{typeof(T).Name}> (MinValue={MinValue}, MaxValue={MaxValue}, MinValueExclusive={MinValueExclusive}, MaxValueExclusive={MaxValueExclusive})")',
+        );
+    }
+    if (filePath.endsWith("StringArrayConstraintAttribute.cs")) {
+        return content.replace(
+            /throw new InvalidOperationException\(\$"Cannot create converter for \{typeToConvert\} with \{this\}"\)/,
+            'throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with StringArrayConstraintAttribute (MinItemLength={MinItemLength}, MaxItemLength={MaxItemLength}, Pattern={Pattern})")',
+        );
+    }
+    return content;
+}
+
 const serverPatches = [
     fixRegexPatterns,
     addServerSideUsings,
     addServerSideDisambiguation,
     fullyQualifyResourceProperty,
     addTraceAliasInModels,
+    fixDefaultToStringInExceptionMessages,
 ];
 
 function walk(dir, out = []) {

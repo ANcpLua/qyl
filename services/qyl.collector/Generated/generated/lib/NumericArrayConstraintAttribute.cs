@@ -42,7 +42,7 @@ public class NumericArrayConstraintAttribute<T> : ArrayConstraintAttribute<T> wh
             resultStandardArray.InnerConverterFactory = (c, o) => new NumericJsonConverter<T>(MinValue, MaxValue, MinValueExclusive, MaxValueExclusive, o);
             return resultStandardArray;
         }  
-        throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with {this}");    
+        throw new InvalidOperationException($"Cannot create converter for {typeToConvert} with NumericArrayConstraintAttribute<{typeof(T).Name}> (MinValue={MinValue}, MaxValue={MaxValue}, MinValueExclusive={MinValueExclusive}, MaxValueExclusive={MaxValueExclusive})");    
     }
   }
 }
