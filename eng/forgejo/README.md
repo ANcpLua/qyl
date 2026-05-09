@@ -18,6 +18,13 @@ The script writes ignored local output under `artifacts/forgejo-research/`:
 
 The script uses `git pull --ff-only` for existing clones. It does not use `git reset`.
 
+Useful live Forgejo v15 references:
+
+- Repository API: `https://v15.next.forgejo.org/api/swagger#/repository`
+- Miscellaneous API: `https://v15.next.forgejo.org/api/swagger#/miscellaneous`
+- Admin and self-hosted runner API: `https://v15.next.forgejo.org/api/swagger#/admin`
+- Machine-readable Swagger used by the script: `https://v15.next.forgejo.org/swagger.v1.json`
+
 ## Local Runner
 
 Create one repository-scoped runner in Forgejo and keep the displayed token out of logs.
