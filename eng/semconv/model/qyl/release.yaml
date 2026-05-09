@@ -8,16 +8,6 @@ groups:
         stability: development
         brief: 'Semantic or calendar version identifier for the release'
         examples: [ '2.0.1', '2026.04.24.3' ]
-      - id: qyl.release.commit_sha
-        type: string
-        stability: development
-        brief: 'Full 40-character git SHA for the release commit'
-        examples: [ 'd6e3a2f9b1c4e8a7d5b2c9f1e6a4d3b8c7f2a1e9' ]
-      - id: qyl.release.environment
-        type: string
-        stability: development
-        brief: 'Deployment environment name'
-        examples: [ 'production', 'staging', 'development' ]
       - id: qyl.release.channel
         type:
           members:
