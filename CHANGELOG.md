@@ -2,12 +2,14 @@
 
 This file tracks the last 10 cron automation material changes. It is for automated runners, not developer release notes.
 
-## 2026-05-09T19:20:00Z - branch-hygiene-sweep
+## 2026-05-09T19:20:02Z - branch-hygiene-sweep
 
-- Quick gate reported work: missing configured repo paths, qyl PRs #300/#301, and ANcpLua/ancplua-claude-plugins PRs #241/#242.
-- qyl PR #300 review pass continued on `dev/forgejo-summary-research`: shared credential redaction patterns, tracked-only workspace corpus collection, pre-slice redaction, runner config hardening, and focused redactor tests.
-- Verification: `node --check eng/forgejo/research-forgejo-docs.mjs`, `node eng/forgejo/research-forgejo-docs.mjs --no-refresh`, `bash -n eng/forgejo/run-local-runner.sh`, and focused `dotnet test` for `SummaryCredentialRedactorTests`.
-- Remaining blockers: configured repo paths are missing locally; qyl PR #300 still needs pushed CI snapshot after this local commit.
+- Merged qyl PR #301 (`renovate/react-monorepo`) after live green CI, CodeQL, stability-days, and Claude review evidence; merge commit `76fc2e61`.
+- Advanced qyl PR #300 review fixes on `dev/forgejo-summary-research`: tracked-only local corpus collection, full-text redaction before excerpts, shared credential patterns, TRX test dependency, safer runner token/capacity handling, pinned runner images, and daily research schedule.
+- Verified qyl PR #300 locally with `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj -- --report-trx --results-directory artifacts/test-results/qyl-mcp` and `node eng/forgejo/research-forgejo-docs.mjs --no-refresh`.
+- Enabled auto-merge for ANcpLua/ancplua-claude-plugins PR #242 after green checks; GitHub branch policy still reports `mergeStateStatus=BLOCKED`.
+- Fast-forwarded local ANcpLua/ancplua-claude-plugins PR #241 worktree to remote head `4b03fbb`; PR remains blocked by live `CHANGES_REQUESTED`.
+- Configured repo paths for Arqio, ANcpLua.Roslyn.Utilities, ANcpLua.NET.Sdk, ANcpLua.Analyzers, ANcpLua.Agents, ErrorOrX, typespec-otel-semconv, and renovate-config were missing locally, so no branch action was possible there.
 
 ## 2026-05-09T10:30:00Z - branch-hygiene-sweep
 
