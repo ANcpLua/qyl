@@ -1,32 +1,42 @@
-name: Forgejo doc research
+# =============================================================================
+# Forgejo Documentation Research Corpus Extraction
+# -----------------------------------------------------------------------------
+# Runs the Forgejo research script to extract documentation corpus from
+# shallow clones of qyl, Forgejo docs, website, runner, and server repositories.
+# Outputs corpus.ndjson, manifest.json, route-index.json, and API notes.
+# =============================================================================
+
+name: Forgejo Documentation Research
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "0 6 * * *"
+    # Run daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
   research:
+    name: Extract Forgejo Documentation Corpus
     runs-on: docker
+
     steps:
       - name: Checkout
-        uses: https://data.forgejo.org/actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Build Forgejo research corpus
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Forgejo research script
         run: node eng/forgejo/research-forgejo-docs.mjs
 
-      - name: Print manifest
-        run: |
-          cat artifacts/forgejo-research/manifest.json
-          sed -n '1,160p' artifacts/forgejo-research/summary-api-notes.md
-
-      - name: Upload research corpus
-        uses: https://data.forgejo.org/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - name: Upload research artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: forgejo-research
-          retention-days: 14
-          path: |
-            artifacts/forgejo-research/manifest.json
-            artifacts/forgejo-research/route-index.json
-            artifacts/forgejo-research/summary-api-notes.md
-            artifacts/forgejo-research/source-metadata/forgejo-v15-swagger.json
+          name: forgejo-research-corpus
+          path: artifacts/forgejo-research/
+          retention-days: 7
