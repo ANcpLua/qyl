@@ -12,7 +12,7 @@ node eng/forgejo/research-forgejo-docs.mjs
 
 The script writes ignored local output under `artifacts/forgejo-research/`:
 
-- `repos/` shallow clones of the current qyl Forgejo repository plus official Forgejo docs, website, runner, Codeberg server, and thin `code.forgejo.org/forgejo/forgejo` mirror repositories.
+- `repos/` shallow clones of the current qyl Forgejo repository plus the canonical Forgejo docs, website, runner, and `code.forgejo.org/forgejo/forgejo` server repositories.
 - `source-metadata/forgejo-v15-swagger.json` from `https://v15.next.forgejo.org/swagger.v1.json`.
 - `corpus.ndjson`, `manifest.json`, `route-index.json`, and `summary-api-notes.md`.
 
@@ -40,7 +40,11 @@ the official `data.forgejo.org/forgejo/runner:12` container with Docker-in-Docke
 configurable capacity. Do not reuse one UUID/token across many runner containers; create separate Forgejo runner
 registrations for separate runner identities.
 
+The generated `runner-config.yml` sets `valid_volumes: []`, which forbids workflow-controlled bind mounts into job
+containers. Job containers can still talk to the DinD daemon via the `DOCKER_HOST` env var declared in the compose
+file. Loosen this only if you have a specific reason to expose host paths to untrusted workflow code.
+
 ## Workflow
 
-`.forgejo/workflows/forgejo-doc-research.yml` runs the same corpus extraction hourly and on manual dispatch. It expects
-a Forgejo runner with the `docker` label, matching the runner configuration above.
+`.forgejo/workflows/forgejo-doc-research.yml` runs the same corpus extraction daily (06:00 UTC) and on manual
+dispatch. It expects a Forgejo runner with the `docker` label, matching the runner configuration above.

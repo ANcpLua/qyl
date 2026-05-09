@@ -15,6 +15,9 @@ const sourceMetadataRoot = join(outputRoot, 'source-metadata');
 const swaggerPath = join(sourceMetadataRoot, 'forgejo-v15-swagger.json');
 const noRefresh = process.argv.includes('--no-refresh');
 
+// `code.forgejo.org/forgejo/forgejo` is the canonical Forgejo source; the
+// `codeberg.org/forgejo/forgejo` mirror has identical content and is omitted to
+// avoid duplicating ~all server source files in the corpus.
 const upstreamRepos = [
   {
     name: 'qyl-v15',
@@ -31,10 +34,6 @@ const upstreamRepos = [
   {
     name: 'forgejo-runner',
     cloneUrl: 'https://code.forgejo.org/forgejo/runner.git'
-  },
-  {
-    name: 'forgejo-server',
-    cloneUrl: 'https://codeberg.org/forgejo/forgejo.git'
   },
   {
     name: 'forgejo',
@@ -155,20 +154,16 @@ for (const source of corpusSources) {
     }
 
     const redactedContent = redactCredentialText(content);
-    corpus.push({
+    const digest = sha256(content);
+    const entry = {
       source: source.name,
       path: relative(source.root, file),
       bytes,
-      sha256: sha256(content),
+      sha256: digest,
       content: redactedContent
-    });
-    corpusStream.write(JSON.stringify({
-      source: source.name,
-      path: relative(source.root, file),
-      bytes,
-      sha256: sha256(content),
-      content: redactedContent
-    }) + '\n');
+    };
+    corpus.push(entry);
+    corpusStream.write(JSON.stringify(entry) + '\n');
   }
 
   manifest.push({
@@ -343,6 +338,7 @@ function searchCorpus(corpus) {
   const hits = [];
   for (const term of searchTerms) {
     const lowerTerm = term.toLowerCase();
+    let perTerm = 0;
     for (const entry of corpus) {
       const lowerContent = entry.content.toLowerCase();
       const index = lowerContent.indexOf(lowerTerm);
@@ -354,10 +350,11 @@ function searchCorpus(corpus) {
         term,
         source: entry.source,
         path: entry.path,
-        excerpt: excerpt(entry.content, index, term)
+        excerpt: excerpt(entry.content, index)
       });
 
-      if (hits.filter((hit) => hit.term === term).length >= 6) {
+      perTerm += 1;
+      if (perTerm >= 6) {
         break;
       }
     }
@@ -366,13 +363,12 @@ function searchCorpus(corpus) {
   return hits.slice(0, 80);
 }
 
-function excerpt(content, index, term) {
-  const redacted = redactCredentialText(content);
-  const redactedIndex = redacted.toLowerCase().indexOf(term.toLowerCase(), Math.max(0, index - 1_000));
-  const effectiveIndex = redactedIndex >= 0 ? redactedIndex : index;
-  const start = Math.max(0, effectiveIndex - 90);
-  const end = Math.min(redacted.length, effectiveIndex + 180);
-  return redacted
+// `content` is already redacted (entry.content stores redactedContent), so this
+// just slices a window around the match. No additional redaction pass is needed.
+function excerpt(content, index) {
+  const start = Math.max(0, index - 90);
+  const end = Math.min(content.length, index + 180);
+  return content
     .slice(start, end)
     .replaceAll(/\s+/g, ' ')
     .trim();
