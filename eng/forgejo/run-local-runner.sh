@@ -60,7 +60,7 @@ if [[ -L "${TOKEN_FILE}" ]]; then
   echo "Refusing to use symlinked token file: ${TOKEN_FILE}" >&2
   exit 2
 fi
-if [[ ! -s "${TOKEN_FILE}" ]]; then
+if [[ ! -f "${TOKEN_FILE}" || ! -s "${TOKEN_FILE}" ]]; then
   echo "Runner token is missing. Put it in ${TOKEN_FILE} or export FORGEJO_RUNNER_TOKEN for this command." >&2
   exit 2
 fi
