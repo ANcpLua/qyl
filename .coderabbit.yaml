@@ -119,7 +119,7 @@ reviews:
         MCP server implementation. Review for: correct MCP protocol adherence, tool definition
         completeness, proper error responses, and that tool descriptions are accurate and useful
         for LLM consumption. Flag any tool that could return unbounded data without pagination
-        or a maxResults parameter. Every tool must document its output schema.
+        or a clamped `limit` parameter. Every tool must document its output schema.
 
     - path: 'tests/**'
       instructions: >-
@@ -242,7 +242,7 @@ reviews:
         mode: warning
         instructions: >-
           If this PR adds or modifies MCP tool definitions (under services/qyl.mcp/), verify that every
-          tool returning a collection includes a maxResults parameter or pagination mechanism. Pass if:
+          tool returning a collection includes a clamped `limit` parameter or pagination mechanism. Pass if:
           no MCP tool changes, or all collection-returning tools are bounded. Fail if: a tool can
           return an unbounded list.
 
