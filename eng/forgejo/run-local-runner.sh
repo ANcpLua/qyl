@@ -93,12 +93,21 @@ services:
     privileged: true
     command: ['dockerd', '-H', 'tcp://0.0.0.0:2375', '--tls=false']
     restart: unless-stopped
+    # Gate the runner on a real readiness probe instead of just the container
+    # being started: dockerd takes a few seconds to listen on 2375, and a
+    # service_started gate races that startup window.
+    healthcheck:
+      test: ['CMD', 'docker', '-H', 'tcp://127.0.0.1:2375', 'info']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   runner:
     image: data.forgejo.org/forgejo/runner:12@sha256:3d49075f9115054ae2485d8cea2819296a904dfd4f00017285168028615d8533
     depends_on:
       docker-in-docker:
-        condition: service_started
+        condition: service_healthy
     environment:
       DOCKER_HOST: tcp://docker-in-docker:2375
     volumes:
