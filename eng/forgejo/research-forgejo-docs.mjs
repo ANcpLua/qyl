@@ -355,12 +355,26 @@ function isProbablyBinary(file) {
   return sample.includes(0);
 }
 
-function download(url, destination) {
+function download(url, destination, redirects = 0) {
   return new Promise((resolve, reject) => {
     mkdirSync(dirname(destination), { recursive: true });
     get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`GET ${url} failed with ${response.statusCode}`));
+      const status = response.statusCode ?? 0;
+
+      if (status >= 300 && status < 400 && response.headers.location) {
+        if (redirects >= 5) {
+          response.resume();
+          reject(new Error(`GET ${url} exceeded redirect limit`));
+          return;
+        }
+        const next = new URL(response.headers.location, url).toString();
+        response.resume();
+        download(next, destination, redirects + 1).then(resolve, reject);
+        return;
+      }
+
+      if (status !== 200) {
+        reject(new Error(`GET ${url} failed with ${status}`));
         response.resume();
         return;
       }

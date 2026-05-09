@@ -50,7 +50,7 @@ public sealed class SummaryCredentialRedactorTests
     [Fact]
     public void Redact_KeepsNonCredentialSummaryText()
     {
-        const string input = "Trace ID: abc123\nSpan Count: 3\nGET /api/v1/repos/owner/repo/actions/runners";
+        const string input = "Trace ID: xyz789\nSpan Count: 3\nGET /api/v1/repos/owner/repo/actions/runners";
 
         var redacted = SummaryCredentialRedactor.Redact(input);
 

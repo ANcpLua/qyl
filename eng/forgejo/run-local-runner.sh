@@ -9,6 +9,7 @@ TOKEN_FILE="${SECRETS_DIR}/token"
 CONFIG_FILE="${DATA_DIR}/runner-config.yml"
 COMPOSE_FILE="${RUNNER_ROOT}/docker-compose.yml"
 FORGEJO_URL="${FORGEJO_URL:-https://v15.next.forgejo.org/}"
+FORGEJO_URL="${FORGEJO_URL%/}/"
 RUNNER_CAPACITY="${QYL_FORGEJO_RUNNER_CAPACITY:-4}"
 
 if [[ -z "${FORGEJO_RUNNER_UUID:-}" ]]; then
