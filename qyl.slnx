@@ -1,5 +1,9 @@
 <Solution>
 
+  <Folder Name="/">
+    <File Path="CHANGELOG.md" />
+  </Folder>
+
   <Folder Name="/packages/">
     <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj" />
     <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
