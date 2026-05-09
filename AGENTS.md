@@ -68,6 +68,13 @@ Anchored in `.editorconfig` + the `ANcpLua.NET.Sdk` analyzers. Most of these are
 `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` should report 0 errors before claiming a change is done. UI work needs
 a Playwright screenshot of the actual feature in a browser — type-checks don't verify rendering.
 
+## Cron automation ledger
+
+**does:** `eng/automation/CHANGELOG.md` tracks cron-runner workflows and the newest 10 material automation changes. Runners
+read it before starting a matching automation run and after the final changelog write.
+**does_not_do:** Product release notes, ordinary development narration, branch/PR authority, or a replacement for live git
+and GitHub evidence.
+
 ## Nuke workflow
 
 Top-level orchestration goes through Nuke (`./eng/build.sh <target>` or, with the global tool, `nuke <target>`).

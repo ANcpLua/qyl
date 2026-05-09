@@ -47,8 +47,6 @@ export const QYL_PROJECT_NAME = "qyl.project.name";
 
 // qyl.release
 export const QYL_RELEASE_CHANNEL = "qyl.release.channel";
-export const QYL_RELEASE_COMMIT_SHA = "qyl.release.commit_sha";
-export const QYL_RELEASE_ENVIRONMENT = "qyl.release.environment";
 export const QYL_RELEASE_VERSION = "qyl.release.version";
 
 // qyl.run

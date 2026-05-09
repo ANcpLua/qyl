@@ -182,12 +182,6 @@ public static class QylAttributes
         public const string Stable = "stable";
     }
 
-    /// <summary>Full 40-character git SHA for the release commit.</summary>
-    public const string ReleaseCommitSha = "qyl.release.commit_sha";
-
-    /// <summary>Deployment environment name.</summary>
-    public const string ReleaseEnvironment = "qyl.release.environment";
-
     /// <summary>Semantic or calendar version identifier for the release.</summary>
     public const string ReleaseVersion = "qyl.release.version";
 

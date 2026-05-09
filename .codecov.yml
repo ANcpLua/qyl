@@ -9,7 +9,7 @@ coverage:
     - "benchmarks/**/*"
     - "modules/**/*"
     - "samples/**/*"
-    - "test/**/*"
+    - "tests/**/*"
   range: 0..100
   round: down
   precision: 2

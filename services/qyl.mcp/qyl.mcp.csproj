@@ -15,7 +15,6 @@
     <!-- Package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageId>Qyl.Mcp</PackageId>
-    <PackageVersion>0.1.0-beta</PackageVersion>
     <PackageTags>AI;MCP;server;stdio;http;streamable-http;observability</PackageTags>
     <Description>An MCP server for qyl observability via stdio or Streamable HTTP.</Description>
 

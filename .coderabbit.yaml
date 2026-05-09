@@ -4,7 +4,7 @@
 # C#/.NET backend · React/TypeScript dashboard · DuckDB storage · MCP server
 #
 # Schema-validated against: https://coderabbit.ai/integrations/schema.v2.json
-# Last audited: 2026-03-12
+# Last audited: 2026-05-08 (schema bump 2026-05-05)
 #
 # IMPORTANT: Most tools default to enabled:true in the schema.
 # Every irrelevant linter is explicitly disabled below.
@@ -119,7 +119,7 @@ reviews:
         MCP server implementation. Review for: correct MCP protocol adherence, tool definition
         completeness, proper error responses, and that tool descriptions are accurate and useful
         for LLM consumption. Flag any tool that could return unbounded data without pagination
-        or a maxResults parameter. Every tool must document its output schema.
+        or a clamped `limit` parameter. Every tool must document its output schema.
 
     - path: 'tests/**'
       instructions: >-
@@ -159,16 +159,64 @@ reviews:
       - 'renovate[bot]'
 
   # ─── Finishing touches ──────────────────────────────────────────────
-  # NOTE: 'simplify' exists in the UI but is NOT in the published v2 schema.
-  # It may still work via org/UI settings but cannot be set here.
+  # All four recipes below are Pro+ features (verified against schema.v2.json,
+  # bump 2026-05-05). 'simplify' is opt-in per-PR via the ✨ Simplify code checkbox.
+  # Custom recipes trigger with `@coderabbitai run <name>` — they do not auto-run.
   finishing_touches:
     docstrings:
       enabled: false
     unit_tests:
       enabled: false
+    simplify:
+      enabled: false
+    custom:
+      - enabled: true
+        name: 'add qyl telemetry'
+        instructions: >-
+          For any new injectable service introduced in this PR under src/**/*.cs,
+          services/qyl.collector/**/*.cs, services/qyl.loom/**/*.cs, or
+          services/qyl.mcp/**/*.cs that lacks an ActivitySource/Meter, add the
+          appropriate instrumentation following qyl's local facades in
+          internal/qyl.instrumentation/Instrumentation/. Reach for typed attribute keys
+          from packages/Qyl.Telemetry/Conventions/Qyl.g.cs (QylAttr.<Namespace>.<Name>)
+          over string literals. For standard OTel attributes use the constants in
+          Qyl.OpenTelemetry.SemanticConventions{,Incubating} (ServiceAttributes,
+          HttpAttributes, …) — never raw strings.
+      - enabled: true
+        name: 'bound mcp response'
+        instructions: >-
+          For any MCP tool added or modified in services/qyl.mcp/**/*.cs that returns a
+          collection or could fan out into one, add or verify a limit parameter
+          with a sensible default (typically 10..100) and clamp it. Tools must not return unbounded
+          data. Tools that spawn sub-investigations must call
+          InvestigationLineage.TryEnter() before any work. Tool result envelopes use
+          Task<LoomToolEnvelope<T>> return types and the LoomToolEnvelope.Ok(data) /
+          LoomToolEnvelope.Fail<T>(error) helpers for construction.
+      - enabled: true
+        name: 'duckdb write path'
+        instructions: >-
+          For any new or modified write to DuckDB in
+          services/qyl.collector/{Storage,Workflows,AgentRuns,Errors}/, ensure the
+          write happens inside DuckDbStore.ExecuteWriteAsync(async (connection, ct) =>
+          …, ct). Reads must go through GetReadConnectionAsync(ct), which returns a
+          READ_ONLY lease — UPDATE/INSERT/DELETE through a read lease is a defect, not
+          a workaround. Flag any write that bypasses ExecuteWriteAsync.
+      - enabled: true
+        name: 'thread cancellation'
+        instructions: >-
+          For every async public or internal method added or modified in this PR that
+          lacks a CancellationToken parameter, add one (matching the project's existing
+          parameter name — typically `cancellationToken` or `ct`) and thread it through
+          every downstream await. xUnit v3 tests pass
+          TestContext.Current.CancellationToken into helpers — never CancellationToken.None.
+          Do not swallow OperationCanceledException without an explicit reason.
 
   # ─── Pre-merge checks ──────────────────────────────────────────────
   pre_merge_checks:
+    # Author cannot override their own failing pre-merge checks; only requested
+    # reviewers can. Pairs with request_changes_workflow:true above so a `mode: error`
+    # custom_checks entry actually blocks merge.
+    override_requested_reviewers_only: true
     docstrings:
       mode: 'off'
     title:
@@ -194,7 +242,7 @@ reviews:
         mode: warning
         instructions: >-
           If this PR adds or modifies MCP tool definitions (under services/qyl.mcp/), verify that every
-          tool returning a collection includes a maxResults parameter or pagination mechanism. Pass if:
+          tool returning a collection includes a clamped `limit` parameter or pagination mechanism. Pass if:
           no MCP tool changes, or all collection-returning tools are bounded. Fail if: a tool can
           return an unbounded list.
 
