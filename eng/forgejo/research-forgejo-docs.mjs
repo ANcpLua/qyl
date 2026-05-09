@@ -139,7 +139,12 @@ if (!noRefresh || !exists(swaggerPath)) {
 }
 
 const manifest = [];
-const corpus = [];
+const hits = [];
+const hitsPerTermCap = 6;
+const hitCounts = new Map(searchTerms.map((term) => [term, 0]));
+const lowerTerms = searchTerms.map((term) => [term, term.toLowerCase()]);
+let totalFiles = 0;
+let totalBytes = 0;
 const corpusPath = join(outputRoot, 'corpus.ndjson');
 const corpusStream = createWriteStream(corpusPath, { encoding: 'utf8' });
 for (const source of corpusSources) {
@@ -155,15 +160,36 @@ for (const source of corpusSources) {
 
     const redactedContent = redactCredentialText(content);
     const digest = sha256(content);
-    const entry = {
+    const path = relative(source.root, file);
+    corpusStream.write(JSON.stringify({
       source: source.name,
-      path: relative(source.root, file),
+      path,
       bytes,
       sha256: digest,
       content: redactedContent
-    };
-    corpus.push(entry);
-    corpusStream.write(JSON.stringify(entry) + '\n');
+    }) + '\n');
+
+    // Match search terms against the redacted body during the walk so we don't
+    // need to retain the full corpus in memory after the loop. Per-term cap is
+    // enforced via hitCounts; once a term hits the cap we skip it for the rest
+    // of the run.
+    const lowerContent = redactedContent.toLowerCase();
+    for (const [term, lowerTerm] of lowerTerms) {
+      if (hitCounts.get(term) >= hitsPerTermCap) {
+        continue;
+      }
+      const index = lowerContent.indexOf(lowerTerm);
+      if (index < 0) {
+        continue;
+      }
+      hits.push({
+        term,
+        source: source.name,
+        path,
+        excerpt: excerpt(redactedContent, index)
+      });
+      hitCounts.set(term, hitCounts.get(term) + 1);
+    }
   }
 
   manifest.push({
@@ -176,16 +202,18 @@ for (const source of corpusSources) {
     redacted: true,
     truncated: false
   });
+  totalFiles += files.length;
+  totalBytes += sourceBytes;
 }
 
 await new Promise((resolve, reject) => corpusStream.end(resolve).on('error', reject));
 const routeIndex = buildRouteIndex(swaggerPath);
 writeFileSync(join(outputRoot, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 writeFileSync(join(outputRoot, 'route-index.json'), JSON.stringify(routeIndex, null, 2) + '\n');
-writeFileSync(join(outputRoot, 'summary-api-notes.md'), renderNotes(manifest, routeIndex, corpus));
+writeFileSync(join(outputRoot, 'summary-api-notes.md'), renderNotes(manifest, routeIndex, hits.slice(0, 80)));
 
 console.log(`Forgejo research corpus written to ${relative(workspaceRoot, outputRoot)}`);
-console.log(`Sources: ${manifest.length}, files: ${corpus.length}, bytes: ${corpus.reduce((sum, entry) => sum + entry.bytes, 0)}`);
+console.log(`Sources: ${manifest.length}, files: ${totalFiles}, bytes: ${totalBytes}`);
 console.log(`Route index entries: ${routeIndex.length}`);
 
 function refreshRepo(repo) {
@@ -289,7 +317,7 @@ function buildRouteIndex(swaggerPath) {
     .sort((a, b) => `${a.path} ${a.method}`.localeCompare(`${b.path} ${b.method}`));
 }
 
-function renderNotes(manifest, routeIndex, corpus) {
+function renderNotes(manifest, routeIndex, hits) {
   const lines = [
     '# Forgejo Research Notes',
     '',
@@ -317,54 +345,38 @@ function renderNotes(manifest, routeIndex, corpus) {
     '| --- | --- | --- | --- |'
   );
 
-  for (const hit of searchCorpus(corpus)) {
+  for (const hit of hits) {
     lines.push(`| ${escapeCell(hit.term)} | ${escapeCell(hit.source)} | ${escapeCell(hit.path)} | ${escapeCell(hit.excerpt)} |`);
   }
 
-  lines.push(
-    '',
-    '## qyl Summary API Surfaces',
-    '',
-    '- `services/qyl.mcp/Tools/SummaryTools.cs` exposes the MCP tool boundary.',
-    '- `services/qyl.mcp/Tools/SummaryFacade.cs` composes collector paths into raw context and optionally delegates to the configured LLM agent.',
-    '- Current two-path summaries are error issue + recent events and session + session spans. Trace summary is currently a single collector path over all spans for one trace.',
-    ''
-  );
+  lines.push('', '## qyl Summary API Surfaces', '');
+  const summarySurfaces = [
+    ['services/qyl.mcp/Tools/SummaryTools.cs', 'exposes the MCP tool boundary.'],
+    ['services/qyl.mcp/Tools/SummaryFacade.cs', 'composes collector paths into raw context and optionally delegates to the configured LLM agent.'],
+  ];
+  const presentSurfaces = summarySurfaces.filter(([file]) => exists(join(workspaceRoot, file)));
+  if (presentSurfaces.length === 0) {
+    lines.push(
+      'No qyl.mcp summary surfaces were found in this checkout.',
+      ''
+    );
+  } else {
+    for (const [file, description] of presentSurfaces) {
+      lines.push(`- \`${file}\` ${description}`);
+    }
+    lines.push(
+      '- Current two-path summaries are error issue + recent events and session + session spans. Trace summary is currently a single collector path over all spans for one trace.',
+      ''
+    );
+  }
 
   return lines.join('\n');
 }
 
-function searchCorpus(corpus) {
-  const hits = [];
-  for (const term of searchTerms) {
-    const lowerTerm = term.toLowerCase();
-    let perTerm = 0;
-    for (const entry of corpus) {
-      const lowerContent = entry.content.toLowerCase();
-      const index = lowerContent.indexOf(lowerTerm);
-      if (index < 0) {
-        continue;
-      }
-
-      hits.push({
-        term,
-        source: entry.source,
-        path: entry.path,
-        excerpt: excerpt(entry.content, index)
-      });
-
-      perTerm += 1;
-      if (perTerm >= 6) {
-        break;
-      }
-    }
-  }
-
-  return hits.slice(0, 80);
-}
-
-// `content` is already redacted (entry.content stores redactedContent), so this
-// just slices a window around the match. No additional redaction pass is needed.
+// Search-hit collection happens inline during the file walk above (so the full
+// corpus does not have to be retained in memory). `excerpt` is the only helper
+// the inline matcher needs: `content` is already redacted, so this just slices
+// a window around the match without re-running the regex pass.
 function excerpt(content, index) {
   const start = Math.max(0, index - 90);
   const end = Math.min(content.length, index + 180);
