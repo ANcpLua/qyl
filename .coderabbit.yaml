@@ -186,12 +186,12 @@ reviews:
         name: 'bound mcp response'
         instructions: >-
           For any MCP tool added or modified in services/qyl.mcp/**/*.cs that returns a
-          collection or could fan out into one, add or verify a maxResults parameter
-          with a sensible default (typically 10..100). Tools must not return unbounded
+          collection or could fan out into one, add or verify a limit parameter
+          with a sensible default (typically 10..100) and clamp it. Tools must not return unbounded
           data. Tools that spawn sub-investigations must call
           InvestigationLineage.TryEnter() before any work. Tool result envelopes use
-          the non-generic LoomToolEnvelope (Ok(data) / Fail<T>(error)) — the generic
-          form is reserved for tool-output schema generation.
+          Task<LoomToolEnvelope<T>> return types and the LoomToolEnvelope.Ok(data) /
+          LoomToolEnvelope.Fail<T>(error) helpers for construction.
       - enabled: true
         name: 'duckdb write path'
         instructions: >-
@@ -215,7 +215,7 @@ reviews:
   pre_merge_checks:
     # Author cannot override their own failing pre-merge checks; only requested
     # reviewers can. Pairs with request_changes_workflow:true above so a `mode: error`
-    # custom_check actually blocks merge.
+    # custom_checks entry actually blocks merge.
     override_requested_reviewers_only: true
     docstrings:
       mode: 'off'
