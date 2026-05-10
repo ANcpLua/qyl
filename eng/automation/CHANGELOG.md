@@ -177,6 +177,14 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
+### 2026-05-10 22:32 CEST - Push hygiene review fixes
+
+Workflow: branch-three
+Changed: pushed existing qyl PR #313 and renovate-config PR #22 review fixes, fast-forwarded ANcpLua.NET.Sdk main to `f35ca55`, fast-forwarded ErrorOrX main to `64b7c97`, deleted qyl remote `origin/copilot/na`, and removed landed qyl local branch `chore/remove-qyl-analyzer-package`.
+Evidence: quick gate returned `NO_WORK=0`; qyl PR #313 head `13c44b4f32e4aee4e59c4e33ddd713c4447d5808`; renovate-config PR #22 head `813d36f7075e868180198e1f5da90011dec9fa60`; `origin/copilot/na` commit `38669915142747cb6c2ae16d5e0696d22b53e067` was ancestor of `origin/main`; `chore/remove-qyl-analyzer-package` commit `11a66c4f35cbb4fafc41da187f1fc1252ca87762` was ancestor of `origin/main`.
+Pushed/Merged/Closed/Deleted: pushed qyl `automation/branch-hygiene-run-20260510-1932`; pushed renovate-config `automation/branch-hygiene-changelog-20260510-1734`; deleted qyl remote `copilot/na`; removed `/Users/ancplua/RiderProjects/qyl-rename-relocate` worktree and deleted local branch `chore/remove-qyl-analyzer-package`.
+Blocked: qyl PR #313 and renovate-config PR #22 checks pending after the one allowed snapshot; qyl remains dirty on `dev/forgejo-summary-research`; ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED`; qyl PR #307 still has failing `Backend (.NET)`.
+
 ### 2026-05-10 19:32 CEST - Push SDK review cleanup
 
 Workflow: branch-three
