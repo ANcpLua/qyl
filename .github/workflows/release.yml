@@ -230,7 +230,7 @@ jobs:
           npm run compile
 
       - name: Pack Qyl.Contracts
-        run: dotnet pack packages/Qyl.Contracts/qyl.contracts.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
+        run: dotnet pack packages/Qyl.Contracts/Qyl.Contracts.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}
 
       - name: Pack Qyl.OpenTelemetry.Extensions
         run: dotnet pack packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj -c Release -o nupkg -p:Version=${{ steps.version.outputs.version_number }}

@@ -20,6 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\services\qyl.collector\qyl.collector.csproj"/>
-    <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
   </ItemGroup>
 </Project>
