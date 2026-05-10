@@ -24,7 +24,6 @@
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj" />
     <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
-    <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
   </Folder>
 
@@ -46,7 +45,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
     <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
-    <Project Path="tests/qyl.semconv.analyzers.tests/qyl.semconv.analyzers.tests.csproj" />
   </Folder>
 
   <Folder Name="/eng/">
