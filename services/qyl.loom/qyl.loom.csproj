@@ -36,9 +36,5 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"/>
-    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Analyzers\Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all"/>
   </ItemGroup>
 </Project>
