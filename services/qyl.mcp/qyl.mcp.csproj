@@ -90,8 +90,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\internal\qyl.mcp.generators\qyl.mcp.generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Analyzers\Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions\Qyl.OpenTelemetry.SemanticConventions.csproj"/>

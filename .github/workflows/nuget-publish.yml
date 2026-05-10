@@ -1,12 +1,11 @@
 # =============================================================================
 # NuGet Publish — OIDC Trusted Publishing
 # -----------------------------------------------------------------------------
-# Publishes 4 packages to nuget.org via short-lived OIDC tokens (no long-lived
+# Publishes 3 packages to nuget.org via short-lived OIDC tokens (no long-lived
 # NUGET_API_KEY secret):
 #   1. Qyl.SemanticConventions                          (core types)
 #   2. Qyl.OpenTelemetry.SemanticConventions            (OTel stable attrs)
 #   3. Qyl.OpenTelemetry.SemanticConventions.Incubating (OTel experimental)
-#   4. Qyl.OpenTelemetry.SemanticConventions.Analyzers  (Roslyn + codefixes)
 #
 # Trusted-publishing policies (already configured on nuget.org, per package):
 #   Package Owner       = ANcpLua
@@ -17,15 +16,6 @@
 #
 # Policies are in NuGet's 7-day "pending full activation" state (standard for
 # private repos). First successful publish per package activates it permanently.
-#
-# Cross-branch reality (2026-04):
-#   Packages 1–3 live on branch `claude/focused-gauss-3c1f8d` (semconv PR).
-#   Package 4 lives on branch   `claude/goofy-cohen-8f4c45`  (analyzer PR).
-#   Until BOTH PRs merge to main, a tag push or workflow_dispatch on a feature
-#   branch will only publish the subset of packages present in that ref. The
-#   publish matrix is fail-fast:false by design — partial success is the
-#   expected outcome during this bootstrap window. Once both PRs merge, every
-#   tag push produces all 4 nupkgs.
 # =============================================================================
 
 name: NuGet Publish
@@ -84,7 +74,7 @@ jobs:
           fi
 
   # Compile on all three OSes to catch platform-specific issues before we push.
-  # Scoped to the 4 publishable csprojs — qyl.slnx contains unrelated projects
+  # Scoped to the 3 publishable csprojs — qyl.slnx contains unrelated projects
   # (collector, dashboard, loom) with WIP CI state that isn't our concern here.
   build:
     needs: version
@@ -104,8 +94,6 @@ jobs:
         run: dotnet build packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj -c Release -p:Version=${{ needs.version.outputs.version }}
       - name: Build Qyl.OpenTelemetry.SemanticConventions.Incubating
         run: dotnet build packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj -c Release -p:Version=${{ needs.version.outputs.version }}
-      - name: Build Qyl.OpenTelemetry.SemanticConventions.Analyzers
-        run: dotnet build packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj -c Release -p:Version=${{ needs.version.outputs.version }}
 
   # One matrix leg per package. Each leg:
   #   1. Packs the csproj.
@@ -134,8 +122,6 @@ jobs:
             path: packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj
           - id: Qyl.OpenTelemetry.SemanticConventions.Incubating
             path: packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj
-          - id: Qyl.OpenTelemetry.SemanticConventions.Analyzers
-            path: packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
