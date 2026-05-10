@@ -1,3 +1,4 @@
+using System.Globalization;
 using Qyl.OpenTelemetry.SemanticConventions.Analyzers.Analyzers;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests;
@@ -80,5 +81,8 @@ public sealed class UnknownConventionAnalyzerTests
 
         Assert.Single(diags);
         Assert.Equal(UnknownConventionAnalyzer.OtelUnknownId, diags[0].Id);
+        var message = diags[0].GetMessage(CultureInfo.InvariantCulture);
+        Assert.Contains("code.colmun.number", message, StringComparison.Ordinal);
+        Assert.Contains("code.column.number", message, StringComparison.Ordinal);
     }
 }
