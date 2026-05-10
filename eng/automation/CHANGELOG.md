@@ -180,7 +180,7 @@ Blocked: <real blocker only>
 ### 2026-05-10 22:32 CEST - Push hygiene review fixes
 
 Workflow: branch-three
-Changed: pushed existing qyl PR #313 and renovate-config PR #22 review fixes, fast-forwarded ANcpLua.NET.Sdk main to `f35ca55`, fast-forwarded ErrorOrX main to `64b7c97`, deleted qyl remote `origin/copilot/na`, and removed landed qyl local branch `chore/remove-qyl-analyzer-package`.
+Changed: pushed existing qyl PR #313 and renovate-config PR #22 review fixes, fast-forwarded ANcpLua.NET.Sdk main to `f35ca55`, fast-forwarded ErrorOrX main to `64b7c97`, deleted qyl remote-tracking ref `origin/copilot/na` for remote branch `copilot/na`, and removed landed qyl local branch `chore/remove-qyl-analyzer-package`.
 Evidence: quick gate returned `NO_WORK=0`; qyl PR #313 head `13c44b4f32e4aee4e59c4e33ddd713c4447d5808`; renovate-config PR #22 head `813d36f7075e868180198e1f5da90011dec9fa60`; `origin/copilot/na` commit `38669915142747cb6c2ae16d5e0696d22b53e067` was ancestor of `origin/main`; `chore/remove-qyl-analyzer-package` commit `11a66c4f35cbb4fafc41da187f1fc1252ca87762` was ancestor of `origin/main`; qyl remains dirty on `dev/forgejo-summary-research`; ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED`; qyl PR #307 still has failing `Backend (.NET)`.
 Pushed/Merged/Closed/Deleted: pushed qyl `automation/branch-hygiene-run-20260510-1932`; pushed renovate-config `automation/branch-hygiene-changelog-20260510-1734`; deleted qyl remote `copilot/na`; removed `/Users/ancplua/RiderProjects/qyl-rename-relocate` worktree and deleted local branch `chore/remove-qyl-analyzer-package`.
 Blocked: `pushed-checks-running` on qyl PR #313 `https://github.com/Alexander-Nachtmann/qyl/pull/313` head `13c44b4f32e4aee4e59c4e33ddd713c4447d5808` and renovate-config PR #22 `https://github.com/ANcpLua/renovate-config/pull/22` head `813d36f7075e868180198e1f5da90011dec9fa60` with checks pending after the one allowed snapshot.
@@ -191,7 +191,7 @@ Workflow: branch-three
 Changed: quick gate returned `NO_WORK=0`; confirmed renovate-config PR #21 was already merged and pushed ANcpLua.NET.Sdk PR #138 review cleanup commit `4c945d356f8a5de2a00ff8643b923e7cc74a3b85`.
 Evidence: SDK targeted verifier `dotnet test --project tests/ANcpLua.Sdk.Tests/ANcpLua.Sdk.Tests.csproj --no-restore -- --filter-method '*LocalEditorConfig*'` passed 6/6; one post-push `gh pr checks 138` snapshot showed new head checks queued/in progress.
 Pushed/Merged/Closed/Deleted: pushed `automation/local-editorconfig-override-tests` to PR #138 `https://github.com/ANcpLua/ANcpLua.NET.Sdk/pull/138`; renovate-config PR #21 `https://github.com/ANcpLua/renovate-config/pull/21` was merged at 2026-05-10T17:30:10Z.
-Blocked: `pushed-checks-running`
+Blocked: `pushed-checks-running` on SDK PR #138 `https://github.com/ANcpLua/ANcpLua.NET.Sdk/pull/138` head `4c945d356f8a5de2a00ff8643b923e7cc74a3b85` with checks queued/in progress in the single allowed snapshot.
 
 ### 2026-05-10 06:22 CEST - Merge qyl path hygiene PR
 
