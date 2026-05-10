@@ -191,7 +191,7 @@ Workflow: branch-three
 Changed: quick gate returned `NO_WORK=0`; confirmed renovate-config PR #21 was already merged and pushed ANcpLua.NET.Sdk PR #138 review cleanup commit `4c945d356f8a5de2a00ff8643b923e7cc74a3b85`.
 Evidence: SDK targeted verifier `dotnet test --project tests/ANcpLua.Sdk.Tests/ANcpLua.Sdk.Tests.csproj --no-restore -- --filter-method '*LocalEditorConfig*'` passed 6/6; one post-push `gh pr checks 138` snapshot showed new head checks queued/in progress.
 Pushed/Merged/Closed/Deleted: pushed `automation/local-editorconfig-override-tests` to PR #138 `https://github.com/ANcpLua/ANcpLua.NET.Sdk/pull/138`; renovate-config PR #21 `https://github.com/ANcpLua/renovate-config/pull/21` was merged at 2026-05-10T17:30:10Z.
-Blocked: `pushed-checks-running` on SDK PR #138 `https://github.com/ANcpLua/ANcpLua.NET.Sdk/pull/138` head `4c945d356f8a5de2a00ff8643b923e7cc74a3b85` with checks queued/in progress in the single allowed snapshot.
+Blocked: `pushed-checks-running` on ANcpLua.NET.Sdk PR #138 `https://github.com/ANcpLua/ANcpLua.NET.Sdk/pull/138` head `4c945d356f8a5de2a00ff8643b923e7cc74a3b85`; one post-push snapshot had `test (ubuntu-latest)`, `test (windows-latest)`, and `test (macos-latest)` still running under the `publish` workflow. Later live state showed PR #138 merged at 2026-05-10T17:45:46Z with those checks successful.
 
 ### 2026-05-10 06:22 CEST - Merge qyl path hygiene PR
 
