@@ -45,7 +45,7 @@ jobs:
           # See PR #295 body.
           HELD_BACK: |
             packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj|opts out of CPM with manual Roslyn pin — collides with SDK's implicit Roslyn ref
-            packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj|opts out of CPM with manual Roslyn pin — pairs with the analyzer above
+            tests/qyl.semconv.analyzers.tests/qyl.semconv.analyzers.tests.csproj|opts out of CPM with manual Roslyn pin — pairs with the analyzer above
           BANNED_PACKAGES: |
             PolySharp
             FluentAssertions
