@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
-    <ProjectReference Include="..\..\packages\Qyl.Contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

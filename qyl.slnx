@@ -17,7 +17,7 @@
   </Folder>
 
   <Folder Name="/packages/">
-    <Project Path="packages/Qyl.Contracts/qyl.contracts.csproj" />
+    <Project Path="packages/Qyl.Contracts/Qyl.Contracts.csproj" />
     <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
     <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
@@ -25,7 +25,6 @@
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj" />
     <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj" />
-    <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
   </Folder>
 
@@ -47,6 +46,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
     <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
+    <Project Path="tests/qyl.semconv.analyzers.tests/qyl.semconv.analyzers.tests.csproj" />
   </Folder>
 
   <Folder Name="/eng/">
