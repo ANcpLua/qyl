@@ -177,6 +177,14 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
+### 2026-05-10 06:22 CEST - Merge qyl path hygiene PR
+
+Workflow: branch-three
+Changed: merged qyl PR #302 and added a follow-up analyzer test assertion for the close-typo suggestion message.
+Evidence: PR #302 head `845729145e70c690c2868b80598cd35293381e5d`, merge commit `19b9be15d4ef1ea9dc17cf2efe73a25fe0309713`, all listed PR checks successful before merge.
+Pushed/Merged/Closed/Deleted: `main` follow-up commit pending in this automation run; PR #302 merged at 2026-05-10T04:20:43Z.
+Blocked: none.
+
 ### 2026-05-09 18:41 CEST - Initialize automation workflow ledger
 
 Workflow: documentation
