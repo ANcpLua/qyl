@@ -177,13 +177,13 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
-### 2026-05-10 03:20 CEST - branch-three hygiene fixed qyl PR residue
+### 2026-05-10 06:22 CEST - Merge qyl path hygiene PR
 
 Workflow: branch-three
-Changed: resolved qyl dirty PR residue by broadening runner-token redaction patterns and tests; corrected stale conflict-marker residue in `eng/forgejo/README.md` with no remaining diff.
-Evidence: quick gate returned `NO_WORK=0`; configured repo paths for Arqio, Roslyn.Utilities, NET.Sdk, Analyzers, Agents, ErrorOrX, typespec-otel-semconv, and renovate-config were missing locally; qyl PR #300 live state was `APPROVED`/`CLEAN` at `4d8c05f0`; `credential-patterns.json` parsed; focused `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj --no-restore --filter-method '*SummaryCredentialRedactorTests*'` passed 2/2.
-Pushed/Merged/Closed/Deleted: pushed qyl PR #300 branch update after verifier.
-Blocked: qyl PR #300 checks restarted after push; ANcpLua/ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED`/`BLOCKED`; PR #242 remains `BLOCKED`.
+Changed: merged qyl PR #302 and opened PR #303 with a follow-up analyzer test assertion for the close-typo suggestion message.
+Evidence: PR #302 head `845729145e70c690c2868b80598cd35293381e5d`, merge commit `19b9be15d4ef1ea9dc17cf2efe73a25fe0309713`, all listed PR #302 checks successful before merge; PR #303 focused test passed locally.
+Pushed/Merged/Closed/Deleted: PR #302 merged at 2026-05-10T04:20:43Z; PR #303 `https://github.com/Alexander-Nachtmann/qyl/pull/303` includes test commit `a502275edeea72f93494af3ece54c0141eafc0c5` plus this ledger update.
+Blocked: PR #303 checks pending after the one allowed snapshot.
 
 ### 2026-05-09 18:41 CEST - Initialize automation workflow ledger
 
