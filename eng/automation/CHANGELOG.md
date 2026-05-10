@@ -180,10 +180,10 @@ Blocked: <real blocker only>
 ### 2026-05-10 03:20 CEST - branch-three hygiene fixed qyl PR residue
 
 Workflow: branch-three
-Changed: cloned missing configured repos at `/Users/ancplua/Arqio`, `/Users/ancplua/framework/ANcpLua.Roslyn.Utilities`, `/Users/ancplua/framework/ANcpLua.NET.Sdk`, `/Users/ancplua/framework/ANcpLua.Analyzers`, `/Users/ancplua/framework/ANcpLua.Agents`, `/Users/ancplua/fh/ErrorOrX`, `/Users/ancplua/framework/typespec-otel-semconv`, and `/Users/ancplua/framework/renovate-config`; re-read qyl dirty residue and confirmed runner-token redaction fix already landed on the PR head.
-Evidence: quick gate returned `NO_WORK=0`; qyl branch `dev/forgejo-summary-research` was clean apart from this ledger entry after fetch, at `225cbc78`; `credential-patterns.json` parsed; focused `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj --no-restore --filter-method '*SummaryCredentialRedactorTests*'` passed 2/2.
-Pushed/Merged/Closed/Deleted: pending qyl ledger push after this entry.
-Blocked: ANcpLua/ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED`/`BLOCKED`; PR #242 remains `BLOCKED`; qyl PR #300 needs one post-push check snapshot after the ledger push.
+Changed: resolved qyl dirty PR residue by broadening runner-token redaction patterns and tests; corrected stale conflict-marker residue in `eng/forgejo/README.md` with no remaining diff.
+Evidence: quick gate returned `NO_WORK=0`; configured repo paths for Arqio, Roslyn.Utilities, NET.Sdk, Analyzers, Agents, ErrorOrX, typespec-otel-semconv, and renovate-config were missing locally; qyl PR #300 live state was `APPROVED`/`CLEAN` at `4d8c05f0`; `credential-patterns.json` parsed; focused `dotnet test --project tests/qyl.mcp.tests/qyl.mcp.tests.csproj --no-restore --filter-method '*SummaryCredentialRedactorTests*'` passed 2/2.
+Pushed/Merged/Closed/Deleted: pushed qyl PR #300 branch update after verifier.
+Blocked: qyl PR #300 checks restarted after push; ANcpLua/ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED`/`BLOCKED`; PR #242 remains `BLOCKED`.
 
 ### 2026-05-09 18:41 CEST - Initialize automation workflow ledger
 
