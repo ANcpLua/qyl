@@ -1,7 +1,19 @@
 <Solution>
 
   <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="AGENTS.md" />
     <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+    <File Path="Version.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="eng/MSBuild/Shared.props" />
+    <File Path="eng/MSBuild/Shared.targets" />
   </Folder>
 
   <Folder Name="/packages/">
@@ -15,11 +27,6 @@
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Tests/Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
-    <File Path="packages/qyl-client/package.json" />
-    <File Path="packages/qyl-client/README.md" />
-    <File Path="packages/qyl-client/tsconfig.json" />
-    <File Path="packages/qyl-client/src/conventions.ts" />
-    <File Path="packages/qyl-client/src/index.ts" />
   </Folder>
 
   <Folder Name="/services/">
@@ -45,107 +52,6 @@
   <Folder Name="/eng/">
     <Project Path="eng/build/build.csproj" />
     <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
-    <File Path="eng/build.sh" />
-    <File Path="eng/automation/CHANGELOG.md" />
-    <File Path="eng/compose.yaml" />
-    <File Path="eng/semconv/bootstrap-weaver.sh" />
-    <File Path="eng/semconv/deprecated-lookup/master-programmatic.yaml" />
-    <File Path="eng/semconv/run-weaver.sh" />
-    <File Path="eng/smoke/run.sh" />
-  </Folder>
-  <Folder Name="/eng/MSBuild/">
-    <File Path="eng/MSBuild/Shared.props" />
-    <File Path="eng/MSBuild/Shared.targets" />
-  </Folder>
-
-  <Folder Name="/core/specs/">
-    <File Path="core/specs/main.tsp" />
-    <File Path="core/specs/package.json" />
-    <File Path="core/specs/tspconfig.yaml" />
-  </Folder>
-  <Folder Name="/core/specs/api/">
-    <File Path="core/specs/api/routes.tsp" />
-    <File Path="core/specs/api/streaming.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/common/">
-    <File Path="core/specs/common/errors.tsp" />
-    <File Path="core/specs/common/pagination.tsp" />
-    <File Path="core/specs/common/types.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/models/">
-    <File Path="core/specs/models/alerting.tsp" />
-    <File Path="core/specs/models/configurator.tsp" />
-    <File Path="core/specs/models/db.tsp" />
-    <File Path="core/specs/models/deployment.tsp" />
-    <File Path="core/specs/models/error.tsp" />
-    <File Path="core/specs/models/genai.tsp" />
-    <File Path="core/specs/models/http.tsp" />
-    <File Path="core/specs/models/identity.tsp" />
-    <File Path="core/specs/models/issues.tsp" />
-    <File Path="core/specs/models/log.tsp" />
-    <File Path="core/specs/models/messaging.tsp" />
-    <File Path="core/specs/models/otel-config.tsp" />
-    <File Path="core/specs/models/retention.tsp" />
-    <File Path="core/specs/models/rpc.tsp" />
-    <File Path="core/specs/models/search.tsp" />
-    <File Path="core/specs/models/session.tsp" />
-    <File Path="core/specs/models/system.tsp" />
-    <File Path="core/specs/models/test.tsp" />
-    <File Path="core/specs/models/triage.tsp" />
-    <File Path="core/specs/models/workflow.tsp" />
-    <File Path="core/specs/models/workspace.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/models/agent/">
-    <File Path="core/specs/models/agent/agent-run.tsp" />
-    <File Path="core/specs/models/agent/tool-call.tsp" />
-    <File Path="core/specs/models/agent/workflow-checkpoint.tsp" />
-    <File Path="core/specs/models/agent/workflow-execution.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/intelligence/">
-    <File Path="core/specs/intelligence/causal-rules.tsp" />
-    <File Path="core/specs/intelligence/diagnostic-patterns.tsp" />
-    <File Path="core/specs/intelligence/investigation-strategies.tsp" />
-    <File Path="core/specs/intelligence/main.tsp" />
-    <File Path="core/specs/intelligence/signals.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/intelligence/seed/">
-    <File Path="core/specs/intelligence/seed/patterns.tsp" />
-    <File Path="core/specs/intelligence/seed/rules.tsp" />
-    <File Path="core/specs/intelligence/seed/strategies.tsp" />
-  </Folder>
-  <Folder Name="/core/specs/otel/">
-    <File Path="core/specs/otel/enums.tsp" />
-    <File Path="core/specs/otel/logs.tsp" />
-    <File Path="core/specs/otel/metrics.tsp" />
-    <File Path="core/specs/otel/profiles.tsp" />
-    <File Path="core/specs/otel/resource.tsp" />
-    <File Path="core/specs/otel/span.tsp" />
-    <File Path="core/specs/otel/storage.tsp" />
-  </Folder>
-
-  <Folder Name="/.github/">
-    <File Path=".github/dependabot.yml" />
-    <File Path=".github/workflows/action-governance.yml" />
-    <File Path=".github/workflows/auto-merge.yml" />
-    <File Path=".github/workflows/ci.yml" />
-    <File Path=".github/workflows/claude-code-review.yml" />
-    <File Path=".github/workflows/deploy-mcp.yml" />
-    <File Path=".github/workflows/nuget-publish.yml" />
-    <File Path=".github/workflows/release-mcp.yml" />
-    <File Path=".github/workflows/release.yml" />
-  </Folder>
-
-  <Folder Name="/config/">
-    <File Path=".dockerignore" />
-    <File Path=".gitignore" />
-    <File Path="AGENTS.md" />
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Build.targets" />
-    <File Path="Directory.Packages.props" />
-    <File Path="README.md" />
-    <File Path="Version.props" />
-    <File Path="global.json" />
-    <File Path="nuget.config" />
   </Folder>
 
 </Solution>
