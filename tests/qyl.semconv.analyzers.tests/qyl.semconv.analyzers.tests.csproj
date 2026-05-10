@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests</RootNamespace>
+    <!-- Pin AssemblyName independent of csproj filename so the analyzer's
+         [InternalsVisibleTo] grant keeps matching after the move. -->
+    <AssemblyName>Qyl.OpenTelemetry.SemanticConventions.Analyzers.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <!-- MTP requires an Exe output for self-hosting -->
@@ -15,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj"/>
+    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Analyzers\Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
