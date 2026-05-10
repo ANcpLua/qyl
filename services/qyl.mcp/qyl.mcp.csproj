@@ -6,7 +6,7 @@
     <!-- Set up the NuGet package to be an MCP server -->
     <PackAsTool>true</PackAsTool>
     <PackageType>McpServer</PackageType>
-    <!-- Dashed binary name for 'dotnet tool install -g Qyl.Mcp' → 'qyl-mcp' on PATH -->
+    <!-- Dashed binary name for 'dotnet tool install -g Qyl.Mcp' -> 'qyl-mcp' on PATH -->
     <ToolCommandName>qyl-mcp</ToolCommandName>
     <!-- Override global IsPackable=false in Directory.Build.props; qyl.mcp ships to NuGet -->
     <IsPackable>true</IsPackable>
@@ -56,6 +56,12 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/"/>
+    <None Include="..\..\eng\forgejo\credential-patterns.json"
+          Link="credential-patterns.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="tools/$(TargetFramework)/any/"/>
   </ItemGroup>
 
   <ItemGroup>
