@@ -9,6 +9,9 @@ public sealed class SummaryCredentialRedactorTests
     {
         var syntheticRunnerToken = new string('a', 40);
         var quotedSyntheticRunnerToken = new string('b', 40);
+        var configSyntheticRunnerToken = new string('c', 40);
+        var literalSyntheticRunnerToken = new string('d', 40);
+        const string nonHexRunnerToken = "Sk9wHjBHelH4n1ckQy-mo3KVYRdoaPZ_aaH1ATfgI05";
         var input = $$"""
                       Authorization: Bearer abc.def-123
                       Authorization: Basic dXNlcjpwYXNz
@@ -27,6 +30,9 @@ public sealed class SummaryCredentialRedactorTests
                       {"auth_token":"migrate-token","auth_password":"migrate-password","auth_username":"migrate-user"}
                       token: {{syntheticRunnerToken}}
                       token: "{{quotedSyntheticRunnerToken}}"
+                      token = "{{configSyntheticRunnerToken}}";
+                      kubectl create secret generic forgejo-registration --from-literal=token={{literalSyntheticRunnerToken}}
+                      token: "{{nonHexRunnerToken}}"
                       X-Forgejo-OTP: 123456
                       X-Gitea-OTP: 123456
                       """;
@@ -54,6 +60,9 @@ public sealed class SummaryCredentialRedactorTests
         Assert.DoesNotContain("cli-user", redacted, StringComparison.Ordinal);
         Assert.DoesNotContain(syntheticRunnerToken, redacted, StringComparison.Ordinal);
         Assert.DoesNotContain(quotedSyntheticRunnerToken, redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain(configSyntheticRunnerToken, redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain(literalSyntheticRunnerToken, redacted, StringComparison.Ordinal);
+        Assert.DoesNotContain(nonHexRunnerToken, redacted, StringComparison.Ordinal);
         Assert.DoesNotContain("123456", redacted, StringComparison.Ordinal);
         Assert.Contains("<redacted>", redacted, StringComparison.Ordinal);
     }
