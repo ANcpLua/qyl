@@ -180,10 +180,10 @@ Blocked: <real blocker only>
 ### 2026-05-10 06:22 CEST - Merge qyl path hygiene PR
 
 Workflow: branch-three
-Changed: merged qyl PR #302 and added a follow-up analyzer test assertion for the close-typo suggestion message.
-Evidence: PR #302 head `845729145e70c690c2868b80598cd35293381e5d`, merge commit `19b9be15d4ef1ea9dc17cf2efe73a25fe0309713`, all listed PR checks successful before merge.
-Pushed/Merged/Closed/Deleted: `main` follow-up commit pending in this automation run; PR #302 merged at 2026-05-10T04:20:43Z.
-Blocked: none.
+Changed: merged qyl PR #302 and opened PR #303 with a follow-up analyzer test assertion for the close-typo suggestion message.
+Evidence: PR #302 head `845729145e70c690c2868b80598cd35293381e5d`, merge commit `19b9be15d4ef1ea9dc17cf2efe73a25fe0309713`, all listed PR #302 checks successful before merge; PR #303 focused test passed locally.
+Pushed/Merged/Closed/Deleted: PR #302 merged at 2026-05-10T04:20:43Z; PR #303 `https://github.com/Alexander-Nachtmann/qyl/pull/303` pushed at `a502275edeea72f93494af3ece54c0141eafc0c5`.
+Blocked: PR #303 checks pending after the one allowed snapshot.
 
 ### 2026-05-09 18:41 CEST - Initialize automation workflow ledger
 
