@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -38,15 +39,16 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
 
     public async Task<string> SummarizeTraceAsync(string traceId, CancellationToken ct)
     {
-        var spans = await GetAsync(
+        var trace = await GetAsync(
             $"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
-            SummaryJsonContext.Default.ListTraceSpanDto,
+            SummaryJsonContext.Default.TraceResponseDto,
             ct).ConfigureAwait(false);
 
+        var spans = trace?.Spans;
         if (spans is null || spans.Count is 0)
             return $"Trace '{traceId}' not found or contains no spans.";
 
-        var rawContext = RenderTraceContext(traceId, spans);
+        var rawContext = RenderTraceContext(traceId, trace, spans);
         return await CompleteWithAgentAsync(
             "Trace Summary",
             rawContext,
@@ -85,7 +87,20 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
         string path,
         JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken ct) =>
-        client.GetFromJsonAsync(path, jsonTypeInfo, ct);
+        GetCoreAsync(path, jsonTypeInfo, ct);
+
+    private async Task<T?> GetCoreAsync<T>(
+        string path,
+        JsonTypeInfo<T> jsonTypeInfo,
+        CancellationToken ct)
+    {
+        using var response = await client.GetAsync(path, ct).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return default;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync(jsonTypeInfo, ct).ConfigureAwait(false);
+    }
 
     private async Task<string> CompleteWithAgentAsync(
         string title,
@@ -126,32 +141,31 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
         return sb.ToString();
     }
 
-    private static string RenderTraceContext(string traceId, List<TraceSpanDto> spans)
+    private static string RenderTraceContext(string traceId, TraceResponseDto trace, List<TraceSpanDto> spans)
     {
         StringBuilder sb = new();
         sb.AppendLine($"Trace ID: {traceId}");
         sb.AppendLine($"Total Spans: {spans.Count}");
 
-        var minStart = spans.Min(static s => s.StartTimeUnixNano);
-        var maxEnd = spans.Max(static s => s.StartTimeUnixNano + s.DurationNs);
-        var totalDurationMs = (maxEnd - minStart) / 1_000_000.0;
-        sb.AppendLine($"Total Duration: {totalDurationMs:F1}ms");
+        if (trace.DurationMs.HasValue)
+            sb.AppendLine($"Total Duration: {trace.DurationMs.Value:F1}ms");
+        if (trace.Status is not null)
+            sb.AppendLine($"Status: {trace.Status}");
 
-        var errorCount = spans.Count(static s => s.StatusCode == 2);
+        var errorCount = spans.Count(static s => IsErrorStatus(s.Status));
         if (errorCount > 0)
             sb.AppendLine($"Error Spans: {errorCount}");
 
         sb.AppendLine("\nSpans:");
-        foreach (var span in spans.OrderBy(static s => s.StartTimeUnixNano))
+        foreach (var span in spans.OrderBy(static s => s.StartTime, StringComparer.Ordinal))
         {
-            var durationMs = span.DurationNs / 1_000_000.0;
-            var statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
+            var statusLabel = IsErrorStatus(span.Status) ? " [ERROR]" : "";
             var parentInfo = span.ParentSpanId is not null ? $" (parent: {span.ParentSpanId})" : " (root)";
 
-            sb.AppendLine($"- {span.Name}{statusLabel} - {durationMs:F1}ms");
+            sb.AppendLine($"- {span.Name}{statusLabel} - {span.DurationMs:F1}ms");
             sb.AppendLine($"  Service: {span.ServiceName ?? "unknown"}, SpanID: {span.SpanId}{parentInfo}");
 
-            if (span is { StatusCode: 2, StatusMessage: not null })
+            if (IsErrorStatus(span.Status) && span.StatusMessage is not null)
                 sb.AppendLine($"  Error: {span.StatusMessage}");
         }
 
@@ -162,27 +176,27 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
     {
         StringBuilder sb = new();
         sb.AppendLine($"Session ID: {session.SessionId}");
-        if (session.ServiceName is not null)
-            sb.AppendLine($"Service: {session.ServiceName}");
-        if (session.StartTime.HasValue)
-            sb.AppendLine($"Start: {session.StartTime.Value:u}");
-        if (session.EndTime.HasValue)
-            sb.AppendLine($"End: {session.EndTime.Value:u}");
+        if (session.Services is { Count: > 0 })
+            sb.AppendLine($"Services: {string.Join(", ", session.Services)}");
+        if (session.StartTime is not null)
+            sb.AppendLine($"Start: {session.StartTime}");
+        if (session.LastActivity is not null)
+            sb.AppendLine($"Last Activity: {session.LastActivity}");
+        sb.AppendLine($"Duration: {session.DurationMs:F1}ms");
         sb.AppendLine($"Span Count: {session.SpanCount}");
         sb.AppendLine($"Error Count: {session.ErrorCount}");
 
-        if (spansResponse?.Items is { Count: > 0 })
+        if (spansResponse?.Spans is { Count: > 0 })
         {
-            sb.AppendLine($"\nSpans ({spansResponse.Items.Count} shown):");
-            foreach (var span in spansResponse.Items)
+            sb.AppendLine($"\nSpans ({spansResponse.Spans.Count} shown):");
+            foreach (var span in spansResponse.Spans.OrderBy(static s => s.StartTime, StringComparer.Ordinal))
             {
-                var durationMs = span.DurationNs / 1_000_000.0;
-                var statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
+                var statusLabel = IsErrorStatus(span.Status) ? " [ERROR]" : "";
 
-                sb.AppendLine($"- {span.Name}{statusLabel} - {durationMs:F1}ms");
+                sb.AppendLine($"- {span.Name}{statusLabel} - {span.DurationMs:F1}ms");
                 if (span.ServiceName is not null)
                     sb.AppendLine($"  Service: {span.ServiceName}");
-                if (span is { StatusCode: 2, StatusMessage: not null })
+                if (IsErrorStatus(span.Status) && span.StatusMessage is not null)
                     sb.AppendLine($"  Error: {span.StatusMessage}");
             }
         }
@@ -190,17 +204,22 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
         return sb.ToString();
     }
 
+    private static bool IsErrorStatus(string? status) =>
+        string.Equals(status, "error", StringComparison.OrdinalIgnoreCase);
+
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : string.Concat(value.AsSpan(0, maxLength), "...");
 }
 
 internal sealed record SummaryIssueDto(
-    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("title")]
+    string Title,
     [property: JsonPropertyName("error_type")]
     string ErrorType,
     [property: JsonPropertyName("category")]
     string Category,
-    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("status")]
+    string Status,
     [property: JsonPropertyName("priority")]
     string Priority,
     [property: JsonPropertyName("occurrence_count")]
@@ -223,63 +242,51 @@ internal sealed record SummaryEventDto(
     string? StackTrace);
 
 internal sealed record SummaryEventsResponse(
-    [property: JsonPropertyName("items")] List<SummaryEventDto>? Items);
+    List<SummaryEventDto>? Items);
 
 internal sealed record TraceSpanDto(
-    [property: JsonPropertyName("trace_id")]
     string TraceId,
-    [property: JsonPropertyName("span_id")]
     string SpanId,
-    [property: JsonPropertyName("parent_span_id")]
     string? ParentSpanId,
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("service_name")]
+    string Name,
     string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")]
-    long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")]
-    long DurationNs,
-    [property: JsonPropertyName("status_code")]
-    int StatusCode,
-    [property: JsonPropertyName("status_message")]
+    string? StartTime,
+    double DurationMs,
+    string Status,
     string? StatusMessage);
 
+internal sealed record TraceResponseDto(
+    string? TraceId,
+    List<TraceSpanDto>? Spans,
+    TraceSpanDto? RootSpan,
+    double? DurationMs,
+    string? Status);
+
 internal sealed record SessionDto(
-    [property: JsonPropertyName("session_id")]
     string SessionId,
-    [property: JsonPropertyName("service_name")]
-    string? ServiceName,
-    [property: JsonPropertyName("start_time")]
-    DateTime? StartTime,
-    [property: JsonPropertyName("end_time")]
-    DateTime? EndTime,
-    [property: JsonPropertyName("span_count")]
-    int SpanCount,
-    [property: JsonPropertyName("error_count")]
-    int ErrorCount);
+    IReadOnlyList<string>? Services,
+    string? StartTime,
+    string? LastActivity,
+    double DurationMs,
+    long SpanCount,
+    long ErrorCount);
 
 internal sealed record SessionSpanDto(
-    [property: JsonPropertyName("span_id")]
     string SpanId,
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("service_name")]
+    string Name,
     string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")]
-    long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")]
-    long DurationNs,
-    [property: JsonPropertyName("status_code")]
-    int StatusCode,
-    [property: JsonPropertyName("status_message")]
+    string? StartTime,
+    double DurationMs,
+    string Status,
     string? StatusMessage);
 
 internal sealed record SessionSpansResponse(
-    [property: JsonPropertyName("items")] List<SessionSpanDto>? Items);
+    List<SessionSpanDto>? Spans);
 
 [JsonSerializable(typeof(SummaryIssueDto))]
 [JsonSerializable(typeof(SummaryEventsResponse))]
-[JsonSerializable(typeof(List<TraceSpanDto>))]
+[JsonSerializable(typeof(TraceResponseDto))]
 [JsonSerializable(typeof(SessionDto))]
 [JsonSerializable(typeof(SessionSpansResponse))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class SummaryJsonContext : JsonSerializerContext;
