@@ -177,6 +177,14 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
+### 2026-05-11 04:45 CEST - Resolve plugin review threads
+
+Workflow: branch-three
+Changed: quick gate returned `NO_WORK=0`; fetched/pruned configured repos; resolved nine addressed review threads on ancplua-claude-plugins PR #241; dismissed stale CodeRabbit changes-request review after live thread re-read; confirmed qyl PRs #313 and #317 merged and qyl PR #320 was invalid stale-branch output; closed qyl PR #320 and deleted its remote branch.
+Evidence: ancplua-claude-plugins PR #241 `https://github.com/ANcpLua/ancplua-claude-plugins/pull/241` head `d7df4c464bdd6b94d0aeeb10cd40e68dc7d43793`, zero unresolved threads after GraphQL re-read, checks green, `reviewDecision` empty, `mergeStateStatus` `BLOCKED`; qyl PR #320 `https://github.com/Alexander-Nachtmann/qyl/pull/320` head `a56d805c70029c31bccb64096a9323510b5fbc99` diff contained stale Forgejo/analyzer branch history; qyl PR #318 `https://github.com/Alexander-Nachtmann/qyl/pull/318` head `39886fa83868ed5d6eceb141297d5126a66bc0d8` had `Analyze (csharp)` in progress in the one allowed snapshot.
+Pushed/Merged/Closed/Deleted: closed qyl PR #320 and deleted remote branch `fix/summary-facade-collector-envelopes`; pushed this qyl automation changelog update to `automation/branch-hygiene-run-20260511-0445`.
+Blocked: `pushed-checks-running` on qyl PR #318 `https://github.com/Alexander-Nachtmann/qyl/pull/318` head `39886fa83868ed5d6eceb141297d5126a66bc0d8` with `Analyze (csharp)` in progress; ancplua-claude-plugins PR #241 requires a non-author approval after stale CodeRabbit changes-request dismissal.
+
 ### 2026-05-11 01:34 CEST - Merge clean hygiene PRs
 
 Workflow: branch-three
