@@ -9,9 +9,9 @@ so consumers can tune severity per entry via .editorconfig.
 
 The original consumer (Qyl.OpenTelemetry.SemanticConventions.Analyzers) was
 removed in commit 11a66c4f; this script is retained for future deprecated-
-attribute analyzer work. Both the --out path and the emitted C# namespace
-are caller-chosen via --namespace (defaults to the original namespace for
-backwards-compatible regeneration).
+attribute analyzer work. The --out path is caller-chosen via --out, and the
+emitted C# namespace is caller-chosen via --namespace (which defaults to the
+original namespace for backwards-compatible regeneration).
 
 Usage:
     python3 gen.py \
@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import sys
 import textwrap
 
@@ -63,6 +64,17 @@ VALID_MODES = {
 
 VALID_KINDS = {"attribute", "metric", "event", "entity", "enum_member"}
 VALID_STATUSES = {"renamed", "obsoleted", "uncategorized"}
+CS_NAMESPACE_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
+
+
+def validate_namespace(value: str) -> str:
+    """Validate a C# namespace passed on the command line."""
+    if not CS_NAMESPACE_PATTERN.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            f"invalid C# namespace {value!r}; expected dot-separated C# identifiers"
+        )
+
+    return value
 
 
 def mode_to_enum(mode: str) -> str:
@@ -319,6 +331,7 @@ def main() -> int:
     p.add_argument(
         "--namespace",
         default="Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model",
+        type=validate_namespace,
         help="C# namespace emitted into the generated file",
     )
     args = p.parse_args()
