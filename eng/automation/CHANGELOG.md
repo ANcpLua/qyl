@@ -177,6 +177,14 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
+### 2026-05-11 22:37 CEST - Clear stale hygiene worktrees
+
+Workflow: branch-three
+Changed: quick gate returned `NO_WORK=0`; deleted qyl local branch `automation/branch-hygiene-run-20260511-0445` after patch-equivalence proof; removed stale temp worktree `/private/tmp/qyl-branch-hygiene-ledger-20260511` and local branch `automation/branch-hygiene-run-20260511-2233`; reverted accidental mixed cherry-pick `81eec807` with `78c3bb21`.
+Evidence: `git cherry -v origin/main automation/branch-hygiene-run-20260511-0445` returned `- c50645eea756da4610d7d5ca24e43783944ebde1`; qyl PR #323 thread read showed CodeRabbit/Copilot comments resolved or outdated; ANcpLua.Analyzers PR #141 snapshot head `bb917fdbe2705f12dcb5d31af29782288ff90bc6` with `test (windows-latest)` pending.
+Pushed/Merged/Closed/Deleted: deleted qyl local branches `automation/branch-hygiene-run-20260511-0445` and `automation/branch-hygiene-run-20260511-2233`; removed temp worktree `/private/tmp/qyl-branch-hygiene-ledger-20260511`; pushed revert commit `78c3bb213ef87e5be874af2a164ad83da891053b`.
+Blocked: GitHub secondary rate limit 403 blocked qyl PR #318 merge and ancplua-claude-plugins PR #241 review-thread inspection; qyl PR #323 remained `CHANGES_REQUESTED` with checks pending/running; ANcpLua.Analyzers PR #141 remained `pushed-checks-running` on `test (windows-latest)`.
+
 ### 2026-05-11 22:33 CEST - Push branch hygiene fixes
 
 Workflow: branch-three
