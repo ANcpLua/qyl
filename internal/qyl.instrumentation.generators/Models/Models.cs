@@ -183,11 +183,3 @@ internal sealed record TypeParameterConstraint(
     string? Constraints);
 
 #endregion
-
-#region Tool Manifest Types
-
-internal sealed record ToolTypeEntry(
-    string SortKey,
-    string FullyQualifiedTypeName);
-
-#endregion

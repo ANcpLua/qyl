@@ -7,10 +7,14 @@ eng/semconv/deprecated-lookup/master-programmatic.yaml.
 One DiagnosticDescriptor is emitted per deprecated entry (QYLSC0001 onward),
 so consumers can tune severity per entry via .editorconfig.
 
+The original consumer (Qyl.OpenTelemetry.SemanticConventions.Analyzers) was
+removed in commit 11a66c4f; this script is retained for future deprecated-
+attribute analyzer work and writes to whatever --out path the caller chooses.
+
 Usage:
     python3 gen.py \
         --yaml eng/semconv/deprecated-lookup/master-programmatic.yaml \
-        --out  packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Model/DeprecatedDiagnostics.g.cs
+        --out  <consumer-project>/DeprecatedDiagnostics.g.cs
 """
 from __future__ import annotations
 
