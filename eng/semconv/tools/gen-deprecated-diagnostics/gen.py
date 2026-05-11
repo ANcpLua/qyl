@@ -9,7 +9,10 @@ so consumers can tune severity per entry via .editorconfig.
 
 The original consumer (Qyl.OpenTelemetry.SemanticConventions.Analyzers) was
 removed in commit 11a66c4f; this script is retained for future deprecated-
-attribute analyzer work and writes to whatever --out path the caller chooses.
+attribute analyzer work. The --out path is caller-chosen, but the emitted
+C# namespace (Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model) is
+hardcoded in the HEADER constant below — a new consumer must either match
+that namespace or edit HEADER to suit.
 
 Usage:
     python3 gen.py \
