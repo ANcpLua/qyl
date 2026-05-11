@@ -9,15 +9,15 @@ so consumers can tune severity per entry via .editorconfig.
 
 The original consumer (Qyl.OpenTelemetry.SemanticConventions.Analyzers) was
 removed in commit 11a66c4f; this script is retained for future deprecated-
-attribute analyzer work. The --out path is caller-chosen, but the emitted
-C# namespace (Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model) is
-hardcoded in the HEADER constant below — a new consumer must either match
-that namespace or edit HEADER to suit.
+attribute analyzer work. Both the --out path and the emitted C# namespace
+are caller-chosen via --namespace (defaults to the original namespace for
+backwards-compatible regeneration).
 
 Usage:
     python3 gen.py \
         --yaml eng/semconv/deprecated-lookup/master-programmatic.yaml \
-        --out  <consumer-project>/DeprecatedDiagnostics.g.cs
+        --out  <consumer-project>/DeprecatedDiagnostics.g.cs \
+        --namespace <YourProject>.Model
 """
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
-namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
+namespace {namespace};
 
 internal enum DeprecatedReplacementMode
 {
@@ -238,7 +238,7 @@ def entry_record(entry: dict, rule_id: str) -> str:
     )
 
 
-def render(entries: list[dict], tag: str) -> str:
+def render(entries: list[dict], tag: str, namespace: str) -> str:
     # Deterministic order: by (folder, kind, deprecated_id).
     entries_sorted = sorted(
         entries,
@@ -262,7 +262,9 @@ def render(entries: list[dict], tag: str) -> str:
             e["deprecated_id"] = member
 
     count = len(entries_sorted)
-    lines: list[str] = [HEADER.replace("{count:04d}", f"{count:04d}")]
+    lines: list[str] = [
+        HEADER.replace("{count:04d}", f"{count:04d}").replace("{namespace}", namespace)
+    ]
 
     # Emit descriptor fields
     for i, entry in enumerate(entries_sorted, start=1):
@@ -314,6 +316,11 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--yaml", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument(
+        "--namespace",
+        default="Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model",
+        help="C# namespace emitted into the generated file",
+    )
     args = p.parse_args()
 
     yaml_path = pathlib.Path(args.yaml)
@@ -331,7 +338,7 @@ def main() -> int:
         return 1
 
     tag = ((doc.get("source") or {}).get("tag")) or "main"
-    text = render(entries, tag)
+    text = render(entries, tag, args.namespace)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8-sig")
     print(f"[gen-deprecated-diagnostics] wrote {out_path} ({len(entries)} entries)")
