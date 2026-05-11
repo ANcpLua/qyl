@@ -17,16 +17,16 @@ Landing page: <https://ancplua.github.io/qyl/>
 
 ## Tech Stack
 
-| Layer    | Technology                                      |
-|----------|-------------------------------------------------|
-| Runtime  | .NET 10.0, C# 14                                |
-| Frontend | React 19, Vite 7, Tailwind CSS 4, Base UI 1.3.0 |
-| Storage  | DuckDB 1.5.0 (Debian, glibc required)           |
-| Protocol | OpenTelemetry SDK 1.15.0, Semconv 1.40          |
-| Schema   | TypeSpec -> OpenAPI -> C# / DuckDB / TypeScript |
-| Build    | NUKE 10.1.0, MSBuild, ANcpLua.NET.Sdk           |
-| MCP      | ModelContextProtocol C# SDK 1.2.0               |
-| Agents   | Microsoft Agent Framework 1.3.0                 |
+| Layer    | Technology                                              |
+|----------|---------------------------------------------------------|
+| Runtime  | .NET 10.0, C# 14                                        |
+| Frontend | React 19, Vite 8, Tailwind CSS 4, Base UI 1.4           |
+| Storage  | DuckDB 1.5.0 (Debian, glibc required)                   |
+| Protocol | OpenTelemetry SDK 1.15.3, Semconv v1.41.0 (Weaver-gen)  |
+| Schema   | TypeSpec -> OpenAPI -> C# / DuckDB / TypeScript         |
+| Build    | NUKE 10.1.0, MSBuild, ANcpLua.NET.Sdk 3.4.22            |
+| MCP      | ModelContextProtocol C# SDK 1.2.0                       |
+| Agents   | Microsoft Agent Framework 1.4 + ANcpLua.Agents 1.4.x    |
 
 ## Projects
 
@@ -35,11 +35,13 @@ Landing page: <https://ancplua.github.io/qyl/>
 | `qyl.collector`                    | Application     | OTLP ingest, REST API, SSE streaming, DuckDB storage |
 | `qyl.mcp`                          | Application     | MCP tool surface (stdio + Streamable HTTP)           |
 | `qyl.loom`                         | Application     | Standalone agent exe — triage, RCA, fix, code review |
+| `qyl.loom.patterns`                | Library         | MAF composition cookbook used by `qyl.loom`          |
 | `qyl.dashboard`                    | Frontend        | React 19 SPA with TanStack Table/Query, ECharts 6    |
 | `qyl.contracts`                    | Library         | BCL-only shared types (no external dependencies)     |
 | `qyl.instrumentation`              | Library         | .NET instrumentation SDK with OTel setup             |
 | `qyl.instrumentation.generators`   | Roslyn Analyzer | Source generator for GenAI/DB interceptors           |
 | `qyl.collector.storage.generators` | Roslyn Analyzer | DuckDB storage source generators                     |
+| `qyl.mcp.generators`               | Roslyn Analyzer | MCP tool manifest emission                           |
 
 ## Architecture
 
@@ -80,7 +82,7 @@ docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 **From Source**
 
 ```bash
-git clone --recurse-submodules https://github.com/ANcpLua/qyl.git
+git clone --recurse-submodules https://github.com/Alexander-Nachtmann/qyl.git
 cd qyl
 dotnet run --project services/qyl.collector
 ```
@@ -134,7 +136,7 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 
 ## MCP Tool Surface
 
-qyl.mcp exposes 77 tools across 9 skill families:
+qyl.mcp exposes 90+ tools across 9 skill families (live count emitted by `internal/qyl.mcp.generators/`):
 
 | Skill     | Examples                                              |
 |-----------|-------------------------------------------------------|
@@ -152,12 +154,16 @@ Transports: stdio (local) and Streamable HTTP (remote, Claude Web UI, API connec
 
 ## Agent Runtime (MAF)
 
-`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.3.0 consumer. Curated
-`Qyl.*` facade extensions over MAF live in [`MAF.Advanced.Patterns`](https://github.com/Alexander-Nachtmann/MAF.Advanced.Patterns)
-(5 packages: core + Azure + Foundry + Foundry.Hosting + OpenAI) — qyl is moving to consume those packages instead of
-duplicating extensions in-tree (tracked in
-[MAF.Advanced.Patterns#1](https://github.com/Alexander-Nachtmann/MAF.Advanced.Patterns/issues/1) /
-[qyl#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)).
+`qyl.loom` is a [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 1.4 consumer. The curated
+`Qyl.*` facades over MAF were consolidated into
+[`ANcpLua.Agents`](https://github.com/ANcpLua/ANcpLua.Agents) — published on nuget.org as a family of provider-agnostic
++ hosting packages (`ANcpLua.Agents`, `ANcpLua.Agents.Workflows`, `ANcpLua.Agents.Testing`,
+`ANcpLua.Agents.Hosting.{OpenAI,Anthropic,Foundry,Azure,DevUI}`, …). qyl consumes them today; see `CLAUDE.md` for the
+exact mapping.
+
+Local instrumentation is intentionally retained, not pending cutover: qyl owns telemetry decoration on `IChatClient` /
+`IMcpServerBuilder` (`internal/qyl.instrumentation/`), `ANcpLua.Agents.*` owns workflows / hosting bridges / testing
+fixtures. The two layers cooperate at every agent composition root.
 
 Triage, RCA, fix generation, and code review agents share one composition shape:
 
@@ -285,10 +291,12 @@ tests/                                  # xUnit v3 + MTP tests
 
 | Document                             | Purpose                                                             |
 |--------------------------------------|---------------------------------------------------------------------|
-| `AGENTS.md`                          | Conventions + composition cheat sheet for agents in this repo       |
-| `CLAUDE.md`                          | Per-package conventions, MAF entry-points, MCP/agent telemetry      |
+| `AGENTS.md` (symlinked as `CLAUDE.md`) | Conventions, MAF entry-points, MCP/agent telemetry, cron-runner contract |
+| `eng/automation/CHANGELOG.md`        | Cron-automation ledger — newest 10 material runs, runner-owned      |
 | `docs/attributes/`                   | Compile-time attribute catalogues                                   |
 | `docs/superpowers/`                  | Long-form notes and historical design plans                         |
+
+Product release notes are not stored as a top-level `CHANGELOG.md`; they are owned by the release workflow.
 
 ## License
 

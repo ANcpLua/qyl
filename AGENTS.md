@@ -10,14 +10,15 @@ of them — when you write code that fits the patterns below, the build stays gr
 
 The framework consolidation shipped. `MAF.Advanced.Patterns` was folded back into the `ANcpLua/ANcpLua.Agents` repo
 (retirement commit `12ff08c Retire MAF.Advanced.Patterns into ANcpLua.Agents`) and the package family is published on
-nuget.org. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
+nuget.org. The old `Alexander-Nachtmann/MAF.Advanced.Patterns` GitHub repo no longer exists; the canonical home is
+<https://github.com/ANcpLua/ANcpLua.Agents>. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
 
-**Published packages** (1.3.x stable + previews on nuget.org):
+**Published packages** (1.4.x stable base + previews on nuget.org; MAF 1.4 numeric base):
 
-- `ANcpLua.Agents` — provider-agnostic core (1.3.1)
+- `ANcpLua.Agents` — provider-agnostic core (1.4.x)
 - `ANcpLua.Agents.Workflows` — workflow runtime + visualization
-- `ANcpLua.Agents.Testing` (1.3.1) and `ANcpLua.Agents.Testing.Workflows` (1.3.1)
-- `ANcpLua.Agents.Foundry` (1.3.1-rc1)
+- `ANcpLua.Agents.Testing` (1.4.x) and `ANcpLua.Agents.Testing.Workflows` (1.4.x)
+- `ANcpLua.Agents.Foundry`
 - `ANcpLua.Agents.Hosting.{Anthropic,Azure,DevUI,Foundry,OpenAI}` — provider/host pins (preview / alpha)
 
 **Already consumed by qyl** (see `Directory.Packages.props` + csproj `PackageReference` rows):
@@ -288,6 +289,6 @@ Under `tests/qyl.collector.tests/`:
 
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
-| [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | PRD 1 — Observability roll-up (cost / conversations / inventory) on top of existing OTel + #172 |
 | `Qyl.OpenTelemetry.Extensions` widening                                     | qyl                   | Add qyl-side wrappers (e.g. `QylClientModelExtensions` around `System.ClientModel`) as siblings to the local instrumentation, complementing `ANcpLua.Agents.*` rather than replacing it. |
 | [#172](https://github.com/Alexander-Nachtmann/qyl/pull/172)                 | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
+| [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |
