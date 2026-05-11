@@ -177,6 +177,14 @@ Blocked: <real blocker only>
 
 ## Latest Changes
 
+### 2026-05-11 22:33 CEST - Push branch hygiene fixes
+
+Workflow: branch-three
+Changed: quick gate returned `NO_WORK=0`; fast-forwarded `ANcpLua.Agents`, `ErrorOrX`, and `ANcpLua.Analyzers` local `main`; cleaned `ANcpLua.NET.Sdk` to default-only `main`; updated ANcpLua.Analyzers PR #141 branch; merged qyl PR #322; confirmed qyl PR #323 review fix at `4ccfa4bf`.
+Evidence: `ANcpLua.Agents` `main` fast-forwarded `f550eca..9252536`; `ErrorOrX` `main` fast-forwarded `7254174..1a43612`; `ANcpLua.Analyzers` `main` fast-forwarded `739fb88..2da76d0`; `ANcpLua.NET.Sdk` status clean on `main` at `3af18dd`; qyl PR #322 `https://github.com/Alexander-Nachtmann/qyl/pull/322` merged at 2026-05-11T20:30:17Z; qyl PR #323 `https://github.com/Alexander-Nachtmann/qyl/pull/323` head `4ccfa4bf485d5399b9b61454ef66d06c6ece5573`; local verifier `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` succeeded with 0 errors; `gen-deprecated-diagnostics` accepted `Valid.Namespace_1` and rejected `bad namespace`.
+Pushed/Merged/Closed/Deleted: merged qyl PR #322 and deleted remote branch `renovate/anthropics-claude-code-action-digest`; pushed/observed qyl PR #323 fix commit `4ccfa4bf`; updated ANcpLua.Analyzers PR #141 branch to head `bb917fdbe2705f12dcb5d31af29782288ff90bc6`.
+Blocked: `pushed-checks-running` on qyl PR #323 with `trigger` queued, `Backend (.NET)`, `claude-review`, CodeQL, `Frontend (React)`, `Schema Drift`, `Dependency Audit`, `Regen Clean`, and CodeRabbit pending/running; `pushed-checks-running` on ANcpLua.Analyzers PR #141 with `test (windows-latest)` in progress; GitHub returned secondary rate-limit 403 on the follow-up `gh pr checks` snapshots; ancplua-claude-plugins PR #241 remains `CHANGES_REQUESTED` with unresolved CodeRabbit review comments in `plugins/claudemd-curator`, `plugins/session-debrief`, and `tooling/scripts/weave-validate.sh`.
+
 ### 2026-05-11 04:45 CEST - Resolve plugin review threads
 
 Workflow: branch-three
