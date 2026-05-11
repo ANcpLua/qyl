@@ -39,13 +39,7 @@ jobs:
           ALLOW_MICROSOFT_NET_SDK: |
             eng/build/build.csproj
             packages/Qyl.Client/Generated/src/Qyl.Client.csproj
-          # Both held-back items intentionally opt out of CPM (manual
-          # Microsoft.CodeAnalysis.CSharp pins) which collides with the
-          # SDK's implicit Roslyn pin even with DisableImplicitRoslynPackageReference.
-          # See PR #295 body.
-          HELD_BACK: |
-            packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Qyl.OpenTelemetry.SemanticConventions.Analyzers.csproj|opts out of CPM with manual Roslyn pin — collides with SDK's implicit Roslyn ref
-            tests/qyl.semconv.analyzers.tests/qyl.semconv.analyzers.tests.csproj|opts out of CPM with manual Roslyn pin — pairs with the analyzer above
+          HELD_BACK: ''
           BANNED_PACKAGES: |
             PolySharp
             FluentAssertions

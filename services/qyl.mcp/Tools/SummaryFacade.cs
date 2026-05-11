@@ -44,10 +44,10 @@ internal sealed class SummaryFacade(HttpClient client, IQylMcpAgentsBuilder agen
             SummaryJsonContext.Default.TraceResponseDto,
             ct).ConfigureAwait(false);
 
-        var spans = trace?.Spans;
-        if (spans is null || spans.Count is 0)
+        if (trace is not { Spans.Count: > 0 })
             return $"Trace '{traceId}' not found or contains no spans.";
 
+        var spans = trace.Spans;
         var rawContext = RenderTraceContext(traceId, trace, spans);
         return await CompleteWithAgentAsync(
             "Trace Summary",

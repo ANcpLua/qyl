@@ -25,7 +25,6 @@ COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
 COPY internal/qyl.mcp.generators/*.csproj internal/qyl.mcp.generators/
@@ -39,7 +38,6 @@ COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
 COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/ packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
 COPY internal/qyl.mcp.generators/ internal/qyl.mcp.generators/
