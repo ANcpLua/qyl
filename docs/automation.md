@@ -1,97 +1,86 @@
 # CI Automation
 
-How the qyl repo handles pull requests end-to-end without human intervention,
-and how to opt new repos in.
+How the qyl repo handles pull requests end-to-end without human
+intervention, and how to opt new repos in.
 
 ## Workflow Inventory
 
-| Workflow                                         | Trigger                                                    | What it does                                                                                                |
-|--------------------------------------------------|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| `.github/workflows/anti-slop.yml`                | `pull_request_target: opened,reopened,ready_for_review,edited` | `peakoss/anti-slop@v0.3.0` scans every PR for slop signals. Closes the PR when at least `max-failures: 5` of its 34 checks trip. |
-| `.github/workflows/destructive-auto-merge.yml`   | `pull_request_target`, `pull_request_review`, `check_suite: completed`, `workflow_dispatch` | Auto-approves and `gh pr merge --admin --squash --delete-branch` for any PR authored by a trusted identity. Bypasses required reviews and required checks. |
-| `.github/workflows/refix.yml`                    | `workflow_dispatch`, `pull_request_target: labeled`, `issue_comment` (OWNER/MEMBER/COLLABORATOR only) | `HappyOnigiri/Refix@v1.4.0` runs Claude on CI to fix CodeRabbit feedback, CI failures, and merge conflicts. Manually invoked. |
+| Workflow                          | Trigger                                                                                                  | What it does                                                                                                                                  |
+|-----------------------------------|----------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `.github/workflows/anti-slop.yml` | `pull_request_target: opened,reopened,ready_for_review,edited`                                            | `peakoss/anti-slop@v0.3.0` scans every PR for slop signals. Closes the PR when `max-failures` checks trip.                                    |
+| `.github/workflows/refix.yml`     | `workflow_dispatch`, `pull_request_target: labeled`, `issue_comment` (OWNER / MEMBER / COLLABORATOR only) | `HappyOnigiri/Refix@v1.4.0` runs Claude on CI to fix CodeRabbit feedback, CI failures, and merge conflicts. Label-gated and manually invoked. |
+
+There is **no** destructive admin auto-merge tier. PR merging is handled
+by GitHub's native auto-merge, driven per-PR by Renovate's
+`platformAutomerge: true` for dependency updates or by a human enabling
+auto-merge for everything else.
 
 ## Per-PR Flow
 
 1. **PR opens** (`pull_request_target: opened`).
 2. anti-slop runs in <15 s. If it passes, the PR stays open. If it trips
-   `max-failures` checks, anti-slop closes it (`close-pr: true`) and the
-   destructive tier never touches it.
-3. The destructive tier fires on the same `pull_request_target` event. If
-   the author is in the trusted-identity allow-list and the PR is not a
-   draft, it auto-approves and runs `gh pr merge --admin --squash
-   --delete-branch`. With `--admin` the merge is unconditional — required
-   reviews, required checks, and branch-protection rules are bypassed.
-   The fallback chain
-   `gh pr merge --admin || gh pr view` handles racing tier merges by
-   short-circuiting cleanly when state is already `MERGED` or `CLOSED`.
-4. The PR is merged and its branch deleted, or it is closed by anti-slop.
-   No further events fire from this repository's side.
+   `max-failures` checks, anti-slop closes it (`close-pr: true`).
+3. CodeRabbit reviews and posts comments. The config in `.coderabbit.yaml`
+   sets `request_changes_workflow: false`, so CodeRabbit never submits a
+   formal `CHANGES_REQUESTED` review — it advises, it does not block.
+4. Branch-protection required checks run as normal.
+5. If `platformAutomerge: true` (Renovate PRs) or a human flipped
+   GitHub's native auto-merge switch, the PR merges the moment branch
+   protection is satisfied. Otherwise the PR sits open awaiting a click.
 
-Human action between step 1 and step 4: none.
+Human action between step 1 and step 5: zero for Renovate PRs, one click
+to enable auto-merge for everything else.
 
-## Trusted-Author Allow-List
+## Renovate dependency PRs
 
-Defined inline in `destructive-auto-merge.yml`. The maintainer + every known
-automation identity that opens PRs against this repo:
+Renovate's shared baseline lives in
+[`ANcpLua/renovate-config`](https://github.com/ANcpLua/renovate-config) — qyl
+extends it. `platformAutomerge: true` is set at the root of `default.json`,
+so every Renovate PR enables GitHub native auto-merge when opened. Patch
+bumps, npm devDependency minors, digest pins, lockfile-maintenance updates,
+ANcpLua first-party packages, and Microsoft.Extensions groups all carry
+`automerge: true` as well — they merge as soon as branch protection's
+required checks pass.
 
-| Author identity          | Why                                                |
-|--------------------------|----------------------------------------------------|
-| `ANcpLua`                | maintainer                                         |
-| `renovate[bot]`          | dependency updates                                 |
-| `dependabot[bot]`        | dependency updates                                 |
-| `copilot[bot]`           | autonomous Copilot fix PRs                         |
-| `jules[bot]`             | autonomous Jules fix PRs                           |
-| `claude-code[bot]`       | autonomous Claude Code fix PRs                     |
-| `github-actions[bot]`    | governance + automation runner                     |
-| `coderabbitai[bot]`      | autofix PRs raised by CodeRabbit                   |
-
-Authors **outside** the list are not auto-merged. anti-slop still scans them
-and will close the PR if it trips `max-failures` checks; otherwise the PR
-sits awaiting human review.
-
-## Dependency-Bot Gating
-
-The destructive tier preserves one safety: PRs from `renovate[bot]` or
-`dependabot[bot]` whose title, labels, or body match
-`major|alpha|beta|preview|rc` are skipped — these are reckless to
-admin-merge regardless of trust. All other dependency updates are merged
-immediately. Maintainer, AI-agent, and governance PRs are not version-bump
-shaped and skip the gate entirely.
+The block-list inside `default.json` filters out unstable channels
+(`alpha`/`beta`/`rc`/`preview`/`dev`/`canary`/`next`/`nightly`) by default.
+Renovate doesn't open PRs for those unless an explicit per-package
+exception resets `allowedVersions: '*'`.
 
 ## anti-slop Configuration
 
 Tuned in `anti-slop.yml`:
 
-| Knob                          | Value     | Rationale                                                                |
-|-------------------------------|-----------|--------------------------------------------------------------------------|
-| `max-failures`                | 5         | Trip threshold across the 34 default checks                              |
-| `blocked-source-branches`     | `main` `master` | Reject PRs whose source branch is `main` or `master`               |
-| `max-changed-files`           | 500       | qyl's `nuke Generate` regen PRs cross the upstream default of 50         |
-| `max-changed-lines`           | 25000     | Same regen reason                                                        |
-| `require-conventional-title`  | true      | Mirrors `.coderabbit.yaml`'s pre-merge title check                       |
-| `require-description`         | true      | Block empty-body drive-by PRs                                            |
-| `max-description-length`      | 4000      | qyl PR bodies cite many files                                            |
-| `max-emoji-count`             | 4         | Allows bot footers (`✅`/`❌`/`🤖`/`🪄`); 5+ is a slop signal              |
-| `max-code-references`         | 40        | Hard upper bound enforced by the action — 41+ is rejected at preflight   |
+| Knob                          | Value             | Rationale                                                          |
+|-------------------------------|-------------------|--------------------------------------------------------------------|
+| `max-failures`                | 5                 | Trip threshold across the 34 default checks                        |
+| `blocked-source-branches`     | `main` `master`   | Reject PRs whose source branch is `main` or `master`               |
+| `max-changed-files`           | 500               | `nuke Generate` regen PRs cross the upstream default of 50         |
+| `max-changed-lines`           | 25000             | Same regen reason                                                  |
+| `require-conventional-title`  | true              | Mirrors `.coderabbit.yaml`'s pre-merge title check                 |
+| `require-description`         | true              | Block empty-body drive-by PRs                                      |
+| `max-description-length`      | 4000              | qyl PR bodies cite many files                                      |
+| `max-emoji-count`             | 4                 | Allows bot footers (`✅`/`❌`/`🤖`/`🪄`); 5+ is a slop signal       |
+| `max-code-references`         | 40                | Hard upper bound enforced by the action — 41+ rejected at preflight|
 
 Maintainer exemption (`exempt-author-association: OWNER,MEMBER,COLLABORATOR`)
 is left at the default, so owner-authored PRs pass straight through.
 
 ## Refix Triggers
 
-`refix.yml` runs Claude on CI to fix things the regular flow can't auto-resolve.
-It is **never event-driven on every PR** — only on explicit signal:
+`refix.yml` runs Claude on CI to fix things the regular flow can't
+auto-resolve. It is **never event-driven on every PR** — only on explicit
+signal:
 
-| Trigger source                                   | Effect                                                       |
-|--------------------------------------------------|--------------------------------------------------------------|
-| `workflow_dispatch` with `pr-number` input       | Manually invoke against any open PR                          |
-| `pull_request_target: labeled` with `refix:requested` label | Maintainer applies the label; Refix processes the PR  |
-| `issue_comment` from OWNER / MEMBER / COLLABORATOR | A privileged commenter can ask Refix to step in (e.g. `@codesmith refix`) |
+| Trigger source                                            | Effect                                                                  |
+|-----------------------------------------------------------|-------------------------------------------------------------------------|
+| `workflow_dispatch` with `pr-number` input                | Manually invoke against any open PR                                     |
+| `pull_request_target: labeled` with `refix:requested`     | Maintainer applies the label; Refix processes the PR                    |
+| `issue_comment` from OWNER / MEMBER / COLLABORATOR        | A privileged commenter can ask Refix to step in (e.g. `@codesmith refix`) |
 
-Refix mints a short-lived AUTOMERGE_APP installation token (~1 h TTL) instead
-of consuming a long-lived classic PAT. Drive-by comments cannot dispatch
-Refix — `author_association` is verified at the workflow `if:` level.
+Refix consumes a classic PAT (`REFIX_CLASSIC_PAT`) plus
+`CLAUDE_CODE_OAUTH_TOKEN`. Drive-by comments cannot dispatch Refix —
+`author_association` is verified at the workflow `if:` level.
 
 ## Enterprise / Org Prerequisites
 
@@ -110,71 +99,45 @@ These are one-time admin actions. Once set, no maintenance required.
    Without these patterns, the corresponding workflow runs die at
    `startup_failure` with no logs.
 
-2. **AUTOMERGE_APP installation.**
-   The destructive tier and Refix both mint installation tokens via the
-   AUTOMERGE_APP GitHub App. Install it on the org or repo and configure
-   the secrets:
+2. **Repo settings.** `delete_branch_on_merge: true` and
+   `allow_auto_merge: true` are patched fleet-wide by
+   [`ANcpLua/github-settings-automation`](https://github.com/ANcpLua/github-settings-automation)
+   (`enforce-repo-settings.yml`, weekly cron + dispatch).
 
-   - `AUTOMERGE_APP_ID`
-   - `AUTOMERGE_APP_PRIVATE_KEY`
-
-   The App needs `contents: write`, `pull-requests: write`, and the admin
-   permission required for `gh pr merge --admin` to actually bypass
-   protection rules.
-
-3. **CLAUDE_CODE_OAUTH_TOKEN secret.**
-   Required by Refix. Generated with the `claude setup-token` CLI command.
+3. **`REFIX_CLASSIC_PAT` + `CLAUDE_CODE_OAUTH_TOKEN` secrets.** Required
+   only on repos that adopt `refix.yml`. The PAT is a classic token with
+   `repo, workflow, read:org, read:discussion` scopes; the OAuth token
+   comes from `claude setup-token`.
 
 ## Failure Modes
 
 What can go wrong and how the system recovers.
 
-| Symptom                                   | Cause                                                              | How the agent self-resolves                                                                        |
-|-------------------------------------------|--------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| Auto-merge workflow `startup_failure`     | Enterprise allow-list does not include the pinned external action  | Admin patches the allow-list; subsequent events fire cleanly                                       |
+| Symptom                                   | Cause                                                              | Recovery                                                                                          |
+|-------------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Workflow `startup_failure`                | Enterprise allow-list does not include the pinned external action  | Admin patches the allow-list; subsequent events fire cleanly                                       |
 | anti-slop preflight rejects config        | Workflow has an out-of-range value (e.g. `max-code-references > 40`) | Author fixes the workflow file; close+reopen re-triggers the scan                                  |
-| Sticky `CHANGES_REQUESTED` from a bot     | Reviewer issued a formal change-request before the latest push     | Destructive tier auto-approves before merging, overriding the sticky verdict                       |
-| Rate limit / 5xx during `gh pr merge`     | Transient GitHub API issue                                         | Exponential-backoff retry: 5 s → 10 s → 20 s → 40 s → 80 s (≈155 s total tolerance)                |
-| App installation token expired mid-run    | Token TTL is ~1 h, run is short-lived                              | Tokens are minted fresh per job step; expiration cannot span a job                                 |
-| Two tiers race on the same PR             | `pull_request_target` and `pull_request_review` overlap            | Whichever wins the merge succeeds; the loser sees `state == MERGED` and exits cleanly              |
-
-Genuine workflow bugs (config typo, logic error) are the only human-step
-case. Anti-slop crashing on its own input validation is the canonical
-example — fix the value, push, the next `pull_request_target` event re-runs
-the scan unaided.
+| Native auto-merge waiting indefinitely    | Required status check stuck or failing                             | Inspect the failing check; fix the underlying issue. There is no `--admin` bypass on purpose.     |
 
 ## Adding the Same Stack to a New Repo
 
-Minimum viable port:
+Most of this is now automated by `ANcpLua/github-settings-automation`:
 
-1. Copy `.github/workflows/{anti-slop,destructive-auto-merge,refix}.yml`
-   from this repo. Adjust the trusted-author allow-list inside
-   `destructive-auto-merge.yml` if the new repo has a different
-   maintainer identity.
-2. Add `AUTOMERGE_APP_ID` and `AUTOMERGE_APP_PRIVATE_KEY` as repo or org
-   secrets, and `CLAUDE_CODE_OAUTH_TOKEN` if Refix is wanted.
-3. Confirm the enterprise allow-list (above) covers the action patterns —
-   one-time admin action.
-4. Push a trivial PR from a maintainer identity to verify: anti-slop
-   should pass, destructive tier should admin-squash within seconds.
+1. The weekly `enforce-repo-settings.yml` cron PATCHes
+   `delete_branch_on_merge: true` + `allow_auto_merge: true` and seeds
+   `templates/coderabbit.yaml` → `.coderabbit.yaml` for any active repo
+   that doesn't already carry one.
+2. Add `extends: ["github>ANcpLua/renovate-config"]` to the repo's
+   `renovate.json` (or let the org-level Renovate config inherit it) so
+   `platformAutomerge: true` is in effect.
+3. Copy `templates/anti-slop.yml` and `templates/refix.yml` from
+   `github-settings-automation` into `.github/workflows/` if the repo
+   wants those tiers. Set `REFIX_CLASSIC_PAT` and
+   `CLAUDE_CODE_OAUTH_TOKEN` only if `refix.yml` is adopted.
+4. Confirm the enterprise allow-list covers the action patterns — see
+   the prerequisites section above.
 
 A second test repo `ANcpLua/qyl-config-test-{public,private}` ports a
-simpler variant of this stack (no AUTOMERGE_APP — `GITHUB_TOKEN`-only
-squash) and is used to validate the configuration's event-driven behaviour
-in isolation. See those repos' READMEs for the test-specific setup.
-
-## What's Next — Replacing the Per-Repo Tier
-
-The destructive auto-merge workflow above is being phased out across
-ANcpLua + O-ANcppLua. The bridge is Palantir's
-[Bulldozer](https://github.com/palantir/bulldozer) deployed on Railway,
-reading a single org-fallback config from `O-ANcppLua/.github:bulldozer.yml`
-so individual repos drop their workflow files. The long-term replacement is
-a self-built **ANcpLua Auto-Merge** GitHub App that takes over the same App
-registration, webhook secret, and Railway service slot once Bulldozer's
-limitations (no first-class author allow-list, no admin override for sticky
-`CHANGES_REQUESTED`) bite.
-
-See [`auto-merge-app-design.md`](./auto-merge-app-design.md) for the schema,
-config-resolution chain, webhook event subscription, and Bulldozer → owned-App
-migration shape.
+simpler variant of this stack and is used to validate the configuration's
+event-driven behaviour in isolation. See those repos' READMEs for
+test-specific setup.
