@@ -7,7 +7,11 @@
 #
 # Pass 1: upstream OTel registry outputs.
 # Pass 2: qyl-owned attribute registry outputs.
-# Pass 3: upstream OTel registry to TypeSpec consts.
+#
+# TypeSpec consts for upstream OTel attribute keys are no longer generated here —
+# they ship via the `@o-ancpplua/otel-conventions-api` npm package
+# (`@o-ancpplua/otel-conventions-api/generated/otel-keys`). The producer
+# (upstream-semconv -> TypeSpec) lives in ANcpLua/typespec-otel-semconv.
 
 set -euo pipefail
 
@@ -48,7 +52,6 @@ REGISTRY_DEST="${REPO_ROOT}/core/specs/emitters/qyl-semconv-lint/data/otel-attri
 CS_DEST="${REPO_ROOT}/packages/Qyl.Telemetry/Conventions/Qyl.g.cs"
 CONVENTIONS_TS_DEST="${REPO_ROOT}/packages/qyl-client/src/conventions.ts"
 DOCS_DEST="${REPO_ROOT}/docs/attributes"
-TSP_KEYS_DEST="${REPO_ROOT}/core/specs/generated/otel-keys.gen.tsp"
 
 if [ ! -x "${WEAVER_BIN}" ] || [ ! -d "${UPSTREAM_REGISTRY}" ]; then
   echo "Weaver or upstream registry missing." >&2
@@ -86,17 +89,6 @@ install -m 0644 "${STAGING_QYL}/conventions.ts" "${CONVENTIONS_TS_DEST}"
 mkdir -p "${DOCS_DEST}"
 [ -f "${STAGING_QYL}/qyl.attrs.md" ] && install -m 0644 "${STAGING_QYL}/qyl.attrs.md" "${DOCS_DEST}/qyl.attrs.md"
 
-STAGING_TSP="${STAGING_DIR}/typespec"
-rm -rf "${STAGING_TSP}"
-"${WEAVER_BIN}" registry generate \
-  --registry "${UPSTREAM_REGISTRY}" \
-  --templates "${TEMPLATES_ROOT}" \
-  typespec \
-  "${STAGING_TSP}"
-
-mkdir -p "$(dirname "${TSP_KEYS_DEST}")"
-install -m 0644 "${STAGING_TSP}/otel-keys.gen.tsp" "${TSP_KEYS_DEST}"
-
 echo ""
 echo "Wrote (upstream OTel pass):"
 echo "  ${TS_DEST} ($(wc -l < "${TS_DEST}") lines)"
@@ -108,5 +100,5 @@ echo "  ${CS_DEST} ($(wc -l < "${CS_DEST}") lines)"
 echo "  ${CONVENTIONS_TS_DEST} ($(wc -l < "${CONVENTIONS_TS_DEST}") lines)"
 echo "  ${DOCS_DEST}/qyl.attrs.md (exists: $([ -f "${DOCS_DEST}/qyl.attrs.md" ] && echo yes || echo no))"
 echo ""
-echo "Wrote (TypeSpec consts pass):"
-echo "  ${TSP_KEYS_DEST} ($(wc -l < "${TSP_KEYS_DEST}") lines, $(grep -c '^  const ' "${TSP_KEYS_DEST}") consts)"
+echo "TypeSpec consts for upstream OTel attribute keys are no longer generated locally."
+echo "Consumers import @o-ancpplua/otel-conventions-api/generated/otel-keys."
