@@ -23,7 +23,13 @@ enable_free_tier: false
 
 reviews:
   profile: assertive
-  request_changes_workflow: true
+  # Advisory, not blocking. CodeRabbit comments and posts pre-merge check
+  # results, but never submits a formal CHANGES_REQUESTED review.
+  # Native auto-merge + branch-protection's required status checks are
+  # the only gate. See docs/automation.md and
+  # https://github.com/ANcpLua/github-settings-automation for the fleet-wide
+  # baseline.
+  request_changes_workflow: false
   high_level_summary: true
   high_level_summary_in_walkthrough: true
   auto_title_instructions: >-
