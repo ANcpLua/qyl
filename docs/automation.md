@@ -162,3 +162,19 @@ A second test repo `ANcpLua/qyl-config-test-{public,private}` ports a
 simpler variant of this stack (no AUTOMERGE_APP — `GITHUB_TOKEN`-only
 squash) and is used to validate the configuration's event-driven behaviour
 in isolation. See those repos' READMEs for the test-specific setup.
+
+## What's Next — Replacing the Per-Repo Tier
+
+The destructive auto-merge workflow above is being phased out across
+ANcpLua + O-ANcppLua. The bridge is Palantir's
+[Bulldozer](https://github.com/palantir/bulldozer) deployed on Railway,
+reading a single org-fallback config from `O-ANcppLua/.github:bulldozer.yml`
+so individual repos drop their workflow files. The long-term replacement is
+a self-built **ANcpLua Auto-Merge** GitHub App that takes over the same App
+registration, webhook secret, and Railway service slot once Bulldozer's
+limitations (no first-class author allow-list, no admin override for sticky
+`CHANGES_REQUESTED`) bite.
+
+See [`auto-merge-app-design.md`](./auto-merge-app-design.md) for the schema,
+config-resolution chain, webhook event subscription, and Bulldozer → owned-App
+migration shape.
