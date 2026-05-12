@@ -73,4 +73,4 @@ jobs:
           require-description: true
           max-description-length: 4000  # qyl PR bodies cite many files
           max-emoji-count: 4            # ✅ ❌ 🤖 🪄 etc. on bot footers
-          max-code-references: 50       # qyl PRs cite many file paths
+          max-code-references: 40       # qyl PRs cite many file paths; 40 is anti-slop's hard cap
