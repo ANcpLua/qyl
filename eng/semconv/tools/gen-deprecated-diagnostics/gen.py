@@ -7,15 +7,23 @@ eng/semconv/deprecated-lookup/master-programmatic.yaml.
 One DiagnosticDescriptor is emitted per deprecated entry (QYLSC0001 onward),
 so consumers can tune severity per entry via .editorconfig.
 
+The original consumer (Qyl.OpenTelemetry.SemanticConventions.Analyzers) was
+removed in commit 11a66c4f; this script is retained for future deprecated-
+attribute analyzer work. The --out path is caller-chosen via --out, and the
+emitted C# namespace is caller-chosen via --namespace (which defaults to the
+original namespace for backwards-compatible regeneration).
+
 Usage:
     python3 gen.py \
         --yaml eng/semconv/deprecated-lookup/master-programmatic.yaml \
-        --out  packages/Qyl.OpenTelemetry.SemanticConventions.Analyzers/Model/DeprecatedDiagnostics.g.cs
+        --out  <consumer-project>/DeprecatedDiagnostics.g.cs \
+        --namespace <YourProject>.Model
 """
 from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import sys
 import textwrap
 
@@ -56,6 +64,43 @@ VALID_MODES = {
 
 VALID_KINDS = {"attribute", "metric", "event", "entity", "enum_member"}
 VALID_STATUSES = {"renamed", "obsoleted", "uncategorized"}
+CS_NAMESPACE_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
+
+# Reserved C# keywords that cannot be used as bare identifiers without an `@`
+# prefix. A namespace segment matching one of these would compile to
+# `namespace My.class.Y;` and the C# compiler would reject it. Contextual
+# keywords (async, await, file, get, init, …) are intentionally omitted —
+# the language permits them as identifiers.
+CS_RESERVED_KEYWORDS = frozenset({
+    "abstract", "as", "base", "bool", "break", "byte", "case", "catch",
+    "char", "checked", "class", "const", "continue", "decimal", "default",
+    "delegate", "do", "double", "else", "enum", "event", "explicit",
+    "extern", "false", "finally", "fixed", "float", "for", "foreach",
+    "goto", "if", "implicit", "in", "int", "interface", "internal", "is",
+    "lock", "long", "namespace", "new", "null", "object", "operator",
+    "out", "override", "params", "private", "protected", "public",
+    "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
+    "stackalloc", "static", "string", "struct", "switch", "this", "throw",
+    "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
+    "ushort", "using", "virtual", "void", "volatile", "while",
+})
+
+
+def validate_namespace(value: str) -> str:
+    """Validate a C# namespace passed on the command line."""
+    if not CS_NAMESPACE_PATTERN.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            f"invalid C# namespace {value!r}; expected dot-separated C# identifiers"
+        )
+
+    reserved = [seg for seg in value.split(".") if seg in CS_RESERVED_KEYWORDS]
+    if reserved:
+        raise argparse.ArgumentTypeError(
+            f"invalid C# namespace {value!r}; reserved C# keyword segments "
+            f"{reserved!r} cannot be used as identifiers without an '@' prefix"
+        )
+
+    return value
 
 
 def mode_to_enum(mode: str) -> str:
@@ -148,7 +193,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
-namespace Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model;
+namespace {namespace};
 
 internal enum DeprecatedReplacementMode
 {
@@ -231,7 +276,7 @@ def entry_record(entry: dict, rule_id: str) -> str:
     )
 
 
-def render(entries: list[dict], tag: str) -> str:
+def render(entries: list[dict], tag: str, namespace: str) -> str:
     # Deterministic order: by (folder, kind, deprecated_id).
     entries_sorted = sorted(
         entries,
@@ -255,7 +300,9 @@ def render(entries: list[dict], tag: str) -> str:
             e["deprecated_id"] = member
 
     count = len(entries_sorted)
-    lines: list[str] = [HEADER.replace("{count:04d}", f"{count:04d}")]
+    lines: list[str] = [
+        HEADER.replace("{count:04d}", f"{count:04d}").replace("{namespace}", namespace)
+    ]
 
     # Emit descriptor fields
     for i, entry in enumerate(entries_sorted, start=1):
@@ -307,6 +354,12 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--yaml", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument(
+        "--namespace",
+        default="Qyl.OpenTelemetry.SemanticConventions.Analyzers.Model",
+        type=validate_namespace,
+        help="C# namespace emitted into the generated file",
+    )
     args = p.parse_args()
 
     yaml_path = pathlib.Path(args.yaml)
@@ -324,7 +377,7 @@ def main() -> int:
         return 1
 
     tag = ((doc.get("source") or {}).get("tag")) or "main"
-    text = render(entries, tag)
+    text = render(entries, tag, args.namespace)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8-sig")
     print(f"[gen-deprecated-diagnostics] wrote {out_path} ({len(entries)} entries)")
