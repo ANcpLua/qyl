@@ -138,7 +138,7 @@ Bulldozer → ANcpLua.AutoMerge is a **drop-in swap** by design:
 ## Open questions for the build phase
 
 1. Should the `extends:` chain hot-reload when an upstream config repo updates, or only on the next webhook for the consumer? (Lean: webhook-only — simpler invalidation, acceptable lag.)
-2. Should the OTel exporter be on by default or opt-in per installation? (Lean: on by default in the ANcpLua deployment, off in the schema default so a future open-sourcing doesn't force telemetry.)
+2. Should the OTel exporter be a service-level env var on the Railway deployment (e.g. `AUTOMERGE_OTEL_ENABLED=true`, `AUTOMERGE_OTEL_ENDPOINT=https://qyl-api-production.up.railway.app/v1/traces`) rather than a per-installation YAML field? (Lean: yes — telemetry is a deployment concern, not a per-repo policy; the YAML stays focused on merge rules. The ANcpLua deployment sets the env var on; an open-sourced fork starts with it unset and the exporter no-ops.)
 3. How is the admin private key stored in Railway? (Lean: Railway shared variable `AUTOMERGE_APP_PRIVATE_KEY`, same name the existing destructive workflow uses, so swapping is one env-var move.)
 
 ## Related
