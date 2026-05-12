@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>Qyl.Mcp.Tests</RootNamespace>
     <AssemblyName>Qyl.Mcp.Tests</AssemblyName>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@
     <AssemblyName>Qyl.Collector.Tests</AssemblyName>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
