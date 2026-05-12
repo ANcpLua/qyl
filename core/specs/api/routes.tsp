@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - API Routes
-// =============================================================================
-// RESTful API routes with proper pagination, streaming, and error handling.
-// =============================================================================
 
 import "@typespec/http";
 import "@typespec/rest";
@@ -12,10 +7,7 @@ import "@typespec/versioning";
 import "../common/types.tsp";
 import "../common/errors.tsp";
 import "../common/pagination.tsp";
-import "../otel/span.tsp";
-import "../otel/logs.tsp";
-import "../otel/metrics.tsp";
-import "../otel/profiles.tsp";
+import "../otel/otel-conventions.tsp";
 import "../models/session.tsp";
 import "../models/log.tsp";
 import "../models/error.tsp";
@@ -23,7 +15,6 @@ import "../models/deployment.tsp";
 import "../models/identity.tsp";
 import "../otel/storage.tsp";
 
-// New domain models
 import "../models/workspace.tsp";
 import "../models/configurator.tsp";
 import "../models/issues.tsp";

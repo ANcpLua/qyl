@@ -20,14 +20,13 @@ public sealed class QylAgentInventory : IQylAgentInventory
     {
         _time = time;
 
-        InventorySizeGauge = ActivitySources.AgentMeter.CreateObservableGauge(
+        // Discarded: the Meter holds a strong reference internally, so we don't need a field.
+        _ = ActivitySources.AgentMeter.CreateObservableGauge(
             "qyl_observability_inventory_size",
             () => _entries.Count,
             unit: "{agent}",
             description: "Count of agents registered in the qyl inventory");
     }
-
-    private ObservableGauge<int> InventorySizeGauge { get; }
 
     public void Register(AgentRegistration registration)
     {

@@ -20,10 +20,10 @@ public static class QylPricingTable
             && table.TryGetValue(MakeKey(provider, model), out entry))
             return true;
 
-        if (!string.IsNullOrEmpty(model) && table.TryGetValue(model!, out entry))
+        if (!string.IsNullOrEmpty(model) && table.TryGetValue(model, out entry))
             return true;
 
-        if (!string.IsNullOrEmpty(provider) && table.TryGetValue(MakeKey("*", provider!), out entry))
+        if (!string.IsNullOrEmpty(provider) && table.TryGetValue(MakeKey("*", provider), out entry))
             return true;
 
         entry = default;
@@ -52,7 +52,7 @@ public static class QylPricingTable
             if (!TryParse(prop.Value, out var entry))
                 continue;
 
-            if (prop.Name.EndsWith("/*"))
+            if (prop.Name.EndsWithOrdinal("/*"))
             {
                 var providerOnly = prop.Name[..^2];
                 entries[MakeKey("*", providerOnly)] = entry;

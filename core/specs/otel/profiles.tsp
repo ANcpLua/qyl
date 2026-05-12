@@ -1,10 +1,4 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Profiles Model (v1development)
-// =============================================================================
-// Continuous profiling signal following OTel Profiles proto specification.
-// Proto package: opentelemetry.proto.profiles.v1development
-// All attributes are Development stability (semconv v1.39.0-v1.40.0).
-// =============================================================================
+// OTel Profiles proto (opentelemetry.proto.profiles.v1development)
 
 import "@typespec/http";
 import "@typespec/openapi";
@@ -19,10 +13,6 @@ using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Profiles;
-
-// =============================================================================
-// Profile Model
-// =============================================================================
 
 @doc("OpenTelemetry Profile representing a continuous profiling snapshot")
 model Profile {
@@ -101,10 +91,6 @@ model Profile {
   @encodedName("application/json", "stack_table")
   stackTable?: ProfileStack[];
 }
-
-// =============================================================================
-// Profile Sub-Models
-// =============================================================================
 
 @doc("Sample type descriptor (what was measured and in what unit)")
 model ProfileValueType {
@@ -229,10 +215,6 @@ model ProfileStack {
   locationIndices?: int32[];
 }
 
-// =============================================================================
-// Profile Query Filters
-// =============================================================================
-
 @doc("Filter parameters for querying profiles")
 model ProfileQueryFilters {
   @doc("Filter by trace ID")
@@ -285,10 +267,6 @@ model ProfileQueryFilters {
   @encodedName("application/json", "time_to")
   timeTo?: utcDateTime;
 }
-
-// =============================================================================
-// Profile Aggregations
-// =============================================================================
 
 @doc("Aggregated profile statistics")
 model ProfileStats {

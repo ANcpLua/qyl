@@ -1,22 +1,8 @@
-// =============================================================================
-// QYL v2.0 - Tool Call Storage Model (OTel v1.40)
-// =============================================================================
-// Materialized tool call records extracted from OTLP spans.
-// Maps OTel GenAI tool semantic convention attributes to DuckDB columns.
-//
-// OTel semconv mapping:
-//   gen_ai.tool.name           → tool_name
-//   gen_ai.tool.type           → tool_type
-//   gen_ai.tool.call.id        → call_id
-//   gen_ai.tool.call.arguments → arguments_json
-//   gen_ai.tool.call.result    → result_json
-//   gen_ai.tool.description    → tool_description
-//   gen_ai.operation.name      → operation_name (= "execute_tool")
-// =============================================================================
+// Materialized tool call records extracted from OTLP spans (gen_ai.tool.*).
 
 import "@typespec/openapi";
 import "../../common/types.tsp";
-import "../../otel/enums.tsp";
+import "../../otel/otel-conventions.tsp";
 
 using TypeSpec.OpenAPI;
 using Qyl.Common;

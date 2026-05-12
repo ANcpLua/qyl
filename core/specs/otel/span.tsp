@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Span Model
-// =============================================================================
-// Distributed tracing span representation following OTel specification.
-// =============================================================================
 
 import "@typespec/http";
 import "@typespec/openapi";
@@ -17,10 +12,6 @@ using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Traces;
-
-// =============================================================================
-// Span Model
-// =============================================================================
 
 @doc("OpenTelemetry Span representing a single operation in a distributed trace")
 model Span {
@@ -143,10 +134,6 @@ model SpanLink {
   flags?: int32;
 }
 
-// =============================================================================
-// Trace Model (Collection of Spans)
-// =============================================================================
-
 @doc("Complete trace containing all related spans")
 model Trace {
   @doc("Trace identifier")
@@ -184,10 +171,6 @@ model Trace {
   @encodedName("application/json", "has_error")
   hasError: boolean;
 }
-
-// =============================================================================
-// Span Query Filters
-// =============================================================================
 
 @doc("Filter parameters for querying spans")
 model SpanQueryFilters {
@@ -233,10 +216,6 @@ model SpanQueryFilters {
   @query
   attribute?: string;
 }
-
-// =============================================================================
-// Span Aggregations
-// =============================================================================
 
 @doc("Aggregated span statistics")
 model SpanStats {

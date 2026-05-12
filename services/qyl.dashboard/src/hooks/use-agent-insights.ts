@@ -1,8 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
-// ── Shared filter types ────────────────────────────────────────────────────────
-
 export interface TimeFilter {
     from: number; // unix ms
     to: number;   // unix ms
@@ -21,8 +19,6 @@ function buildParams(filter: TimeFilter, extra?: Record<string, string | number>
     }
     return params.toString();
 }
-
-// ── Response types ─────────────────────────────────────────────────────────────
 
 export interface TrafficBucket {
     time: string;
@@ -154,8 +150,6 @@ export interface ToolsResponse {
     legend: LegendEntry[];
 }
 
-// ── Query keys ─────────────────────────────────────────────────────────────────
-
 export const agentInsightKeys = {
     all: ['agent-insights'] as const,
     traffic: (f: TimeFilter) => [...agentInsightKeys.all, 'traffic', f] as const,
@@ -170,8 +164,6 @@ export const agentInsightKeys = {
     models: (f: TimeFilter) => [...agentInsightKeys.all, 'models', f] as const,
     tools: (f: TimeFilter) => [...agentInsightKeys.all, 'tools', f] as const,
 };
-
-// ── Hooks ──────────────────────────────────────────────────────────────────────
 
 export function useAgentTraffic(filter: TimeFilter) {
     return useQuery({

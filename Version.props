@@ -21,10 +21,20 @@
     <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
-    <!-- MAF (Microsoft.Agents.AI.*) versions are sourced from
-         framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props, imported
-         from Directory.Packages.props before this file. Bumps happen in the SDK
-         only; consumers track automatically. -->
+
+    <!-- MAF (Microsoft.Agents.AI.*) versions. The conditional import of
+         framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props in
+         Directory.Packages.props only fires when the sibling checkout exists;
+         the NuGet-resolved SDK does not auto-import its own Build/Common/Version.props.
+         Inlining here keeps the repo buildable in either configuration.
+         Values mirror ANcpLua.NET.Sdk 3.4.25. -->
+    <MicrosoftAgentsAIVersion>1.4.0</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIAbstractionsVersion>1.4.0</MicrosoftAgentsAIAbstractionsVersion>
+    <MicrosoftAgentsAIWorkflowsVersion>1.4.0</MicrosoftAgentsAIWorkflowsVersion>
+    <MicrosoftAgentsAIOpenAIVersion>1.4.0</MicrosoftAgentsAIOpenAIVersion>
+    <MicrosoftAgentsAIHostingVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
+    <MicrosoftAgentsAIDevUIVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIDevUIVersion>
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.11.0</SystemClientModelVersion>

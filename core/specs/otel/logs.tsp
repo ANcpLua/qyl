@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Log Record Model
-// =============================================================================
-// Structured logging following OTel log data model.
-// =============================================================================
 
 import "@typespec/http";
 import "@typespec/openapi";
@@ -17,10 +12,6 @@ using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Logs;
-
-// =============================================================================
-// Log Record Model
-// =============================================================================
 
 @doc("OpenTelemetry Log Record")
 model LogRecord {
@@ -69,10 +60,6 @@ model LogRecord {
   instrumentationScope?: InstrumentationScope;
 }
 
-// =============================================================================
-// Log Body Types (Discriminated Union)
-// =============================================================================
-
 @doc("Log body content - can be string, structured, or bytes")
 @discriminated(#{ envelope: "none" })
 union LogBody {
@@ -117,10 +104,6 @@ model LogBodyBytes {
   bytesValue: bytes;
 }
 
-// =============================================================================
-// Log Query Filters
-// =============================================================================
-
 @doc("Filter parameters for querying logs")
 model LogQueryFilters {
   @doc("Filter by trace ID")
@@ -161,10 +144,6 @@ model LogQueryFilters {
   @query
   attribute?: string;
 }
-
-// =============================================================================
-// Log Aggregations
-// =============================================================================
 
 @doc("Aggregated log statistics")
 model LogStats {
@@ -213,10 +192,6 @@ model LogCountByDimension {
   @encodedName("application/json", "error_count")
   errorCount: Count;
 }
-
-// =============================================================================
-// Structured Log Templates
-// =============================================================================
 
 @doc("Log message template with placeholders")
 model LogTemplate {

@@ -1,13 +1,7 @@
-// =============================================================================
-// QYL v2.0 - Workflow Execution Storage Model (OTel v1.40)
-// =============================================================================
-// Workflow execution tracking for multi-step AI agent workflows.
-// Formalizes the existing manual DuckDB table into TypeSpec.
-// =============================================================================
 
 import "@typespec/openapi";
 import "../../common/types.tsp";
-import "../../otel/enums.tsp";
+import "../../otel/otel-conventions.tsp";
 
 using TypeSpec.OpenAPI;
 using Qyl.Common;

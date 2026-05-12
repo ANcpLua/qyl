@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 

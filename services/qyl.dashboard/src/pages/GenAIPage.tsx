@@ -27,7 +27,6 @@ import {extractToolCallInfo, hasToolDefinitions, ToolCallViewer, ToolDefinitions
 import type {TimeFilter} from '@/hooks/use-agent-insights';
 import {useAgentLlmCalls, useAgentTokens} from '@/hooks/use-agent-insights';
 
-// API response types
 interface GenAiStats {
     requestCount: number;
     totalInputTokens: number;
@@ -65,7 +64,6 @@ interface GenAiSpansResponse {
     total: number;
 }
 
-// Fetch functions
 async function fetchGenAiStats(): Promise<GenAiStats> {
     const res = await fetch('/api/v1/genai/stats');
     if (!res.ok) throw new Error('Failed to fetch GenAI stats');
@@ -77,8 +75,6 @@ async function fetchGenAiSpans(limit = 50): Promise<GenAiSpansResponse> {
     if (!res.ok) throw new Error('Failed to fetch GenAI spans');
     return res.json();
 }
-
-// ── Chart constants (matching AgentsPage style) ─────────────────────────────
 
 const CHART_COLORS = [
     'var(--color-signal-violet)',
@@ -113,8 +109,6 @@ function formatBucketTime(iso: string): string {
     const d = new Date(iso);
     return d.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'});
 }
-
-// ── Responsive chart viewport (same pattern as AgentsPage) ──────────────────
 
 function ChartViewport({children}: { children: React.ReactElement<{ width?: number; height?: number }> }) {
     const hostRef = useRef<HTMLDivElement | null>(null);
@@ -157,8 +151,6 @@ function ChartViewport({children}: { children: React.ReactElement<{ width?: numb
         </div>
     );
 }
-
-// ── GenAI LLM Calls chart ───────────────────────────────────────────────────
 
 function GenAiCallsChart({filter}: { filter: TimeFilter }) {
     const {data, isLoading} = useAgentLlmCalls(filter);
@@ -246,16 +238,12 @@ function GenAiCallsChart({filter}: { filter: TimeFilter }) {
     );
 }
 
-// ── GenAI Token Usage chart (input vs output as stacked area) ───────────────
-
 function GenAiTokensChart({filter}: { filter: TimeFilter }) {
     const {data, isLoading} = useAgentTokens(filter);
 
     const chartData = useMemo(() => {
         if (!data?.buckets || !data?.legend) return [];
 
-        // Aggregate all models into input/output per bucket
-        // The tokens endpoint returns per-model breakdowns; we sum across all models per bucket
         return data.buckets.map((b) => {
             const total = Object.values(b.models).reduce((s, v) => s + v, 0);
             return {time: b.time, tokens: total};
@@ -351,7 +339,6 @@ function GenAISpanCard({
                     ? 'text-signal-cyan border-signal-cyan'
                     : 'text-signal-violet border-signal-violet';
 
-    // Parse attributes if available
     let parsedAttrs: Record<string, unknown> = {};
     if (span.attributesJson) {
         try {
@@ -361,7 +348,6 @@ function GenAISpanCard({
         }
     }
 
-    // Check for tool-related data from parsed attributes
     const toolCallInfo = extractToolCallInfo(parsedAttrs);
     const showToolDefinitions = hasToolDefinitions(parsedAttrs);
     const hasToolData = toolCallInfo.hasToolCall || showToolDefinitions;
@@ -572,7 +558,6 @@ function GenAISpanCard({
 export function GenAIPage() {
     const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
 
-    // 24h default time filter for charts
     const timeFilter = useMemo<TimeFilter>(() => {
         const to = Date.now();
         return {from: to - 24 * 60 * 60 * 1000, to};

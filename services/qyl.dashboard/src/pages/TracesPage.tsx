@@ -130,7 +130,6 @@ function SpanRow({
                 }
             }}
         >
-            {/* Expand/collapse and indentation */}
             <div style={{paddingLeft: depth * 16}} className="flex items-center">
                 {hasChildren ? (
                     <button onClick={handleToggle} className="p-0.5 hover:bg-brutal-dark"
@@ -146,7 +145,6 @@ function SpanRow({
                 )}
             </div>
 
-            {/* Span info */}
             <div className="flex-shrink-0 w-32">
                 <Badge variant="outline" style={{borderColor: color, color}} className="text-xs">
                     {typeLabel}
@@ -163,7 +161,6 @@ function SpanRow({
                 <div className="text-xs text-brutal-slate truncate">{getServiceName(span)}</div>
             </div>
 
-            {/* Waterfall visualization */}
             <div className="w-80 h-6 relative bg-brutal-dark/30 overflow-hidden">
                 <div
                     className="waterfall-bar absolute top-0.5"
@@ -175,7 +172,6 @@ function SpanRow({
                 />
             </div>
 
-            {/* Duration */}
             <div className="w-20 text-right font-mono text-sm text-brutal-slate">
                 {formatDuration(nsToMs(getDurationNs(span)))}
             </div>

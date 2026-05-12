@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - Streaming API Routes
-// =============================================================================
-// Server-Sent Events (SSE) streaming endpoints for real-time telemetry.
-// =============================================================================
 
 import "@typespec/http";
 import "@typespec/sse";
@@ -11,9 +6,7 @@ import "@typespec/versioning";
 
 import "../common/types.tsp";
 import "../common/pagination.tsp";
-import "../otel/span.tsp";
-import "../otel/logs.tsp";
-import "../otel/metrics.tsp";
+import "../otel/otel-conventions.tsp";
 import "../models/deployment.tsp";
 
 using TypeSpec.Http;

@@ -1,7 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
-// Dashboard types (inline, not from api.ts)
+// Dashboard types live here — not in api.ts, which is generated from the TypeSpec OpenAPI spec
 export interface DashboardDefinition {
     id: string;
     title: string;
@@ -46,7 +46,6 @@ export interface TopNRow {
     errorRate?: number;
 }
 
-// Query keys
 export const dashboardKeys = {
     all: ['dashboards'] as const,
     list: () => [...dashboardKeys.all, 'list'] as const,

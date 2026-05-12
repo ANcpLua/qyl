@@ -1,14 +1,8 @@
-// =============================================================================
-// QYL v2.0 - GenAI Semantic Conventions (OTel v1.40)
-// =============================================================================
-// Comprehensive AI/LLM telemetry following OpenTelemetry GenAI specifications.
 // https://opentelemetry.io/docs/specs/semconv/gen-ai/
-// =============================================================================
 
 import "@typespec/versioning";
 import "../common/types.tsp";
-import "../otel/span.tsp";
-import "../otel/metrics.tsp";
+import "../otel/otel-conventions.tsp";
 
 using TypeSpec.Versioning;
 using Qyl.Common;

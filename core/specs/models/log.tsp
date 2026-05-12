@@ -1,11 +1,6 @@
-// =============================================================================
-// QYL v2.0 - Log Semantic Conventions (OTel v1.40)
-// =============================================================================
-// Log record attributes and log-specific semantic conventions.
-// =============================================================================
 
 import "../common/types.tsp";
-import "../otel/enums.tsp";
+import "../otel/otel-conventions.tsp";
 
 using Qyl.Common;
 using Qyl.OTel.Enums;

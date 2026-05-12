@@ -1,8 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 export interface InsightTierStatus {
     tier: string;
     hash: string;
@@ -16,15 +14,11 @@ export interface InsightsResponse {
     tiers: InsightTierStatus[];
 }
 
-// ── Query keys ────────────────────────────────────────────────────────────────
-
 export const insightKeys = {
     all: ['insights'] as const,
     overview: () => [...insightKeys.all, 'overview'] as const,
     tier: (tier: string) => [...insightKeys.all, tier] as const,
 };
-
-// ── Hooks ─────────────────────────────────────────────────────────────────────
 
 export function useInsights() {
     return useQuery({

@@ -1,7 +1,9 @@
 
 using System.Collections.ObjectModel;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http.Resilience;
 using Qyl.Run.Internal;
 
 namespace Qyl.Run;
@@ -61,7 +63,8 @@ public sealed class QylAppBuilder
     {
         Host.Services.AddSingleton(TimeProvider.System);
         Host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));
-        Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe);
+        Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe)
+            .AddStandardResilienceHandler();
         Host.Services.AddSingleton<QylResourceRegistry>();
         Host.Services.AddHostedService<QylOrchestrator>();
         Host.Services.AddHostedService<QylConsoleUi>();
@@ -71,7 +74,7 @@ public sealed class QylAppBuilder
     private QylResourceBuilder AddCore(string name, string kind, int port, string environment, string? project,
         Uri? externalEndpoint, string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Guard.NotNullOrWhiteSpace(name);
         if (_resources.Any(r => string.Equals(r.Name, name, StringComparison.Ordinal)))
         {
             throw new InvalidOperationException($"Resource '{name}' was already added; names must be unique.");

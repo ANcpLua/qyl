@@ -1,4 +1,5 @@
 
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -11,8 +12,8 @@ public static class QylOpenTelemetryServiceCollectionExtensions
         this IServiceCollection services,
         Action<QylOtelOptions> configure)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configure);
+        Guard.NotNull(services);
+        Guard.NotNull(configure);
 
         var options = new QylOtelOptions();
         configure(options);
