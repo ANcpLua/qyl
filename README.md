@@ -292,6 +292,7 @@ tests/                                  # xUnit v3 + MTP tests
 | Document                             | Purpose                                                             |
 |--------------------------------------|---------------------------------------------------------------------|
 | `AGENTS.md` (symlinked as `CLAUDE.md`) | Conventions, MAF entry-points, MCP/agent telemetry, cron-runner contract |
+| `docs/automation.md`                 | CI automation: anti-slop + destructive auto-merge + Refix triggers, per-PR flow, allow-list / App prerequisites, failure-mode recovery |
 | `eng/automation/CHANGELOG.md`        | Cron-automation ledger — newest 10 material runs, runner-owned      |
 | `docs/attributes/`                   | Compile-time attribute catalogues                                   |
 | `docs/superpowers/`                  | Long-form notes and historical design plans                         |
