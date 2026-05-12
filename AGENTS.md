@@ -283,6 +283,6 @@ Under `tests/qyl.collector.tests/`:
 
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
-| `Qyl.OpenTelemetry.Extensions` widening                                     | qyl                   | Add qyl-side wrappers (e.g. `QylClientModelExtensions` around `System.ClientModel`) as siblings to the local instrumentation, complementing `ANcpLua.Agents.*` rather than replacing it. |
+| [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (npm) — barrel + migration plan live in `core/specs/otel/otel-conventions.tsp` + `core/specs/MIGRATION-otel-conventions-api.md`; one-line swap once published. |
 | [#172](https://github.com/O-ANcppLua/qyl/pull/172)                          | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
 | [#173](https://github.com/O-ANcppLua/qyl/issues/173)                        | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |
