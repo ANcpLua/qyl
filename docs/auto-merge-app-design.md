@@ -109,7 +109,7 @@ GitHub App  ──webhook──>  Railway service (ANcpLua.AutoMerge)
                               │       /repos/.../pulls/.../merge with `merge_method=squash`
                               │       (admin tier; only if admin_override.enabled)
                               │
-                              └─> OTel exporter → qyl-collector
+                              └─> OTel exporter (OTLP) → qyl-collector
                                     (every webhook → span; every merge decision → event;
                                      spans tagged with `automerge.repo`, `automerge.pr`,
                                      `automerge.trigger`, `automerge.outcome`)
@@ -119,6 +119,31 @@ Service shape mirrors the qyl services in the same Railway project:
 `ANcpLua.AutoMerge/Dockerfile`, `railway.toml`, `/health` endpoint, structured logs.
 Language: C# / .NET 10 to share `Qyl.OpenTelemetry.Extensions` + `Qyl.Telemetry`
 out of the box — no new SDK in the family.
+
+### Telemetry configuration — spec env vars, no invention
+
+Telemetry is configured exclusively via the **OpenTelemetry-spec environment
+variables** every OTel SDK reads natively. No bespoke `AUTOMERGE_OTEL_*` names.
+This is non-negotiable because (a) the global instruction forbids inventing env
+vars, and (b) qyl is a telemetry platform — every customer onboarding to qyl
+configures their own services with this exact env-var surface, so the App
+should be a clean dogfood example, not a one-off:
+
+| Spec env var                     | Role in this App                                                                 |
+|----------------------------------|----------------------------------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`    | Collector URL. Unset → exporter no-ops, app still runs.                          |
+| `OTEL_EXPORTER_OTLP_HEADERS`     | Auth headers (e.g. `Authorization=Bearer <token>`) for the qyl collector.        |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`    | `http/protobuf` against the qyl collector's OTLP/HTTP endpoint.                  |
+| `OTEL_SERVICE_NAME`              | `ancplua-automerge` in the canonical deployment.                                 |
+| `OTEL_RESOURCE_ATTRIBUTES`       | `deployment.environment=production,service.namespace=ancplua` and friends.       |
+| `OTEL_SDK_DISABLED`              | Kill switch — `true` means the SDK is a complete no-op end-to-end.               |
+
+For an open-sourced fork, the deployer points these at their own collector
+(qyl, Honeycomb, Datadog OTel gateway, vendor of choice) without touching App
+code or the `.github/auto-merge.yml` schema. For the canonical ANcpLua
+deployment, `OTEL_EXPORTER_OTLP_ENDPOINT=https://qyl-api-production.up.railway.app`
+ships traces straight into qyl, making the App the first non-qyl service
+running on the qyl platform.
 
 ## Migration shape
 
@@ -138,7 +163,7 @@ Bulldozer → ANcpLua.AutoMerge is a **drop-in swap** by design:
 ## Open questions for the build phase
 
 1. Should the `extends:` chain hot-reload when an upstream config repo updates, or only on the next webhook for the consumer? (Lean: webhook-only — simpler invalidation, acceptable lag.)
-2. Should the OTel exporter be a service-level env var on the Railway deployment (e.g. `AUTOMERGE_OTEL_ENABLED=true`, `AUTOMERGE_OTEL_ENDPOINT=https://qyl-api-production.up.railway.app/v1/traces`) rather than a per-installation YAML field? (Lean: yes — telemetry is a deployment concern, not a per-repo policy; the YAML stays focused on merge rules. The ANcpLua deployment sets the env var on; an open-sourced fork starts with it unset and the exporter no-ops.)
+2. Telemetry config — resolved. Spec OTel env vars only (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_SDK_DISABLED`, etc.), no bespoke `AUTOMERGE_OTEL_*` names; see the "Telemetry configuration — spec env vars, no invention" section above. Telemetry stays out of the YAML schema because it's a deployment concern, not a per-repo merge policy, and because the spec env-var surface is what qyl customers already use to ship telemetry to qyl — the App is a dogfood example.
 3. How is the admin private key stored in Railway? (Lean: Railway shared variable `AUTOMERGE_APP_PRIVATE_KEY`, same name the existing destructive workflow uses, so swapping is one env-var move.)
 
 ## Related
