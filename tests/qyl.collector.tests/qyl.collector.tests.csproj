@@ -1,11 +1,9 @@
-<Project Sdk="ANcpLua.NET.Sdk.Web">
+<Project Sdk="ANcpLua.NET.Sdk.Test">
   <PropertyGroup>
     <RootNamespace>Qyl.Collector.Tests</RootNamespace>
     <AssemblyName>Qyl.Collector.Tests</AssemblyName>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <IsTestProject>true</IsTestProject>
-    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
