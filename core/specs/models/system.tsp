@@ -1,11 +1,6 @@
-// =============================================================================
-// QYL v2.0 - System Semantic Conventions (OTel v1.40)
-// =============================================================================
-// Operating system telemetry attributes.
-// =============================================================================
 
 import "../common/types.tsp";
-import "../otel/resource.tsp";
+import "../otel/otel-conventions.tsp";
 
 using Qyl.Common;
 using Qyl.OTel.Resource;

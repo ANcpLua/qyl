@@ -1,14 +1,5 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Core Enumerations
-// =============================================================================
-// All OTel standard enumerations following Semantic Conventions v1.40.
-// =============================================================================
 
 namespace Qyl.OTel.Enums;
-
-// =============================================================================
-// Span Enumerations
-// =============================================================================
 
 @doc("Span kind describing the relationship between spans")
 enum SpanKind {
@@ -54,10 +45,6 @@ enum SpanFlags {
   @doc("Trace is random (non-deterministic)")
   random: 0x02,
 }
-
-// =============================================================================
-// Log Enumerations
-// =============================================================================
 
 @doc("Log severity number following OTel specification (1-24)")
 enum SeverityNumber {
@@ -158,10 +145,6 @@ enum SeverityText {
   FATAL: "FATAL",
 }
 
-// =============================================================================
-// Metric Enumerations
-// =============================================================================
-
 @doc("Metric data type")
 enum MetricType {
   @doc("Gauge - instantaneous value")
@@ -225,10 +208,6 @@ enum InstrumentKind {
   observableUpDownCounter: "ObservableUpDownCounter",
 }
 
-// =============================================================================
-// Resource Enumerations
-// =============================================================================
-
 @doc("Telemetry SDK language")
 enum TelemetrySdkLanguage {
   @doc("C++")
@@ -268,10 +247,6 @@ enum TelemetrySdkLanguage {
   webjs: "webjs",
 }
 
-// =============================================================================
-// Error Enumerations
-// =============================================================================
-
 @doc("Standardized error types")
 enum ErrorType {
   @doc("Generic error")
@@ -308,10 +283,6 @@ enum ErrorType {
   cancelled: "CANCELLED",
 }
 
-// =============================================================================
-// Event Domain Types
-// =============================================================================
-
 @doc("Event domain (namespace for event types)")
 enum EventDomain {
   @doc("Browser/RUM events")
@@ -335,10 +306,6 @@ enum EventDomain {
   @doc("Log events")
   log: "log",
 }
-
-// =============================================================================
-// Profile Enumerations (v1development, Development stability)
-// =============================================================================
 
 @doc("Original payload format for profile data")
 enum OriginalPayloadFormat {

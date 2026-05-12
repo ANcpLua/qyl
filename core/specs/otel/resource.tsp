@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Resource Model
-// =============================================================================
-// Resource attributes identifying the entity producing telemetry.
-// =============================================================================
 
 import "../common/types.tsp";
 import "./enums.tsp";
@@ -10,10 +5,6 @@ import "./enums.tsp";
 using Qyl.Common;
 
 namespace Qyl.OTel.Resource;
-
-// =============================================================================
-// Resource Model
-// =============================================================================
 
 @doc("Resource describes the entity producing telemetry")
 model Resource {
@@ -164,10 +155,6 @@ model Resource {
   @encodedName("application/json", "dropped_attributes_count")
   droppedAttributesCount?: Count;
 }
-
-// =============================================================================
-// Resource-Related Enums
-// =============================================================================
 
 @doc("Cloud provider types")
 enum CloudProvider {

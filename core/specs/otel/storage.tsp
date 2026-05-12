@@ -1,15 +1,8 @@
-// =============================================================================
-// QYL v2.0 - Storage Models
-// =============================================================================
-// Flattened storage models with DuckDB table generation extensions.
-// These are optimized for query performance, not wire format fidelity.
-// =============================================================================
-
 import "@typespec/openapi";
 import "@typespec/json-schema";
 
 import "../common/types.tsp";
-import "./enums.tsp";
+import "./otel-conventions.tsp";
 
 using TypeSpec.OpenAPI;
 using TypeSpec.JsonSchema;
@@ -17,10 +10,6 @@ using Qyl.Common;
 using Qyl.OTel.Enums;
 
 namespace Qyl.Storage;
-
-// =============================================================================
-// SpanRecord - Primary Storage Model
-// =============================================================================
 
 @doc("OpenTelemetry span record for storage and query")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "spans")
@@ -182,10 +171,6 @@ model SpanRecord {
   createdAt?: utcDateTime;
 }
 
-// =============================================================================
-// SessionSummary - Aggregated View
-// =============================================================================
-
 @doc("Session summary with aggregated metrics")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "sessions")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "SessionSummary")
@@ -236,10 +221,6 @@ model SessionSummary {
   @TypeSpec.OpenAPI.extension("x-duckdb-column", "gen_ai_model")
   genAiModel?: string;
 }
-
-// =============================================================================
-// LogRecordStorage - Log Storage Model
-// =============================================================================
 
 @doc("OpenTelemetry log record for storage and query")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "logs")
@@ -343,10 +324,6 @@ model LogRecordStorage {
   createdAt?: utcDateTime;
 }
 
-// =============================================================================
-// TraceNode - For Hierarchical Display
-// =============================================================================
-
 @jsonSchema
 @doc("Trace tree node for hierarchical span display")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "TraceNode")
@@ -360,10 +337,6 @@ model TraceNode {
   @doc("Depth in tree (0 = root)")
   depth: int32;
 }
-
-// =============================================================================
-// GenAiSpanData - Extracted GenAI Attributes
-// =============================================================================
 
 @jsonSchema
 @doc("Extracted GenAI attributes from a span")
@@ -399,10 +372,6 @@ model GenAiSpanData {
   @doc("Estimated cost")
   costUsd?: CostUsd;
 }
-
-// =============================================================================
-// ProfileRecord - Primary Profile Storage (v1development)
-// =============================================================================
 
 @doc("OpenTelemetry profile record for storage and query")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "profiles")
@@ -492,10 +461,6 @@ model ProfileRecord {
   @TypeSpec.OpenAPI.extension("x-internal", true)
   createdAt?: utcDateTime;
 }
-
-// =============================================================================
-// Profile Child Tables (Normalized from ProfilesDictionary)
-// =============================================================================
 
 @doc("Dereferenced function from profile dictionary")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "profile_functions")

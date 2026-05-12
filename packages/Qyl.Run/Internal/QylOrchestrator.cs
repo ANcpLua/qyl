@@ -49,6 +49,7 @@ internal sealed partial class QylOrchestrator(
         }
         catch (OperationCanceledException)
         {
+            // Shutdown signaled via stoppingToken — fall through to StopAllAsync.
         }
         finally
         {
@@ -170,9 +171,11 @@ internal sealed partial class QylOrchestrator(
             }
             catch (HttpRequestException)
             {
+                // Service not yet listening — keep polling until stoppingToken fires.
             }
             catch (TaskCanceledException)
             {
+                // Probe timeout or shutdown — let the next loop iteration handle it.
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
@@ -197,6 +200,7 @@ internal sealed partial class QylOrchestrator(
             }
             catch (InvalidOperationException)
             {
+                // Process already exited between HasExited and Kill — nothing to clean up.
             }
 
             registry.Publish(name, ResourceLifecycle.Stopped);

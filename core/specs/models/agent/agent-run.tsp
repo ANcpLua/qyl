@@ -1,23 +1,8 @@
-// =============================================================================
-// QYL v2.0 - Agent Run Storage Model (OTel v1.40)
-// =============================================================================
-// Materialized agent run records extracted from OTLP spans.
-// Maps OTel GenAI semantic convention attributes to DuckDB columns.
-//
-// OTel semconv mapping:
-//   gen_ai.agent.name        → agent_name
-//   gen_ai.agent.id          → agent_id
-//   gen_ai.agent.description → agent_description
-//   gen_ai.operation.name    → operation_name
-//   gen_ai.request.model     → gen_ai_request_model
-//   gen_ai.provider.name     → gen_ai_provider_name
-//   gen_ai.usage.input_tokens  → gen_ai_input_tokens
-//   gen_ai.usage.output_tokens → gen_ai_output_tokens
-// =============================================================================
+// Materialized agent run records extracted from OTLP spans (gen_ai.*).
 
 import "@typespec/openapi";
 import "../../common/types.tsp";
-import "../../otel/enums.tsp";
+import "../../otel/otel-conventions.tsp";
 
 using TypeSpec.OpenAPI;
 using Qyl.Common;

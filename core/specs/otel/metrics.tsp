@@ -1,8 +1,3 @@
-// =============================================================================
-// QYL v2.0 - OpenTelemetry Metrics Model
-// =============================================================================
-// Metrics data model with discriminated unions for different metric types.
-// =============================================================================
 
 import "@typespec/http";
 import "../common/types.tsp";
@@ -15,10 +10,6 @@ using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
 
 namespace Qyl.OTel.Metrics;
-
-// =============================================================================
-// Metric Model
-// =============================================================================
 
 @doc("OpenTelemetry Metric containing measurement data")
 model Metric {
@@ -45,10 +36,6 @@ model Metric {
   @encodedName("application/json", "instrumentation_scope")
   instrumentationScope?: InstrumentationScope;
 }
-
-// =============================================================================
-// Metric Data Types (Discriminated Union)
-// =============================================================================
 
 @doc("Metric data discriminated by type")
 @discriminator("type")
@@ -122,10 +109,6 @@ model SummaryData extends MetricData {
   @encodedName("application/json", "data_points")
   dataPoints: SummaryDataPoint[];
 }
-
-// =============================================================================
-// Data Point Models
-// =============================================================================
 
 @doc("Base data point with common fields")
 model DataPointBase {
@@ -279,10 +262,6 @@ model Exemplar {
   @encodedName("application/json", "filtered_attributes")
   filteredAttributes?: Attribute[];
 }
-
-// =============================================================================
-// Metric Query & Aggregation
-// =============================================================================
 
 @doc("Metric query filters")
 model MetricQueryFilters {
