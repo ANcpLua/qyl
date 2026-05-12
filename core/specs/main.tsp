@@ -6,6 +6,12 @@ import "@typespec/versioning";
 import "@typespec/sse";
 import "@typespec/events";
 
+// Anchor the root `Qyl` namespace to project location *before* any
+// `@qyl/typespec-emit-*` library import declares its own `Qyl.Emit.*`.
+// See the file header for the full @typespec/http-client-js discovery
+// rationale.
+import "./qyl-namespace-anchor.tsp";
+
 // Upstream OTel attribute key constants (ANcpLua.OtelConventions.OTel.Keys.*).
 // Generated upstream by ANcpLua/typespec-otel-semconv from semantic-conventions
 // v1.41.0 and shipped via the npm package
