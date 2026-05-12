@@ -75,6 +75,7 @@
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Testing" Version="$(ANcpLuaAgentsTestingVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Hosting.OpenAI" Version="$(ANcpLuaAgentsHostingOpenAIVersion)"/>
+    <PackageVersion Include="ANcpLua.Agents.Hosting.BitNet" Version="$(ANcpLuaAgentsHostingBitNetVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
     <!-- Microsoft.Agents.AI (MAF 1.4) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>

@@ -1,10 +1,13 @@
+using ANcpLua.Agents.Hosting.BitNet;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Instrumentation.Instrumentation.Mcp;
 using Qyl.Loom;
 using Qyl.Loom.Agents;
 using Qyl.Loom.Autofix;
 using Qyl.Loom.Autofix.Workflow;
+using Qyl.Loom.Clients;
 using Qyl.Loom.CodeReview;
 using Qyl.Loom.Endpoints;
 using Qyl.Loom.Hosting;
@@ -20,6 +23,14 @@ if (int.TryParse(builder.Configuration["PORT"], out var port) && port > 0)
 
 builder.AddQylServiceDefaults(options => options.AdditionalActivitySources.Add("Qyl.Loom"));
 builder.AddQylLoomDefaults();
+
+// BitNet local-LLM hosting. One-line opt-in via ANcpLua.Agents.Hosting.BitNet:
+// reads BITNET_URL / BITNET_API_PATH / BITNET_MODEL, registers a keyed IChatClient
+// under "bitnet" with OpenTelemetry, LegacyMaxTokensPolicy, and a health check.
+// The agent-layer telemetry is applied by QylLoomAgentsBuilder.Compose.
+builder.AddQylBitNetChatClient();
+builder.Services.Replace(
+    ServiceDescriptor.Singleton<IQylLoomChatClientBuilder, QylLoomBitNetChatClientBuilder>());
 
 builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 builder.Services

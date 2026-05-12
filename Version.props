@@ -21,6 +21,9 @@
     <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
+    <!-- BitNet hosting ships from ANcpLua/ANcpLua.Agents alongside the OpenAI
+         hosting package; alpha channel until the runtime contract stabilises. -->
+    <ANcpLuaAgentsHostingBitNetVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingBitNetVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) versions. The conditional import of
          framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props in
