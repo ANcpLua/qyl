@@ -27,7 +27,6 @@ on:
 
 permissions:
   actions: write
-  contents: read
 
 concurrency:
   group: actions-cache-cleanup
@@ -119,10 +118,23 @@ jobs:
           for cache in caches:
               ref = str(cache.get("ref", ""))
               last_accessed = str(cache.get("last_accessed_at", ""))
-              if not ref.startswith("refs/pull/"):
+              # Only PR merge-test refs: refs/pull/<N>/merge. The PR head
+              # refs (refs/pull/<N>/head) are preserved because their caches
+              # often back the active build for the PR head SHA.
+              if not (ref.startswith("refs/pull/") and ref.endswith("/merge")):
                   continue
 
-              accessed_at = datetime.fromisoformat(last_accessed.replace("Z", "+00:00"))
+              if not last_accessed:
+                  print(f"::warning::cache id {cache.get('id')} ref={ref} has no last_accessed_at; skipping")
+                  continue
+              try:
+                  accessed_at = datetime.fromisoformat(last_accessed.replace("Z", "+00:00"))
+              except ValueError:
+                  print(
+                      f"::warning::cache id {cache.get('id')} ref={ref} "
+                      f"has invalid last_accessed_at={last_accessed!r}; skipping"
+                  )
+                  continue
               if accessed_at <= cutoff:
                   targets.append(cache)
 
