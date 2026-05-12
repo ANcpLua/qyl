@@ -5,10 +5,10 @@
 // =============================================================================
 
 import "@typespec/openapi";
-import "../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 
 using TypeSpec.OpenAPI;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 namespace Qyl.Domains.Observe.Error;
 
@@ -19,7 +19,7 @@ namespace Qyl.Domains.Observe.Error;
 @doc("Error type attribute (OTel stable)")
 model ErrorAttributes {
   @doc("Error type - full exception class name or error code")
-  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Error.Type)
   errorType: string;
 }
 
@@ -91,7 +91,7 @@ model ErrorEntity {
 
   @doc("Error type (class name or code)")
   @visibility(Lifecycle.Read)
-  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Error.Type)
   errorType: string;
 
   @doc("Error message")
@@ -245,7 +245,7 @@ model ErrorRateMetric {
   unit: "1";
 
   @doc("Service name")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Error category")
@@ -265,11 +265,11 @@ model ErrorCountMetric {
   unit: "{error}";
 
   @doc("Service name")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.Name)
   serviceName: string;
 
   @doc("Error type")
-  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Error.Type)
   errorType: string;
 
   @doc("Error category")

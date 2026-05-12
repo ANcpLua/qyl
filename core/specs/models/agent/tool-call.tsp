@@ -1,12 +1,12 @@
 // Materialized tool call records extracted from OTLP spans (gen_ai.tool.*).
 
 import "@typespec/openapi";
-import "../../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 import "../../otel/otel-conventions.tsp";
 
 using TypeSpec.OpenAPI;
-using Qyl.Common;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
 
 namespace Qyl.Domains.Agent.ToolCall;
 

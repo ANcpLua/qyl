@@ -46,9 +46,13 @@ using Qyl.Emit.TsTypes;
 @@csharpNamespace(Qyl.Api, "Qyl.Api");
 @@csharpNamespace(Qyl.Api.Streaming, "Qyl.Api.Streaming");
 
-@@csharpNamespace(Qyl.Common, "Qyl.Common");
-@@csharpNamespace(Qyl.Common.Errors, "Qyl.Common.Errors");
-@@csharpNamespace(Qyl.Common.Pagination, "Qyl.Common.Pagination");
+// Common namespaces are sourced from @o-ancpplua/otel-conventions-api/common/*
+// (ANcpLua.OtelConventions.Common.*). We pin the emitted C# namespaces to the
+// historical Qyl.Common.* values so qyl-side hand-written C# code keeps
+// compiling against the same type identities.
+@@csharpNamespace(ANcpLua.OtelConventions.Common, "Qyl.Common");
+@@csharpNamespace(ANcpLua.OtelConventions.Common.Errors, "Qyl.Common.Errors");
+@@csharpNamespace(ANcpLua.OtelConventions.Common.Pagination, "Qyl.Common.Pagination");
 
 @@csharpNamespace(Qyl.Intelligence, "Qyl.Intelligence");
 
@@ -79,22 +83,31 @@ using Qyl.Emit.TsTypes;
 @@csharpNamespace(Qyl.Domains.Workflow, "Qyl.Domains.Workflow");
 @@csharpNamespace(Qyl.Domains.Workspace, "Qyl.Domains.Workspace");
 
-@@csharpNamespace(Qyl.OTel, "Qyl.OTel");
-@@csharpNamespace(Qyl.OTel.Enums, "Qyl.OTel.Enums");
-@@csharpNamespace(Qyl.OTel.Logs, "Qyl.OTel.Logs");
-@@csharpNamespace(Qyl.OTel.Metrics, "Qyl.OTel.Metrics");
-@@csharpNamespace(Qyl.OTel.Profiles, "Qyl.OTel.Profiles");
-@@csharpNamespace(Qyl.OTel.Resource, "Qyl.OTel.Resource");
-@@csharpNamespace(Qyl.OTel.Traces, "Qyl.OTel.Traces");
+// OTel signal namespaces are sourced from @o-ancpplua/otel-conventions-api/otel
+// (ANcpLua.OtelConventions.OTel.*). We pin the emitted C# namespaces to the
+// historical Qyl.OTel.* values so qyl-side hand-written C# code keeps compiling
+// against the same type identities.
+@@csharpNamespace(ANcpLua.OtelConventions.OTel, "Qyl.OTel");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Enums, "Qyl.OTel.Enums");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Logs, "Qyl.OTel.Logs");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Metrics, "Qyl.OTel.Metrics");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Profiles, "Qyl.OTel.Profiles");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Resource, "Qyl.OTel.Resource");
+@@csharpNamespace(ANcpLua.OtelConventions.OTel.Traces, "Qyl.OTel.Traces");
 
-@@csharpNamespace(Qyl.Storage, "Qyl.Storage");
+// Storage models are sourced from @o-ancpplua/otel-conventions-api/otel/storage
+// (ANcpLua.OtelConventions.Storage). Pin the emitted C# namespace to the
+// historical Qyl.Storage value.
+@@csharpNamespace(ANcpLua.OtelConventions.Storage, "Qyl.Storage");
 
 // -----------------------------------------------------------------------------
 // TypeScript brands for opaque string IDs. Mandate §Commit-4 exact list plus
-// any scalar in core/specs/common/types.tsp with x-csharp-struct extension.
+// any scalar from @o-ancpplua/otel-conventions-api/common/types with the
+// x-csharp-struct extension. The scalars live in the upstream package now;
+// brand them by their canonical namespace.
 // -----------------------------------------------------------------------------
 
-@@tsBrand(Qyl.Common.TraceId);
-@@tsBrand(Qyl.Common.SpanId);
-@@tsBrand(Qyl.Common.SessionId);
-@@tsBrand(Qyl.Common.UserId);
+@@tsBrand(ANcpLua.OtelConventions.Common.TraceId);
+@@tsBrand(ANcpLua.OtelConventions.Common.SpanId);
+@@tsBrand(ANcpLua.OtelConventions.Common.SessionId);
+@@tsBrand(ANcpLua.OtelConventions.Common.UserId);

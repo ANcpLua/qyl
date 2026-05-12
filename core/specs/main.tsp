@@ -6,25 +6,32 @@ import "@typespec/versioning";
 import "@typespec/sse";
 import "@typespec/events";
 
-// Regenerated from .tools/semconv-upstream/model (pinned v1.41.0) by
-// ./eng/semconv/run-weaver.sh. See core/specs/generated/README.md.
-import "./generated/otel-keys.gen.tsp";
+// Upstream OTel attribute key constants (ANcpLua.OtelConventions.OTel.Keys.*).
+// Generated upstream by ANcpLua/typespec-otel-semconv from semantic-conventions
+// v1.41.0 and shipped via the npm package
+// `@o-ancpplua/otel-conventions-api`.
+import "@o-ancpplua/otel-conventions-api/generated/otel-keys";
 
-import "./common/types.tsp";
-import "./common/errors.tsp";
-import "./common/pagination.tsp";
+// Common scalars / errors / pagination ship via the npm package.
+// ANcpLua.OtelConventions.Common.* is the canonical namespace; qyl maps it
+// to Qyl.Common.* in C# output via qyl-emit-config.tsp.
+import "@o-ancpplua/otel-conventions-api/common/types";
+import "@o-ancpplua/otel-conventions-api/common/errors";
+import "@o-ancpplua/otel-conventions-api/common/pagination";
 
 import "./qyl-emit-config.tsp";
 import "./qyl-emit-duckdb.tsp";
 
-// OTel signal models — import via indirection barrel.
-// See otel/otel-conventions.tsp and MIGRATION-otel-conventions-api.md.
+// OTel signal models — import via indirection barrel. The barrel pulls in the
+// npm package's `otel/otel-conventions.tsp`, which itself imports the
+// `ANcpLua.OtelConventions.Storage` flattened DuckDB record models. See
+// otel/otel-conventions.tsp and MIGRATION-otel-conventions-api.md.
 import "./otel/otel-conventions.tsp";
-import "./otel/storage.tsp";
 
-// qyl-specific models; OTel attribute keys come from Qyl.OTel.Keys.*
-// (generated/otel-keys.gen.tsp); hand-typed strings in @encodedName are
-// not allowed for upstream-OTel attribute names.
+// qyl-specific models; OTel attribute keys come from
+// ANcpLua.OtelConventions.OTel.Keys.* (the npm package's `generated/otel-keys`
+// subpath); hand-typed strings in @encodedName are not allowed for
+// upstream-OTel attribute names.
 import "./models/genai.tsp";
 import "./models/http.tsp";
 import "./models/rpc.tsp";

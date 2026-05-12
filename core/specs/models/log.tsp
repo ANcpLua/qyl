@@ -1,9 +1,9 @@
 
-import "../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 import "../otel/otel-conventions.tsp";
 
-using Qyl.Common;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
 
 namespace Qyl.Domains.Observe.Log;
 
@@ -14,27 +14,27 @@ namespace Qyl.Domains.Observe.Log;
 @doc("Log record attributes")
 model LogAttributes {
   @doc("Log record unique identifier")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.RecordUid)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.RecordUid)
   recordUid?: string;
 
   @doc("Original log file name")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.FileName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.FileName)
   fileName?: string;
 
   @doc("Full path to log file")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.FilePath)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.FilePath)
   filePath?: string;
 
   @doc("Original log file name resolved")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.FileNameResolved)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.FileNameResolved)
   fileNameResolved?: string;
 
   @doc("Full path to log file resolved")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.FilePathResolved)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.FilePathResolved)
   filePathResolved?: string;
 
   @doc("Log iostream (stdout/stderr)")
-  @encodedName("application/json", Qyl.OTel.Keys.Log.Iostream)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Log.Iostream)
   iostream?: LogIostream;
 }
 

@@ -4,9 +4,9 @@
 // User, client, service, and app identity attributes.
 // =============================================================================
 
-import "../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 namespace Qyl.Domains.Identity;
 
@@ -17,27 +17,27 @@ namespace Qyl.Domains.Identity;
 @doc("User attributes")
 model UserAttributes {
   @doc("User ID (unique identifier)")
-  @encodedName("application/json", Qyl.OTel.Keys.User.Id)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.Id)
   id?: UserId;
 
   @doc("User name (may be pseudonymized)")
-  @encodedName("application/json", Qyl.OTel.Keys.User.Name)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.Name)
   name?: string;
 
   @doc("User email (may be hashed)")
-  @encodedName("application/json", Qyl.OTel.Keys.User.Email)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.Email)
   email?: string;
 
   @doc("User full name")
-  @encodedName("application/json", Qyl.OTel.Keys.User.FullName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.FullName)
   fullName?: string;
 
   @doc("User hash (for privacy)")
-  @encodedName("application/json", Qyl.OTel.Keys.User.Hash)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.Hash)
   hash?: string;
 
   @doc("User roles")
-  @encodedName("application/json", Qyl.OTel.Keys.User.Roles)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.User.Roles)
   roles?: string[];
 }
 
@@ -48,11 +48,11 @@ model UserAttributes {
 @doc("Client attributes")
 model ClientAttributes {
   @doc("Client address (IP, hostname, or Unix socket path)")
-  @encodedName("application/json", Qyl.OTel.Keys.Client.Address)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Client.Address)
   address?: IpAddress | string;
 
   @doc("Client port")
-  @encodedName("application/json", Qyl.OTel.Keys.Client.Port)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Client.Port)
   port?: Port;
 }
 
@@ -63,19 +63,19 @@ model ClientAttributes {
 @doc("Service resource attributes")
 model ServiceAttributes {
   @doc("Service name (required)")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.Name)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.Name)
   name: string;
 
   @doc("Service namespace")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.Namespace)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.Namespace)
   `namespace`?: string;
 
   @doc("Service instance ID (unique per instance)")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.InstanceId)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.InstanceId)
   instanceId?: string;
 
   @doc("Service version")
-  @encodedName("application/json", Qyl.OTel.Keys.Service.Version)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Service.Version)
   version?: SemVer;
 }
 
@@ -105,11 +105,11 @@ model AppAttributes {
 @doc("Server attributes")
 model ServerAttributes {
   @doc("Server address (hostname or IP)")
-  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Server.Address)
   address?: string;
 
   @doc("Server port")
-  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Server.Port)
   port?: Port;
 }
 
@@ -120,11 +120,11 @@ model ServerAttributes {
 @doc("Destination attributes (for client spans)")
 model DestinationAttributes {
   @doc("Destination address")
-  @encodedName("application/json", Qyl.OTel.Keys.Destination.Address)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Destination.Address)
   address?: string;
 
   @doc("Destination port")
-  @encodedName("application/json", Qyl.OTel.Keys.Destination.Port)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Destination.Port)
   port?: Port;
 }
 
@@ -135,11 +135,11 @@ model DestinationAttributes {
 @doc("Source attributes")
 model SourceAttributes {
   @doc("Source address (IP, hostname, or Unix socket path)")
-  @encodedName("application/json", Qyl.OTel.Keys.Source.Address)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Source.Address)
   address?: IpAddress | string;
 
   @doc("Source port")
-  @encodedName("application/json", Qyl.OTel.Keys.Source.Port)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Source.Port)
   port?: Port;
 }
 

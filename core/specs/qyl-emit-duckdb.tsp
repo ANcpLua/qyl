@@ -108,28 +108,28 @@ using Qyl.Emit.DuckDb;
 @@duckdbRowTimestamp(Qyl.Domains.Workspace.WorkspaceEnvelopeEntity);
 @@duckdbType(Qyl.Domains.Workspace.WorkspaceEnvelopeEntity.configJson, "JSON");
 
-// Qyl.Storage.ProfileRecord -> profiles
-@@duckdbTable(Qyl.Storage.ProfileRecord, "profiles");
-@@duckdbRowTimestamp(Qyl.Storage.ProfileRecord);
-@@duckdbPrimaryKey(Qyl.Storage.ProfileRecord.profileId);
-@@duckdbIndex(Qyl.Storage.ProfileRecord.traceId, "idx_profiles_trace_id");
-@@duckdbIndex(Qyl.Storage.ProfileRecord.sessionId, "idx_profiles_session_id");
-@@duckdbIndex(Qyl.Storage.ProfileRecord.timeUnixNano, "idx_profiles_time");
-@@duckdbIndex(Qyl.Storage.ProfileRecord.sampleType, "idx_profiles_sample_type");
-@@duckdbIndex(Qyl.Storage.ProfileRecord.serviceName, "idx_profiles_service");
-@@duckdbType(Qyl.Storage.ProfileRecord.schemaUrl, "VARCHAR(256)");
-@@duckdbType(Qyl.Storage.ProfileRecord.createdAt, "TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+// ANcpLua.OtelConventions.Storage.ProfileRecord -> profiles
+@@duckdbTable(ANcpLua.OtelConventions.Storage.ProfileRecord, "profiles");
+@@duckdbRowTimestamp(ANcpLua.OtelConventions.Storage.ProfileRecord);
+@@duckdbPrimaryKey(ANcpLua.OtelConventions.Storage.ProfileRecord.profileId);
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.ProfileRecord.traceId, "idx_profiles_trace_id");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.ProfileRecord.sessionId, "idx_profiles_session_id");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.ProfileRecord.timeUnixNano, "idx_profiles_time");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.ProfileRecord.sampleType, "idx_profiles_sample_type");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.ProfileRecord.serviceName, "idx_profiles_service");
+@@duckdbType(ANcpLua.OtelConventions.Storage.ProfileRecord.schemaUrl, "VARCHAR(256)");
+@@duckdbType(ANcpLua.OtelConventions.Storage.ProfileRecord.createdAt, "TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
 
-// Qyl.Storage.SpanRecord -> spans
-@@duckdbTable(Qyl.Storage.SpanRecord, "spans");
-@@duckdbRowTimestamp(Qyl.Storage.SpanRecord);
-@@duckdbPrimaryKey(Qyl.Storage.SpanRecord.spanId);
-@@duckdbIndex(Qyl.Storage.SpanRecord.traceId, "idx_spans_trace_id");
-@@duckdbIndex(Qyl.Storage.SpanRecord.sessionId, "idx_spans_session_id");
-@@duckdbIndex(Qyl.Storage.SpanRecord.startTimeUnixNano, "idx_spans_start_time");
-@@duckdbIndex(Qyl.Storage.SpanRecord.serviceName, "idx_spans_service_name");
-@@duckdbIndex(Qyl.Storage.SpanRecord.genAiProviderName, "idx_spans_gen_ai_provider_name");
-@@duckdbIndex(Qyl.Storage.SpanRecord.genAiRequestModel, "idx_spans_gen_ai_request_model");
-@@duckdbType(Qyl.Storage.SpanRecord.schemaUrl, "VARCHAR(256)");
-@@duckdbType(Qyl.Storage.SpanRecord.createdAt, "TIMESTAMP DEFAULT now()");
+// ANcpLua.OtelConventions.Storage.SpanRecord -> spans
+@@duckdbTable(ANcpLua.OtelConventions.Storage.SpanRecord, "spans");
+@@duckdbRowTimestamp(ANcpLua.OtelConventions.Storage.SpanRecord);
+@@duckdbPrimaryKey(ANcpLua.OtelConventions.Storage.SpanRecord.spanId);
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.traceId, "idx_spans_trace_id");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.sessionId, "idx_spans_session_id");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.startTimeUnixNano, "idx_spans_start_time");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.serviceName, "idx_spans_service_name");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.genAiProviderName, "idx_spans_gen_ai_provider_name");
+@@duckdbIndex(ANcpLua.OtelConventions.Storage.SpanRecord.genAiRequestModel, "idx_spans_gen_ai_request_model");
+@@duckdbType(ANcpLua.OtelConventions.Storage.SpanRecord.schemaUrl, "VARCHAR(256)");
+@@duckdbType(ANcpLua.OtelConventions.Storage.SpanRecord.createdAt, "TIMESTAMP DEFAULT now()");
 

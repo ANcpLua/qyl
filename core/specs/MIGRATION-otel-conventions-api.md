@@ -96,3 +96,42 @@ namespace tree needs to be aligned to `Qyl.*` for qyl's consumption, or every
 qyl-side `using` declaration that names the old inlined namespaces has to be
 rewritten. That alignment is the next PR on top of this one and is tracked
 under the migration so it is not bundled with the file-deletion delta.
+
+## Status — 2026-05-12 (namespace alignment + common/otel-keys swap completed)
+
+The follow-up alignment work has now been completed on the same branch:
+
+- All `using Qyl.OTel.*` rewritten to `using ANcpLua.OtelConventions.OTel.*`
+  across `core/specs/**/*.tsp` (signal namespaces sourced from the npm
+  package).
+- All `using Qyl.Common*` rewritten to `using ANcpLua.OtelConventions.Common*`.
+- Bare `Qyl.OTel.Keys.<Domain>.<Ident>` references rewritten to
+  `ANcpLua.OtelConventions.OTel.Keys.<Domain>.<Ident>`.
+- `core/specs/common/{types,errors,pagination}.tsp` deleted; consumers import
+  the npm subpaths `@o-ancpplua/otel-conventions-api/common/{types,errors,pagination}`.
+- `core/specs/generated/otel-keys.gen.tsp` deleted; consumers import
+  `@o-ancpplua/otel-conventions-api/generated/otel-keys`.
+- `eng/semconv/templates/registry/typespec/` removed and
+  `eng/semconv/scripts/run-weaver.sh` Pass 3 removed — the producer that
+  generates these consts has been lifted into a separate repository
+  (`ANcpLua/typespec-otel-semconv`).
+- `core/specs/qyl-emit-config.tsp` now decorates the npm-package namespaces
+  with `@@csharpNamespace(ANcpLua.OtelConventions.OTel.X, "Qyl.OTel.X")` and
+  `@@csharpNamespace(ANcpLua.OtelConventions.Common.X, "Qyl.Common.X")` so the
+  qyl-emitted C# downstream keeps using its historical namespaces. The C#
+  post-emit patcher (`patch-emitted-csharp.mjs`) and qyl C# downstream code
+  therefore need no changes.
+- `core/specs/scripts/apply-otel-keys.mjs` reads its key map from the
+  npm-installed `node_modules/@o-ancpplua/otel-conventions-api/generated/otel-keys.gen.tsp`
+  and emits `ANcpLua.OtelConventions.OTel.Keys.<Domain>.<Ident>` references.
+- `core/specs/otel/storage.tsp` deleted; the npm package's
+  `ANcpLua.OtelConventions.Storage` namespace is the single source of truth
+  for the flattened DuckDB-shaped storage models (`SpanRecord`,
+  `LogRecordStorage`, `ProfileRecord`, `SessionSummary`, `TraceNode`,
+  `GenAiSpanData`, and the profile child tables). `qyl-emit-duckdb.tsp` now
+  decorates the npm-side types; `qyl-emit-config.tsp` maps
+  `ANcpLua.OtelConventions.Storage` to C# `Qyl.Storage` so the qyl-emitted
+  C# downstream (`packages/Qyl.Contracts/Generated`) keeps its historical
+  namespace.
+- `core/specs/api/routes.tsp` switches `using Qyl.Storage` →
+  `using ANcpLua.OtelConventions.Storage`.

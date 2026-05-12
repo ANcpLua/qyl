@@ -5,10 +5,10 @@
 // =============================================================================
 
 import "@typespec/openapi";
-import "../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 
 using TypeSpec.OpenAPI;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 namespace Qyl.Domains.Search;
 
