@@ -101,11 +101,12 @@ jobs:
             ${{ github.event.pull_request.user.login ||
                 github.event.check_suite.pull_requests[0].user.login }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           case "$PR_AUTHOR" in
             renovate\[bot\]|dependabot\[bot\])
-              meta="$(gh pr view "$PR_N" --json title,labels,body \
+              meta="$(gh pr view "$PR_N" --repo "$GH_REPO" --json title,labels,body \
                         --jq '[.title, (.labels|map(.name)|join(" ")), (.body // "")] | join(" ")')"
               if printf '%s\n' "$meta" \
                    | grep -Eiq '(^|[^[:alnum:]])major([^[:alnum:]]|$)|(^|[.-])(alpha|beta|preview|rc)([.-]|$)'; then
@@ -122,11 +123,15 @@ jobs:
         env:
           PR_N: ${{ steps.pr.outputs.n }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           # `|| true` because gh refuses to approve a PR the App already
           # approved, which is fine — we just want an active approval on
           # record so admin merge has cover under any future protection.
-          gh pr review "$PR_N" --approve \
+          # --repo is required because the runner has no .git working tree
+          # (no actions/checkout step) and `gh` would otherwise try to
+          # derive the repo from local git context and fail.
+          gh pr review "$PR_N" --repo "$GH_REPO" --approve \
             --body "✅ Auto-approved by destructive auto-merge (admin tier)" || true
 
       - name: Admin squash-merge
@@ -134,18 +139,19 @@ jobs:
         env:
           PR_N: ${{ steps.pr.outputs.n }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           # --admin bypasses required reviews + required status checks +
           # branch protection. Most aggressive auto-merge path for
           # trusted-identity PRs. If the PR is already merged or closed
           # by a racing tier, gh exits non-zero — swallow with `|| true`
-          # then verify state.
+          # then verify state. --repo is required (no checkout, no .git).
           set +e
-          gh pr merge "$PR_N" --admin --squash --delete-branch
+          gh pr merge "$PR_N" --repo "$GH_REPO" --admin --squash --delete-branch
           rc=$?
           set -e
           if [ $rc -ne 0 ]; then
-            state="$(gh pr view "$PR_N" --json state --jq .state)"
+            state="$(gh pr view "$PR_N" --repo "$GH_REPO" --json state --jq .state)"
             if [ "$state" = "MERGED" ] || [ "$state" = "CLOSED" ]; then
               echo "::notice::PR #$PR_N already $state — destructive merge no-op"
               exit 0
