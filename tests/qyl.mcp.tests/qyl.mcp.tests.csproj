@@ -1,8 +1,7 @@
-<Project Sdk="ANcpLua.NET.Sdk">
+<Project Sdk="ANcpLua.NET.Sdk.Test">
   <PropertyGroup>
     <RootNamespace>Qyl.Mcp.Tests</RootNamespace>
     <AssemblyName>Qyl.Mcp.Tests</AssemblyName>
-    <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
