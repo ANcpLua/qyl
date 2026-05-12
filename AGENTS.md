@@ -142,7 +142,7 @@ Files ending in `.g.cs`, `.g.ts`, `.g.sql`, `.g.tsp` are downstream artefacts �
 | `packages/Qyl.Contracts/Generated/**`, `packages/qyl-client/src/generated/**` | `core/specs/**/*.tsp`          | `nuke Generate`                                                            |
 | `packages/Qyl.OpenTelemetry.SemanticConventions{,Incubating}/Attributes/**`   | OTel upstream YAML             | `nuke Generate`                                                            |
 | `packages/Qyl.SemanticConventions/Attributes/Qyl/QylAttributes.g.cs`          | `eng/semconv/model/qyl/*.yaml` | `nuke OtelConventions`                                                     |
-| `services/qyl.dashboard/src/lib/semconv.ts`, `services/qyl.collector/Storage/promoted-columns.g.sql`, `core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json`, `core/specs/generated/otel-keys.gen.tsp` | `.tools/semconv-upstream/model` | `./eng/semconv/run-weaver.sh`                                              |
+| `services/qyl.dashboard/src/lib/semconv.ts`, `services/qyl.collector/Storage/promoted-columns.g.sql`, `core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json`                                          | `.tools/semconv-upstream/model` | `./eng/semconv/run-weaver.sh`                                              |
 | `packages/Qyl.Telemetry/Conventions/Qyl.g.cs`, `packages/qyl-client/src/conventions.ts`, `docs/attributes/qyl.attrs.md` | `eng/semconv/model/qyl/*.yaml` | `./eng/semconv/run-weaver.sh`                                              |
 | `services/qyl.collector/Generated/generated/**`                               | `core/specs/api/routes.tsp`    | `nuke Generate` (patched by `core/specs/scripts/patch-emitted-csharp.mjs`) |
 | `internal/*.generators/` outputs                                              | Roslyn source generators       | `dotnet build`                                                             |
@@ -153,6 +153,31 @@ The semconv toolchain has two steps:
 
 - `./eng/semconv/bootstrap-weaver.sh` or `./eng/semconv/bootstrap-weaver.ps1` installs pinned Weaver `v0.23.0` into `.tools/weaver/` and checks that `.tools/semconv-upstream` is present.
 - `./eng/semconv/run-weaver.sh` uses the pinned upstream model plus `eng/semconv/model/qyl` to regenerate the repo-local TypeScript, SQL, JSON, C#, Markdown, and TypeSpec outputs listed above.
+
+### OTel signal models, common scalars, and OTel keys ship as an external TypeSpec library
+
+The TypeSpec layer under `core/specs/` now imports four classes of artefact
+from [`@o-ancpplua/otel-conventions-api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api):
+
+- The OTel-shaped signal models (`enums`, `resource`, `span`, `logs`, `metrics`,
+  `profiles`) via the barrel `core/specs/otel/otel-conventions.tsp` →
+  `@o-ancpplua/otel-conventions-api/otel`.
+- The common scalars / errors / pagination via `core/specs/main.tsp` →
+  `@o-ancpplua/otel-conventions-api/common/{types,errors,pagination}`.
+- The upstream OTel attribute key constants via `core/specs/main.tsp` →
+  `@o-ancpplua/otel-conventions-api/generated/otel-keys` (no longer generated
+  locally — the producer lives in `ANcpLua/typespec-otel-semconv`).
+
+The package is distributed on **GitHub Packages** under the `@o-ancpplua`
+scope; the `core/specs/.npmrc` already declares the registry, and
+authentication uses `GITHUB_TOKEN`. Only `core/specs/otel/storage.tsp` stays
+qyl-local because the DuckDB storage models in the `Qyl.Storage` namespace are
+not part of the published OTel surface.
+
+The qyl-side `Qyl.OTel.*` / `Qyl.Common.*` C# namespaces are preserved through
+`qyl-emit-config.tsp` (`@@csharpNamespace(ANcpLua.OtelConventions.OTel.X, "Qyl.OTel.X")`)
+so hand-written C# consumers keep compiling against the historical type
+identities.
 
 ## Semconv — typed attributes, not strings
 
@@ -283,6 +308,6 @@ Under `tests/qyl.collector.tests/`:
 
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
-| [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (npm) — barrel + migration plan live in `core/specs/otel/otel-conventions.tsp` + `core/specs/MIGRATION-otel-conventions-api.md`; one-line swap once published. |
+| [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (`@o-ancpplua/otel-conventions-api@0.1.0` on GitHub Packages). Swap complete on `chore/swap-inlined-otel-for-otel-conventions-api`: 6 inlined signal files + 3 common files + 1 generated keys file deleted; npm imports for `otel`, `common/*`, and `generated/otel-keys` subpaths; `Qyl.OTel.*` / `Qyl.Common.*` C# namespaces preserved via `@@csharpNamespace` mappings. `tsp compile --no-emit` is green. |
 | [#172](https://github.com/O-ANcppLua/qyl/pull/172)                          | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
 | [#173](https://github.com/O-ANcppLua/qyl/issues/173)                        | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |

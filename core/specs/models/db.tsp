@@ -5,10 +5,10 @@
 // =============================================================================
 
 import "@typespec/versioning";
-import "../common/types.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
 
 using TypeSpec.Versioning;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 @versioned(DbVersions)
 namespace Qyl.Domains.Data.Db;
@@ -43,19 +43,19 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database management system identifier")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Database namespace (database name, schema, etc.)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.Namespace)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.Namespace)
   `namespace`?: string;
 
   @doc("Database operation name (query, insert, delete, etc.)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.OperationName)
   operationName?: DbOperationName;
 
   @doc("Batch size (number of statements in batch)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationBatchSize)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.OperationBatchSize)
   batchSize?: int32;
 
   // ---------------------------------------------------------------------------
@@ -63,15 +63,15 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database statement (query text, may be sanitized)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.QueryText)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.QueryText)
   queryText?: string;
 
   @doc("Parameterized query template")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.QuerySummary)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.QuerySummary)
   querySummary?: string;
 
   @doc("Query parameters (for prepared statements). Keys map to db.query.parameter.<key>")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.QueryParameter)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.QueryParameter)
   queryParameters?: Record<string>;
 
   // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Table name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.CollectionName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.CollectionName)
   collectionName?: string;
 
   // ---------------------------------------------------------------------------
@@ -87,11 +87,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Number of rows affected/returned")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ResponseReturnedRows)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ResponseReturnedRows)
   returnedRows?: int64;
 
   @doc("Status code from database")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ResponseStatusCode)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ResponseStatusCode)
   responseStatusCode?: string;
 
   // ---------------------------------------------------------------------------
@@ -99,11 +99,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database server address")
-  @encodedName("application/json", Qyl.OTel.Keys.Server.Address)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Server.Address)
   serverAddress?: string;
 
   @doc("Database server port")
-  @encodedName("application/json", Qyl.OTel.Keys.Server.Port)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Server.Port)
   serverPort?: Port;
 
   // ---------------------------------------------------------------------------
@@ -111,11 +111,11 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Connection pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   connectionPoolName?: string;
 
   @doc("Connection state")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionState)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionState)
   connectionState?: DbConnectionState;
 
   // ---------------------------------------------------------------------------
@@ -123,22 +123,22 @@ model DbAttributes {
   // ---------------------------------------------------------------------------
 
   @doc("Database name (deprecated - use db.namespace)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.Name)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.Name)
   @removed(DbVersions.v1_24)
   dbName?: string;
 
   @doc("Database statement (deprecated - use db.query.text)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.Statement)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.Statement)
   @removed(DbVersions.v1_24)
   statement?: string;
 
   @doc("Database operation (deprecated - use db.operation.name)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.Operation)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.Operation)
   @removed(DbVersions.v1_24)
   operation?: string;
 
   @doc("Database user (deprecated)")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.User)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.User)
   @removed(DbVersions.v1_24)
   user?: string;
 }
@@ -593,23 +593,23 @@ model DbClientOperationDurationMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Database namespace")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.Namespace)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.Namespace)
   `namespace`?: string;
 
   @doc("Operation name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.OperationName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.OperationName)
   operationName: DbOperationName;
 
   @doc("Collection/table name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.CollectionName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.CollectionName)
   collectionName?: string;
 
   @doc("Error type if failed")
-  @encodedName("application/json", Qyl.OTel.Keys.Error.Type)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Error.Type)
   errorType?: string;
 }
 
@@ -622,15 +622,15 @@ model DbConnectionPoolSizeMetric {
   unit: "{connection}";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 
   @doc("Connection state")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionState)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionState)
   state: DbConnectionState;
 }
 
@@ -643,11 +643,11 @@ model DbConnectionCreateTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -660,11 +660,11 @@ model DbConnectionWaitTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -677,11 +677,11 @@ model DbConnectionUseTimeMetric {
   unit: "s";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -694,11 +694,11 @@ model DbConnectionPendingRequestsMetric {
   unit: "{request}";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 
@@ -711,11 +711,11 @@ model DbConnectionTimeoutsMetric {
   unit: "{timeout}";
 
   @doc("Database system")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.SystemName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.SystemName)
   systemName: DbSystem;
 
   @doc("Pool name")
-  @encodedName("application/json", Qyl.OTel.Keys.Db.ClientConnectionPoolName)
+  @encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.Db.ClientConnectionPoolName)
   poolName: string;
 }
 

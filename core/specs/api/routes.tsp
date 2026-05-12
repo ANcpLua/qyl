@@ -4,16 +4,15 @@ import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/versioning";
 
-import "../common/types.tsp";
-import "../common/errors.tsp";
-import "../common/pagination.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
+import "@o-ancpplua/otel-conventions-api/common/errors";
+import "@o-ancpplua/otel-conventions-api/common/pagination";
 import "../otel/otel-conventions.tsp";
 import "../models/session.tsp";
 import "../models/log.tsp";
 import "../models/error.tsp";
 import "../models/deployment.tsp";
 import "../models/identity.tsp";
-import "../otel/storage.tsp";
 
 import "../models/workspace.tsp";
 import "../models/configurator.tsp";
@@ -26,14 +25,14 @@ using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 using TypeSpec.Versioning;
 
-using Qyl.Common;
-using Qyl.Common.Errors;
-using Qyl.Common.Pagination;
-using Qyl.OTel.Traces;
-using Qyl.OTel.Logs;
-using Qyl.OTel.Enums;
-using Qyl.OTel.Profiles;
-using Qyl.Storage;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.Common.Errors;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Traces;
+using ANcpLua.OtelConventions.OTel.Logs;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Profiles;
+using ANcpLua.OtelConventions.Storage;
 using Qyl.Domains.Observe.Session;
 using Qyl.Domains.Observe.Log;
 using Qyl.Domains.Observe.Error;
@@ -213,7 +212,7 @@ interface LogsApi {
     @query @doc("Service name filter") serviceName?: string,
     @query @doc("Start time") startTime?: utcDateTime,
     @query @doc("End time") endTime?: utcDateTime,
-  ): Qyl.OTel.Logs.LogStats | InternalServerError;
+  ): ANcpLua.OtelConventions.OTel.Logs.LogStats | InternalServerError;
 }
 
 @doc("Log aggregation request")
@@ -317,10 +316,10 @@ model MetricQueryRequest {
   endTime: utcDateTime;
 
   @doc("Step interval")
-  step?: Qyl.Common.Pagination.TimeBucket;
+  step?: ANcpLua.OtelConventions.Common.Pagination.TimeBucket;
 
   @doc("Aggregation function")
-  aggregation?: Qyl.OTel.Metrics.AggregationFunction;
+  aggregation?: ANcpLua.OtelConventions.OTel.Metrics.AggregationFunction;
 
   @doc("Group by labels")
   @encodedName("application/json", "group_by")

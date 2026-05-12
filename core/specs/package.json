@@ -30,6 +30,7 @@
   "dependencies": {
     "@azure-tools/typespec-azure-core": "^0.68.0-dev.5",
     "@azure-tools/typespec-client-generator-core": "^0.68.0-dev.18",
+    "@o-ancpplua/otel-conventions-api": "0.1.0",
     "@typespec/http-client-csharp": "^1.0.0-alpha.20260501.5",
     "@typespec/http-client-js": "^0.14.1",
     "@typespec/xml": "^0.82.0-dev.2"

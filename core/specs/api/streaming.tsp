@@ -4,8 +4,8 @@ import "@typespec/sse";
 import "@typespec/events";
 import "@typespec/versioning";
 
-import "../common/types.tsp";
-import "../common/pagination.tsp";
+import "@o-ancpplua/otel-conventions-api/common/types";
+import "@o-ancpplua/otel-conventions-api/common/pagination";
 import "../otel/otel-conventions.tsp";
 import "../models/deployment.tsp";
 
@@ -14,11 +14,11 @@ using TypeSpec.SSE;
 using TypeSpec.Events;
 using TypeSpec.Versioning;
 
-using Qyl.Common;
-using Qyl.OTel.Traces;
-using Qyl.OTel.Logs;
-using Qyl.OTel.Metrics;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Traces;
+using ANcpLua.OtelConventions.OTel.Logs;
+using ANcpLua.OtelConventions.OTel.Metrics;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Domains.Ops.Deployment;
 
 namespace Qyl.Api.Streaming;

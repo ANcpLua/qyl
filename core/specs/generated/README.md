@@ -1,40 +1,24 @@
 # core/specs/generated
 
-This directory holds Weaver-generated TypeSpec files. **Do not edit by hand.**
+This directory previously held the Weaver-generated `otel-keys.gen.tsp` file.
 
-The generated files are the bridge between upstream OpenTelemetry semantic-convention
-keys and qyl TypeSpec models. They let qyl reference pinned upstream attribute keys
-as constants instead of scattering raw dotted strings through `.tsp` sources.
-
-## Files
-
-| File | Source | Regenerate via |
-| --- | --- | --- |
-| `otel-keys.gen.tsp` | `.tools/semconv-upstream/model` (pinned upstream OTel semantic-conventions) + `eng/semconv/templates/registry/typespec/` | `./eng/semconv/run-weaver.sh` |
-
-## What `otel-keys.gen.tsp` provides
-
-One TypeSpec namespace per OpenTelemetry root group, each declaring `const <Name>: string = "<dotted.key>"`. qyl `.tsp` models reference these consts inside `@encodedName(...)` instead of hand-typing dotted attribute keys.
+As of the swap to `@o-ancpplua/otel-conventions-api`, those TypeSpec consts ship via
+the npm package and are no longer generated locally. Consumers import them through
+the subpath:
 
 ```tsp
-@encodedName("application/json", Qyl.OTel.Keys.GenAi.System)
+import "@o-ancpplua/otel-conventions-api/generated/otel-keys";
+
+// ANcpLua.OtelConventions.OTel.Keys.<Domain>.<Ident>
+@encodedName("application/json", ANcpLua.OtelConventions.OTel.Keys.GenAi.System)
 system?: string;
 ```
 
-Deprecated upstream attributes are emitted with `#deprecated "..."` so models that reference them produce a TypeSpec compiler warning matching upstream's own deprecation notes.
+The producer (upstream OTel semantic-conventions YAML to TypeSpec) lives in the
+repository `ANcpLua/typespec-otel-semconv`. It pins the upstream
+`open-telemetry/semantic-conventions` release (currently v1.41.0) and emits the
+file consumed here.
 
-## Toolchain
-
-`./eng/semconv/bootstrap-weaver.sh` and `./eng/semconv/bootstrap-weaver.ps1`
-prepare the pinned Weaver binary in `.tools/weaver/` and require the pinned
-upstream semantic-conventions submodule at `.tools/semconv-upstream`.
-
-`./eng/semconv/run-weaver.sh` performs generation after bootstrap. For this
-directory, it runs the `typespec` template target against `.tools/semconv-upstream/model`
-and writes `core/specs/generated/otel-keys.gen.tsp`.
-
-## Pin
-
-`semconv_version: "1.41.0"` (set in `eng/semconv/templates/registry/typespec/weaver.yaml` and `eng/semconv/templates/registry/qyl/weaver.yaml`).
-
-Bumping the pin requires updating both files plus the submodule at `.tools/semconv-upstream` — see `eng/semconv/bootstrap-weaver.sh` for the full procedure.
+`./eng/semconv/run-weaver.sh` still generates the qyl-side outputs (TS semconv,
+DuckDB promoted-columns, attribute registry, qyl-attribute C# constants, qyl docs)
+but no longer writes anything to this directory.
