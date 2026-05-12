@@ -82,7 +82,7 @@ docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 **From Source**
 
 ```bash
-git clone --recurse-submodules https://github.com/Alexander-Nachtmann/qyl.git
+git clone --recurse-submodules https://github.com/O-ANcppLua/qyl.git
 cd qyl
 dotnet run --project services/qyl.collector
 ```

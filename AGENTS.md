@@ -6,44 +6,39 @@ to this file.
 These are the conventions the codebase already follows. The analyzer ruleset shipped via `ANcpLua.NET.Sdk` enforces most
 of them — when you write code that fits the patterns below, the build stays green by default.
 
-## Consolidation status — `MAF.Advanced.Patterns` retired into `ANcpLua.Agents`
+## `ANcpLua.Agents` consumption
 
-The framework consolidation shipped. `MAF.Advanced.Patterns` was folded back into the `ANcpLua/ANcpLua.Agents` repo
-(retirement commit `12ff08c Retire MAF.Advanced.Patterns into ANcpLua.Agents`) and the package family is published on
-nuget.org. The old `Alexander-Nachtmann/MAF.Advanced.Patterns` GitHub repo no longer exists; the canonical home is
-<https://github.com/ANcpLua/ANcpLua.Agents>. Local checkout: `/Users/ancplua/framework/ANcpLua.Agents/`.
+`ANcpLua.Agents` is the canonical agent / workflow / hosting / testing framework qyl builds on. Repo:
+<https://github.com/ANcpLua/ANcpLua.Agents>. Local checkout: `~/RiderProjects/ANcpLua.Agents/`.
 
-**Published packages** (1.4.x stable base + previews on nuget.org; MAF 1.4 numeric base):
+**Published packages on nuget.org** (1.4.x stable base; hosting + AGUI ride preview / alpha trains):
 
-- `ANcpLua.Agents` — provider-agnostic core (1.4.x)
+- `ANcpLua.Agents` — provider-agnostic agent + chat-client core
 - `ANcpLua.Agents.Workflows` — workflow runtime + visualization
-- `ANcpLua.Agents.Testing` (1.4.x) and `ANcpLua.Agents.Testing.Workflows` (1.4.x)
+- `ANcpLua.Agents.Testing` and `ANcpLua.Agents.Testing.Workflows`
 - `ANcpLua.Agents.Foundry`
-- `ANcpLua.Agents.Hosting.{Anthropic,Azure,DevUI,Foundry,OpenAI}` — provider/host pins (preview / alpha)
+- `ANcpLua.Agents.Hosting.{Anthropic,Azure,BitNet,DevUI,Foundry,OpenAI}` — provider/host pins
 
-**Already consumed by qyl** (see `Directory.Packages.props` + csproj `PackageReference` rows):
+**Consumed by qyl today** (verified against `Directory.Packages.props` + csproj rows):
 
-- `ANcpLua.Agents` — `internal/qyl.instrumentation`, `services/qyl.mcp`
-- `ANcpLua.Agents.Testing` — `tests/qyl.collector.tests`, `services/qyl.loom.patterns`
+- `internal/qyl.instrumentation` → `ANcpLua.Agents`
+- `services/qyl.mcp` → `ANcpLua.Agents`, `ANcpLua.Agents.Hosting.OpenAI`
+- `services/qyl.loom.patterns` → `ANcpLua.Agents.Testing`
+- `tests/qyl.collector.tests` → `ANcpLua.Agents`, `ANcpLua.Agents.Testing`
 
-**Local instrumentation is intentionally retained, not pending cutover.** The pre-retirement plan (Phases 4 / 8 / 9 /
-10 from the original `MAF.Advanced.Patterns` consolidation) assumed the upstream package would absorb qyl's telemetry
-facades. It didn't — `QylTelemetryExtensions` was one of the casualties of the retirement. What's actually shipped on
-nuget.org under `ANcpLua.Agents.*` is agent + workflow + hosting + testing-harness coverage, plus a per-AIFunction
-`TracedAIFunction` and the `ITelemetryAssertingFixture` test harness. None of it overlaps with what
-`internal/qyl.instrumentation/Instrumentation/{GenAi,Mcp}/` exposes:
+**Telemetry boundary — composition, not consolidation.** qyl owns the local-instrumentation facades on `IChatClient`
+and `IMcpServerBuilder`; `ANcpLua.Agents.*` owns workflows / hosting bridges / testing fixtures. The two cooperate at
+every agent composition root and the facades below do not overlap with anything `ANcpLua.Agents` ships:
 
-| qyl-local extension                       | layer                  | covered by `ANcpLua.Agents`? |
-|-------------------------------------------|------------------------|------------------------------|
-| `WithQylTelemetry(IChatClient)`           | `IChatClient` decorator | no                           |
-| `UseQylTelemetry(ChatClientBuilder)`      | fluent builder form     | no                           |
-| `UseQylAgentTelemetry(AIAgentBuilder)`    | `AIAgent` builder wrap  | no                           |
-| `UseQylMcpInstrumentation(IMcpServerBuilder)` | MCP transport spans | no                           |
+| qyl-local extension                            | layer                   | covered by `ANcpLua.Agents`? |
+|------------------------------------------------|-------------------------|------------------------------|
+| `WithQylTelemetry(IChatClient)`                | `IChatClient` decorator | no                           |
+| `UseQylTelemetry(ChatClientBuilder)`           | fluent builder form     | no                           |
+| `UseQylAgentTelemetry(AIAgentBuilder)`         | `AIAgent` builder wrap  | no                           |
+| `UseQylMcpInstrumentation(IMcpServerBuilder)`  | MCP transport spans     | no                           |
 
-Composition, not consolidation: qyl owns telemetry decoration on `IChatClient` / `IMcpServerBuilder`,
-`ANcpLua.Agents.*` owns workflows / hosting bridges / testing fixtures, and the two layers cooperate at every agent
-composition root. Delete-and-cut-over is not on the roadmap. Future qyl-side helpers (e.g. a `QylClientModelExtensions`
-wrapper around `System.ClientModel`) belong here as siblings, not in the upstream package.
+Future qyl-side helpers (e.g. a `QylClientModelExtensions` wrapper around `System.ClientModel`) belong as siblings
+inside `internal/qyl.instrumentation/`, not in the upstream package.
 
 ## Style the codebase has settled on
 
@@ -243,7 +238,7 @@ Audit triage when migrating an existing extension: `keep-in-qyl` (qyl-domain-spe
 
 ### Package → public extension surface
 
-Names verified against `~/framework/ANcpLua.Agents/src/**/Qyl*Extensions.cs`. Inspect the source for full method
+Names verified against `~/RiderProjects/ANcpLua.Agents/src/**/Qyl*Extensions.cs`. Inspect the source for full method
 signatures — qyl/AGENTS.md only tracks the package mapping, not the per-method API (which would rot fast).
 
 | Package                              | Extension classes (in `src/<package>/**/Facades/` and siblings)                                                                                                                                                                                                                                                       |
@@ -259,12 +254,11 @@ signatures — qyl/AGENTS.md only tracks the package mapping, not the per-method
 | `ANcpLua.Agents.Testing`             | `IChatClient` doubles + harness — replaces hand-rolled `Mock<IChatClient>` (already consumed by qyl tests)                                                                                                                                                                                                            |
 | `ANcpLua.Agents.Testing.Workflows`   | workflow-fixture harness                                                                                                                                                                                                                                                                                               |
 
-Several facades from the pre-retirement `MAF.Advanced.Patterns` table did **not** survive the consolidation —
-notably `QylA2AExtensions`, `QylAGUIExtensions`, `QylCosmosNoSqlExtensions`, `QylCopilotStudioExtensions`,
-`QylDeclarativeAgentExtensions`, `QylDeclarativeMcpExtensions`, `QylGitHubCopilotExtensions`, `QylListenPortExtensions`,
-`QylMcpExtensions`, `QylPurviewExtensions`, `QylTelemetryExtensions`. If you reach for one of these from an old
-sample and it's missing, check the `ANcpLua.Agents` source for an equivalent under the new package layout before
-re-implementing inside qyl.
+If you reach for a facade name from an old sample (`QylA2A*`, `QylAGUI*`, `QylCosmosNoSql*`, `QylCopilotStudio*`,
+`QylDeclarativeAgent*`, `QylDeclarativeMcp*`, `QylGitHubCopilot*`, `QylListenPort*`, `QylMcp*`, `QylPurview*`,
+`QylTelemetry*`) and it's missing in the table above, that facade isn't published on `ANcpLua.Agents.*`. Check the
+upstream source under `~/RiderProjects/ANcpLua.Agents/src/` for an equivalent under the current package layout
+before re-implementing inside qyl.
 
 ## Test project conventions
 
@@ -290,5 +284,5 @@ Under `tests/qyl.collector.tests/`:
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
 | `Qyl.OpenTelemetry.Extensions` widening                                     | qyl                   | Add qyl-side wrappers (e.g. `QylClientModelExtensions` around `System.ClientModel`) as siblings to the local instrumentation, complementing `ANcpLua.Agents.*` rather than replacing it. |
-| [#172](https://github.com/Alexander-Nachtmann/qyl/pull/172)                 | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
-| [#173](https://github.com/Alexander-Nachtmann/qyl/issues/173)               | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |
+| [#172](https://github.com/O-ANcppLua/qyl/pull/172)                          | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
+| [#173](https://github.com/O-ANcppLua/qyl/issues/173)                        | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |
