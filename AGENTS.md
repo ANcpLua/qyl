@@ -154,6 +154,18 @@ The semconv toolchain has two steps:
 - `./eng/semconv/bootstrap-weaver.sh` or `./eng/semconv/bootstrap-weaver.ps1` installs pinned Weaver `v0.23.0` into `.tools/weaver/` and checks that `.tools/semconv-upstream` is present.
 - `./eng/semconv/run-weaver.sh` uses the pinned upstream model plus `eng/semconv/model/qyl` to regenerate the repo-local TypeScript, SQL, JSON, C#, Markdown, and TypeSpec outputs listed above.
 
+### OTel signal models ship as an external TypeSpec library
+
+The TypeSpec layer under `core/specs/otel/` now imports the OTel-shaped signal
+models (`enums`, `resource`, `span`, `logs`, `metrics`, `profiles`) from
+[`@o-ancpplua/otel-conventions-api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api)
+via the barrel `core/specs/otel/otel-conventions.tsp`. The package is
+distributed on **GitHub Packages** under the `@o-ancpplua` scope; the
+`core/specs/.npmrc` already declares the registry, and authentication uses
+`GITHUB_TOKEN`. Only `core/specs/otel/storage.tsp` stays qyl-local because the
+DuckDB storage models in the `Qyl.Storage` namespace are not part of the
+published OTel surface.
+
 ## Semconv — typed attributes, not strings
 
 `"qyl.*"` and standard OTel keys live as constants:
@@ -283,6 +295,6 @@ Under `tests/qyl.collector.tests/`:
 
 | Issue                                                                       | Repo                  | Topic                                                                                           |
 |-----------------------------------------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------------|
-| [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (npm) — barrel + migration plan live in `core/specs/otel/otel-conventions.tsp` + `core/specs/MIGRATION-otel-conventions-api.md`; one-line swap once published. |
+| [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (`@o-ancpplua/otel-conventions-api` on GitHub Packages). Barrel swap staged on `chore/swap-inlined-otel-for-otel-conventions-api` (6 files deleted, ~1,746 LOC). Branch held until the first GitHub release lands. |
 | [#172](https://github.com/O-ANcppLua/qyl/pull/172)                          | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
 | [#173](https://github.com/O-ANcppLua/qyl/issues/173)                        | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |

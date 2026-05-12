@@ -67,3 +67,32 @@ git diff -- packages/Qyl.Contracts/Generated/ \
 ```
 
 Verified 2026-05-12: 87 artifact files, zero checksum diffs after introducing the barrel.
+
+## Status — 2026-05-12 (swap staged, blocked on publish)
+
+Branch `chore/swap-inlined-otel-for-otel-conventions-api` has performed the
+swap:
+
+- `core/specs/otel/otel-conventions.tsp` rewritten to a single
+  `import "@o-ancpplua/otel-conventions-api/otel"`.
+- Six inlined files deleted (~1,746 LOC removed):
+  `enums.tsp`, `resource.tsp`, `span.tsp`, `logs.tsp`, `metrics.tsp`, `profiles.tsp`.
+- `core/specs/otel/storage.tsp` kept (qyl-specific DuckDB models under `Qyl.Storage`).
+- `core/specs/.npmrc` now declares the `@o-ancpplua` scope on
+  `https://npm.pkg.github.com`.
+- `core/specs/package.json` pins `@o-ancpplua/otel-conventions-api` at `0.1.0`.
+
+Blocker: the npm package is not yet on GitHub Packages. The first
+`npm install` / `npm install --package-lock-only` against this branch will
+fail with HTTP 404 until the first release of `@o-ancpplua/otel-conventions-api`
+lands. Once the package is published, CI will resolve the dependency and the
+TypeSpec layer will pick up the npm-shipped signal models.
+
+Known follow-up (filed in this branch's commit message): the npm package
+exposes OTel models under the `ANcpLua.OtelConventions.OTel.*` and
+`ANcpLua.OtelConventions.Common` namespaces, whereas qyl-side consumers
+currently `using Qyl.OTel.*` and `using Qyl.Common`. Either the npm package's
+namespace tree needs to be aligned to `Qyl.*` for qyl's consumption, or every
+qyl-side `using` declaration that names the old inlined namespaces has to be
+rewritten. That alignment is the next PR on top of this one and is tracked
+under the migration so it is not bundled with the file-deletion delta.
