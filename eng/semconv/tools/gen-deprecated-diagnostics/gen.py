@@ -66,12 +66,38 @@ VALID_KINDS = {"attribute", "metric", "event", "entity", "enum_member"}
 VALID_STATUSES = {"renamed", "obsoleted", "uncategorized"}
 CS_NAMESPACE_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
 
+# Reserved C# keywords that cannot be used as bare identifiers without an `@`
+# prefix. A namespace segment matching one of these would compile to
+# `namespace My.class.Y;` and the C# compiler would reject it. Contextual
+# keywords (async, await, file, get, init, …) are intentionally omitted —
+# the language permits them as identifiers.
+CS_RESERVED_KEYWORDS = frozenset({
+    "abstract", "as", "base", "bool", "break", "byte", "case", "catch",
+    "char", "checked", "class", "const", "continue", "decimal", "default",
+    "delegate", "do", "double", "else", "enum", "event", "explicit",
+    "extern", "false", "finally", "fixed", "float", "for", "foreach",
+    "goto", "if", "implicit", "in", "int", "interface", "internal", "is",
+    "lock", "long", "namespace", "new", "null", "object", "operator",
+    "out", "override", "params", "private", "protected", "public",
+    "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
+    "stackalloc", "static", "string", "struct", "switch", "this", "throw",
+    "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
+    "ushort", "using", "virtual", "void", "volatile", "while",
+})
+
 
 def validate_namespace(value: str) -> str:
     """Validate a C# namespace passed on the command line."""
     if not CS_NAMESPACE_PATTERN.fullmatch(value):
         raise argparse.ArgumentTypeError(
             f"invalid C# namespace {value!r}; expected dot-separated C# identifiers"
+        )
+
+    reserved = [seg for seg in value.split(".") if seg in CS_RESERVED_KEYWORDS]
+    if reserved:
+        raise argparse.ArgumentTypeError(
+            f"invalid C# namespace {value!r}; reserved C# keyword segments "
+            f"{reserved!r} cannot be used as identifiers without an '@' prefix"
         )
 
     return value
