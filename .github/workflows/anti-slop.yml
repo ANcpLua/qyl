@@ -1,0 +1,76 @@
+# peakoss/anti-slop — detects low-quality / AI slop PRs and (with the default
+# failure-action set) auto-closes them once `max-failures` thresholds trip.
+#
+# Repo: https://github.com/peakoss/anti-slop (AGPL-3.0, org-owned, ~640★)
+# Marketplace: https://github.com/marketplace/actions/anti-slop
+#
+# Maintainers (org owners, members, repo collaborators) are exempt by default,
+# so this never fires on PRs the qyl maintainer authored. The thresholds below
+# are tuned to leave qyl's automation PRs (Renovate / Dependabot / Codesmith /
+# qyl[bot] / CodeRabbit autofix) alone: they all open large mechanical diffs
+# and ride past the default `max-changed-files: 50`, so we lift that to 500
+# and trust the contributor-history checks to catch drive-by AI slop.
+#
+# NOTE: the upstream reusable allow-list pattern `peakoss/anti-slop@*` must be
+# added at the enterprise/org Actions allow-list — otherwise this workflow
+# dies at startup_failure exactly like the upstream renovate-config auto-merge
+# tier (see eng/automation/CHANGELOG.md). Adding the pattern at the
+# enterprise level is a one-time admin action; see the README under
+# "## Auto-merge & Actions allow-list" for the path.
+
+name: PR Quality (anti-slop)
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+concurrency:
+  group: anti-slop-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  anti-slop:
+    name: anti-slop scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Pinned to the v0.3.0 tag's commit SHA. The peakoss/anti-slop README
+      # notes its release tags are GitHub-immutable, but a SHA pin is the
+      # convention everywhere else in qyl (.github/workflows/) and survives
+      # the tag being force-moved by anyone with write to the upstream repo.
+      - uses: peakoss/anti-slop@57858eead489d08b255fab2af45a506c2ca6eab2 # v0.3.0
+        with:
+          # General — let 5 (not 4) check rules fail before action triggers.
+          # qyl's PRs tend to skirt one or two heuristics (emoji count from
+          # Claude footers, code-reference density in technical PRs) without
+          # being slop.
+          max-failures: 5
+
+          # Branch checks — keep upstream defaults: don't allow PRs FROM main.
+          blocked-source-branches: |
+            main
+            master
+
+          # Size checks — qyl's `nuke Generate` regen diffs routinely cross
+          # 50 files; cap at 500 instead so we still catch a 5000-file dump.
+          max-changed-files: 500
+          max-changed-lines: 25000
+
+          # Title — qyl already enforces conventional-commit titles via
+          # CodeRabbit's pre_merge_checks (.coderabbit.yaml). Mirroring it
+          # here adds a second guard for PRs that bypass CodeRabbit
+          # (e.g. when CodeRabbit is down).
+          require-conventional-title: true
+
+          # Description — Renovate and Codesmith always fill descriptions;
+          # qyl[bot] does too. Empty-description PRs from drive-by accounts
+          # are the slop pattern.
+          require-description: true
+          max-description-length: 4000  # qyl PR bodies cite many files
+          max-emoji-count: 4            # ✅ ❌ 🤖 🪄 etc. on bot footers
+          max-code-references: 50       # qyl PRs cite many file paths
