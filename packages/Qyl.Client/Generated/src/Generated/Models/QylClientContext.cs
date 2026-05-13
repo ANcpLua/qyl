@@ -24,6 +24,7 @@ using Qyl.Domains.Search;
 using Qyl.Domains.Workflow;
 using Qyl.Domains.Workspace;
 using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
+using Attribute = ANcpLua.OtelConventions.Common.Attribute;
 
 namespace Qyl.Client
 {

@@ -104,7 +104,7 @@ function patchRestClientNullableParams(content, filePath) {
 function addBclDisambiguationAliases(content) {
     const needsTrace = /\bTrace\b/.test(content) && /^using ANcpLua\.OtelConventions\.OTel\.Traces;/m.test(content)
         && !/^using Trace\s*=/m.test(content);
-    const needsAttribute = /typeof\(Attribute\)/.test(content) && /^using Qyl\.Common;/m.test(content)
+    const needsAttribute = /typeof\(Attribute\)/.test(content) && /^using ANcpLua\.OtelConventions\.Common;/m.test(content)
         && !/^using Attribute\s*=/m.test(content);
     if (!needsTrace && !needsAttribute) return content;
 
@@ -174,8 +174,12 @@ function addServerSideUsings(content, filePath) {
         if (/^using\s+[\w.=]+(\s*=\s*[\w.]+)?;/.test(lines[i])) lastUsing = i;
     }
     if (lastUsing === -1) return content;
+    // Track every using directive — Qyl.* AND ANcpLua.OtelConventions.* — so the umbrella list
+    // (which now spans both prefixes after the @o-ancpplua/otel-conventions-api swap) is
+    // dedup'd correctly on re-runs. The previous /^using\s+Qyl\./ filter let the
+    // ANcpLua.OtelConventions.* umbrella entries be re-injected every regen.
     const existing = new Set(
-        lines.filter((l) => /^using\s+Qyl\./.test(l)).map((l) => l.trim()),
+        lines.filter((l) => /^using\s+(Qyl|ANcpLua)\./.test(l)).map((l) => l.trim()),
     );
     const missing = QYL_UMBRELLA_USINGS.filter((u) => !existing.has(u));
     if (missing.length === 0) return content;
