@@ -3,10 +3,15 @@
 #nullable disable
 
 using System.ClientModel.Primitives;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Logs;
+using ANcpLua.OtelConventions.OTel.Metrics;
+using ANcpLua.OtelConventions.OTel.Resource;
+using ANcpLua.OtelConventions.OTel.Traces;
+using ANcpLua.OtelConventions.Storage;
 using Qyl.Api;
 using Qyl.Api._Streaming;
-using Qyl.Common;
-using Qyl.Common.Pagination;
 using Qyl.Domains.Alerting;
 using Qyl.Domains.Configurator;
 using Qyl.Domains.Identity;
@@ -18,13 +23,7 @@ using Qyl.Domains.Ops.Deployment;
 using Qyl.Domains.Search;
 using Qyl.Domains.Workflow;
 using Qyl.Domains.Workspace;
-using Qyl.OTel.Logs;
-using Qyl.OTel.Metrics;
-using Qyl.OTel.Resource;
-using Qyl.OTel.Traces;
-using Qyl.Storage;
-using Trace = Qyl.OTel.Traces.Trace;
-using Attribute = Qyl.Common.Attribute;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
 namespace Qyl.Client
 {

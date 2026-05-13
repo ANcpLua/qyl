@@ -9,11 +9,11 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Logs;
 using Qyl.Client;
-using Qyl.Common.Pagination;
 using Qyl.Domains.Observe.Log;
-using Qyl.OTel.Enums;
-using Qyl.OTel.Logs;
 
 namespace Qyl.Api
 {

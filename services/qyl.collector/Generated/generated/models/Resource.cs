@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.OTel.Enums;
-using Qyl.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.Common;
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
 
     ///<summary>

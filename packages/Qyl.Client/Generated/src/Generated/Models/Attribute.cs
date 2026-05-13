@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
-namespace Qyl.Common
+namespace ANcpLua.OtelConventions.Common
 {
     /// <summary> Key-value attribute pair following OTel conventions. </summary>
     public partial class Attribute

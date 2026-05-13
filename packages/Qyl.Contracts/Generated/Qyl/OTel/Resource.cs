@@ -45,6 +45,21 @@ public sealed class Resource
     public long? DroppedAttributesCount { get; init; }
 }
 
+public enum OsType
+{
+    Windows,
+    Linux,
+    Darwin,
+    Freebsd,
+    Netbsd,
+    Openbsd,
+    Dragonflybsd,
+    Hpux,
+    Aix,
+    Solaris,
+    ZOs
+}
+
 public enum CloudProvider
 {
     AlibabaCloud,
@@ -66,19 +81,4 @@ public enum HostArch
     Ppc64,
     S390x,
     X86
-}
-
-public enum OsType
-{
-    Windows,
-    Linux,
-    Darwin,
-    Freebsd,
-    Netbsd,
-    Openbsd,
-    Dragonflybsd,
-    Hpux,
-    Aix,
-    Solaris,
-    ZOs
 }

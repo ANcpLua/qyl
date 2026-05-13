@@ -7,10 +7,10 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.OTel.Logs;
 using Qyl.Client;
-using Qyl.OTel.Logs;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageLogRecord : IJsonModel<CursorPageLogRecord>

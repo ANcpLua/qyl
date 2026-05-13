@@ -4,30 +4,6 @@
 
 namespace Qyl.OTel.Enums;
 
-public enum SpanKind
-{
-    Unspecified = 0,
-    Internal = 1,
-    Server = 2,
-    Client = 3,
-    Producer = 4,
-    Consumer = 5
-}
-
-public enum SpanStatusCode
-{
-    Unset = 0,
-    Ok = 1,
-    Error = 2
-}
-
-public enum SpanFlags
-{
-    None = 0,
-    Sampled = 1,
-    Random = 2
-}
-
 public enum SeverityNumber
 {
     Unspecified = 0,
@@ -57,6 +33,48 @@ public enum SeverityNumber
     Fatal4 = 24
 }
 
+public enum SpanStatusCode
+{
+    Unset = 0,
+    Ok = 1,
+    Error = 2
+}
+
+public enum MetricType
+{
+    Gauge,
+    Sum,
+    Histogram,
+    ExponentialHistogram,
+    Summary
+}
+
+public enum SpanKind
+{
+    Unspecified = 0,
+    Internal = 1,
+    Server = 2,
+    Client = 3,
+    Producer = 4,
+    Consumer = 5
+}
+
+public enum TelemetrySdkLanguage
+{
+    Cpp,
+    Dotnet,
+    Erlang,
+    Go,
+    Java,
+    Nodejs,
+    Php,
+    Python,
+    Ruby,
+    Rust,
+    Swift,
+    Webjs
+}
+
 public enum SeverityText
 {
     TRACE,
@@ -67,13 +85,11 @@ public enum SeverityText
     FATAL
 }
 
-public enum MetricType
+public enum SpanFlags
 {
-    Gauge,
-    Sum,
-    Histogram,
-    ExponentialHistogram,
-    Summary
+    None = 0,
+    Sampled = 1,
+    Random = 2
 }
 
 public enum AggregationTemporality
@@ -98,22 +114,6 @@ public enum InstrumentKind
     ObservableCounter,
     ObservableGauge,
     ObservableUpDownCounter
-}
-
-public enum TelemetrySdkLanguage
-{
-    Cpp,
-    Dotnet,
-    Erlang,
-    Go,
-    Java,
-    Nodejs,
-    Php,
-    Python,
-    Ruby,
-    Rust,
-    Swift,
-    Webjs
 }
 
 public enum ErrorType

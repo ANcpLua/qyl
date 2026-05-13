@@ -6,8 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Qyl.Client;
-using Qyl.OTel.Metrics;
-using Qyl.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Metrics;
+using ANcpLua.OtelConventions.Common.Pagination;
 
 namespace Qyl.Domains.Observe.Log
 {

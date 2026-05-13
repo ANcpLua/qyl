@@ -5,9 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Structured key-value log body. </summary>
     public partial class LogBodyKvList

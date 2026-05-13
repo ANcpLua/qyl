@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
     /// <summary> Cloud provider types. </summary>
     public enum CloudProvider

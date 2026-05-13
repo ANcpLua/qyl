@@ -7,11 +7,11 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Threading;
 using System.Threading.Tasks;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Traces;
 using Qyl.Client;
-using Qyl.Common.Pagination;
-using Qyl.OTel.Enums;
-using Qyl.OTel.Traces;
-using Trace = Qyl.OTel.Traces.Trace;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
 namespace Qyl.Api
 {

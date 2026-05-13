@@ -4,10 +4,10 @@
 
 using System;
 using System.Collections.Generic;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> Event occurring during a span's lifetime. </summary>
     public partial class SpanEvent

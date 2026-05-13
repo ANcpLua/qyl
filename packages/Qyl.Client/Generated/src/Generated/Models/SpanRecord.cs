@@ -4,9 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Enums;
 
-namespace Qyl.Storage
+namespace ANcpLua.OtelConventions.Storage
 {
     /// <summary> OpenTelemetry span record for storage and query. </summary>
     public partial class SpanRecord

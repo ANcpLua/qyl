@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 namespace Qyl.Api
 {

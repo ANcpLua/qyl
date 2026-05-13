@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using Qyl.Client;
 
-namespace Qyl.Common
+namespace ANcpLua.OtelConventions.Common
 {
     /// <summary> Instrumentation scope identifying the library/component emitting telemetry. </summary>
     public partial class InstrumentationScope

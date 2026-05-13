@@ -4,6 +4,14 @@
 
 namespace Qyl.Common.Errors;
 
+public sealed class NotFoundError
+{
+    public required double _ { get; init; }
+    public required string Title { get; init; }
+    public string? ResourceType { get; init; }
+    public string? ResourceId { get; init; }
+}
+
 public sealed class ProblemDetails
 {
     public required Uri ProblemType { get; init; }
@@ -14,14 +22,6 @@ public sealed class ProblemDetails
     public string? TraceId { get; init; }
     public string? RequestId { get; init; }
     public DateTimeOffset? Timestamp { get; init; }
-}
-
-public sealed class NotFoundError
-{
-    public required double _ { get; init; }
-    public required string Title { get; init; }
-    public string? ResourceType { get; init; }
-    public string? ResourceId { get; init; }
 }
 
 public sealed class ValidationError
@@ -37,6 +37,13 @@ public sealed class ValidationErrorDetail
     public required string Message { get; init; }
     public required string Code { get; init; }
     public string? RejectedValue { get; init; }
+}
+
+public sealed class InternalServerError
+{
+    public required double _ { get; init; }
+    public required string Title { get; init; }
+    public string? ErrorCode { get; init; }
 }
 
 public sealed class UnauthorizedError
@@ -67,13 +74,6 @@ public sealed class RateLimitError
     public required int RetryAfter { get; init; }
     public int? RateLimit { get; init; }
     public int? RateLimitRemaining { get; init; }
-}
-
-public sealed class InternalServerError
-{
-    public required double _ { get; init; }
-    public required string Title { get; init; }
-    public string? ErrorCode { get; init; }
 }
 
 public sealed class ServiceUnavailableError

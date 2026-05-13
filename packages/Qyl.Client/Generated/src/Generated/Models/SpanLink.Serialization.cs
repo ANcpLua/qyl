@@ -6,10 +6,10 @@ using System;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> Link to another span (e.g., batch processing). </summary>
     public partial class SpanLink : IJsonModel<SpanLink>

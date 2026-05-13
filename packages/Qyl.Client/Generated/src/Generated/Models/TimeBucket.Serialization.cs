@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     internal static partial class TimeBucketExtensions
     {

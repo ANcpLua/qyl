@@ -7,8 +7,8 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
 namespace Qyl.Api
 {
@@ -104,7 +104,7 @@ namespace Qyl.Api
             writer.WriteStringValue(LastSeen, "O");
             writer.WritePropertyName("resource_attributes"u8);
             writer.WriteStartArray();
-            foreach (Common.Attribute item in ResourceAttributes)
+            foreach (ANcpLua.OtelConventions.Common.Attribute item in ResourceAttributes)
             {
                 writer.WriteObjectValue(item, options);
             }
@@ -171,7 +171,7 @@ namespace Qyl.Api
             string version = default;
             int instanceCount = default;
             DateTimeOffset lastSeen = default;
-            IList<Common.Attribute> resourceAttributes = default;
+            IList<ANcpLua.OtelConventions.Common.Attribute> resourceAttributes = default;
             IList<InstrumentationScope> instrumentationLibraries = default;
             double requestRate = default;
             double errorRate = default;
@@ -207,10 +207,10 @@ namespace Qyl.Api
                 }
                 if (prop.NameEquals("resource_attributes"u8))
                 {
-                    List<Common.Attribute> array = new List<Common.Attribute>();
+                    List<ANcpLua.OtelConventions.Common.Attribute> array = new List<ANcpLua.OtelConventions.Common.Attribute>();
                     foreach (var item in prop.Value.EnumerateArray())
                     {
-                        array.Add(Common.Attribute.DeserializeAttribute(item, options));
+                        array.Add(ANcpLua.OtelConventions.Common.Attribute.DeserializeAttribute(item, options));
                     }
                     resourceAttributes = array;
                     continue;

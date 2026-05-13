@@ -7,8 +7,8 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using System.Text.Json.Nodes;
-using Qyl.Common.Pagination;
-using Qyl.OTel.Metrics;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Metrics;
 
 namespace Qyl.Api
 {

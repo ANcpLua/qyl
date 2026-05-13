@@ -7,8 +7,8 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Client;
-using Qyl.OTel.Enums;
 
 namespace Qyl.Domains.Observe.Log
 {

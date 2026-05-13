@@ -7,8 +7,8 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
 namespace Qyl.Domains.Observe.Error
 {
@@ -104,7 +104,7 @@ namespace Qyl.Domains.Observe.Error
             {
                 writer.WritePropertyName("common_attributes"u8);
                 writer.WriteStartArray();
-                foreach (Common.Attribute item in CommonAttributes)
+                foreach (ANcpLua.OtelConventions.Common.Attribute item in CommonAttributes)
                 {
                     writer.WriteObjectValue(item, options);
                 }
@@ -155,7 +155,7 @@ namespace Qyl.Domains.Observe.Error
             string errorId = default;
             IList<CorrelatedError> correlatedErrors = default;
             string rootCause = default;
-            IList<Common.Attribute> commonAttributes = default;
+            IList<ANcpLua.OtelConventions.Common.Attribute> commonAttributes = default;
             IDictionary<string, BinaryData> additionalBinaryDataProperties = new ChangeTrackingDictionary<string, BinaryData>();
             foreach (var prop in element.EnumerateObject())
             {
@@ -185,10 +185,10 @@ namespace Qyl.Domains.Observe.Error
                     {
                         continue;
                     }
-                    List<Common.Attribute> array = new List<Common.Attribute>();
+                    List<ANcpLua.OtelConventions.Common.Attribute> array = new List<ANcpLua.OtelConventions.Common.Attribute>();
                     foreach (var item in prop.Value.EnumerateArray())
                     {
-                        array.Add(Common.Attribute.DeserializeAttribute(item, options));
+                        array.Add(ANcpLua.OtelConventions.Common.Attribute.DeserializeAttribute(item, options));
                     }
                     commonAttributes = array;
                     continue;
@@ -198,7 +198,7 @@ namespace Qyl.Domains.Observe.Error
                     additionalBinaryDataProperties.Add(prop.Name, BinaryData.FromString(prop.Value.GetRawText()));
                 }
             }
-            return new ErrorCorrelation(errorId, correlatedErrors, rootCause, commonAttributes ?? new ChangeTrackingList<Common.Attribute>(), additionalBinaryDataProperties);
+            return new ErrorCorrelation(errorId, correlatedErrors, rootCause, commonAttributes ?? new ChangeTrackingList<ANcpLua.OtelConventions.Common.Attribute>(), additionalBinaryDataProperties);
         }
     }
 }

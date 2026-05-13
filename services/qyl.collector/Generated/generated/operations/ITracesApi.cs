@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Api;
-using Qyl.Common;
-using Qyl.Common.Errors;
-using Qyl.Common.Pagination;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.Common.Errors;
+using ANcpLua.OtelConventions.Common.Pagination;
 using Qyl.Domains.AI.GenAi;
 using Qyl.Domains.Agent.Checkpoint;
 using Qyl.Domains.Agent.Run;
@@ -41,13 +41,14 @@ using Qyl.Domains.Transport.Rpc;
 using Qyl.Domains.Workflow;
 using Qyl.Domains.Workspace;
 using Qyl.Intelligence;
-using Qyl.OTel.Logs;
-using Qyl.OTel.Metrics;
-using Qyl.OTel.Profiles;
-using Qyl.OTel.Resource;
-using Qyl.OTel.Traces;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Logs;
+using ANcpLua.OtelConventions.OTel.Metrics;
+using ANcpLua.OtelConventions.OTel.Profiles;
+using ANcpLua.OtelConventions.OTel.Resource;
+using ANcpLua.OtelConventions.OTel.Traces;
 using Qyl.Storage;
-using Trace = Qyl.OTel.Traces.Trace;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
 namespace Qyl.Api
 {

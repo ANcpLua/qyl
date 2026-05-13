@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Array log body. </summary>
     public partial class LogBodyArray : IJsonModel<LogBodyArray>

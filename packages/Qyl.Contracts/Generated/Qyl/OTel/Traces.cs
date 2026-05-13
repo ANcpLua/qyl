@@ -4,6 +4,19 @@
 
 namespace Qyl.OTel.Traces;
 
+public sealed class Trace
+{
+    public required string TraceId { get; init; }
+    public required IReadOnlyList<Qyl.OTel.Traces.Span> Spans { get; init; }
+    public Qyl.OTel.Traces.Span? RootSpan { get; init; }
+    public required int SpanCount { get; init; }
+    public required long DurationNs { get; init; }
+    public required DateTimeOffset StartTime { get; init; }
+    public required DateTimeOffset EndTime { get; init; }
+    public required IReadOnlyList<string> Services { get; init; }
+    public required bool HasError { get; init; }
+}
+
 public sealed class Span
 {
     public required string SpanId { get; init; }
@@ -48,19 +61,6 @@ public sealed class SpanStatus
 {
     public required Qyl.OTel.Enums.SpanStatusCode Code { get; init; }
     public string? Message { get; init; }
-}
-
-public sealed class Trace
-{
-    public required string TraceId { get; init; }
-    public required IReadOnlyList<Qyl.OTel.Traces.Span> Spans { get; init; }
-    public Qyl.OTel.Traces.Span? RootSpan { get; init; }
-    public required int SpanCount { get; init; }
-    public required long DurationNs { get; init; }
-    public required DateTimeOffset StartTime { get; init; }
-    public required DateTimeOffset EndTime { get; init; }
-    public required IReadOnlyList<string> Services { get; init; }
-    public required bool HasError { get; init; }
 }
 
 public sealed class SpanQueryFilters

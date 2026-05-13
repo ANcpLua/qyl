@@ -4,9 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Metrics;
 using Qyl.Client;
-using Qyl.Common.Pagination;
-using Qyl.OTel.Metrics;
 
 namespace Qyl.Api
 {

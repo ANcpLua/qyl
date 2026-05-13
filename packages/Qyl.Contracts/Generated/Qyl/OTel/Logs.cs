@@ -40,18 +40,6 @@ public sealed class LogBodyBytes
     public required ReadOnlyMemory<byte> BytesValue { get; init; }
 }
 
-public sealed class LogQueryFilters
-{
-    public string? TraceId { get; init; }
-    public string? SpanId { get; init; }
-    public Qyl.OTel.Enums.SeverityNumber? MinSeverity { get; init; }
-    public Qyl.OTel.Enums.SeverityNumber? MaxSeverity { get; init; }
-    public Qyl.OTel.Enums.SeverityText? SeverityText { get; init; }
-    public string? ServiceName { get; init; }
-    public string? Search { get; init; }
-    public string? Attribute { get; init; }
-}
-
 public sealed class LogStats
 {
     public required long TotalCount { get; init; }
@@ -73,6 +61,18 @@ public sealed class LogCountByDimension
     public required string Dimension { get; init; }
     public required long Count { get; init; }
     public required long ErrorCount { get; init; }
+}
+
+public sealed class LogQueryFilters
+{
+    public string? TraceId { get; init; }
+    public string? SpanId { get; init; }
+    public Qyl.OTel.Enums.SeverityNumber? MinSeverity { get; init; }
+    public Qyl.OTel.Enums.SeverityNumber? MaxSeverity { get; init; }
+    public Qyl.OTel.Enums.SeverityText? SeverityText { get; init; }
+    public string? ServiceName { get; init; }
+    public string? Search { get; init; }
+    public string? Attribute { get; init; }
 }
 
 public sealed class LogTemplate

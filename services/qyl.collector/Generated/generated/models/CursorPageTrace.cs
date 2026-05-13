@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.OTel.Traces;
-using Trace = Qyl.OTel.Traces.Trace;
+using ANcpLua.OtelConventions.OTel.Traces;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
 
     ///<summary>

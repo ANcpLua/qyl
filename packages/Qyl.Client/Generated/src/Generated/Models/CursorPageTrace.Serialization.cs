@@ -7,11 +7,11 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.OTel.Traces;
 using Qyl.Client;
-using Qyl.OTel.Traces;
-using Trace = Qyl.OTel.Traces.Trace;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageTrace : IJsonModel<CursorPageTrace>

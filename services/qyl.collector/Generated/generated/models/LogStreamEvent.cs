@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.OTel.Logs;
+using ANcpLua.OtelConventions.OTel.Logs;
 
 namespace Qyl.Api.Streaming
 {

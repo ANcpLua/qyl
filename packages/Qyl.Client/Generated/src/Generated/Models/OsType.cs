@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
     /// <summary> Operating system types. </summary>
     public enum OsType
