@@ -39,7 +39,6 @@ using Qyl.Domains.Transport.Rpc;
 using Qyl.Domains.Workflow;
 using Qyl.Domains.Workspace;
 using Qyl.Intelligence;
-using ANcpLua.OtelConventions.OTel.Enums;
 using ANcpLua.OtelConventions.OTel.Logs;
 using ANcpLua.OtelConventions.OTel.Metrics;
 using ANcpLua.OtelConventions.OTel.Profiles;
