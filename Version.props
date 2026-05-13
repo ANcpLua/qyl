@@ -22,8 +22,14 @@
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
     <!-- BitNet hosting ships from ANcpLua/ANcpLua.Agents alongside the OpenAI
-         hosting package; alpha channel until the runtime contract stabilises. -->
-    <ANcpLuaAgentsHostingBitNetVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingBitNetVersion>
+         hosting package; alpha channel until the runtime contract stabilises.
+         First publish to nuget.org is 1.4.10-alpha.1 — earlier alphas were
+         silently dropped from the upstream publish workflow's pack step
+         (ANcpLua/ANcpLua.Agents@2f0f882 + 0314ccb fixed both the pack-line gap
+         and the Must-Publish gate that blocked the recovery release). The
+         intra-package version skew with ANcpLuaAgents*Version=1.4.3 is
+         intentional: BitNet hosting has no dependency on ANcpLua.Agents core. -->
+    <ANcpLuaAgentsHostingBitNetVersion>1.4.10-alpha.1</ANcpLuaAgentsHostingBitNetVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) versions. The conditional import of
          framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props in
