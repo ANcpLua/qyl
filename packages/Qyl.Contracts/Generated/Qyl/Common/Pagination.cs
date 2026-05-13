@@ -4,41 +4,6 @@
 
 namespace Qyl.Common.Pagination;
 
-public sealed class CursorPaginationParams
-{
-    public string? Cursor { get; init; }
-    public int? Limit { get; init; }
-    public Qyl.Common.Pagination.SortOrder? Order { get; init; }
-}
-
-public sealed class OffsetPaginationParams
-{
-    public int? Page { get; init; }
-    public int? PageSize { get; init; }
-}
-
-public sealed class TimeRangeParams
-{
-    public DateTimeOffset? StartTime { get; init; }
-    public DateTimeOffset? EndTime { get; init; }
-    public int? Limit { get; init; }
-}
-
-public sealed class StreamParams
-{
-    public DateTimeOffset? Since { get; init; }
-    public string? TraceId { get; init; }
-    public string? ServiceName { get; init; }
-    public int? MaxEventsPerSecond { get; init; }
-}
-
-public sealed class AggregationParams
-{
-    public Qyl.Common.Pagination.TimeBucket? Bucket { get; init; }
-    public IReadOnlyList<string>? GroupBy { get; init; }
-    public string? Filter { get; init; }
-}
-
 public sealed class CursorPageTrace
 {
     public required IReadOnlyList<Qyl.OTel.Traces.Trace> Items { get; init; }
@@ -183,10 +148,39 @@ public sealed class CursorPageFixRunEntity
     public required bool HasMore { get; init; }
 }
 
-public enum SortOrder
+public sealed class CursorPaginationParams
 {
-    Asc,
-    Desc
+    public string? Cursor { get; init; }
+    public int? Limit { get; init; }
+    public Qyl.Common.Pagination.SortOrder? Order { get; init; }
+}
+
+public sealed class OffsetPaginationParams
+{
+    public int? Page { get; init; }
+    public int? PageSize { get; init; }
+}
+
+public sealed class TimeRangeParams
+{
+    public DateTimeOffset? StartTime { get; init; }
+    public DateTimeOffset? EndTime { get; init; }
+    public int? Limit { get; init; }
+}
+
+public sealed class StreamParams
+{
+    public DateTimeOffset? Since { get; init; }
+    public string? TraceId { get; init; }
+    public string? ServiceName { get; init; }
+    public int? MaxEventsPerSecond { get; init; }
+}
+
+public sealed class AggregationParams
+{
+    public Qyl.Common.Pagination.TimeBucket? Bucket { get; init; }
+    public IReadOnlyList<string>? GroupBy { get; init; }
+    public string? Filter { get; init; }
 }
 
 public enum TimeBucket
@@ -198,4 +192,10 @@ public enum TimeBucket
     Day,
     Week,
     Auto
+}
+
+public enum SortOrder
+{
+    Asc,
+    Desc
 }

@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     /// <summary> Log severity text (human-readable). </summary>
     public enum SeverityText

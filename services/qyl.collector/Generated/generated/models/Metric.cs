@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Common;
-using Qyl.OTel.Resource;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Resource;
 
-namespace Qyl.OTel.Metrics
+namespace ANcpLua.OtelConventions.OTel.Metrics
 {
 
     ///<summary>
@@ -46,7 +46,7 @@ namespace Qyl.OTel.Metrics
         ///<summary>
         /// Resource describing the entity that produced this metric
         ///</summary>
-        public Qyl.OTel.Resource.Resource Resource { get; set; }
+        public ANcpLua.OtelConventions.OTel.Resource.Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope

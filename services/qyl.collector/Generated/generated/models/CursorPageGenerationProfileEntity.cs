@@ -8,7 +8,7 @@ using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 using Qyl.Domains.Configurator;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
 
     ///<summary>

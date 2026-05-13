@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Client;
-using Qyl.OTel.Enums;
 
 namespace Qyl.Api
 {

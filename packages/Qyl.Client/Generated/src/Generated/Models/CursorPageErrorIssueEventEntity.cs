@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Qyl.Domains.Issues;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageErrorIssueEventEntity

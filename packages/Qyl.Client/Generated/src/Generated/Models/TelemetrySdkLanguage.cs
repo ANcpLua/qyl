@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     /// <summary> Telemetry SDK language. </summary>
     public enum TelemetrySdkLanguage

@@ -9,8 +9,8 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using ANcpLua.OtelConventions.Storage;
 using Qyl.Client;
-using Qyl.Storage;
 
 namespace Qyl.Api
 {

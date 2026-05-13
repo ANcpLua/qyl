@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
     internal static partial class HostArchExtensions
     {

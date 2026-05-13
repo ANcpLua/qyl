@@ -5,8 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
 namespace Qyl.Domains.Observe.Error
 {
@@ -23,7 +23,7 @@ namespace Qyl.Domains.Observe.Error
         {
             ErrorId = errorId;
             CorrelatedErrors = correlatedErrors.ToList();
-            CommonAttributes = new ChangeTrackingList<Common.Attribute>();
+            CommonAttributes = new ChangeTrackingList<ANcpLua.OtelConventions.Common.Attribute>();
         }
 
         /// <summary> Initializes a new instance of <see cref="ErrorCorrelation"/>. </summary>
@@ -32,7 +32,7 @@ namespace Qyl.Domains.Observe.Error
         /// <param name="rootCause"> Potential root cause. </param>
         /// <param name="commonAttributes"> Common attributes. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal ErrorCorrelation(string errorId, IList<CorrelatedError> correlatedErrors, string rootCause, IList<Common.Attribute> commonAttributes, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal ErrorCorrelation(string errorId, IList<CorrelatedError> correlatedErrors, string rootCause, IList<ANcpLua.OtelConventions.Common.Attribute> commonAttributes, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             ErrorId = errorId;
             CorrelatedErrors = correlatedErrors;
@@ -51,6 +51,6 @@ namespace Qyl.Domains.Observe.Error
         public string RootCause { get; }
 
         /// <summary> Common attributes. </summary>
-        public IList<Common.Attribute> CommonAttributes { get; }
+        public IList<ANcpLua.OtelConventions.Common.Attribute> CommonAttributes { get; }
     }
 }

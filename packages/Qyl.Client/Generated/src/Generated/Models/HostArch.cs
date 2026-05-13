@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
     /// <summary> Host architecture types. </summary>
     public enum HostArch

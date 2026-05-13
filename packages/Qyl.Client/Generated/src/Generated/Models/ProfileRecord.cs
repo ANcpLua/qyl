@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Qyl.Storage
+namespace ANcpLua.OtelConventions.Storage
 {
     /// <summary> OpenTelemetry profile record for storage and query. </summary>
     public partial class ProfileRecord

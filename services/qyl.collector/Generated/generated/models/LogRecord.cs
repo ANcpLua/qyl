@@ -6,11 +6,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.OTel.Enums;
-using Qyl.Common;
-using Qyl.OTel.Resource;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Resource;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
 
     ///<summary>
@@ -81,7 +81,7 @@ namespace Qyl.OTel.Logs
         ///<summary>
         /// Resource describing the entity that produced this log
         ///</summary>
-        public Qyl.OTel.Resource.Resource Resource { get; set; }
+        public ANcpLua.OtelConventions.OTel.Resource.Resource Resource { get; set; }
 
         ///<summary>
         /// Instrumentation scope

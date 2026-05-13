@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Metrics
+namespace ANcpLua.OtelConventions.OTel.Metrics
 {
     /// <summary> Aggregation functions for metrics. </summary>
     public enum AggregationFunction

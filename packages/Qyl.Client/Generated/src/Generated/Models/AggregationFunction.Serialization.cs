@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Qyl.OTel.Metrics
+namespace ANcpLua.OtelConventions.OTel.Metrics
 {
     internal static partial class AggregationFunctionExtensions
     {

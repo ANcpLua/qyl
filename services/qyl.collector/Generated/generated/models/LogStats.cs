@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
 
     ///<summary>

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Array log body. </summary>
     public partial class LogBodyArray

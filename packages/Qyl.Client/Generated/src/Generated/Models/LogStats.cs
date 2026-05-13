@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Aggregated log statistics. </summary>
     public partial class LogStats

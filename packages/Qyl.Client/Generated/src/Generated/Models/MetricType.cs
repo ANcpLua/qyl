@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     /// <summary> Metric data type. </summary>
     public enum MetricType

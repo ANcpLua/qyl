@@ -4,7 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Qyl.OTel.Metrics
+namespace ANcpLua.OtelConventions.OTel.Metrics
 {
 
     ///<summary>

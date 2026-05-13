@@ -6,12 +6,12 @@ using System;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Resource;
 using Qyl.Client;
-using Qyl.Common;
-using Qyl.OTel.Enums;
-using Qyl.OTel.Resource;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> OpenTelemetry Log Record. </summary>
     public partial class LogRecord : IJsonModel<LogRecord>

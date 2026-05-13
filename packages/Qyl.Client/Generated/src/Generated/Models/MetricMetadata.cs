@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Enums;
 
 namespace Qyl.Api
 {

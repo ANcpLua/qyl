@@ -6,9 +6,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeSpec.Helpers.JsonConverters;
 using TypeSpec.Helpers;
-using Qyl.Storage;
+using ANcpLua.OtelConventions.Storage;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
 
     ///<summary>

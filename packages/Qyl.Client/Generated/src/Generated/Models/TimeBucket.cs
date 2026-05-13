@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Time bucket size for aggregations. </summary>
     public enum TimeBucket

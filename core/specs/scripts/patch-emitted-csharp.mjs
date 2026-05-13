@@ -43,7 +43,7 @@ function stripExperimentalAttribute(content) {
 
 // Patch 3 — fix wrong namespace qualification `Domains.Observe.Log.{AggregationFunction,TimeBucket}`.
 //   The convenience model-factory emits these types under the consumer's namespace
-//   even though they live in Qyl.OTel.Metrics and Qyl.Common.Pagination respectively.
+//   even though they live in ANcpLua.OtelConventions.OTel.Metrics and ANcpLua.OtelConventions.Common.Pagination respectively.
 //   The file already `using`s both; strip the wrong qualifier.
 function fixWrongQualification(content) {
     return content
@@ -52,20 +52,20 @@ function fixWrongQualification(content) {
 }
 
 // Patch 4 — add missing cross-namespace `using` directives.
-//   The emitter doesn't add `using Qyl.OTel.Metrics;` / `using Qyl.Common.Pagination;`
+//   The emitter doesn't add `using ANcpLua.OtelConventions.OTel.Metrics;` / `using ANcpLua.OtelConventions.Common.Pagination;`
 //   to files outside those namespaces that reference AggregationFunction / TimeBucket.
 function addMissingUsings(content) {
-    const referencesAgg = /\bAggregationFunction\b/.test(content) && !/^namespace Qyl\.OTel\.Metrics\b/m.test(content);
-    const referencesBucket = /\bTimeBucket\b/.test(content) && !/^namespace Qyl\.Common\.Pagination\b/m.test(content);
+    const referencesAgg = /\bAggregationFunction\b/.test(content) && !/^namespace ANcpLua\.OtelConventions\.OTel\.Metrics\b/m.test(content);
+    const referencesBucket = /\bTimeBucket\b/.test(content) && !/^namespace ANcpLua\.OtelConventions\.Common\.Pagination\b/m.test(content);
     if (!referencesAgg && !referencesBucket) return content;
 
-    const needsAgg = referencesAgg && !/^using Qyl\.OTel\.Metrics;/m.test(content);
-    const needsBucket = referencesBucket && !/^using Qyl\.Common\.Pagination;/m.test(content);
+    const needsAgg = referencesAgg && !/^using ANcpLua\.OtelConventions\.OTel\.Metrics;/m.test(content);
+    const needsBucket = referencesBucket && !/^using ANcpLua\.OtelConventions\.Common\.Pagination;/m.test(content);
     if (!needsAgg && !needsBucket) return content;
 
     const extras = [];
-    if (needsAgg) extras.push("using Qyl.OTel.Metrics;");
-    if (needsBucket) extras.push("using Qyl.Common.Pagination;");
+    if (needsAgg) extras.push("using ANcpLua.OtelConventions.OTel.Metrics;");
+    if (needsBucket) extras.push("using ANcpLua.OtelConventions.Common.Pagination;");
 
     // Insert after the last existing `using` line.
     const lines = content.split("\n");
@@ -98,19 +98,19 @@ function patchRestClientNullableParams(content, filePath) {
     return content;
 }
 
-// Patch 6 — disambiguate BCL collisions (System.Attribute vs Qyl.Common.Attribute,
-//   System.Diagnostics.Trace vs Qyl.OTel.Traces.Trace). We add `using` ALIASES right
+// Patch 6 — disambiguate BCL collisions (System.Attribute vs ANcpLua.OtelConventions.Common.Attribute,
+//   System.Diagnostics.Trace vs ANcpLua.OtelConventions.OTel.Traces.Trace). We add `using` ALIASES right
 //   after the last existing using block so the qyl types win locally.
 function addBclDisambiguationAliases(content) {
-    const needsTrace = /\bTrace\b/.test(content) && /^using Qyl\.OTel\.Traces;/m.test(content)
+    const needsTrace = /\bTrace\b/.test(content) && /^using ANcpLua\.OtelConventions\.OTel\.Traces;/m.test(content)
         && !/^using Trace\s*=/m.test(content);
     const needsAttribute = /typeof\(Attribute\)/.test(content) && /^using Qyl\.Common;/m.test(content)
         && !/^using Attribute\s*=/m.test(content);
     if (!needsTrace && !needsAttribute) return content;
 
     const aliases = [];
-    if (needsTrace) aliases.push("using Trace = Qyl.OTel.Traces.Trace;");
-    if (needsAttribute) aliases.push("using Attribute = Qyl.Common.Attribute;");
+    if (needsTrace) aliases.push("using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;");
+    if (needsAttribute) aliases.push("using Attribute = ANcpLua.OtelConventions.Common.Attribute;");
 
     const lines = content.split("\n");
     let lastUsing = -1;
@@ -128,9 +128,9 @@ function addBclDisambiguationAliases(content) {
 //   know their own namespaces). Unused usings are harmless warnings.
 const QYL_UMBRELLA_USINGS = [
     "using Qyl.Api;",
-    "using Qyl.Common;",
-    "using Qyl.Common.Errors;",
-    "using Qyl.Common.Pagination;",
+    "using ANcpLua.OtelConventions.Common;",
+    "using ANcpLua.OtelConventions.Common.Errors;",
+    "using ANcpLua.OtelConventions.Common.Pagination;",
     "using Qyl.Domains.AI.GenAi;",
     "using Qyl.Domains.Agent.Checkpoint;",
     "using Qyl.Domains.Agent.Run;",
@@ -157,12 +157,12 @@ const QYL_UMBRELLA_USINGS = [
     "using Qyl.Domains.Workflow;",
     "using Qyl.Domains.Workspace;",
     "using Qyl.Intelligence;",
-    "using Qyl.OTel.Enums;",
-    "using Qyl.OTel.Logs;",
-    "using Qyl.OTel.Metrics;",
-    "using Qyl.OTel.Profiles;",
-    "using Qyl.OTel.Resource;",
-    "using Qyl.OTel.Traces;",
+    "using ANcpLua.OtelConventions.OTel.Enums;",
+    "using ANcpLua.OtelConventions.OTel.Logs;",
+    "using ANcpLua.OtelConventions.OTel.Metrics;",
+    "using ANcpLua.OtelConventions.OTel.Profiles;",
+    "using ANcpLua.OtelConventions.OTel.Resource;",
+    "using ANcpLua.OtelConventions.OTel.Traces;",
     "using Qyl.Storage;",
 ];
 
@@ -208,7 +208,7 @@ function addServerSideDisambiguation(content, filePath) {
     // Trace: collides with System.Diagnostics.Trace on operations referencing OTel traces.
     if (/\bTrace\b/.test(content) && !/^using Trace\s*=/m.test(content)
         && /TracesApi|CursorPageTrace/.test(content)) {
-        aliases.push("using Trace = Qyl.OTel.Traces.Trace;");
+        aliases.push("using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;");
     }
     // IssueStatus: collides between Qyl.Domains.Issues (canonical) and Qyl.Contracts.Loom.
     if (/IssuesApi/.test(filePath) && !/^using IssueStatus\s*=/m.test(content)) {
@@ -221,7 +221,7 @@ function addServerSideDisambiguation(content, filePath) {
     // LogStats: two TypeSpec models with the same name; the operation references the OTel one.
     if (/LogsApi/.test(filePath) && !/^using LogStats\s*=/m.test(content)
         && /\bLogStats\b/.test(content)) {
-        aliases.push("using LogStats = Qyl.OTel.Logs.LogStats;");
+        aliases.push("using LogStats = ANcpLua.OtelConventions.OTel.Logs.LogStats;");
     }
     if (!aliases.length) return content;
 
@@ -245,33 +245,33 @@ const clientPatches = [
 ];
 
 // Patch 8 — fully-qualify `Resource` property declarations in model files that
-//   `using Qyl.OTel.Resource;`. The alpha emitter collides the class name `Resource`
-//   with the namespace `Qyl.OTel.Resource`, and the namespace import wins when the
+//   `using ANcpLua.OtelConventions.OTel.Resource;`. The alpha emitter collides the class name `Resource`
+//   with the namespace `ANcpLua.OtelConventions.OTel.Resource`, and the namespace import wins when the
 //   naked identifier is resolved — `error CS0118: 'Resource' is a namespace but is
-//   used like a type`. A `using Resource = Qyl.OTel.Resource.Resource;` alias does
+//   used like a type`. A `using Resource = ANcpLua.OtelConventions.OTel.Resource.Resource;` alias does
 //   not override the namespace import, so we fully qualify the property type instead.
 //   Known consumers: Metric.cs, Span.cs, LogRecord.cs.
 function fullyQualifyResourceProperty(content, filePath) {
     if (!/\/models\//.test(filePath)) return content;
-    if (!/^using Qyl\.OTel\.Resource;$/m.test(content)) return content;
-    return content.replace(/\bpublic Resource Resource\b/g, "public Qyl.OTel.Resource.Resource Resource");
+    if (!/^using ANcpLua\.OtelConventions\.OTel\.Resource;$/m.test(content)) return content;
+    return content.replace(/\bpublic Resource Resource\b/g, "public ANcpLua.OtelConventions.OTel.Resource.Resource Resource");
 }
 
-// Patch 9 — add a `using Trace = Qyl.OTel.Traces.Trace;` alias in model files that
+// Patch 9 — add a `using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;` alias in model files that
 //   reference the OTel `Trace` type. Collides with `System.Diagnostics.Trace` →
 //   `error CS0104: 'Trace' is an ambiguous reference`. Unlike the Resource collision,
 //   the alias resolves this one because there is no namespace-import precedence to beat.
 //   Known consumers: TraceStreamEvent.cs, CursorPageTrace.cs.
 function addTraceAliasInModels(content, filePath) {
     if (!/\/models\//.test(filePath)) return content;
-    if (!/^using Qyl\.OTel\.Traces;$/m.test(content)) return content;
+    if (!/^using ANcpLua\.OtelConventions\.OTel\.Traces;$/m.test(content)) return content;
     if (/^using Trace\s*=/m.test(content)) return content;
     const declaresTrace = /\bpublic\s+Trace\s+\w+\b/.test(content);
     const isCursorPageTrace = /CursorPageTrace\.cs$/.test(filePath);
     if (!declaresTrace && !isCursorPageTrace) return content;
     return content.replace(
-        /^using Qyl\.OTel\.Traces;$/m,
-        "using Qyl.OTel.Traces;\nusing Trace = Qyl.OTel.Traces.Trace;",
+        /^using ANcpLua\.OtelConventions\.OTel\.Traces;$/m,
+        "using ANcpLua.OtelConventions.OTel.Traces;\nusing Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;",
     );
 }
 

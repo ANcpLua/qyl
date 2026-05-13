@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Qyl.Common;
+using ANcpLua.OtelConventions.Common;
 
 namespace Qyl.Api
 {
@@ -25,7 +25,7 @@ namespace Qyl.Api
         /// <param name="errorRate"> Error rate. </param>
         /// <param name="avgLatencyMs"> Average latency in milliseconds. </param>
         /// <param name="p99LatencyMs"> P99 latency in milliseconds. </param>
-        internal ServiceDetails(string name, int instanceCount, DateTimeOffset lastSeen, IEnumerable<Common.Attribute> resourceAttributes, IEnumerable<InstrumentationScope> instrumentationLibraries, double requestRate, double errorRate, double avgLatencyMs, double p99LatencyMs)
+        internal ServiceDetails(string name, int instanceCount, DateTimeOffset lastSeen, IEnumerable<ANcpLua.OtelConventions.Common.Attribute> resourceAttributes, IEnumerable<InstrumentationScope> instrumentationLibraries, double requestRate, double errorRate, double avgLatencyMs, double p99LatencyMs)
         {
             Name = name;
             InstanceCount = instanceCount;
@@ -51,7 +51,7 @@ namespace Qyl.Api
         /// <param name="avgLatencyMs"> Average latency in milliseconds. </param>
         /// <param name="p99LatencyMs"> P99 latency in milliseconds. </param>
         /// <param name="additionalBinaryDataProperties"> Keeps track of any properties unknown to the library. </param>
-        internal ServiceDetails(string name, string namespaceName, string version, int instanceCount, DateTimeOffset lastSeen, IList<Common.Attribute> resourceAttributes, IList<InstrumentationScope> instrumentationLibraries, double requestRate, double errorRate, double avgLatencyMs, double p99LatencyMs, IDictionary<string, BinaryData> additionalBinaryDataProperties)
+        internal ServiceDetails(string name, string namespaceName, string version, int instanceCount, DateTimeOffset lastSeen, IList<ANcpLua.OtelConventions.Common.Attribute> resourceAttributes, IList<InstrumentationScope> instrumentationLibraries, double requestRate, double errorRate, double avgLatencyMs, double p99LatencyMs, IDictionary<string, BinaryData> additionalBinaryDataProperties)
         {
             Name = name;
             NamespaceName = namespaceName;
@@ -83,7 +83,7 @@ namespace Qyl.Api
         public DateTimeOffset LastSeen { get; }
 
         /// <summary> Resource attributes. </summary>
-        public IList<Common.Attribute> ResourceAttributes { get; }
+        public IList<ANcpLua.OtelConventions.Common.Attribute> ResourceAttributes { get; }
 
         /// <summary> Instrumentation libraries. </summary>
         public IList<InstrumentationScope> InstrumentationLibraries { get; }

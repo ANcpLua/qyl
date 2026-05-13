@@ -10,7 +10,7 @@ using System.Text.Json;
 using Qyl.Client;
 using Qyl.Domains.Configurator;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageGenerationProfileEntity : IJsonModel<CursorPageGenerationProfileEntity>

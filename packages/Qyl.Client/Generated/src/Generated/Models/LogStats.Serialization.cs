@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Aggregated log statistics. </summary>
     public partial class LogStats : IJsonModel<LogStats>

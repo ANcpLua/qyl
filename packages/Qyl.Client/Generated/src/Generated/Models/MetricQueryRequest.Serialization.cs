@@ -7,9 +7,9 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.OTel.Metrics;
 using Qyl.Client;
-using Qyl.Common.Pagination;
-using Qyl.OTel.Metrics;
 
 namespace Qyl.Api
 {

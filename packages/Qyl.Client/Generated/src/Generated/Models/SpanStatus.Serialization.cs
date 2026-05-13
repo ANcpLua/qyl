@@ -6,10 +6,10 @@ using System;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Client;
-using Qyl.OTel.Enums;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> Span status. </summary>
     public partial class SpanStatus : IJsonModel<SpanStatus>

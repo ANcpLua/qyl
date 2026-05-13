@@ -35,6 +35,27 @@ public sealed class SpanRecord
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
+public sealed class ProfileRecord
+{
+    public required string ProfileId { get; init; }
+    public string? TraceId { get; init; }
+    public string? SpanId { get; init; }
+    public string? SessionId { get; init; }
+    public required long TimeUnixNano { get; init; }
+    public required long DurationNano { get; init; }
+    public required int SampleCount { get; init; }
+    public string? SampleType { get; init; }
+    public string? SampleUnit { get; init; }
+    public string? OriginalPayloadFormat { get; init; }
+    public string? ServiceName { get; init; }
+    public string? ProfileFrameType { get; init; }
+    public string? AttributesJson { get; init; }
+    public string? ResourceJson { get; init; }
+    public string? ProfileDataJson { get; init; }
+    public string? SchemaUrl { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
+}
+
 public sealed class SessionSummary
 {
     public required string SessionId { get; init; }
@@ -90,27 +111,6 @@ public sealed class GenAiSpanData
     public string? ToolName { get; init; }
     public string? ToolCallId { get; init; }
     public double? CostUsd { get; init; }
-}
-
-public sealed class ProfileRecord
-{
-    public required string ProfileId { get; init; }
-    public string? TraceId { get; init; }
-    public string? SpanId { get; init; }
-    public string? SessionId { get; init; }
-    public required long TimeUnixNano { get; init; }
-    public required long DurationNano { get; init; }
-    public required int SampleCount { get; init; }
-    public string? SampleType { get; init; }
-    public string? SampleUnit { get; init; }
-    public string? OriginalPayloadFormat { get; init; }
-    public string? ServiceName { get; init; }
-    public string? ProfileFrameType { get; init; }
-    public string? AttributesJson { get; init; }
-    public string? ResourceJson { get; init; }
-    public string? ProfileDataJson { get; init; }
-    public string? SchemaUrl { get; init; }
-    public DateTimeOffset? CreatedAt { get; init; }
 }
 
 public sealed class ProfileFunctionRecord

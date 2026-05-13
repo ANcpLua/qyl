@@ -7,8 +7,8 @@ using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Threading;
 using System.Threading.Tasks;
+using ANcpLua.OtelConventions.Common.Pagination;
 using Qyl.Client;
-using Qyl.Common.Pagination;
 using Qyl.Domains.Observe.Session;
 
 namespace Qyl.Api

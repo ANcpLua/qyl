@@ -5,10 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Qyl.OTel.Traces;
-using Trace = Qyl.OTel.Traces.Trace;
+using ANcpLua.OtelConventions.OTel.Traces;
+using Trace = ANcpLua.OtelConventions.OTel.Traces.Trace;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageTrace

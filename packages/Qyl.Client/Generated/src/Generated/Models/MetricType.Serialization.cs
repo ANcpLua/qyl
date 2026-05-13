@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     internal static partial class MetricTypeExtensions
     {

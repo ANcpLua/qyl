@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Binary log body. </summary>
     public partial class LogBodyBytes

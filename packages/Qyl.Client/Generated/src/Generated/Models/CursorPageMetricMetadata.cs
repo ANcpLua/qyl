@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Qyl.Api;
 
-namespace Qyl.Common.Pagination
+namespace ANcpLua.OtelConventions.Common.Pagination
 {
     /// <summary> Cursor-based paginated response wrapper. </summary>
     public partial class CursorPageMetricMetadata

@@ -4,11 +4,11 @@
 
 using System;
 using System.Collections.Generic;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
 using Qyl.Client;
-using Qyl.Common;
-using Qyl.OTel.Enums;
 
-namespace Qyl.OTel.Resource
+namespace ANcpLua.OtelConventions.OTel.Resource
 {
     /// <summary> Resource describes the entity producing telemetry. </summary>
     public partial class Resource

@@ -6,10 +6,10 @@ using System;
 using System.ClientModel.Primitives;
 using System.Collections.Generic;
 using System.Text.Json;
+using ANcpLua.OtelConventions.Common;
 using Qyl.Client;
-using Qyl.Common;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Structured key-value log body. </summary>
     public partial class LogBodyKvList : IJsonModel<LogBodyKvList>

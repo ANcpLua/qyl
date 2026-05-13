@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> Complete trace containing all related spans. </summary>
     public partial class Trace

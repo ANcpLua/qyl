@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
 
-namespace Qyl.Storage
+namespace ANcpLua.OtelConventions.Storage
 {
     /// <summary> OpenTelemetry profile record for storage and query. </summary>
     public partial class ProfileRecord : IJsonModel<ProfileRecord>

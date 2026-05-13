@@ -4,12 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using ANcpLua.OtelConventions.Common;
+using ANcpLua.OtelConventions.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Resource;
 using Qyl.Client;
-using Qyl.Common;
-using Qyl.OTel.Enums;
-using Qyl.OTel.Resource;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> OpenTelemetry Span representing a single operation in a distributed trace. </summary>
     public partial class Span

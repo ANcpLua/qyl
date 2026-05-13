@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     /// <summary> Span status code. </summary>
     public enum SpanStatusCode

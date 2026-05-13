@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Qyl.OTel.Enums
+namespace ANcpLua.OtelConventions.OTel.Enums
 {
     /// <summary> Log severity number following OTel specification (1-24). </summary>
     public enum SeverityNumber

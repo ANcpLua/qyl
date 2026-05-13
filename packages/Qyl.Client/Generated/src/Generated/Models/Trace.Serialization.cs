@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Qyl.Client;
 
-namespace Qyl.OTel.Traces
+namespace ANcpLua.OtelConventions.OTel.Traces
 {
     /// <summary> Complete trace containing all related spans. </summary>
     public partial class Trace : IJsonModel<Trace>

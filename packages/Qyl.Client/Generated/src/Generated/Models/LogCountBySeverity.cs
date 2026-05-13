@@ -4,9 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using Qyl.OTel.Enums;
+using ANcpLua.OtelConventions.OTel.Enums;
 
-namespace Qyl.OTel.Logs
+namespace ANcpLua.OtelConventions.OTel.Logs
 {
     /// <summary> Log count by severity level. </summary>
     public partial class LogCountBySeverity
