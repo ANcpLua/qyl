@@ -21,7 +21,7 @@ if (int.TryParse(builder.Configuration["PORT"], out var port) && port > 0)
     builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, $"http://0.0.0.0:{port}");
 }
 
-builder.AddQylServiceDefaults(options => options.AdditionalActivitySources.Add("Qyl.Loom"));
+builder.AddQylServiceDefaults(static options => options.AdditionalActivitySources.Add("Qyl.Loom"));
 builder.AddQylLoomDefaults();
 
 // BitNet local-LLM hosting. One-line opt-in via ANcpLua.Agents.Hosting.BitNet:
@@ -36,7 +36,7 @@ builder.Services.AddSingleton<LoomGodAnalyzerServer>();
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
-    .UseQylMcpInstrumentation(ActivitySources.McpSource, options => options.Transport = "http")
+    .UseQylMcpInstrumentation(ActivitySources.McpSource, static options => options.Transport = "http")
     .WithTools<LoomGodAnalyzerServer>()
     .WithTools<LoomWorkflowTools>()
     .WithTools<Qyl.Loom.Autofix.Workflow.AutofixContextToolsWrapper>()

@@ -54,7 +54,7 @@ public sealed class RegenCleanTests
         }
     }
 
-    static string LocateRepoRoot()
+    private static string LocateRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Join(dir.FullName, "qyl.slnx")))
@@ -65,7 +65,7 @@ public sealed class RegenCleanTests
         return dir.FullName;
     }
 
-    static async Task<ProcessResult> RunAsync(string workingDir, string fileName, params string[] args)
+    private static async Task<ProcessResult> RunAsync(string workingDir, string fileName, params string[] args)
     {
         var psi = new ProcessStartInfo
         {
@@ -106,5 +106,5 @@ public sealed class RegenCleanTests
         return new ProcessResult(process.ExitCode, await stdoutTask, await stderrTask);
     }
 
-    sealed record ProcessResult(int ExitCode, string StdOut, string StdErr);
+    private sealed record ProcessResult(int ExitCode, string StdOut, string StdErr);
 }
