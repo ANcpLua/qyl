@@ -1,7 +1,7 @@
 # =============================================================================
 # GitHub Actions Cache Cleanup
 # -----------------------------------------------------------------------------
-# Deletes stale PR merge-ref caches so the repository stays below GitHub's
+# Monthly cleanup of stale PR merge-ref caches so the repository stays below GitHub's
 # Actions cache storage limit without evicting useful main-branch caches.
 # =============================================================================
 
@@ -9,7 +9,7 @@ name: Actions Cache Cleanup
 
 on:
   schedule:
-    - cron: "17 3 * * 1"
+    - cron: "17 3 1 * *"
   workflow_dispatch:
     inputs:
       minimum_age_days:
