@@ -80,8 +80,11 @@ internal sealed class LspProcess : IAsyncDisposable
             if (!_process.HasExited)
                 _process.Kill(true);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ioe)
         {
+            // Expected race: the LSP child has already exited between the HasExited check and
+            // the Kill call. Discard so teardown stays best-effort.
+            _ = ioe;
         }
     }
 }

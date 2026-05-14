@@ -91,24 +91,29 @@ internal static class ConversationEndpoints
               + " WHERE json_extract_string(attributes_json, '$.\"gen_ai.agent.name\"') = $"
               + cmd.AddParam(agent) + ")";
 
-        cmd.CommandText = $"""
-                           SELECT
-                               session_id,
-                               COUNT(*) AS span_count,
-                               MIN(start_time_unix_nano) AS first_seen_ns,
-                               MAX(end_time_unix_nano) AS last_seen_ns,
-                               COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
-                               COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                               COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                               list_distinct(list(service_name)) AS services,
-                               list_distinct(list(gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL)) AS models
-                           FROM qyl_conversations
-                           WHERE start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST({window.ToString(CultureInfo.InvariantCulture)} AS UBIGINT) * 3600000000000)
-                           {agentFilter}
-                           GROUP BY session_id
-                           ORDER BY last_seen_ns DESC
-                           LIMIT {boundedLimit.ToString(CultureInfo.InvariantCulture)};
-                           """;
+        // AL0111 forbids any string interpolation reaching CommandText — even safe int values
+        // must go through the parameter path. Compose the SQL via + concatenation (the same
+        // idiom used for agentFilter above) so the analyzer sees no `$"..."` literal.
+        var windowParam = cmd.AddParam(window);
+        var limitParam = cmd.AddParam(boundedLimit);
+
+        cmd.CommandText =
+            "SELECT "
+            + "session_id, "
+            + "COUNT(*) AS span_count, "
+            + "MIN(start_time_unix_nano) AS first_seen_ns, "
+            + "MAX(end_time_unix_nano) AS last_seen_ns, "
+            + "COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd, "
+            + "COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens, "
+            + "COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens, "
+            + "list_distinct(list(service_name)) AS services, "
+            + "list_distinct(list(gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL)) AS models "
+            + "FROM qyl_conversations "
+            + "WHERE start_time_unix_nano > (CAST(epoch_ns(now()) AS UBIGINT) - CAST($" + windowParam + " AS UBIGINT) * 3600000000000)"
+            + agentFilter
+            + " GROUP BY session_id"
+            + " ORDER BY last_seen_ns DESC"
+            + " LIMIT $" + limitParam + ";";
 
         var items = new List<ConversationListItem>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);

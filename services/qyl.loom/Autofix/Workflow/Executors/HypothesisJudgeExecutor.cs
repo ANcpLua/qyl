@@ -51,7 +51,11 @@ internal sealed class HypothesisJudgeExecutor(
         await context.SendMessageAsync(verdict, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private static string BuildPrompt(IReadOnlyList<HypothesisCandidate> candidates)
+    // CA1859: typed as the concrete List<> rather than IReadOnlyList<> — the single caller
+    // (line 28) passes `_buffer` which is List<HypothesisCandidate>, and the perf delta from
+    // letting the JIT skip interface dispatch on `candidates.Count` / `candidates[i]` is real
+    // in the hot prompt-build path.
+    private static string BuildPrompt(List<HypothesisCandidate> candidates)
     {
         var sb = new StringBuilder();
         sb.AppendLine(

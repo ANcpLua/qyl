@@ -20,74 +20,82 @@ public static class QylLoomDefaults
         {
             Guard.NotNull(builder);
 
-            AddHttpClients(builder);
-            AddThreeBuilderPattern(builder.Services);
-            AddAutofixInfrastructure(builder.Services);
-            AddCheckpointPersistence(builder.Services);
-            AddExplorationServices(builder.Services);
-            AddCodeReviewService(builder.Services);
+            // Registration tables declared as locals (not class-level statics) — the C# 14
+            // `extension` block analyzer doesn't propagate references from inside the block
+            // back to class-level private members, so static readonly arrays at class level
+            // would all trip IDE0052. Startup allocation cost is once per process.
+            (Type Interface, Type Implementation)[] threeBuilderInterfaces =
+            [
+                (typeof(IQylLoomChatClientBuilder), typeof(QylLoomChatClientBuilder)),
+                (typeof(IQylLoomAgentsBuilder), typeof(QylLoomAgentsBuilder)),
+                (typeof(IQylLoomWorkflowBuilder), typeof(QylLoomWorkflowBuilder)),
+            ];
+
+            Type[] autofixInfrastructure =
+            [
+                typeof(AutofixReportAssemblyState),
+                typeof(AutofixRunRegistry),
+                typeof(AutofixContextLoader),
+                typeof(AutofixContextTools),
+                typeof(AutofixRunConfigStore),
+                typeof(AutofixWorkflowFactory),
+                typeof(AutofixOrchestrator),
+                typeof(LoomAutofixRunner),
+            ];
+
+            (Type Interface, Type Implementation)[] autofixKeyedInterfaces =
+            [
+                (typeof(IAutofixStepLedger), typeof(CollectorAutofixStepLedger)),
+                (typeof(IAutofixLifecycleBus), typeof(InMemoryAutofixLifecycleBus)),
+            ];
+
+            Type[] explorationServices =
+            [
+                typeof(ExplorationContextBuilder),
+                typeof(ExplorationSessionStore),
+                typeof(ExplorationDiagnostician),
+                typeof(ExplorationStrategist),
+                typeof(ExplorationInsightService),
+                typeof(ExplorationOrchestrator),
+            ];
+
+            // HTTP clients — the CollectorClient lambda captures `builder` for configuration
+            // lookup so it intentionally is NOT `static`. The GitHub handler does not capture
+            // and IS `static`.
+            builder.Services.AddHttpClient<CollectorClient>(client =>
+            {
+                var baseUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
+                client.BaseAddress = new Uri(baseUrl);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            }).AddStandardResilienceHandler();
+
+            builder.Services.AddHttpClient("GitHub", static client =>
+            {
+                client.BaseAddress = new Uri("https://api.github.com");
+                client.DefaultRequestHeaders.Add("User-Agent", "qyl-loom");
+                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            }).AddStandardResilienceHandler();
+
+            foreach (var (iface, impl) in threeBuilderInterfaces)
+                builder.Services.AddSingleton(iface, impl);
+
+            foreach (var t in autofixInfrastructure)
+                builder.Services.AddSingleton(t);
+
+            foreach (var (iface, impl) in autofixKeyedInterfaces)
+                builder.Services.AddSingleton(iface, impl);
+
+            // Checkpoint persistence — the second registration captures the first via factory.
+            builder.Services.AddSingleton<FileSystemAutofixCheckpointStore>();
+            builder.Services.AddSingleton(static sp =>
+                CheckpointManager.CreateJson(sp.GetRequiredService<FileSystemAutofixCheckpointStore>()));
+
+            foreach (var t in explorationServices)
+                builder.Services.AddSingleton(t);
+
+            builder.Services.AddSingleton<CodeReviewService>();
 
             return builder;
         }
     }
-
-    private static void AddHttpClients<TBuilder>(TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
-        builder.Services.AddHttpClient<CollectorClient>(client =>
-        {
-            var baseUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
-            client.BaseAddress = new Uri(baseUrl);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
-        }).AddStandardResilienceHandler();
-
-        builder.Services.AddHttpClient("GitHub", client =>
-        {
-            client.BaseAddress = new Uri("https://api.github.com");
-            client.DefaultRequestHeaders.Add("User-Agent", "qyl-loom");
-            client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-        }).AddStandardResilienceHandler();
-    }
-
-    private static void AddThreeBuilderPattern(IServiceCollection services)
-    {
-        services.AddSingleton<IQylLoomChatClientBuilder, QylLoomChatClientBuilder>();
-        services.AddSingleton<IQylLoomAgentsBuilder, QylLoomAgentsBuilder>();
-        services.AddSingleton<IQylLoomWorkflowBuilder, QylLoomWorkflowBuilder>();
-    }
-
-    private static void AddAutofixInfrastructure(IServiceCollection services)
-    {
-        services.AddSingleton<AutofixReportAssemblyState>();
-        services.AddSingleton<AutofixRunRegistry>();
-        services.AddSingleton<AutofixContextLoader>();
-        services.AddSingleton<AutofixContextTools>();
-        services.AddSingleton<IAutofixStepLedger, CollectorAutofixStepLedger>();
-        services.AddSingleton<IAutofixLifecycleBus, InMemoryAutofixLifecycleBus>();
-        services.AddSingleton<AutofixRunConfigStore>();
-        services.AddSingleton<AutofixWorkflowFactory>();
-
-        services.AddSingleton<AutofixOrchestrator>();
-        services.AddSingleton<LoomAutofixRunner>();
-    }
-
-    private static void AddCheckpointPersistence(IServiceCollection services)
-    {
-        services.AddSingleton<FileSystemAutofixCheckpointStore>();
-        services.AddSingleton(sp =>
-            CheckpointManager.CreateJson(sp.GetRequiredService<FileSystemAutofixCheckpointStore>()));
-    }
-
-    private static void AddExplorationServices(IServiceCollection services)
-    {
-        services.AddSingleton<ExplorationContextBuilder>();
-        services.AddSingleton<ExplorationSessionStore>();
-        services.AddSingleton<ExplorationDiagnostician>();
-        services.AddSingleton<ExplorationStrategist>();
-        services.AddSingleton<ExplorationInsightService>();
-        services.AddSingleton<ExplorationOrchestrator>();
-    }
-
-    private static void AddCodeReviewService(IServiceCollection services) =>
-        services.AddSingleton<CodeReviewService>();
 }

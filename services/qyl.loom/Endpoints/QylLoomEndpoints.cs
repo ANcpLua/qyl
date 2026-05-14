@@ -30,7 +30,7 @@ public static class QylLoomEndpoints
 
     private static void MapExplorationEndpoints(WebApplication app)
     {
-        app.MapGet("/api/v1/loom/{issueId}/insight", async (
+        app.MapGet("/api/v1/loom/{issueId}/insight", static async (
             string issueId,
             ExplorationInsightService insightService,
             CancellationToken ct) =>
@@ -41,7 +41,7 @@ public static class QylLoomEndpoints
                 : Results.NotFound(new { error = $"Issue '{issueId}' not found." });
         });
 
-        app.MapPost("/api/v1/loom/{issueId}/explore", (
+        app.MapPost("/api/v1/loom/{issueId}/explore", static (
                 string issueId,
                 ExplorationExploreRequest? request,
                 ExplorationOrchestrator orchestrator,
@@ -50,7 +50,7 @@ public static class QylLoomEndpoints
                 StreamExploreAsync(orchestrator, issueId, request?.UserContext, ct),
                 null));
 
-        app.MapPost("/api/v1/loom/{issueId}/code-it-up", async (
+        app.MapPost("/api/v1/loom/{issueId}/code-it-up", static async (
             string issueId,
             ExplorationCodeItUpRequest request,
             AutofixOrchestrator autofixOrchestrator,
@@ -83,7 +83,7 @@ public static class QylLoomEndpoints
 
     private static void MapAutofixLifecycleEndpoints(WebApplication app)
     {
-        app.MapGet("/api/v1/loom/autofix/{runId}/lifecycle", (
+        app.MapGet("/api/v1/loom/autofix/{runId}/lifecycle", static (
                 string runId,
                 IAutofixLifecycleBus bus,
                 CancellationToken ct) =>
@@ -94,7 +94,7 @@ public static class QylLoomEndpoints
 
     private static void MapCodeReviewEndpoints(WebApplication app)
     {
-        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", async (
+        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", static async (
             string owner, string repo, int prNumber,
             CodeReviewService reviewService, CancellationToken ct) =>
         {
@@ -104,7 +104,7 @@ public static class QylLoomEndpoints
             return Results.Ok(result);
         });
 
-        app.MapGet("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", (
+        app.MapGet("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", static (
             string owner, string repo, int prNumber,
             CodeReviewService reviewService) =>
         {
@@ -112,7 +112,7 @@ public static class QylLoomEndpoints
             return cached is not null ? Results.Ok(cached) : Results.NotFound();
         });
 
-        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", async (
+        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", static async (
             string owner, string repo, int prNumber,
             CodeReviewService reviewService, CancellationToken ct) =>
         {

@@ -174,8 +174,6 @@ internal sealed partial class LoomAutofixRunner(
                 .RunStreamingAsync(workflow, request, checkpointManager, run.RunId, ct)
                 .ConfigureAwait(false);
 
-            AutofixWorkflowResult? final = null;
-
             await foreach (var evt in execution.WatchStreamAsync(ct).ConfigureAwait(false))
             {
                 switch (evt)
@@ -198,15 +196,15 @@ internal sealed partial class LoomAutofixRunner(
 
                         break;
 
+                    // Workflow completed — return its report directly. The `finally` block below
+                    // still runs cleanup (drain pendingTimeouts, dispose execution, publish
+                    // lifecycle.Complete) before the return actually escapes.
                     case WorkflowOutputEvent { Data: AutofixWorkflowResult result }:
-                        final = result;
-                        break;
+                        return result.Report;
                 }
-
-                if (final is not null) break;
             }
 
-            return final?.Report;
+            return null;
         }
         finally
         {
@@ -217,8 +215,13 @@ internal sealed partial class LoomAutofixRunner(
                 {
                     await t.ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException oce)
                 {
+                    // Expected: parent CT cancelled while a pending AutoResolveAfterTimeoutAsync
+                    // was inside Task.Delay. The cancellation IS the success path during shutdown;
+                    // discard so it doesn't bubble out of the finally and mask the original
+                    // exception (if any) from the try block.
+                    _ = oce;
                 }
             }
             if (execution is not null)
@@ -246,8 +249,12 @@ internal sealed partial class LoomAutofixRunner(
                 LogStoppingPointAutoApproved(runId, "pre_commit", timeout);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException oce)
         {
+            // Expected: the run-scoped CT was cancelled while we were waiting out the
+            // stopping-point timeout. The auto-resolve path is fire-and-forget — silently
+            // discarding here means the cancellation is observed but doesn't crash the host.
+            _ = oce;
         }
     }
 

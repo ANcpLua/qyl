@@ -528,7 +528,7 @@ public static class OtlpConverter
     {
         var sessionId = log.Attributes?
             .FirstOrDefault(static a =>
-                a.Key == "gen_ai.conversation.id" || a.Key == "mcp.session.id" || a.Key == "session.id")
+                a.Key.EqualsAnyOrdinal("gen_ai.conversation.id", "mcp.session.id", "session.id"))
             ?.Value?.StringValue;
 
         var body = log.Body?.StringValue
@@ -630,7 +630,7 @@ public static class OtlpConverter
 
         var sessionId = profile.Attributes?
             .FirstOrDefault(static a =>
-                a.Key == "gen_ai.conversation.id" || a.Key == "mcp.session.id" || a.Key == "session.id")
+                a.Key.EqualsAnyOrdinal("gen_ai.conversation.id", "mcp.session.id", "session.id"))
             ?.Value?.StringValue;
 
         var profileFrameType = profile.Attributes?
