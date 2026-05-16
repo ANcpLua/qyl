@@ -1,45 +1,41 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 #
-# qyl — AI Observability Platform
-# C#/.NET backend · React/TypeScript dashboard · DuckDB storage · MCP server
+# CodeRabbit Pro+ / Enterprise-grade review configuration for O-ANcppLua/qyl.
+# Generated 2026-05-16 from the current schema-backed configuration reference.
 #
-# Schema-validated against: https://coderabbit.ai/integrations/schema.v2.json
-# Last audited: 2026-05-12
+# Repository context: qyl AI observability platform: .NET backend, MCP/agent code, React dashboard, DuckDB storage, OpenTelemetry semantic conventions, generated artifacts.
 #
-# Posture: bleeding-edge — every 2026 CodeRabbit feature that adds review depth
-# or makes an opt-in agent action reachable is on. Hard gates use `mode: error`
-# so they actually block merge; `override_requested_reviewers_only: true` stops
-# authors from waving their own breakages through.
-#
-# Schema default for nearly every boolean is `true`. We still list disabled
-# tools explicitly so a future schema bump cannot quietly turn them on.
+# Posture: maximum useful review depth. CodeRabbit may spend extra context on
+# cross-repo knowledge, web search, linked issues/PRs, security tools,
+# pre-merge checks, finishing touches, and issue planning. The request-changes
+# workflow is enabled intentionally so error-mode checks can block unsafe PRs.
 
 language: en-US
-tone_instructions: >-
-  Principal-level stewardship. Architecture, maintainability, correctness only.
-  Flag duplication, spec drift, silent behavior changes. No praise. No nits.
+tone_instructions: 'Principal/staff-level review. Spend extra context on architecture,
+  correctness, maintainability, security, CI/release safety, generated-file drift,
+  and cross-repo contract drift. Be direct: no praise, no filler, no style nits without
+  risk.'
 early_access: true
 enable_free_tier: false
-
+inheritance: false
 reviews:
   profile: assertive
-  # Advisory, not blocking. CodeRabbit comments and posts pre-merge check
-  # results, but never submits a formal CHANGES_REQUESTED review.
-  # Native auto-merge + branch-protection's required status checks are
-  # the only gate. See docs/automation.md and
-  # https://github.com/ANcpLua/github-settings-automation for the fleet-wide
-  # baseline.
-  request_changes_workflow: false
+  request_changes_workflow: true
   high_level_summary: true
+  high_level_summary_instructions: 'Write a dense engineering summary: behavior changed,
+    risk surface, validation evidence, generated artifacts, and cross-repo implications.
+    Avoid praise and filler.'
+  high_level_summary_placeholder: "@coderabbitai summary"
   high_level_summary_in_walkthrough: true
-  auto_title_instructions: >-
-    Use conventional commits format. Prefix with area (e.g. feat(dashboard), fix(ingestion),
-    refactor(storage)). Keep under 72 characters. No periods.
+  auto_title_placeholder: "@coderabbitai title"
+  auto_title_instructions: 'Use conventional commits with an area prefix. Keep under
+    72 characters and omit trailing punctuation. Examples: feat(api): add document
+    search filters, fix(build): pin Codecov upload.'
   review_status: true
   review_details: true
   commit_status: true
   fail_commit_status: true
-  collapse_walkthrough: true
+  collapse_walkthrough: false
   changed_files_summary: true
   sequence_diagrams: true
   estimate_code_review_effort: true
@@ -47,229 +43,260 @@ reviews:
   related_issues: true
   related_prs: true
   suggested_labels: true
+  labeling_instructions:
+  - label: area:api
+    instructions: Apply when REST, RPC, MCP, public endpoints, contracts, or request/response
+      models change.
+  - label: area:ui
+    instructions: Apply when frontend UI, styling, accessibility, or client-side state
+      changes.
+  - label: area:build
+    instructions: Apply when build scripts, NUKE/MSBuild, package managers, Docker,
+      CI, or release automation change.
+  - label: area:test
+    instructions: Apply when tests, fixtures, test infrastructure, coverage, or snapshots
+      change.
+  - label: area:docs
+    instructions: Apply when docs, AGENTS.md, CLAUDE.md, README, changelogs, specs,
+      or generated reference docs change.
+  - label: area:security
+    instructions: Apply when authentication, authorization, secrets, token handling,
+      logging of sensitive data, or dependency security changes.
+  - label: area:data
+    instructions: Apply when database schema, persistence, migrations, queues, storage,
+      serialization, generated data, or data contracts change.
+  - label: area:agents
+    instructions: Apply when agent prompts, MCP tools, AI workflow code, model calls,
+      tool schemas, or agent-facing instructions change.
+  - label: area:generated
+    instructions: Apply when generated files, generators, schemas, OpenAPI/TypeSpec/semconv
+      models, lockfiles, or generated docs change.
+  - label: breaking
+    instructions: Apply when public APIs, CLI flags, package surfaces, endpoint schemas,
+      storage formats, config keys, or emitted artifacts change incompatibly.
+  - label: review:slop
+    instructions: Auto-applied by CodeRabbit slop detection for low-quality AI-generated
+      changes. Do not apply manually.
+  - label: area:dashboard
+    instructions: Apply when services/qyl.dashboard changes.
+  - label: area:ingestion
+    instructions: Apply when OTLP ingestion or collector hot paths change.
+  - label: area:mcp
+    instructions: Apply when MCP tools/server code changes.
+  - label: area:telemetry
+    instructions: Apply when semantic conventions, instrumentation, spans, metrics,
+      or generated telemetry artifacts change.
+  - label: area:storage
+    instructions: Apply when DuckDB storage, promoted columns, migrations, or persistence
+      contracts change.
+  - label: area:infra
+    instructions: Apply when the PR modifies eng/, .github/, Dockerfiles, or build
+      infrastructure.
+  auto_apply_labels: true
   suggested_reviewers: true
   auto_assign_reviewers: false
+  suggested_reviewers_instructions:
+  - reviewers:
+    - handle: ANcpLua
+      type: user
+    instructions: Suggest for PRs touching architecture, public APIs, security-sensitive
+      code, release automation, generated artifacts, or cross-repository contracts.
   in_progress_fortune: false
   poem: false
   enable_prompt_for_ai_agents: true
+  path_filters:
+  - "!**/*.g.cs"
+  - "!**/*.g.ts"
+  - "!**/*.g.sql"
+  - "!**/*.g.tsp"
+  - "!**/*.Designer.cs"
+  - "!**/Generated/**"
+  - "!**/generated/**"
+  - "!**/bin/**"
+  - "!**/obj/**"
+  - "!**/dist/**"
+  - "!**/node_modules/**"
+  - "!**/coverage/**"
+  - "!**/.angular/**"
+  - "!**/.vite/**"
+  - "!**/.next/**"
+  - "!**/*.min.js"
+  - "!**/*.min.css"
+  - "!**/package-lock.json"
+  - "!**/pnpm-lock.yaml"
+  - "!**/yarn.lock"
+  - "!Artifacts/**"
+  - "!artifacts/**"
+  - "!**/*.sarif"
+  - "!**/*.trx"
+  path_instructions:
+  - path: "**/*.{cs,csproj,props,targets,sln,slnx}"
+    instructions: C#/.NET review. Treat warnings, nullable annotations, async flow,
+      package boundaries, and generated code as correctness concerns. Flag sync-over-async
+      (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`), fire-and-forget work without
+      lifecycle/error handling, missing CancellationToken on public/internal async
+      methods, `DateTime.Now`/`UtcNow` in domain logic instead of TimeProvider, null-forgiving
+      `!` without a documented proof, catch-and-fallback paths that hide failures,
+      and service registration drift. Prefer data-driven, composable code over hardcoded
+      switch/case tables. Public package/API surface changes need XML docs and explicit
+      compatibility notes.
+  - path: "**/*Tests/**/*.cs"
+    instructions: ".NET tests. Review that tests assert observable behavior, not implementation
+      details; async tests return Task; timing-sensitive tests use deterministic signals/fakes
+      instead of sleeps; Testcontainers resources are disposed; cancellation tokens
+      are threaded; mocks are strict where the repo convention expects strictness;
+      and new behavior has focused regression coverage. Do not accept weakening or
+      deleting truthful tests to make a PR pass."
+  - path: "**/*.{ts,tsx,js,jsx,mjs,cjs,json}"
+    instructions: TypeScript/JavaScript review. Flag `any` without a narrow justification,
+      unsafe casts, stale hook dependencies, direct network calls that bypass shared
+      clients, client/server contract drift, swallowed promise rejections, accessibility
+      regressions, missing loading/error states, bundle-heavy dependencies, and package-script
+      drift. Generated clients or schemas must be regenerated from the source contract;
+      do not hand-edit generated output.
+  - path: "**/*.{spec,test}.{ts,tsx,js,jsx}"
+    instructions: Frontend tests. Prefer user-visible assertions by role/text/state,
+      not implementation selectors. Avoid fixed sleeps and brittle snapshots. Validate
+      unhappy paths, loading states, and accessibility-critical behavior when UI logic
+      changes.
+  - path: "**/*.py"
+    instructions: Python review. Flag broad except blocks, implicit network/file side
+      effects, untyped public functions, path traversal risks, nondeterministic temp-file
+      handling, dependency pin drift, missing timeouts, and tests that require live
+      services without explicit gating.
+  - path: ".github/workflows/**"
+    instructions: GitHub Actions review. Pin third-party actions to immutable SHAs
+      unless the repo explicitly documents tag-pinning; keep permissions minimal per
+      job; use concurrency for push/PR workflows; avoid secrets in command lines/logs;
+      keep required and non-blocking jobs clear; preserve tokenless OIDC upload patterns
+      where used; and flag any admin-bypass, force-push, destructive cleanup, or auto-merge
+      behavior that can mask a failed required check.
+  - path: "**/{Dockerfile,Containerfile,compose.yaml,compose.yml,docker-compose.yaml,docker-compose.yml}"
+    instructions: Container review. Check multi-stage build cacheability, minimal
+      runtime images, non-root execution where practical, healthchecks for long-running
+      services, explicit versions for infrastructure images, no baked secrets, and
+      alignment between compose ports, appsettings/env vars, and test infrastructure.
+  - path: "**/*.{md,mdx}"
+    instructions: 'Documentation review. Treat docs as executable team memory: flag
+      instructions that disagree with actual scripts, package versions, branch protection,
+      generated-file workflows, or repo layout. Keep AGENTS.md/CLAUDE.md rules coherent
+      with automation. Do not request cosmetic prose changes unless ambiguity would
+      mislead an agent or maintainer.'
+  - path: "**/*.{g.cs,g.ts,g.sql,g.tsp,Designer.cs,generated.*,snap}"
+    instructions: Generated-output discipline. Do not suggest hand-editing generated
+      files. If generated output is wrong or missing, identify the generator/source
+      input and require regeneration in the same PR. If source model changes without
+      matching generated artifacts, flag it.
+  - path: services/qyl.collector/**/*.cs
+    instructions: Collector/DuckDB/OTLP hot path. Writes must go through the repository
+      write gate/transaction pattern used by the repo; reads must use read-only leases.
+      Flag LINQ/allocation-heavy hot path changes, missing backpressure, incorrect
+      semantic-convention mapping, and endpoint behavior drifting from TypeSpec contracts.
+  - path: services/qyl.mcp/**/*.cs
+    instructions: MCP server tools. Tool registration should flow through source generators/attributes,
+      not manual duplicated registries. Tool methods need accurate schemas/descriptions,
+      lineage/depth limits where tools spawn investigations, and instrumentation around
+      JSON-RPC envelopes and tool errors.
+  - path: services/qyl.dashboard/**/*.{ts,tsx}
+    instructions: React dashboard. Enforce shared UI wrappers, accessible roles, strict
+      TypeScript, no direct fetch bypassing the API client, no waitForTimeout in tests,
+      and no visual regression in dense operational flows.
+  - path: eng/semconv/**
+    instructions: Semantic-convention source models. Model changes must regenerate
+      downstream C#/TS/SQL/TypeSpec/docs artifacts in the same PR. Stability values
+      must match official OTel states, and generated files must not be hand-edited.
+  - path: "**/*.cs"
+    instructions: |-
+      C#/.NET 9 / C# 14 (preview LangVersion). Review for: idiomatic patterns, proper async/await (no sync-over-async, no fire-and-forget without justification, no `.Result`/`.Wait()`), correct IDisposable/IAsyncDisposable (prefer IAsyncDisposable for async resources), null safety (no `null!`, no `#pragma warning disable`, no `[SuppressMessage]` — fix at source), sealed-by-default for non-public classes, file-scoped namespaces, primary constructors, required init properties, switch expressions, and pattern matching. TimeProvider for time (FakeTimeProvider in tests) — DateTime.UtcNow only in low-level perf code, never domain logic. Environment variables are UPPER_SNAKE_CASE.
+      ARCHITECTURAL INVARIANTS — flag violations as blocking: - Every new injectable service must register OpenTelemetry instrumentation (ActivitySource or Meter). - Every new DuckDB write path must handle backpressure (bounded channel or semaphore). - No hardcoded connection strings, paths, or magic strings — use IOptions<T> or IConfiguration. - No new dependencies on Sentry-specific types in core/ — Sentry is an optional backend, not the identity. - CancellationToken must be threaded through every async public/internal method.
+  - path: services/qyl.collector/Ingestion/**
+    instructions: 'OTLP ingestion — the hottest path in the system. Review for: correctness
+      of OpenTelemetry semantic convention usage (target v1.41.0), proper protobuf/gRPC
+      handling, backpressure and error handling on the ingest path, and DuckDB write
+      patterns. Flag unnecessary allocations, copies, or LINQ in hot paths. Prefer
+      Span<T> and ArrayPool where applicable.'
+  - path: services/qyl.loom*/**/*.cs
+    instructions: 'Loom autofix + exploration agents (MAF, Microsoft.Agents.AI 1.3.0).
+      qyl three-builder pattern: IXxxChatClientBuilder → IXxxAgentsBuilder → workflow.
+      Every Build*Agent() factory must double-wrap telemetry: (1) llm.AsAIAgent(...).AsBuilder().UseQylAgentTelemetry().Build()
+      on the AIAgent layer, AND (2) the IChatClient wrapped via .WithQylTelemetry(...)
+      or .UseQylTelemetry(...) on a ChatClientBuilder. Wrapping only one of the two
+      silently halves the OTel attributes. Agent runs via agent.RunAsync(...) (non-streaming)
+      or InProcessExecution.RunStreamingAsync + run.WatchStreamAsync (streaming workflows).
+      Local tools via AIFunctionFactory.Create with Name = "qyl.<area>.<verb>". Workflows
+      via WorkflowBuilder + .WithOutputFrom(...).Build(). Do not introduce raw new
+      ActivitySource(...) in agent code — telemetry routes through the GenAi facade
+      in internal/qyl.instrumentation/Instrumentation/GenAi/.'
+  - path: internal/qyl.instrumentation/**/*.cs
+    instructions: 'Composition-root telemetry facades. Review for: ActivitySource
+      ownership, correct span status mapping (both thrown exceptions AND silent CallToolResult.IsError
+      == true must surface), attribute keys via QylAttr.<Namespace>.<Name> from packages/Qyl.Telemetry/Conventions/Qyl.g.cs
+      (never raw strings), standard OTel keys via Qyl.OpenTelemetry.SemanticConventions{,Incubating}
+      (ServiceAttributes, HttpAttributes, …). Business filters chain AFTER the facade
+      — never replace the facade''s span emission with ad-hoc tracing.'
+  - path: packages/**/*.cs
+    instructions: Public NuGet surface. XML docs are required on every public/protected
+      member (intent, contracts, exception conditions — audience is external consumers).
+      No `null!`, no analyzer suppressions, no swallow-and-fallback. Avoid adding
+      new public API surface without an explicit reason in the PR description. Generated
+      files (Attributes/**/*.g.cs, Conventions/Qyl.g.cs) must not be hand-edited —
+      change the YAML model and re-run ./eng/semconv/run-weaver.sh or `nuke OtelConventions`.
+  - path: services/qyl.dashboard/tests/**
+    instructions: 'Playwright e2e tests. Review for: test isolation, proper async
+      patterns, meaningful assertions (not just "page loaded"), and that tests assert
+      behavior not implementation details. Flag flaky patterns — never page.waitForTimeout;
+      use page.waitForResponse / page.waitForSelector with specific selectors.'
+  - path: tests/**/*.cs
+    instructions: xUnit v3 with Microsoft Testing Platform (NOT xUnit v2). Run via
+      `dotnet test --project` — positional args don't work. TRX via --report-xunit-trx.
+      Use FakeChatClient (tests/qyl.collector.tests/Instrumentation/FakeChatClient.cs)
+      for IChatClient doubles — never hand-rolled Mock<IChatClient>. Use TimeProvider
+      / FakeTimeProvider for time. Pass TestContext.Current.CancellationToken into
+      helpers — never CancellationToken.None. Temp files via Path.Join(Path.GetTempPath(),
+      $"{Guid.NewGuid():N}.<ext>"); Path.GetTempFileName orphans a .tmp file every
+      call. IAsyncDisposable over IDisposable for async resources.
+  - path: eng/**
+    instructions: 'Build & deployment infrastructure (Nuke + Docker Compose). Top-level
+      orchestration via ./eng/build.sh <target> or `nuke <target>`; sub-targets are
+      .Unlisted(). Compose file lives at eng/compose.yaml (not the repo root). Review
+      for: correct MSBuild property usage, Nuke target dependencies, Docker multi-stage
+      build efficiency. Flag hardcoded paths, secrets, or platform-specific assumptions.'
+  - path: eng/semconv/model/qyl/**/*.yaml
+    instructions: 'OpenTelemetry semantic conventions YAML. Review for: correct group
+      types (span / metric / event / entity / attribute_group), explicit stability
+      values from the official set (development / alpha / beta / release_candidate
+      / stable — never "mixed", never "deprecated" as a stability state — `deprecated`
+      is a separate property). Every model change must ship together with the regenerated
+      downstream artefacts (./eng/semconv/run-weaver.sh AND nuke OtelConventions)
+      — *.g.cs / *.g.ts / *.g.sql / *.g.tsp / *.g.md outputs in the same commit as
+      the source.'
+  - path: core/specs/**/*.tsp
+    instructions: TypeSpec API contracts. Regeneration via `nuke Generate` (patched
+      by core/specs/scripts/patch-emitted-csharp.mjs). Endpoint implementations must
+      track decorators — declared NotFoundError → TypedResults.NotFound(); pagination
+      default/max read from the spec, not re-hardcoded. Generated outputs ship with
+      the source change.
+  - path: ".github/**"
+    instructions: GitHub Actions workflows. Pin actions by SHA, never floating tags.
+      No secrets in logs. Flag missing concurrency groups on push-triggered workflows,
+      unnecessary triggers, and job dependency mistakes.
   abort_on_close: true
-  disable_cache: true               # 2026: always fetch fresh code & deps
-
-  # 2026-03: anti-slop spam/low-quality AI-PR detection. Free on GitHub.
+  disable_cache: true
   slop_detection:
     enabled: true
-    label: 'review:slop'
-
-  # ─── Labeling ────────────────────────────────────────────────────────
-  labeling_instructions:
-    - label: 'area:dashboard'
-      instructions: 'Apply when the PR modifies files under services/qyl.dashboard/.'
-    - label: 'area:ingestion'
-      instructions: 'Apply when the PR modifies the OTLP ingestion pipeline under services/qyl.collector/Ingestion/.'
-    - label: 'area:mcp'
-      instructions: 'Apply when the PR modifies MCP server code under services/qyl.mcp/.'
-    - label: 'area:agents'
-      instructions: 'Apply when the PR modifies services/qyl.loom/, services/qyl.loom.patterns/, or services/qyl.mcp/Agents/.'
-    - label: 'area:telemetry'
-      instructions: 'Apply when the PR modifies internal/qyl.instrumentation/, packages/Qyl.Telemetry/, packages/Qyl.OpenTelemetry.*, or eng/semconv/.'
-    - label: 'area:storage'
-      instructions: 'Apply when the PR modifies services/qyl.collector/Storage/, DuckDB write paths, or promoted-columns SQL generation.'
-    - label: 'area:infra'
-      instructions: 'Apply when the PR modifies eng/, .github/, Dockerfiles, or build infrastructure.'
-    - label: 'breaking'
-      instructions: 'Apply when the PR introduces breaking changes to public APIs, MCP tool schemas, or storage format.'
-    - label: 'review:slop'
-      instructions: 'Auto-applied by reviews.slop_detection when AI-generated low-quality patterns are detected. Do not apply manually.'
-  auto_apply_labels: true
-
-  # ─── File scope ──────────────────────────────────────────────────────
-  # Excludes-only: CodeRabbit reviews everything outside these patterns.
-  # The previous positive-include list was misleading (the actual code lives
-  # under services/, internal/, packages/) and only worked because positive
-  # globs in CodeRabbit are "override a default exclusion", not whitelist.
-  path_filters:
-    - '!**/*.g.cs'
-    - '!**/*.g.ts'
-    - '!**/*.g.sql'
-    - '!**/*.g.tsp'
-    - '!**/*.Designer.cs'
-    - '!**/Generated/**'
-    - '!**/generated/**'
-    - '!**/bin/**'
-    - '!**/obj/**'
-    - '!**/dist/**'
-    - '!**/node_modules/**'
-    - '!**/wwwroot/lib/**'
-    - '!**/*.min.js'
-    - '!**/*.min.css'
-    - '!**/package-lock.json'
-    - '!**/pnpm-lock.yaml'
-    - '!**/yarn.lock'
-    - '!**/*.snap'
-    - '!Artifacts/**'
-    - '!.tools/**'
-    - '!**/coverage/**'
-
-  # ─── Path instructions ──────────────────────────────────────────────
-  path_instructions:
-    - path: '**/*.cs'
-      instructions: >-
-        C#/.NET 9 / C# 14 (preview LangVersion). Review for: idiomatic patterns, proper async/await
-        (no sync-over-async, no fire-and-forget without justification, no `.Result`/`.Wait()`),
-        correct IDisposable/IAsyncDisposable (prefer IAsyncDisposable for async resources), null
-        safety (no `null!`, no `#pragma warning disable`, no `[SuppressMessage]` — fix at source),
-        sealed-by-default for non-public classes, file-scoped namespaces, primary constructors,
-        required init properties, switch expressions, and pattern matching. TimeProvider for time
-        (FakeTimeProvider in tests) — DateTime.UtcNow only in low-level perf code, never domain logic.
-        Environment variables are UPPER_SNAKE_CASE.
-
-        ARCHITECTURAL INVARIANTS — flag violations as blocking:
-        - Every new injectable service must register OpenTelemetry instrumentation (ActivitySource or Meter).
-        - Every new DuckDB write path must handle backpressure (bounded channel or semaphore).
-        - No hardcoded connection strings, paths, or magic strings — use IOptions<T> or IConfiguration.
-        - No new dependencies on Sentry-specific types in core/ — Sentry is an optional backend, not the identity.
-        - CancellationToken must be threaded through every async public/internal method.
-
-    - path: 'services/qyl.collector/**/*.cs'
-      instructions: >-
-        Collector service — DuckDB-backed storage + OTLP ingest + analytics endpoints. Every UPDATE /
-        INSERT / DELETE / CREATE / ALTER must run inside DuckDbStore.ExecuteWriteAsync(async
-        (connection, ct) => …, ct). Reads must use GetReadConnectionAsync(ct) which returns a
-        READ_ONLY lease — writes through a read lease are defects, not workarounds. Endpoint
-        implementations under **Endpoints.cs track core/specs/api/routes.tsp — spec declares
-        NotFoundError → return TypedResults.NotFound() (no 200-with-empty-array); pagination
-        default/max come from the spec.
-
-    - path: 'services/qyl.collector/Ingestion/**'
-      instructions: >-
-        OTLP ingestion — the hottest path in the system. Review for: correctness of OpenTelemetry
-        semantic convention usage (target v1.41.0), proper protobuf/gRPC handling, backpressure
-        and error handling on the ingest path, and DuckDB write patterns. Flag unnecessary
-        allocations, copies, or LINQ in hot paths. Prefer Span<T> and ArrayPool where applicable.
-
-    - path: 'services/qyl.mcp/**/*.cs'
-      instructions: >-
-        MCP server implementation. Tools register via [QylSkill] + [QylCapability] — the
-        internal/qyl.mcp.generators source generator emits the registration; manual MCP
-        registration drifts. Tool classes are `partial`, every [McpServerTool] method is `partial`
-        (sibling [Description] partials are emitted from XML <summary>/<param> by
-        ModelContextProtocol.Analyzers — never hand-roll [Description]; MCP002 flags it). Use
-        TaskSupport.Required for side-effect pipelines and TaskSupport.Optional for agent-invoking
-        meta-tools / long-form searches. Tool envelopes use Task<LoomToolEnvelope<T>> with
-        LoomToolEnvelope.Ok(data) / LoomToolEnvelope.Fail<T>(error). Tools that spawn
-        sub-investigations must call InvestigationLineage.TryEnter() before any work (depth 3,
-        spawn 10). Every IMcpServerBuilder composition root MUST call
-        .UseQylMcpInstrumentation(activitySource, options => options.Transport = "http"|"stdio")
-        immediately after the transport — without it, JSON-RPC envelope spans and silent
-        CallToolResult.IsError mapping are lost. RecordInputs/RecordOutputs are OFF by default —
-        opt-in requires an explicit non-PII justification.
-
-    - path: 'services/qyl.loom*/**/*.cs'
-      instructions: >-
-        Loom autofix + exploration agents (MAF, Microsoft.Agents.AI 1.3.0). qyl three-builder
-        pattern: IXxxChatClientBuilder → IXxxAgentsBuilder → workflow. Every Build*Agent() factory
-        must double-wrap telemetry: (1) llm.AsAIAgent(...).AsBuilder().UseQylAgentTelemetry().Build()
-        on the AIAgent layer, AND (2) the IChatClient wrapped via .WithQylTelemetry(...) or
-        .UseQylTelemetry(...) on a ChatClientBuilder. Wrapping only one of the two silently halves
-        the OTel attributes. Agent runs via agent.RunAsync(...) (non-streaming) or
-        InProcessExecution.RunStreamingAsync + run.WatchStreamAsync (streaming workflows). Local
-        tools via AIFunctionFactory.Create with Name = "qyl.<area>.<verb>". Workflows via
-        WorkflowBuilder + .WithOutputFrom(...).Build(). Do not introduce raw new ActivitySource(...)
-        in agent code — telemetry routes through the GenAi facade in
-        internal/qyl.instrumentation/Instrumentation/GenAi/.
-
-    - path: 'internal/qyl.instrumentation/**/*.cs'
-      instructions: >-
-        Composition-root telemetry facades. Review for: ActivitySource ownership, correct span
-        status mapping (both thrown exceptions AND silent CallToolResult.IsError == true must
-        surface), attribute keys via QylAttr.<Namespace>.<Name> from
-        packages/Qyl.Telemetry/Conventions/Qyl.g.cs (never raw strings), standard OTel keys via
-        Qyl.OpenTelemetry.SemanticConventions{,Incubating} (ServiceAttributes, HttpAttributes, …).
-        Business filters chain AFTER the facade — never replace the facade's span emission with
-        ad-hoc tracing.
-
-    - path: 'packages/**/*.cs'
-      instructions: >-
-        Public NuGet surface. XML docs are required on every public/protected member (intent,
-        contracts, exception conditions — audience is external consumers). No `null!`, no analyzer
-        suppressions, no swallow-and-fallback. Avoid adding new public API surface without an
-        explicit reason in the PR description. Generated files (Attributes/**/*.g.cs,
-        Conventions/Qyl.g.cs) must not be hand-edited — change the YAML model and re-run
-        ./eng/semconv/run-weaver.sh or `nuke OtelConventions`.
-
-    - path: 'services/qyl.dashboard/**/*.{ts,tsx}'
-      instructions: >-
-        React/TypeScript dashboard (Vite + Tailwind). Review for: single-responsibility components,
-        proper hook usage (no hooks in conditionals, correct dependency arrays), TypeScript
-        strictness (no `any` without a comment), and accessibility (assert on accessible roles, not
-        data-testid). ESLint config BANS direct @radix-ui/* imports and the asChild / Slot pattern —
-        primitives go through src/components/ui/ wrappers. argsIgnorePattern: '^_' — prefix unused
-        args with `_`. Flag any direct fetch() that bypasses the shared API client.
-
-    - path: 'services/qyl.dashboard/tests/**'
-      instructions: >-
-        Playwright e2e tests. Review for: test isolation, proper async patterns, meaningful
-        assertions (not just "page loaded"), and that tests assert behavior not implementation
-        details. Flag flaky patterns — never page.waitForTimeout; use page.waitForResponse /
-        page.waitForSelector with specific selectors.
-
-    - path: 'tests/**/*.cs'
-      instructions: >-
-        xUnit v3 with Microsoft Testing Platform (NOT xUnit v2). Run via `dotnet test --project`
-        — positional args don't work. TRX via --report-xunit-trx. Use FakeChatClient
-        (tests/qyl.collector.tests/Instrumentation/FakeChatClient.cs) for IChatClient doubles —
-        never hand-rolled Mock<IChatClient>. Use TimeProvider / FakeTimeProvider for time. Pass
-        TestContext.Current.CancellationToken into helpers — never CancellationToken.None. Temp
-        files via Path.Join(Path.GetTempPath(), $"{Guid.NewGuid():N}.<ext>"); Path.GetTempFileName
-        orphans a .tmp file every call. IAsyncDisposable over IDisposable for async resources.
-
-    - path: 'eng/**'
-      instructions: >-
-        Build & deployment infrastructure (Nuke + Docker Compose). Top-level orchestration via
-        ./eng/build.sh <target> or `nuke <target>`; sub-targets are .Unlisted(). Compose file lives
-        at eng/compose.yaml (not the repo root). Review for: correct MSBuild property usage, Nuke
-        target dependencies, Docker multi-stage build efficiency. Flag hardcoded paths, secrets, or
-        platform-specific assumptions.
-
-    - path: 'eng/semconv/model/qyl/**/*.yaml'
-      instructions: >-
-        OpenTelemetry semantic conventions YAML. Review for: correct group types (span / metric /
-        event / entity / attribute_group), explicit stability values from the official set
-        (development / alpha / beta / release_candidate / stable — never "mixed", never
-        "deprecated" as a stability state — `deprecated` is a separate property). Every model
-        change must ship together with the regenerated downstream artefacts
-        (./eng/semconv/run-weaver.sh AND nuke OtelConventions) — *.g.cs / *.g.ts / *.g.sql /
-        *.g.tsp / *.g.md outputs in the same commit as the source.
-
-    - path: 'core/specs/**/*.tsp'
-      instructions: >-
-        TypeSpec API contracts. Regeneration via `nuke Generate` (patched by
-        core/specs/scripts/patch-emitted-csharp.mjs). Endpoint implementations must track
-        decorators — declared NotFoundError → TypedResults.NotFound(); pagination default/max read
-        from the spec, not re-hardcoded. Generated outputs ship with the source change.
-
-    - path: '.github/**'
-      instructions: >-
-        GitHub Actions workflows. Pin actions by SHA, never floating tags. No secrets in logs. Flag
-        missing concurrency groups on push-triggered workflows, unnecessary triggers, and job
-        dependency mistakes.
-
-  # ─── Auto review ────────────────────────────────────────────────────
+    label: review:slop
   auto_review:
     enabled: true
+    description_keyword: "@coderabbitai review"
     auto_incremental_review: true
     auto_pause_after_reviewed_commits: 0
-    drafts: true                      # max coverage — review drafts too
     ignore_title_keywords:
-      - '[skip review]'               # explicit opt-out only — deps & WIP still reviewed
-    ignore_usernames:
-      - 'renovate[bot]'
-
-  # ─── Finishing touches ──────────────────────────────────────────────
-  # All finishing touches are OPT-IN — triggered via the walkthrough checkbox
-  # or `@coderabbitai <verb>` / `@coderabbitai run <custom-name>` comment.
-  # `enabled: true` makes them AVAILABLE; `enabled: false` removes the
-  # trigger entirely. Custom recipes are GitHub + Pro+.
+    - "[skip review]"
+    labels: []
+    drafts: true
+    base_branches:
+    - ".*"
+    ignore_usernames: []
   finishing_touches:
     docstrings:
       enabled: true
@@ -278,353 +305,451 @@ reviews:
     simplify:
       enabled: true
     custom:
-      - enabled: true
-        name: 'add qyl telemetry'
-        instructions: >-
-          For any new injectable service introduced in this PR under services/qyl.collector/**/*.cs,
-          services/qyl.loom*/**/*.cs, or services/qyl.mcp/**/*.cs that lacks an ActivitySource or
-          Meter, add the appropriate instrumentation following qyl's local facades in
-          internal/qyl.instrumentation/Instrumentation/. Reach for typed attribute keys from
-          packages/Qyl.Telemetry/Conventions/Qyl.g.cs (QylAttr.<Namespace>.<Name>) over string
-          literals. For standard OTel attributes use the constants in
-          Qyl.OpenTelemetry.SemanticConventions{,Incubating} (ServiceAttributes, HttpAttributes, …) —
-          never raw strings.
-      - enabled: true
-        name: 'bound mcp response'
-        instructions: >-
-          For any MCP tool added or modified in services/qyl.mcp/**/*.cs that returns a collection
-          or could fan out into one, add or verify a `limit` parameter with a sensible default
-          (typically 10..100) and clamp it. Tools must not return unbounded data. Tools that spawn
-          sub-investigations must call InvestigationLineage.TryEnter() before any work. Tool result
-          envelopes use Task<LoomToolEnvelope<T>> return types and the LoomToolEnvelope.Ok(data) /
-          LoomToolEnvelope.Fail<T>(error) helpers for construction.
-      - enabled: true
-        name: 'duckdb write path'
-        instructions: >-
-          For any new or modified write to DuckDB in
-          services/qyl.collector/{Storage,Workflows,AgentRuns,Errors,Alerts,Insights,Ingestion}/,
-          ensure the write happens inside
-          DuckDbStore.ExecuteWriteAsync(async (connection, ct) => …, ct). Reads must go through
-          GetReadConnectionAsync(ct) which returns a READ_ONLY lease — UPDATE/INSERT/DELETE through
-          a read lease is a defect, not a workaround. Flag any write that bypasses ExecuteWriteAsync.
-      - enabled: true
-        name: 'thread cancellation'
-        instructions: >-
-          For every async public or internal method added or modified in this PR that lacks a
-          CancellationToken parameter, add one (matching project style — typically `cancellationToken`
-          or `ct`) and thread it through every downstream await. xUnit v3 tests pass
-          TestContext.Current.CancellationToken into helpers — never CancellationToken.None. Do not
-          swallow OperationCanceledException without an explicit reason.
-      - enabled: true
-        name: 'maf telemetry double wrap'
-        instructions: >-
-          For every AIAgent constructed in this PR (services/qyl.loom*/Agents/,
-          services/qyl.mcp/Agents/), verify BOTH layers of telemetry decoration are present:
-          (1) the IChatClient is wrapped via .WithQylTelemetry(...) or .UseQylTelemetry(...) on the
-          ChatClientBuilder, AND (2) the AIAgent is wrapped via
-          .AsBuilder().UseQylAgentTelemetry().Build(). Wrapping only one layer silently drops
-          roughly half the OTel spans and attributes. See qyl/AGENTS.md MAF entry-point cheat sheet.
-
-  # ─── Pre-merge checks ──────────────────────────────────────────────
-  # Hard gates. `override_requested_reviewers_only: true` means the author
-  # cannot wave through their own failing checks — only requested reviewers can.
+    - enabled: true
+      name: architecture hardening
+      instructions: Refactor only changed code where doing so removes meaningful duplication,
+        hidden fallback paths, tangled responsibilities, or brittle coupling. Preserve
+        behavior unless the PR explicitly changes it. Prefer deleting bad indirection
+        over adding wrappers. Include tests or note exactly why no test can cover
+        the improvement.
+    - enabled: true
+      name: security pass
+      instructions: Inspect the PR for secrets, injection risk, path traversal, unsafe
+        deserialization, authz/authn drift, overbroad logging, unsafe dependency changes,
+        and CI token permission expansion. Apply minimal fixes directly when safe;
+        otherwise leave precise comments.
+    - enabled: true
+      name: test gap closure
+      instructions: Generate focused tests for changed behavior and edge cases. Prefer
+        existing test frameworks and fixtures. Do not create broad snapshot churn
+        or tests that merely assert implementation details. Include regression tests
+        for bugs and riskier boundary changes.
+    - enabled: true
+      name: docs and changelog alignment
+      instructions: Update docs, README, AGENTS/CLAUDE guidance, generated reference
+        docs, and changelog entries only where the PR changes user-visible behavior,
+        public contracts, workflows, or agent instructions. Keep entries concise and
+        consistent with repo rules.
+    - enabled: true
+      name: performance and allocation pass
+      instructions: Review changed hot paths for avoidable allocations, repeated parsing,
+        unbounded concurrency, N+1 calls, missing streaming/backpressure, and inefficient
+        data structures. Apply low-risk improvements with tests or benchmarks where
+        the repo already has them.
   pre_merge_checks:
     override_requested_reviewers_only: true
     docstrings:
-      mode: 'off'
+      mode: warning
+      threshold: 75
     title:
       mode: error
-      requirements: >-
-        Use conventional commits format with area prefix (feat, fix, refactor, chore, docs, test, ci).
-        Include scope in parentheses. Keep under 72 characters. No trailing period.
-        Examples: feat(dashboard): add trace waterfall view, fix(ingestion): handle null span attributes
+      requirements: Conventional commits with an area scope; under 72 characters;
+        no trailing punctuation; accurately names the highest-impact change.
     description:
       mode: error
     issue_assessment:
-      mode: error
+      mode: warning
     custom_checks:
-      - name: 'OTel instrumentation required'
-        mode: error
-        instructions: >-
-          If this PR adds a new injectable service class (any class registered in DI), verify that
-          it registers an ActivitySource or Meter for OpenTelemetry instrumentation. A new service
-          without OTel instrumentation is a gap in observability. Pass if: no new services added,
-          or all new services have instrumentation. Fail if: a new service is registered but has
-          no corresponding ActivitySource/Meter.
-      - name: 'No unbounded MCP responses'
-        mode: error
-        instructions: >-
-          If this PR adds or modifies MCP tool definitions (under services/qyl.mcp/), verify that
-          every tool returning a collection includes a clamped `limit` parameter or pagination
-          mechanism. Pass if: no MCP tool changes, or all collection-returning tools are bounded.
-          Fail if: a tool can return an unbounded list.
-      - name: 'DuckDB writes via ExecuteWriteAsync'
-        mode: error
-        instructions: >-
-          If this PR modifies
-          services/qyl.collector/{Storage,Workflows,AgentRuns,Errors,Alerts,Insights,Ingestion}/,
-          verify that every UPDATE/INSERT/DELETE/CREATE/ALTER statement runs inside
-          DuckDbStore.ExecuteWriteAsync(async (connection, ct) => …, ct) and not through a
-          GetReadConnectionAsync lease (READ_ONLY). Pass if: no store changes, or every write
-          statement is inside ExecuteWriteAsync. Fail if: a write executes against a read lease.
-      - name: 'CancellationToken threaded through async methods'
-        mode: error
-        instructions: >-
-          If this PR adds or modifies public/internal async methods, verify each accepts a
-          CancellationToken parameter (named `cancellationToken` or `ct` per project style) and
-          threads it through every downstream await. Pass if: no async signature changes, or every
-          new/changed async method accepts and forwards a CancellationToken. Fail if: an async
-          method silently uses CancellationToken.None or skips forwarding.
-      - name: 'MAF telemetry — both layers wrapped'
-        mode: error
-        instructions: >-
-          If this PR constructs an AIAgent (services/qyl.loom*/Agents/, services/qyl.mcp/Agents/),
-          verify BOTH the IChatClient (.WithQylTelemetry / .UseQylTelemetry on the builder) AND the
-          AIAgent (.AsBuilder().UseQylAgentTelemetry().Build()) are decorated. Wrapping one and not
-          the other halves OTel coverage. Pass if: no agent construction added, or both layers are
-          wrapped. Fail if: only one layer is wrapped.
-      - name: 'Generated artefacts ship with their source'
-        mode: error
-        instructions: >-
-          If this PR modifies any *.g.cs / *.g.ts / *.g.sql / *.g.tsp / *.g.md file, the source must
-          also change in the same PR (core/specs/**/*.tsp, eng/semconv/model/**/*.yaml, or a Roslyn
-          source generator input). Conversely, if a TypeSpec/semconv source changes, the regenerated
-          artefacts must also be present. Pass if: every generated change has a matching source
-          change and vice versa. Fail if: generated files appear hand-edited or source changes lack
-          regenerated outputs.
-      - name: 'No analyzer suppression'
-        mode: error
-        instructions: >-
-          Flag any new `#pragma warning disable`, `[SuppressMessage]`, `<NoWarn>` MSBuild addition,
-          or `null!` introduced by this PR in production code (non-test). The codebase fixes at
-          source rather than suppressing. Pass if: no new suppressions introduced. Fail if: a new
-          suppression is added without a tracking comment justifying it.
-
-  # ─── Tools ──────────────────────────────────────────────────────────
-  # Schema default for every tool is enabled:true. We pin the enabled set
-  # explicitly so a schema bump does not quietly flip an irrelevant linter on.
+    - mode: error
+      name: No Secrets Or PII
+      instructions: 'Pass/fail criteria: fail if the PR adds secrets, tokens, credentials,
+        private keys, real user data, personal data, API keys, connection strings,
+        or logs that expose sensitive request/response bodies. Test placeholders are
+        allowed only when obviously synthetic and documented.'
+    - mode: error
+      name: Generated Files Regenerated
+      instructions: 'Pass/fail criteria: if a source schema/model/template/generator
+        input changes, all generated downstream files required by the repository must
+        be updated in the same PR. Fail if generated files appear hand-edited without
+        the source generator/input change, or if generated output is missing after
+        source-model changes.'
+    - mode: error
+      name: Async And Cancellation Safe
+      instructions: 'Pass/fail criteria: fail C#/TS/Python changes that introduce
+        sync-over-async, unobserved fire-and-forget work, missing CancellationToken/AbortSignal
+        propagation on public/internal async boundaries, sleeps for synchronization,
+        or resource disposal paths that can drop in-flight work.'
+    - mode: error
+      name: Public Contract Documented
+      instructions: 'Pass/fail criteria: fail if public APIs, endpoint schemas, CLI
+        flags, config keys, package surfaces, storage formats, event schemas, MCP
+        tool schemas, or generated contracts change without matching docs/tests and
+        explicit compatibility notes in the PR description or changelog where the
+        repo uses one.'
+    - mode: error
+      name: CI Release Safety
+      instructions: 'Pass/fail criteria: fail workflow/build/release changes that
+        reduce required validation, introduce admin bypasses, broaden token permissions
+        without justification, leak secrets, remove concurrency where needed, make
+        publish steps run on the wrong trigger, or allow failed required checks to
+        be ignored.'
+    - mode: warning
+      name: Tests Match Risk
+      instructions: 'Pass/fail criteria: warn when production behavior changes without
+        focused tests or when tests only assert implementation details. Require integration/e2e
+        coverage for persistence, queues, external-service boundaries, generated contracts,
+        migrations, or user-visible workflows touched by the PR.'
+    - mode: warning
+      name: No Copy Paste Tables
+      instructions: 'Pass/fail criteria: warn when a PR introduces hardcoded repetitive
+        case lists, hand-maintained mapping tables, duplicate switch branches, or
+        parallel arrays where a data-driven or generated structure would be more maintainable.
+        Do not warn for small explicit protocol enums or tests where duplication clarifies
+        cases.'
+    - mode: warning
+      name: No Hidden Fallback Path
+      instructions: 'Pass/fail criteria: warn when code catches and silently falls
+        back, adds compatibility wrappers, duplicate implementation paths, or default
+        behavior that hides upstream failure unless the fallback is a documented product
+        requirement with tests for both paths.'
+    - mode: warning
+      name: Observability Boundary
+      instructions: 'Pass/fail criteria: warn when new services, background jobs,
+        queues, network clients, storage writers, MCP tools, or agent workflows lack
+        structured logging, tracing/metrics where the repository already uses them,
+        or actionable error context.'
+    - mode: warning
+      name: Dependency Hygiene
+      instructions: 'Pass/fail criteria: warn when dependencies are added without
+        clear need, version pins drift from central package files, lockfile changes
+        do not match manifest changes, transitive security-sensitive packages are
+        introduced, or package manager conventions are violated.'
+    - name: OTel instrumentation required
+      mode: error
+      instructions: 'If this PR adds a new injectable service class (any class registered
+        in DI), verify that it registers an ActivitySource or Meter for OpenTelemetry
+        instrumentation. A new service without OTel instrumentation is a gap in observability.
+        Pass if: no new services added, or all new services have instrumentation.
+        Fail if: a new service is registered but has no corresponding ActivitySource/Meter.'
+    - name: No unbounded MCP responses
+      mode: error
+      instructions: 'If this PR adds or modifies MCP tool definitions (under services/qyl.mcp/),
+        verify that every tool returning a collection includes a clamped `limit` parameter
+        or pagination mechanism. Pass if: no MCP tool changes, or all collection-returning
+        tools are bounded. Fail if: a tool can return an unbounded list.'
+    - name: DuckDB writes via ExecuteWriteAsync
+      mode: error
+      instructions: 'If this PR modifies services/qyl.collector/{Storage,Workflows,AgentRuns,Errors,Alerts,Insights,Ingestion}/,
+        verify that every UPDATE/INSERT/DELETE/CREATE/ALTER statement runs inside
+        DuckDbStore.ExecuteWriteAsync(async (connection, ct) => …, ct) and not through
+        a GetReadConnectionAsync lease (READ_ONLY). Pass if: no store changes, or
+        every write statement is inside ExecuteWriteAsync. Fail if: a write executes
+        against a read lease.'
+    - name: CancellationToken threaded through async methods
+      mode: error
+      instructions: 'If this PR adds or modifies public/internal async methods, verify
+        each accepts a CancellationToken parameter (named `cancellationToken` or `ct`
+        per project style) and threads it through every downstream await. Pass if:
+        no async signature changes, or every new/changed async method accepts and
+        forwards a CancellationToken. Fail if: an async method silently uses CancellationToken.None
+        or skips forwarding.'
+    - name: MAF telemetry — both layers wrapped
+      mode: error
+      instructions: 'If this PR constructs an AIAgent (services/qyl.loom*/Agents/,
+        services/qyl.mcp/Agents/), verify BOTH the IChatClient (.WithQylTelemetry
+        / .UseQylTelemetry on the builder) AND the AIAgent (.AsBuilder().UseQylAgentTelemetry().Build())
+        are decorated. Wrapping one and not the other halves OTel coverage. Pass if:
+        no agent construction added, or both layers are wrapped. Fail if: only one
+        layer is wrapped.'
+    - name: Generated artefacts ship with their source
+      mode: error
+      instructions: 'If this PR modifies any *.g.cs / *.g.ts / *.g.sql / *.g.tsp /
+        *.g.md file, the source must also change in the same PR (core/specs/**/*.tsp,
+        eng/semconv/model/**/*.yaml, or a Roslyn source generator input). Conversely,
+        if a TypeSpec/semconv source changes, the regenerated artefacts must also
+        be present. Pass if: every generated change has a matching source change and
+        vice versa. Fail if: generated files appear hand-edited or source changes
+        lack regenerated outputs.'
+    - name: No analyzer suppression
+      mode: error
+      instructions: 'Flag any new `#pragma warning disable`, `[SuppressMessage]`,
+        `<NoWarn>` MSBuild addition, or `null!` introduced by this PR in production
+        code (non-test). The codebase fixes at source rather than suppressing. Pass
+        if: no new suppressions introduced. Fail if: a new suppression is added without
+        a tracking comment justifying it.'
   tools:
-    # KEEP — relevant to C#/.NET + TypeScript/React + infrastructure
     ast-grep:
       essential_rules: true
-    biome:
-      enabled: true                   # TS/React linting and formatting
-    markdownlint:
-      enabled: true                   # docs, CLAUDE.md, workflow docs
-    hadolint:
-      enabled: true                   # Dockerfiles
     shellcheck:
-      enabled: true                   # shell scripts in eng/
-    gitleaks:
-      enabled: true                   # secret scanning — always on
-    actionlint:
-      enabled: true                   # GitHub Actions workflow validation
+      enabled: true
+    ruff:
+      enabled: true
+    markdownlint:
+      enabled: true
     github-checks:
       enabled: true
-      timeout_ms: 900000              # 15 min — schema max; CI has room
-    # 2026-05: Microsoft Presidio analyzer — PII detection. Relevant for qyl
-    # since telemetry payloads + agent traces flow through this codebase and
-    # could leak credit-card / SSN / email fragments via user-supplied input.
+      timeout_ms: 900000
+    languagetool:
+      enabled: true
+      level: picky
+    biome:
+      enabled: true
+    hadolint:
+      enabled: true
+    swiftlint:
+      enabled: false
+    phpstan:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpcs:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    checkov:
+      enabled: true
+    tflint:
+      enabled: false
+    detekt:
+      enabled: false
+    eslint:
+      enabled: true
+    flake8:
+      enabled: true
+    fortitudeLint:
+      enabled: false
+    rubocop:
+      enabled: false
+    buf:
+      enabled: false
+    regal:
+      enabled: false
+    actionlint:
+      enabled: true
+    pmd:
+      enabled: false
+    clang:
+      enabled: false
+    cppcheck:
+      enabled: false
+    opengrep:
+      enabled: true
+    semgrep:
+      enabled: true
+    circleci:
+      enabled: false
+    clippy:
+      enabled: false
+    sqlfluff:
+      enabled: true
+    trivy:
+      enabled: true
+    prismaLint:
+      enabled: false
+    pylint:
+      enabled: true
+    oxc:
+      enabled: true
+    shopifyThemeCheck:
+      enabled: false
+    luacheck:
+      enabled: false
+    brakeman:
+      enabled: false
+    dotenvLint:
+      enabled: false
+    htmlhint:
+      enabled: true
+    stylelint:
+      enabled: true
+    checkmake:
+      enabled: false
+    osvScanner:
+      enabled: true
     presidio:
       enabled: true
-
-    # DISABLE — ecosystems not in this repo
-    languagetool:
-      enabled: false                  # grammar checker — noise in code reviews
-    ruff:
-      enabled: false                  # Python
-    golangci-lint:
-      enabled: false                  # Go
-    phpstan:
-      enabled: false                  # PHP
-    phpmd:
-      enabled: false                  # PHP
-    phpcs:
-      enabled: false                  # PHP
-    swiftlint:
-      enabled: false                  # Swift
-    detekt:
-      enabled: false                  # Kotlin
-    pmd:
-      enabled: false                  # Java
-    semgrep:
-      enabled: false                  # broad SAST — noisy, revisit later
-    opengrep:
-      enabled: false                  # broad SAST
-    trufflehog:
-      enabled: false                  # redundant with gitleaks (Betterleaks)
-    checkov:
-      enabled: false                  # Terraform/IaC
-    tflint:
-      enabled: false                  # Terraform
-    eslint:
-      enabled: false                  # using biome
-    flake8:
-      enabled: false                  # Python
-    fortitudeLint:
-      enabled: false                  # Fortran
-    rubocop:
-      enabled: false                  # Ruby
-    buf:
-      enabled: false                  # qyl consumes OTel protos, doesn't author them
-    regal:
-      enabled: false                  # Rego/OPA
-    clang:
-      enabled: false                  # C/C++
-    cppcheck:
-      enabled: false                  # C/C++
-    circleci:
-      enabled: false                  # using GitHub Actions
-    clippy:
-      enabled: false                  # Rust
-    sqlfluff:
-      enabled: false                  # DuckDB queries live in C#, not .sql
-    trivy:
-      enabled: false                  # IaC security — enable on K8s manifests
-    prismaLint:
-      enabled: false                  # Prisma ORM
-    pylint:
-      enabled: false                  # Python
-    oxc:
-      enabled: false                  # JS/TS — using biome
-    shopifyThemeCheck:
-      enabled: false                  # Shopify
-    luacheck:
-      enabled: false                  # Lua
-    brakeman:
-      enabled: false                  # Ruby on Rails
-    dotenvLint:
-      enabled: false                  # .env files
-    htmlhint:
-      enabled: false                  # raw HTML — dashboard is React/JSX
-    stylelint:
-      enabled: false                  # CSS — using Tailwind utilities
-    checkmake:
-      enabled: false                  # Makefiles — using Nuke
-    osvScanner:
-      enabled: false                  # revisit when shipping to prod
     blinter:
-      enabled: false                  # Windows batch files
-    yamllint:
-      enabled: false                  # too noisy on config files
+      enabled: false
+    smartyLint:
+      enabled: false
+    emberTemplateLint:
+      enabled: false
     psscriptanalyzer:
-      enabled: false                  # PowerShell
-
-# ─── Chat ─────────────────────────────────────────────────────────────
+      enabled: true
 chat:
-  auto_reply: true
   art: false
-  allow_non_org_members: false        # restrict @coderabbitai chat to org members
+  allow_non_org_members: false
+  auto_reply: true
   integrations:
     jira:
       usage: disabled
     linear:
       usage: disabled
-
-# ─── Knowledge Base ───────────────────────────────────────────────────
 knowledge_base:
   opt_out: false
   web_search:
     enabled: true
-  learnings:
-    scope: auto
-  issues:
-    scope: auto
-  pull_requests:
-    scope: auto
   code_guidelines:
     enabled: true
-    # Schema uses camelCase here — filePatterns, NOT file_patterns
     filePatterns:
-      - 'CLAUDE.md'
-      - 'AGENTS.md'
-      - '**/CLAUDE.md'
-      - '**/AGENTS.md'
-      - '**/.claude/qyl-workflows/*.md'
-      - '.editorconfig'
-      - 'Version.props'
-      - 'Directory.Packages.props'
-      - 'Directory.Build.props'
-      - 'eng/semconv/model/qyl/**/*.yaml'
-      - 'core/specs/api/routes.tsp'
+    - CLAUDE.md
+    - AGENTS.md
+    - "**/CLAUDE.md"
+    - "**/AGENTS.md"
+    - ".editorconfig"
+    - README.md
+    - docs/**/*.md
+    - Directory.Build.props
+    - Directory.Packages.props
+    - global.json
+    - package.json
+    - pnpm-workspace.yaml
+    - Version.props
+  learnings:
+    scope: global
+  issues:
+    scope: global
   jira:
     usage: disabled
   linear:
     usage: disabled
+  pull_requests:
+    scope: global
   mcp:
-    usage: enabled                    # explicit MCP knowledge sources
-  # 2026: cross-repo dependency awareness. ANcpLua.Agents is consumed by
-  # services/qyl.loom*, services/qyl.mcp, internal/qyl.instrumentation, and
-  # tests/qyl.collector.tests; reviewing qyl without that repo's context is
-  # how the "wrapping one layer halves the spans" class of bug slips through.
+    usage: enabled
   linked_repositories:
-    - repository: 'ANcpLua/ANcpLua.Agents'
-      instructions: >-
-        Provider-agnostic agent + workflow + hosting + testing facades consumed by qyl. Public
-        extension surface (Qyl*Extensions: QylWorkflowBuilderExtensions, QylFoundryAgentExtensions,
-        QylOpenAIClientExtensions, QylAnthropicAgentExtensions, ITelemetryAssertingFixture, …) is
-        the canonical source for agent composition patterns. When reviewing qyl/services/qyl.loom*
-        or qyl/services/qyl.mcp/Agents, cross-check against the matching package extension before
-        flagging or suggesting alternatives.
-
-# ─── Code Generation ─────────────────────────────────────────────────
+  - repository: ANcpLua/ANcpLua.Agents
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/ANcpLua.Analyzers
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/ANcpLua.NET.Sdk
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: O-ANcppLua/ANcpLua.OtelConventions.Api
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/ANcpLua.Roslyn.Utilities
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/Arqio
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/BSc_2025_Alexander_Nachtmann
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/C64AIToolChain
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/ErrorOrX
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: O-ANcppLua/Nuke.OpenTelemetry.Conventions
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/Paperless
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/ancplua-claude-plugins
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/dotcov
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/nhmw-digital-collection
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/safe-autoresearch
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/typespec-otel-semconv
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
+  - repository: ANcpLua/yt-transcript
+    instructions: Related ANcpLua/O-ANcppLua repository. Use for cross-repo API, package,
+      build, telemetry, and agent workflow context when reviewing changes.
 code_generation:
   docstrings:
     language: en-US
     path_instructions:
-      - path: 'packages/**/*.cs'
-        instructions: >-
-          Public NuGet surface — XML docs are required on every public/protected member. Use
-          <summary>, <param>, <returns>, <exception>, <remarks>. Audience: external consumers;
-          explain intent, contracts, and exception conditions. Use <inheritdoc/> for interface
-          implementations unless the implementation adds behavior.
-      - path: 'services/qyl.mcp/Tools/**/*.cs'
-        instructions: >-
-          XML <summary> and <param> docs are the source of truth for MCP tool descriptions —
-          ModelContextProtocol.Analyzers (1.2.0+) emits sibling partial [Description] attributes
-          from them. Never hand-roll [Description("…")]; MCP002 flags it. Keep summaries actionable
-          and useful for LLM tool selection.
-      - path: 'services/**/*.cs'
-        instructions: >-
-          XML doc comments on public/protected members only — internal types and tests skip them
-          (names carry the meaning). Keep summaries to one sentence. Use <inheritdoc/> liberally
-          on interface implementations.
-      - path: 'internal/**/*.cs'
-        instructions: >-
-          Internal — XML docs are optional. Names carry the documentation. Add one only when the
-          WHY is non-obvious (hidden constraint, subtle invariant, workaround for a specific bug).
-      - path: 'services/qyl.dashboard/**/*.{ts,tsx}'
-        instructions: >-
-          TSDoc format. Document exported functions and component props. Keep descriptions concise.
-          Use @param, @returns, @throws tags.
+    - path: "**/*.cs"
+      instructions: Generate XML docs for public/protected APIs and package surfaces.
+        Document intent, contracts, cancellation, exceptions, and compatibility. Do
+        not add obvious comments to private implementation details.
+    - path: "**/*.{ts,tsx}"
+      instructions: Generate concise TSDoc only for exported APIs, hooks, reusable
+        components, schemas, and non-obvious utility behavior. Avoid restating prop
+        names.
   unit_tests:
     path_instructions:
-      - path: 'tests/**/*.cs'
-        instructions: >-
-          xUnit v3 with Microsoft Testing Platform — NOT xUnit v2. Use raw xUnit Assert (project
-          does not use FluentAssertions by default). Follow Arrange-Act-Assert. Use FakeChatClient
-          (tests/qyl.collector.tests/Instrumentation/FakeChatClient.cs) for IChatClient doubles —
-          never hand-roll Mock<IChatClient>. Use TimeProvider / FakeTimeProvider for time. Pass
-          TestContext.Current.CancellationToken — never CancellationToken.None. Temp files via
-          Path.Join(Path.GetTempPath(), $"{Guid.NewGuid():N}.<ext>"). IAsyncDisposable over
-          IDisposable for async resources. Test async with `async Task`, never `async void`.
-      - path: 'services/qyl.dashboard/**/*.{ts,tsx}'
-        instructions: >-
-          Playwright e2e — assert on behavior, not render order or CSS classes. Use
-          page.waitForResponse / page.waitForSelector with specific selectors. Never
-          page.waitForTimeout. Prefer accessible-role + text assertions over data-testid.
-
-# ─── Issue Enrichment ─────────────────────────────────────────────────
+    - path: "**/*.cs"
+      instructions: Use the repo test stack (xUnit v3/Microsoft Testing Platform where
+        present). Prefer focused unit tests plus integration tests for persistence,
+        queues, external clients, and generated contracts. Avoid sleeps; use fakes/signals.
+    - path: "**/*.{ts,tsx}"
+      instructions: Use the repo frontend test stack. Assert user-visible behavior
+        and accessible roles/states. Avoid waitForTimeout and brittle snapshots.
+    - path: "**/*.py"
+      instructions: Use pytest-style focused tests where a Python test stack exists.
+        Mock network and filesystem boundaries unless explicitly live-gated.
 issue_enrichment:
   auto_enrich:
     enabled: true
   planning:
-    enabled: true                     # 2026: generate implementation plans
+    enabled: true
     auto_planning:
-      enabled: true                   # 2026: auto-plan on label match
+      enabled: true
       labels:
-        - 'plan:auto'
-        - 'good-first-issue'
-        - 'help-wanted'
+      - plan:auto
+      - enhancement
+      - bug
+      - good-first-issue
+      - help-wanted
   labeling:
+    labeling_instructions:
+    - label: area:api
+      instructions: Apply when REST, RPC, MCP, public endpoints, contracts, or request/response
+        models change.
+    - label: area:ui
+      instructions: Apply when frontend UI, styling, accessibility, or client-side
+        state changes.
+    - label: area:build
+      instructions: Apply when build scripts, NUKE/MSBuild, package managers, Docker,
+        CI, or release automation change.
+    - label: area:test
+      instructions: Apply when tests, fixtures, test infrastructure, coverage, or
+        snapshots change.
+    - label: area:docs
+      instructions: Apply when docs, AGENTS.md, CLAUDE.md, README, changelogs, specs,
+        or generated reference docs change.
+    - label: area:security
+      instructions: Apply when authentication, authorization, secrets, token handling,
+        logging of sensitive data, or dependency security changes.
+    - label: area:data
+      instructions: Apply when database schema, persistence, migrations, queues, storage,
+        serialization, generated data, or data contracts change.
+    - label: area:agents
+      instructions: Apply when agent prompts, MCP tools, AI workflow code, model calls,
+        tool schemas, or agent-facing instructions change.
+    - label: area:generated
+      instructions: Apply when generated files, generators, schemas, OpenAPI/TypeSpec/semconv
+        models, lockfiles, or generated docs change.
+    - label: breaking
+      instructions: Apply when public APIs, CLI flags, package surfaces, endpoint
+        schemas, storage formats, config keys, or emitted artifacts change incompatibly.
+    - label: review:slop
+      instructions: Auto-applied by CodeRabbit slop detection for low-quality AI-generated
+        changes. Do not apply manually.
+    - label: area:dashboard
+      instructions: Apply when services/qyl.dashboard changes.
+    - label: area:ingestion
+      instructions: Apply when OTLP ingestion or collector hot paths change.
+    - label: area:mcp
+      instructions: Apply when MCP tools/server code changes.
+    - label: area:telemetry
+      instructions: Apply when semantic conventions, instrumentation, spans, metrics,
+        or generated telemetry artifacts change.
+    - label: area:storage
+      instructions: Apply when DuckDB storage, promoted columns, migrations, or persistence
+        contracts change.
+    - label: area:infra
+      instructions: Apply when the PR modifies eng/, .github/, Dockerfiles, or build
+        infrastructure.
     auto_apply_labels: true
