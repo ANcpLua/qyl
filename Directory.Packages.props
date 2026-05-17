@@ -20,8 +20,10 @@
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
     <!-- Instrumentation packages ship on a slower cadence than the SDK — pin
          them to the shared instrumentation version (1.15.1) rather than the
-         SDK version (1.15.3). -->
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
+         SDK version (1.15.3). AspNetCore is bumped to 1.15.2 because
+         WireMock.Net 2.6.0 (consumed by tests/qyl.e2e.tests) transitively
+         requires it; Http and Runtime have no 1.15.2 release, hence the split. -->
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <!-- Microsoft.Extensions -->
@@ -108,6 +110,9 @@
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
     <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
+    <!-- E2E test topology (tests/qyl.e2e.tests only): deterministic LLM stub + Docker topology -->
+    <PackageVersion Include="WireMock.Net" Version="$(WireMockNetVersion)"/>
+    <PackageVersion Include="Testcontainers" Version="$(TestcontainersVersion)"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>

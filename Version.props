@@ -47,7 +47,7 @@
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.11.0</SystemClientModelVersion>
-    <ModelContextProtocolVersion>1.2.0</ModelContextProtocolVersion>
+    <ModelContextProtocolVersion>1.3.0</ModelContextProtocolVersion>
     <MicrosoftIdentityModelVersion>8.17.0</MicrosoftIdentityModelVersion>
     <NukeVersion>10.1.0</NukeVersion>
     <NetArchTestVersion>1.3.2</NetArchTestVersion>
@@ -57,5 +57,9 @@
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
     <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
+    <!-- E2E test topology: WireMock for deterministic LLM stubbing, Testcontainers for
+         Docker-driven topology spin-up. Used only by tests/qyl.e2e.tests. -->
+    <WireMockNetVersion>2.6.0</WireMockNetVersion>
+    <TestcontainersVersion>4.11.0</TestcontainersVersion>
   </PropertyGroup>
 </Project>

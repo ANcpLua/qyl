@@ -176,6 +176,12 @@ interface IQylTest : ITest, IHazSourcePaths
             AssertAtLeastOneTestExecuted("Functional");
         });
 
+    Target E2ETests => d => d
+        .Description("Run end-to-end tests (full Docker topology against freshly built images)")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .DependsOn<IDocker>(static x => x.DockerImageBuild)
+        .Executes(() => RunFilteredE2ETests());
+
     Target TestSummary => d => d
         .Unlisted()
         .Description("Generate Markdown test summary from MTP TRX reports")
@@ -198,10 +204,12 @@ interface IQylTest : ITest, IHazSourcePaths
             .ReportTrx($"{project.Name}.trx")
             .IgnoreExitCode(8);
 
-        // Heavy/opt-in tests (Category=regen — shell out to Weaver, Category=integration etc.)
-        // are excluded from the default Test run; pass --IQylTest.TestFilter to include them.
+        // Heavy/opt-in tests (Category=regen — shell out to Weaver; Category=E2E — full
+        // Docker topology via DockerImageBuild) are excluded from the default Test run;
+        // pass --IQylTest.TestFilter to include them, or run the dedicated sub-target
+        // (E2ETests). E2EBootstrap-traited tests (no Docker) intentionally stay in.
         if (TestFilter is { Length: > 0 } f) mtp.FilterQuery(f);
-        else mtp.FilterNotTrait("Category", "regen");
+        else mtp.FilterNotTrait("Category", "regen").FilterNotTrait("Category", "E2E");
 
         if (StopOnFail == true) mtp.StopOnFail();
         if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
@@ -225,6 +233,41 @@ interface IQylTest : ITest, IHazSourcePaths
                     .ReportTrx($"{project.Name}.{trxSuffix}.trx")
                     .IgnoreExitCode(8)
                     .FilterNamespace(namespaceFilter);
+
+                if (StopOnFail == true) mtp.StopOnFail();
+                if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                var projectPath = project.Path ??
+                                  throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                string[] args = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                return ss.SetProcessAdditionalArguments(args);
+            }), completeOnFailure: true);
+    }
+
+    sealed void RunFilteredE2ETests()
+    {
+        EnsureTestcontainersConfigured();
+
+        var e2eProjects = TestProjects
+            .Where(static p => p.Name.Equals("qyl.e2e.tests", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (e2eProjects.Length is 0)
+        {
+            Log.Warning("E2ETests: no qyl.e2e.tests project found; skipping");
+            return;
+        }
+
+        DotNetTasks.DotNetTest(s => s
+            .SetNoBuild(true)
+            .SetNoRestore(true)
+            .SetResultsDirectory(TestResultsDirectory)
+            .CombineWith(e2eProjects, (ss, project) =>
+            {
+                var mtp = MtpExtensions.Mtp()
+                    .ReportTrx($"{project.Name}.E2E.trx")
+                    .IgnoreExitCode(8)
+                    .FilterTrait("Category", "E2E");
 
                 if (StopOnFail == true) mtp.StopOnFail();
                 if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
