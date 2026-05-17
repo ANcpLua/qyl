@@ -161,6 +161,12 @@ interface IQylTest : ITest, IHazSourcePaths
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => RunFilteredTests("*.Integration.*", "Integration", true));
 
+    Target FunctionalTests => d => d
+        .Unlisted()
+        .Description("Run functional tests only (in-process hosting, external boundaries stubbed)")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => RunFilteredTests("*.Functional.*", "Functional", false));
+
     Target TestSummary => d => d
         .Unlisted()
         .Description("Generate Markdown test summary from MTP TRX reports")
