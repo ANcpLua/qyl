@@ -55,7 +55,7 @@ project.lock.json
 .claude/*
 !.claude/rules/
 !.claude/qyl-workflows/
-!.claude/skills/
+!.claude/skills
 !.claude/settings.json
 
 # Plugin session state (Hades smart ledger, elegance pipeline, etc.)
