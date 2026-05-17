@@ -129,3 +129,31 @@ Pick exactly one. Add a sink container (e.g. an OTel collector configured to
 write to a file volume) to `QylTopologyFixture` for scenario 1.
 
 **Handoff:** bootstrap PR opened; next cycle picks up from here.
+
+## qyl-test-push 2026-05-17
+
+**Outcome:** BLOCKED — dotnet not installed in container. Run stopped without changes.
+
+**Blocker:**
+`dotnet` is absent from the container PATH and is not part of this environment's
+required toolchain (Docker, Rust, Go, Java, and others are all present via
+`check-tools`; .NET is not). `which dotnet` and a full `find /` returned nothing.
+This is the same hard stop that halted the 2026-05-16 run.
+
+**State on arrival:**
+- Build was not attempted — cannot call `nuke Ci` or `dotnet build` without the SDK.
+- Latest commit: `6f8afc0 feat(ci): add native auto-merge workflow (#348)`.
+- No `tests/auto-*` branch exists yet for 2026-05-17.
+- Last functional-test run (2026-05-17 02:27) shipped `HealthUiEndpointTests`;
+  last e2e run (2026-05-17 02:45) shipped the topology bootstrap.
+
+**What the next run should do (when dotnet is available):**
+1. Run `nuke Ci` to confirm green baseline.
+2. Pick ONE gap from the prior run's gap list (highest priority: OTLP ingestion
+   endpoint `/v1/traces` or `/v1/logs` has zero functional coverage).
+3. Bootstrap Stryker.NET config for `services/qyl.collector` (noted missing since
+   02:27 run; no mutation testing is possible without it).
+4. For e2e: add the first real scenario — agent chat → trace arrives at sink with
+   credentials redacted. Requires adding a sink container to `QylTopologyFixture`.
+
+**No code was changed this run.**
