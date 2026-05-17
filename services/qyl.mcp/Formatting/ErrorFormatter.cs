@@ -11,9 +11,18 @@ internal static class ErrorFormatter
             TaskCanceledException { InnerException: TimeoutException or null } =>
                 "**Timeout:** The collector did not respond in time. Retry or check if qyl collector is running.",
             OperationCanceledException opEx => FormatOperationCancelled(opEx),
+            // ModelContextProtocol 1.3 throws IOException (incl. ClientTransportClosedException)
+            // for transport connect/closure failures that 1.2 wrapped as InvalidOperationException.
+            // This arm must precede InvalidOperationException — order matters in C# pattern switches.
+            IOException ioEx => FormatTransportError(ioEx, transport),
             InvalidOperationException configEx => FormatConfigError(configEx, transport),
             _ => FormatUnknown(error, transport)
         };
+
+    private static string FormatTransportError(IOException ex, McpTransportMode transport) =>
+        transport is McpTransportMode.Stdio
+            ? $"**Connection Error**\n\n{ex.Message}\n\nCheck if the MCP server process is running."
+            : $"**Connection Error**\n\n{ex.Message}\n\nCheck the endpoint URL and network reachability.";
 
     private static string FormatHttpError(HttpRequestException ex, McpTransportMode transport)
     {
