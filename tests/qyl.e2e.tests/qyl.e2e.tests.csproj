@@ -1,0 +1,20 @@
+<Project Sdk="ANcpLua.NET.Sdk.Test">
+  <PropertyGroup>
+    <RootNamespace>Qyl.E2E.Tests</RootNamespace>
+    <AssemblyName>Qyl.E2E.Tests</AssemblyName>
+    <LangVersion>14</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
+    <PackageReference Include="WireMock.Net"/>
+    <PackageReference Include="Testcontainers"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
+  </ItemGroup>
+</Project>
