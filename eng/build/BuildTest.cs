@@ -161,6 +161,21 @@ interface IQylTest : ITest, IHazSourcePaths
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => RunFilteredTests("*.Integration.*", "Integration", true));
 
+    Target FunctionalTests => d => d
+        .Unlisted()
+        .Description("Run functional tests only (in-process hosting, external boundaries stubbed)")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() =>
+        {
+            RunFilteredTests("*.Functional.*", "Functional", false);
+            // Guard against silent "namespace filter matched zero tests" runs.
+            // RunFilteredTests passes IgnoreExitCode(8), which swallows MTP's
+            // "no tests discovered" exit. Post-run TRX inspection is the
+            // load-bearing check: at least one functional test MUST have
+            // executed somewhere in the suite for this target to succeed.
+            AssertAtLeastOneTestExecuted("Functional");
+        });
+
     Target TestSummary => d => d
         .Unlisted()
         .Description("Generate Markdown test summary from MTP TRX reports")
@@ -229,6 +244,40 @@ interface IQylTest : ITest, IHazSourcePaths
             Environment.SetEnvironmentVariable("TESTCONTAINERS_RYUK_DISABLED", "false");
             Log.Information("Testcontainers: Configured for CI");
         }
+    }
+
+    sealed void AssertAtLeastOneTestExecuted(string trxSuffix)
+    {
+        var trxFiles = TestResultsDirectory.GlobFiles($"**/*.{trxSuffix}.trx");
+        if (trxFiles.Count is 0)
+            throw new InvalidOperationException(
+                $"{trxSuffix}Tests target produced no TRX reports under {TestResultsDirectory}. " +
+                "Namespace filter likely matched zero tests across every test project. " +
+                "Add tests in the filtered namespace, or fix the namespace filter.");
+
+        var totalExecuted = 0;
+        foreach (var trxFile in trxFiles)
+        {
+            var doc = XDocument.Parse(File.ReadAllText(trxFile));
+            var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
+            var counters = doc.Descendants(ns + "Counters").FirstOrDefault();
+            if (counters is null) continue;
+
+            var passed = int.Parse(counters.Attribute("passed")?.Value ?? "0", CultureInfo.InvariantCulture);
+            var failed = int.Parse(counters.Attribute("failed")?.Value ?? "0", CultureInfo.InvariantCulture);
+            var skipped = int.Parse(
+                counters.Attribute("notExecuted")?.Value ?? counters.Attribute("inconclusive")?.Value ?? "0",
+                CultureInfo.InvariantCulture);
+            totalExecuted += passed + failed + skipped;
+        }
+
+        if (totalExecuted < 1)
+            throw new InvalidOperationException(
+                $"{trxSuffix}Tests target ran but zero tests were executed across all projects. " +
+                "Namespace filter likely matched nothing (drift, rename, or stale binaries).");
+
+        Log.Information("{Suffix}Tests: {Count} test result(s) recorded across {Files} TRX file(s)",
+            trxSuffix, totalExecuted, trxFiles.Count);
     }
 
     sealed async Task WriteGitHubTestSummaryAsync()

@@ -35,3 +35,5 @@ app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"[qyl] Application started and listening on port {ports.Http}"));
 
 await app.RunAsync().ConfigureAwait(false);
+
+public partial class Program;
