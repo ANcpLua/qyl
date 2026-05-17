@@ -1,0 +1,51 @@
+# Auto-merge — native GitHub auto-merge via GITHUB_TOKEN. No custom App, no
+# AUTOMERGE_* secrets, no reusable workflow. The 2026 pattern.
+#
+# Who handles what:
+# - Renovate bot PRs   → handled entirely by the shared preset
+#                        (github>O-ANcppLua/renovate-config) which sets
+#                        platformAutomerge:true (Renovate default) and
+#                        automerge:true on the relevant packageRules. Renovate
+#                        enables native GitHub auto-merge at PR-open time.
+# - Owner PRs          → this workflow enables native auto-merge on PR open
+# - AI Agent PRs       → branches matching claude/, copilot/, jules/
+# - CodeRabbit-approved → enabled when an approving review lands
+#
+# Dependabot: not used in any ANcpLua framework repo, so no tier here.
+#
+# Background: the AUTOMERGE_APP_ID GitHub App was deleted on 2026-05-12 as an
+# antipattern (single point of failure across 4 repos, maintenance overhead,
+# and Renovate's platformAutomerge already does the bot tier natively without
+# it). For the human/agent tiers, GITHUB_TOKEN's pull-request:write scope is
+# enough — branch protection still gates the actual merge on required checks.
+
+name: Auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.draft == false && (
+        startsWith(github.event.pull_request.head.ref, 'claude/') ||
+        startsWith(github.event.pull_request.head.ref, 'copilot/') ||
+        startsWith(github.event.pull_request.head.ref, 'jules/') ||
+        github.event.pull_request.user.login == github.repository_owner ||
+        (github.event_name == 'pull_request_review'
+         && github.event.review.state == 'approved'
+         && github.event.review.user.login == 'coderabbitai[bot]')
+      )
+    steps:
+      - name: Enable native auto-merge (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --auto --squash --repo ${{ github.repository }}
