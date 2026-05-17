@@ -1,0 +1,20 @@
+<Project Sdk="ANcpLua.NET.Sdk.Test">
+  <PropertyGroup>
+    <RootNamespace>Qyl.Collector.Integration.Tests</RootNamespace>
+    <AssemblyName>Qyl.Collector.Integration.Tests</AssemblyName>
+    <LangVersion>14</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\services\qyl.collector\qyl.collector.csproj"/>
+  </ItemGroup>
+</Project>
