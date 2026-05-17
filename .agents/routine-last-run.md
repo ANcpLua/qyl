@@ -1,41 +1,78 @@
-# Routine Test Run — 2026-05-16
+# Routine Test Run — qyl-e2e-tests 2026-05-17
 
-## Status: STOPPED (pre-existing environment blocker)
+## Status: BOOTSTRAP PR OPENED
 
-## What was broken on arrival
+## Outcome
 
-The remote execution container does not have the `dotnet` CLI installed, and the
-network policy blocks downloading it:
+First-ever run of `qyl-e2e-tests` on a workstation with the full toolchain
+present (dotnet 10.0.300, Docker 29.4.0). The previous run (2026-05-16)
+exited as a no-op because the remote container lacked `dotnet`.
 
-```
-$ curl -L "https://dot.net/v1/dotnet-install.sh"
-Host not in allowlist
-```
+Per the skill's bootstrap section, this run produced the **infrastructure-only
+PR** (project + topology fixture + Nuke target + central-package pins). **No
+scenario tests** were added; the next routine run picks up from here and adds
+the first scenario.
 
-`./eng/build.sh Ci` exits with code 22 (curl HTTP error) before any .NET code
-is compiled or tested. This is a container/environment configuration issue, not
-a code defect.
+## Files added / changed
 
-## Actions taken
+- `tests/qyl.e2e.tests/qyl.e2e.tests.csproj` — new test project, `ANcpLua.NET.Sdk.Test`
+- `tests/qyl.e2e.tests/E2ECollection.cs` — `[CollectionDefinition("E2E", DisableParallelization = true)]`
+- `tests/qyl.e2e.tests/Topology/QylTopologyOptions.cs` — image tags + startup timeout
+- `tests/qyl.e2e.tests/Topology/QylTopologyFixture.cs` — programmatic Testcontainers
+  topology: bridge network → `qyl-collector:latest` → `qyl-mcp:latest`; WireMock
+  process-local; containers reach it via `host.docker.internal`.
+  `WithImagePullPolicy(_ => false)` enforces local-image-only.
+- `tests/qyl.e2e.tests/Bootstrap/WireMockLlmSeamTests.cs` — Category=E2EBootstrap
+  smoke (no Docker) — proves the WireMock seam roundtrips a scripted
+  `/v1/chat/completions` and shows up in `LogEntries`.
+- `eng/build/BuildTest.cs` — new `E2ETests` target depending on
+  `IDocker.DockerImageBuild`, filters `Category=E2E`. Default `Test` excludes
+  `Category=E2E` (bootstrap tests stay in).
+- `qyl.slnx` — registered the project.
+- `Version.props` + `Directory.Packages.props` — added `WireMock.Net 2.6.0` and
+  `Testcontainers 4.11.0`. Split-pinned `OpenTelemetry.Instrumentation.AspNetCore`
+  to 1.15.2 (forced by WireMock.Net 2.6.0 transitive) while keeping Http +
+  Runtime at the umbrella 1.15.1 (no 1.15.2 release exists for them).
 
-- Read CLAUDE.md / AGENTS.md to understand repo conventions.
-- Confirmed `dotnet` is absent from all standard paths (`/usr/bin`, `/usr/local/bin`,
-  `/opt`, etc.).
-- Confirmed the `dot.net` install URL is blocked by the environment's network
-  allowlist.
-- No code was modified.
+## Verification
 
-## What needs to happen for the next run
+- `dotnet build qyl.slnx` — 0 errors, 1454 warnings (baseline 1393; ~61 new
+  warnings are all `MultipleGlobalAnalyzerKeys` from the dual-`.globalconfig`
+  worktree setup — benign, present on every worktree build).
+- `dotnet test tests/qyl.e2e.tests --filter-trait Category=E2EBootstrap` — 3
+  consecutive runs, all green (~1s each, 0 flakes).
+- `nuke E2ETests` target wired up but **not executed** this run (would require
+  rebuilding all four qyl Docker images — out of scope for the bootstrap PR).
 
-The execution environment must either:
-1. Have the .NET 10 SDK pre-installed (matching `global.json`: `10.0.203`,
-   `rollForward: latestFeature`, `allowPrerelease: true`), or
-2. Have `https://dot.net` added to the network allowlist so `eng/build.sh`
-   can auto-install it on first run.
+## Overlap with `Smoke`
 
-## What would be targeted next (test gaps)
+`eng/smoke/run.sh` (Nuke target `Smoke`) is the PRD #173 quality gate: real
+Ollama + real qyl Compose stack, asserts on cost / activity / conversations /
+inventory wiring. It uses a **real LLM** (Ollama).
 
-Once the environment is fixed, priority targets are:
-- `services/qyl.collector/Storage/` — DuckDB read/write path integration tests.
-- `services/qyl.collector/Errors/` — error ingestion endpoint unit tests.
-- `services/qyl.mcp/` — MCP tool registration and telemetry unit tests.
+E2E (this routine) uses **WireMock** for deterministic LLM stubbing. The two
+don't overlap — Smoke covers "does the stack work against a real model"; E2E
+covers "does the stack route data correctly given a known-bad/redacted LLM
+response we can assert on".
+
+## Gaps for the next run
+
+The next `qyl-e2e-tests` cycle should add the first real scenario. Highest-value
+candidates:
+
+1. **Agent submits chat → trace arrives at downstream sink with credentials
+   redacted** — exercises qyl.mcp → qyl.collector → OTLP egress with a
+   scripted LLM response that contains a fake bearer token; asserts the token
+   is `<redacted>` in the sink output.
+2. **MCP HTTP session reconnect after transient collector failure** — proves
+   the MCP transport's resumption behavior under collector restart.
+3. **Cost rollup updates after a single chat completion** — the smallest
+   slice of PRD #173 surface that can be tested deterministically.
+
+Pick exactly one. Add a sink container (e.g. an OTel collector configured to
+write to a file volume) to `QylTopologyFixture` for scenario 1.
+
+## Branch and PR
+
+- Branch: `tests/auto-e2e-2026-05-17` (off `origin/main`)
+- PR: opened against `main` as draft → ready-for-review once green.
