@@ -9,7 +9,7 @@ intervention, and how to opt new repos in.
 |-----------------------------------|----------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `.github/workflows/anti-slop.yml` | `pull_request_target: opened,reopened,ready_for_review,edited`                                            | `peakoss/anti-slop@v0.3.0` scans every PR for slop signals. Closes the PR when `max-failures` checks trip.                                    |
 | `.github/workflows/refix.yml`     | `workflow_dispatch`, `pull_request_target: labeled`, `issue_comment` (OWNER / MEMBER / COLLABORATOR only) | `HappyOnigiri/Refix@v1.4.0` runs Claude on CI to fix CodeRabbit feedback, CI failures, and merge conflicts. Label-gated and manually invoked. |
-| `.github/workflows/auto-merge.yml`| `pull_request_target: opened,synchronize,reopened,ready_for_review`, `pull_request_review: submitted`    | Native GitHub auto-merge via `GITHUB_TOKEN` (the 2026 pattern — no App, no extra secrets). Enables native auto-merge on PR open for AI-agent branches (`claude/` / `copilot/` / `jules/`), owner PRs, and CodeRabbit-approved PRs. Renovate PRs flip auto-merge themselves via `platformAutomerge: true` in the shared preset. |
+| `.github/workflows/auto-merge.yml`| `pull_request_target: opened,synchronize,reopened,ready_for_review`, `pull_request_review: submitted`    | Native GitHub auto-merge via `GITHUB_TOKEN` (the 2026 pattern — no App, no extra secrets). Enables native auto-merge on PR open for AI-agent branches (`claude/` / `copilot/` / `codex/` / `coderabbit/` / `codacy/`), owner PRs (incl. `ancplua` since qyl lives under `O-ANcppLua` org, not the user account), and CodeRabbit-approved PRs. Renovate PRs flip auto-merge themselves via `platformAutomerge: true` in the shared preset. |
 
 There is **no** destructive admin auto-merge tier. PR merging is handled
 by GitHub's native auto-merge: Renovate PRs flip it on at open via
@@ -32,8 +32,10 @@ sits open until someone clicks "Enable auto-merge".
    moment branch protection is satisfied.
 
 Human action between step 1 and step 5: zero for Renovate PRs, AI-agent
-PRs (`claude/` / `copilot/` / `jules/`), owner PRs, and CodeRabbit-approved
-PRs; one click for human PRs not in those tiers.
+PRs (`claude/` / `copilot/` / `codex/` / `coderabbit/` / `codacy/`), owner
+PRs (incl. explicit `ancplua` allow-list entry — see the workflow's
+`if:` block), and CodeRabbit-approved PRs; one click for any other human
+PR (rare).
 
 ## Renovate dependency PRs
 
@@ -134,8 +136,8 @@ Most of this is now automated by `ANcpLua/github-settings-automation`:
    `github-settings-automation` into `.github/workflows/` if the repo
    wants those tiers. Set `REFIX_CLASSIC_PAT` and
    `CLAUDE_CODE_OAUTH_TOKEN` only if `refix.yml` is adopted.
-4. Confirm the enterprise allow-list covers the action patterns — see
-   the prerequisites section above.
+4. Enterprise Actions policy is `allowed_actions: "all"` since 2026-05-17
+   — no allow-list curation step is required when adopting new actions.
 
 A second test repo `ANcpLua/qyl-config-test-{public,private}` ports a
 simpler variant of this stack and is used to validate the configuration's

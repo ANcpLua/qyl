@@ -12,18 +12,12 @@ public sealed class QylTopologyFixture : IAsyncLifetime
     private const int CollectorInternalPort = 5100;
     private const int McpInternalPort = 5200;
 
-    private readonly QylTopologyOptions _options;
+    private readonly QylTopologyOptions _options = QylTopologyOptions.Default;
 
     private INetwork? _network;
     private IContainer? _collector;
     private IContainer? _mcp;
     private WireMockServer? _llm;
-
-    public QylTopologyFixture() : this(QylTopologyOptions.Default)
-    {
-    }
-
-    public QylTopologyFixture(QylTopologyOptions options) => _options = options;
 
     public WireMockServer Llm =>
         _llm ?? throw new InvalidOperationException(
@@ -62,6 +56,7 @@ public sealed class QylTopologyFixture : IAsyncLifetime
                 .WithPortBinding(CollectorInternalPort, true)
                 .WithEnvironment("QYL_PORT", CollectorInternalPort.ToString(CultureInfo.InvariantCulture))
                 .WithEnvironment("ASPNETCORE_URLS", $"http://+:{CollectorInternalPort}")
+                .WithEnvironment("QYL_OTLP_AUTH_MODE", "Unsecured")
                 .WithWaitStrategy(Wait.ForUnixContainer()
                     .UntilHttpRequestIsSucceeded(static r => r.ForPath("/health").ForPort(CollectorInternalPort)))
                 .Build();
@@ -73,10 +68,11 @@ public sealed class QylTopologyFixture : IAsyncLifetime
                 .WithNetwork(_network)
                 .WithNetworkAliases("qyl-mcp")
                 .WithPortBinding(McpInternalPort, true)
+                .WithEnvironment("ASPNETCORE_URLS", $"http://+:{McpInternalPort}")
                 .WithEnvironment("QYL_COLLECTOR_URL", $"http://qyl-collector:{CollectorInternalPort}")
                 .WithExtraHost("host.docker.internal", "host-gateway")
                 .WithWaitStrategy(Wait.ForUnixContainer()
-                    .UntilMessageIsLogged("Now listening on:"))
+                    .UntilHttpRequestIsSucceeded(static r => r.ForPath("/alive").ForPort(McpInternalPort)))
                 .Build();
             await _mcp.StartAsync(ct).ConfigureAwait(false);
         }

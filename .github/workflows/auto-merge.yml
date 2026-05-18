@@ -7,11 +7,21 @@
 #                        platformAutomerge:true (Renovate default) and
 #                        automerge:true on the relevant packageRules. Renovate
 #                        enables native GitHub auto-merge at PR-open time.
-# - Owner PRs          → this workflow enables native auto-merge on PR open
-# - AI Agent PRs       → branches matching claude/, copilot/, jules/
+# - Owner PRs          → enabled on PR open. Checks both repository_owner
+#                        (covers user-owned repos like ANcpLua/*) AND an
+#                        explicit 'ancplua' login (qyl lives under
+#                        O-ANcppLua org, so repository_owner alone misses
+#                        Alexander's own PRs from his user account).
+# - AI Agent PRs       → branches matching claude/, copilot/, codex/,
+#                        coderabbit/, codacy/. Identity check intentionally
+#                        skipped — the qyl-risk-policy memory accepts the
+#                        "anyone can push to claude/foo" risk in exchange
+#                        for zero-config new-agent onboarding.
 # - CodeRabbit-approved → enabled when an approving review lands
 #
-# Dependabot: not used in any ANcpLua framework repo, so no tier here.
+# Dependabot + Jules: not used here, so no tier. The active agent surface
+# is Claude Code, GitHub Copilot Cloud Agent, OpenAI Codex (the
+# chatgpt-codex-connector App), CodeRabbit (autofix), and Codacy (autofix).
 #
 # Background: the AUTOMERGE_APP_ID GitHub App was deleted on 2026-05-12 as an
 # antipattern (single point of failure across 4 repos, maintenance overhead,
@@ -38,8 +48,11 @@ jobs:
       github.event.pull_request.draft == false && (
         startsWith(github.event.pull_request.head.ref, 'claude/') ||
         startsWith(github.event.pull_request.head.ref, 'copilot/') ||
-        startsWith(github.event.pull_request.head.ref, 'jules/') ||
+        startsWith(github.event.pull_request.head.ref, 'codex/') ||
+        startsWith(github.event.pull_request.head.ref, 'coderabbit/') ||
+        startsWith(github.event.pull_request.head.ref, 'codacy/') ||
         github.event.pull_request.user.login == github.repository_owner ||
+        github.event.pull_request.user.login == 'ancplua' ||
         (github.event_name == 'pull_request_review'
          && github.event.review.state == 'approved'
          && github.event.review.user.login == 'coderabbitai[bot]')

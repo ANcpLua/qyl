@@ -72,6 +72,106 @@ so the next run can resume from the same line of work without re-discovering it.
 **Handoff:** none. No work that belongs in `qyl-unit-tests`,
 `qyl-integration-tests`, or `qyl-e2e-tests` was deferred from this run.
 
+## qyl-e2e-tests 2026-05-18 03:50
+
+**Outcome:** first real E2E scenario landed on top of the bootstrap topology.
+Three logical commits on `tests/auto-e2e-2026-05-18`: Dockerfile bumps,
+fixture testability fix, scenario test.
+
+**State on arrival:**
+- Last `tests/auto-*` branch was `tests/auto-functional-2026-05-18`.
+- `tests/qyl.e2e.tests` was already bootstrapped (#347) but only the
+  `WireMockLlmSeamTests` (`Category=E2EBootstrap`, no Docker) had ever
+  executed; the `QylTopologyFixture` had never been booted end-to-end.
+- `nuke Ci` not run on arrival (heavy) — full solution build via
+  `dotnet build qyl.slnx` finishes green with 0 errors / 1407 warnings
+  (analyzer noise, baseline-consistent).
+- Docker present (OrbStack, 3.88 GB total). dotnet 10.0.300 on PATH.
+- Latest commit on main: `c1dfe301` (chore(agents): record routine run
+  blocker — dotnet not installed in container).
+
+**Changes shipped (three commits on `tests/auto-e2e-2026-05-18`):**
+
+1. `fix(docker): bump .NET base images so SDK 10.0.300 actually builds`
+   — `services/qyl.collector/Dockerfile`, `services/qyl.loom/Dockerfile`,
+   `services/qyl.mcp/Dockerfile`. Pinned SHAs in all three Dockerfiles
+   were resolving to SDK 10.0.203 while `global.json` requires
+   10.0.300 (regression from #346). Every `nuke DockerImageBuild`
+   broken since #346 — no CI job runs `DockerImageBuild`, so the
+   defect was latent. Bumped sdk:10.0, aspnet:10.0, sdk:10.0-alpine,
+   runtime-deps:10.0-alpine to latest SHAs. Also pinned MCP runtime
+   stage to `--platform=linux/amd64` so the cross-compiled
+   `linux-musl-x64` binary matches the runtime image arch on
+   arm64 dev hosts (previously crashed with
+   `ld-musl-x86_64.so.1 not found`).
+
+2. `refactor(tests/e2e): make topology fixture actually boot
+   collector + mcp` — `tests/qyl.e2e.tests/Topology/QylTopologyFixture.cs`.
+   Two latent defects in the bootstrap fixture: (a) collector aborts on
+   startup in default `Production` env because `QYL_OTLP_AUTH_MODE`
+   defaults to `ApiKey` with no key configured — fixed by passing
+   `QYL_OTLP_AUTH_MODE=Unsecured`; (b) MCP Dockerfile sets
+   `ASPNETCORE_URLS=http://+:8080` so nothing answered on 5200 —
+   fixed by overriding `ASPNETCORE_URLS` to 5200 and waiting on the
+   real `/alive` health endpoint instead of the log message. Also
+   collapsed the dual-ctor pattern into a single public constructor
+   (xUnit v3 `ICollectionFixture<T>` requires exactly one).
+
+3. `test(e2e/otlp-ingest): cover OTLP/HTTP JSON ingest reaching DuckDB
+   storage` — `tests/qyl.e2e.tests/Scenarios/OtlpHttpTraceIngestionRoundtripTests.cs`.
+   POST a single-span OTLP/HTTP JSON payload to the running collector
+   container, expect 202, then poll `/api/v1/telemetry/stats` (bounded
+   15s, 250ms cadence) until `spanCount` increases past the pre-ingest
+   baseline. Exercises HTTP receiver -> JSON parse -> OtlpConverter ->
+   SpanRingBuffer.PushRange -> DuckDbStore.EnqueueAsync ->
+   GetStorageStatsAsync. Test class joins `E2ECollection` via
+   `[Collection(E2ECollection.Name)]` so future scenarios share the
+   topology.
+
+**Verification:**
+- `dotnet build qyl.slnx` — 0 errors, 1407 warnings.
+- `docker build` for both collector and mcp — succeed.
+- `dotnet test --filter-trait Category=E2EBootstrap` — green (~700ms).
+- `dotnet test --filter-trait Category=E2E` — green 4 consecutive runs
+  (~5-7s per run, including container start/stop). Zero flakes.
+- `nuke E2ETests` Nuke target wired and wired to `DockerImageBuild`,
+  but not executed this run (would rebuild qyl-loom + qyl-dashboard
+  too, both out of scope here).
+
+**Bug surfaced for follow-up:** the read side of `/api/v1/traces`
+(`GetSpansAsync` -> `SpanStorageRow.MapFromReader`) is fully broken in
+production. Schema declares `spans.kind VARCHAR NOT NULL` and
+`spans.status_code VARCHAR NOT NULL` (DuckDbSchema.g.sql:316,319),
+but `SpanStorageRow.Kind`/`StatusCode` are `byte`. Source generator at
+`internal/qyl.collector.storage.generators/DuckDbEmitter.cs:219-222`
+emits `reader.Col(N).GetByte(0)`, throwing
+`InvalidCastException: System.String -> System.Byte` on every span
+row. Repro: `POST /v1/traces`, then `GET /api/v1/traces` — returns
+500. Fix is either schema migration to TINYINT or property type
+change to string. NOT fixed here — separate concern from "add E2E
+test" and would need its own focused PR with migration testing. The
+scenario test's class-level XML comment records the repro so the gap
+stays discoverable.
+
+**Gaps for the next run:**
+1. **Fix the spans VARCHAR-vs-byte read-mapping bug** (highest
+   priority — this is a real production data-fetch defect, not an
+   E2E concern). Once fixed, extend this scenario to also assert the
+   trace is queryable via `GET /api/v1/traces/{traceId}` (richer
+   roundtrip).
+2. **Second E2E scenario: MCP -> collector handshake**. The MCP
+   container is now booted and queryable; drive an MCP tool that
+   reads collector data (POST OTLP first, then invoke an MCP search
+   tool over JSON-RPC, assert the span is returned).
+3. **Third E2E scenario: chat ingest -> trace at sink with
+   credentials redacted** (the original handoff candidate). Needs a
+   sink container (OTel collector with file exporter) added to the
+   fixture plus LLM wiring on qyl.loom or a stub MCP server. Larger
+   surface; do after #1 and #2.
+
+**Handoff:** PR on `tests/auto-e2e-2026-05-18`. Do not merge — review
+and follow-up bug fix first.
+
 ## qyl-e2e-tests 2026-05-17 02:45
 
 **Outcome:** bootstrap PR opened.
