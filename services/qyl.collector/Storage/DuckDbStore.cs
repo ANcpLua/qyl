@@ -65,7 +65,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                                first_seen, last_seen, occurrence_count,
                                                affected_users, affected_services, status,
                                                assigned_to, issue_url, sample_traces)
-                                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, [$10], $11, $12, $13, [$14])
                                           ON CONFLICT (fingerprint) DO UPDATE SET
                                               last_seen = EXCLUDED.last_seen,
                                               occurrence_count = errors.occurrence_count + 1,
@@ -74,21 +74,21 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                                   WHEN errors.affected_users IS NULL THEN EXCLUDED.affected_users
                                                   ELSE GREATEST(errors.affected_users, EXCLUDED.affected_users)
                                               END,
-                                              affected_services = CASE
-                                                  WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
-                                                  WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
-                                                  WHEN ',' || errors.affected_services || ',' LIKE '%,' || EXCLUDED.affected_services || ',%'
-                                                      THEN errors.affected_services
-                                                  ELSE errors.affected_services || ',' || EXCLUDED.affected_services
-                                              END,
+                                              affected_services = list_distinct(
+                                                  list_concat(
+                                                      COALESCE(errors.affected_services, []::VARCHAR[]),
+                                                      COALESCE(EXCLUDED.affected_services, []::VARCHAR[])
+                                                  )
+                                              ),
                                               sample_traces = CASE
-                                                  WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
-                                                  WHEN EXCLUDED.sample_traces IS NULL THEN errors.sample_traces
-                                                  WHEN ',' || errors.sample_traces || ',' LIKE '%,' || EXCLUDED.sample_traces || ',%'
+                                                  WHEN len(COALESCE(errors.sample_traces, []::VARCHAR[])) >= 10
                                                       THEN errors.sample_traces
-                                                  WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
-                                                      THEN errors.sample_traces
-                                                  ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
+                                                  ELSE list_distinct(
+                                                      list_concat(
+                                                          COALESCE(errors.sample_traces, []::VARCHAR[]),
+                                                          COALESCE(EXCLUDED.sample_traces, []::VARCHAR[])
+                                                      )
+                                                  )
                                               END
                                           """;
 
@@ -1026,14 +1026,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("status = $N", status);
         if (!string.IsNullOrEmpty(serviceName))
         {
-            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\'", $"%,{SqlLikeEscape.Escape(serviceName)},%");
+            qb.Add("list_contains(affected_services, $N)", serviceName);
         }
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = "SELECT error_id, error_type, message, category, fingerprint,"
                           + " first_seen, last_seen, occurrence_count,"
-                          + " affected_users, affected_services, status,"
-                          + " assigned_to, issue_url, sample_traces"
+                          + " affected_users, array_to_string(affected_services, ',') AS affected_services, status,"
+                          + " assigned_to, issue_url, array_to_string(sample_traces, ',') AS sample_traces"
                           + " FROM errors " + qb.WhereClause
                           + " ORDER BY last_seen DESC LIMIT "
                           + qb.NextParam.ToString(CultureInfo.InvariantCulture);
@@ -1121,7 +1121,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.CommandText = """
                           SELECT error_id, error_type, message, category, fingerprint,
                                  first_seen, last_seen, occurrence_count, affected_users,
-                                 affected_services, status, assigned_to, issue_url, sample_traces
+                                 array_to_string(affected_services, ',') AS affected_services,
+                                 status, assigned_to, issue_url,
+                                 array_to_string(sample_traces, ',') AS sample_traces
                           FROM errors WHERE error_id = $1
                           """;
         cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
