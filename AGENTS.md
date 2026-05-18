@@ -319,6 +319,5 @@ Under `tests/qyl.collector.tests/`:
 there, never under `.claude/`. The symlink exists because the Loom agent
 harness reads from `.agents/skills/` while Claude Code reads from
 `.claude/skills/` — both paths resolve to the same files, no drift possible.
-Skills covered: loom-autofix, loom-create-alert, loom-feature-setup,
-loom-fix-issues, loom-review-bot-pr, loom-skill-creator, loom-workflow,
-qyl-otel-exporter-setup.
+See `.agents/skills/` for the current list of skills (the directory is the
+list — adding or renaming a skill needs no doc update).
