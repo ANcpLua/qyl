@@ -10,6 +10,7 @@ using Qyl.Collector.Auth;
 
 namespace Qyl.Collector.Tests.Functional.Health;
 
+[Collection(FunctionalCollection.Name)]
 public sealed class HealthUiEndpointTests : IClassFixture<HealthUiEndpointTests.CollectorFactory>
 {
     private const string ConfiguredToken = "test-secret-token";

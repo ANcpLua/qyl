@@ -257,3 +257,78 @@ This is the same hard stop that halted the 2026-05-16 run.
    credentials redacted. Requires adding a sink container to `QylTopologyFixture`.
 
 **No code was changed this run.**
+
+## qyl-functional-tests 2026-05-18 00:44
+
+**Outcome:** second feature landed + latent parallel-test race fixed. PR #351.
+
+**State on arrival:**
+- `.NET 10.0.300` SDK present at `~/.dotnet/` (the 2026-05-17 dotnet-missing
+  blocker is resolved on this workstation).
+- `dotnet build qyl.slnx` — 0 errors. Clean baseline.
+- One functional test class on `main` (`HealthUiEndpointTests` from PR #343).
+  Its three `[Fact]`s share one `IClassFixture` and run sequentially, so the
+  in-process DuckDB migration race never surfaced.
+- Top of `main`: `c1dfe301 chore(agents): record routine run blocker (#349)`.
+
+**Changes shipped (PR #351 — 2 commits):**
+- `32ee34e3 refactor(testability/functional): serialize parallel test classes via Collection`
+  - Added `tests/qyl.collector.tests/Functional/FunctionalCollection.cs`
+    (`[CollectionDefinition("Functional", DisableParallelization = true)]`).
+  - Pulled `HealthUiEndpointTests` into the same collection (one-line touch).
+- `2f660e75 test(functional/observe): cover subscription endpoints end-to-end`
+  - `tests/qyl.collector.tests/Functional/ObserveSubscriptionEndpointsTests.cs`
+    — 8 `[Fact]`s covering `/api/v1/observe/{catalog,/,{id}}`: catalog shape,
+    three validation 400s, schema-mismatch 409, schema-drift 200+warning,
+    POST→GET→DELETE round-trip, DELETE-unknown 404.
+  - Nested `CollectorFactory : WebApplicationFactory<Program>` mirrors the
+    pattern from `HealthUiEndpointTests`. Named in-memory DuckDB
+    `":memory:qyl-obs-<guid>"` per fixture for catalog isolation.
+
+**Substitutions:**
+- DuckDB → `:memory:<guid>` (same as Health's pattern but with a unique name
+  to dodge the shared-catalog race). `QYL_OTLP_AUTH_MODE=Unsecured` for clean
+  boot. No outbound HTTP, no FakeTimeProvider, no WireMock needed for this
+  feature.
+
+**The parallel-execution race:**
+- Adding a second functional test class surfaced
+  `DuckDB.NET.Data.DuckDBException : TransactionContext Error: Catalog
+  write-write conflict on alter` on roughly every other run. Two fixtures'
+  migration runs overlap because DuckDB takes a process-wide lock on catalog
+  ALTER even between distinct named in-memory databases. Named in-memory DBs
+  alone don't fix it; the `[Collection]` serialization does.
+- Verified by stress: 8/8 consecutive full-suite runs green after the
+  refactor (20 tests total, excluding `Category=regen`).
+
+**Verification:**
+- `dotnet build qyl.slnx` — 0 errors.
+- `Qyl.Collector.Tests` (regen excluded) — 20/20 across 8 consecutive runs.
+- `ObserveSubscriptionEndpointsTests` standalone — 8/8 in ~0.5s.
+- One iteration of the schema-version-rejection assertion was wrong on the
+  first author pass (sent `999.0.0` instead of `semconv-999.0.0` — fell into
+  `SemconvVersionParser.TryParse` → false → permissive Accept). Fixed before
+  commit; documented inline so the next routine knows the parser's prefix
+  requirement.
+
+**Gaps for the next run:**
+- **Mutation testing** — Stryker.NET is globally installed
+  (`~/.dotnet/tools/dotnet-stryker`) and was not run this iteration. Scope
+  for the next run: `services/qyl.collector/Observe/{ObserveEndpoints,
+  SubscriptionManager,ObserveCatalog,SchemaVersionNegotiator}.cs` against
+  `ObserveSubscriptionEndpointsTests`.
+- **Next feature gap** — `/api/v1/configurator/*` (`ProvisioningEndpoints`)
+  has rich validation branches and a `GenerationProfileService` collaborator.
+  Either extract `IGenerationProfileService` (refactor commit, then test
+  commit), or accept the same in-memory-DuckDB boot pattern. `/api/v1/schema/promotions` (`SchemaEndpoints`) has a similar shape.
+- **Middleware contracts** — `UseQylCollectorMiddleware` is exercised
+  end-to-end by every WebApplicationFactory test but no test asserts
+  redaction / exception-capture / tracing emission shape through the
+  pipeline. Worth a dedicated functional test class.
+- **`qyl.mcp` service** — still no functional coverage. Different host
+  shape (MCP stdio + HTTP), needs its own factory.
+- **Nuke `FunctionalTests` target** — SKILL.md sketches it, not added this
+  run to stay scoped. Could ride the next feature commit.
+
+**Handoff:** none. PR #351 is open and awaits review/merge; do not push to
+`main` from this routine.
