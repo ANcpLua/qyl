@@ -311,3 +311,14 @@ Under `tests/qyl.collector.tests/`:
 | [`ANcpLua.OtelConventions.Api`](https://github.com/O-ANcppLua/ANcpLua.OtelConventions.Api) | external | TypeSpec library (`@o-ancpplua/otel-conventions-api@0.1.0` on GitHub Packages). Swap complete on `chore/swap-inlined-otel-for-otel-conventions-api`: 6 inlined signal files + 3 common files + 1 generated keys file deleted; npm imports for `otel`, `common/*`, and `generated/otel-keys` subpaths; `Qyl.OTel.*` / `Qyl.Common.*` C# namespaces preserved via `@@csharpNamespace` mappings. `tsp compile --no-emit` is green. |
 | [#172](https://github.com/O-ANcppLua/qyl/pull/172)                          | qyl                   | merged — `mcp.transport` + `mcp.session.id` qyl-shape tagging                                   |
 | [#173](https://github.com/O-ANcppLua/qyl/issues/173)                        | qyl                   | closed — PRD 1 (Observability roll-up: cost / conversations / inventory) on top of OTel + #172  |
+
+## Skill bundle layout
+
+`.claude` is a symlink to `.agents` (top-level alias, mirroring the
+`CLAUDE.md -> AGENTS.md` pattern). The canonical tree is `.agents/`; edit
+there, never under `.claude/`. The symlink exists because the Loom agent
+harness reads from `.agents/skills/` while Claude Code reads from
+`.claude/skills/` — both paths resolve to the same files, no drift possible.
+Skills covered: loom-autofix, loom-create-alert, loom-feature-setup,
+loom-fix-issues, loom-review-bot-pr, loom-skill-creator, loom-workflow,
+qyl-otel-exporter-setup.
