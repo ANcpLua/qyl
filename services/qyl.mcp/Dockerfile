@@ -8,7 +8,7 @@
 # ============================================================================
 # STAGE 1: Build .NET Native AOT
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:0191ff386e93923edf795d363ea0ae0669ce467ada4010b370644b670fa495c1 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:5c559aa5d99337e400d39ab4fa1f6979d126c29b20939d53658ed38300571e74 AS build
 
 # Install native AOT prerequisites
 RUN apk add --no-cache clang build-base zlib-dev
@@ -57,7 +57,11 @@ RUN dotnet publish -c Release -o /app -r linux-musl-x64 --no-restore \
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine@sha256:4f08c162590324de60f31937f5b5fa9f2b5eddaa4f0aaec3c872f855bf16c36c AS runtime
+# Stage 1 cross-compiles to linux-musl-x64 (see `-r linux-musl-x64` above),
+# so the runtime stage must also be amd64 — otherwise multi-arch hosts
+# (e.g. macOS arm64 dev machines) resolve runtime-deps to arm64 and the
+# musl-x64 binary fails to load (`ld-musl-x86_64.so.1 not found`).
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine@sha256:f276c0256ffca8fe816d48ba261962b54fea1b0e6f870b6a60b3b705c89e78ac AS runtime
 
 # Labels for container registries
 LABEL org.opencontainers.image.title="qyl.mcp"
