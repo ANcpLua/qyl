@@ -20,6 +20,10 @@
     <ANcpLuaAnalyzersVersion>1.29.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
+    <!-- ANcpLua.Agents.Mcp[.Hosting] is on its own version train, decoupled from
+         the 1.4.x ANcpLua.Agents core line. Tracks the MCP SDK cadence rather
+         than MAF. First publish 0.1.0 (2026-05-19). -->
+    <ANcpLuaAgentsMcpVersion>0.1.0</ANcpLuaAgentsMcpVersion>
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
     <!-- BitNet hosting ships from ANcpLua/ANcpLua.Agents alongside the OpenAI
          hosting package; alpha channel until the runtime contract stabilises.
@@ -36,14 +40,15 @@
          Directory.Packages.props only fires when the sibling checkout exists;
          the NuGet-resolved SDK does not auto-import its own Build/Common/Version.props.
          Inlining here keeps the repo buildable in either configuration.
-         Values mirror ANcpLua.NET.Sdk 3.4.25. -->
-    <MicrosoftAgentsAIVersion>1.4.0</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIAbstractionsVersion>1.4.0</MicrosoftAgentsAIAbstractionsVersion>
-    <MicrosoftAgentsAIWorkflowsVersion>1.4.0</MicrosoftAgentsAIWorkflowsVersion>
-    <MicrosoftAgentsAIOpenAIVersion>1.4.0</MicrosoftAgentsAIOpenAIVersion>
-    <MicrosoftAgentsAIHostingVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIHostingVersion>
-    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
-    <MicrosoftAgentsAIDevUIVersion>1.4.0-preview.260505.1</MicrosoftAgentsAIDevUIVersion>
+         Bumped to 1.6.1 (2026-05-19) so ANcpLua.Agents.Mcp 0.1.0 — which is
+         packed against MAF 1.6.1 — restores without NU1109 downgrade conflict. -->
+    <MicrosoftAgentsAIVersion>1.6.1</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIAbstractionsVersion>1.6.1</MicrosoftAgentsAIAbstractionsVersion>
+    <MicrosoftAgentsAIWorkflowsVersion>1.6.1</MicrosoftAgentsAIWorkflowsVersion>
+    <MicrosoftAgentsAIOpenAIVersion>1.6.1</MicrosoftAgentsAIOpenAIVersion>
+    <MicrosoftAgentsAIHostingVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
+    <MicrosoftAgentsAIDevUIVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIDevUIVersion>
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.11.0</SystemClientModelVersion>

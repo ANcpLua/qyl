@@ -1,17 +1,19 @@
 using System.Collections.Frozen;
 using System.Text.Json;
+using ANcpLua.Agents.Mcp;
 
 namespace qyl.mcp.Scoping;
 
-internal static class ConstraintInjector
+internal sealed class QylScopeInjector : IQylConstraintInjector<QylScope>
 {
     private static readonly FrozenDictionary<string, Func<QylScope, string?>> s_injectableParameters =
         new Dictionary<string, Func<QylScope, string?>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["serviceName"] = static s => s.ServiceName, ["sessionId"] = static s => s.SessionId
+            ["serviceName"] = static s => s.ServiceName,
+            ["sessionId"] = static s => s.SessionId
         }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
-    public static IDictionary<string, JsonElement>? InjectScope(
+    public IDictionary<string, JsonElement>? Inject(
         IDictionary<string, JsonElement>? arguments,
         QylScope scope)
     {

@@ -1,5 +1,10 @@
+using System.Collections.Frozen;
 using System.Text.Json;
+using ANcpLua.Agents.Mcp.Hosting.Authentication;
+using ANcpLua.Agents.Mcp.Hosting.Filters;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -53,7 +58,24 @@ internal static class QylMcpServerRegistration
         };
 
         if (transport is McpTransportMode.Http)
+        {
+            services.AddAuthorization();
             builder.AddAuthorizationFilters();
+
+            if (hostOptions is { RequiresAuthentication: true })
+            {
+                if (string.IsNullOrWhiteSpace(hostOptions.KeycloakAudience))
+                {
+                    throw new InvalidOperationException(
+                        $"{McpAuthOptions.KeycloakAuthorityEnvVar} is set but " +
+                        $"{McpHostOptions.KeycloakAudienceEnvVar} is empty. " +
+                        "Audience validation must be explicit — refusing to start with " +
+                        "any-token-from-realm policy.");
+                }
+
+                ConfigureOAuth(builder, hostOptions);
+            }
+        }
 
         builder
             .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options =>
@@ -64,42 +86,13 @@ internal static class QylMcpServerRegistration
                     _ => "stdio"
                 };
             })
-            .WithRequestFilters(filters =>
+            .WithQylAdminFilter(options =>
             {
-                filters.AddCallToolFilter(next => async (request, cancellationToken) =>
-                {
-                    var toolName = request.Params.Name;
-                    var scopedServices = serviceProviderAccessor()!;
-
-                    var denied = scopedServices
-                        .GetRequiredService<McpAdminToolFilter>()
-                        .CheckAccess(toolName);
-                    if (denied is not null)
-                        return denied;
-
-                    var scope = scopedServices.GetRequiredService<QylScope>();
-                    if (scope.HasScope)
-                    {
-                        request.Params.Arguments = ConstraintInjector.InjectScope(
-                            request.Params.Arguments,
-                            scope);
-                    }
-
-                    var result = await next(request, cancellationToken);
-
-                    var totalChars = result.Content
-                        .OfType<TextContentBlock>()
-                        .Sum(static content => content.Text.Length);
-
-                    if (totalChars > 10_000)
-                    {
-                        result.Meta ??= [];
-                        result.Meta["anthropic/maxResultSizeChars"] = totalChars;
-                    }
-
-                    return result;
-                });
+                options.RequiredRole = McpAuthRoles.Admin;
+                options.AdminToolNames = QylAdminTools.Names;
             })
+            .WithQylScopeInjection<QylScope>()
+            .WithAnthropicResultSizeMeta(thresholdChars: 10_000)
             .WithTools<CapabilityTools>(jsonOptions);
 
         QylToolManifest.RegisterTools(builder, skills, jsonOptions);
@@ -112,4 +105,69 @@ internal static class QylMcpServerRegistration
                 .WithResources([QueryStudioResource.Create()]);
         }
     }
+
+    private static void ConfigureOAuth(IMcpServerBuilder builder, McpHostOptions hostOptions)
+    {
+        builder.WithQylOAuthProtectedResource(options =>
+        {
+            options.Authority = hostOptions.KeycloakAuthority!;
+            options.Audience = hostOptions.KeycloakAudience!;
+            options.ResolveResourceUrl = req => new Uri(hostOptions.ResolvePublicMcpUrl(req));
+            options.ConfigureMetadata = metadata =>
+            {
+                metadata.ResourceName = QylServerMetadata.DisplayName;
+                metadata.ResourceDocumentation = new Uri(QylServerMetadata.DocumentationUrl);
+            };
+            options.ConfigureJwtEvents = events =>
+            {
+                events.OnTokenValidated = OnTokenValidatedAsync;
+                events.OnAuthenticationFailed = OnAuthenticationFailedAsync;
+                events.OnForbidden = OnForbiddenAsync;
+            };
+        });
+
+        static Task OnTokenValidatedAsync(TokenValidatedContext context)
+        {
+            var logger = CreateLogger(context.HttpContext.RequestServices);
+            var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
+            var audience = context.Principal?.FindFirst("aud")?.Value ?? "(unspecified)";
+            logger.LogInformation("JWT validated: sub={Subject} aud={Audience}", subject, audience);
+            return Task.CompletedTask;
+        }
+
+        static Task OnAuthenticationFailedAsync(AuthenticationFailedContext context)
+        {
+            var logger = CreateLogger(context.HttpContext.RequestServices);
+            logger.LogWarning(
+                "JWT authentication failed: {ExceptionType}: {ExceptionMessage}",
+                context.Exception.GetType().Name,
+                context.Exception.Message);
+            return Task.CompletedTask;
+        }
+
+        static Task OnForbiddenAsync(ForbiddenContext context)
+        {
+            var logger = CreateLogger(context.HttpContext.RequestServices);
+            var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
+            logger.LogWarning(
+                "JWT authorized but role check failed: sub={Subject} path={Path}",
+                subject,
+                context.HttpContext.Request.Path.ToString());
+            return Task.CompletedTask;
+        }
+
+        static ILogger CreateLogger(IServiceProvider services) =>
+            services.GetRequiredService<ILoggerFactory>()
+                .CreateLogger(typeof(QylMcpServerRegistration).FullName!);
+    }
+}
+
+internal static class McpAuthRoles
+{
+    public const string Admin = "qyl:admin";
+}
+
+internal static class QylAdminTools
+{
+    public static readonly IReadOnlySet<string> Names = FrozenSet<string>.Empty;
 }

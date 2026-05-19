@@ -1,3 +1,4 @@
+using ANcpLua.Agents.Mcp.Hosting.Logging;
 using Microsoft.Extensions.Hosting;
 using qyl.mcp.Scoping;
 
@@ -8,7 +9,7 @@ internal static class QylMcpStdioHost
     public static async Task RunAsync(string[] args, SkillConfiguration skills, QylScope scope)
     {
         var builder = Host.CreateApplicationBuilder(args);
-        QylMcpServiceCollectionExtensions.ConfigureLogging(builder.Logging, true);
+        builder.Logging.AddQylMcpStdioConsole();
 
         var jsonOptions = builder.Services.AddQylMcpCommonServices(builder.Configuration, skills, scope);
 

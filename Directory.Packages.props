@@ -75,6 +75,8 @@
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Polyfills" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
+    <PackageVersion Include="ANcpLua.Agents.Mcp" Version="$(ANcpLuaAgentsMcpVersion)"/>
+    <PackageVersion Include="ANcpLua.Agents.Mcp.Hosting" Version="$(ANcpLuaAgentsMcpVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Testing" Version="$(ANcpLuaAgentsTestingVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Hosting.OpenAI" Version="$(ANcpLuaAgentsHostingOpenAIVersion)"/>
     <PackageVersion Include="ANcpLua.Agents.Hosting.BitNet" Version="$(ANcpLuaAgentsHostingBitNetVersion)"/>

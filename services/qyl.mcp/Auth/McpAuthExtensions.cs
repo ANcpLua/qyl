@@ -40,8 +40,6 @@ public static class McpAuthExtensions
                 sp.GetRequiredService<TimeProvider>(),
                 sp.GetRequiredService<ILogger<KeycloakTokenProvider>>()));
 
-        services.AddSingleton<McpAdminToolFilter>();
-
         services.AddTransient<McpAuthHandler>();
 
         return services;
