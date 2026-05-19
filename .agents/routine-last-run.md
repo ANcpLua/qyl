@@ -4,6 +4,58 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-e2e-tests 2026-05-19 07:52
+
+**Outcome:** BLOCKED — Docker daemon not running. Run stopped without changes.
+
+**Blocker:**
+OrbStack's Docker socket is missing
+(`/Users/ancplua/.orbstack/run/docker.sock` does not exist). `docker info`
+errors with `dial unix /Users/ancplua/.orbstack/run/docker.sock: connect: no
+such file or directory`. The OrbStack app is installed
+(`/Applications/OrbStack.app` present, `~/.orbstack/bin` on PATH) but the
+daemon is not running — `pgrep -fl -i orbstack` returns no OrbStack
+processes (only unrelated MCP helpers that happen to have `~/.orbstack/bin`
+on their inherited PATH).
+
+The `QylTopologyFixture` boots `qyl-collector` + `qyl-mcp` containers via
+Testcontainers; without a Docker daemon the E2E routine cannot do its single
+useful thing. The skill explicitly lists this as a documented no-op:
+*"Docker not available → note + exit (most common no-op)."* This run does
+not attempt to start OrbStack autonomously — bringing a desktop daemon /
+VM up is the user's call, not the scheduled task's.
+
+**State on arrival:**
+- Worktree clean on `claude/dreamy-germain-432280`; `origin/main` HEAD is
+  `c2ab2116 chore(nuget): add GitHub Packages feed for O-ANcppLua org`.
+- `dotnet build qyl.slnx` not attempted (a build doesn't unblock anything
+  when the containers can't boot).
+- Last E2E run shipped `OtlpHttpTraceIngestionRoundtripTests` on PR #353
+  (`tests/auto-e2e-2026-05-18`).
+- Test inventory unchanged:
+  `tests/qyl.{collector,collector.integration,e2e,mcp}.tests`.
+
+**Carry-forward gaps (unchanged from 2026-05-18):**
+1. **Production bug, highest priority:** `spans.kind` / `spans.status_code`
+   declared `VARCHAR NOT NULL` in `DuckDbSchema.g.sql:316,319`, but
+   `SpanStorageRow.Kind` / `.StatusCode` are `byte`. The source generator at
+   `internal/qyl.collector.storage.generators/DuckDbEmitter.cs:219-222`
+   emits `reader.Col(N).GetByte(0)`, so every `GET /api/v1/traces` row read
+   throws `InvalidCastException`. Not an E2E concern — belongs in a focused
+   PR with its own migration testing. Once fixed, extend
+   `OtlpHttpTraceIngestionRoundtripTests` to also assert the trace is
+   queryable via `GET /api/v1/traces/{traceId}`.
+2. **Second E2E scenario:** MCP → collector handshake. Drive an MCP tool
+   over JSON-RPC that reads spans previously ingested via OTLP/HTTP, assert
+   the round-trip.
+3. **Third E2E scenario:** chat ingest → trace at sink with credentials
+   redacted (the original handoff candidate). Add an OTel collector sink
+   container with a file exporter to `QylTopologyFixture`.
+
+**No code changes this run.** This entry exists only as a breadcrumb.
+
+**Handoff:** none.
+
 ## qyl-functional-tests 2026-05-17 02:27
 
 **Outcome:** bootstrap + first feature test landed.
