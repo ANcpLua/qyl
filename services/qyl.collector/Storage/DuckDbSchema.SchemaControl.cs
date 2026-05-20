@@ -12,7 +12,8 @@ public static partial class DuckDbSchema
                                                   target_table VARCHAR NOT NULL,
                                                   status VARCHAR DEFAULT 'pending',
                                                   applied_at TIMESTAMP,
-                                                  created_at TIMESTAMP DEFAULT now()
+                                                  created_at TIMESTAMP DEFAULT now(),
+                                                  sql_statements VARCHAR NOT NULL DEFAULT ''
                                               );
                                               """;
 }
