@@ -4,6 +4,51 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-e2e-tests 2026-05-20 04:31
+
+**Outcome:** BLOCKED — Docker daemon still not running. Second consecutive day.
+Run stopped without changes. No code touched.
+
+**Blocker:** identical cause as the 2026-05-19 entry below. OrbStack's Docker
+socket is still missing (`/Users/ancplua/.orbstack/run/docker.sock` →
+`No such file or directory`); `pgrep -fl -i 'OrbStack|com.docker'` returns no
+daemon processes. The OrbStack app is installed but not started. Bringing the
+desktop daemon up is the user's call, not the scheduled task's.
+
+**State on arrival:**
+- Worktree clean on `claude/eager-mahavira-9f48b4`. `origin/main` HEAD is
+  `82c7ad63 refactor(qyl.mcp): delete dead ServiceProviderRef plumbing`
+  (three commits ahead of the 2026-05-19 `c2ab2116` baseline; none touch the
+  E2E perimeter — they are mcp wiring + auto-merge.yml sync).
+- E2E project + last shipped scenario unchanged from 2026-05-18:
+  `OtlpHttpTraceIngestionRoundtripTests` in `tests/qyl.e2e.tests`.
+- Carry-forward priority-1 production bug **still present**:
+  `spans.kind` / `spans.status_code` declared `VARCHAR NOT NULL` at
+  `services/qyl.collector/Storage/DuckDbSchema.g.sql:313,317`, but
+  `internal/qyl.collector.storage.generators/DuckDbEmitter.cs:184,221`
+  emits `reader.Col(N).AsByte` / `GetByte(0)` for those columns →
+  `InvalidCastException` on every `GET /api/v1/traces` row read. Not an E2E
+  fix; flagged again so it does not silently age out.
+- `dotnet build` not attempted; a build cannot unblock a missing daemon.
+
+**Carry-forward gaps (unchanged from 2026-05-19; only restated when the
+priority shifts):**
+1. Priority-1 production bug above — needs its own focused PR with migration
+   testing. Once landed, extend `OtlpHttpTraceIngestionRoundtripTests` to also
+   assert `GET /api/v1/traces/{traceId}` returns the row.
+2. MCP → collector handshake scenario (read previously-OTLP-ingested spans
+   over JSON-RPC; round-trip assertion).
+3. Chat ingest → trace at sink with credentials redacted (requires adding an
+   OTel collector sink container with a file exporter to `QylTopologyFixture`).
+
+**Pattern flag:** two consecutive Docker-down no-ops. If this becomes three,
+worth considering whether the routine should attempt a non-interactive
+`open -gja OrbStack` (still user-side action — agent only nudges, never
+escalates to `osascript` automation without explicit instruction). Not doing
+it today; the prior entry's reasoning stands.
+
+**Handoff:** none.
+
 ## qyl-e2e-tests 2026-05-19 07:52
 
 **Outcome:** BLOCKED — Docker daemon not running. Run stopped without changes.
