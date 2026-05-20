@@ -111,7 +111,19 @@ The map is the **only** thing that differs between targets. Applied at `.csproj`
 
 ### 2.1 Invariant: emit logic does not branch on target
 
-Source-generator code (everything under `Qyl.SemConv.Gen.Generator` / `OpenTelemetry.SemanticConventions.SourceGeneration.Generator`) **never** contains a conditional of the form `if (rootNamespace == "Qyl.SemConv.Gen") … else …`. The generator reads `RootNamespace` from `AnalyzerConfigOptions` once and uses it as a single string token in emitted code. Test for this invariant lives with the harness (Agent 6, Phase 2–4): a unit test that runs the generator twice with two different `RootNamespace` MSBuild properties and asserts the only diff between the two outputs is the namespace token.
+The substantive invariant is: **the only diff between two generator runs targeting two different namespaces must be the namespace declaration line.** Generator code never contains a conditional of the form `if (namespace == "Qyl.…") … else …` — the target namespace flows through emit code as a single string token, no branching.
+
+**Mechanism (reconciled with shipping implementation, Phase 3 audit Finding 5):** the namespace token is read from the consumer's marker-class containing namespace at extraction time (`packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/Extractors/MarkerExtractor.cs:25-29`):
+
+```csharp
+var ns = typeSymbol.ContainingNamespace.IsGlobalNamespace
+    ? string.Empty
+    : typeSymbol.ContainingNamespace.ToDisplayString();
+```
+
+This is the consumer's chosen namespace (where they place their `[SemanticConventionAttributes("…")]`-decorated partial class), **not** the MSBuild `RootNamespace` property the earlier Phase 0 draft hypothesized. Both satisfy the substantive §2.1 invariant (single string token, no conditional emit logic). The `ContainingNamespace` approach is strictly better than the original design: one consumer can host multiple marker classes in distinct namespaces, which the `RootNamespace` model cannot express. **Phase 4 ratifies `ContainingNamespace` as canonical.**
+
+Invariant test: `tests/qyl.opentelemetry.semconv.sourcegen.tests/NamespaceParameterizationTest.cs` runs the generator under two distinct consumer namespaces (`ConsumerA.Telemetry`, `ConsumerB.Different.Nested.Path`) and asserts `bodyA.Should().Be(bodyB)` after stripping the namespace declaration line — strict byte-equality of everything except the namespace token. Verified PASS by `weaver-spec-auditor` Phase 3 audit (`docs/weaver-audit-phase3-report.md` Evidence row "§2.1 emit-logic invariant").
 
 If a maintainer-requested change on contrib appears to require branching emit logic, that is automatic P0 escalation to the orchestrator (§3 invariant **(d)**).
 
