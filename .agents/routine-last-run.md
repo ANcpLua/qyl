@@ -4,6 +4,94 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-integration-tests 2026-05-20 04:35
+
+**Outcome:** ONE adapter covered + ONE production bug fixed. PR #361.
+
+**Docker:** still down (same blocker the 2026-05-19 e2e run hit). This
+routine is **not** Docker-only — the DuckDB embedded surface is reachable
+without containers, and that's where the value landed today.
+
+**State on arrival:**
+- `.NET 10.0.300` SDK present at `~/.dotnet/`.
+- `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` — 0 errors. Clean baseline.
+- `tests/qyl.collector.integration.tests` exists from 2026-05-18 (PR #352):
+  five `ReadLeaseIntegrationTests` + six `ErrorUpsertIntegrationTests` against
+  `DuckDbStore`, all green.
+- One pre-existing test failure on `main` (`RegenCleanTests.
+  Generate_OnCleanTree_ProducesNoChanges`) — caused by untracked working-tree
+  debris from earlier sessions (`.agents/worktrees/`), not by anything in this
+  routine. Verified by stash-and-rerun: the failure reproduces with this PR's
+  changes stashed out.
+- Top of `main`: `82c7ad63 refactor(qyl.mcp): delete dead ServiceProviderRef
+  plumbing`.
+
+**Changes shipped (PR #361 — 2 commits):**
+- `a0d9f815 fix(collector/spanclusters): use json_extract_string for conjoined
+  predicates`
+  - `services/qyl.collector/Storage/DuckDbStore.SpanClusters.cs` —
+    replaced three `attributes_json->>'k'` calls in `GetUnclusteredChatSpansAsync`
+    with `json_extract_string(attributes_json, 'k')`. The WHERE-side replacement
+    is the actual bug fix; the SELECT-side is a consistency change.
+- `4fbf89f6 test(integration/storage): cover span_clusters read+upsert against
+  real DuckDB`
+  - `tests/qyl.collector.integration.tests/Storage/SpanClustersIntegrationTests.cs`
+    — 11 `[Fact]`s split across the read selector and the upsert writer.
+    Per-test file-backed DuckDB under `Path.GetTempPath()`, seeded through
+    the production writer queue, queried through the production read pool.
+
+**The bug the tests surfaced:**
+- DuckDB 1.5.0 (pinned via `Version.props`) miscompiles conjoined predicates
+  of the shape `col->>'k1' IS NOT NULL AND col->>'k2' IS NOT NULL` on the
+  same VARCHAR column. At runtime it tries `CAST(col AS BOOL)` against the
+  full JSON string and throws `ConversionError`. Reproduced with a
+  one-table, one-row probe outside the integration suite — does not
+  require the LEFT JOIN. `json_extract_string(col, 'k')` form is unaffected.
+- Impact: `EmbeddingClusterWorker` (`services/qyl.collector/Analytics/
+  EmbeddingClusterWorker.cs`) would have failed every clustering pass the
+  moment a real gen_ai chat span landed in storage. No telemetry or alarm
+  surfaces this in production today.
+- `AnalyticsQueryService.cs` was audited for the same shape — only uses
+  single-predicate `IS NOT NULL` or equality-against-literal patterns, so
+  it does **not** trigger the bug. Worth integration-pinning so a future
+  contributor doesn't add a second predicate and regress us silently.
+
+**Verification:**
+- `dotnet build qyl.slnx` — 0 errors.
+- `Qyl.Collector.Integration.Tests` — 22/22 (5 ReadLease + 6 ErrorUpsert + 11
+  SpanClusters), ~0.6s on a clean build.
+- `Qyl.Collector.Tests` — 20/21 (the failing `RegenCleanTests` reproduces on
+  the unstaged baseline, see above).
+- Bug confirmed and fix confirmed via a standalone DuckDB.NET probe
+  (deleted after use, not committed).
+
+**Gaps for the next run:**
+- **Mutation** — Stryker scoped to
+  `services/qyl.collector/Storage/DuckDbStore.SpanClusters.cs` against the
+  new test class. Skipped here because the file is 87 LOC and would have
+  burned more setup than signal; with the integration coverage now real,
+  Stryker has something solid to mutate.
+- **`AnalyticsQueryService` JSON predicates** — same column, same operator
+  family, currently safe shape. Integration tests for `ListConversationsAsync`
+  and the feedback aggregation SQL (lines 407–479) would catch the same
+  planner bug if anyone adds a second predicate.
+- **`DuckDbStore.Triage.cs`** — `GetUntriagedIssueIdsAsync` is the same
+  LEFT JOIN / IS NULL anti-pattern as SpanClusters, but on `errors` ×
+  `triage_results`, with `status NOT IN ('resolved','ignored','wont_fix')`
+  and `ORDER BY last_seen`. No JSON arrow (so the bug doesn't apply), but
+  the anti-join + filter + ordering shape is worth pinning.
+- **SKILL.md drift** — the qyl-integration-tests SKILL.md describes
+  TUnit + Testcontainers.NET + cross-class shared fixtures, but the repo
+  is xUnit v3 + MTP and the existing integration tests don't use Testcontainers.
+  Either the SKILL.md needs an update or there's a genuine migration the
+  routine should drive. Followed the existing repo pattern this run; flagging
+  for review.
+- **Docker daemon** — when Docker comes back, the OTLP-collector and gRPC
+  integration scenarios from the SKILL.md become reachable.
+
+**Handoff:** none. PR #361 is open, CodeRabbit / auto-merge gates will pick
+it up; do not push to `main` from this routine.
+
 ## qyl-e2e-tests 2026-05-19 07:52
 
 **Outcome:** BLOCKED — Docker daemon not running. Run stopped without changes.
