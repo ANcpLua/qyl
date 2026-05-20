@@ -4,6 +4,85 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-unit-tests 2026-05-20
+
+### Status: SUCCESS (one increment shipped, PR #358 opened, not merged)
+
+### What ran
+
+Build was green on arrival (`dotnet build qyl.slnx`: 0 errors, 108 warnings —
+analyzer noise, baseline-consistent). HEAD on `main` was
+`82c7ad63 refactor(qyl.mcp): delete dead ServiceProviderRef plumbing`.
+
+Picked the highest-priority target from PR #350's next-run rankings: the
+`ConstraintInjector` successor in `qyl.mcp`. The 2026-04-21 → 2026-05-19
+refactor that consumed `ANcpLua.Agents.Mcp[.Hosting] 0.1.0` as a fluent chain
+(`41747d7b feat(qyl.mcp): consume ANcpLua.Agents.Mcp[.Hosting] 0.1.0 as fluent chain`)
+deleted `ConstraintInjector` AND its tests (PR #350's coverage gone with the SUT),
+replacing them with `QylScopeInjector : IQylConstraintInjector<QylScope>` in
+`services/qyl.mcp/Scoping/QylScopeInjector.cs` — instance method instead of
+static, same contract. Registered as singleton at `QylMcpServiceCollectionExtensions.cs:42`
+and chained via `WithQylScopeInjection<QylScope>()` at `QylMcpServerRegistration.cs:93`.
+
+Added `tests/qyl.mcp.tests/Scoping/QylScopeInjectorTests.cs` — 16 xUnit v3
+tests (13 facts + 1 theory × 3 inline cases), ~600ms. Re-establishes the
+coverage PR #350 had + tightens it: two new tests
+(`_WhenOneParamHasExistingValue_StillInjectsTheOther`,
+`_WhenBothParamsHaveExistingValues_PreservesBoth`) close a `continue → break`
+mutation gap that the PR #350 surface didn't cover.
+
+Manual mutation walk-through in the PR body covers every meaningful mutant
+against the 32-line SUT.
+
+### Convention conflict resolved (same as PR #350)
+
+Scheduled-task description says "use TUnit". Repo `CLAUDE.md` says "xUnit v3
+with Microsoft Testing Platform" and the one pre-existing test file in
+`tests/qyl.mcp.tests/` is xUnit v3. Per the `using-superpowers` priority
+rule (CLAUDE.md > skills > defaults) AND the routine's own "AGENTS.md
+overrides anything in this file where they conflict", stayed on xUnit v3.
+Flagged in PR body.
+
+### Stryker.NET — still deferred
+
+Same call as PR #350. Bootstrap is a repo-wide tooling change distinct from
+a single coverage increment, and adding `.config/dotnet-tools.json` +
+`stryker-config.json` + a Nuke target on top of a test-only PR doubles the
+review surface. PR body carries the manual mutant table.
+
+### Outputs
+
+- Branch: `tests/auto-unit-2026-05-20` (pushed).
+- PR: https://github.com/O-ANcppLua/qyl/pull/358 (not merged).
+- Worktree: `.claude/worktrees/exciting-taussig-a8f8bb/` (left clean after
+  this entry's commit).
+
+### Targets for the next run (ranked, refreshed for the post-refactor tree)
+
+1. **Bootstrap Stryker.NET** — still highest-value unblock. Without it, every
+   unit-test PR ships a manual mutant table.
+2. **`InvestigationLineage`** + **`InvestigationGuard`** (`services/qyl.mcp/Agents/`)
+   — small surfaces, currently env-coupled via `EnvConfig.ReadInt`. Refactor
+   for testability (wrap the env reader), then test.
+3. **`CollectorConcurrencyLimiter`** (`services/qyl.mcp/Agents/`) — small;
+   may need `TimeProvider` injection if it touches time.
+4. **Prompt classes** in `services/qyl.mcp/Agents/` — `RcaPrompt`,
+   `ErrorSummaryPrompt`, `TraceSummaryPrompt`, `SessionSummaryPrompt`,
+   `UseQylSystemPrompt`. Per `services/qyl.mcp/CLAUDE.md`, these are
+   `static const string` system-prompt constants consumed via
+   `ChatOptions.Instructions`, NOT MCP protocol templates — so they may be
+   pure constants with no logic to test. Quick scan first; skip if confirmed
+   constants-only.
+5. **`services/qyl.loom`** and **`services/qyl.loom.patterns`** — no test
+   project at all. Brand-new csproj is out of scope for a single-increment
+   routine run; needs a dedicated session.
+
+### Handoff notes
+
+None. No findings that belong to a different routine
+(`qyl-functional-tests`, `qyl-integration-tests`, `qyl-e2e-tests`) surfaced
+during the scan. `.agents/routine-handoff.md` not created.
+
 ## qyl-e2e-tests 2026-05-19 07:52
 
 **Outcome:** BLOCKED — Docker daemon not running. Run stopped without changes.
