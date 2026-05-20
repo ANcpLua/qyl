@@ -13,8 +13,8 @@ public sealed partial class DuckDbStore
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
                               INSERT INTO schema_promotions
-                                  (id, profile_id, source_attribute, target_column, target_type, target_table, status, applied_at, created_at)
-                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                  (id, profile_id, source_attribute, target_column, target_type, target_table, status, applied_at, created_at, sql_statements)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.PromotionId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.RequestedBy ?? (object)DBNull.Value });
@@ -25,6 +25,7 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.Status });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.AppliedAt ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.CreatedAt });
+            cmd.Parameters.Add(new DuckDBParameter { Value = record.SqlStatements });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -38,7 +39,7 @@ public sealed partial class DuckDbStore
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT id, profile_id, source_attribute, target_column, target_type,
-                                 target_table, status, applied_at, created_at
+                                 target_table, status, applied_at, created_at, sql_statements
                           FROM schema_promotions
                           WHERE id = $1
                           """;
@@ -61,7 +62,7 @@ public sealed partial class DuckDbStore
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT id, profile_id, source_attribute, target_column, target_type,
-                                 target_table, status, applied_at, created_at
+                                 target_table, status, applied_at, created_at, sql_statements
                           FROM schema_promotions
                           WHERE status = $1
                           ORDER BY created_at DESC
@@ -118,7 +119,7 @@ public sealed partial class DuckDbStore
             TargetColumn: reader.Col(3).AsString,
             ColumnType: reader.Col(4).AsString,
             TargetTable: reader.Col(5).AsString ?? string.Empty,
-            SqlStatements: string.Empty,
+            SqlStatements: reader.Col(9).AsString ?? string.Empty,
             Status: reader.GetString(6),
             AppliedAt: reader.Col(7).AsDateTime,
             CreatedAt: reader.Col(8).AsDateTime ?? TimeProvider.System.GetUtcNow().UtcDateTime);
