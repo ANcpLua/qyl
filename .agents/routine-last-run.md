@@ -4,6 +4,114 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-functional-tests 2026-05-20
+
+**Outcome:** SchemaEndpoints functional coverage landed + production bug
+fix surfaced in the same PR (#360, `tests/auto-functional-2026-05-20`).
+Two commits: storage-layer fix, then the eight-row functional class.
+
+**State on arrival:**
+- Worktree clean on `claude/gifted-einstein-589b33`, `main` HEAD =
+  `82c7ad63 refactor(qyl.mcp): delete dead ServiceProviderRef plumbing`.
+- `dotnet build qyl.slnx` — 0 errors, 1582 warnings (baseline analyzer
+  noise, consistent with previous routine runs).
+- Two functional test classes on main from PRs #343 + #351
+  (`HealthUiEndpointTests`, `ObserveSubscriptionEndpointsTests`); both
+  still green this run.
+- `eng/build/BuildTest.cs` already has the `FunctionalTests` Nuke target
+  (`*.Functional.*` namespace filter) from PR #343.
+- `.NET 10.0.300` on PATH at `~/.dotnet/`; Stryker.NET globally installed
+  at `~/.dotnet/tools/dotnet-stryker` but the repo still has no
+  `stryker-config.json` — same blocker the 2026-05-18 run flagged.
+
+**Changes shipped (PR #360 — two commits on `tests/auto-functional-2026-05-20`):**
+
+1. `542a765c fix(schema-control): persist sql_statements so promotions can actually apply`
+    - `services/qyl.collector/Storage/DuckDbSchema.SchemaControl.cs` —
+      added `sql_statements VARCHAR NOT NULL DEFAULT ''` to the
+      `schema_promotions` CREATE TABLE.
+    - `services/qyl.collector/Storage/DuckDbStore.SchemaControl.cs` —
+      extended `InsertSchemaPromotionAsync` to bind `record.SqlStatements`
+      as `$10`; extended both `SELECT` statements in
+      `GetSchemaPromotionAsync` / `GetSchemaPromotionsByStatusAsync` to
+      project `sql_statements` at column index 9; mapped it through
+      `MapSchemaPromotion` (previously hard-coded to `string.Empty`).
+    - **What was broken:** `SchemaPlanner.PlanPromotionAsync` generates
+      DDL into `SchemaPromotionRecord.SqlStatements`, but the table had
+      no column for it — INSERT dropped the SQL, READ rebuilt the record
+      with `SqlStatements = ""`, and `SchemaExecutor.ExecutePromotionAsync`
+      then called `ExecuteSchemaDdlAsync("")` which throws inside
+      DuckDB.NET's `PrepareMultiple`. Every apply call landed in
+      `status='failed'`; `/api/v1/schema/promotions/{id}/apply` had
+      never actually worked since the feature shipped.
+    - Zero non-test callers of `SchemaPlanner` / `SchemaExecutor` outside
+      the four HTTP routes, so the blast radius is contained.
+
+2. `29c56e2b test(functional/schema-control): cover /api/v1/schema/promotions/* end-to-end`
+    - `tests/qyl.collector.tests/Functional/SchemaPromotionEndpointsTests.cs`
+      — eight `[Fact]` rows covering:
+      validation-400 for missing `TargetTable` / `ChangeType`; happy-path
+      POST returns 201 with `Created` Location header and the planner
+      record (camelCase via `JsonSerializerDefaults.Web` reflection
+      fallback — `SchemaPromotionRecord` is not in
+      `QylSerializerContext`); GET-by-id returns the persisted row with
+      `sql_statements` round-tripping through DuckDB (the read-path
+      regression guard for the fix above); GET-by-unknown-id → 404;
+      GET-list (bare array, not envelope) includes the new promotion;
+      POST apply actually executes the DDL against the in-memory
+      catalog, `status` flips to `'applied'`, `appliedAt` is non-null,
+      and the row drops out of the pending list; POST apply for an
+      unknown id → 404.
+    - `CollectorFactory : WebApplicationFactory<Program>` mirrors the
+      ObserveSubscriptionEndpointsTests pattern: named in-memory DuckDB
+      `:memory:qyl-schema-<guid>` per fixture, `QYL_OTLP_AUTH_MODE=Unsecured`
+      for clean boot. Joined to `FunctionalCollection` so migration runs
+      stay serial across functional fixtures.
+
+**Substitutions:**
+- DuckDB → `:memory:qyl-schema-<guid>` (real engine, isolated per fixture,
+  no file on disk). The `apply` test's DDL executes against this catalog.
+- No outbound HTTP → no WireMock / `TUnit.Mocks.Http` needed this run.
+- No time-driven behavior → no `FakeTimeProvider` needed.
+
+**Verification:**
+- `dotnet build qyl.slnx` — 0 errors, 166 warnings (analyzer baseline).
+- `dotnet run --project tests/qyl.collector.tests --
+  -class "Qyl.Collector.Tests.Functional.SchemaControl.SchemaPromotionEndpointsTests"`
+  — 8/8 across 3 consecutive runs, ~0.5s each. Zero flakes.
+- Full collector test suite (excluding `Category=regen`, which intentionally
+  fails when the working tree has uncommitted edits) — 28/28 green; the
+  two pre-existing functional classes still pass.
+
+**xUnit → TUnit migration:** not done this run. The SKILL.md sketches
+TUnit.AspNetCore but the project is xUnit v3 + `WebApplicationFactory<Program>`,
+and the global CLAUDE.md is explicit about following existing patterns.
+A migration belongs in its own dedicated commit, not bundled with feature
+coverage; the routine itself warns "TUnit.AspNetCore / factory issues
+you can't resolve in a few minutes → revert."
+
+**Gaps for the next run:**
+1. **Stand up `stryker-config.json`** scoped to `services/qyl.collector` so
+   subsequent functional runs can satisfy the routine's mutation-testing
+   step (`~/.dotnet/tools/dotnet-stryker` is installed but unconfigured).
+2. **`/api/v1/configurator/*` (`Provisioning/ProvisioningEndpoints.cs`)**
+   — rich validation branches + `GenerationProfileService` collaborator,
+   next obvious 6–10-row functional class.
+3. **Middleware contracts** — `UseQylCollectorMiddleware` is exercised
+   by every fixture but no test asserts redaction / exception-capture /
+   trace-emission shape through the pipeline.
+4. **`qyl.mcp` service** — still zero functional coverage. Different host
+   shape (MCP stdio + HTTP) → needs its own factory.
+5. **`add_index` ChangeType** — this run covers `add_column` validation
+   plus `add_table` happy/apply paths; an `add_index` test that pre-creates
+   the table then promotes an index against it would round out planner
+   coverage of all three allowed change types.
+6. **GET-list ordering** — endpoint returns `created_at DESC` but no test
+   asserts the order across multiple inserts.
+
+**Handoff:** PR #360 is open and awaits review/merge. Do not push to
+`main` from this routine.
+
 ## qyl-e2e-tests 2026-05-19 07:52
 
 **Outcome:** BLOCKED — Docker daemon not running. Run stopped without changes.
