@@ -29,8 +29,6 @@
 
   <Folder Name="/services/">
     <Project Path="services/qyl.collector/qyl.collector.csproj" />
-    <Project Path="services/qyl.adguard.companion/qyl.adguard.companion.csproj" />
-    <Project Path="services/qyl.nextdns.ingester/qyl.nextdns.ingester.csproj" />
     <Project Path="services/qyl.loom/qyl.loom.csproj" />
     <Project Path="services/qyl.loom.patterns/qyl.loom.patterns.csproj" />
     <Project Path="services/qyl.mcp/qyl.mcp.csproj" />
