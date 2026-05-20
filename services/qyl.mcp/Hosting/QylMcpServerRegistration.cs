@@ -26,8 +26,7 @@ internal static class QylMcpServerRegistration
         SkillConfiguration skills,
         JsonSerializerOptions jsonOptions,
         McpTransportMode transport,
-        McpHostOptions? hostOptions,
-        Func<IServiceProvider?> serviceProviderAccessor)
+        McpHostOptions? hostOptions)
     {
         services.AddSingleton<IMcpTaskStore>(_ => new InMemoryMcpTaskStore(
             TimeSpan.FromHours(1),
