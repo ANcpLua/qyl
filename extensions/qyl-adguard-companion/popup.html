@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>qyl AdGuard Companion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand-mark">q</div>
+      <div>
+        <h1>qyl companion</h1>
+        <p>AdGuard stays the blocker. qyl explains the surface.</p>
+      </div>
+    </header>
+
+    <section class="status" id="status">
+      <span class="dot"></span>
+      <span id="statusText">checking native host</span>
+    </section>
+
+    <section class="stats-panel" id="statsPanel">
+      <div class="panel-title">
+        Live stats
+        <button id="statsRefresh" type="button" class="inline">refresh</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><span class="stat-label">uptime</span><span class="stat-value" id="statUptime">—</span></div>
+        <div class="stat"><span class="stat-label">requests</span><span class="stat-value" id="statRequests">—</span></div>
+        <div class="stat"><span class="stat-label">batches</span><span class="stat-value" id="statBatches">—</span></div>
+        <div class="stat"><span class="stat-label">events</span><span class="stat-value" id="statEvents">—</span></div>
+        <div class="stat"><span class="stat-label">blocked</span><span class="stat-value blocked" id="statBlocked">—</span></div>
+        <div class="stat"><span class="stat-label">errors</span><span class="stat-value" id="statErrors">—</span></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <button id="helloButton" type="button">Hello</button>
+      <button id="dnsButton" type="button">DNS</button>
+      <button id="doctorButton" type="button">Doctor</button>
+      <button id="snapshotButton" type="button">Page</button>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Latest evidence</div>
+      <pre id="output">{}</pre>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Rule assist</div>
+      <button id="ruleButton" type="button" class="wide">Suggest rule for current tab</button>
+      <textarea id="ruleOutput" readonly spellcheck="false" placeholder="Suggested AdGuard rule appears here"></textarea>
+      <button id="copyRuleButton" type="button" class="wide secondary">Copy rule</button>
+    </section>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
