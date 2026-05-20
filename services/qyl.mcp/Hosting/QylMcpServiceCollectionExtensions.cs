@@ -69,10 +69,12 @@ internal static class QylMcpServiceCollectionExtensions
         }
 
         services.AddSingleton<ITelemetryStore, HttpTelemetryStore>();
+        services.AddSingleton<ITrackerStatsStore, HttpTrackerStatsStore>();
 
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(TelemetryToolsJsonContext.Default);
+        jsonOptions.TypeInfoResolverChain.Add(TrackerStatsJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(StorageHealthJsonContext.Default);
