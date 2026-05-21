@@ -50,7 +50,7 @@ internal static class MetersEmitter
             // Stability gate. Deprecated rows survive every projection until
             // upstream drops them (contrib/Java/Python parity): the
             // [Obsolete] symbol stays so consumers can migrate at their pace.
-            if (!StabilityFiltering.IsIncluded(meter.Stability, filter) && meter.Deprecated is null)
+            if (!StabilityFiltering.IsIncludedOrDeprecated(meter.Stability, meter.Deprecated, filter))
                 continue;
 
             result.Add(meter);

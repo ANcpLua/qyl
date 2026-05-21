@@ -201,19 +201,23 @@ internal static class RegistryLoader
                 }
             }
 
+            var stability = ParseStability(attr.GetString("stability"));
+
             attributes.Add(new AttributeModel(
                 Key: attr.GetString("key"),
-                Type: ParseType(attr.TryGet("type")),
+                Type: ParseType(attr.TryGet("type"), stability),
                 Brief: attr.GetString("brief"),
                 Note: attr.GetString("note"),
-                Stability: ParseStability(attr.GetString("stability")),
+                Stability: stability,
                 Deprecated: ParseDeprecated(attr.TryGet("deprecated") as JsonObject),
                 Examples: examples.ToEquatableArray()));
         }
         return attributes.ToEquatableArray();
     }
 
-    private static AttributeTypeModel ParseType(JsonValue? value)
+    private static AttributeTypeModel ParseType(
+        JsonValue? value,
+        StabilityModel defaultStability = StabilityModel.Development)
     {
         if (value is JsonString s)
         {
@@ -232,7 +236,7 @@ internal static class RegistryLoader
                     Id: member.GetString("id"),
                     Value: member.GetString("value"),
                     Brief: member.GetString("brief"),
-                    Stability: ParseStability(member.GetString("stability")),
+                    Stability: ParseStability(member.GetString("stability"), defaultStability),
                     Deprecated: ParseDeprecated(member.TryGet("deprecated") as JsonObject)));
             }
             return new AttributeTypeModel.EnumType(members.ToEquatableArray());
@@ -241,7 +245,9 @@ internal static class RegistryLoader
         return new AttributeTypeModel.Primitive("string");
     }
 
-    private static StabilityModel ParseStability(string value) => value switch
+    private static StabilityModel ParseStability(
+        string value,
+        StabilityModel defaultStability = StabilityModel.Development) => value switch
     {
         "stable" => StabilityModel.Stable,
         "development" => StabilityModel.Development,
@@ -249,7 +255,7 @@ internal static class RegistryLoader
         "alpha" => StabilityModel.Alpha,
         "beta" => StabilityModel.Beta,
         "release_candidate" => StabilityModel.ReleaseCandidate,
-        _ => StabilityModel.Development
+        _ => defaultStability
     };
 
     private static DeprecatedModel? ParseDeprecated(JsonObject? obj)

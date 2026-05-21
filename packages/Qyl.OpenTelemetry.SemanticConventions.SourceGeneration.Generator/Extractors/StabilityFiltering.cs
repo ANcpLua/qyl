@@ -10,11 +10,9 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Extractors;
 /// </summary>
 /// <remarks>
 /// Phase A surfaces this enum on every marker model and through the per-signal
-/// loader/emitter signatures. Phase B (instrument-surface, activity-surface)
-/// consumes <see cref="StabilityFiltering.IsIncluded"/> inside each emitter to
-/// actually drop non-stable rows when <see cref="StableOnly"/> is selected. Until
-/// Phase B lands, the filter is carried through unchanged and behavior matches
-/// the prior single-marker generator (all stabilities emitted).
+/// loader/emitter signatures. Each emitter consumes the filter inside its row
+/// selection logic so stable and incubating projections stay consistent across
+/// attributes, metrics, events, meters, and activity helpers.
 /// </remarks>
 internal enum StabilityFilter
 {
@@ -34,4 +32,15 @@ internal static class StabilityFiltering
     /// </summary>
     public static bool IsIncluded(StabilityModel stability, StabilityFilter filter) =>
         filter == StabilityFilter.AllStabilities || stability == StabilityModel.Stable;
+
+    /// <summary>
+    /// Deprecated symbols stay emitted in every projection until upstream removes
+    /// them, so consumers can migrate at their own pace. Non-deprecated rows still
+    /// follow the requested stability projection.
+    /// </summary>
+    public static bool IsIncludedOrDeprecated(
+        StabilityModel stability,
+        DeprecatedModel? deprecated,
+        StabilityFilter filter) =>
+        IsIncluded(stability, filter) || stability == StabilityModel.Deprecated || deprecated is not null;
 }

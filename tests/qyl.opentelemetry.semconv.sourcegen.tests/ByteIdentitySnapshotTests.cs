@@ -24,7 +24,7 @@ public sealed class ByteIdentitySnapshotTests
 
             namespace OpenTelemetry.SemanticConventions;
 
-            [SemanticConventionAttributes("disk")]
+            [SemanticConventionIncubatingAttributes("disk")]
             public static partial class DiskAttributes;
             """;
 

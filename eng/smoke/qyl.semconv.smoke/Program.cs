@@ -4,7 +4,7 @@
 // constants/factories so a smoke test can grep the output for the expected
 // tokens.
 //
-// PR-A : SemanticConventionAttributes  → const string per attribute key.
+// PR-A : SemanticConvention[Incubating]Attributes → const string per attribute key.
 // PR-B : SemanticConventionMetrics     → const string + descriptor partial class.
 // PR-C : SemanticConventionEvents      → const string + payload record struct.
 // PR-D : SemanticConventionMeters      → typed Meter.Create<Instrument> factories.
@@ -66,8 +66,9 @@ return 0;
 namespace Qyl.SemConv.Smoke
 {
     // PR-A surface: a marker on a partial static class with the prefix string.
-    // The generator emits the matching constants into the partial.
-    [SemanticConventionAttributes("disk")]
+    // `disk.*` is non-stable in semconv v1.41.0, so the incubating marker is the
+    // honest surface for this byte-identity smoke.
+    [SemanticConventionIncubatingAttributes("disk")]
     internal static partial class DiskAttributes;
 
     // PR-B surface: emits the metric-name constant + descriptor partial class.

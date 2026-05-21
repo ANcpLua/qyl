@@ -26,17 +26,26 @@ public sealed class SemConvAttributesGeneratorTests
             .And.Contain("internal sealed class SemanticConventionAttributesAttribute")
             .And.Contain("public SemanticConventionAttributesAttribute(string prefix)")
             .And.Contain("Conditional(\"QYL_SEMCONV_USAGES\")");
+
+        var incubatingAttributeFile = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("SemanticConventionIncubatingAttributesAttribute.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        incubatingAttributeFile.Should()
+            .Contain("internal sealed class SemanticConventionIncubatingAttributesAttribute")
+            .And.Contain("public SemanticConventionIncubatingAttributesAttribute(string prefix)")
+            .And.Contain("Conditional(\"QYL_SEMCONV_USAGES\")");
     }
 
     [Fact]
-    public void Emits_DiskAttributes_For_Disk_Marker()
+    public void Emits_DiskAttributes_For_Disk_Incubating_Marker()
     {
         const string source = """
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
 
             namespace MyApp;
 
-            [SemanticConventionAttributes("disk")]
+            [SemanticConventionIncubatingAttributes("disk")]
             internal static partial class DiskAttributes;
             """;
 
@@ -77,6 +86,43 @@ public sealed class SemConvAttributesGeneratorTests
             .Contain("public const string AttributeHttpRequestMethod = \"http.request.method\";")
             .And.Contain("public const string AttributeHttpResponseStatusCode = \"http.response.status_code\";")
             .And.Contain("public const string AttributeHttpRoute = \"http.route\";");
+
+        generated.Should()
+            .NotContain("AttributeHttpConnectionState",
+                "http.connection.state is development-stability and must not appear under [SemanticConventionAttributes]")
+            .And.NotContain("AttributeHttpRequestBodySize",
+                "http.request.body.size is development-stability and must not appear under [SemanticConventionAttributes]")
+            .And.NotContain("AttributeHttpResponseBodySize",
+                "http.response.body.size is development-stability and must not appear under [SemanticConventionAttributes]")
+            .And.Contain("AttributeHttpClientIp",
+                "deprecated migration symbols survive stable projection until upstream removes them");
+    }
+
+    [Fact]
+    public void Incubating_Marker_Emits_All_Http_Attributes_As_Superset()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionIncubatingAttributes("http")]
+            internal static partial class HttpIncubatingAttributes;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvAttributesGenerator>(source);
+
+        var generated = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpIncubatingAttributes.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        generated.Should()
+            .Contain("public const string AttributeHttpRequestMethod = \"http.request.method\";")
+            .And.Contain("public const string AttributeHttpRoute = \"http.route\";")
+            .And.Contain("public const string AttributeHttpConnectionState = \"http.connection.state\";")
+            .And.Contain("public const string AttributeHttpRequestBodySize = \"http.request.body.size\";")
+            .And.Contain("public const string AttributeHttpResponseBodySize = \"http.response.body.size\";")
+            .And.Contain("public const string AttributeHttpClientIp = \"http.client_ip\";");
     }
 
     [Fact]
@@ -87,7 +133,7 @@ public sealed class SemConvAttributesGeneratorTests
 
             namespace MyApp;
 
-            [SemanticConventionAttributes("disk")]
+            [SemanticConventionIncubatingAttributes("disk")]
             internal static partial class DiskAttributes;
             """;
 

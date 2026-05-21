@@ -50,7 +50,7 @@ internal static class MetricsEmitter
                 continue;
             }
 
-            if (!StabilityFiltering.IsIncluded(metric.Stability, filter))
+            if (!StabilityFiltering.IsIncludedOrDeprecated(metric.Stability, metric.Deprecated, filter))
             {
                 continue;
             }

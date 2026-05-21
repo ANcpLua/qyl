@@ -289,11 +289,6 @@ static partial class HttpActivityExtensions
         public const string Trace = "TRACE";
 
         /// <summary>
-        /// QUERY method.
-        /// </summary>
-        public const string Query = "QUERY";
-
-        /// <summary>
         /// Any HTTP method that the instrumentation has no prior knowledge of.
         /// </summary>
         public const string Other = "_OTHER";

@@ -11,15 +11,11 @@
     That portability is not enforced by the generator's own build — it can only
     be enforced from the consumer side.
 
-    This project compiles the same SemanticConventionAttributes("disk")
-    fixture under six TFMs (net472, netstandard2.0, net6.0, net8.0, net9.0,
-    net10.0). PR-A's `const string`-only output is the most universally
-    compatible surface in the pack; if any TFM fails to compile here, that's
-    the lower bound of the generator's portability claim. Other markers
-    (PR-B descriptors, PR-C record-struct payloads, PR-D meter extensions,
-    PR-E Activity extensions) will be added once Phase A's stable/incubating
-    marker split lands; record structs in particular need a polyfill story
-    for netstandard2.0 / net472 (IsExternalInit).
+    This project compiles the same all-surface fixture under six TFMs
+    (net472, netstandard2.0, net6.0, net8.0, net9.0, net10.0). The fixture
+    binds attributes, metrics, events, meter factories, and activity helpers
+    from both stable and incubating projections, so a green matrix proves more
+    than PR-A const-string portability.
 
     `Directory.Build.props` at the repo root pins <TargetFramework>net10.0,
     so cross-targeting dispatch (which requires TargetFramework empty +
@@ -39,10 +35,6 @@
     <!-- Library, not an Exe — multi-TFM consumer compilation IS the smoke,
          no need to produce a runnable host on each TFM. -->
     <OutputType>Library</OutputType>
-    <!-- Generated source files only use surfaces present in all six TFMs
-         (const string, [Obsolete], static class). LangVersion/Nullable/
-         ImplicitUsings are SDK-provided and consistent across TFMs. -->
-
     <!-- NU1507: qyl repo defines two package sources without packageSourceMapping;
          consistent with the rest of the repo.
          NU1903: transitive package advisory; non-blocking for a fixture project.
@@ -70,16 +62,6 @@
                       PrivateAssets="all"/>
   </ItemGroup>
 
-  <!-- ANcpLua.NET.Sdk injects `global using System.Diagnostics.Metrics;` via
-       ImplicitUsings. That namespace ships in-box on .NET Core 3+ but not on
-       .NET Framework 4.7.2, so the implicit using fails to compile under
-       net472. The fixture doesn't use the namespace — strip the import on
-       .NET Framework targets only, leaving the SDK's default set intact on
-       every modern TFM. -->
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
-    <Using Remove="System.Diagnostics.Metrics"/>
-  </ItemGroup>
-
   <ItemGroup>
     <!-- UndefineProperties mirrors qyl.semconv.smoke: prevents the consumer's
          per-TFM globals (TargetFramework, RuntimeIdentifier, SelfContained)
@@ -89,6 +71,18 @@
       OutputItemType="Analyzer"
       ReferenceOutputAssembly="false"
       UndefineProperties="TargetFramework;PublishAot;RuntimeIdentifier;RuntimeIdentifiers;SelfContained"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Diagnostics.DiagnosticSource"
+                      VersionOverride="$(DotNetRuntimeVersion)"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="System.Diagnostics.DiagnosticSource"
+                      VersionOverride="8.0.1"
+                      PrivateAssets="all"/>
   </ItemGroup>
 
 </Project>

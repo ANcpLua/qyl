@@ -13,7 +13,7 @@ Every OTel-contrib-shaped commit produced by this team lands in **two repositori
 1. **qyl-private** (`O-ANcppLua/qyl`, `~/RiderProjects/qyl/`) — fast track. Agents push here directly via worktrees.
 2. **contrib-fork** (a personal fork of `open-telemetry/opentelemetry-dotnet-contrib`, branch `feat/semconv-srcgen-2856`, target issue [#2856](https://github.com/open-telemetry/opentelemetry-dotnet-contrib/issues/2856)) — slow track, gated by maintainer review (~6 month review-bandwidth window, `contrib-review-bandwidth` memory).
 
-The qyl track is the source of truth for *emission logic*. The contrib track is a downstream view obtained by **cherry-pick + path/namespace map**, never by parallel hand-authoring. **Emit logic does not branch on target.** A generator emitting `OpenTelemetry.SemanticConventions.SourceGeneration.TraceAttributes` when targeting contrib, and `Qyl.SemConv.Gen.TraceAttributes` when targeting qyl, would force per-target conditional code in the generator — that is rejected. The split is applied **only** at `.csproj` level via `<RootNamespace>` and folder layout.
+The qyl track is the source of truth for *emission logic*. The contrib track is a downstream view obtained by **cherry-pick + path/namespace map**, never by parallel hand-authoring. **Emit logic does not branch on target.** A generator hard-coding different emitted type names for contrib vs qyl would force per-target conditional code in the generator — that is rejected. The split is applied only at packaging/project metadata, embedded-resource naming, and the post-initialization marker-source namespace literal. Consumer generated output takes its namespace from the consumer's partial marker class.
 
 ---
 
@@ -76,11 +76,11 @@ One cadence row per contrib PR. Each row names the qyl `agent/<name>` branch(es)
 
 | Contrib PR | Scope (per testbed#1) | qyl source branches (squash-merged into `feat/semconv-srcgen`) | Strategist cherry-pick trigger |
 |---|---|---|---|
-| **PR-A** | Project skeleton: two-project layout (`OpenTelemetry.SemanticConventions.SourceGeneration` marker library + `.Generator` analyzer), marker attribute `[SemanticConventionAttributes("foo")]`, base const-string emit, `resolved-registry.json` as `EmbeddedResource`, DTOs from `resolved-registry-v2` schema. | `agent/generator-foundation-eng` + `agent/gen-test-harness-eng` (skeleton portion of the harness only — sample consumer + AOT smoke ride along) | All green on qyl `main` after squash-merge; agent 2's audit charter (Task #2) has cleared the skeleton. |
-| **PR-B** | Metric names surface — flat consts for metric identifiers from the resolved registry. | `agent/instrument-surface-eng` (PR-B slice only) | Squash-merge of PR-B slice on qyl + audit clearance from `agent/weaver-spec-auditor` resume (Task #7). |
-| **PR-C** | Event names + event-attribute structs. | `agent/instrument-surface-eng` (PR-C slice) | As above. |
-| **PR-D** | Meters surface (typed Meter factory entry points keyed by metric name). | `agent/activity-surface-eng` (PR-D slice) | As above. |
-| **PR-E** | Typed Activity extensions (the headline ergonomic win — strongly-typed `Activity.SetTag` style helpers per attribute group). | `agent/activity-surface-eng` (PR-E slice) + `agent/gen-test-harness-eng` (final AOT smoke + sample consumer integration) | As above. |
+| **PR-A** | Generator package skeleton, paired `[SemanticConventionAttributes("foo")]` / `[SemanticConventionIncubatingAttributes("foo")]` markers emitted by post-initialization source, full `resolved-registry.json` embedded resource, DTOs from the Weaver-derived registry projection, attribute-key constants, and enum-value constants. | `agent/generator-foundation-eng` + stability-intercept fixes + harness smoke | All green on qyl `feat/semconv-srcgen`; stable/incubating attribute snapshots prove the split. |
+| **PR-B** | Metric-name constants and descriptor metadata, with paired stable/incubating marker projections. | `agent/instrument-surface-eng` (PR-B slice) | Squash-merge of PR-B slice on qyl + audit clearance from `agent/weaver-spec-auditor` resume. |
+| **PR-C** | Event names and event payload structs, with paired stable/incubating marker projections. | `agent/instrument-surface-eng` (PR-C slice) | As above. |
+| **PR-D** | Meter surface: typed factories over consumer-provided `System.Diagnostics.Metrics.Meter`, with paired stable/incubating marker projections and no generated global Meter ownership. | `agent/activity-surface-eng` (PR-D slice) | As above. |
+| **PR-E** | Activity extension surface: typed `Activity.SetTag` helpers over consumer-provided `Activity`, with paired stable/incubating marker projections and no generated ActivitySource ownership. | `agent/activity-surface-eng` (PR-E slice) + `agent/gen-test-harness-eng` (final AOT smoke + all-surface matrix) | As above. |
 
 **Cadence guard rails:**
 
@@ -92,21 +92,19 @@ One cadence row per contrib PR. Each row names the qyl `agent/<name>` branch(es)
 
 ## 2. Namespace + path map
 
-The map is the **only** thing that differs between targets. Applied at `.csproj` level via `<RootNamespace>` and folder layout. Generator emit logic reads `RootNamespace` from the `AnalyzerConfigOptions` (`build_property.RootNamespace`) — it does **not** hard-code either name.
+The map is the **only** thing that differs between targets. It is applied at project/package metadata, embedded-resource naming, and the post-initialization marker-source namespace literal. Generator output itself reads the consumer marker class's containing namespace; it does **not** hard-code either target name.
 
 | Concern | qyl | contrib |
 |---|---|---|
-| Solution folder | `src/SemConv.Gen/` | `src/OpenTelemetry.SemanticConventions.SourceGeneration/` |
-| Root namespace | `Qyl.SemConv.Gen` | `OpenTelemetry.SemanticConventions.SourceGeneration` |
-| Marker library csproj | `Qyl.SemConv.Gen.csproj` | `OpenTelemetry.SemanticConventions.SourceGeneration.csproj` |
-| Generator csproj | `Qyl.SemConv.Gen.Generator.csproj` | `OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj` |
-| MSBuild SDK (marker library) | `ANcpLua.NET.Sdk 3.4.33` (per qyl `global.json`) | `Microsoft.NET.Sdk` |
-| MSBuild SDK (generator) | `ANcpLua.Roslyn.Utilities 2.2.16` (per qyl `global.json`) | `Microsoft.NET.Sdk` |
-| Target framework (marker library) | `$(NetStandardMinimumSupportedVersion)` (qyl Directory.Build.props) | `netstandard2.0` (contrib convention; matches existing `OpenTelemetry.SemanticConventions.csproj`) |
+| Solution folder | `packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/` | `src/OpenTelemetry.SemanticConventions.SourceGeneration/` |
+| Root namespace / post-init marker namespace | `Qyl.OpenTelemetry.SemanticConventions.SourceGeneration` | `OpenTelemetry.SemanticConventions.SourceGeneration` |
+| Marker library csproj | none — marker attributes are emitted by `RegisterPostInitializationOutput` | none — same architecture after path map |
+| Generator csproj | `Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj` | `OpenTelemetry.SemanticConventions.SourceGeneration.csproj` |
+| MSBuild SDK | `ANcpLua.NET.Sdk` in qyl | `Microsoft.NET.Sdk` in contrib |
 | Target framework (generator) | `netstandard2.0` (Roslyn analyzer requirement) | `netstandard2.0` (Roslyn analyzer requirement) |
 | `MinVerTagPrefix` / version | qyl pre-1.0 (sub-1.0 sem-ver as per qyl repo convention) | `SemanticConventions.SourceGeneration-` (matches existing contrib MinVer convention) |
-| Marker attribute fully-qualified name | `Qyl.SemConv.Gen.SemanticConventionAttributesAttribute` | `OpenTelemetry.SemanticConventions.SourceGeneration.SemanticConventionAttributesAttribute` |
-| Embedded resource path | `Qyl.SemConv.Gen.resolved-registry.json` | `OpenTelemetry.SemanticConventions.SourceGeneration.resolved-registry.json` |
+| Marker attribute fully-qualified name | `Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.SemanticConventionAttributesAttribute` | `OpenTelemetry.SemanticConventions.SourceGeneration.SemanticConventionAttributesAttribute` |
+| Embedded resource path | `Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.resolved-registry.json` | `OpenTelemetry.SemanticConventions.SourceGeneration.resolved-registry.json` |
 | Nuke build hooks (regen target) | Present (`Build.cs` `RegenSemConv` target — qyl convention) | Not present (contrib uses MSBuild + `dotnet test` directly) |
 
 ### 2.1 Invariant: emit logic does not branch on target
@@ -189,4 +187,4 @@ Cross-references:
 - `agent/weaver-spec-auditor` produces `docs/weaver-cli-decision.md` and `docs/weaver-audit-charter.md` in parallel (Phase 0 Task #2). The Roslyn pin literal lives there once resolved; the audit charter binds compliance gates (`specification-principles.md`, `telemetry-stability.md`, `spec-compliance-matrix.md`, `glossary.md`) onto Tracks A–E emissions.
 - `agent/generator-foundation-eng` (Task #3) consumes §2 path/namespace map verbatim when bootstrapping the qyl-side skeleton.
 - `agent/instrument-surface-eng` (Task #4) and `agent/activity-surface-eng` (Task #5) bind to the cadence table in §1.3 for slice ownership.
-- `agent/gen-test-harness-eng` (Task #6) implements the §2.1 invariant test (generator output diff under two `RootNamespace` MSBuild properties differs only in the namespace token).
+- `agent/gen-test-harness-eng` (Task #6) implements the §2.1 invariant test (generator output diff under two consumer marker namespaces differs only in the namespace token).

@@ -38,7 +38,7 @@ internal static class ActivityExtensionsEmitter
         var builder = new StringBuilder();
         WriteHeader(builder);
         WriteNamespace(builder, marker.ContainingNamespace);
-        WriteClass(builder, marker.ClassName, attributes);
+        WriteClass(builder, marker.ClassName, attributes, marker.Filter);
 
         return new FileWithName($"{marker.ClassName}.g.cs", builder.ToString());
     }
@@ -54,7 +54,7 @@ internal static class ActivityExtensionsEmitter
             // Stability gate. Deprecated rows survive every projection until
             // upstream drops them (contrib/Java/Python parity): the
             // [Obsolete] symbol stays so consumers can migrate at their pace.
-            if (!StabilityFiltering.IsIncluded(attr.Stability, filter) && attr.Deprecated is null)
+            if (!StabilityFiltering.IsIncludedOrDeprecated(attr.Stability, attr.Deprecated, filter))
                 continue;
 
             result.Add(attr);
@@ -90,7 +90,11 @@ internal static class ActivityExtensionsEmitter
         }
     }
 
-    private static void WriteClass(StringBuilder builder, string className, List<ActivityAttributeModel> attributes)
+    private static void WriteClass(
+        StringBuilder builder,
+        string className,
+        List<ActivityAttributeModel> attributes,
+        StabilityFilter filter)
     {
         builder.AppendLine("/// <summary>");
         builder.AppendLine("/// Typed setter extensions for OpenTelemetry semantic-convention attributes on a span.");
@@ -112,7 +116,7 @@ internal static class ActivityExtensionsEmitter
         {
             if (!attr.IsEnum) continue;
             builder.AppendLine();
-            WriteEnumValueClass(builder, attr);
+            WriteEnumValueClass(builder, attr, filter);
         }
 
         builder.AppendLine("}");
@@ -145,7 +149,7 @@ internal static class ActivityExtensionsEmitter
         }
     }
 
-    private static void WriteEnumValueClass(StringBuilder builder, ActivityAttributeModel attr)
+    private static void WriteEnumValueClass(StringBuilder builder, ActivityAttributeModel attr, StabilityFilter filter)
     {
         WriteSummaryComment(builder, attr.Brief, indent: 4);
         WriteStabilityAttribute(builder, attr, indent: 4);
@@ -157,6 +161,9 @@ internal static class ActivityExtensionsEmitter
         var first = true;
         foreach (var member in attr.EnumMembers)
         {
+            if (!StabilityFiltering.IsIncludedOrDeprecated(member.Stability, member.Deprecated ?? attr.Deprecated, filter))
+                continue;
+
             if (!first) builder.AppendLine();
             first = false;
             WriteEnumMember(builder, member);

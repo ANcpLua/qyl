@@ -27,22 +27,28 @@
     <!-- Phase 2/4 byte-identity snapshots. The .txt extension keeps the
          compiler from picking these up as C# source; tests load the bytes
          via Assembly.GetManifestResourceStream using the stable LogicalName.
-         qyl.<prefix>.expected.txt     → PR-A attribute prefixes.
-         qyl.<surface>.<key>.expected.txt → PR-B/C/D/E surface generators. -->
-    <EmbeddedResource Include="Snapshots\qyl.disk.expected.txt"
-                      LogicalName="qyl.disk.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.http.expected.txt"
-                      LogicalName="qyl.http.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.network.expected.txt"
-                      LogicalName="qyl.network.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.metrics.http-server.expected.txt"
-                      LogicalName="qyl.metrics.http-server.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.events.session.expected.txt"
-                      LogicalName="qyl.events.session.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.meters.http-server.expected.txt"
-                      LogicalName="qyl.meters.http-server.expected.txt"/>
-    <EmbeddedResource Include="Snapshots\qyl.activities.http.expected.txt"
-                      LogicalName="qyl.activities.http.expected.txt"/>
+         qyl.<surface>.<prefix>.<tier>.expected.txt → explicit stable/incubating
+         surface snapshots. -->
+    <EmbeddedResource Include="Snapshots\qyl.attributes.http.stable.expected.txt"
+                      LogicalName="qyl.attributes.http.stable.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.attributes.http.incubating.expected.txt"
+                      LogicalName="qyl.attributes.http.incubating.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.metrics.http-server.stable.expected.txt"
+                      LogicalName="qyl.metrics.http-server.stable.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.metrics.http-server.incubating.expected.txt"
+                      LogicalName="qyl.metrics.http-server.incubating.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.events.exception.stable.expected.txt"
+                      LogicalName="qyl.events.exception.stable.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.events.session.incubating.expected.txt"
+                      LogicalName="qyl.events.session.incubating.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.meters.http-server.stable.expected.txt"
+                      LogicalName="qyl.meters.http-server.stable.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.meters.http-server.incubating.expected.txt"
+                      LogicalName="qyl.meters.http-server.incubating.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.activities.http.stable.expected.txt"
+                      LogicalName="qyl.activities.http.stable.expected.txt"/>
+    <EmbeddedResource Include="Snapshots\qyl.activities.http.incubating.expected.txt"
+                      LogicalName="qyl.activities.http.incubating.expected.txt"/>
   </ItemGroup>
 
 </Project>

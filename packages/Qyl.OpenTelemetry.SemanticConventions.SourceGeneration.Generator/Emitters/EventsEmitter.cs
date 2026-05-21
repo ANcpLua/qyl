@@ -61,7 +61,7 @@ internal static class EventsEmitter
                 continue;
             }
 
-            if (!StabilityFiltering.IsIncluded(ev.Stability, filter))
+            if (!StabilityFiltering.IsIncludedOrDeprecated(ev.Stability, ev.Deprecated, filter))
             {
                 continue;
             }

@@ -7,24 +7,21 @@ using Xunit;
 namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Tests;
 
 /// <summary>
-/// Phase 2/4 byte-identity gate. Each domain in the embedded seed
-/// resolved-registry has a paired <c>qyl.&lt;prefix&gt;.expected.txt</c> snapshot
-/// under <c>Snapshots/</c>. The full generator output for that prefix must be
-/// byte-identical to the snapshot — any drift in the emit pipeline (whitespace,
-/// member order, doc-comment shape) fails the gate.
+/// Byte-identity gate for generated semantic-convention surfaces. Each checked
+/// signal/tier pair has an explicit snapshot under <c>Snapshots/</c>. The full
+/// generator output for that marker must be byte-identical to the snapshot —
+/// any drift in the emit pipeline (whitespace, member order, doc-comment shape)
+/// fails the gate.
 /// <para>
 /// In addition, the contrib-parity tests assert that the emitted constant
 /// member names and attribute key strings exactly match
 /// <c>open-telemetry/opentelemetry-dotnet-contrib@55978aae5ae5641a0b405028db0d94de8d6f2a90</c>
-/// for the attributes present in qyl's seed registry. Brief/note text-equivalence
-/// across the full member region is a Phase 4 deliverable that depends on the
-/// Weaver-generated registry replacing the hand-projected seed.
+/// for selected attributes present in the full Weaver-derived registry.
 /// </para>
 /// <para>
-/// Complements agent 3's <see cref="ByteIdentitySnapshotTests"/>, which seeds
-/// the disk-prefix smoke. This class extends coverage to http and network
-/// (the other two prefixes in the seed registry) and adds the snapshot
-/// round-trip + contrib parity dimension.
+/// Complements <see cref="ByteIdentitySnapshotTests"/>, which keeps a focused
+/// disk-prefix contrib-shape smoke while this class covers explicit
+/// stable/incubating snapshots across the generated signal families.
 /// </para>
 /// </summary>
 public sealed class ByteIdentityTests
@@ -32,68 +29,93 @@ public sealed class ByteIdentityTests
     private const string ContribSha = "55978aae5ae5641a0b405028db0d94de8d6f2a90";
 
     [Theory]
-    [InlineData("disk", "DiskAttributes")]
-    [InlineData("http", "HttpAttributes")]
-    [InlineData("network", "NetworkAttributes")]
-    public void Generated_File_Matches_Snapshot(string prefix, string className)
+    [InlineData("http", "HttpAttributes", false, "qyl.attributes.http.stable.expected.txt")]
+    [InlineData("http", "HttpIncubatingAttributes", true, "qyl.attributes.http.incubating.expected.txt")]
+    public void Attributes_File_Matches_Stability_Tier_Snapshot(
+        string prefix,
+        string className,
+        bool incubating,
+        string snapshotName)
     {
-        var source = $$"""
-            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
-            namespace OpenTelemetry.SemanticConventions;
-            [SemanticConventionAttributes("{{prefix}}")]
-            public static partial class {{className}};
-            """;
+        var source = AttributeMarkerSource(prefix, className, incubating);
 
         var actual = RunAndGetGenerated<SemConvAttributesGenerator>(source, $"{className}.g.cs");
-        var expected = LoadOrRegen(actual,$"qyl.{prefix}.expected.txt");
+        var expected = LoadOrRegen(actual, snapshotName);
 
         actual.Should().Be(expected,
-            $"emitted '{className}.g.cs' must be byte-identical to the qyl.{prefix}.expected.txt snapshot");
+            $"emitted '{className}.g.cs' must be byte-identical to the {snapshotName} snapshot");
     }
 
     [Fact]
-    public void Metrics_HttpServer_Matches_Snapshot()
+    public void Metrics_HttpServer_Stable_Matches_Snapshot()
     {
-        // Uses the Incubating marker so the snapshot covers all four v1.41.0
-        // http.server.* rows (one stable + three development). Stability filter
-        // is tested in SemConvMetricsGeneratorTests.
         const string source = """
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
             namespace OpenTelemetry.SemanticConventions;
-            [SemanticConventionIncubatingMetrics("http.server")]
+            [SemanticConventionMetrics("http.server")]
             public static partial class HttpServerMetrics;
             """;
 
         var actual = RunAndGetGenerated<SemConvMetricsGenerator>(source, "HttpServerMetrics.g.cs");
-        var expected = LoadOrRegen(actual,"qyl.metrics.http-server.expected.txt");
+        var expected = LoadOrRegen(actual,"qyl.metrics.http-server.stable.expected.txt");
 
         actual.Should().Be(expected,
-            "emitted 'HttpServerMetrics.g.cs' must be byte-identical to qyl.metrics.http-server.expected.txt");
+            "emitted 'HttpServerMetrics.g.cs' must be byte-identical to qyl.metrics.http-server.stable.expected.txt");
     }
 
     [Fact]
-    public void Events_Session_Matches_Snapshot()
+    public void Metrics_HttpServer_Incubating_Matches_Snapshot()
     {
-        // Uses the Incubating marker — session.start + session.end are both
-        // development-stability in v1.41.0, so the stable surface would emit
-        // an empty class. Stability filter coverage lives in
-        // SemConvEventsGeneratorTests.
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+            namespace OpenTelemetry.SemanticConventions;
+            [SemanticConventionIncubatingMetrics("http.server")]
+            public static partial class HttpServerIncubatingMetrics;
+            """;
+
+        var actual = RunAndGetGenerated<SemConvMetricsGenerator>(source, "HttpServerIncubatingMetrics.g.cs");
+        var expected = LoadOrRegen(actual,"qyl.metrics.http-server.incubating.expected.txt");
+
+        actual.Should().Be(expected,
+            "emitted 'HttpServerIncubatingMetrics.g.cs' must be byte-identical to qyl.metrics.http-server.incubating.expected.txt");
+    }
+
+    [Fact]
+    public void Events_Exception_Stable_Matches_Snapshot()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+            namespace OpenTelemetry.SemanticConventions;
+            [SemanticConventionEvents("exception")]
+            public static partial class ExceptionEvents;
+            """;
+
+        var actual = RunAndGetGenerated<SemConvEventsGenerator>(source, "ExceptionEvents.g.cs");
+        var expected = LoadOrRegen(actual,"qyl.events.exception.stable.expected.txt");
+
+        actual.Should().Be(expected,
+            "emitted 'ExceptionEvents.g.cs' must be byte-identical to qyl.events.exception.stable.expected.txt");
+    }
+
+    [Fact]
+    public void Events_Session_Incubating_Matches_Snapshot()
+    {
         const string source = """
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
             namespace OpenTelemetry.SemanticConventions;
             [SemanticConventionIncubatingEvents("session")]
-            public static partial class SessionEvents;
+            public static partial class SessionIncubatingEvents;
             """;
 
-        var actual = RunAndGetGenerated<SemConvEventsGenerator>(source, "SessionEvents.g.cs");
-        var expected = LoadOrRegen(actual,"qyl.events.session.expected.txt");
+        var actual = RunAndGetGenerated<SemConvEventsGenerator>(source, "SessionIncubatingEvents.g.cs");
+        var expected = LoadOrRegen(actual,"qyl.events.session.incubating.expected.txt");
 
         actual.Should().Be(expected,
-            "emitted 'SessionEvents.g.cs' must be byte-identical to qyl.events.session.expected.txt");
+            "emitted 'SessionIncubatingEvents.g.cs' must be byte-identical to qyl.events.session.incubating.expected.txt");
     }
 
     [Fact]
-    public void Meters_HttpServer_Matches_Snapshot()
+    public void Meters_HttpServer_Stable_Matches_Snapshot()
     {
         const string source = """
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
@@ -103,14 +125,31 @@ public sealed class ByteIdentityTests
             """;
 
         var actual = RunAndGetGenerated<SemConvMetersGenerator>(source, "HttpServerMeters.g.cs");
-        var expected = LoadOrRegen(actual,"qyl.meters.http-server.expected.txt");
+        var expected = LoadOrRegen(actual,"qyl.meters.http-server.stable.expected.txt");
 
         actual.Should().Be(expected,
-            "emitted 'HttpServerMeters.g.cs' must be byte-identical to qyl.meters.http-server.expected.txt");
+            "emitted 'HttpServerMeters.g.cs' must be byte-identical to qyl.meters.http-server.stable.expected.txt");
     }
 
     [Fact]
-    public void Activities_Http_Matches_Snapshot()
+    public void Meters_HttpServer_Incubating_Matches_Snapshot()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+            namespace OpenTelemetry.SemanticConventions;
+            [SemanticConventionIncubatingMeters("http.server")]
+            public static partial class HttpServerIncubatingMeters;
+            """;
+
+        var actual = RunAndGetGenerated<SemConvMetersGenerator>(source, "HttpServerIncubatingMeters.g.cs");
+        var expected = LoadOrRegen(actual,"qyl.meters.http-server.incubating.expected.txt");
+
+        actual.Should().Be(expected,
+            "emitted 'HttpServerIncubatingMeters.g.cs' must be byte-identical to qyl.meters.http-server.incubating.expected.txt");
+    }
+
+    [Fact]
+    public void Activities_Http_Stable_Matches_Snapshot()
     {
         const string source = """
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
@@ -120,10 +159,27 @@ public sealed class ByteIdentityTests
             """;
 
         var actual = RunAndGetGenerated<SemConvActivitiesGenerator>(source, "HttpActivityExtensions.g.cs");
-        var expected = LoadOrRegen(actual,"qyl.activities.http.expected.txt");
+        var expected = LoadOrRegen(actual,"qyl.activities.http.stable.expected.txt");
 
         actual.Should().Be(expected,
-            "emitted 'HttpActivityExtensions.g.cs' must be byte-identical to qyl.activities.http.expected.txt");
+            "emitted 'HttpActivityExtensions.g.cs' must be byte-identical to qyl.activities.http.stable.expected.txt");
+    }
+
+    [Fact]
+    public void Activities_Http_Incubating_Matches_Snapshot()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+            namespace OpenTelemetry.SemanticConventions;
+            [SemanticConventionIncubatingActivities("http")]
+            public static partial class HttpIncubatingActivityExtensions;
+            """;
+
+        var actual = RunAndGetGenerated<SemConvActivitiesGenerator>(source, "HttpIncubatingActivityExtensions.g.cs");
+        var expected = LoadOrRegen(actual,"qyl.activities.http.incubating.expected.txt");
+
+        actual.Should().Be(expected,
+            "emitted 'HttpIncubatingActivityExtensions.g.cs' must be byte-identical to qyl.activities.http.incubating.expected.txt");
     }
 
     [Fact]
@@ -133,9 +189,10 @@ public sealed class ByteIdentityTests
         //     public const string AttributeHttpRequestMethod = "http.request.method";
         //     public const string AttributeHttpResponseStatusCode = "http.response.status_code";
         //     public const string AttributeHttpRoute = "http.route";
-        // The seed registry covers exactly these three http attributes.
+        // These remain the compact contrib-parity anchors; the tier snapshots
+        // above cover the full generated http surface.
         var generated = RunAndGetGenerated<SemConvAttributesGenerator>(
-            MarkerSource("http", "HttpAttributes"), "HttpAttributes.g.cs");
+            IncubatingMarkerSource("http", "HttpAttributes"), "HttpAttributes.g.cs");
 
         generated.Should()
             .Contain("public const string AttributeHttpRequestMethod = \"http.request.method\";")
@@ -150,7 +207,7 @@ public sealed class ByteIdentityTests
         // Contrib NetworkAttributes.cs @ 55978aae:
         //     public const string AttributeNetworkProtocolName = "network.protocol.name";
         var generated = RunAndGetGenerated<SemConvAttributesGenerator>(
-            MarkerSource("network", "NetworkAttributes"), "NetworkAttributes.g.cs");
+            IncubatingMarkerSource("network", "NetworkAttributes"), "NetworkAttributes.g.cs");
 
         generated.Should()
             .Contain("public const string AttributeNetworkProtocolName = \"network.protocol.name\";",
@@ -166,11 +223,25 @@ public sealed class ByteIdentityTests
         ContribSha.Should().Be("55978aae5ae5641a0b405028db0d94de8d6f2a90");
     }
 
-    private static string MarkerSource(string prefix, string className) =>
+    private static string AttributeMarkerSource(string prefix, string className, bool incubating)
+    {
+        var markerName = incubating
+            ? "SemanticConventionIncubatingAttributes"
+            : "SemanticConventionAttributes";
+
+        return $$"""
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+            namespace OpenTelemetry.SemanticConventions;
+            [{{markerName}}("{{prefix}}")]
+            public static partial class {{className}};
+            """;
+    }
+
+    private static string IncubatingMarkerSource(string prefix, string className) =>
         $$"""
             using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
             namespace OpenTelemetry.SemanticConventions;
-            [SemanticConventionAttributes("{{prefix}}")]
+            [SemanticConventionIncubatingAttributes("{{prefix}}")]
             public static partial class {{className}};
             """;
 

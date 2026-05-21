@@ -9,7 +9,7 @@ namespace OpenTelemetry.SemanticConventions;
 /// <summary>
 /// Constants for event names and typed payload structs outlined by the OpenTelemetry specifications.
 /// </summary>
-static partial class SessionEvents
+static partial class SessionIncubatingEvents
 {
     /// <summary>
     /// Indicates that a session has ended.

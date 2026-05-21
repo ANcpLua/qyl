@@ -44,8 +44,9 @@ internal static class ActivityRegistryLoader
             if (item is not JsonObject attr) continue;
 
             var key = attr.GetString("key");
+            var stability = ParseStability(attr.GetString("stability"));
             var typeValue = attr.TryGet("type");
-            var (parameterType, isTemplate, isEnum, enumMembers) = ResolveSetterShape(typeValue);
+            var (parameterType, isTemplate, isEnum, enumMembers) = ResolveSetterShape(typeValue, stability);
 
             attributes.Add(new ActivityAttributeModel(
                 Key: key,
@@ -54,14 +55,16 @@ internal static class ActivityRegistryLoader
                 IsEnum: isEnum,
                 EnumMembers: enumMembers,
                 Brief: attr.GetString("brief"),
-                Stability: ParseStability(attr.GetString("stability")),
+                Stability: stability,
                 Deprecated: RegistryParsing.ParseDeprecated(attr.TryGet("deprecated") as JsonObject)));
         }
 
         return new ActivityRegistryModel(attributes.ToEquatableArray());
     }
 
-    private static (string ParameterType, bool IsTemplate, bool IsEnum, EquatableArray<EnumMemberModel> Members) ResolveSetterShape(JsonValue? typeValue)
+    private static (string ParameterType, bool IsTemplate, bool IsEnum, EquatableArray<EnumMemberModel> Members) ResolveSetterShape(
+        JsonValue? typeValue,
+        StabilityModel defaultStability)
     {
         if (typeValue is JsonString s)
         {
@@ -83,7 +86,7 @@ internal static class ActivityRegistryLoader
                     Id: member.GetString("id"),
                     Value: member.GetString("value"),
                     Brief: member.GetString("brief"),
-                    Stability: ParseStability(member.GetString("stability")),
+                    Stability: ParseStability(member.GetString("stability"), defaultStability),
                     Deprecated: RegistryParsing.ParseDeprecated(member.TryGet("deprecated") as JsonObject)));
             }
             return ("string", false, true, members.ToEquatableArray());
@@ -114,7 +117,9 @@ internal static class ActivityRegistryLoader
         return raw.Substring(prefix.Length, raw.Length - prefix.Length - 1);
     }
 
-    private static StabilityModel ParseStability(string value) => value switch
+    private static StabilityModel ParseStability(
+        string value,
+        StabilityModel defaultStability = StabilityModel.Development) => value switch
     {
         "stable" => StabilityModel.Stable,
         "development" => StabilityModel.Development,
@@ -122,6 +127,6 @@ internal static class ActivityRegistryLoader
         "alpha" => StabilityModel.Alpha,
         "beta" => StabilityModel.Beta,
         "release_candidate" => StabilityModel.ReleaseCandidate,
-        _ => StabilityModel.Development
+        _ => defaultStability
     };
 }

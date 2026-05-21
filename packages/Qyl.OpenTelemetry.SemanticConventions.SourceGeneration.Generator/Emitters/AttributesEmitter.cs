@@ -1,4 +1,5 @@
 using System.Text;
+using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Extractors;
 using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Models;
 
 namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Emitters;
@@ -19,12 +20,12 @@ internal static class AttributesEmitter
     public static FileWithName Generate(MarkerModel marker, RegistryModel registry)
     {
         var group = FindGroupForPrefix(registry, marker.Prefix);
-        var attributes = ResolveAttributes(registry, marker.Prefix, group);
+        var attributes = ResolveAttributes(registry, marker.Prefix, marker.Filter, group);
 
         var builder = new StringBuilder();
         WriteHeader(builder);
         WriteNamespace(builder, marker.ContainingNamespace);
-        WriteClass(builder, marker.ClassName, attributes);
+        WriteClass(builder, marker.ClassName, attributes, marker.Filter);
 
         var fileName = $"{marker.ClassName}.g.cs";
         return new FileWithName(fileName, builder.ToString());
@@ -40,7 +41,11 @@ internal static class AttributesEmitter
         return null;
     }
 
-    private static List<AttributeModel> ResolveAttributes(RegistryModel registry, string prefix, GroupModel? group)
+    private static List<AttributeModel> ResolveAttributes(
+        RegistryModel registry,
+        string prefix,
+        StabilityFilter filter,
+        GroupModel? group)
     {
         if (group is { } g && !g.AttributeRefs.IsEmpty)
         {
@@ -51,8 +56,11 @@ internal static class AttributesEmitter
             var resolved = new List<AttributeModel>();
             foreach (var key in g.AttributeRefs)
             {
-                if (byKey.TryGetValue(key, out var match))
+                if (byKey.TryGetValue(key, out var match) &&
+                    StabilityFiltering.IsIncludedOrDeprecated(match.Stability, match.Deprecated, filter))
+                {
                     resolved.Add(match);
+                }
             }
             return resolved;
         }
@@ -63,7 +71,12 @@ internal static class AttributesEmitter
         {
             if (string.Equals(attr.Key, prefix, StringComparison.Ordinal) ||
                 attr.Key.StartsWith(dotted, StringComparison.Ordinal))
+            {
+                if (!StabilityFiltering.IsIncludedOrDeprecated(attr.Stability, attr.Deprecated, filter))
+                    continue;
+
                 fallback.Add(attr);
+            }
         }
         fallback.Sort(static (a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
         return fallback;
@@ -88,7 +101,11 @@ internal static class AttributesEmitter
         }
     }
 
-    private static void WriteClass(StringBuilder builder, string className, List<AttributeModel> attributes)
+    private static void WriteClass(
+        StringBuilder builder,
+        string className,
+        List<AttributeModel> attributes,
+        StabilityFilter filter)
     {
         builder.AppendLine("/// <summary>");
         builder.AppendLine("/// Constants for semantic attribute names outlined by the OpenTelemetry specifications.");
@@ -108,7 +125,7 @@ internal static class AttributesEmitter
         {
             if (attr.Type is not AttributeTypeModel.EnumType enumType) continue;
             builder.AppendLine();
-            WriteEnumValueClass(builder, attr, enumType);
+            WriteEnumValueClass(builder, attr, enumType, filter);
         }
 
         builder.AppendLine("}");
@@ -126,7 +143,11 @@ internal static class AttributesEmitter
                .Append(" = \"").Append(attr.Key).AppendLine("\";");
     }
 
-    private static void WriteEnumValueClass(StringBuilder builder, AttributeModel attr, AttributeTypeModel.EnumType enumType)
+    private static void WriteEnumValueClass(
+        StringBuilder builder,
+        AttributeModel attr,
+        AttributeTypeModel.EnumType enumType,
+        StabilityFilter filter)
     {
         WriteSummaryComment(builder, attr.Brief, indent: 4);
         WriteObsolete(builder, attr.Deprecated, indent: 4);
@@ -138,6 +159,9 @@ internal static class AttributesEmitter
         var first = true;
         foreach (var member in enumType.Members)
         {
+            if (!StabilityFiltering.IsIncludedOrDeprecated(member.Stability, member.Deprecated ?? attr.Deprecated, filter))
+                continue;
+
             if (!first) builder.AppendLine();
             first = false;
             WriteEnumMember(builder, member);

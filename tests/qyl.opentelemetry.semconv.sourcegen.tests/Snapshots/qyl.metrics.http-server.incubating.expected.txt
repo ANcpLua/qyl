@@ -9,7 +9,7 @@ namespace OpenTelemetry.SemanticConventions;
 /// <summary>
 /// Constants for metric names and descriptors outlined by the OpenTelemetry specifications.
 /// </summary>
-static partial class HttpServerMetrics
+static partial class HttpServerIncubatingMetrics
 {
     /// <summary>
     /// Number of active HTTP server requests.

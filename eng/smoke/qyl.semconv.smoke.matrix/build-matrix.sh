@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Phase C-1 matrix runner: builds qyl.semconv.smoke.matrix under every TFM in
-# the project's <TargetFrameworks>. Reports pass/fail per TFM so a portability
-# regression is greppable in CI output.
+# Full-surface matrix runner: builds qyl.semconv.smoke.matrix under every TFM
+# in the project's <TargetFrameworks>. Reports pass/fail per TFM so a
+# portability regression is greppable in CI output.
 #
 # Exit code is 0 iff every TFM listed below builds clean. A non-zero count is
 # printed so the failure mode is visible in build logs without re-reading
