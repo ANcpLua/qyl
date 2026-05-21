@@ -22,6 +22,10 @@ Closes #2856. The prior implementation in #2869 was closed by stale-bot on 2025-
 
 PR-A is the foundational slice: paired stable/incubating marker attributes + attribute-key surface only. PR-B (metric-name constants), PR-C (event-name + payload structs), PR-D (typed Meter factory wrappers), and PR-E (typed `Activity` setter extensions) follow the same paired-marker split as stacked PRs.
 
+qyl is intentionally treated as a private-alpha proving ground for this work: it may absorb renames, emitter reshaping, and broader experiments so the upstream contribution can stay small and idiomatic. If qyl's current shape conflicts with the OpenTelemetry/.NET shape maintainers prefer, qyl should bend; the upstream PR should not grow compatibility layers to preserve qyl-local choices.
+
+qyl also contains unrelated private runtime instrumentation generators under `internal/`; those are not part of this proposal.
+
 ### Why this shape (and what it is not)
 
 Output shape follows the Java/Python convention (one set of typed accessors per consumer, generated at consumer compile time) rather than the previous in-repo `OpenTelemetry.SemanticConventions/Attributes/*Attributes.cs` shape. The new project does **not** ship a precomputed `.cs` per attribute group; it ships the generator and a single embedded full `resolved-registry.json` for semconv v1.41.0. Consumers reference one NuGet and get exactly the surface they ask for.
@@ -29,6 +33,7 @@ Output shape follows the Java/Python convention (one set of typed accessors per 
 - This is consistent with `specification-principles.md` *Be User Driven* and *Be Simple*: one package, paired stable/incubating markers, no fan-out across `Attributes/` files for keys the consumer never references.
 - It is additive per `telemetry-stability.md`: the existing `OpenTelemetry.SemanticConventions` 1.x stable surface (the regenerated `Attributes/*Attributes.cs` files from #4362) is untouched. Existing consumers continue to work without code change.
 - It does not introduce per-target conditional emit logic: the namespace token flows in via `typeSymbol.ContainingNamespace.ToDisplayString()` at marker-extraction time (see `Extractors/MarkerExtractor.cs:25-29`) and is a single string passed through to the emitter. No `if (target == "contrib") …` branches anywhere in the generator. Documented invariant in the qyl twin's `docs/dual-target-mapping.md` §2.1.
+- It is not an instrumentation library. It does not add `AddXxxInstrumentation` glue, OTLP-shaped output, `ILogger` code generation, runtime delivery shims, or ownership of `Meter`, `ActivitySource`, `Logger`, instrumentation scope, versioning, or enablement. Any future direction in those areas must be a separate explicit proposal, not hidden inside this source-generator stack.
 
 ### Pipeline (what the new files actually do)
 
@@ -116,6 +121,8 @@ The two remaining findings are intentional architecture:
 2. **Namespace-source is `ContainingNamespace`, not `RootNamespace` MSBuild property.** The earlier design doc hypothesized `AnalyzerConfigOptions.GetBuildProperty("RootNamespace")` as the namespace source; the shipping implementation reads `typeSymbol.ContainingNamespace.ToDisplayString()`. Both satisfy the §2.1 invariant (single string token, no branching emit logic). The `ContainingNamespace` approach is strictly more flexible — one consumer can host multiple marker classes in distinct namespaces. The invariant test (`NamespaceParameterizationTest`) verifies the strict-equality-except-namespace-line property. (Audit Finding 5; doc reconciled in qyl `docs/dual-target-mapping.md` §2.1.)
 
 3. **Incubating markers are supersets.** This matches Java/Python and prevents a breaking move when a symbol is promoted from development to stable. Consumers should normally choose either the stable marker or the incubating marker for a given prefix. If a test intentionally declares both meter/activity projections in one namespace, shared extension methods can be called through the generated static class name to avoid normal C# extension-method ambiguity.
+
+4. **qyl bends toward upstream, not the reverse.** The qyl branch can carry private-alpha churn and extra validation to prove the shape, but the contrib PR should remain a narrow OpenTelemetry/.NET contribution. Do not preserve qyl-specific convenience APIs in upstream if maintainers prefer a smaller or differently named surface.
 
 ### Spec-compliance attestation
 

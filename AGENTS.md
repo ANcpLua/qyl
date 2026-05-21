@@ -192,6 +192,37 @@ identities.
 Missing attribute? Add to `eng/semconv/model/qyl/<namespace>.yaml`, run `./eng/semconv/run-weaver.sh` and
 `nuke OtelConventions`.
 
+### OTel upstream alignment rule
+
+qyl is a private-alpha proving ground. When qyl's current shape conflicts with
+the idiomatic OpenTelemetry/.NET upstream shape, bend qyl toward OpenTelemetry,
+not OpenTelemetry toward qyl. API churn, renames, emitter reshaping, and
+generated-output rewrites are acceptable here when they make an upstream
+contribution smaller and easier to maintain.
+
+For `OpenTelemetry.SemanticConventions.SourceGeneration` and related
+semantic-conventions contribution work:
+
+- Keep upstream PRs surgical and explicit. Do not hide instrumentation
+  registration glue, OTLP-shaped output, `ILogger` code generation, runtime
+  delivery shims, `Meter` ownership, `ActivitySource` ownership, `Logger`
+  ownership, or enablement policy inside a source-generator PR.
+- Treat those runtime/instrumentation ideas as separate future proposals unless
+  maintainers ask for them. If they influence the current public API or package
+  boundary, surface that as a maintainer ask instead of silently coding around
+  it.
+- The source-generator stack emits compile-time constants, descriptors, payload
+  structs, and thin helpers from Weaver-derived semconv data. Consumers own all
+  runtime objects and delivery semantics.
+- Incubating projections are supersets, matching Java/Python. Stable
+  projections are strict `stability == stable`; release-candidate and
+  development rows remain incubating. Stable enum surfaces must not leak
+  non-stable enum members such as `http.request.method = QUERY` or development
+  `db.system.name` values.
+- qyl may carry broader private experiments, but upstream text and PRs must
+  describe only the reviewable slice being proposed. Do not imply that qyl's
+  private convenience surface is the requested upstream contract.
+
 ## MCP tools and capabilities
 
 In `services/qyl.mcp/`:

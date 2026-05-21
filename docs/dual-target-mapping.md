@@ -15,6 +15,23 @@ Every OTel-contrib-shaped commit produced by this team lands in **two repositori
 
 The qyl track is the source of truth for *emission logic*. The contrib track is a downstream view obtained by **cherry-pick + path/namespace map**, never by parallel hand-authoring. **Emit logic does not branch on target.** A generator hard-coding different emitted type names for contrib vs qyl would force per-target conditional code in the generator — that is rejected. The split is applied only at packaging/project metadata, embedded-resource naming, and the post-initialization marker-source namespace literal. Consumer generated output takes its namespace from the consumer's partial marker class.
 
+qyl is the private-alpha proving ground, not the upstream API contract. It may
+absorb churn, renames, broader experiments, and extra validation so the
+OpenTelemetry contribution can stay idiomatic and reviewable. If qyl's current
+shape conflicts with maintainer-preferred OpenTelemetry/.NET shape, qyl bends
+toward upstream. Do not hide instrumentation registration glue, OTLP-shaped
+output, `ILogger` generation, runtime delivery shims, or runtime-object
+ownership inside the source-generator PR stack; those are separate proposals if
+maintainers ask for them.
+
+qyl also hosts private-only runtime instrumentation generators and DI glue under
+`internal/qyl.instrumentation.generators/` and `internal/qyl.instrumentation/`.
+Those are separate qyl-private projects and are not part of any upstream
+OpenTelemetry proposal. The generator project has no static dependency on the
+semantic-conventions source-generator pipeline; the runtime instrumentation
+library consumes generated semantic-convention constants like an ordinary
+qyl-private consumer.
+
 ---
 
 ## 1. Branch-mapping spec

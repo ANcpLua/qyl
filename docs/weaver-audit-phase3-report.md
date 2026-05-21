@@ -67,6 +67,14 @@ longer accurate:
    implementation is ready for review after validation, but the downstream
    `opentelemetry-dotnet-contrib` branch still needs a deliberate
    re-cherry-pick and PR-body refresh before any upstream push.
+5. **qyl is the incubation layer, not the upstream contract.** qyl may accept
+   private-alpha churn, renames, emitter reshaping, and broader experiments to
+   follow OpenTelemetry/.NET idioms. Upstream PRs should stay explicit and
+   reviewable: no hidden instrumentation registration glue, OTLP-shaped output,
+   `ILogger` generation, runtime delivery shims, global `Meter`,
+   `ActivitySource`, or `Logger` ownership, and no enablement policy. If any of
+   those directions becomes desirable, it belongs in a separate maintainer-visible
+   proposal.
 
 ## Conclusion
 
