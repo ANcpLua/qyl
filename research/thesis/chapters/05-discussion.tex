@@ -1,7 +1,0 @@
-\chapter{Discussion}
-
-The measured data support a limited but useful conclusion: the project now contains an executable empirical pipeline rather than only a specification. If the corpus runner completes, the thesis can point to concrete build, test, coverage, semantic-convention, and style-gate artifacts. That evidence directly addresses the previous weakness that the work defined a framework without executing it.
-
-The data do not support broad claims about managed-agent superiority. No classification accuracy can be claimed without ground-truth labels. No vendor comparison can be claimed without at least two actual managed-agent systems executing comparable tasks. No statistical significance can be claimed from a small local corpus. Coverage also does not imply correctness; it only indicates that tests exercised code under the configured collector.
-
-The main threats to validity are corpus size, local environment dependence, qyl-specific instrumentation bias, and missing managed-agent execution. The local Mac environment, installed SDKs, repository dirtiness, and cached dependencies can affect results. The harness mitigates this by recording git commit, dirty state, command logs, and failure reasons. A stronger future study would add curated ground truth, independent review, more repositories, repeated runs, and real managed-agent transcripts with prompts and outputs preserved.

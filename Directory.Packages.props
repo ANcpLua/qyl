@@ -16,7 +16,6 @@
     <!-- OpenTelemetry -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
-    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
     <!-- Instrumentation packages ship on a slower cadence than the SDK — pin
