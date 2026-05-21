@@ -12,6 +12,8 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Emitters;
 /// produces:
 /// <list type="bullet">
 ///   <item><description>A <c>public const string Event&lt;PascalName&gt; = "&lt;event.name&gt;";</c> constant.</description></item>
+///   <item><description>A <c>public static partial class &lt;PascalName&gt;Descriptor</c> carrying
+///         name, emission target, body metadata, and payload attribute metadata.</description></item>
 ///   <item><description>A <c>public readonly record struct &lt;PascalName&gt;Payload</c> whose properties
 ///         project the event's payload attributes (required attributes first, non-nullable;
 ///         recommended attributes after, nullable).</description></item>
@@ -20,17 +22,10 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Emitters;
 internal static class EventsEmitter
 {
     // Event-emission target audit (semconv v1.41.0):
-    // The resolved-registry event schema carries only { event_name, brief, deprecated,
-    // stability, payload[] } — there is NO discriminator field (no event_type / kind /
-    // body / event_body) that distinguishes ActivityEvent-targeted events from
-    // LogRecord/Event-emitter-targeted events. All v1.41.0 event rows therefore emit
-    // the same payload-struct shape and the caller picks the emission API at use-site.
-    //
-    // If upstream introduces a discriminator (tracked on
-    // open-telemetry/semantic-conventions board #74 view 4), gate the emit shape here
-    // by reading the new field on EventGroupModel and branching the WritePayloadStruct
-    // output (e.g. add a `static OtelEventTarget Target => ...` constant on the
-    // emitted struct). The marker library stays target-agnostic until then.
+    // The upstream event rows do not carry a stable discriminator that says
+    // "ActivityEvent" vs "Logger/Event". We preserve that fact explicitly as
+    // EventGroupModel.EmissionTarget=Unspecified instead of generating
+    // ActivityEvent-only helpers. The caller picks the emission API at use-site.
 
     public static FileWithName Generate(EventsMarkerModel marker, InstrumentRegistryModel instruments)
     {
@@ -110,6 +105,12 @@ internal static class EventsEmitter
         foreach (var ev in events)
         {
             builder.AppendLine();
+            WriteDescriptorClass(builder, ev);
+        }
+
+        foreach (var ev in events)
+        {
+            builder.AppendLine();
             WritePayloadStruct(builder, ev);
         }
 
@@ -119,11 +120,57 @@ internal static class EventsEmitter
     private static void WriteEventConstant(StringBuilder builder, EventGroupModel ev)
     {
         WriteSummaryComment(builder, ev.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(ev.Note))
+            WriteRemarksComment(builder, ev.Note, indent: 4);
         WriteObsolete(builder, ev.Deprecated, indent: 4);
 
         var memberName = EventMemberName(ev.EventName);
         builder.Append("    public const string ").Append(memberName)
                .Append(" = \"").Append(ev.EventName).AppendLine("\";");
+    }
+
+    private static void WriteDescriptorClass(StringBuilder builder, EventGroupModel ev)
+    {
+        WriteSummaryComment(builder, ev.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(ev.Note))
+            WriteRemarksComment(builder, ev.Note, indent: 4);
+        WriteObsolete(builder, ev.Deprecated, indent: 4);
+
+        var descriptorName = DescriptorClassName(ev.EventName);
+        builder.Append("    public static partial class ").AppendLine(descriptorName);
+        builder.AppendLine("    {");
+        builder.Append("        public const string Name = \"").Append(EscapeForLiteral(ev.EventName)).AppendLine("\";");
+        builder.Append("        public const string Brief = \"").Append(EscapeForLiteral(ev.Brief)).AppendLine("\";");
+        builder.Append("        public const string Note = \"").Append(EscapeForLiteral(ev.Note)).AppendLine("\";");
+        builder.Append("        public const string EmissionTarget = \"").Append(EventTargetName(ev.EmissionTarget)).AppendLine("\";");
+        builder.Append("        public const bool HasBody = ").Append(string.IsNullOrEmpty(ev.BodyJson) ? "false" : "true").AppendLine(";");
+        builder.Append("        public const string BodyJson = \"").Append(EscapeForLiteral(ev.BodyJson)).AppendLine("\";");
+        builder.Append("        public const int AttributeCount = ").Append(ev.Payload.Length).AppendLine(";");
+
+        foreach (var attr in ev.Payload)
+        {
+            var name = "Attribute" + ToPascalCase(attr.Key);
+            builder.Append("        public const string ").Append(name)
+                   .Append(" = \"").Append(EscapeForLiteral(attr.Key)).AppendLine("\";");
+            builder.Append("        public const string ").Append(name).Append("RequirementLevel")
+                   .Append(" = \"").Append(RequirementLevelName(attr.RequirementLevel.Kind)).AppendLine("\";");
+
+            if (!string.IsNullOrEmpty(attr.RequirementLevel.Condition))
+            {
+                builder.Append("        public const string ").Append(name).Append("RequirementCondition")
+                       .Append(" = \"").Append(EscapeForLiteral(attr.RequirementLevel.Condition)).AppendLine("\";");
+            }
+
+            if (!string.IsNullOrEmpty(attr.Note))
+            {
+                builder.Append("        public const string ").Append(name).Append("Note")
+                       .Append(" = \"").Append(EscapeForLiteral(attr.Note)).AppendLine("\";");
+            }
+
+            WriteExampleConstants(builder, name, attr.Examples);
+        }
+
+        builder.AppendLine("    }");
     }
 
     private static void WritePayloadStruct(StringBuilder builder, EventGroupModel ev)
@@ -148,13 +195,13 @@ internal static class EventsEmitter
         builder.AppendLine("    }");
     }
 
-    private static List<EventAttributeModel> OrderPayload(EquatableArray<EventAttributeModel> payload)
+    private static List<SignalAttributeModel> OrderPayload(EquatableArray<SignalAttributeModel> payload)
     {
-        var required = new List<EventAttributeModel>();
-        var recommended = new List<EventAttributeModel>();
+        var required = new List<SignalAttributeModel>();
+        var recommended = new List<SignalAttributeModel>();
         foreach (var member in payload)
         {
-            if (member.Required) required.Add(member);
+            if (member.RequirementLevel.Kind == RequirementLevelKind.Required) required.Add(member);
             else recommended.Add(member);
         }
         required.Sort(static (a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
@@ -163,14 +210,72 @@ internal static class EventsEmitter
         return required;
     }
 
-    private static void WritePayloadProperty(StringBuilder builder, EventAttributeModel member)
+    private static void WritePayloadProperty(StringBuilder builder, SignalAttributeModel member)
     {
         WriteSummaryComment(builder, member.Brief, indent: 8);
+        WriteRequirementRemarks(builder, member, indent: 8);
+        WriteObsolete(builder, member.Deprecated, indent: 8);
 
-        var propertyType = PropertyTypeName(member.Type, member.Required);
+        var propertyType = PropertyTypeName(member.Type, member.RequirementLevel.Kind == RequirementLevelKind.Required);
         var propertyName = PropertyName(member.Key);
         builder.Append("        public ").Append(propertyType).Append(' ')
                .Append(propertyName).AppendLine(" { get; init; }");
+    }
+
+    private static void WriteRequirementRemarks(StringBuilder builder, SignalAttributeModel member, int indent)
+    {
+        if (member.RequirementLevel.Kind == RequirementLevelKind.Unspecified &&
+            string.IsNullOrEmpty(member.RequirementLevel.Condition) &&
+            string.IsNullOrEmpty(member.Note) &&
+            member.Examples.Length == 0)
+        {
+            return;
+        }
+
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        builder.Append(pad).Append("/// Requirement level: ")
+               .Append(RequirementLevelName(member.RequirementLevel.Kind)).AppendLine(".");
+        if (!string.IsNullOrEmpty(member.RequirementLevel.Condition))
+        {
+            foreach (var line in SplitLines(member.RequirementLevel.Condition))
+            {
+                AppendDocLine(builder, pad, line);
+            }
+        }
+        if (!string.IsNullOrEmpty(member.Note))
+        {
+            foreach (var line in SplitLines(member.Note))
+            {
+                AppendDocLine(builder, pad, line);
+            }
+        }
+        if (member.Examples.Length > 0)
+        {
+            builder.Append(pad).AppendLine("/// Examples:");
+            foreach (var example in member.Examples)
+            {
+                AppendDocLine(builder, pad, "- " + example);
+            }
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void WriteExampleConstants(
+        StringBuilder builder,
+        string memberPrefix,
+        EquatableArray<string> examples)
+    {
+        if (examples.Length == 0)
+            return;
+
+        builder.Append("        public const int ").Append(memberPrefix).Append("ExampleCount = ")
+               .Append(examples.Length).AppendLine(";");
+        for (var i = 0; i < examples.Length; i++)
+        {
+            builder.Append("        public const string ").Append(memberPrefix).Append("Example")
+                   .Append(i + 1).Append(" = \"").Append(EscapeForLiteral(examples[i])).AppendLine("\";");
+        }
     }
 
     private static void WriteSummaryComment(StringBuilder builder, string text, int indent)
@@ -179,9 +284,28 @@ internal static class EventsEmitter
         builder.Append(pad).AppendLine("/// <summary>");
         foreach (var line in SplitLines(text))
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </summary>");
+    }
+
+    private static void WriteRemarksComment(StringBuilder builder, string text, int indent)
+    {
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        foreach (var line in SplitLines(text))
+        {
+            AppendDocLine(builder, pad, line);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void AppendDocLine(StringBuilder builder, string pad, string line)
+    {
+        builder.Append(pad).Append("///");
+        if (!string.IsNullOrEmpty(line))
+            builder.Append(' ').Append(line);
+        builder.AppendLine();
     }
 
     private static void WriteObsolete(StringBuilder builder, DeprecatedModel? deprecated, int indent)
@@ -203,6 +327,8 @@ internal static class EventsEmitter
     internal static string EventMemberName(string eventName) => "Event" + ToPascalCase(eventName);
 
     internal static string PayloadStructName(string eventName) => ToPascalCase(eventName) + "Payload";
+
+    internal static string DescriptorClassName(string eventName) => ToPascalCase(eventName) + "Descriptor";
 
     internal static string PropertyName(string attributeKey) => ToPascalCase(attributeKey);
 
@@ -230,6 +356,22 @@ internal static class EventsEmitter
         "double[]" => "global::System.Collections.Generic.IReadOnlyList<double>",
         "boolean[]" => "global::System.Collections.Generic.IReadOnlyList<bool>",
         _ => "string"
+    };
+
+    private static string EventTargetName(EventEmissionTargetModel target) => target switch
+    {
+        EventEmissionTargetModel.ActivityEvent => "activity_event",
+        EventEmissionTargetModel.LogRecord => "log_record",
+        _ => "unspecified"
+    };
+
+    private static string RequirementLevelName(RequirementLevelKind kind) => kind switch
+    {
+        RequirementLevelKind.Required => "required",
+        RequirementLevelKind.Recommended => "recommended",
+        RequirementLevelKind.OptIn => "opt_in",
+        RequirementLevelKind.ConditionallyRequired => "conditionally_required",
+        _ => "unspecified"
     };
 
     internal static string ToPascalCase(string value)
@@ -271,4 +413,7 @@ internal static class EventsEmitter
 
     private static string EscapeForAttribute(string text)
         => text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", " ").Replace("\r", string.Empty);
+
+    private static string EscapeForLiteral(string text)
+        => text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", string.Empty);
 }

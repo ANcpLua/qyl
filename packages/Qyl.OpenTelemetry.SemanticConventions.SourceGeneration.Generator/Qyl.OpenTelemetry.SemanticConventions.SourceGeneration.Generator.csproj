@@ -49,7 +49,7 @@
     <!-- Pack as the analyzer NuGet. Consumers reference this package directly. -->
     <IsPackable>true</IsPackable>
     <PackageId>Qyl.OpenTelemetry.SemanticConventions.SourceGeneration</PackageId>
-    <Description>Roslyn source generator that materialises OpenTelemetry semantic-conventions attribute keys for any prefix into a user-declared partial class. Apply `[SemanticConventionAttributes("&lt;prefix&gt;")]` to a partial static class and the generator emits the matching constants and enum-value classes for that prefix at compile time. Tracks open-telemetry/semantic-conventions v1.41.0 via Weaver v0.23.0.</Description>
+    <Description>Roslyn source generator that materialises OpenTelemetry semantic-conventions constants, descriptors, and thin helpers for user-declared partial classes. Emits stable/incubating projections for attributes, metrics, events, Meter factories, and Activity setters from the pinned OpenTelemetry semantic-conventions v1.41.0 Weaver registry.</Description>
     <Authors>ancplua</Authors>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <!-- All package references have PrivateAssets="all" so SuppressDependenciesWhenPacking

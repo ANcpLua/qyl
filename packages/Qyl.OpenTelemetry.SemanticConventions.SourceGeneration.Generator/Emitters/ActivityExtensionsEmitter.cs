@@ -125,6 +125,9 @@ internal static class ActivityExtensionsEmitter
     private static void WriteSetter(StringBuilder builder, ActivityAttributeModel attr)
     {
         WriteSummaryComment(builder, attr.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(attr.Note))
+            WriteRemarksComment(builder, attr.Note, indent: 4);
+        WriteExamplesComment(builder, attr.Examples, indent: 4);
         WriteStabilityAttribute(builder, attr, indent: 4);
 
         var methodName = "Set" + ToPascalCase(attr.Key);
@@ -152,6 +155,9 @@ internal static class ActivityExtensionsEmitter
     private static void WriteEnumValueClass(StringBuilder builder, ActivityAttributeModel attr, StabilityFilter filter)
     {
         WriteSummaryComment(builder, attr.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(attr.Note))
+            WriteRemarksComment(builder, attr.Note, indent: 4);
+        WriteExamplesComment(builder, attr.Examples, indent: 4);
         WriteStabilityAttribute(builder, attr, indent: 4);
 
         var enumClassName = ToPascalCase(attr.Key) + "Values";
@@ -218,9 +224,43 @@ internal static class ActivityExtensionsEmitter
         builder.Append(pad).AppendLine("/// <summary>");
         foreach (var line in SplitLines(text))
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </summary>");
+    }
+
+    private static void WriteRemarksComment(StringBuilder builder, string text, int indent)
+    {
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        foreach (var line in SplitLines(text))
+        {
+            AppendDocLine(builder, pad, line);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void WriteExamplesComment(StringBuilder builder, EquatableArray<string> examples, int indent)
+    {
+        if (examples.Length == 0)
+            return;
+
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        builder.Append(pad).AppendLine("/// Examples:");
+        foreach (var example in examples)
+        {
+            AppendDocLine(builder, pad, "- " + example);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void AppendDocLine(StringBuilder builder, string pad, string line)
+    {
+        builder.Append(pad).Append("///");
+        if (!string.IsNullOrEmpty(line))
+            builder.Append(' ').Append(line);
+        builder.AppendLine();
     }
 
     internal static string ToPascalCase(string value)

@@ -27,7 +27,7 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Emitters;
 /// </summary>
 internal static class MetersEmitter
 {
-    public static FileWithName Generate(MetersMarkerModel marker, MeterRegistryModel registry)
+    public static FileWithName Generate(MetersMarkerModel marker, InstrumentRegistryModel registry)
     {
         var meters = FilterByPrefix(registry, marker.Prefix, marker.Filter);
 
@@ -39,10 +39,10 @@ internal static class MetersEmitter
         return new FileWithName($"{marker.ClassName}.g.cs", builder.ToString());
     }
 
-    private static List<MeterModel> FilterByPrefix(MeterRegistryModel registry, string prefix, StabilityFilter filter)
+    private static List<MetricDescriptorModel> FilterByPrefix(InstrumentRegistryModel registry, string prefix, StabilityFilter filter)
     {
-        var result = new List<MeterModel>();
-        foreach (var meter in registry.Meters)
+        var result = new List<MetricDescriptorModel>();
+        foreach (var meter in registry.Metrics)
         {
             if (!PrefixMatches(meter.MetricName, prefix))
                 continue;
@@ -86,7 +86,7 @@ internal static class MetersEmitter
         }
     }
 
-    private static void WriteClass(StringBuilder builder, string className, List<MeterModel> meters)
+    private static void WriteClass(StringBuilder builder, string className, List<MetricDescriptorModel> meters)
     {
         builder.AppendLine("/// <summary>");
         builder.AppendLine("/// Typed factory extensions for OpenTelemetry semantic-convention metric instruments.");
@@ -106,13 +106,16 @@ internal static class MetersEmitter
         builder.AppendLine("}");
     }
 
-    private static void WriteFactory(StringBuilder builder, MeterModel meter)
+    private static void WriteFactory(StringBuilder builder, MetricDescriptorModel meter)
     {
         WriteSummaryComment(builder, meter.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(meter.Note))
+            WriteRemarksComment(builder, meter.Note, indent: 4);
         WriteStabilityAttribute(builder, meter, indent: 4);
 
         var methodName = "Create" + ToPascalCase(meter.MetricName) + ToPascalCase(meter.Instrument);
-        var instrumentType = ResolveInstrumentType(meter.Instrument, meter.ValueType);
+        var valueType = MeterValueTypeRules.SelectValueType(meter.Instrument, meter.Unit);
+        var instrumentType = ResolveInstrumentType(meter.Instrument, valueType);
 
         switch (meter.Instrument)
         {
@@ -121,8 +124,8 @@ internal static class MetersEmitter
                 builder.Append("    public static global::System.Diagnostics.Metrics.").Append(instrumentType)
                        .Append(' ').Append(methodName).AppendLine("(");
                 builder.AppendLine("        this global::System.Diagnostics.Metrics.Meter meter,");
-                builder.Append("        global::System.Func<").Append(meter.ValueType).AppendLine("> observeValue)");
-                builder.Append("        => meter.CreateObservableGauge<").Append(meter.ValueType).AppendLine(">(");
+                builder.Append("        global::System.Func<").Append(valueType).AppendLine("> observeValue)");
+                builder.Append("        => meter.CreateObservableGauge<").Append(valueType).AppendLine(">(");
                 builder.Append("            name: \"").Append(meter.MetricName).AppendLine("\",");
                 builder.AppendLine("            observeValue: observeValue,");
                 builder.Append("            unit: \"").Append(EscapeForString(meter.Unit)).AppendLine("\",");
@@ -133,8 +136,8 @@ internal static class MetersEmitter
                 builder.Append("    public static global::System.Diagnostics.Metrics.").Append(instrumentType)
                        .Append(' ').Append(methodName).AppendLine("(");
                 builder.AppendLine("        this global::System.Diagnostics.Metrics.Meter meter,");
-                builder.Append("        global::System.Func<").Append(meter.ValueType).AppendLine("> observeValue)");
-                builder.Append("        => meter.CreateObservableCounter<").Append(meter.ValueType).AppendLine(">(");
+                builder.Append("        global::System.Func<").Append(valueType).AppendLine("> observeValue)");
+                builder.Append("        => meter.CreateObservableCounter<").Append(valueType).AppendLine(">(");
                 builder.Append("            name: \"").Append(meter.MetricName).AppendLine("\",");
                 builder.AppendLine("            observeValue: observeValue,");
                 builder.Append("            unit: \"").Append(EscapeForString(meter.Unit)).AppendLine("\",");
@@ -145,8 +148,8 @@ internal static class MetersEmitter
                 builder.Append("    public static global::System.Diagnostics.Metrics.").Append(instrumentType)
                        .Append(' ').Append(methodName).AppendLine("(");
                 builder.AppendLine("        this global::System.Diagnostics.Metrics.Meter meter,");
-                builder.Append("        global::System.Func<").Append(meter.ValueType).AppendLine("> observeValue)");
-                builder.Append("        => meter.CreateObservableUpDownCounter<").Append(meter.ValueType).AppendLine(">(");
+                builder.Append("        global::System.Func<").Append(valueType).AppendLine("> observeValue)");
+                builder.Append("        => meter.CreateObservableUpDownCounter<").Append(valueType).AppendLine(">(");
                 builder.Append("            name: \"").Append(meter.MetricName).AppendLine("\",");
                 builder.AppendLine("            observeValue: observeValue,");
                 builder.Append("            unit: \"").Append(EscapeForString(meter.Unit)).AppendLine("\",");
@@ -158,7 +161,7 @@ internal static class MetersEmitter
                        .Append(' ').Append(methodName).AppendLine("(");
                 builder.AppendLine("        this global::System.Diagnostics.Metrics.Meter meter)");
                 builder.Append("        => meter.").Append(InstrumentFactoryMethod(meter.Instrument))
-                       .Append('<').Append(meter.ValueType).AppendLine(">(");
+                       .Append('<').Append(valueType).AppendLine(">(");
                 builder.Append("            name: \"").Append(meter.MetricName).AppendLine("\",");
                 builder.Append("            unit: \"").Append(EscapeForString(meter.Unit)).AppendLine("\",");
                 builder.Append("            description: \"").Append(EscapeForString(meter.Brief)).AppendLine("\");");
@@ -186,7 +189,7 @@ internal static class MetersEmitter
         _ => "CreateHistogram"
     };
 
-    private static void WriteStabilityAttribute(StringBuilder builder, MeterModel meter, int indent)
+    private static void WriteStabilityAttribute(StringBuilder builder, MetricDescriptorModel meter, int indent)
     {
         if (meter.Stability != StabilityModel.Deprecated && meter.Deprecated is null) return;
 
@@ -209,9 +212,28 @@ internal static class MetersEmitter
         builder.Append(pad).AppendLine("/// <summary>");
         foreach (var line in SplitLines(text))
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </summary>");
+    }
+
+    private static void WriteRemarksComment(StringBuilder builder, string text, int indent)
+    {
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        foreach (var line in SplitLines(text))
+        {
+            AppendDocLine(builder, pad, line);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void AppendDocLine(StringBuilder builder, string pad, string line)
+    {
+        builder.Append(pad).Append("///");
+        if (!string.IsNullOrEmpty(line))
+            builder.Append(' ').Append(line);
+        builder.AppendLine();
     }
 
     internal static string ToPascalCase(string value)

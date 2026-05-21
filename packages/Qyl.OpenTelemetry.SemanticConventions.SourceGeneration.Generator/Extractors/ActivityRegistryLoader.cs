@@ -55,8 +55,10 @@ internal static class ActivityRegistryLoader
                 IsEnum: isEnum,
                 EnumMembers: enumMembers,
                 Brief: attr.GetString("brief"),
+                Note: attr.GetString("note"),
                 Stability: stability,
-                Deprecated: RegistryParsing.ParseDeprecated(attr.TryGet("deprecated") as JsonObject)));
+                Deprecated: RegistryParsing.ParseDeprecated(attr.TryGet("deprecated") as JsonObject),
+                Examples: RegistryParsing.ParseExamples(attr.TryGetArray("examples"))));
         }
 
         return new ActivityRegistryModel(attributes.ToEquatableArray());

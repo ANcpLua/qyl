@@ -100,6 +100,35 @@ public sealed class SemConvMetricsGeneratorTests
     }
 
     [Fact]
+    public void Descriptor_Preserves_Requirement_Notes_And_Entity_Associations()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionIncubatingMetrics("process.cpu")]
+            internal static partial class ProcessCpuMetrics;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvMetricsGenerator>(source);
+
+        var generated = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("ProcessCpuMetrics.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        generated.Should()
+            .Contain("public static partial class ProcessCpuTimeDescriptor")
+            .And.Contain("public const string AttributeCpuMode = \"cpu.mode\";")
+            .And.Contain("public const string AttributeCpuModeRequirementLevel = \"required\";")
+            .And.Contain("public const string AttributeCpuModeNote")
+            .And.Contain("public const int AttributeCpuModeExampleCount = ")
+            .And.Contain("public const string AttributeCpuModeExample1")
+            .And.Contain("EntityAssociationCount = 1;")
+            .And.Contain("public const string EntityAssociationProcess = \"process\";");
+    }
+
+    [Fact]
     public void Stable_Marker_Emits_Empty_When_All_Rows_Are_Development()
     {
         // gen_ai.client.* metrics in v1.41.0 are all development-stability;

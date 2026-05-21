@@ -136,6 +136,7 @@ internal static class AttributesEmitter
         WriteSummaryComment(builder, attr.Brief, indent: 4);
         if (!string.IsNullOrEmpty(attr.Note))
             WriteRemarksComment(builder, attr.Note, indent: 4);
+        WriteExamplesComment(builder, attr.Examples, indent: 4);
         WriteObsolete(builder, attr.Deprecated, indent: 4);
 
         var memberName = AttributeMemberName(attr.Key, attr.Type);
@@ -188,7 +189,7 @@ internal static class AttributesEmitter
         builder.Append(pad).AppendLine("/// <summary>");
         foreach (var line in lines)
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </summary>");
     }
@@ -200,9 +201,32 @@ internal static class AttributesEmitter
         builder.Append(pad).AppendLine("/// <remarks>");
         foreach (var line in lines)
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void WriteExamplesComment(StringBuilder builder, EquatableArray<string> examples, int indent)
+    {
+        if (examples.Length == 0)
+            return;
+
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        builder.Append(pad).AppendLine("/// Examples:");
+        foreach (var example in examples)
+        {
+            AppendDocLine(builder, pad, "- " + example);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void AppendDocLine(StringBuilder builder, string pad, string line)
+    {
+        builder.Append(pad).Append("///");
+        if (!string.IsNullOrEmpty(line))
+            builder.Append(' ').Append(line);
+        builder.AppendLine();
     }
 
     private static void WriteObsolete(StringBuilder builder, DeprecatedModel? deprecated, int indent)

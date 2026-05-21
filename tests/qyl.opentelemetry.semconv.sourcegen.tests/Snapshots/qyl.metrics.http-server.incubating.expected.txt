@@ -40,17 +40,123 @@ static partial class HttpServerIncubatingMetrics
         public const string Unit = "{request}";
         public const string Instrument = "updowncounter";
         public const string Brief = "Number of active HTTP server requests.";
+        public const string Note = "";
+
+        public const int AttributeCount = 4;
+        public const string AttributeHttpRequestMethod = "http.request.method";
+        public const string AttributeHttpRequestMethodRequirementLevel = "required";
+        public const string AttributeHttpRequestMethodNote = "HTTP request method value SHOULD be \"known\" to the instrumentation.\nBy default, this convention defines \"known\" methods as the ones listed in [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-methods),\nthe PATCH method defined in [RFC5789](https://www.rfc-editor.org/rfc/rfc5789.html)\nand the QUERY method defined in [httpbis-safe-method-w-body](https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/?include_text=1).\n\nIf the HTTP request method is not known to instrumentation, it MUST set the `http.request.method` attribute to `_OTHER`.\n\nIf the HTTP instrumentation could end up converting valid HTTP request methods to `_OTHER`, then it MUST provide a way to override\nthe list of known HTTP methods. If this override is done via environment variable, then the environment variable MUST be named\nOTEL_INSTRUMENTATION_HTTP_KNOWN_METHODS and support a comma-separated list of case-sensitive known HTTP methods.\n\n![Development](https://img.shields.io/badge/-development-blue)\nIf this override is done via declarative configuration, then the list MUST be configurable via the `known_methods` property\n(an array of case-sensitive strings with minimum items 0) under `.instrumentation/development.general.http.client` and/or\n`.instrumentation/development.general.http.server`.\n\nIn either case, this list MUST be a full override of the default known methods,\nit is not a list of known methods in addition to the defaults.\n\nHTTP method names are case-sensitive and `http.request.method` attribute value MUST match a known HTTP method name exactly.\nInstrumentations for specific web frameworks that consider HTTP methods to be case insensitive, SHOULD populate a canonical equivalent.\nTracing instrumentations that do so, MUST also set `http.request.method_original` to the original value.\n";
+        public const int AttributeHttpRequestMethodExampleCount = 3;
+        public const string AttributeHttpRequestMethodExample1 = "GET";
+        public const string AttributeHttpRequestMethodExample2 = "POST";
+        public const string AttributeHttpRequestMethodExample3 = "HEAD";
+        public const string AttributeServerAddress = "server.address";
+        public const string AttributeServerAddressRequirementLevel = "opt_in";
+        public const string AttributeServerAddressNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerAddressExampleCount = 3;
+        public const string AttributeServerAddressExample1 = "example.com";
+        public const string AttributeServerAddressExample2 = "10.1.2.80";
+        public const string AttributeServerAddressExample3 = "/tmp/my.sock";
+        public const string AttributeServerPort = "server.port";
+        public const string AttributeServerPortRequirementLevel = "opt_in";
+        public const string AttributeServerPortNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerPortExampleCount = 3;
+        public const string AttributeServerPortExample1 = "80";
+        public const string AttributeServerPortExample2 = "8080";
+        public const string AttributeServerPortExample3 = "443";
+        public const string AttributeUrlScheme = "url.scheme";
+        public const string AttributeUrlSchemeRequirementLevel = "required";
+        public const int AttributeUrlSchemeExampleCount = 2;
+        public const string AttributeUrlSchemeExample1 = "http";
+        public const string AttributeUrlSchemeExample2 = "https";
+
+        public const int EntityAssociationCount = 0;
     }
 
     /// <summary>
     /// Size of HTTP server request bodies.
     /// </summary>
+    /// <remarks>
+    /// The size of the request payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.
+    ///
+    /// </remarks>
     public static partial class HttpServerRequestBodySizeDescriptor
     {
         public const string Name = "http.server.request.body.size";
         public const string Unit = "By";
         public const string Instrument = "histogram";
         public const string Brief = "Size of HTTP server request bodies.";
+        public const string Note = "The size of the request payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.\n";
+
+        public const int AttributeCount = 10;
+        public const string AttributeErrorType = "error.type";
+        public const string AttributeErrorTypeRequirementLevel = "conditionally_required";
+        public const string AttributeErrorTypeRequirementCondition = "If request has ended with an error.";
+        public const string AttributeErrorTypeNote = "If the request fails with an error before response status code was sent or received,\n`error.type` SHOULD be set to exception type (its fully-qualified class name, if applicable)\nor a component-specific low cardinality error identifier.\n\nIf response status code was sent or received and status indicates an error according to [HTTP span status definition](/docs/http/http-spans.md),\n`error.type` SHOULD be set to the status code number (represented as a string), an exception type (if thrown) or a component-specific error identifier.\n\nThe `error.type` value SHOULD be predictable and SHOULD have low cardinality.\nInstrumentations SHOULD document the list of errors they report.\n\nThe cardinality of `error.type` within one instrumentation library SHOULD be low, but\ntelemetry consumers that aggregate data from multiple instrumentation libraries and applications\nshould be prepared for `error.type` to have high cardinality at query time, when no\nadditional filters are applied.\n\nIf the request has completed successfully, instrumentations SHOULD NOT set `error.type`.\n";
+        public const int AttributeErrorTypeExampleCount = 4;
+        public const string AttributeErrorTypeExample1 = "timeout";
+        public const string AttributeErrorTypeExample2 = "java.net.UnknownHostException";
+        public const string AttributeErrorTypeExample3 = "server_certificate_invalid";
+        public const string AttributeErrorTypeExample4 = "500";
+        public const string AttributeHttpRequestMethod = "http.request.method";
+        public const string AttributeHttpRequestMethodRequirementLevel = "required";
+        public const string AttributeHttpRequestMethodNote = "HTTP request method value SHOULD be \"known\" to the instrumentation.\nBy default, this convention defines \"known\" methods as the ones listed in [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-methods),\nthe PATCH method defined in [RFC5789](https://www.rfc-editor.org/rfc/rfc5789.html)\nand the QUERY method defined in [httpbis-safe-method-w-body](https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/?include_text=1).\n\nIf the HTTP request method is not known to instrumentation, it MUST set the `http.request.method` attribute to `_OTHER`.\n\nIf the HTTP instrumentation could end up converting valid HTTP request methods to `_OTHER`, then it MUST provide a way to override\nthe list of known HTTP methods. If this override is done via environment variable, then the environment variable MUST be named\nOTEL_INSTRUMENTATION_HTTP_KNOWN_METHODS and support a comma-separated list of case-sensitive known HTTP methods.\n\n![Development](https://img.shields.io/badge/-development-blue)\nIf this override is done via declarative configuration, then the list MUST be configurable via the `known_methods` property\n(an array of case-sensitive strings with minimum items 0) under `.instrumentation/development.general.http.client` and/or\n`.instrumentation/development.general.http.server`.\n\nIn either case, this list MUST be a full override of the default known methods,\nit is not a list of known methods in addition to the defaults.\n\nHTTP method names are case-sensitive and `http.request.method` attribute value MUST match a known HTTP method name exactly.\nInstrumentations for specific web frameworks that consider HTTP methods to be case insensitive, SHOULD populate a canonical equivalent.\nTracing instrumentations that do so, MUST also set `http.request.method_original` to the original value.\n";
+        public const int AttributeHttpRequestMethodExampleCount = 3;
+        public const string AttributeHttpRequestMethodExample1 = "GET";
+        public const string AttributeHttpRequestMethodExample2 = "POST";
+        public const string AttributeHttpRequestMethodExample3 = "HEAD";
+        public const string AttributeHttpResponseStatusCode = "http.response.status_code";
+        public const string AttributeHttpResponseStatusCodeRequirementLevel = "conditionally_required";
+        public const string AttributeHttpResponseStatusCodeRequirementCondition = "If and only if one was received/sent.";
+        public const int AttributeHttpResponseStatusCodeExampleCount = 1;
+        public const string AttributeHttpResponseStatusCodeExample1 = "200";
+        public const string AttributeHttpRoute = "http.route";
+        public const string AttributeHttpRouteRequirementLevel = "conditionally_required";
+        public const string AttributeHttpRouteRequirementCondition = "If and only if it's available";
+        public const string AttributeHttpRouteNote = "MUST NOT be populated when this is not supported by the HTTP server framework as the route attribute should have low-cardinality and the URI path can NOT substitute it.\nSHOULD include the [application root](/docs/http/http-spans.md#http-server-definitions) if there is one.\n\nA static path segment is a part of the route template with a fixed, low-cardinality value. This includes literal strings like `/users/` and placeholders that\nare constrained to a finite, predefined set of values, e.g. `{controller}` or `{action}`.\n\nA dynamic path segment is a placeholder for a value that can have high cardinality and is not constrained to a predefined list like static path segments.\n\nInstrumentations SHOULD use routing information provided by the corresponding web framework. They SHOULD pick the most precise source of routing information and MAY\nsupport custom route formatting. Instrumentations SHOULD document the format and the API used to obtain the route string.\n";
+        public const int AttributeHttpRouteExampleCount = 2;
+        public const string AttributeHttpRouteExample1 = "/users/:userID?";
+        public const string AttributeHttpRouteExample2 = "my-controller/my-action/{id?}";
+        public const string AttributeNetworkProtocolName = "network.protocol.name";
+        public const string AttributeNetworkProtocolNameRequirementLevel = "conditionally_required";
+        public const string AttributeNetworkProtocolNameRequirementCondition = "If not `http` and `network.protocol.version` is set.";
+        public const string AttributeNetworkProtocolNameNote = "The value SHOULD be normalized to lowercase.";
+        public const int AttributeNetworkProtocolNameExampleCount = 2;
+        public const string AttributeNetworkProtocolNameExample1 = "http";
+        public const string AttributeNetworkProtocolNameExample2 = "spdy";
+        public const string AttributeNetworkProtocolVersion = "network.protocol.version";
+        public const string AttributeNetworkProtocolVersionRequirementLevel = "recommended";
+        public const string AttributeNetworkProtocolVersionNote = "If protocol version is subject to negotiation (for example using [ALPN](https://www.rfc-editor.org/rfc/rfc7301.html)), this attribute SHOULD be set to the negotiated version. If the actual protocol version is not known, this attribute SHOULD NOT be set.\n";
+        public const int AttributeNetworkProtocolVersionExampleCount = 4;
+        public const string AttributeNetworkProtocolVersionExample1 = "1.0";
+        public const string AttributeNetworkProtocolVersionExample2 = "1.1";
+        public const string AttributeNetworkProtocolVersionExample3 = "2";
+        public const string AttributeNetworkProtocolVersionExample4 = "3";
+        public const string AttributeServerAddress = "server.address";
+        public const string AttributeServerAddressRequirementLevel = "opt_in";
+        public const string AttributeServerAddressNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerAddressExampleCount = 3;
+        public const string AttributeServerAddressExample1 = "example.com";
+        public const string AttributeServerAddressExample2 = "10.1.2.80";
+        public const string AttributeServerAddressExample3 = "/tmp/my.sock";
+        public const string AttributeServerPort = "server.port";
+        public const string AttributeServerPortRequirementLevel = "opt_in";
+        public const string AttributeServerPortNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerPortExampleCount = 3;
+        public const string AttributeServerPortExample1 = "80";
+        public const string AttributeServerPortExample2 = "8080";
+        public const string AttributeServerPortExample3 = "443";
+        public const string AttributeUrlScheme = "url.scheme";
+        public const string AttributeUrlSchemeRequirementLevel = "required";
+        public const string AttributeUrlSchemeNote = "The scheme of the original client request, if known (e.g. from [Forwarded#proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/Forwarded#proto), [X-Forwarded-Proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Forwarded-Proto), or a similar header). Otherwise, the scheme of the immediate peer request.\n";
+        public const int AttributeUrlSchemeExampleCount = 2;
+        public const string AttributeUrlSchemeExample1 = "http";
+        public const string AttributeUrlSchemeExample2 = "https";
+        public const string AttributeUserAgentSyntheticType = "user_agent.synthetic.type";
+        public const string AttributeUserAgentSyntheticTypeRequirementLevel = "opt_in";
+        public const string AttributeUserAgentSyntheticTypeNote = "This attribute MAY be derived from the contents of the `user_agent.original` attribute. Components that populate the attribute are responsible for determining what they consider to be synthetic bot or test traffic. This attribute can either be set for self-identification purposes, or on telemetry detected to be generated as a result of a synthetic request. This attribute is useful for distinguishing between genuine client traffic and synthetic traffic generated by bots or tests.\n";
+
+        public const int EntityAssociationCount = 0;
     }
 
     /// <summary>
@@ -62,16 +168,162 @@ static partial class HttpServerIncubatingMetrics
         public const string Unit = "s";
         public const string Instrument = "histogram";
         public const string Brief = "Duration of HTTP server requests.";
+        public const string Note = "";
+
+        public const int AttributeCount = 10;
+        public const string AttributeErrorType = "error.type";
+        public const string AttributeErrorTypeRequirementLevel = "conditionally_required";
+        public const string AttributeErrorTypeRequirementCondition = "If request has ended with an error.";
+        public const string AttributeErrorTypeNote = "If the request fails with an error before response status code was sent or received,\n`error.type` SHOULD be set to exception type (its fully-qualified class name, if applicable)\nor a component-specific low cardinality error identifier.\n\nIf response status code was sent or received and status indicates an error according to [HTTP span status definition](/docs/http/http-spans.md),\n`error.type` SHOULD be set to the status code number (represented as a string), an exception type (if thrown) or a component-specific error identifier.\n\nThe `error.type` value SHOULD be predictable and SHOULD have low cardinality.\nInstrumentations SHOULD document the list of errors they report.\n\nThe cardinality of `error.type` within one instrumentation library SHOULD be low, but\ntelemetry consumers that aggregate data from multiple instrumentation libraries and applications\nshould be prepared for `error.type` to have high cardinality at query time, when no\nadditional filters are applied.\n\nIf the request has completed successfully, instrumentations SHOULD NOT set `error.type`.\n";
+        public const int AttributeErrorTypeExampleCount = 4;
+        public const string AttributeErrorTypeExample1 = "timeout";
+        public const string AttributeErrorTypeExample2 = "java.net.UnknownHostException";
+        public const string AttributeErrorTypeExample3 = "server_certificate_invalid";
+        public const string AttributeErrorTypeExample4 = "500";
+        public const string AttributeHttpRequestMethod = "http.request.method";
+        public const string AttributeHttpRequestMethodRequirementLevel = "required";
+        public const string AttributeHttpRequestMethodNote = "HTTP request method value SHOULD be \"known\" to the instrumentation.\nBy default, this convention defines \"known\" methods as the ones listed in [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-methods),\nthe PATCH method defined in [RFC5789](https://www.rfc-editor.org/rfc/rfc5789.html)\nand the QUERY method defined in [httpbis-safe-method-w-body](https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/?include_text=1).\n\nIf the HTTP request method is not known to instrumentation, it MUST set the `http.request.method` attribute to `_OTHER`.\n\nIf the HTTP instrumentation could end up converting valid HTTP request methods to `_OTHER`, then it MUST provide a way to override\nthe list of known HTTP methods. If this override is done via environment variable, then the environment variable MUST be named\nOTEL_INSTRUMENTATION_HTTP_KNOWN_METHODS and support a comma-separated list of case-sensitive known HTTP methods.\n\n![Development](https://img.shields.io/badge/-development-blue)\nIf this override is done via declarative configuration, then the list MUST be configurable via the `known_methods` property\n(an array of case-sensitive strings with minimum items 0) under `.instrumentation/development.general.http.client` and/or\n`.instrumentation/development.general.http.server`.\n\nIn either case, this list MUST be a full override of the default known methods,\nit is not a list of known methods in addition to the defaults.\n\nHTTP method names are case-sensitive and `http.request.method` attribute value MUST match a known HTTP method name exactly.\nInstrumentations for specific web frameworks that consider HTTP methods to be case insensitive, SHOULD populate a canonical equivalent.\nTracing instrumentations that do so, MUST also set `http.request.method_original` to the original value.\n";
+        public const int AttributeHttpRequestMethodExampleCount = 3;
+        public const string AttributeHttpRequestMethodExample1 = "GET";
+        public const string AttributeHttpRequestMethodExample2 = "POST";
+        public const string AttributeHttpRequestMethodExample3 = "HEAD";
+        public const string AttributeHttpResponseStatusCode = "http.response.status_code";
+        public const string AttributeHttpResponseStatusCodeRequirementLevel = "conditionally_required";
+        public const string AttributeHttpResponseStatusCodeRequirementCondition = "If and only if one was received/sent.";
+        public const int AttributeHttpResponseStatusCodeExampleCount = 1;
+        public const string AttributeHttpResponseStatusCodeExample1 = "200";
+        public const string AttributeHttpRoute = "http.route";
+        public const string AttributeHttpRouteRequirementLevel = "conditionally_required";
+        public const string AttributeHttpRouteRequirementCondition = "If and only if it's available";
+        public const string AttributeHttpRouteNote = "MUST NOT be populated when this is not supported by the HTTP server framework as the route attribute should have low-cardinality and the URI path can NOT substitute it.\nSHOULD include the [application root](/docs/http/http-spans.md#http-server-definitions) if there is one.\n\nA static path segment is a part of the route template with a fixed, low-cardinality value. This includes literal strings like `/users/` and placeholders that\nare constrained to a finite, predefined set of values, e.g. `{controller}` or `{action}`.\n\nA dynamic path segment is a placeholder for a value that can have high cardinality and is not constrained to a predefined list like static path segments.\n\nInstrumentations SHOULD use routing information provided by the corresponding web framework. They SHOULD pick the most precise source of routing information and MAY\nsupport custom route formatting. Instrumentations SHOULD document the format and the API used to obtain the route string.\n";
+        public const int AttributeHttpRouteExampleCount = 2;
+        public const string AttributeHttpRouteExample1 = "/users/:userID?";
+        public const string AttributeHttpRouteExample2 = "my-controller/my-action/{id?}";
+        public const string AttributeNetworkProtocolName = "network.protocol.name";
+        public const string AttributeNetworkProtocolNameRequirementLevel = "conditionally_required";
+        public const string AttributeNetworkProtocolNameRequirementCondition = "If not `http` and `network.protocol.version` is set.";
+        public const string AttributeNetworkProtocolNameNote = "The value SHOULD be normalized to lowercase.";
+        public const int AttributeNetworkProtocolNameExampleCount = 2;
+        public const string AttributeNetworkProtocolNameExample1 = "http";
+        public const string AttributeNetworkProtocolNameExample2 = "spdy";
+        public const string AttributeNetworkProtocolVersion = "network.protocol.version";
+        public const string AttributeNetworkProtocolVersionRequirementLevel = "recommended";
+        public const string AttributeNetworkProtocolVersionNote = "If protocol version is subject to negotiation (for example using [ALPN](https://www.rfc-editor.org/rfc/rfc7301.html)), this attribute SHOULD be set to the negotiated version. If the actual protocol version is not known, this attribute SHOULD NOT be set.\n";
+        public const int AttributeNetworkProtocolVersionExampleCount = 4;
+        public const string AttributeNetworkProtocolVersionExample1 = "1.0";
+        public const string AttributeNetworkProtocolVersionExample2 = "1.1";
+        public const string AttributeNetworkProtocolVersionExample3 = "2";
+        public const string AttributeNetworkProtocolVersionExample4 = "3";
+        public const string AttributeServerAddress = "server.address";
+        public const string AttributeServerAddressRequirementLevel = "opt_in";
+        public const string AttributeServerAddressNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerAddressExampleCount = 3;
+        public const string AttributeServerAddressExample1 = "example.com";
+        public const string AttributeServerAddressExample2 = "10.1.2.80";
+        public const string AttributeServerAddressExample3 = "/tmp/my.sock";
+        public const string AttributeServerPort = "server.port";
+        public const string AttributeServerPortRequirementLevel = "opt_in";
+        public const string AttributeServerPortNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerPortExampleCount = 3;
+        public const string AttributeServerPortExample1 = "80";
+        public const string AttributeServerPortExample2 = "8080";
+        public const string AttributeServerPortExample3 = "443";
+        public const string AttributeUrlScheme = "url.scheme";
+        public const string AttributeUrlSchemeRequirementLevel = "required";
+        public const string AttributeUrlSchemeNote = "The scheme of the original client request, if known (e.g. from [Forwarded#proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/Forwarded#proto), [X-Forwarded-Proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Forwarded-Proto), or a similar header). Otherwise, the scheme of the immediate peer request.\n";
+        public const int AttributeUrlSchemeExampleCount = 2;
+        public const string AttributeUrlSchemeExample1 = "http";
+        public const string AttributeUrlSchemeExample2 = "https";
+        public const string AttributeUserAgentSyntheticType = "user_agent.synthetic.type";
+        public const string AttributeUserAgentSyntheticTypeRequirementLevel = "opt_in";
+        public const string AttributeUserAgentSyntheticTypeNote = "This attribute MAY be derived from the contents of the `user_agent.original` attribute. Components that populate the attribute are responsible for determining what they consider to be synthetic bot or test traffic. This attribute can either be set for self-identification purposes, or on telemetry detected to be generated as a result of a synthetic request. This attribute is useful for distinguishing between genuine client traffic and synthetic traffic generated by bots or tests.\n";
+
+        public const int EntityAssociationCount = 0;
     }
 
     /// <summary>
     /// Size of HTTP server response bodies.
     /// </summary>
+    /// <remarks>
+    /// The size of the response payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.
+    ///
+    /// </remarks>
     public static partial class HttpServerResponseBodySizeDescriptor
     {
         public const string Name = "http.server.response.body.size";
         public const string Unit = "By";
         public const string Instrument = "histogram";
         public const string Brief = "Size of HTTP server response bodies.";
+        public const string Note = "The size of the response payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.\n";
+
+        public const int AttributeCount = 10;
+        public const string AttributeErrorType = "error.type";
+        public const string AttributeErrorTypeRequirementLevel = "conditionally_required";
+        public const string AttributeErrorTypeRequirementCondition = "If request has ended with an error.";
+        public const string AttributeErrorTypeNote = "If the request fails with an error before response status code was sent or received,\n`error.type` SHOULD be set to exception type (its fully-qualified class name, if applicable)\nor a component-specific low cardinality error identifier.\n\nIf response status code was sent or received and status indicates an error according to [HTTP span status definition](/docs/http/http-spans.md),\n`error.type` SHOULD be set to the status code number (represented as a string), an exception type (if thrown) or a component-specific error identifier.\n\nThe `error.type` value SHOULD be predictable and SHOULD have low cardinality.\nInstrumentations SHOULD document the list of errors they report.\n\nThe cardinality of `error.type` within one instrumentation library SHOULD be low, but\ntelemetry consumers that aggregate data from multiple instrumentation libraries and applications\nshould be prepared for `error.type` to have high cardinality at query time, when no\nadditional filters are applied.\n\nIf the request has completed successfully, instrumentations SHOULD NOT set `error.type`.\n";
+        public const int AttributeErrorTypeExampleCount = 4;
+        public const string AttributeErrorTypeExample1 = "timeout";
+        public const string AttributeErrorTypeExample2 = "java.net.UnknownHostException";
+        public const string AttributeErrorTypeExample3 = "server_certificate_invalid";
+        public const string AttributeErrorTypeExample4 = "500";
+        public const string AttributeHttpRequestMethod = "http.request.method";
+        public const string AttributeHttpRequestMethodRequirementLevel = "required";
+        public const string AttributeHttpRequestMethodNote = "HTTP request method value SHOULD be \"known\" to the instrumentation.\nBy default, this convention defines \"known\" methods as the ones listed in [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-methods),\nthe PATCH method defined in [RFC5789](https://www.rfc-editor.org/rfc/rfc5789.html)\nand the QUERY method defined in [httpbis-safe-method-w-body](https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/?include_text=1).\n\nIf the HTTP request method is not known to instrumentation, it MUST set the `http.request.method` attribute to `_OTHER`.\n\nIf the HTTP instrumentation could end up converting valid HTTP request methods to `_OTHER`, then it MUST provide a way to override\nthe list of known HTTP methods. If this override is done via environment variable, then the environment variable MUST be named\nOTEL_INSTRUMENTATION_HTTP_KNOWN_METHODS and support a comma-separated list of case-sensitive known HTTP methods.\n\n![Development](https://img.shields.io/badge/-development-blue)\nIf this override is done via declarative configuration, then the list MUST be configurable via the `known_methods` property\n(an array of case-sensitive strings with minimum items 0) under `.instrumentation/development.general.http.client` and/or\n`.instrumentation/development.general.http.server`.\n\nIn either case, this list MUST be a full override of the default known methods,\nit is not a list of known methods in addition to the defaults.\n\nHTTP method names are case-sensitive and `http.request.method` attribute value MUST match a known HTTP method name exactly.\nInstrumentations for specific web frameworks that consider HTTP methods to be case insensitive, SHOULD populate a canonical equivalent.\nTracing instrumentations that do so, MUST also set `http.request.method_original` to the original value.\n";
+        public const int AttributeHttpRequestMethodExampleCount = 3;
+        public const string AttributeHttpRequestMethodExample1 = "GET";
+        public const string AttributeHttpRequestMethodExample2 = "POST";
+        public const string AttributeHttpRequestMethodExample3 = "HEAD";
+        public const string AttributeHttpResponseStatusCode = "http.response.status_code";
+        public const string AttributeHttpResponseStatusCodeRequirementLevel = "conditionally_required";
+        public const string AttributeHttpResponseStatusCodeRequirementCondition = "If and only if one was received/sent.";
+        public const int AttributeHttpResponseStatusCodeExampleCount = 1;
+        public const string AttributeHttpResponseStatusCodeExample1 = "200";
+        public const string AttributeHttpRoute = "http.route";
+        public const string AttributeHttpRouteRequirementLevel = "conditionally_required";
+        public const string AttributeHttpRouteRequirementCondition = "If and only if it's available";
+        public const string AttributeHttpRouteNote = "MUST NOT be populated when this is not supported by the HTTP server framework as the route attribute should have low-cardinality and the URI path can NOT substitute it.\nSHOULD include the [application root](/docs/http/http-spans.md#http-server-definitions) if there is one.\n\nA static path segment is a part of the route template with a fixed, low-cardinality value. This includes literal strings like `/users/` and placeholders that\nare constrained to a finite, predefined set of values, e.g. `{controller}` or `{action}`.\n\nA dynamic path segment is a placeholder for a value that can have high cardinality and is not constrained to a predefined list like static path segments.\n\nInstrumentations SHOULD use routing information provided by the corresponding web framework. They SHOULD pick the most precise source of routing information and MAY\nsupport custom route formatting. Instrumentations SHOULD document the format and the API used to obtain the route string.\n";
+        public const int AttributeHttpRouteExampleCount = 2;
+        public const string AttributeHttpRouteExample1 = "/users/:userID?";
+        public const string AttributeHttpRouteExample2 = "my-controller/my-action/{id?}";
+        public const string AttributeNetworkProtocolName = "network.protocol.name";
+        public const string AttributeNetworkProtocolNameRequirementLevel = "conditionally_required";
+        public const string AttributeNetworkProtocolNameRequirementCondition = "If not `http` and `network.protocol.version` is set.";
+        public const string AttributeNetworkProtocolNameNote = "The value SHOULD be normalized to lowercase.";
+        public const int AttributeNetworkProtocolNameExampleCount = 2;
+        public const string AttributeNetworkProtocolNameExample1 = "http";
+        public const string AttributeNetworkProtocolNameExample2 = "spdy";
+        public const string AttributeNetworkProtocolVersion = "network.protocol.version";
+        public const string AttributeNetworkProtocolVersionRequirementLevel = "recommended";
+        public const string AttributeNetworkProtocolVersionNote = "If protocol version is subject to negotiation (for example using [ALPN](https://www.rfc-editor.org/rfc/rfc7301.html)), this attribute SHOULD be set to the negotiated version. If the actual protocol version is not known, this attribute SHOULD NOT be set.\n";
+        public const int AttributeNetworkProtocolVersionExampleCount = 4;
+        public const string AttributeNetworkProtocolVersionExample1 = "1.0";
+        public const string AttributeNetworkProtocolVersionExample2 = "1.1";
+        public const string AttributeNetworkProtocolVersionExample3 = "2";
+        public const string AttributeNetworkProtocolVersionExample4 = "3";
+        public const string AttributeServerAddress = "server.address";
+        public const string AttributeServerAddressRequirementLevel = "opt_in";
+        public const string AttributeServerAddressNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerAddressExampleCount = 3;
+        public const string AttributeServerAddressExample1 = "example.com";
+        public const string AttributeServerAddressExample2 = "10.1.2.80";
+        public const string AttributeServerAddressExample3 = "/tmp/my.sock";
+        public const string AttributeServerPort = "server.port";
+        public const string AttributeServerPortRequirementLevel = "opt_in";
+        public const string AttributeServerPortNote = "See [Setting `server.address` and `server.port` attributes](/docs/http/http-spans.md#setting-serveraddress-and-serverport-attributes).\n\n> [!WARNING]\n> Since this attribute is based on HTTP headers, opting in to it may allow an attacker\n> to trigger cardinality limits, degrading the usefulness of the metric.\n";
+        public const int AttributeServerPortExampleCount = 3;
+        public const string AttributeServerPortExample1 = "80";
+        public const string AttributeServerPortExample2 = "8080";
+        public const string AttributeServerPortExample3 = "443";
+        public const string AttributeUrlScheme = "url.scheme";
+        public const string AttributeUrlSchemeRequirementLevel = "required";
+        public const string AttributeUrlSchemeNote = "The scheme of the original client request, if known (e.g. from [Forwarded#proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/Forwarded#proto), [X-Forwarded-Proto](https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Forwarded-Proto), or a similar header). Otherwise, the scheme of the immediate peer request.\n";
+        public const int AttributeUrlSchemeExampleCount = 2;
+        public const string AttributeUrlSchemeExample1 = "http";
+        public const string AttributeUrlSchemeExample2 = "https";
+        public const string AttributeUserAgentSyntheticType = "user_agent.synthetic.type";
+        public const string AttributeUserAgentSyntheticTypeRequirementLevel = "opt_in";
+        public const string AttributeUserAgentSyntheticTypeNote = "This attribute MAY be derived from the contents of the `user_agent.original` attribute. Components that populate the attribute are responsible for determining what they consider to be synthetic bot or test traffic. This attribute can either be set for self-identification purposes, or on telemetry detected to be generated as a result of a synthetic request. This attribute is useful for distinguishing between genuine client traffic and synthetic traffic generated by bots or tests.\n";
+
+        public const int EntityAssociationCount = 0;
     }
 }

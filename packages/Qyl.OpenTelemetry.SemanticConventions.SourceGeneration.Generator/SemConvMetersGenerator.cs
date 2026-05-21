@@ -76,14 +76,14 @@ public sealed class SemConvMetersGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(stableMarkers, static (spc, marker) =>
         {
-            var file = MetersEmitter.Generate(marker, MeterRegistryLoader.Registry);
+            var file = MetersEmitter.Generate(marker, RegistryLoader.Instruments);
             if (!file.IsEmpty)
                 spc.AddSource(file.Name, file.Text);
         });
 
         context.RegisterSourceOutput(incubatingMarkers, static (spc, marker) =>
         {
-            var file = MetersEmitter.Generate(marker, MeterRegistryLoader.Registry);
+            var file = MetersEmitter.Generate(marker, RegistryLoader.Instruments);
             if (!file.IsEmpty)
                 spc.AddSource(file.Name, file.Text);
         });

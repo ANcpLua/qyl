@@ -1,27 +1,29 @@
 namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Models;
 
 /// <summary>
-/// Phase 2 additive companion to <see cref="RegistryModel"/>. Carries metric- and event-group
-/// projections that the metrics/events generators emit (PR-B, PR-C). Populated from the same
-/// embedded <c>resolved-registry.json</c> as <see cref="RegistryModel"/>; the Jinja template
-/// (<c>scripts/templates/registry/resolved-registry.json.j2</c>) emits <c>metrics</c> and
-/// <c>events</c> arrays alongside the existing attribute catalog.
+/// Metric and event projection of the embedded Weaver-derived registry. Metrics and
+/// meter factories intentionally share <see cref="MetricDescriptorModel"/> so both
+/// surfaces preserve the same name, instrument, unit, attributes, examples, and
+/// entity-association facts.
 /// </summary>
 internal readonly record struct InstrumentRegistryModel(
-    EquatableArray<MetricGroupModel> Metrics,
+    EquatableArray<MetricDescriptorModel> Metrics,
     EquatableArray<EventGroupModel> Events);
 
 /// <summary>
 /// A semconv metric group (a registry entry with <c>type == "metric"</c>).
 /// </summary>
-internal readonly record struct MetricGroupModel(
+internal readonly record struct MetricDescriptorModel(
     string MetricName,
     string Instrument,
     string Unit,
     string Brief,
+    string Note,
     StabilityModel Stability,
     DeprecatedModel? Deprecated,
-    EquatableArray<string> AttributeRefs);
+    EquatableArray<string> AttributeRefs,
+    EquatableArray<SignalAttributeModel> Attributes,
+    EquatableArray<string> EntityAssociations);
 
 /// <summary>
 /// A semconv event group (a registry entry with <c>type == "event"</c>).
@@ -29,19 +31,51 @@ internal readonly record struct MetricGroupModel(
 internal readonly record struct EventGroupModel(
     string EventName,
     string Brief,
+    string Note,
     StabilityModel Stability,
     DeprecatedModel? Deprecated,
-    EquatableArray<EventAttributeModel> Payload);
+    EventEmissionTargetModel EmissionTarget,
+    string BodyJson,
+    EquatableArray<SignalAttributeModel> Payload);
 
 /// <summary>
-/// One member of an event's typed payload. Ordering, nullability, and naming
-/// of the emitted <c>readonly record struct</c> property are derived from this model.
+/// Event target information when upstream exposes it. The semconv v1.41.0
+/// registry projection does not carry a discriminator, so generated events
+/// remain target-agnostic instead of pretending every event is an ActivityEvent.
 /// </summary>
-internal readonly record struct EventAttributeModel(
+internal enum EventEmissionTargetModel
+{
+    Unspecified,
+    LogRecord,
+    ActivityEvent
+}
+
+/// <summary>
+/// One signal-specific attribute reference, preserving the upstream requirement
+/// level and any local brief/note/examples override supplied on the signal.
+/// </summary>
+internal readonly record struct SignalAttributeModel(
     string Key,
     AttributeTypeModel Type,
-    bool Required,
-    string Brief);
+    RequirementLevelModel RequirementLevel,
+    string Brief,
+    string Note,
+    StabilityModel Stability,
+    DeprecatedModel? Deprecated,
+    EquatableArray<string> Examples);
+
+internal readonly record struct RequirementLevelModel(
+    RequirementLevelKind Kind,
+    string Condition);
+
+internal enum RequirementLevelKind
+{
+    Unspecified,
+    Required,
+    Recommended,
+    OptIn,
+    ConditionallyRequired
+}
 
 /// <summary>
 /// Extracted state from a single metrics-marker application — either

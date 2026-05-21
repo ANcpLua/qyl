@@ -13,7 +13,8 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Emitters;
 /// <list type="bullet">
 ///   <item><description>A <c>public const string Metric&lt;PascalName&gt; = "&lt;metric.name&gt;";</c> constant.</description></item>
 ///   <item><description>A <c>public static partial class &lt;PascalName&gt;Descriptor</c> carrying
-///         <c>Name</c>, <c>Unit</c>, <c>Instrument</c>, and <c>Brief</c> constants.</description></item>
+///         <c>Name</c>, <c>Unit</c>, <c>Instrument</c>, documentation, attributes,
+///         examples, and entity associations.</description></item>
 /// </list>
 /// </summary>
 internal static class MetricsEmitter
@@ -31,7 +32,7 @@ internal static class MetricsEmitter
         return new FileWithName(fileName, builder.ToString());
     }
 
-    private static List<MetricGroupModel> ResolveMetrics(InstrumentRegistryModel instruments, string prefix, StabilityFilter filter)
+    private static List<MetricDescriptorModel> ResolveMetrics(InstrumentRegistryModel instruments, string prefix, StabilityFilter filter)
     {
         // Stability gating mirrors the contrib/Java/Python "stable package" vs "incubating
         // package" split: under StableOnly we emit only stability=stable rows, under
@@ -41,7 +42,7 @@ internal static class MetricsEmitter
         // so a stable+deprecated row stays under StableOnly while a development+deprecated
         // row only appears under AllStabilities.
         var dotted = prefix + ".";
-        var matched = new List<MetricGroupModel>();
+        var matched = new List<MetricDescriptorModel>();
         foreach (var metric in instruments.Metrics)
         {
             if (!string.Equals(metric.MetricName, prefix, StringComparison.Ordinal) &&
@@ -80,7 +81,7 @@ internal static class MetricsEmitter
         }
     }
 
-    private static void WriteClass(StringBuilder builder, string className, List<MetricGroupModel> metrics)
+    private static void WriteClass(StringBuilder builder, string className, List<MetricDescriptorModel> metrics)
     {
         builder.AppendLine("/// <summary>");
         builder.AppendLine("/// Constants for metric names and descriptors outlined by the OpenTelemetry specifications.");
@@ -105,7 +106,7 @@ internal static class MetricsEmitter
         builder.AppendLine("}");
     }
 
-    private static void WriteMetricConstant(StringBuilder builder, MetricGroupModel metric)
+    private static void WriteMetricConstant(StringBuilder builder, MetricDescriptorModel metric)
     {
         WriteSummaryComment(builder, metric.Brief, indent: 4);
         WriteObsolete(builder, metric.Deprecated, indent: 4);
@@ -115,9 +116,11 @@ internal static class MetricsEmitter
                .Append(" = \"").Append(metric.MetricName).AppendLine("\";");
     }
 
-    private static void WriteDescriptorClass(StringBuilder builder, MetricGroupModel metric)
+    private static void WriteDescriptorClass(StringBuilder builder, MetricDescriptorModel metric)
     {
         WriteSummaryComment(builder, metric.Brief, indent: 4);
+        if (!string.IsNullOrEmpty(metric.Note))
+            WriteRemarksComment(builder, metric.Note, indent: 4);
         WriteObsolete(builder, metric.Deprecated, indent: 4);
 
         var descriptorName = DescriptorClassName(metric.MetricName);
@@ -127,7 +130,68 @@ internal static class MetricsEmitter
         builder.Append("        public const string Unit = \"").Append(EscapeForLiteral(metric.Unit)).AppendLine("\";");
         builder.Append("        public const string Instrument = \"").Append(EscapeForLiteral(metric.Instrument)).AppendLine("\";");
         builder.Append("        public const string Brief = \"").Append(EscapeForLiteral(metric.Brief)).AppendLine("\";");
+        builder.Append("        public const string Note = \"").Append(EscapeForLiteral(metric.Note)).AppendLine("\";");
+        builder.AppendLine();
+        WriteDescriptorAttributes(builder, metric);
+        WriteEntityAssociations(builder, metric);
         builder.AppendLine("    }");
+    }
+
+    private static void WriteDescriptorAttributes(StringBuilder builder, MetricDescriptorModel metric)
+    {
+        builder.Append("        public const int AttributeCount = ").Append(metric.Attributes.Length).AppendLine(";");
+
+        foreach (var attr in metric.Attributes)
+        {
+            var name = "Attribute" + ToPascalCase(attr.Key);
+            builder.Append("        public const string ").Append(name)
+                   .Append(" = \"").Append(EscapeForLiteral(attr.Key)).AppendLine("\";");
+            builder.Append("        public const string ").Append(name).Append("RequirementLevel")
+                   .Append(" = \"").Append(RequirementLevelName(attr.RequirementLevel.Kind)).AppendLine("\";");
+
+            if (!string.IsNullOrEmpty(attr.RequirementLevel.Condition))
+            {
+                builder.Append("        public const string ").Append(name).Append("RequirementCondition")
+                       .Append(" = \"").Append(EscapeForLiteral(attr.RequirementLevel.Condition)).AppendLine("\";");
+            }
+
+            if (!string.IsNullOrEmpty(attr.Note))
+            {
+                builder.Append("        public const string ").Append(name).Append("Note")
+                       .Append(" = \"").Append(EscapeForLiteral(attr.Note)).AppendLine("\";");
+            }
+
+            WriteExampleConstants(builder, name, attr.Examples);
+        }
+    }
+
+    private static void WriteExampleConstants(
+        StringBuilder builder,
+        string memberPrefix,
+        EquatableArray<string> examples)
+    {
+        if (examples.Length == 0)
+            return;
+
+        builder.Append("        public const int ").Append(memberPrefix).Append("ExampleCount = ")
+               .Append(examples.Length).AppendLine(";");
+        for (var i = 0; i < examples.Length; i++)
+        {
+            builder.Append("        public const string ").Append(memberPrefix).Append("Example")
+                   .Append(i + 1).Append(" = \"").Append(EscapeForLiteral(examples[i])).AppendLine("\";");
+        }
+    }
+
+    private static void WriteEntityAssociations(StringBuilder builder, MetricDescriptorModel metric)
+    {
+        builder.AppendLine();
+        builder.Append("        public const int EntityAssociationCount = ").Append(metric.EntityAssociations.Length).AppendLine(";");
+
+        foreach (var entity in metric.EntityAssociations)
+        {
+            builder.Append("        public const string EntityAssociation").Append(ToPascalCase(entity))
+                   .Append(" = \"").Append(EscapeForLiteral(entity)).AppendLine("\";");
+        }
     }
 
     private static void WriteSummaryComment(StringBuilder builder, string text, int indent)
@@ -136,9 +200,28 @@ internal static class MetricsEmitter
         builder.Append(pad).AppendLine("/// <summary>");
         foreach (var line in SplitLines(text))
         {
-            builder.Append(pad).Append("/// ").AppendLine(line);
+            AppendDocLine(builder, pad, line);
         }
         builder.Append(pad).AppendLine("/// </summary>");
+    }
+
+    private static void WriteRemarksComment(StringBuilder builder, string text, int indent)
+    {
+        var pad = new string(' ', indent);
+        builder.Append(pad).AppendLine("/// <remarks>");
+        foreach (var line in SplitLines(text))
+        {
+            AppendDocLine(builder, pad, line);
+        }
+        builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
+    private static void AppendDocLine(StringBuilder builder, string pad, string line)
+    {
+        builder.Append(pad).Append("///");
+        if (!string.IsNullOrEmpty(line))
+            builder.Append(' ').Append(line);
+        builder.AppendLine();
     }
 
     private static void WriteObsolete(StringBuilder builder, DeprecatedModel? deprecated, int indent)
@@ -160,6 +243,15 @@ internal static class MetricsEmitter
     internal static string MetricMemberName(string metricName) => "Metric" + ToPascalCase(metricName);
 
     internal static string DescriptorClassName(string metricName) => ToPascalCase(metricName) + "Descriptor";
+
+    private static string RequirementLevelName(RequirementLevelKind kind) => kind switch
+    {
+        RequirementLevelKind.Required => "required",
+        RequirementLevelKind.Recommended => "recommended",
+        RequirementLevelKind.OptIn => "opt_in",
+        RequirementLevelKind.ConditionallyRequired => "conditionally_required",
+        _ => "unspecified"
+    };
 
     internal static string ToPascalCase(string value)
     {

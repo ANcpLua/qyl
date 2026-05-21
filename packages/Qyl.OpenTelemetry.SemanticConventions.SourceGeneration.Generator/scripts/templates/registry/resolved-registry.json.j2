@@ -50,6 +50,7 @@
       "instrument": "{{ group.instrument }}",
       "unit": {{ (group.unit or "") | tojson }},
       "brief": {{ group.brief | tojson }},
+      "note": {{ (group.note or "") | tojson }},
       "stability": "{{ group.stability }}"
       {%- if group.deprecated %},
       "deprecated": {
@@ -65,6 +66,37 @@
         "{{ attr.name }}"{% if not loop.last %},{% endif %}
         {%- endfor %}
       ]
+      {%- if group.entity_associations %},
+      "entity_associations": [
+        {%- for entity in group.entity_associations %}
+        "{{ entity }}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+      {%- endif %},
+      "attributes": [
+        {%- for attr in group.attributes %}
+        {
+          "key": "{{ attr.name }}",
+          "type": {{ (attr.type or "string") | tojson }},
+          "requirement_level": {{ attr.requirement_level | tojson }},
+          "brief": {{ (attr.brief or "") | tojson }},
+          "note": {{ (attr.note or "") | tojson }},
+          "stability": "{{ attr.stability }}"
+          {%- if attr.deprecated %},
+          "deprecated": {
+            "reason": "{{ attr.deprecated.reason }}",
+            "note": {{ (attr.deprecated.note or "") | tojson }}
+            {%- if attr.deprecated.renamed_to %},
+            "renamed_to": "{{ attr.deprecated.renamed_to }}"
+            {%- endif %}
+          }
+          {%- endif %}
+          {%- if attr.examples %},
+          "examples": {{ attr.examples | tojson }}
+          {%- endif %}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
     }{% if not loop.last %},{% endif %}
     {%- endfor %}
   ],
@@ -73,21 +105,41 @@
     {
       "event_name": "{{ group.name }}",
       "brief": {{ group.brief | tojson }},
+      "note": {{ (group.note or "") | tojson }},
       "stability": "{{ group.stability }}"
       {%- if group.deprecated %},
       "deprecated": {
         "reason": "{{ group.deprecated.reason }}",
         "note": {{ (group.deprecated.note or "") | tojson }}
         {%- if group.deprecated.renamed_to %},
-        "renamed_to": "{{ group.deprecated.renamed_to }}"
+          "renamed_to": "{{ group.deprecated.renamed_to }}"
         {%- endif %}
       }
+      {%- endif %}
+      {%- if group.body %},
+      "body": {{ group.body | tojson }}
       {%- endif %},
       "payload": [
         {%- for attr in group.attributes %}
         {
           "key": "{{ attr.name }}",
-          "requirement_level": {{ attr.requirement_level | tojson }}
+          "type": {{ (attr.type or "string") | tojson }},
+          "requirement_level": {{ attr.requirement_level | tojson }},
+          "brief": {{ (attr.brief or "") | tojson }},
+          "note": {{ (attr.note or "") | tojson }},
+          "stability": "{{ attr.stability }}"
+          {%- if attr.deprecated %},
+          "deprecated": {
+            "reason": "{{ attr.deprecated.reason }}",
+            "note": {{ (attr.deprecated.note or "") | tojson }}
+            {%- if attr.deprecated.renamed_to %},
+            "renamed_to": "{{ attr.deprecated.renamed_to }}"
+            {%- endif %}
+          }
+          {%- endif %}
+          {%- if attr.examples %},
+          "examples": {{ attr.examples | tojson }}
+          {%- endif %}
         }{% if not loop.last %},{% endif %}
         {%- endfor %}
       ]

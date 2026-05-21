@@ -140,6 +140,63 @@ public sealed class SemConvEventsGeneratorTests
     }
 
     [Fact]
+    public void FeatureFlag_Event_Preserves_Requirements_And_Remains_TargetAgnostic()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionIncubatingEvents("feature_flag")]
+            internal static partial class FeatureFlagIncubatingEvents;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvEventsGenerator>(source);
+
+        var generated = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("FeatureFlagIncubatingEvents.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        generated.Should()
+            .Contain("public static partial class FeatureFlagEvaluationDescriptor")
+            .And.Contain("public const string EmissionTarget = \"unspecified\";")
+            .And.Contain("public const bool HasBody = false;")
+            .And.Contain("public const string AttributeErrorTypeRequirementLevel = \"conditionally_required\";")
+            .And.Contain("public const string AttributeErrorTypeRequirementCondition = \"If and only if an error occurred during flag evaluation.\";")
+            .And.Contain("public const string AttributeFeatureFlagResultValueRequirementLevel = \"conditionally_required\";")
+            .And.Contain("public const int AttributeFeatureFlagKeyExampleCount = ")
+            .And.Contain("public const string AttributeFeatureFlagKeyExample1 = \"logo-color\";")
+            .And.Contain("Because the evaluated flag value is unstructured and may be any type")
+            .And.Contain("public string? ErrorType { get; init; }")
+            .And.NotContain("ActivityEvent");
+    }
+
+    [Fact]
+    public void Azure_Event_Preserves_Body_Metadata()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionIncubatingEvents("azure.resource")]
+            internal static partial class AzureResourceEvents;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvEventsGenerator>(source);
+
+        var generated = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("AzureResourceEvents.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        generated.Should()
+            .Contain("public static partial class AzureResourceLogDescriptor")
+            .And.Contain("public const bool HasBody = true;")
+            .And.Contain("public const string BodyJson = ")
+            .And.Contain("sensitive (PII) information");
+    }
+
+    [Fact]
     public void Compilation_With_Generator_Has_No_Errors()
     {
         const string source = """

@@ -2,7 +2,6 @@ namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Models;
 
 /// <summary>
 /// Resolved registry as embedded into the analyzer assembly. One per shipped semconv version.
-/// Phase 2 (instrument-surface, activity-surface) extends this additively.
 /// </summary>
 internal readonly record struct RegistryModel(
     EquatableArray<GroupModel> Groups,

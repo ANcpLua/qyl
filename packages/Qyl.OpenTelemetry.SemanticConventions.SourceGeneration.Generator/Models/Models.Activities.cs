@@ -1,34 +1,8 @@
 namespace Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Models;
 
 /// <summary>
-/// Metric-shaped projection of the resolved registry. Phase 2 PR-D consumes this
-/// for typed <c>System.Diagnostics.Metrics.Meter</c> factory wrappers.
-///
-/// Owned by activity-surface-eng (Task #5). instrument-surface-eng (Task #4)
-/// defines its own <c>MetricGroupModel</c> in <c>Models.Instruments.cs</c>;
-/// the Phase 3 auditor reconciles the two projections if and when they overlap.
-/// </summary>
-internal readonly record struct MeterRegistryModel(
-    EquatableArray<MeterModel> Meters);
-
-/// <summary>
-/// One semconv metric definition projected to the .NET instrument surface.
-/// <c>ValueType</c> is the chosen generic parameter for the
-/// <c>System.Diagnostics.Metrics.Instrument&lt;T&gt;</c> derivation (<c>"double"</c>
-/// or <c>"long"</c>); selection is unit-driven (see <c>MeterValueTypeRules</c>).
-/// </summary>
-internal readonly record struct MeterModel(
-    string MetricName,
-    string Instrument,
-    string Unit,
-    string ValueType,
-    string Brief,
-    StabilityModel Stability,
-    DeprecatedModel? Deprecated);
-
-/// <summary>
-/// Activity-attribute projection of the resolved registry. Phase 2 PR-E consumes
-/// this for typed <c>System.Diagnostics.Activity</c> extension setters.
+/// Activity-attribute projection of the resolved registry. The activity emitter
+/// consumes this for typed <c>System.Diagnostics.Activity</c> extension setters.
 /// </summary>
 internal readonly record struct ActivityRegistryModel(
     EquatableArray<ActivityAttributeModel> Attributes);
@@ -47,8 +21,10 @@ internal readonly record struct ActivityAttributeModel(
     bool IsEnum,
     EquatableArray<EnumMemberModel> EnumMembers,
     string Brief,
+    string Note,
     StabilityModel Stability,
-    DeprecatedModel? Deprecated);
+    DeprecatedModel? Deprecated,
+    EquatableArray<string> Examples);
 
 /// <summary>
 /// Extracted state from a single meters-marker application — either
