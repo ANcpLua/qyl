@@ -1,0 +1,97 @@
+{%- set ns_attrs = ctx.groups | selectattr('type', 'equalto', 'attribute_group') | list -%}
+{%- set metric_groups = ctx.groups | selectattr('type', 'equalto', 'metric') | list -%}
+{%- set event_groups = ctx.groups | selectattr('type', 'equalto', 'event') | list -%}
+{
+  "schema_version": "{{ params.schema_version }}",
+  "semconv_commit": "{{ params.semconv_commit }}",
+  "weaver_version": "{{ params.weaver_version }}",
+  "groups": [
+    {%- for group in ns_attrs %}
+    {
+      "id": "{{ group.id }}",
+      "type": "{{ group.type }}",
+      "prefix": "{{ group.root_namespace }}",
+      "attribute_refs": [
+        {%- for attr in group.attributes %}
+        "{{ attr.name }}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
+  "catalog": [
+    {%- set ns_catalog = ns_attrs | map(attribute='attributes') | flatten | unique(attribute='name') -%}
+    {%- for attr in ns_catalog %}
+    {
+      "key": "{{ attr.name }}",
+      "type": {{ attr.type | tojson }},
+      "brief": {{ attr.brief | tojson }},
+      "note": {{ (attr.note or "") | tojson }},
+      "stability": "{{ attr.stability }}"
+      {%- if attr.deprecated %},
+      "deprecated": {
+        "reason": "{{ attr.deprecated.reason }}",
+        "note": {{ (attr.deprecated.note or "") | tojson }}
+        {%- if attr.deprecated.renamed_to %},
+        "renamed_to": "{{ attr.deprecated.renamed_to }}"
+        {%- endif %}
+      }
+      {%- endif %}
+      {%- if attr.examples %},
+      "examples": {{ attr.examples | tojson }}
+      {%- endif %}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
+  "metrics": [
+    {%- for group in metric_groups %}
+    {
+      "metric_name": "{{ group.metric_name }}",
+      "instrument": "{{ group.instrument }}",
+      "unit": {{ (group.unit or "") | tojson }},
+      "brief": {{ group.brief | tojson }},
+      "stability": "{{ group.stability }}"
+      {%- if group.deprecated %},
+      "deprecated": {
+        "reason": "{{ group.deprecated.reason }}",
+        "note": {{ (group.deprecated.note or "") | tojson }}
+        {%- if group.deprecated.renamed_to %},
+        "renamed_to": "{{ group.deprecated.renamed_to }}"
+        {%- endif %}
+      }
+      {%- endif %},
+      "attribute_refs": [
+        {%- for attr in group.attributes %}
+        "{{ attr.name }}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
+  "events": [
+    {%- for group in event_groups %}
+    {
+      "event_name": "{{ group.name }}",
+      "brief": {{ group.brief | tojson }},
+      "stability": "{{ group.stability }}"
+      {%- if group.deprecated %},
+      "deprecated": {
+        "reason": "{{ group.deprecated.reason }}",
+        "note": {{ (group.deprecated.note or "") | tojson }}
+        {%- if group.deprecated.renamed_to %},
+        "renamed_to": "{{ group.deprecated.renamed_to }}"
+        {%- endif %}
+      }
+      {%- endif %},
+      "payload": [
+        {%- for attr in group.attributes %}
+        {
+          "key": "{{ attr.name }}",
+          "requirement_level": {{ attr.requirement_level | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]
+}

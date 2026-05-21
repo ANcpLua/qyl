@@ -1,0 +1,121 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <!--
+    Roslyn IIncrementalGenerator project. Ships as a NuGet that consumers
+    reference; the marker attribute (`SemanticConventionAttributesAttribute`)
+    is generated at compile-time via RegisterPostInitializationOutput, so the
+    package needs no companion runtime library.
+
+    Layout matches contrib's `OpenTelemetry.SemanticConventions.SourceGeneration`
+    name (modulo the `Qyl.` prefix per `docs/dual-target-mapping.md` §2 and
+    `docs/path-correction.md`). The generator DLL is packaged under
+    analyzers/dotnet/cs; consumers add this single package and apply
+    `[SemanticConventionAttributes("<prefix>")]` to a partial static class.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Qyl.OpenTelemetry.SemanticConventions.SourceGeneration</RootNamespace>
+    <AssemblyName>Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator</AssemblyName>
+
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <!-- Don't add lib/<tfm>/<dll> automatically — we'll place the analyzer
+         DLL under analyzers/dotnet/cs/ via _AddGeneratorToAnalyzersPackage. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- AOT not supported for netstandard2.0 (Roslyn analyzer requirement). -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Self-describe the Roslyn reference; SDK name-matching injection is
+         fragile under IDE LSPs. -->
+    <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
+
+    <!-- RS0030: BannedApiAnalyzers fires on ANcpLua.Roslyn.Utilities.Sources polyfills.
+         NU1507: qyl repo defines two package sources (github-O-ANcppLua + nuget.org) without
+         a packageSourceMapping; consistent with other publishable qyl packages.
+         MultipleGlobalAnalyzerKeys: emitted when running this build from inside a
+         git worktree under the source tree (the worktree's `.globalconfig` and
+         the source's `.globalconfig` are both ancestors of the project file).
+         Harmless; the analyzer key gets unset and the strictest of the two
+         configs wins. Worktree-specific noise, not a real codebase issue. -->
+    <NoWarn>$(NoWarn);RS0030;NU1507;MultipleGlobalAnalyzerKeys</NoWarn>
+
+    <!-- Pack as the analyzer NuGet. Consumers reference this package directly. -->
+    <IsPackable>true</IsPackable>
+    <PackageId>Qyl.OpenTelemetry.SemanticConventions.SourceGeneration</PackageId>
+    <Description>Roslyn source generator that materialises OpenTelemetry semantic-conventions attribute keys for any prefix into a user-declared partial class. Apply `[SemanticConventionAttributes("&lt;prefix&gt;")]` to a partial static class and the generator emits the matching constants and enum-value classes for that prefix at compile time. Tracks open-telemetry/semantic-conventions v1.41.0 via Weaver v0.23.0.</Description>
+    <Authors>ancplua</Authors>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <!-- All package references have PrivateAssets="all" so SuppressDependenciesWhenPacking
+         is implicit — nuspec will have a single empty dependency group for netstandard2.0. -->
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+
+    <!-- Suppress NuGet pack analysis: this is an analyzer-only NuGet; NU5017's
+         "no dependencies or content" check fires unhelpfully when analyzers/
+         is the only payload. -->
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <!-- Pin the canonical Roslyn analyzer pack pattern: emit the analyzer DLL
+         under analyzers/dotnet/cs/ via a custom target rather than letting
+         the SDK place it under lib/. -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddGeneratorToAnalyzersPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ANcpLua.Roslyn.Utilities.Sources is a SourceFiles package; PrivateAssets=all
+         prevents it from leaking as a dependency on consumers (its API is private
+         to the generator implementation). -->
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
+    <!-- Microsoft.CodeAnalysis.CSharp: declared with PrivateAssets="contentfiles;analyzers"
+         (deliberately NOT "all") so it appears as a public NuGet dependency on the
+         emitted package. This satisfies NU5017's "package has dependencies or content"
+         check for an otherwise analyzer-only NuGet, and accurately reflects that
+         consumers' Roslyn version must be at least 5.3.0 for the analyzer to load. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"
+                      VersionOverride="$(MicrosoftCodeAnalysisCSharpVersion)"
+                      PrivateAssets="contentfiles;analyzers"
+                      IncludeAssets="compile"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+    <Using Include="ANcpLua.Roslyn.Utilities.Models"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embedded resolved registry: a minimal qyl-owned projection of the
+         OTel semantic-conventions registry, emitted from a custom Jinja
+         template (scripts/templates/registry/resolved-registry.json.j2)
+         pinned to semconv v1.41.0 + Weaver v0.23.0. PR-A ships a 5-attribute
+         seed fixture for the build/test loop; Phase 4 substitutes the full
+         Weaver-generated file. -->
+    <EmbeddedResource Include="Resources/resolved-registry.json"
+                      LogicalName="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.resolved-registry.json"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- build/ payload: a no-op .props file ensures the package has
+         non-analyzer content (NU5017 satisfaction) and any downstream-defined
+         build-time properties have a place to live. -->
+    <None Include="build/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.props"
+          Pack="true"
+          PackagePath="build/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.props"/>
+  </ItemGroup>
+
+  <Target Name="_AddGeneratorToAnalyzersPackage" DependsOnTargets="GetTargetPath">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs"/>
+    </ItemGroup>
+  </Target>
+
+</Project>
