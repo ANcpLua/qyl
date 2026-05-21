@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Generated CSAM Thesis Feedback Assessment",
+  "type": "object",
+  "required": ["schema_version", "policy", "document", "assessment", "report"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "policy": {"type": "object"},
+    "document": {"type": "object"},
+    "assessment": {
+      "type": "object",
+      "required": ["criteria", "guideline_checks"],
+      "properties": {
+        "criteria": {"type": "object"},
+        "guideline_checks": {"type": "object"}
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["total_points", "total_percent", "points_by_criterion", "quality_band"],
+      "properties": {
+        "total_points": {"type": "number"},
+        "total_percent": {"type": "number"},
+        "points_by_criterion": {"type": "object"},
+        "quality_band": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+THESIS_MAIN ?= thesis.tex
+REPORT_DIR ?= reports
+PYTHON ?= python3
+
+.PHONY: quality feedback style rego pdf clean help
+
+quality: feedback style
+	@echo "Quality loop completed. Read $(REPORT_DIR)/feedback.md"
+
+feedback:
+	@$(PYTHON) tools/thesis_feedback_gate.py $(THESIS_MAIN) --target 95 --out-dir $(REPORT_DIR)
+
+style:
+	@./check_thesis_style.sh $(THESIS_MAIN)
+
+rego:
+	@opa eval -d policies/bachelor_rubric_semantic_expanded.rego -i $(REPORT_DIR)/rubric_input.generated.json "data.bachelor.rubric.report"
+
+pdf:
+	@lualatex --shell-escape --interaction=nonstopmode $(THESIS_MAIN)
+	@biber $(basename $(THESIS_MAIN)) || true
+	@lualatex --shell-escape --interaction=nonstopmode $(THESIS_MAIN)
+	@lualatex --shell-escape --interaction=nonstopmode $(THESIS_MAIN)
+
+clean:
+	@rm -rf $(REPORT_DIR) *.aux *.bbl *.bcf *.blg *.log *.out *.toc *.lof *.lot *.run.xml *.synctex.gz
+
+help:
+	@echo "make feedback THESIS_MAIN=thesis.md  # deterministic rubric feedback"
+	@echo "make style THESIS_MAIN=thesis.md     # lexical + Vale style gate"
+	@echo "make quality THESIS_MAIN=thesis.md   # feedback + style"
+	@echo "make rego                            # run OPA if installed"

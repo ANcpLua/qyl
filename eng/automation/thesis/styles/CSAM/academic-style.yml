@@ -1,0 +1,10 @@
+extends: existence
+message: "Academic style issue: '%s'. Prefer precise, impersonal, evidence-backed phrasing."
+level: warning
+ignorecase: true
+scope: sentence
+tokens:
+  - \bI\s+(?:will|can|should|must|think|believe)\b
+  - \bwe\s+(?:will|can|should|must)\b
+  - \bit is important to note that\b
+  - \bthe reader can see\b

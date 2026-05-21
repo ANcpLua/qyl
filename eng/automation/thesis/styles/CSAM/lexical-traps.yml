@@ -1,0 +1,19 @@
+extends: existence
+message: "'%s' is a common academic-writing trap. Replace it with a precise, evidenced claim."
+level: warning
+ignorecase: true
+scope: sentence
+tokens:
+  - significant\b(?!\s*(?:statistically|statistical|p\s*<\s*0\.0[1-5]))
+  - \b(prove|proved|proves|proving)\b
+  - random\b(?!\s*(?:seed|number|distribution|generator|sample))
+  - \bunique\b
+  - \b(very|really|a lot|big)\b
+  - \b(obviously|clearly|of course)\b
+  - in order to
+  - due to the fact that
+  - state of the art
+  - novel\b
+  - \b(scalable|robust|efficient|performant)\b(?!\s*(?:up to|to|by|with|under|for|against))
+  - data shows
+  - \b(literally|basically|essentially)\b

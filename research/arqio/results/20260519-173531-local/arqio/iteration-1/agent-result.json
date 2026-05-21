@@ -1,0 +1,43 @@
+{
+  "target_id": "arqio",
+  "target_name": "Arqio",
+  "run_id": "20260519-173531-local",
+  "iteration": 1,
+  "started_at": "2026-05-19T15:35:55.915259+00:00",
+  "finished_at": "2026-05-19T15:35:58.056014+00:00",
+  "git": {
+    "commit": "6e831bfad9464162a6987dee654fd93873a39953",
+    "status_short": "",
+    "branch": "main"
+  },
+  "build": {
+    "status": "failed",
+    "exit_code": 1,
+    "duration_seconds": 0.4,
+    "log": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/dotnet-build.log"
+  },
+  "test": {
+    "status": "skipped",
+    "reason": "build did not pass",
+    "log": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/dotnet-test.log"
+  },
+  "coverage": {
+    "coverage_status": "unavailable",
+    "reason": "coverage file not found: /Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/coverage/TestResults/coverage.cobertura.xml",
+    "generated_at": "2026-05-19T15:35:57.890600+00:00"
+  },
+  "telemetry": {
+    "status": "not_required"
+  },
+  "classification": {
+    "label": "unclassified",
+    "confidence": 0.0,
+    "method": "classification failed",
+    "log": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/classification.log"
+  },
+  "logs": {
+    "restore": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/dotnet-restore.log",
+    "build": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/dotnet-build.log",
+    "test": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173531-local/arqio/iteration-1/dotnet-test.log"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "target_id": "tourplanner-angular",
+  "target_name": "TourPlanner-Angular",
+  "run_id": "20260519-173709-local",
+  "iteration": 1,
+  "started_at": "2026-05-19T15:37:44.452983+00:00",
+  "finished_at": "2026-05-19T15:37:52.038922+00:00",
+  "git": {
+    "commit": "8c4941b081b1151307948a9af1a78ed364f02cac",
+    "status_short": "",
+    "branch": "main"
+  },
+  "build": {
+    "status": "passed",
+    "exit_code": 0,
+    "duration_seconds": 2.739,
+    "log": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173709-local/tourplanner-angular/iteration-1/npm-build.log"
+  },
+  "test": {
+    "status": "passed",
+    "exit_code": 0,
+    "duration_seconds": 3.403,
+    "log": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173709-local/tourplanner-angular/iteration-1/npm-test.log"
+  },
+  "coverage": {
+    "coverage_status": "not_required"
+  },
+  "telemetry": {
+    "status": "not_required"
+  },
+  "classification": {
+    "label": "modular-monolith-or-multi-project",
+    "confidence": 0.66,
+    "method": "deterministic repository-structure heuristic",
+    "correctness_claim": "none; no ground truth label configured",
+    "features": {
+      "csproj_count": 5,
+      "package_json_count": 1,
+      "compose_file_count": 0,
+      "metrics_xml_count": 0,
+      "service_dir_count": 0,
+      "src_project_dir_count": 1
+    }
+  },
+  "logs": {
+    "install": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173709-local/tourplanner-angular/iteration-1/npm-install.log",
+    "build": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173709-local/tourplanner-angular/iteration-1/npm-build.log",
+    "test": "/Users/ancplua/RiderProjects/qyl/research/arqio/results/20260519-173709-local/tourplanner-angular/iteration-1/npm-test.log"
+  }
+}
