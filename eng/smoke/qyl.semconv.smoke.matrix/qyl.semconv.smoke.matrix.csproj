@@ -1,0 +1,94 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <!--
+    Phase C-1 portability harness for the
+    Qyl.OpenTelemetry.SemanticConventions.SourceGeneration analyzer pack.
+
+    The generator DLL itself is netstandard2.0 (a Roslyn-load requirement), but
+    its EMITTED .cs files are compiled by the consumer's own SDK against the
+    consumer's chosen TargetFramework. A consumer on net472 must therefore be
+    able to compile the same generated code that a net10.0 consumer compiles.
+    That portability is not enforced by the generator's own build — it can only
+    be enforced from the consumer side.
+
+    This project compiles the same SemanticConventionAttributes("disk")
+    fixture under six TFMs (net472, netstandard2.0, net6.0, net8.0, net9.0,
+    net10.0). PR-A's `const string`-only output is the most universally
+    compatible surface in the pack; if any TFM fails to compile here, that's
+    the lower bound of the generator's portability claim. Other markers
+    (PR-B descriptors, PR-C record-struct payloads, PR-D meter extensions,
+    PR-E Activity extensions) will be added once Phase A's stable/incubating
+    marker split lands; record structs in particular need a polyfill story
+    for netstandard2.0 / net472 (IsExternalInit).
+
+    `Directory.Build.props` at the repo root pins <TargetFramework>net10.0,
+    so cross-targeting dispatch (which requires TargetFramework empty +
+    TargetFrameworks non-empty) is suppressed unless this project explicitly
+    clears the singular property. The order of operations in the SDK is:
+    Directory.Build.props is imported first and sets TargetFramework=net10.0;
+    this project then sets TargetFrameworks; without the explicit clear of
+    TargetFramework below, MSBuild would build a single-target net10.0
+    project, not the matrix.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework/>
+    <TargetFrameworks>net472;netstandard2.0;net6.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>Qyl.SemConv.Smoke.Matrix</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Library, not an Exe — multi-TFM consumer compilation IS the smoke,
+         no need to produce a runnable host on each TFM. -->
+    <OutputType>Library</OutputType>
+    <!-- Generated source files only use surfaces present in all six TFMs
+         (const string, [Obsolete], static class). LangVersion/Nullable/
+         ImplicitUsings are SDK-provided and consistent across TFMs. -->
+
+    <!-- NU1507: qyl repo defines two package sources without packageSourceMapping;
+         consistent with the rest of the repo.
+         NU1903: transitive package advisory; non-blocking for a fixture project.
+         MultipleGlobalAnalyzerKeys: emitted only when building from inside a git
+         worktree under the source tree (worktree's .globalconfig + the source's
+         .globalconfig are both ancestors of this project). Harmless.
+         AL0001 / AL0061 / AL0063 / AL0067: consumer-facing analyzer rules that
+         only fire under a full hosting wrapper; this is a static fixture
+         exercising the generator's emit, not a hosted service. -->
+    <NoWarn>$(NoWarn);NU1507;NU1903;MultipleGlobalAnalyzerKeys;AL0001;AL0061;AL0063;AL0067</NoWarn>
+
+    <!-- Documentation generation is on by default at the repo root; the
+         fixture is internal-only, so suppress to keep build output clean. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- net472 has no in-box reference assemblies on non-Windows hosts; the
+       NETFramework.ReferenceAssemblies package provides them so the matrix
+       can build on macOS/Linux CI without a mono install. VersionOverride is
+       used (rather than a global PackageVersion in Directory.Packages.props)
+       because this is the only project in the repo that needs net472. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
+                      VersionOverride="1.0.3"
+                      PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!-- ANcpLua.NET.Sdk injects `global using System.Diagnostics.Metrics;` via
+       ImplicitUsings. That namespace ships in-box on .NET Core 3+ but not on
+       .NET Framework 4.7.2, so the implicit using fails to compile under
+       net472. The fixture doesn't use the namespace — strip the import on
+       .NET Framework targets only, leaving the SDK's default set intact on
+       every modern TFM. -->
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Using Remove="System.Diagnostics.Metrics"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UndefineProperties mirrors qyl.semconv.smoke: prevents the consumer's
+         per-TFM globals (TargetFramework, RuntimeIdentifier, SelfContained)
+         from leaking into the netstandard2.0 generator's recursive evaluation. -->
+    <ProjectReference
+      Include="../../../packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+      UndefineProperties="TargetFramework;PublishAot;RuntimeIdentifier;RuntimeIdentifiers;SelfContained"/>
+  </ItemGroup>
+
+</Project>
