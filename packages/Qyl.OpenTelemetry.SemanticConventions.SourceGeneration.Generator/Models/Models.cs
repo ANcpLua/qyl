@@ -15,8 +15,47 @@ internal readonly record struct RegistryModel(
 internal readonly record struct GroupModel(
     string Id,
     string Type,
+    string Brief,
+    string Note,
+    string DisplayName,
+    string Extends,
+    StabilityModel Stability,
+    DeprecatedModel? Deprecated,
+    string AnnotationsJson,
+    string LineageJson,
     string Prefix,
-    EquatableArray<string> AttributeRefs);
+    string MetricName,
+    string Instrument,
+    string Unit,
+    RequirementLevelModel MetricRequirementLevel,
+    string EventName,
+    string SpanKind,
+    string SpanNameNote,
+    string BodyJson,
+    EquatableArray<string> EntityAssociations,
+    EquatableArray<string> Events,
+    EquatableArray<string> AttributeRefs,
+    EquatableArray<GroupAttributeModel> Attributes);
+
+/// <summary>
+/// One attribute reference inside a semconv group. Requirement level is
+/// contextual: the same catalog attribute can have different requirements in
+/// different metrics, events, spans, resources, or shared attribute groups.
+/// </summary>
+internal readonly record struct GroupAttributeModel(
+    string Key,
+    AttributeTypeModel Type,
+    RequirementLevelModel RequirementLevel,
+    string Brief,
+    string Note,
+    StabilityModel Stability,
+    DeprecatedModel? Deprecated,
+    string Tag,
+    bool SamplingRelevant,
+    string Namespace,
+    bool Inherited,
+    string LineageJson,
+    EquatableArray<string> Examples);
 
 /// <summary>
 /// One semconv attribute definition. Keys are dotted (e.g. "disk.io.direction"); the emitter

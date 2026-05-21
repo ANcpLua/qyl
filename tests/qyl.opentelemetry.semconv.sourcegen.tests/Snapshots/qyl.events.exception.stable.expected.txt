@@ -30,6 +30,7 @@ static partial class ExceptionEvents
         public const bool HasBody = false;
         public const string BodyJson = "";
         public const int AttributeCount = 4;
+        public const int EntityAssociationCount = 0;
         public const string AttributeExceptionEscaped = "exception.escaped";
         public const string AttributeExceptionEscapedRequirementLevel = "recommended";
         public const string AttributeExceptionMessage = "exception.message";

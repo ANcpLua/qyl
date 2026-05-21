@@ -39,6 +39,7 @@ static partial class HttpServerIncubatingMetrics
         public const string Name = "http.server.active_requests";
         public const string Unit = "{request}";
         public const string Instrument = "updowncounter";
+        public const string RequirementLevel = "recommended";
         public const string Brief = "Number of active HTTP server requests.";
         public const string Note = "";
 
@@ -85,6 +86,7 @@ static partial class HttpServerIncubatingMetrics
         public const string Name = "http.server.request.body.size";
         public const string Unit = "By";
         public const string Instrument = "histogram";
+        public const string RequirementLevel = "recommended";
         public const string Brief = "Size of HTTP server request bodies.";
         public const string Note = "The size of the request payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.\n";
 
@@ -167,6 +169,7 @@ static partial class HttpServerIncubatingMetrics
         public const string Name = "http.server.request.duration";
         public const string Unit = "s";
         public const string Instrument = "histogram";
+        public const string RequirementLevel = "recommended";
         public const string Brief = "Duration of HTTP server requests.";
         public const string Note = "";
 
@@ -253,6 +256,7 @@ static partial class HttpServerIncubatingMetrics
         public const string Name = "http.server.response.body.size";
         public const string Unit = "By";
         public const string Instrument = "histogram";
+        public const string RequirementLevel = "recommended";
         public const string Brief = "Size of HTTP server response bodies.";
         public const string Note = "The size of the response payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size.\n";
 

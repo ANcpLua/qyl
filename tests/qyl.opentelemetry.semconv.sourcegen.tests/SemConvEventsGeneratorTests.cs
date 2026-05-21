@@ -161,6 +161,7 @@ public sealed class SemConvEventsGeneratorTests
             .Contain("public static partial class FeatureFlagEvaluationDescriptor")
             .And.Contain("public const string EmissionTarget = \"unspecified\";")
             .And.Contain("public const bool HasBody = false;")
+            .And.Contain("public const int EntityAssociationCount = 0;")
             .And.Contain("public const string AttributeErrorTypeRequirementLevel = \"conditionally_required\";")
             .And.Contain("public const string AttributeErrorTypeRequirementCondition = \"If and only if an error occurred during flag evaluation.\";")
             .And.Contain("public const string AttributeFeatureFlagResultValueRequirementLevel = \"conditionally_required\";")

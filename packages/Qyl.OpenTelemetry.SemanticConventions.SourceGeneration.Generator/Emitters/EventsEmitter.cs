@@ -146,6 +146,7 @@ internal static class EventsEmitter
         builder.Append("        public const bool HasBody = ").Append(string.IsNullOrEmpty(ev.BodyJson) ? "false" : "true").AppendLine(";");
         builder.Append("        public const string BodyJson = \"").Append(EscapeForLiteral(ev.BodyJson)).AppendLine("\";");
         builder.Append("        public const int AttributeCount = ").Append(ev.Payload.Length).AppendLine(";");
+        WriteEntityAssociations(builder, ev);
 
         foreach (var attr in ev.Payload)
         {
@@ -171,6 +172,18 @@ internal static class EventsEmitter
         }
 
         builder.AppendLine("    }");
+    }
+
+    private static void WriteEntityAssociations(StringBuilder builder, EventGroupModel ev)
+    {
+        builder.Append("        public const int EntityAssociationCount = ")
+               .Append(ev.EntityAssociations.Length).AppendLine(";");
+
+        foreach (var entity in ev.EntityAssociations)
+        {
+            builder.Append("        public const string EntityAssociation").Append(ToPascalCase(entity))
+                   .Append(" = \"").Append(EscapeForLiteral(entity)).AppendLine("\";");
+        }
     }
 
     private static void WritePayloadStruct(StringBuilder builder, EventGroupModel ev)

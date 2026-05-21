@@ -24,6 +24,7 @@ static partial class HttpServerMetrics
         public const string Name = "http.server.request.duration";
         public const string Unit = "s";
         public const string Instrument = "histogram";
+        public const string RequirementLevel = "recommended";
         public const string Brief = "Duration of HTTP server requests.";
         public const string Note = "";
 

@@ -126,6 +126,80 @@ public sealed class SemConvAttributesGeneratorTests
     }
 
     [Fact]
+    public void Stable_Marker_Filters_NonStable_Enum_Members()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionAttributes("http")]
+            internal static partial class HttpStableAttributes;
+
+            [SemanticConventionIncubatingAttributes("http")]
+            internal static partial class HttpIncubatingAttributes;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvAttributesGenerator>(source);
+
+        var stable = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpStableAttributes.g.cs", StringComparison.Ordinal))
+            .ToString();
+        var incubating = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpIncubatingAttributes.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        stable.Should()
+            .Contain("public static class HttpRequestMethodValues")
+            .And.NotContain("public const string Query = \"QUERY\";",
+                "http.request.method is stable but its QUERY enum member is development-stability in semconv v1.41.0");
+
+        incubating.Should()
+            .Contain("public static class HttpRequestMethodValues")
+            .And.Contain("public const string Query = \"QUERY\";");
+    }
+
+    [Fact]
+    public void Stable_Marker_Filters_Db_System_Development_Enum_Members()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionAttributes("db")]
+            internal static partial class DbStableAttributes;
+
+            [SemanticConventionIncubatingAttributes("db")]
+            internal static partial class DbIncubatingAttributes;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvAttributesGenerator>(source);
+
+        var stable = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("DbStableAttributes.g.cs", StringComparison.Ordinal))
+            .ToString();
+        var incubating = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("DbIncubatingAttributes.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        var stableValues = ExtractNestedClass(stable, "DbSystemNameValues");
+        var incubatingValues = ExtractNestedClass(incubating, "DbSystemNameValues");
+
+        stableValues.Should()
+            .Contain("public static class DbSystemNameValues")
+            .And.NotContain("public const string Redis = \"redis\";")
+            .And.NotContain("public const string Mongodb = \"mongodb\";")
+            .And.NotContain("public const string Cassandra = \"cassandra\";");
+
+        incubatingValues.Should()
+            .Contain("public static class DbSystemNameValues")
+            .And.Contain("public const string Redis = \"redis\";")
+            .And.Contain("public const string Mongodb = \"mongodb\";")
+            .And.Contain("public const string Cassandra = \"cassandra\";");
+    }
+
+    [Fact]
     public void Compilation_With_Generator_Has_No_Errors()
     {
         const string source = """
@@ -145,5 +219,18 @@ public sealed class SemConvAttributesGeneratorTests
             .ToList();
 
         errors.Should().BeEmpty();
+    }
+
+    private static string ExtractNestedClass(string generated, string className)
+    {
+        var marker = "    public static class " + className;
+        var start = generated.IndexOf(marker, StringComparison.Ordinal);
+        start.Should().BeGreaterThanOrEqualTo(0, $"generated source should contain nested class {className}");
+
+        var endMarker = "\n    }\n";
+        var end = generated.IndexOf(endMarker, start, StringComparison.Ordinal);
+        end.Should().BeGreaterThan(start, $"generated source should close nested class {className}");
+
+        return generated.Substring(start, end - start + endMarker.Length);
     }
 }

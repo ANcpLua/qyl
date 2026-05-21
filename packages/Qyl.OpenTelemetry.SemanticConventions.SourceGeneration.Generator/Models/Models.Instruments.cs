@@ -17,6 +17,7 @@ internal readonly record struct MetricDescriptorModel(
     string MetricName,
     string Instrument,
     string Unit,
+    RequirementLevelModel MetricRequirementLevel,
     string Brief,
     string Note,
     StabilityModel Stability,
@@ -36,6 +37,7 @@ internal readonly record struct EventGroupModel(
     DeprecatedModel? Deprecated,
     EventEmissionTargetModel EmissionTarget,
     string BodyJson,
+    EquatableArray<string> EntityAssociations,
     EquatableArray<SignalAttributeModel> Payload);
 
 /// <summary>

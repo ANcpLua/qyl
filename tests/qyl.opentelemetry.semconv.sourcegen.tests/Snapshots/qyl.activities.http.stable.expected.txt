@@ -16,6 +16,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `client.address` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by client.address.")]
     public static global::System.Diagnostics.Activity SetHttpClientIp(
         this global::System.Diagnostics.Activity activity,
@@ -25,6 +29,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `network.protocol.name` and `network.protocol.version` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Split into `network.protocol.name` and `network.protocol.version`")]
     public static global::System.Diagnostics.Activity SetHttpFlavor(
         this global::System.Diagnostics.Activity activity,
@@ -37,6 +45,10 @@ static partial class HttpActivityExtensions
     /// <remarks>
     /// Examples:
     /// - www.example.org
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
     /// </remarks>
     [global::System.Obsolete("Replaced by one of `server.address`, `client.address` or `http.request.header.host`, depending on the usage. ")]
     public static global::System.Diagnostics.Activity SetHttpHost(
@@ -52,6 +64,10 @@ static partial class HttpActivityExtensions
     /// - GET
     /// - POST
     /// - HEAD
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
     /// </remarks>
     [global::System.Obsolete("Replaced by http.request.method.")]
     public static global::System.Diagnostics.Activity SetHttpMethod(
@@ -86,6 +102,12 @@ static partial class HttpActivityExtensions
     /// Examples:
     /// - ["application/json"]
     /// - ["1.2.3.4","1.2.3.5"]
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.client (span, prefix <none>): opt_in
+    /// - span.http.server (span, prefix <none>): opt_in
     /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpRequestHeader(
         this global::System.Diagnostics.Activity activity,
@@ -127,6 +149,27 @@ static partial class HttpActivityExtensions
     /// - POST
     /// - HEAD
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - attributes.http.client (attribute_group, prefix <none>): required
+    /// - attributes.http.common (attribute_group, prefix <none>): required
+    /// - attributes.http.server (attribute_group, prefix <none>): required
+    /// - metric.http.client.active_requests (metric, prefix <none>): recommended
+    /// - metric.http.client.request.body.size (metric, prefix <none>): required
+    /// - metric.http.client.request.duration (metric, prefix <none>): required
+    /// - metric.http.client.response.body.size (metric, prefix <none>): required
+    /// - metric.http.server.active_requests (metric, prefix <none>): required
+    /// - metric.http.server.request.body.size (metric, prefix <none>): required
+    /// - metric.http.server.request.duration (metric, prefix <none>): required
+    /// - metric.http.server.response.body.size (metric, prefix <none>): required
+    /// - metric_attributes.http.client (attribute_group, prefix <none>): required
+    /// - metric_attributes.http.client.experimental (attribute_group, prefix <none>): required
+    /// - metric_attributes.http.server (attribute_group, prefix <none>): required
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.db.elasticsearch.client (span, prefix <none>): required
+    /// - span.http.client (span, prefix <none>): required
+    /// - span.http.server (span, prefix <none>): required
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpRequestMethod(
         this global::System.Diagnostics.Activity activity,
         string value)
@@ -141,6 +184,12 @@ static partial class HttpActivityExtensions
     /// - ACL
     /// - foo
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.client (span, prefix <none>): conditionally_required - If and only if it's different than `http.request.method`.
+    /// - span.http.server (span, prefix <none>): conditionally_required - If and only if it's different than `http.request.method`.
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpRequestMethodOriginal(
         this global::System.Diagnostics.Activity activity,
         string value)
@@ -154,6 +203,11 @@ static partial class HttpActivityExtensions
     /// The resend count SHOULD be updated each time an HTTP request gets resent by the client, regardless of what was the cause of the resending (e.g. redirection, authorization failure, 503 Server Unavailable, network issues, or any other).
     ///
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.client (span, prefix <none>): recommended - if and only if request was retried.
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpRequestResendCount(
         this global::System.Diagnostics.Activity activity,
         long value)
@@ -162,6 +216,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `http.request.header.content-length` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by `http.request.header.content-length`.")]
     public static global::System.Diagnostics.Activity SetHttpRequestContentLength(
         this global::System.Diagnostics.Activity activity,
@@ -171,6 +229,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `http.request.body.size` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by http.request.body.size.")]
     public static global::System.Diagnostics.Activity SetHttpRequestContentLengthUncompressed(
         this global::System.Diagnostics.Activity activity,
@@ -204,6 +266,12 @@ static partial class HttpActivityExtensions
     /// - ["application/json"]
     /// - ["abc","def"]
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.client (span, prefix <none>): opt_in
+    /// - span.http.server (span, prefix <none>): opt_in
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpResponseHeader(
         this global::System.Diagnostics.Activity activity,
         string segment,
@@ -217,6 +285,25 @@ static partial class HttpActivityExtensions
     /// Examples:
     /// - 200
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - attributes.http.client (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - attributes.http.common (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - attributes.http.server (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.client.request.body.size (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.client.request.duration (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.client.response.body.size (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.server.request.body.size (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.server.request.duration (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.http.server.response.body.size (metric, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric.otel.sdk.exporter.operation.duration (metric, prefix <none>): recommended - when applicable
+    /// - metric_attributes.http.client (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric_attributes.http.client.experimental (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - metric_attributes.http.server (attribute_group, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.client (span, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// - span.http.server (span, prefix <none>): conditionally_required - If and only if one was received/sent.
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpResponseStatusCode(
         this global::System.Diagnostics.Activity activity,
         long value)
@@ -225,6 +312,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `http.response.header.content-length` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by `http.response.header.content-length`.")]
     public static global::System.Diagnostics.Activity SetHttpResponseContentLength(
         this global::System.Diagnostics.Activity activity,
@@ -234,6 +325,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `http.response.body.size` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by http.response.body.size.")]
     public static global::System.Diagnostics.Activity SetHttpResponseContentLengthUncompressed(
         this global::System.Diagnostics.Activity activity,
@@ -262,6 +357,17 @@ static partial class HttpActivityExtensions
     /// - /users/:userID?
     /// - my-controller/my-action/{id?}
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - attributes.http.server (attribute_group, prefix <none>): conditionally_required - If and only if it's available
+    /// - metric.aspnetcore.routing.match_attempts (metric, prefix <none>): conditionally_required - if and only if a route was successfully matched.
+    /// - metric.http.server.request.body.size (metric, prefix <none>): conditionally_required - If and only if it's available
+    /// - metric.http.server.request.duration (metric, prefix <none>): conditionally_required - If and only if it's available
+    /// - metric.http.server.response.body.size (metric, prefix <none>): conditionally_required - If and only if it's available
+    /// - metric_attributes.http.server (attribute_group, prefix <none>): conditionally_required - If and only if it's available
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.http.server (span, prefix <none>): conditionally_required - If and only if it's available
+    /// </remarks>
     public static global::System.Diagnostics.Activity SetHttpRoute(
         this global::System.Diagnostics.Activity activity,
         string value)
@@ -274,6 +380,10 @@ static partial class HttpActivityExtensions
     /// Examples:
     /// - http
     /// - https
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
     /// </remarks>
     [global::System.Obsolete("Replaced by url.scheme.")]
     public static global::System.Diagnostics.Activity SetHttpScheme(
@@ -288,6 +398,10 @@ static partial class HttpActivityExtensions
     /// Examples:
     /// - example.com
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by server.address.")]
     public static global::System.Diagnostics.Activity SetHttpServerName(
         this global::System.Diagnostics.Activity activity,
@@ -300,6 +414,10 @@ static partial class HttpActivityExtensions
     /// <remarks>
     /// Examples:
     /// - 200
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
     /// </remarks>
     [global::System.Obsolete("Replaced by http.response.status_code.")]
     public static global::System.Diagnostics.Activity SetHttpStatusCode(
@@ -314,6 +432,10 @@ static partial class HttpActivityExtensions
     /// Examples:
     /// - /search?q=OpenTelemetry#SemConv
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Removed, no replacement.")]
     public static global::System.Diagnostics.Activity SetHttpTarget(
         this global::System.Diagnostics.Activity activity,
@@ -326,6 +448,10 @@ static partial class HttpActivityExtensions
     /// <remarks>
     /// Examples:
     /// - https://www.foo.bar/search?q=OpenTelemetry#SemConv
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
     /// </remarks>
     [global::System.Obsolete("Replaced by url.full.")]
     public static global::System.Diagnostics.Activity SetHttpUrl(
@@ -341,6 +467,10 @@ static partial class HttpActivityExtensions
     /// - CERN-LineMode/2.15 libwww/2.17b3
     /// - Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1
     /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Replaced by user_agent.original.")]
     public static global::System.Diagnostics.Activity SetHttpUserAgent(
         this global::System.Diagnostics.Activity activity,
@@ -350,6 +480,10 @@ static partial class HttpActivityExtensions
     /// <summary>
     /// Deprecated, use `network.protocol.name` and `network.protocol.version` instead.
     /// </summary>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - registry.http.deprecated (attribute_group, prefix <none>): recommended
+    /// </remarks>
     [global::System.Obsolete("Split into `network.protocol.name` and `network.protocol.version`")]
     public static class HttpFlavorValues
     {
@@ -417,6 +551,27 @@ static partial class HttpActivityExtensions
     /// - GET
     /// - POST
     /// - HEAD
+    /// </remarks>
+    /// <remarks>
+    /// Semantic-convention contexts:
+    /// - attributes.http.client (attribute_group, prefix <none>): required
+    /// - attributes.http.common (attribute_group, prefix <none>): required
+    /// - attributes.http.server (attribute_group, prefix <none>): required
+    /// - metric.http.client.active_requests (metric, prefix <none>): recommended
+    /// - metric.http.client.request.body.size (metric, prefix <none>): required
+    /// - metric.http.client.request.duration (metric, prefix <none>): required
+    /// - metric.http.client.response.body.size (metric, prefix <none>): required
+    /// - metric.http.server.active_requests (metric, prefix <none>): required
+    /// - metric.http.server.request.body.size (metric, prefix <none>): required
+    /// - metric.http.server.request.duration (metric, prefix <none>): required
+    /// - metric.http.server.response.body.size (metric, prefix <none>): required
+    /// - metric_attributes.http.client (attribute_group, prefix <none>): required
+    /// - metric_attributes.http.client.experimental (attribute_group, prefix <none>): required
+    /// - metric_attributes.http.server (attribute_group, prefix <none>): required
+    /// - registry.http (attribute_group, prefix <none>): recommended
+    /// - span.db.elasticsearch.client (span, prefix <none>): required
+    /// - span.http.client (span, prefix <none>): required
+    /// - span.http.server (span, prefix <none>): required
     /// </remarks>
     public static class HttpRequestMethodValues
     {

@@ -128,6 +128,7 @@ internal static class ActivityExtensionsEmitter
         if (!string.IsNullOrEmpty(attr.Note))
             WriteRemarksComment(builder, attr.Note, indent: 4);
         WriteExamplesComment(builder, attr.Examples, indent: 4);
+        WriteContextsComment(builder, attr.Contexts, indent: 4);
         WriteStabilityAttribute(builder, attr, indent: 4);
 
         var methodName = "Set" + ToPascalCase(attr.Key);
@@ -158,6 +159,7 @@ internal static class ActivityExtensionsEmitter
         if (!string.IsNullOrEmpty(attr.Note))
             WriteRemarksComment(builder, attr.Note, indent: 4);
         WriteExamplesComment(builder, attr.Examples, indent: 4);
+        WriteContextsComment(builder, attr.Contexts, indent: 4);
         WriteStabilityAttribute(builder, attr, indent: 4);
 
         var enumClassName = ToPascalCase(attr.Key) + "Values";
@@ -255,6 +257,44 @@ internal static class ActivityExtensionsEmitter
         builder.Append(pad).AppendLine("/// </remarks>");
     }
 
+    private static void WriteContextsComment(
+        StringBuilder builder,
+        EquatableArray<ActivityAttributeContextModel> contexts,
+        int indent)
+    {
+        if (contexts.Length == 0)
+            return;
+
+        var writtenHeader = false;
+        var pad = new string(' ', indent);
+        foreach (var context in contexts)
+        {
+            if (context.RequirementLevel.Kind == RequirementLevelKind.Unspecified &&
+                string.IsNullOrEmpty(context.RequirementLevel.Condition))
+            {
+                continue;
+            }
+
+            if (!writtenHeader)
+            {
+                builder.Append(pad).AppendLine("/// <remarks>");
+                builder.Append(pad).AppendLine("/// Semantic-convention contexts:");
+                writtenHeader = true;
+            }
+
+            var prefix = string.IsNullOrEmpty(context.Prefix) ? "<none>" : context.Prefix;
+            var line = "- " + context.GroupId + " (" + context.GroupType + ", prefix " + prefix + "): " +
+                       RequirementLevelName(context.RequirementLevel.Kind);
+            if (!string.IsNullOrEmpty(context.RequirementLevel.Condition))
+                line += " - " + context.RequirementLevel.Condition;
+
+            AppendDocLine(builder, pad, line);
+        }
+
+        if (writtenHeader)
+            builder.Append(pad).AppendLine("/// </remarks>");
+    }
+
     private static void AppendDocLine(StringBuilder builder, string pad, string line)
     {
         builder.Append(pad).Append("///");
@@ -262,6 +302,15 @@ internal static class ActivityExtensionsEmitter
             builder.Append(' ').Append(line);
         builder.AppendLine();
     }
+
+    private static string RequirementLevelName(RequirementLevelKind kind) => kind switch
+    {
+        RequirementLevelKind.Required => "required",
+        RequirementLevelKind.Recommended => "recommended",
+        RequirementLevelKind.OptIn => "opt_in",
+        RequirementLevelKind.ConditionallyRequired => "conditionally_required",
+        _ => "unspecified"
+    };
 
     internal static string ToPascalCase(string value)
     {

@@ -105,26 +105,18 @@ internal static class RegistryLoader
                 ? ParseSignalAttributes(attributesArr, defaultStability: ParseStability(metric.GetString("stability")))
                 : default;
 
-            var entityAssociations = new List<string>();
-            if (metric.TryGetArray("entity_associations") is { } entityArr)
-            {
-                foreach (var value in entityArr.Items)
-                {
-                    if (value is JsonString s) entityAssociations.Add(s.Value);
-                }
-            }
-
             metrics.Add(new MetricDescriptorModel(
                 MetricName: metric.GetString("metric_name"),
                 Instrument: metric.GetString("instrument"),
                 Unit: metric.GetString("unit"),
+                MetricRequirementLevel: RegistryParsing.ParseRequirementLevel(metric.TryGet("metric_requirement_level")),
                 Brief: metric.GetString("brief"),
                 Note: metric.GetString("note"),
                 Stability: ParseStability(metric.GetString("stability")),
                 Deprecated: RegistryParsing.ParseDeprecated(metric.TryGet("deprecated") as JsonObject),
                 AttributeRefs: refs.ToEquatableArray(),
                 Attributes: attributes,
-                EntityAssociations: entityAssociations.ToEquatableArray()));
+                EntityAssociations: ParseStringArray(metric.TryGetArray("entity_associations"))));
         }
         return metrics.ToEquatableArray();
     }
@@ -169,7 +161,7 @@ internal static class RegistryLoader
                     payload.Add(new SignalAttributeModel(
                         Key: key,
                         Type: type,
-                        RequirementLevel: ParseRequirementLevel(p.TryGet("requirement_level")),
+                        RequirementLevel: RegistryParsing.ParseRequirementLevel(p.TryGet("requirement_level")),
                         Brief: brief,
                         Note: note,
                         Stability: stability,
@@ -186,6 +178,7 @@ internal static class RegistryLoader
                 Deprecated: RegistryParsing.ParseDeprecated(ev.TryGet("deprecated") as JsonObject),
                 EmissionTarget: ParseEventEmissionTarget(ev.GetString("emission_target")),
                 BodyJson: ev.TryGet("body") is { } body ? RegistryParsing.ToCompactJson(body) : string.Empty,
+                EntityAssociations: ParseStringArray(ev.TryGetArray("entity_associations")),
                 Payload: payload.ToEquatableArray()));
         }
         return events.ToEquatableArray();
@@ -204,7 +197,7 @@ internal static class RegistryLoader
             attributes.Add(new SignalAttributeModel(
                 Key: attr.GetString("key"),
                 Type: ParseType(attr.TryGet("type"), stability),
-                RequirementLevel: ParseRequirementLevel(attr.TryGet("requirement_level")),
+                RequirementLevel: RegistryParsing.ParseRequirementLevel(attr.TryGet("requirement_level")),
                 Brief: attr.GetString("brief"),
                 Note: attr.GetString("note"),
                 Stability: stability,
@@ -231,13 +224,78 @@ internal static class RegistryLoader
                 }
             }
 
+            var attributes = group.TryGetArray("attributes") is { } attributesArr
+                ? ParseGroupAttributes(attributesArr)
+                : default;
+
             groups.Add(new GroupModel(
                 Id: group.GetString("id"),
                 Type: group.GetString("type"),
+                Brief: group.GetString("brief"),
+                Note: group.GetString("note"),
+                DisplayName: group.GetString("display_name"),
+                Extends: group.GetString("extends"),
+                Stability: ParseStability(group.GetString("stability")),
+                Deprecated: RegistryParsing.ParseDeprecated(group.TryGet("deprecated") as JsonObject),
+                AnnotationsJson: group.TryGet("annotations") is { } annotations ? RegistryParsing.ToCompactJson(annotations) : string.Empty,
+                LineageJson: group.TryGet("lineage") is { } lineage ? RegistryParsing.ToCompactJson(lineage) : string.Empty,
                 Prefix: group.GetString("prefix"),
-                AttributeRefs: refs.ToEquatableArray()));
+                MetricName: group.GetString("metric_name"),
+                Instrument: group.GetString("instrument"),
+                Unit: group.GetString("unit"),
+                MetricRequirementLevel: RegistryParsing.ParseRequirementLevel(group.TryGet("metric_requirement_level")),
+                EventName: group.GetString("event_name"),
+                SpanKind: group.GetString("span_kind"),
+                SpanNameNote: group.GetString("span_name_note"),
+                BodyJson: group.TryGet("body") is { } body ? RegistryParsing.ToCompactJson(body) : string.Empty,
+                EntityAssociations: ParseStringArray(group.TryGetArray("entity_associations")),
+                Events: ParseStringArray(group.TryGetArray("events")),
+                AttributeRefs: refs.ToEquatableArray(),
+                Attributes: attributes));
         }
         return groups.ToEquatableArray();
+    }
+
+    private static EquatableArray<GroupAttributeModel> ParseGroupAttributes(JsonArray attributesArr)
+    {
+        var attributes = new List<GroupAttributeModel>(attributesArr.Items.Count);
+        foreach (var item in attributesArr.Items)
+        {
+            if (item is not JsonObject attr) continue;
+
+            var stability = ParseStability(attr.GetString("stability"));
+            attributes.Add(new GroupAttributeModel(
+                Key: attr.GetString("key"),
+                Type: ParseType(attr.TryGet("type"), stability),
+                RequirementLevel: RegistryParsing.ParseRequirementLevel(attr.TryGet("requirement_level")),
+                Brief: attr.GetString("brief"),
+                Note: attr.GetString("note"),
+                Stability: stability,
+                Deprecated: RegistryParsing.ParseDeprecated(attr.TryGet("deprecated") as JsonObject),
+                Tag: attr.GetString("tag"),
+                SamplingRelevant: attr.TryGet("sampling_relevant") is JsonBool samplingRelevant && samplingRelevant.Value,
+                Namespace: attr.GetString("namespace"),
+                Inherited: attr.TryGet("inherited") is JsonBool inherited && inherited.Value,
+                LineageJson: attr.TryGet("lineage") is { } lineage ? RegistryParsing.ToCompactJson(lineage) : string.Empty,
+                Examples: RegistryParsing.ParseExamples(attr.TryGetArray("examples"))));
+        }
+
+        return attributes.ToEquatableArray();
+    }
+
+    private static EquatableArray<string> ParseStringArray(JsonArray? array)
+    {
+        if (array is null)
+            return default;
+
+        var values = new List<string>(array.Items.Count);
+        foreach (var value in array.Items)
+        {
+            if (value is JsonString s)
+                values.Add(s.Value);
+        }
+
+        return values.ToEquatableArray();
     }
 
     private static EquatableArray<AttributeModel> ParseCatalog(JsonArray catalogArr)
@@ -260,34 +318,6 @@ internal static class RegistryLoader
         }
         return attributes.ToEquatableArray();
     }
-
-    private static RequirementLevelModel ParseRequirementLevel(JsonValue? value)
-    {
-        if (value is JsonString s)
-            return new RequirementLevelModel(ParseRequirementKind(s.Value), string.Empty);
-
-        if (value is JsonObject obj)
-        {
-            foreach (var pair in obj.Members)
-            {
-                var condition = pair.Value is JsonString conditionString
-                    ? conditionString.Value
-                    : RegistryParsing.ToCompactJson(pair.Value);
-                return new RequirementLevelModel(ParseRequirementKind(pair.Key), condition);
-            }
-        }
-
-        return new RequirementLevelModel(RequirementLevelKind.Unspecified, string.Empty);
-    }
-
-    private static RequirementLevelKind ParseRequirementKind(string value) => value switch
-    {
-        "required" => RequirementLevelKind.Required,
-        "recommended" => RequirementLevelKind.Recommended,
-        "opt_in" => RequirementLevelKind.OptIn,
-        "conditionally_required" => RequirementLevelKind.ConditionallyRequired,
-        _ => RequirementLevelKind.Unspecified
-    };
 
     private static EventEmissionTargetModel ParseEventEmissionTarget(string value) => value switch
     {

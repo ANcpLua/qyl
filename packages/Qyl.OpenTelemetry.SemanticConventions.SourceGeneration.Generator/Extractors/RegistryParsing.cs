@@ -33,6 +33,34 @@ internal static class RegistryParsing
         return examples.ToEquatableArray();
     }
 
+    public static RequirementLevelModel ParseRequirementLevel(JsonValue? value)
+    {
+        if (value is JsonString s)
+            return new RequirementLevelModel(ParseRequirementKind(s.Value), string.Empty);
+
+        if (value is JsonObject obj)
+        {
+            foreach (var pair in obj.Members)
+            {
+                var condition = pair.Value is JsonString conditionString
+                    ? conditionString.Value
+                    : ToCompactJson(pair.Value);
+                return new RequirementLevelModel(ParseRequirementKind(pair.Key), condition);
+            }
+        }
+
+        return new RequirementLevelModel(RequirementLevelKind.Unspecified, string.Empty);
+    }
+
+    private static RequirementLevelKind ParseRequirementKind(string value) => value switch
+    {
+        "required" => RequirementLevelKind.Required,
+        "recommended" => RequirementLevelKind.Recommended,
+        "opt_in" => RequirementLevelKind.OptIn,
+        "conditionally_required" => RequirementLevelKind.ConditionallyRequired,
+        _ => RequirementLevelKind.Unspecified
+    };
+
     public static string ToCompactJson(JsonValue value) => value switch
     {
         JsonNull => "null",

@@ -129,6 +129,13 @@ internal static class MetricsEmitter
         builder.Append("        public const string Name = \"").Append(metric.MetricName).AppendLine("\";");
         builder.Append("        public const string Unit = \"").Append(EscapeForLiteral(metric.Unit)).AppendLine("\";");
         builder.Append("        public const string Instrument = \"").Append(EscapeForLiteral(metric.Instrument)).AppendLine("\";");
+        builder.Append("        public const string RequirementLevel = \"")
+               .Append(RequirementLevelName(metric.MetricRequirementLevel.Kind)).AppendLine("\";");
+        if (!string.IsNullOrEmpty(metric.MetricRequirementLevel.Condition))
+        {
+            builder.Append("        public const string RequirementCondition = \"")
+                   .Append(EscapeForLiteral(metric.MetricRequirementLevel.Condition)).AppendLine("\";");
+        }
         builder.Append("        public const string Brief = \"").Append(EscapeForLiteral(metric.Brief)).AppendLine("\";");
         builder.Append("        public const string Note = \"").Append(EscapeForLiteral(metric.Note)).AppendLine("\";");
         builder.AppendLine();

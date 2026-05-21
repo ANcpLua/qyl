@@ -57,6 +57,7 @@ public sealed class SemConvMetricsGeneratorTests
             .And.Contain("public const string Name = \"http.server.request.duration\";")
             .And.Contain("public const string Unit = \"s\";")
             .And.Contain("public const string Instrument = \"histogram\";")
+            .And.Contain("public const string RequirementLevel = \"recommended\";")
             .And.Contain("public const string Brief = \"Duration of HTTP server requests.\";");
 
         generated.Should()

@@ -38,6 +38,10 @@ internal static class ActivityRegistryLoader
         if (obj.TryGetArray("catalog") is not { } catalogArr)
             return new ActivityRegistryModel(default);
 
+        var contextsByKey = obj.TryGetArray("groups") is { } groupsArr
+            ? BuildContextsByAttribute(groupsArr)
+            : new Dictionary<string, List<ActivityAttributeContextModel>>(StringComparer.Ordinal);
+
         var attributes = new List<ActivityAttributeModel>();
         foreach (var item in catalogArr.Items)
         {
@@ -58,10 +62,75 @@ internal static class ActivityRegistryLoader
                 Note: attr.GetString("note"),
                 Stability: stability,
                 Deprecated: RegistryParsing.ParseDeprecated(attr.TryGet("deprecated") as JsonObject),
-                Examples: RegistryParsing.ParseExamples(attr.TryGetArray("examples"))));
+                Examples: RegistryParsing.ParseExamples(attr.TryGetArray("examples")),
+                Contexts: contextsByKey.TryGetValue(key, out var contexts)
+                    ? contexts.ToEquatableArray()
+                    : default));
         }
 
         return new ActivityRegistryModel(attributes.ToEquatableArray());
+    }
+
+    private static Dictionary<string, List<ActivityAttributeContextModel>> BuildContextsByAttribute(JsonArray groupsArr)
+    {
+        var contextsByKey = new Dictionary<string, List<ActivityAttributeContextModel>>(StringComparer.Ordinal);
+        foreach (var item in groupsArr.Items)
+        {
+            if (item is not JsonObject group) continue;
+
+            var groupId = group.GetString("id");
+            var groupType = group.GetString("type");
+            var prefix = group.GetString("prefix");
+
+            if (group.TryGetArray("attributes") is { } attributesArr)
+            {
+                foreach (var value in attributesArr.Items)
+                {
+                    if (value is not JsonObject attr) continue;
+                    AddContext(
+                        contextsByKey,
+                        attr.GetString("key"),
+                        new ActivityAttributeContextModel(
+                            GroupId: groupId,
+                            GroupType: groupType,
+                            Prefix: prefix,
+                            RequirementLevel: RegistryParsing.ParseRequirementLevel(attr.TryGet("requirement_level"))));
+                }
+                continue;
+            }
+
+            if (group.TryGetArray("attribute_refs") is not { } refsArr)
+                continue;
+
+            foreach (var value in refsArr.Items)
+            {
+                if (value is not JsonString attrRef) continue;
+                AddContext(
+                    contextsByKey,
+                    attrRef.Value,
+                    new ActivityAttributeContextModel(
+                        GroupId: groupId,
+                        GroupType: groupType,
+                        Prefix: prefix,
+                        RequirementLevel: new RequirementLevelModel(RequirementLevelKind.Unspecified, string.Empty)));
+            }
+        }
+
+        return contextsByKey;
+    }
+
+    private static void AddContext(
+        Dictionary<string, List<ActivityAttributeContextModel>> contextsByKey,
+        string key,
+        ActivityAttributeContextModel context)
+    {
+        if (!contextsByKey.TryGetValue(key, out var contexts))
+        {
+            contexts = new List<ActivityAttributeContextModel>();
+            contextsByKey.Add(key, contexts);
+        }
+
+        contexts.Add(context);
     }
 
     private static (string ParameterType, bool IsTemplate, bool IsEnum, EquatableArray<EnumMemberModel> Members) ResolveSetterShape(

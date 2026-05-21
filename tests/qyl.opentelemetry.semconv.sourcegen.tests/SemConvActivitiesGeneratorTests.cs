@@ -135,6 +135,32 @@ public sealed class SemConvActivitiesGeneratorTests
     }
 
     [Fact]
+    public void Setter_Docs_Preserve_Contextual_Requirement_Metadata()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionActivities("http")]
+            internal static partial class HttpActivityExtensions;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvActivitiesGenerator>(source);
+
+        var generated = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpActivityExtensions.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        generated.Should()
+            .Contain("/// Semantic-convention contexts:")
+            .And.Contain("attributes.http.client (attribute_group, prefix <none>): required")
+            .And.Contain("attributes.http.server (attribute_group, prefix <none>): required")
+            .And.Contain("metric_attributes.http.server (attribute_group, prefix <none>): required")
+            .And.Contain("conditionally_required - If and only if one was received/sent.");
+    }
+
+    [Fact]
     public void Stability_Gate_Deprecated_Attribute_Annotated_Obsolete()
     {
         const string source = """
@@ -221,6 +247,40 @@ public sealed class SemConvActivitiesGeneratorTests
             // ...and keeps deprecated rows for migration.
             .And.Contain("SetHttpClientIp")
             .And.Contain("[global::System.Obsolete(\"Replaced by client.address.\")]");
+    }
+
+    [Fact]
+    public void Stable_Marker_Filters_NonStable_Enum_Members()
+    {
+        const string source = """
+            using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
+
+            namespace MyApp;
+
+            [SemanticConventionActivities("http")]
+            internal static partial class HttpStableActivities;
+
+            [SemanticConventionIncubatingActivities("http")]
+            internal static partial class HttpIncubatingActivities;
+            """;
+
+        var result = GeneratorTestHelper.RunGenerator<SemConvActivitiesGenerator>(source);
+
+        var stable = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpStableActivities.g.cs", StringComparison.Ordinal))
+            .ToString();
+        var incubating = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("HttpIncubatingActivities.g.cs", StringComparison.Ordinal))
+            .ToString();
+
+        stable.Should()
+            .Contain("public static class HttpRequestMethodValues")
+            .And.NotContain("public const string Query = \"QUERY\";",
+                "enum members must be filtered by the selected stability projection, not only by parent attribute stability");
+
+        incubating.Should()
+            .Contain("public static class HttpRequestMethodValues")
+            .And.Contain("public const string Query = \"QUERY\";");
     }
 
     [Fact]

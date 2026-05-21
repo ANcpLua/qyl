@@ -17,10 +17,11 @@ projection.
 | Full-registry Weaver source | PASS | `scripts/generate.sh` runs `otel/weaver:v0.23.0 registry generate` over the pinned semconv `v1.41.0` model and produces the embedded `Resources/resolved-registry.json`. A post-run `git diff --exit-code -- .../resolved-registry.json` is clean. |
 | Stable/incubating split | PASS | Each marker family has a stable and incubating variant. Stable projections emit stable rows plus deprecated migration symbols. Incubating projections emit all stability tiers and are strict supersets, matching Java/Python package behavior. |
 | Snapshot tiers | PASS | Byte-identity snapshots are now named by signal and tier, for example `qyl.attributes.http.stable.expected.txt` and `qyl.attributes.http.incubating.expected.txt`. Old ambiguous snapshots (`qyl.http.expected.txt`, `qyl.disk.expected.txt`, etc.) were removed. |
-| Tests | PASS | `dotnet test tests/qyl.opentelemetry.semconv.sourcegen.tests/qyl.opentelemetry.semconv.sourcegen.tests.csproj -c Release` passes with 53 tests after the intercept changes. |
+| Tests | PASS | `dotnet test tests/qyl.opentelemetry.semconv.sourcegen.tests/qyl.opentelemetry.semconv.sourcegen.tests.csproj -c Release` passes with 60 tests after the intercept changes. |
 | Full-surface TFM matrix | PASS | `eng/smoke/qyl.semconv.smoke.matrix/build-matrix.sh` builds the same consumer fixture for `net472`, `netstandard2.0`, `net6.0`, `net8.0`, `net9.0`, and `net10.0`. The fixture binds attributes, metrics, events, meter factories, and activity helpers across stable/incubating projections. |
 | Runtime ownership | PASS | `MetersEmitter` writes extension methods on a consumer-provided `Meter`; no generated global Meter singletons. `ActivityExtensionsEmitter` writes wrappers over a consumer-provided `Activity`; no generated `ActivitySource` ownership. |
 | State metric mapping | PASS | The emitted meter helper kind follows the registry `instrument` field directly. `updowncounter` remains `UpDownCounter<T>` and is never guessed as a Gauge. |
+| Enum-member stability | PASS | Stable projections filter enum members by member stability, not only by parent attribute stability. Regression coverage locks `http.request.method` so `QUERY` is incubating-only, and `db.system.name` so development database identifiers stay out of the stable marker output. |
 | Logger/Event target | PASS with upstream limitation | semconv v1.41.0 event rows do not expose a Logger/Event-vs-ActivityEvent discriminator. `EventsEmitter` emits event names and payload structs and documents the single extension point for routing if upstream adds such a field. |
 
 ## Replaced Findings
@@ -30,6 +31,11 @@ longer accurate:
 
 - It reported a seed registry. That is obsolete; the generator now embeds the
   full Weaver output for semconv v1.41.0.
+- It reported a metadata-thin registry projection. That is obsolete; the
+  embedded projection now preserves all 935 resolved groups across
+  `attribute_group`, `span`, `event`, `metric`, and `entity`, and keeps
+  signal-local requirement levels, notes, examples, event body metadata, and
+  metric/event entity-association slots.
 - It reported per-symbol `[Experimental]` emissions. That is obsolete; the
   generator relies on stable/incubating marker projection and emits no
   `[Experimental]` symbols.

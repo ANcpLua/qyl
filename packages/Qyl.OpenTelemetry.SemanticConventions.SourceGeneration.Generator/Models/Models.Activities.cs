@@ -24,7 +24,20 @@ internal readonly record struct ActivityAttributeModel(
     string Note,
     StabilityModel Stability,
     DeprecatedModel? Deprecated,
-    EquatableArray<string> Examples);
+    EquatableArray<string> Examples,
+    EquatableArray<ActivityAttributeContextModel> Contexts);
+
+/// <summary>
+/// A contextual reference from a semconv group to an attribute surfaced by an
+/// Activity setter. Requirement level is deliberately attached to the context,
+/// not the catalog attribute, because upstream semconv requirement levels are
+/// signal/group-local facts.
+/// </summary>
+internal readonly record struct ActivityAttributeContextModel(
+    string GroupId,
+    string GroupType,
+    string Prefix,
+    RequirementLevelModel RequirementLevel);
 
 /// <summary>
 /// Extracted state from a single meters-marker application — either
