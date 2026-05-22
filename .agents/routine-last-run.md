@@ -4,6 +4,91 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-integration-tests 2026-05-22
+
+**Outcome:** one focused integration scenario added; PR opened on
+`tests/auto-integration-2026-05-22`. No production code touched.
+
+**State on arrival:**
+- Worktree clean on `main`. HEAD `a137bc2d Revert "chore(research): add thesis evaluation automation"`.
+- Docker initially down (OrbStack daemon socket missing). Brought OrbStack up
+  via `open -ga OrbStack`; `docker info` reports `29.4.0` after ~8s.
+- Integration test project already exists with 11/11 green facts across two
+  `Storage/` files (`ReadLeaseIntegrationTests`, `ErrorUpsertIntegrationTests`).
+  Pattern is xUnit v3 + MTP + FluentAssertions + per-test temp-file DuckDB +
+  `IAsyncDisposable` cleanup — **not** TUnit, despite the SKILL.md narrative.
+  Project-level `CLAUDE.md` (xUnit v3 + MTP convention) overrides the skill's
+  TUnit guidance per the workflow rules. No migration done.
+
+**Scenario added (1 file, 9 facts):**
+- `tests/qyl.collector.integration.tests/Storage/LogInsertAndQueryIntegrationTests.cs`
+  — covers `DuckDbStore.InsertLogsAsync` + `GetLogsAsync` against a real
+  file-backed DuckDB:
+  1. Empty-batch insert is a no-op (guards the early-return).
+  2. Full-row roundtrip — every persisted column on `LogStorageRow` survives
+     `AddLogParameters` → `MapLog` (excludes server-populated `CreatedAt`).
+  3. `ORDER BY time_unix_nano DESC` contract.
+  4. `severityText` filter is strict equality (prefix `WAR` matches zero rows).
+  5. `minSeverity` is an inclusive lower bound on the TINYINT column;
+     proves the `int → TINYINT` parameter binding works.
+  6. `search` is a substring `LIKE` on body.
+  7. `after` is `>` exclusive, `before` is `<=` inclusive — the asymmetric
+     boundary contract embedded in `GetLogsAsync`.
+  8. `limit` caps after DESC ordering (takes the 10 newest of 25 rows).
+  9. `MaxLogsPerBatch + 1 = 151` rows commit across both chunks under a
+     single transaction; the trailing chunk-of-1 path through
+     `BuildMultiRowLogInsertSql(1)` is exercised.
+
+**Why logs and not spans:**
+- Spans were the priority-1 gap from prior `qyl-e2e-tests` runs, but the
+  `spans.kind` / `spans.status_code` VARCHAR-vs-byte read-path bug is still
+  live (`SpanRowMapper.cs:14,18` + the generator-emitted `MapFromReader`
+  both call `GetByte(0)` on VARCHAR columns). An integration test that
+  asserts correct read behaviour against today's code would be permanently
+  red. Out of scope for an additive integration-coverage routine — needs a
+  focused fix PR with migration coverage. Documented as carry-forward.
+- Logs have **no schema/property type mismatch**: `severity_number TINYINT`
+  matches `LogStorageRow.SeverityNumber: byte`. Clean correctness target.
+
+**Verification:**
+- `dotnet build qyl.slnx --nologo /clp:ErrorsOnly` — 0 errors, 50 warnings
+  (baseline).
+- `dotnet test --project tests/qyl.collector.integration.tests` — 3
+  consecutive runs, **20/20 each (11 prior + 9 new)**, durations
+  ~0.9-1.0s. Zero flakes.
+- Nuke `IntegrationTests` target (`eng/build/BuildTest.cs:158`) auto-picks
+  up the new class via `*.Integration.*` + `Category=Integration` filter —
+  no Nuke change required.
+
+**Carry-forward gaps for the next run:**
+1. **Spans VARCHAR-vs-byte bug** (still priority-1; pre-existing).
+   `services/qyl.collector/Storage/SpanRowMapper.cs:14,18` reads
+   `kind`/`status_code` via `GetByte(0)` while
+   `services/qyl.collector/Storage/DuckDbSchema.g.cs:382,386` declares both
+   as `VARCHAR NOT NULL`. `GetSpansAsync`, `GetTraceAsync`,
+   `GetSpansBySessionAsync`, and `IntelligenceEndpoints.GetSpansForIssueAsync`
+   all throw on every span read. Needs a single coherent fix PR — either
+   schema → TINYINT migration or row property → string. Integration tests
+   for the span read path land in the **same** PR as the fix.
+2. **Metric ingestion adapter** — no integration coverage yet for
+   `DuckDbStore.InsertMetric*` or the read counterpart. Same "DuckDB query
+   correctness" lane.
+3. **Schema migration replay** — opening a DB created by an older
+   `DuckDbSchema.Version` and asserting `DuckDbStore` migrates cleanly.
+   Surface: `DuckDbStore.SchemaControl.cs`. Untested.
+4. **`logs.attributes`/`logs.flags`/`logs.dropped_attributes_count`** — the
+   schema declares these columns but the current
+   `InsertLogsAsync`/`GetLogsAsync` projection ignores them. Worth either a
+   contract clarification or projection extension; today's test class
+   intentionally tracks the live (narrower) projection.
+5. **Transaction-isolation under concurrent `ExecuteWriteAsync` calls** —
+   the serialized writer queue is exercised by the read-lease tests but no
+   integration test pins the FIFO ordering or write-after-read visibility
+   beyond the simple case already in `ReadLeaseIntegrationTests`.
+
+**Handoff:** PR open. Do not merge from this routine; the spans bug remains
+the higher-priority follow-up.
+
 ## qyl-e2e-tests 2026-05-20 04:31
 
 **Outcome:** BLOCKED — Docker daemon still not running. Second consecutive day.
