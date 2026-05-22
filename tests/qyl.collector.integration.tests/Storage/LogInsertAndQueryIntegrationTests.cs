@@ -13,8 +13,9 @@ namespace Qyl.Collector.Integration.Tests.Storage;
 ///     and the auto-populated <c>created_at</c> default),
 ///   • <c>GetLogsAsync</c> orders by <c>time_unix_nano DESC</c>,
 ///   • each filter dimension (<c>severityText</c> exact equality, <c>minSeverity</c>
-///     inclusive lower bound, <c>search</c> LIKE on body, asymmetric <c>after</c> &gt;
-///     vs <c>before</c> &lt;= boundaries) selects the right subset,
+///     inclusive lower bound, <c>search</c> LIKE on body, <c>serviceName</c> exact
+///     equality, asymmetric <c>after</c> &gt; vs <c>before</c> &lt;= boundaries)
+///     selects the right subset,
 ///   • the <c>limit</c> parameter caps the returned row count after ordering, and
 ///   • a batch of <c>MaxLogsPerBatch + 1</c> rows commits across both chunks under a
 ///     single transaction so every row is visible afterwards.
@@ -171,6 +172,24 @@ public sealed class LogInsertAndQueryIntegrationTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetLogsAsync_service_name_filter_is_exact_equality()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await _store.InsertLogsAsync(
+            [
+                MakeLog("log-api", serviceName: "svc-api"),
+                MakeLog("log-worker", serviceName: "svc-worker"),
+                MakeLog("log-collector", serviceName: "svc-collector")
+            ], ct);
+
+        var rows = await _store.GetLogsAsync(serviceName: "svc-api", ct: ct);
+
+        rows.Should().ContainSingle("only one row has service_name = 'svc-api'")
+            .Which.LogId.Should().Be("log-api");
+    }
+
+    [Fact]
     public async Task GetLogsAsync_after_is_exclusive_and_before_is_inclusive_at_the_boundary()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -197,14 +216,15 @@ public sealed class LogInsertAndQueryIntegrationTests : IAsyncDisposable
         var ct = TestContext.Current.CancellationToken;
 
         await _store.InsertLogsAsync(
-            [.. Enumerable.Range(0, 25).Select(i => MakeLog($"log-{i:D2}", time: 1_000UL + (ulong)i))],
+            [.. Enumerable.Range(0, 25).Select(static i => MakeLog($"log-{i:D2}", time: 1_000UL + (ulong)i))],
             ct);
 
         var rows = await _store.GetLogsAsync(limit: 10, ct: ct);
 
         rows.Should().HaveCount(10, "the limit parameter must bound the row count after the ORDER BY");
-        rows.Select(static r => r.LogId).Should().ContainInOrder(["log-24", "log-23", "log-22", "log-21", "log-20"],
-            "the cap takes the 10 newest rows because the query orders by time_unix_nano DESC before applying the limit");
+        rows.Select(static r => r.LogId).Should().Equal(
+            ["log-24", "log-23", "log-22", "log-21", "log-20", "log-19", "log-18", "log-17", "log-16", "log-15"],
+            "the cap takes the 10 newest rows in strict DESC order by time_unix_nano");
     }
 
     [Fact]
@@ -215,7 +235,7 @@ public sealed class LogInsertAndQueryIntegrationTests : IAsyncDisposable
         const int total = 151;
 
         await _store.InsertLogsAsync(
-            [.. Enumerable.Range(0, total).Select(i => MakeLog($"log-chunked-{i:D3}", time: 1_000_000UL + (ulong)i))],
+            [.. Enumerable.Range(0, total).Select(static i => MakeLog($"log-chunked-{i:D3}", time: 1_000_000UL + (ulong)i))],
             ct);
 
         var visible = await _store.GetLogCountAsync(ct);
