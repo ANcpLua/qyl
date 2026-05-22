@@ -429,3 +429,105 @@ This is the same hard stop that halted the 2026-05-16 run.
 
 **Handoff:** none. PR #351 is open and awaits review/merge; do not push to
 `main` from this routine.
+
+## qyl-unit-tests 2026-05-22 10:49
+
+**Outcome:** first unit-test increment shipped. PR #363. One commit on
+`tests/auto-unit-2026-05-22`.
+
+**State on arrival:**
+- `dotnet build qyl.slnx` — 0 errors. Clean baseline.
+- Branch `claude/cranky-payne-9beacf` (worktree default) clean.
+- No prior `tests/auto-unit-*` branch on the remote; this is the first
+  run of `qyl-unit-tests`.
+- Top of `main`: `a137bc2d Revert "chore(research): add thesis evaluation
+  automation"`.
+
+**Picked gap:** `services/qyl.mcp/Scoping/QylScopeInjector.cs` — last
+touched 2026-05-19 in `41747d7b feat(qyl.mcp): consume ANcpLua.Agents.Mcp[.Hosting] 0.1.0 as fluent chain`,
+security boundary for per-request `serviceName` / `sessionId` injection on
+every MCP `tools/call`, zero prior tests. Highest-priority slot per
+SKILL.md ("Recently changed production code with no corresponding unit
+test").
+
+**Changes shipped (PR #363 — 1 commit):**
+- `f4d76352 test(unit/mcp/scoping): cover QylScopeInjector` — 17 cases
+  across 11 `[Fact]` and one 6-case `[Theory]`. Pins the
+  `IQylConstraintInjector<QylScope>` XML-doc contract: caller wins for
+  non-empty strings, scope wins for `""` / numbers / bools / nulls /
+  arrays / objects, mutate-in-place returns same reference, fallback dict
+  is case-insensitive, per-field independence between `ServiceName` and
+  `SessionId`. No refactor commit needed — class already pure-logic and
+  `QylScope.ForTest` already exposed via `internal static` +
+  `InternalsVisibleTo("Qyl.Mcp.Tests")`.
+
+**SKILL.md vs CLAUDE.md conflict (resolved):**
+- SKILL.md prescribes TUnit migration as the first step in any file
+  touched.
+- CLAUDE.md is explicit: "xUnit v3 with Microsoft Testing Platform". All
+  five test projects in the repo (`qyl.collector.tests`,
+  `qyl.collector.integration.tests`, `qyl.mcp.tests`, `qyl.e2e.tests`,
+  `qyl.opentelemetry.semconv.sourcegen.tests`) reference
+  `xunit.v3.mtp-v2`, never `TUnit`.
+- SKILL.md §"Read before you touch anything" item 1 defers to CLAUDE.md:
+  "They override anything in this file where they conflict." Followed
+  CLAUDE.md, wrote xUnit v3.
+
+**Mutation testing — BLOCKED upstream:**
+- Bootstrapped `dotnet-stryker` 4.14.2 via local tool manifest
+  (`.config/dotnet-tools.json`) + `stryker-config.json` per SKILL.md
+  template.
+- First run failed:
+  `Project '…/qyl.mcp.tests.csproj' is using Microsoft.Testing.Platform
+  which is not yet supported by Stryker, see
+  https://github.com/stryker-mutator/stryker-net/issues/3094`
+- 4.14.2 is the latest stable. `dotnet-stryker-netx` (3.x port) is older.
+  No CLI override exists to bypass VsTest.
+- Per SKILL.md exit clause "Stryker is failing to run and you can't
+  unblock it in a few minutes → revert Stryker-config changes, note,
+  exit" — bootstrap was reverted; PR contains zero Stryker artifacts.
+- Compensating control: walked each Stryker-typical mutation against the
+  production source by hand. Surfaced one survivor (the fallback dict's
+  `StringComparer.OrdinalIgnoreCase` comparer) and added
+  `Inject_NewlyCreatedDict_IsCaseInsensitive` to kill it. One arguably-
+  equivalent mutant remains on the static `s_injectableParameters`
+  comparer (lowercase-only keys make the choice behaviorally invisible).
+
+**Verification:**
+- `dotnet build qyl.slnx` — 0 errors after the test was added.
+- `dotnet test --project tests/qyl.mcp.tests --no-build` — 19/19 passing
+  (17 new in `QylScopeInjectorTests`, 2 existing in
+  `SummaryCredentialRedactorTests`). 0.6s wall clock.
+- Filtered run on the new class alone — 17/17 passing.
+
+**Gaps remaining for next run:**
+1. **Stryker / MTP incompatibility is now a routine-wide blocker.** Until
+   either (a) `stryker-mutator/stryker-net#3094` lands MTP support,
+   (b) qyl adds a parallel non-MTP test surface for Stryker only, or
+   (c) the routine switches to a different mutation tool, **no
+   `qyl-*-tests` routine can do mutation testing.** Track upstream issue
+   and revisit. This is the same wall the functional-tests routine hit
+   on 2026-05-18.
+2. **`InvestigationLineage`, `InvestigationGuard`** — three- and
+   four-line wrappers in `services/qyl.mcp/Agents/` around
+   `EnvConfig.ReadInt` and the governance types from
+   `ANcpLua.Agents.Governance`. Cheap parameterized tests pinning the
+   env-var → governance-config mapping (depth 3 default, spawn 10
+   default, min 1 floor).
+3. **`QylScope.FromEnvironment`** — the only non-test scope factory.
+   Trim-and-empty-handling for `QYL_SERVICE` / `QYL_SESSION`. Touches
+   `Environment.GetEnvironmentVariable`, so it would need either an env
+   override pattern or accept the implicit-environment side effect.
+4. **`Formatting/ResponseFormatter`, `Formatting/ErrorFormatter`** —
+   `qyl.mcp` LLM-coaching formatters (the LLM-result-cap pattern
+   documented in `services/qyl.mcp/CLAUDE.md`). Pure text-shaping, no
+   existing tests.
+5. **`Capabilities/QylCapabilityCatalog`, `Skills/QylSkillCatalog`** —
+   manifest enumeration generators. Worth a smoke test that the manifest
+   contains the documented count plus at least the documented names.
+6. **`Scoping/ScopingDelegatingHandler`** — sibling of `QylScopeInjector`
+   on the outbound HTTP side. Adjacent target now that the inbound
+   injector is covered.
+
+**Handoff:** none. PR #363 is open and awaits review/merge; do not push
+to `main` from this routine.
