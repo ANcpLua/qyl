@@ -89,9 +89,14 @@ public static class ProvisioningEndpoints
         });
 
         group.MapGet("/jobs", static async Task<IResult> (
-            string workspaceId, [FromServices] GenerationProfileService service,
+            string? workspaceId, [FromServices] GenerationProfileService service,
             int? limit, CancellationToken ct) =>
         {
+            // workspaceId is declared nullable so the route binder hands the
+            // request through to this in-handler guard with a clean 400 + JSON
+            // body, instead of throwing BadHttpRequestException ("required
+            // parameter ... was not provided") which the global exception
+            // handler surfaces as 500 in Development.
             if (string.IsNullOrWhiteSpace(workspaceId))
                 return TypedResults.BadRequest(new { error = "workspaceId query parameter is required" });
 

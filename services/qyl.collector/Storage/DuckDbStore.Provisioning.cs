@@ -50,6 +50,13 @@ public sealed partial class DuckDbStore
     }
 
 
+    // The generation_jobs table (see DuckDbSchema.g.cs:106) names the primary
+    // key `id`, the timestamp `queued_at`, and the output column `output_path`.
+    // The C# GenerationJobRecord shape (JobId / CreatedAt / OutputUrl) predates
+    // that schema; the SQL below maps between them so the endpoint contract
+    // can stay stable. `job_type` / `priority` are required columns on the
+    // table but are not part of the current HTTP request body — defaulted to
+    // "full" / 0 until ProvisioningEndpoints surfaces them.
     public async Task InsertGenerationJobAsync(
         GenerationJobRecord job,
         CancellationToken ct = default) =>
@@ -58,13 +65,16 @@ public sealed partial class DuckDbStore
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
                               INSERT INTO generation_jobs
-                                  (job_id, workspace_id, profile_id, status, output_url, error_message, created_at, completed_at)
-                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                  (id, workspace_id, profile_id, job_type, status, priority,
+                                   output_path, error_message, queued_at, completed_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = job.JobId });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.WorkspaceId ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ProfileId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = "full" });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.Status });
+            cmd.Parameters.Add(new DuckDBParameter { Value = 0 });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.OutputUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ErrorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.CreatedAt });
@@ -81,10 +91,10 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-                          SELECT job_id, workspace_id, profile_id, status,
-                                 output_url, error_message, created_at, completed_at
+                          SELECT id, workspace_id, profile_id, status,
+                                 output_path, error_message, queued_at, completed_at
                           FROM generation_jobs
-                          WHERE job_id = $1
+                          WHERE id = $1
                           """;
         cmd.Parameters.Add(new DuckDBParameter { Value = jobId });
 
@@ -104,10 +114,10 @@ public sealed partial class DuckDbStore
             cmd.CommandText = """
                               UPDATE generation_jobs SET
                                   status = $1,
-                                  output_url = $2,
+                                  output_path = $2,
                                   error_message = $3,
                                   completed_at = $4
-                              WHERE job_id = $5
+                              WHERE id = $5
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = job.Status });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.OutputUrl ?? (object)DBNull.Value });
@@ -128,10 +138,10 @@ public sealed partial class DuckDbStore
         var clampedLimit = Math.Clamp(limit, 1, 1000);
 
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT job_id, workspace_id, profile_id, status,"
-                          + " output_url, error_message, created_at, completed_at"
+        cmd.CommandText = "SELECT id, workspace_id, profile_id, status,"
+                          + " output_path, error_message, queued_at, completed_at"
                           + " FROM generation_jobs WHERE workspace_id = $1"
-                          + " ORDER BY created_at DESC LIMIT "
+                          + " ORDER BY queued_at DESC LIMIT "
                           + clampedLimit.ToString(CultureInfo.InvariantCulture);
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
