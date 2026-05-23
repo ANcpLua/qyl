@@ -16,7 +16,7 @@
          parser flags as CS1570. The XML is functionally fine for IntelliSense and
          docfx; suppressing the warning class for this generated package is the
          documented "acceptable suppression for source-generated code" pattern. -->
-    <NoWarn>$(NoWarn);CS1570;NU1507</NoWarn>
+    <NoWarn>$(NoWarn);CS1570</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
