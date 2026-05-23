@@ -46,7 +46,7 @@ env:
 
 jobs:
   version:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
       is_release: ${{ steps.ver.outputs.is_release }}
@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, blacksmith-4vcpu-windows-2025, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -107,7 +107,7 @@ jobs:
   publish:
     needs: [version, build]
     if: needs.version.outputs.is_release == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: nuget
     permissions:
       id-token: write
@@ -156,7 +156,7 @@ jobs:
   release:
     needs: [version, publish]
     if: needs.version.outputs.is_release == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
