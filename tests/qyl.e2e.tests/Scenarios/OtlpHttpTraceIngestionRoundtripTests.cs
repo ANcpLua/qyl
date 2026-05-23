@@ -42,7 +42,7 @@ public sealed class OtlpHttpTraceIngestionRoundtripTests(QylTopologyFixture topo
         var serviceName = $"qyl-e2e-otlp-{Guid.NewGuid():N}";
         var spanName = $"e2e-span-{Guid.NewGuid():N}";
 
-        var nowNanos = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000UL;
+        var nowNanos = (ulong)TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000UL;
         var payload = new
         {
             resourceSpans = new[]
@@ -110,10 +110,10 @@ public sealed class OtlpHttpTraceIngestionRoundtripTests(QylTopologyFixture topo
         long baseline,
         CancellationToken ct)
     {
-        var deadline = DateTime.UtcNow + s_pollTimeout;
+        var deadline = TimeProvider.System.GetUtcNow() + s_pollTimeout;
         TelemetryStats latest = default;
 
-        while (DateTime.UtcNow < deadline)
+        while (TimeProvider.System.GetUtcNow() < deadline)
         {
             latest = await ReadStatsAsync(http, ct);
             if (latest.SpanCount > baseline) return latest;

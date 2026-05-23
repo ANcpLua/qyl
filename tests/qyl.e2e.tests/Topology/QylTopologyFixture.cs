@@ -48,8 +48,7 @@ public sealed class QylTopologyFixture : IAsyncLifetime
                 .Build();
             await _network.CreateAsync(ct).ConfigureAwait(false);
 
-            _collector = new ContainerBuilder()
-                .WithImage(_options.CollectorImage)
+            _collector = new ContainerBuilder(_options.CollectorImage)
                 .WithImagePullPolicy(static _ => false)
                 .WithNetwork(_network)
                 .WithNetworkAliases("qyl-collector")
@@ -62,8 +61,7 @@ public sealed class QylTopologyFixture : IAsyncLifetime
                 .Build();
             await _collector.StartAsync(ct).ConfigureAwait(false);
 
-            _mcp = new ContainerBuilder()
-                .WithImage(_options.McpImage)
+            _mcp = new ContainerBuilder(_options.McpImage)
                 .WithImagePullPolicy(static _ => false)
                 .WithNetwork(_network)
                 .WithNetworkAliases("qyl-mcp")
@@ -101,7 +99,7 @@ public sealed class QylTopologyFixture : IAsyncLifetime
 
         if (_network is not null)
         {
-            await _network.DeleteAsync().ConfigureAwait(false);
+            await _network.DisposeAsync().ConfigureAwait(false);
             _network = null;
         }
 
