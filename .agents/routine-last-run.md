@@ -4,6 +4,159 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-functional-tests 2026-05-22 (auto)
+
+**Outcome:** Added end-to-end functional coverage for `/api/v1/configurator/*`
+(ProvisioningEndpoints) — the explicit next-up gap from PR #360's carry-forward
+list. Adding the test surfaced two latent production bugs in the job-creation
+path; both fixed in the same PR as a minimum, focused change.
+
+**State on arrival:**
+- Worktree clean on `claude/youthful-lamport-3ada0b`. `dotnet build qyl.slnx`
+  clean (0 errors).
+- Prior functional baseline: `HealthUiEndpointTests` (3 cases) + `Observe-
+  SubscriptionEndpointsTests` (8 cases) = 11 functional cases on main, all
+  green across three consecutive runs.
+- Last functional branch on remote: `tests/auto-functional-2026-05-20` (PR
+  #360, still OPEN — SchemaPromotionEndpoints coverage + a missing-column
+  fix). My branch starts from main, not from that branch, so I do not see
+  the SchemaPromotion class yet — it will land independently when #360
+  merges.
+- xUnit v3 + `Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>`
+  remains the repo's functional-test pattern. SKILL.md prescribes TUnit; the
+  global CLAUDE.md says "follow existing architecture unless the task is to
+  replace them," and CLAUDE.md wins on conflict. A TUnit migration belongs
+  in its own dedicated commit, not bundled with a feature gap. Same
+  rationale as PR #360.
+
+**Changes shipped (two logical commits on `tests/auto-functional-2026-05-22`):**
+
+1. `fix(provisioning): make /api/v1/configurator/jobs/* actually work
+   end-to-end` — touches
+   `services/qyl.collector/Storage/DuckDbStore.Provisioning.cs` (SQL column
+   alignment to the actual `generation_jobs` schema) and
+   `services/qyl.collector/Provisioning/ProvisioningEndpoints.cs`
+   (nullable `workspaceId` on `GET /jobs`).
+2. `test(functional/provisioning): cover /api/v1/configurator/* end-to-end`
+   — adds `tests/qyl.collector.tests/Functional/Provisioning/Provisioning-
+   EndpointsTests.cs` with 17 `[Fact]` rows covering all 7 routes:
+   profiles list/get/404, selections validation/upsert/round-trip/404,
+   jobs create/validation/list-ordering/cancel/double-cancel/404.
+
+**Bugs surfaced + fixed:**
+
+1. *DuckDB column drift.* `DuckDbStore.Provisioning.cs` was writing/reading
+   `job_id` / `output_url` / `created_at` against a `generation_jobs` table
+   whose live columns are `id` / `output_path` / `queued_at`. Plus it never
+   bound the NOT NULL `job_type` and `priority` columns. Every
+   `POST /api/v1/configurator/jobs` would have 500'd in production with
+   `Binder Error: Table "generation_jobs" does not have a column with
+   name "job_id"`. Aligned SQL to the actual `DuckDbSchema.g.cs:106-124`
+   shape; `job_type` defaults to "full" and `priority` to 0 because the
+   endpoint surface doesn't yet accept them.
+
+2. *Minimal-API binder vs in-handler guard.* `GET /jobs` declared
+   `string workspaceId` (non-nullable) which makes the route binder
+   throw `BadHttpRequestException` before the in-handler
+   `IsNullOrWhiteSpace` check runs; the Development exception middleware
+   surfaced that as 500. The handler is already designed to return a
+   clean 400 + JSON body — making the parameter nullable lets it.
+
+**Fakes / stubs used:**
+
+- `DuckDbStore` → `:memory:qyl-prov-<guid>` (named in-memory DB, unique per
+  fixture). Same pattern as ObserveSubscriptionEndpointsTests and the
+  SchemaPromotionEndpointsTests in PR #360. Avoids
+  `Catalog write-write conflict on alter` collisions.
+- `QYL_OTLP_AUTH_MODE=Unsecured` for clean boot. The configurator routes
+  are not behind OTLP token auth.
+- No outbound HTTP → no WireMock / `TUnit.Mocks.Http` needed.
+- No time-driven behavior on the assertion path → no `FakeTimeProvider`.
+  The job-listing ordering test does use a 25 ms `Task.Delay` between
+  creates to give DuckDB's TIMESTAMP column a deterministic ordering; this
+  is the only time-sensitive bit.
+
+**xUnit → TUnit migrations:** None — see "State on arrival" above.
+
+**Refactors for testability:** None required beyond the two production
+bug fixes themselves.
+
+**Mutation score:** Carried forward. `~/.dotnet/tools/dotnet-stryker` is
+installed but there's still no `stryker-config.json` in the repo. The
+production files this PR touches (`DuckDbStore.Provisioning.cs` +
+`ProvisioningEndpoints.cs`) are the natural first scope for a Stryker
+config commit when one lands.
+
+**Verification:**
+
+- `dotnet build qyl.slnx` — 0 errors, ~108 warnings (analyzer baseline).
+- `ProvisioningEndpointsTests` standalone — 17/17 across three consecutive
+  runs (~1.0–1.6 s each). Zero flakes.
+- Full functional tier (`-trait Category=Functional`) — 25/25 across three
+  consecutive runs (Observe 8 + Provisioning 17; HealthUi has the
+  `Functional` Collection but not the trait so doesn't show under this
+  filter, but full-suite below confirms it).
+- Full collector test suite (`-noTrait Category=regen`) — 37/37 (HealthUi 3
+  + Observe 8 + Provisioning 17 + non-functional 9). No regressions.
+
+**Gaps remaining for next run:**
+
+1. *TypeSpec drift, ConfiguratorApi.* `core/specs/api/routes.tsp:817+`
+   declares a different contract than `ProvisioningEndpoints.cs` ships:
+   `listProfiles` is paged (`CursorPage<GenerationProfileEntity>` with
+   `limit?`/`cursor?`), but the impl returns
+   `{items, total}` with no pagination; spec has `POST /profiles`,
+   `GET /selections?workspaceId=`, no `POST /jobs/{id}/cancel`, no
+   `GET /jobs?workspaceId=`. The implementation is a handwritten
+   superset/sub-set; the generated `ConfiguratorApiController` is not
+   wired into the route table. This needs a separate alignment pass —
+   either bring the impl back to spec, or update the spec to the
+   shipping shape. Either path is bigger than a functional-test
+   routine should take on solo.
+
+2. *Off-spec `JobStatus` enum values.* `GenerationProfileService.Enqueue-
+   JobAsync` initializes new jobs with `Status = "pending"`, but the
+   TypeSpec `JobStatus` enum is `queued|running|completed|failed|
+   cancelled`. The tests pin down "pending" because that's what the
+   service emits today; aligning to "queued" should land with the
+   TypeSpec sweep above.
+
+3. *Duplicate provisioning services.* `Provisioning/ProfileService.cs` and
+   `Provisioning/GenerationJobService.cs` exist alongside
+   `GenerationProfileService.cs` but are not referenced by any endpoint.
+   They define an `InstrumentationProfile` / `ConfigSelectionRequest`
+   record set that duplicates the `GenerationProfile` /
+   `GenerationSelectionRequest` set used by the live endpoints. Looks
+   like dead code from an earlier rename/split. Worth confirming + deleting
+   in a focused cleanup commit.
+
+4. *Stryker.NET config.* Still not in the repo. Once landed and scoped to
+   `services/qyl.collector/Provisioning/` + `Storage/DuckDbStore.Provi-
+   sioning.cs`, the routine can satisfy its mutation-testing step.
+
+5. *`add_index` change_type* (carry-forward from PR #360) — schema
+   promotion path still untested for index-only changes.
+
+6. *`qyl.mcp` service* — still zero functional coverage; needs its own
+   factory shape (stdio + HTTP).
+
+7. *Middleware contracts* (carry-forward from PR #360 and the bootstrap
+   run) — `UseQylCollectorMiddleware` redaction / exception-capture /
+   trace-emission paths still untested through the pipeline.
+
+**Hard-constraint compliance:**
+
+- Never pushed to `main`, never merged, did not approve own PR.
+- No existing test deleted, skipped, or weakened.
+- No edits to `AGENTS.md`, `CLAUDE.md`, `.editorconfig`, `.globalconfig`,
+  CI YAML, `Directory.Build.props`, `Version.props`, or `global.json`.
+- No real external services hit. Pure in-process boot, in-memory DuckDB.
+- No unit / integration / e2e work bundled in.
+
+**Handoff:** none. The carry-forward gaps above are functional-tier work
+for the next run plus one TypeSpec alignment pass that belongs to its own
+dedicated routine cycle.
+
 ## qyl-e2e-tests 2026-05-20 04:31
 
 **Outcome:** BLOCKED — Docker daemon still not running. Second consecutive day.

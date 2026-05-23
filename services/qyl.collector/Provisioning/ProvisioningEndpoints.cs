@@ -96,7 +96,7 @@ public static class ProvisioningEndpoints
             // request through to this in-handler guard with a clean 400 + JSON
             // body, instead of throwing BadHttpRequestException ("required
             // parameter ... was not provided") which the global exception
-            // handler surfaces as 500 in Development.
+            // handler surfaces as 500.
             if (string.IsNullOrWhiteSpace(workspaceId))
                 return TypedResults.BadRequest(new { error = "workspaceId query parameter is required" });
 
