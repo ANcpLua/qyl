@@ -25,11 +25,11 @@ public sealed partial class DuckDbStore
         cmd.CommandText = """
                           SELECT s.span_id,
                                  s.name,
-                                 json_extract_string(s.attributes_json, 'gen_ai.input.messages')
+                                 json_extract_string(s.attributes_json, '$."gen_ai.input.messages"')
                           FROM spans s
                           LEFT JOIN span_clusters sc ON s.span_id = sc.span_id
-                          WHERE json_extract_string(s.attributes_json, 'gen_ai.operation.name') IS NOT NULL
-                            AND json_extract_string(s.attributes_json, 'gen_ai.input.messages') IS NOT NULL
+                          WHERE json_extract_string(s.attributes_json, '$."gen_ai.operation.name"') IS NOT NULL
+                            AND json_extract_string(s.attributes_json, '$."gen_ai.input.messages"') IS NOT NULL
                             AND sc.span_id IS NULL
                           ORDER BY s.start_time_unix_nano DESC
                           LIMIT $1

@@ -15,5 +15,10 @@ public static partial class DuckDbSchema
                                                   created_at TIMESTAMP DEFAULT now(),
                                                   sql_statements VARCHAR NOT NULL DEFAULT ''
                                               );
+                                              ALTER TABLE schema_promotions
+                                                  ADD COLUMN IF NOT EXISTS sql_statements VARCHAR;
+                                              UPDATE schema_promotions
+                                                  SET sql_statements = ''
+                                                  WHERE sql_statements IS NULL;
                                               """;
 }

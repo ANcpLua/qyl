@@ -8,9 +8,9 @@ namespace Qyl.Collector.Integration.Tests.Storage;
 /// <see cref="DuckDbStore"/> — both the read selector
 /// <see cref="DuckDbStore.GetUnclusteredChatSpansAsync"/> and the upsert writer
 /// <see cref="DuckDbStore.UpsertSpanClustersAsync"/>. The read path leans on
-/// DuckDB's JSON arrow operator (<c>attributes_json-&gt;&gt;'key'</c>) applied to a
-/// plain <c>VARCHAR</c> column plus a <c>LEFT JOIN … IS NULL</c> anti-pattern —
-/// both rely on engine semantics that cannot be checked with mocks. The write
+/// DuckDB's <c>json_extract_string</c> function applied to dotted telemetry
+/// keys in a plain <c>VARCHAR</c> column plus a <c>LEFT JOIN … IS NULL</c>
+/// anti-pattern — both rely on engine semantics that cannot be checked with mocks. The write
 /// path is an <c>ON CONFLICT (span_id) DO UPDATE</c> that has to overwrite every
 /// non-PK column, including <c>computed_at</c>.
 /// </summary>
@@ -47,7 +47,7 @@ public sealed class SpanClustersIntegrationTests : IAsyncDisposable
         rows.Should().ContainSingle("only one seeded span satisfies the gen_ai predicates");
         rows[0].SpanId.Should().Be("span-ok");
         rows[0].InputMessages.Should().Be(inputMessages,
-            "the third projected column is `attributes_json->>'gen_ai.input.messages'`; for a JSON string value, DuckDB's `->>` unwraps the surrounding quotes");
+            "the third projected column extracts the dotted `gen_ai.input.messages` attribute as a JSON string value");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class SpanClustersIntegrationTests : IAsyncDisposable
         var rows = await _store.GetUnclusteredChatSpansAsync(limit: 10, ct);
 
         rows.Should().BeEmpty(
-            "`NULL->>'key'` evaluates to NULL, which the `IS NOT NULL` predicate rejects");
+            "`json_extract_string(NULL, path)` evaluates to NULL, which the `IS NOT NULL` predicate rejects");
     }
 
     [Fact]
