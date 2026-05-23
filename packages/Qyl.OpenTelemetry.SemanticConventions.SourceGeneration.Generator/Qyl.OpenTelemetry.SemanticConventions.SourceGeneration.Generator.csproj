@@ -51,6 +51,7 @@
     <PackageId>Qyl.OpenTelemetry.SemanticConventions.SourceGeneration</PackageId>
     <Description>Roslyn source generator that materialises OpenTelemetry semantic-conventions constants, descriptors, and thin helpers for user-declared partial classes. Emits stable/incubating projections for attributes, metrics, events, Meter factories, and Activity setters from the pinned OpenTelemetry semantic-conventions v1.41.0 Weaver registry.</Description>
     <Authors>ancplua</Authors>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <!-- All package references have PrivateAssets="all" so SuppressDependenciesWhenPacking
          is implicit — nuspec will have a single empty dependency group for netstandard2.0. -->
