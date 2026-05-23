@@ -5,6 +5,15 @@
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <OutputType>Exe</OutputType>
+    <!-- MultipleGlobalAnalyzerKeys: emitted when running this build from inside a
+         git worktree under the source tree (the worktree's `.globalconfig` and
+         the source's `.globalconfig` are both ancestors of the project file).
+         Harmless — the analyzer key gets unset and the strictest of the two
+         configs wins. Same NoWarn pattern that
+         packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator
+         already carries for the same root cause. Worktree-specific noise, not
+         a real codebase issue. -->
+    <NoWarn>$(NoWarn);MultipleGlobalAnalyzerKeys</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
