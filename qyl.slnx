@@ -21,7 +21,6 @@
     <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
     <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
-    <Project Path="packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj" />
     <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
   </Folder>
@@ -48,7 +47,6 @@
     <Project Path="tests/qyl.instrumentation.generators.tests/qyl.instrumentation.generators.tests.csproj" />
     <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
     <Project Path="tests/qyl.opentelemetry.extensions.tests/qyl.opentelemetry.extensions.tests.csproj" />
-    <Project Path="tests/qyl.opentelemetry.semconv.sourcegen.tests/qyl.opentelemetry.semconv.sourcegen.tests.csproj" />
   </Folder>
 
   <Folder Name="/eng/">
