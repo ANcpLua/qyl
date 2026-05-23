@@ -4,6 +4,100 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-e2e-tests 2026-05-23 06:15 (auto)
+
+**Outcome:** First non-no-op E2E routine run since PR #353 (2026-05-18). Three
+days of Docker-down / Docker-up-but-builds-broken no-ops (PRs #357, #359, and
+two undocumented runs) cleared. Second real E2E scenario landed plus two
+infrastructure fixes that unblock the routine itself. Open PR
+[#365](https://github.com/O-ANcppLua/qyl/pull/365) on
+`tests/auto-e2e-2026-05-23`.
+
+**State on arrival:**
+
+- OrbStack daemon was stopped on entry; `orb start` brought it up. All
+  prior runs since 2026-05-19 exited at this gate without trying.
+- No qyl images existed locally. `nuke DockerImageBuild` failed under
+  Nuke's parallel wrapper without surfacing the real error; direct
+  `docker build` revealed the actual cause.
+- `dotnet build qyl.slnx` was clean (0 errors, 104 warnings) but
+  `dotnet test tests/qyl.e2e.tests -c Release` failed: 67 errors, all
+  pre-existing Release-mode bit-rot in the qyl.e2e.tests project
+  inherited from PR #353 (which was verified Debug-only).
+- Existing E2E coverage: 1 real scenario (`OtlpHttpTraceIngestionRoundtripTests`)
+  + 1 fixture-self-test (`WireMockLlmSeamTests`). qyl-mcp was booted by
+  the fixture but had zero scenario coverage despite being a documented
+  next-up gap in PR #353.
+
+**Root-cause hunt — the slow part of this run:**
+
+- The Dockerfile chain `dotnet publish ... && test -f /app/*.dll || (echo
+  "ERROR: .NET publish failed" && exit 1)` was misreporting the actual
+  failure. Publish was writing `qyl.collector.dll` to `/app/` correctly
+  (verified by inlining `ls -la /app/`); the `test -f` step also passed.
+  The build was failing because `dotnet publish` itself was exiting
+  non-zero from NU1507 escalated to error, and `&&` short-circuited
+  before the test ran. Adding `-p:UseArtifactsOutput=false` /
+  `-p:PublishDir=/app/` was a red herring — neither was the issue.
+- Real cause: NuGet 6.13+ promoted the missing-`packageSourceMapping`
+  diagnostic from warning NU1507 to **error** NU1507. Commit `c2ab2116`
+  on 2026-05-19 added the GitHub Packages source to `nuget.config`
+  without a mapping. Every restore since has been failing silently on
+  every project, and `dotnet publish` (which runs restore implicitly
+  even with `--no-restore` for diagnostic emission) was inheriting the
+  non-zero exit. Local repo builds were unaffected because incremental
+  builds reuse the already-restored `project.assets.json` from earlier
+  successful restores.
+
+**Changes shipped (three logical commits on `tests/auto-e2e-2026-05-23`):**
+
+1. `1beca6be fix(build): add packageSourceMapping so dotnet publish
+   stops failing on NU1507` — production fix. Maps `*` to nuget.org and
+   the O-ANcppLua-published prefixes (`Nuke.OpenTelemetry.Conventions`,
+   `ANcpLua.OtelConventions.*`) to GitHub Packages. Unblocks every
+   future `nuke DockerImageBuild` and CI restore.
+2. `ca388eee fix(tests/e2e): heal release-mode bit-rot so the existing
+   scenario still builds` — three regressions accumulated since PR
+   #353: Testcontainers deprecated `ContainerBuilder()` parameterless
+   ctor (CS0618), `DateTime.UtcNow`/`DateTimeOffset.UtcNow` in the OTLP
+   scenario fire AL0026/RS0030 in Release, `INetwork _network` was
+   never disposed (CA2213). Plus a `MultipleGlobalAnalyzerKeys` NoWarn
+   matching the pattern in `Qyl.OpenTelemetry.SemanticConventions.
+   SourceGeneration.Generator.csproj`.
+3. `1ec0ae34 test(e2e/mcp): cover qyl-mcp's /llms.txt agent-discovery
+   surface` — the actual new E2E scenario. One [Fact], joins
+   `E2ECollection`, asserts MCP is serving its source-generator-emitted
+   tool catalog at runtime (heading, summary, transport,
+   `[1-9][0-9]*`-regex tool/capability counts, discovery tool names,
+   `## Enabled Capabilities` section). Catches the AOT-trimmer
+   regression that a plain `Contains("Tool count:")` would miss.
+
+**Scenario kept narrow:** static `/llms.txt` projection only, not the
+full MCP JSON-RPC `initialize` + `tools/list` handshake. That bigger
+flow is the natural next routine's priority — explicitly noted as Gap
+#2 in the PR body.
+
+**Verification:**
+
+- `dotnet build qyl.slnx` — 0 errors, 104 warnings.
+- `dotnet build tests/qyl.e2e.tests -c Release` — 0 errors, 0 warnings.
+- `docker build` collector + mcp images — both succeed, no NU1507.
+- `dotnet test tests/qyl.e2e.tests -c Release` — 3/3 passed across 3
+  consecutive runs (7.5s cold, 5.0s + 5.0s warm). Zero flakes.
+
+**Gaps remaining for next run:**
+
+1. **Spans VARCHAR-vs-byte read-mapping bug** (carry-forward from PR
+   #353). Still blocks `GET /api/v1/traces`. Outside this routine's
+   scope — integration-tests routine should land it first.
+2. **MCP JSON-RPC scenario.** Drive `initialize` + `tools/list` over
+   the Streamable HTTP `/mcp` endpoint to exercise the actual MCP
+   transport, not just the static `/llms.txt` projection.
+3. **qyl-loom topology addition.** Service is in `eng/compose.yaml`
+   and built by `nuke DockerImageBuild` but absent from the topology
+   fixture. Adding it needs an `OPENAI_API_KEY` stub via the existing
+   WireMock LLM seam.
+
 ## qyl-functional-tests 2026-05-22 (auto)
 
 **Outcome:** Added end-to-end functional coverage for `/api/v1/configurator/*`
