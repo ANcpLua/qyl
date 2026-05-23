@@ -66,11 +66,7 @@
     <!-- UndefineProperties mirrors qyl.semconv.smoke: prevents the consumer's
          per-TFM globals (TargetFramework, RuntimeIdentifier, SelfContained)
          from leaking into the netstandard2.0 generator's recursive evaluation. -->
-    <ProjectReference
-      Include="../../../packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj"
-      OutputItemType="Analyzer"
-      ReferenceOutputAssembly="false"
-      UndefineProperties="TargetFramework;PublishAot;RuntimeIdentifier;RuntimeIdentifiers;SelfContained"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'netstandard2.0'">

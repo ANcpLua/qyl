@@ -94,8 +94,8 @@
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
-    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions\Qyl.OpenTelemetry.SemanticConventions.csproj"/>
-    <ProjectReference Include="..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Incubating\Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 

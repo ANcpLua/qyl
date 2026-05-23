@@ -53,11 +53,7 @@
          into the netstandard2.0 analyzer build. Otherwise NETSDK1207 fires
          on the generator csproj during the recursive publish evaluation,
          not on this smoke binary. -->
-    <ProjectReference
-      Include="../../../packages/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator/Qyl.OpenTelemetry.SemanticConventions.SourceGeneration.Generator.csproj"
-      OutputItemType="Analyzer"
-      ReferenceOutputAssembly="false"
-      UndefineProperties="TargetFramework;PublishAot;RuntimeIdentifier;RuntimeIdentifiers;SelfContained"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
   </ItemGroup>
 
 </Project>

@@ -65,8 +65,8 @@
     <!-- Shared types -->
     <ProjectReference Include="../../packages/Qyl.Contracts/Qyl.Contracts.csproj"/>
     <ProjectReference Include="../../packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj"/>
-    <ProjectReference Include="../../packages/Qyl.OpenTelemetry.SemanticConventions/Qyl.OpenTelemetry.SemanticConventions.csproj"/>
-    <ProjectReference Include="../../packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
 
     <!-- Source generator for auto-instrumentation -->
     <ProjectReference Include="../../internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"

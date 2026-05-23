@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
-    <ProjectReference Include="..\..\..\packages\Qyl.OpenTelemetry.SemanticConventions.Incubating\Qyl.OpenTelemetry.SemanticConventions.Incubating.csproj"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
   </ItemGroup>
 
 </Project>

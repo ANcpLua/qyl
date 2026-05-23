@@ -115,6 +115,14 @@
     <!-- E2E test topology (tests/qyl.e2e.tests only): deterministic LLM stub + Docker topology -->
     <PackageVersion Include="WireMock.Net" Version="$(WireMockNetVersion)"/>
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersVersion)"/>
+    <!-- Qyl-private vendor-fork of the upstream OTel semantic-conventions source-generator
+         work in opentelemetry-dotnet-contrib#4424. Published-but-unlisted on nuget.org while
+         the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
+         When #4424 merges these PackageReference rows swap to the upstream id — type identities
+         preserved, so consumer code keeps compiling. -->
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="2.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="2.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="2.0.0"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>
