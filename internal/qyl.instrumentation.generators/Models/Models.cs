@@ -104,26 +104,46 @@ internal sealed record DbCallSite(
 internal sealed record MeterDefinition(
     string SortKey,
     string Namespace,
+    EquatableArray<MeterContainingTypeDefinition> ContainingTypes,
     string ClassName,
+    string ClassModifiers,
     string MeterName,
     string? MeterVersion,
     EquatableArray<MetricMethodDefinition> Methods);
+
+internal sealed record MeterContainingTypeDefinition(
+    string ClassName,
+    string ClassModifiers);
 
 internal enum MetricKind
 {
     Counter,
     Histogram,
     Gauge,
-    UpDownCounter
+    UpDownCounter,
+    ObservableCounter,
+    ObservableGauge,
+    ObservableUpDownCounter
+}
+
+internal enum ObservableCallbackKind
+{
+    None,
+    Value,
+    Measurement,
+    Measurements
 }
 
 internal sealed record MetricMethodDefinition(
     string MethodName,
+    string Accessibility,
     MetricKind Kind,
     string MetricName,
     string? Unit,
     string? Description,
     string? ValueTypeName,
+    string? ValueParameterName,
+    ObservableCallbackKind CallbackKind,
     EquatableArray<MetricTagParameter> Tags);
 
 internal sealed record MetricTagParameter(

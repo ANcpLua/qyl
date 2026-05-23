@@ -34,7 +34,7 @@ public static class GlobalExceptionHooks
 {
     private static int s_registered;
 
-    private static readonly ActivitySource s_source = new("Qyl.Instrumentation.ErrorCapture");
+    private static readonly ActivitySource s_source = new(ActivitySources.ErrorCapture);
 
     public static void Register(ILoggerFactory loggerFactory)
     {

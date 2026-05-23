@@ -1,10 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace Qyl.Collector.Tests.Functional.Provisioning;
 
@@ -39,7 +35,7 @@ public sealed class ProvisioningEndpointsTests
         body.GetProperty("total").GetInt32().Should().Be(BuiltInProfileIds.Length);
 
         var ids = body.GetProperty("items").EnumerateArray()
-            .Select(item => item.GetProperty("id").GetString())
+            .Select(static item => item.GetProperty("id").GetString())
             .ToArray();
 
         ids.Should().BeEquivalentTo(BuiltInProfileIds,
@@ -232,11 +228,11 @@ public sealed class ProvisioningEndpointsTests
         body.GetProperty("profileId").GetString().Should().Be("full");
         body.GetProperty("createdAt").GetString().Should().NotBeNullOrWhiteSpace();
 
-        response.Headers.Location.Should().NotBeNull(
-            "201 Created responses must surface a Location header pointing at the GET endpoint");
-        response.Headers.Location!.OriginalString.Should().Be($"/api/v1/configurator/jobs/{jobId}");
+        var location = response.Headers.Location
+                       ?? throw new InvalidOperationException("Expected POST job response to include a Location header.");
+        location.OriginalString.Should().Be($"/api/v1/configurator/jobs/{jobId}");
 
-        using var getResponse = await client.GetAsync(response.Headers.Location, ct);
+        using var getResponse = await client.GetAsync(location, ct);
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK,
             "the Location header must resolve to a real GET-able job resource");
     }
@@ -311,7 +307,7 @@ public sealed class ProvisioningEndpointsTests
             }, ct);
             createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
             var createdBody = await createResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
-            createdJobIds.Add(createdBody.GetProperty("jobId").GetString()!);
+            createdJobIds.Add(GetRequiredString(createdBody, "jobId"));
 
             await Task.Delay(TimeSpan.FromMilliseconds(25), ct);
         }
@@ -391,30 +387,14 @@ public sealed class ProvisioningEndpointsTests
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    public sealed class CollectorFactory : WebApplicationFactory<Program>
+    public sealed class CollectorFactory() : CollectorFunctionalFactory("provisioning")
     {
-        // Named in-memory DuckDB: ":memory:<name>" gives each fixture its own
-        // catalog. The bare ":memory:" alias (used by HealthUiEndpointTests)
-        // points every connection at the same process-global in-memory DB, so
-        // when xUnit boots multiple functional test class fixtures their
-        // migration runs collide with "Catalog write-write conflict on alter".
-        // The unique suffix isolates fixtures without writing to disk. Same
-        // pattern as ObserveSubscriptionEndpointsTests and
-        // SchemaPromotionEndpointsTests.
-        private readonly string _dataPath = $":memory:qyl-prov-{Guid.NewGuid():N}";
+    }
 
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment(Environments.Development);
-
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["QYL_DATA_PATH"] = _dataPath,
-                    ["QYL_OTLP_AUTH_MODE"] = "Unsecured"
-                });
-            });
-        }
+    private static string GetRequiredString(JsonElement element, string propertyName)
+    {
+        var value = element.GetProperty(propertyName).GetString();
+        value.Should().NotBeNullOrWhiteSpace();
+        return value ?? throw new InvalidOperationException($"Expected '{propertyName}' to be present.");
     }
 }

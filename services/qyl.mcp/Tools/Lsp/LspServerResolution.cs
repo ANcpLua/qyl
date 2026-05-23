@@ -45,8 +45,11 @@ internal static class WorkspaceRootWalker
 
     public static string FindRoot(string filePath)
     {
-        var directory = new DirectoryInfo(
-            File.Exists(filePath) ? Path.GetDirectoryName(filePath)! : filePath);
+        var file = new FileInfo(filePath);
+        var directoryPath = file.Exists
+            ? file.DirectoryName ?? throw new InvalidOperationException("Expected file path to have a directory.")
+            : filePath;
+        var directory = new DirectoryInfo(directoryPath);
 
         string? projectLevelRoot = null;
 

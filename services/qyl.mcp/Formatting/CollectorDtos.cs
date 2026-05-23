@@ -92,16 +92,72 @@ internal sealed record MetricInfoDto(
     [property: JsonPropertyName("type")] string Type,
     [property: JsonPropertyName("description")]
     string? Description = null,
-    [property: JsonPropertyName("unit")] string? Unit = null);
+    [property: JsonPropertyName("unit")] string? Unit = null,
+    [property: JsonPropertyName("label_keys")]
+    IReadOnlyList<string>? LabelKeys = null,
+    [property: JsonPropertyName("services")]
+    IReadOnlyList<string>? Services = null,
+    [property: JsonPropertyName("services_truncated")]
+    bool ServicesTruncated = false,
+    [property: JsonPropertyName("service_limit")]
+    int? ServiceLimit = null);
 
-internal sealed record TimeSeriesDto(
-    [property: JsonPropertyName("metric")] string Metric,
-    [property: JsonPropertyName("points")] List<DataPointDto> Points);
+internal sealed record PublicMetricMetadataPageDto(
+    [property: JsonPropertyName("items")]
+    IReadOnlyList<MetricInfoDto> Items,
+    [property: JsonPropertyName("next_cursor")]
+    string? NextCursor,
+    [property: JsonPropertyName("prev_cursor")]
+    string? PrevCursor,
+    [property: JsonPropertyName("has_more")]
+    bool HasMore);
+
+internal sealed record PublicMetricQueryRequestDto(
+    [property: JsonPropertyName("metric_name")]
+    string MetricName,
+    [property: JsonPropertyName("filters")]
+    Dictionary<string, string>? Filters,
+    [property: JsonPropertyName("start_time")]
+    string? StartTime,
+    [property: JsonPropertyName("end_time")]
+    string? EndTime,
+    [property: JsonPropertyName("step")]
+    string? Step,
+    [property: JsonPropertyName("group_by")]
+    IReadOnlyList<string>? GroupBy,
+    [property: JsonPropertyName("series_limit")]
+    int? SeriesLimit = null,
+    [property: JsonPropertyName("point_limit")]
+    int? PointLimit = null);
+
+internal sealed record PublicMetricQueryResponseDto(
+    [property: JsonPropertyName("metric_name")]
+    string MetricName,
+    [property: JsonPropertyName("series")]
+    IReadOnlyList<PublicMetricTimeSeriesDto> Series,
+    [property: JsonPropertyName("series_truncated")]
+    bool SeriesTruncated = false,
+    [property: JsonPropertyName("series_limit")]
+    int? SeriesLimit = null,
+    [property: JsonPropertyName("points_truncated")]
+    bool PointsTruncated = false,
+    [property: JsonPropertyName("point_limit")]
+    int? PointLimit = null);
+
+internal sealed record PublicMetricTimeSeriesDto(
+    [property: JsonPropertyName("labels")]
+    Dictionary<string, string>? Labels,
+    [property: JsonPropertyName("points")]
+    List<DataPointDto> Points);
 
 internal sealed record DataPointDto(
     [property: JsonPropertyName("timestamp")]
     string Timestamp,
     [property: JsonPropertyName("value")] double Value);
+
+internal sealed record CollectorErrorDto(
+    [property: JsonPropertyName("error")]
+    string? Error);
 
 internal sealed record ServiceInfoDto(
     [property: JsonPropertyName("name")] string Name,
@@ -146,3 +202,9 @@ internal sealed record ApiKeyResponseDto(
     [property: JsonPropertyName("key")] string Key,
     [property: JsonPropertyName("prefix")] string Prefix,
     [property: JsonPropertyName("name")] string Name);
+
+[JsonSerializable(typeof(CollectorErrorDto))]
+[JsonSerializable(typeof(PublicMetricMetadataPageDto))]
+[JsonSerializable(typeof(PublicMetricQueryRequestDto))]
+[JsonSerializable(typeof(PublicMetricQueryResponseDto))]
+internal sealed partial class CollectorDtosJsonContext : JsonSerializerContext;

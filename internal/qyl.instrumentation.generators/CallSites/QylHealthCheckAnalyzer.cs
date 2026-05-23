@@ -33,18 +33,27 @@ internal static class QylHealthCheckAnalyzer
         if (attr.ConstructorArguments is not [{ Value: string name }, { Values: var tagConstants }, ..])
             return null;
 
-        var tags = tagConstants.IsDefault
-            ? default
-            : Enumerable.Select(
-                    Enumerable.Select(tagConstants, static t => t.Value as string)
-                        .Where(static t => !string.IsNullOrEmpty(t)),
-                    static t => t!).ToArray()
-                .ToEquatableArray();
+        var tags = ExtractTags(tagConstants);
 
         return new QylHealthCheckDefinition(
             classSymbol.GetFullyQualifiedName(),
             name,
             tags,
             IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
+    }
+
+    private static EquatableArray<string> ExtractTags(ImmutableArray<TypedConstant> tagConstants)
+    {
+        if (tagConstants.IsDefault)
+            return default;
+
+        var tags = new List<string>();
+        foreach (var tagConstant in tagConstants)
+        {
+            if (tagConstant.Value is string tag && !string.IsNullOrEmpty(tag))
+                tags.Add(tag);
+        }
+
+        return tags.ToEquatableArray();
     }
 }

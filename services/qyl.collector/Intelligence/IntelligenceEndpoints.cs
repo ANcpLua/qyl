@@ -36,13 +36,17 @@ internal static class IntelligenceEndpoints
             if (spans.Count is 0)
                 return TypedResults.NotFound();
         }
-        else
+        else if (issueId is not null)
         {
-            var issue = await store.GetIssueByIdAsync(issueId!, ct).ConfigureAwait(false);
+            var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null)
                 return TypedResults.NotFound();
 
             spans = await GetSpansForIssueAsync(store, issue.ErrorType, ct).ConfigureAwait(false);
+        }
+        else
+        {
+            return TypedResults.BadRequest(new { error = "Provide traceId or issueId." });
         }
 
         var signals = ExtractSignals(spans);
@@ -253,7 +257,7 @@ internal static class IntelligenceEndpoints
         cmd.CommandText = """
                           SELECT *
                           FROM spans
-                          WHERE status_code = 2
+                          WHERE TRY_CAST(status_code AS INTEGER) = 2
                             AND status_message ILIKE $1
                           ORDER BY start_time_unix_nano DESC
                           LIMIT 50

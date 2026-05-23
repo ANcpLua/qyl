@@ -43,7 +43,7 @@ public static class CollectorAuthExtensions
             ExcludedPaths =
             [
                 "/health", "/alive", "/health/ui",
-                "/v1/traces", "/v1/logs",
+                "/v1/traces", "/v1/logs", "/v1/profiles",
                 "/api/",
                 "/assets/",
                 "/favicon.ico"

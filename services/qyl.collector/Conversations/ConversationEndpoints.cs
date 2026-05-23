@@ -1,3 +1,5 @@
+using Qyl.Collector.Telemetry;
+
 namespace Qyl.Collector.Conversations;
 
 public sealed record ConversationCaptureFlags(
@@ -53,10 +55,10 @@ public sealed record ConversationListResponse(
 
 internal static class ConversationEndpoints
 {
-    private static readonly Meter s_conversationsMeter = new("qyl.observability.conversations", "1.0.0");
+    private static readonly Meter s_conversationsMeter = new(QylTelemetry.ConversationsMeterName, QylTelemetry.ServiceVersion);
 
     private static readonly Histogram<long> s_spanCountHistogram = s_conversationsMeter.CreateHistogram<long>(
-        "qyl_observability_conversation_span_count",
+        QylTelemetry.ConversationSpanCountMetricName,
         unit: "{span}",
         description: "Number of spans returned in a single conversation thread fetch");
 
@@ -91,9 +93,7 @@ internal static class ConversationEndpoints
               + " WHERE json_extract_string(attributes_json, '$.\"gen_ai.agent.name\"') = $"
               + cmd.AddParam(agent) + ")";
 
-        // AL0111 forbids any string interpolation reaching CommandText — even safe int values
-        // must go through the parameter path. Compose the SQL via + concatenation (the same
-        // idiom used for agentFilter above) so the analyzer sees no `$"..."` literal.
+        // Keep CommandText free of interpolated strings so the SQL analyzer can validate it.
         var windowParam = cmd.AddParam(window);
         var limitParam = cmd.AddParam(boundedLimit);
 
@@ -212,7 +212,7 @@ internal static class ConversationEndpoints
                 ToolName: reader.Col(12).AsString,
                 ToolCallId: reader.Col(13).AsString,
                 CostUsd: costUsd,
-                StatusCode: reader.Col(15).GetByte((byte)0),
+                StatusCode: ReadStatusCode(reader, 15),
                 StatusMessage: reader.Col(16).AsString,
                 Attributes: ParseJson(reader.Col(17).AsString)));
         }
@@ -248,6 +248,26 @@ internal static class ConversationEndpoints
 
     private static DateTime NanosToUtc(ulong nanos) =>
         DateTime.UnixEpoch.AddTicks((long)(nanos / 100));
+
+    private static int ReadStatusCode(DbDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal)) return 0;
+
+        var value = reader.GetValue(ordinal);
+        return value switch
+        {
+            byte status => status,
+            sbyte status => status,
+            short status => status,
+            ushort status => status,
+            int status => status,
+            uint status when status <= int.MaxValue => (int)status,
+            long status when status is >= int.MinValue and <= int.MaxValue => (int)status,
+            ulong status when status <= int.MaxValue => (int)status,
+            string raw when int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+            _ => 0
+        };
+    }
 
     private static JsonElement? ParseJson(string? raw)
     {

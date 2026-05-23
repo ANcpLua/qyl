@@ -51,8 +51,8 @@ public sealed class AgentInsightsService(DuckDbStore store)
         cmd.CommandText = "SELECT time_bucket(INTERVAL '" + interval
                                                           + "', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,"
                                                           + " COUNT(*) AS runs,"
-                                                          + " SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS errors,"
-                                                          + " ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate"
+                                                          + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS errors,"
+                                                          + " ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate"
                                                           + " FROM spans"
                                                           + " WHERE start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
                                                           + " AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)"
@@ -128,7 +128,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
                           FROM spans
                           WHERE start_time_unix_nano >= $1
                             AND start_time_unix_nano < $2
-                            AND status_code = 2
+                            AND TRY_CAST(status_code AS INTEGER) = 2
                             AND (gen_ai_request_model IS NOT NULL OR gen_ai_tool_name IS NOT NULL)
                           GROUP BY error
                           ORDER BY count DESC
@@ -292,7 +292,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
                                   trace_id,
                                   MIN(start_time_unix_nano) AS start_nano,
                                   MAX(end_time_unix_nano) AS end_nano,
-                                  SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS errors,
+                                  SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS errors,
                                   SUM(CASE WHEN gen_ai_request_model IS NOT NULL THEN 1 ELSE 0 END) AS llm_calls,
                                   SUM(CASE WHEN gen_ai_tool_name IS NOT NULL THEN 1 ELSE 0 END) AS tool_calls,
                                   COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS total_tokens,
@@ -380,7 +380,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
                               COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
                               COALESCE(SUM(gen_ai_cost_usd), 0) AS cost,
                               ROUND(AVG(duration_ns / 1000000.0), 2) AS avg_ms,
-                              ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
+                              ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
                           FROM spans
                           WHERE start_time_unix_nano >= $1
                             AND start_time_unix_nano < $2
@@ -439,7 +439,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
                               COALESCE(gen_ai_tool_name, 'unknown') AS tool,
                               COUNT(*) AS calls,
                               ROUND(AVG(duration_ns / 1000000.0), 2) AS avg_ms,
-                              ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
+                              ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
                           FROM spans
                           WHERE start_time_unix_nano >= $1
                             AND start_time_unix_nano < $2

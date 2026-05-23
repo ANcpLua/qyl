@@ -1,5 +1,7 @@
+using OpenTelemetry.Metrics;
 using Qyl.Collector;
 using Qyl.Collector.Hosting;
+using Qyl.Collector.Telemetry;
 using Qyl.Instrumentation.Instrumentation;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
@@ -10,11 +12,17 @@ builder.AddQylServiceDefaults(options =>
 {
     options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
-    options.AdditionalActivitySources.Add("Qyl.Collector");
+    options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
+    options.ConfigureMetrics = static metrics =>
+    {
+        metrics.AddMeter(QylTelemetry.ServiceName);
+        metrics.AddMeter(QylTelemetry.StorageMeterName);
+        metrics.AddMeter(QylTelemetry.ConversationsMeterName);
+    };
 });
 
 var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
-builder.Services.AddQylCollectorStorage(builder.Configuration);
+builder.Services.AddQylCollectorStorage();
 builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
 builder.Services.AddQylCollectorTelemetry(builder.Environment);
 builder.Services.AddQylCollectorFeatures(builder.Configuration);

@@ -1,28 +1,11 @@
 using ANcpLua.Roslyn.Utilities.Time;
+using Qyl.Collector.Metrics;
 
 namespace Qyl.Collector.Analytics;
 
 [QylService(QylLifetime.Singleton)]
 public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalyService> logger)
 {
-
-    private static readonly FrozenDictionary<string, string> s_metricExpressions =
-        new Dictionary<string, string>
-        {
-            ["error_rate"] =
-                "CAST(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS DOUBLE) / NULLIF(COUNT(*), 0)",
-            ["latency"] = "PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns)",
-            ["latency_p50"] = "PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY duration_ns)",
-            ["latency_p95"] = "PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns)",
-            ["latency_p99"] = "PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY duration_ns)",
-            ["request_count"] = "COUNT(*)",
-            ["token_usage"] =
-                "SUM(CAST(attributes_json->>'gen_ai.usage.total_tokens' AS BIGINT)) FILTER (WHERE attributes_json->>'gen_ai.usage.total_tokens' IS NOT NULL)",
-            ["cost"] =
-                "SUM(CAST(attributes_json->>'gen_ai.response.cost' AS DOUBLE)) FILTER (WHERE attributes_json->>'gen_ai.response.cost' IS NOT NULL)"
-        }.ToFrozenDictionary();
-
-
     public async Task<AnomalyDetectionResult> DetectAnomaliesAsync(
         string metric,
         int hours = 24,
@@ -30,18 +13,19 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        var metricExpr = ValidateAndGetExpression(metric);
+        var metricSelection = ValidateAndGetMetric(metric);
         var cutoffNano = ComputeCutoffNano(hours);
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
+        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
         var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
         cmd.CommandText = "WITH hourly AS ("
                           + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricExpr + " AS metric_value"
-                          + " FROM spans WHERE start_time_unix_nano >= $1 " + serviceFilter
+                          + " " + metricSelection.Expression + " AS metric_value"
+                          + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
                           + " GROUP BY bucket"
                           + "), stats AS (SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev FROM hourly)"
                           + " SELECT h.bucket, h.metric_value,"
@@ -84,18 +68,19 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        var metricExpr = ValidateAndGetExpression(metric);
+        var metricSelection = ValidateAndGetMetric(metric);
         var cutoffNano = ComputeCutoffNano(hours);
 
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
+        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
         var serviceFilter = service is not null ? "AND service_name = $2" : "";
 
         cmd.CommandText = "WITH hourly AS ("
                           + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricExpr + " AS metric_value"
-                          + " FROM spans WHERE start_time_unix_nano >= $1 " + serviceFilter
+                          + " " + metricSelection.Expression + " AS metric_value"
+                          + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
                           + " GROUP BY bucket)"
                           + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
                           + " PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) AS p50,"
@@ -135,12 +120,12 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        var metricExpr = ValidateAndGetExpression(metric);
+        var metricSelection = ValidateAndGetMetric(metric);
 
         var period1 = await GetPeriodBaselineAsync(
-            metric, metricExpr, period1Start, period1End, service, ct).ConfigureAwait(false);
+            metric, metricSelection, period1Start, period1End, service, ct).ConfigureAwait(false);
         var period2 = await GetPeriodBaselineAsync(
-            metric, metricExpr, period2Start, period2End, service, ct).ConfigureAwait(false);
+            metric, metricSelection, period2Start, period2End, service, ct).ConfigureAwait(false);
 
         var meanDelta = period2.Mean - period1.Mean;
         var meanDeltaPercent = period1.Mean is not 0
@@ -155,7 +140,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
 
     private async Task<BaselineResult> GetPeriodBaselineAsync(
         string metric,
-        string metricExpr,
+        AnomalyMetricSelection metricSelection,
         DateTime periodStart,
         DateTime periodEnd,
         string? service,
@@ -168,12 +153,14 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
 
+        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
         var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
         cmd.CommandText = "WITH hourly AS ("
                           + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricExpr + " AS metric_value"
+                          + " " + metricSelection.Expression + " AS metric_value"
                           + " FROM spans WHERE start_time_unix_nano >= $1 AND start_time_unix_nano <= $2 " +
+                          metricFilter + " " +
                           serviceFilter
                           + " GROUP BY bucket)"
                           + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
@@ -203,17 +190,20 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
     }
 
-    private static string ValidateAndGetExpression(string metric)
+    private static AnomalyMetricSelection ValidateAndGetMetric(string metric)
     {
-        if (!s_metricExpressions.TryGetValue(metric, out var expr))
+        if (!DerivedMetricCatalog.TryGetAnomalyMetric(metric, out var selection))
         {
             throw new ArgumentException(
-                $"Unknown metric '{metric}'. Valid metrics: {string.Join(", ", s_metricExpressions.Keys)}",
+                $"Unknown metric '{metric}'. Valid metrics: {string.Join(", ", DerivedMetricCatalog.GetAnomalyMetricNames().Order(StringComparer.Ordinal))}",
                 nameof(metric));
         }
 
-        return expr;
+        return selection;
     }
+
+    private static string BuildMetricPredicate(string? predicate) =>
+        predicate is null ? string.Empty : $"AND ({predicate})";
 
     private static long ComputeCutoffNano(int hours) =>
         TimeConversions.ToUnixNano(

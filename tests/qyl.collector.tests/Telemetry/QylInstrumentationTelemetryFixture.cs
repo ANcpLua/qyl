@@ -57,7 +57,6 @@ public sealed class QylInstrumentationTelemetryFixture : IAgentFixture, ITelemet
 
     public async ValueTask DisposeAsync()
     {
-        GC.SuppressFinalize(this);
         _instrumented?.Dispose();
         _fake?.Dispose();
         if (_services is not null)

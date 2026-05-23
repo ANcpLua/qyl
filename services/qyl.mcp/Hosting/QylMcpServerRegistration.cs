@@ -19,8 +19,10 @@ using qyl.mcp.Scoping;
 
 namespace qyl.mcp.Hosting;
 
-internal static class QylMcpServerRegistration
+internal static partial class QylMcpServerRegistration
 {
+    private const string LoggerCategory = "qyl.mcp.Hosting.QylMcpServerRegistration";
+
     public static void Configure(
         IServiceCollection services,
         SkillConfiguration skills,
@@ -107,10 +109,13 @@ internal static class QylMcpServerRegistration
 
     private static void ConfigureOAuth(IMcpServerBuilder builder, McpHostOptions hostOptions)
     {
+        var authority = RequireConfigured(hostOptions.KeycloakAuthority, McpAuthOptions.KeycloakAuthorityEnvVar);
+        var audience = RequireConfigured(hostOptions.KeycloakAudience, McpHostOptions.KeycloakAudienceEnvVar);
+
         builder.WithQylOAuthProtectedResource(options =>
         {
-            options.Authority = hostOptions.KeycloakAuthority!;
-            options.Audience = hostOptions.KeycloakAudience!;
+            options.Authority = authority;
+            options.Audience = audience;
             options.ResolveResourceUrl = req => new Uri(hostOptions.ResolvePublicMcpUrl(req));
             options.ConfigureMetadata = metadata =>
             {
@@ -130,15 +135,15 @@ internal static class QylMcpServerRegistration
             var logger = CreateLogger(context.HttpContext.RequestServices);
             var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
             var audience = context.Principal?.FindFirst("aud")?.Value ?? "(unspecified)";
-            logger.LogInformation("JWT validated: sub={Subject} aud={Audience}", subject, audience);
+            LogJwtValidated(logger, subject, audience);
             return Task.CompletedTask;
         }
 
         static Task OnAuthenticationFailedAsync(AuthenticationFailedContext context)
         {
             var logger = CreateLogger(context.HttpContext.RequestServices);
-            logger.LogWarning(
-                "JWT authentication failed: {ExceptionType}: {ExceptionMessage}",
+            LogJwtAuthenticationFailed(
+                logger,
                 context.Exception.GetType().Name,
                 context.Exception.Message);
             return Task.CompletedTask;
@@ -148,8 +153,8 @@ internal static class QylMcpServerRegistration
         {
             var logger = CreateLogger(context.HttpContext.RequestServices);
             var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
-            logger.LogWarning(
-                "JWT authorized but role check failed: sub={Subject} path={Path}",
+            LogJwtRoleCheckFailed(
+                logger,
                 subject,
                 context.HttpContext.Request.Path.ToString());
             return Task.CompletedTask;
@@ -157,8 +162,27 @@ internal static class QylMcpServerRegistration
 
         static ILogger CreateLogger(IServiceProvider services) =>
             services.GetRequiredService<ILoggerFactory>()
-                .CreateLogger(typeof(QylMcpServerRegistration).FullName!);
+                .CreateLogger(LoggerCategory);
     }
+
+    private static string RequireConfigured(string? value, string environmentVariable) =>
+        string.IsNullOrWhiteSpace(value)
+            ? throw new InvalidOperationException($"{environmentVariable} is required when MCP OAuth is enabled.")
+            : value;
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "JWT validated: sub={Subject} aud={Audience}")]
+    private static partial void LogJwtValidated(ILogger logger, string subject, string audience);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "JWT authentication failed: {ExceptionType}: {ExceptionMessage}")]
+    private static partial void LogJwtAuthenticationFailed(
+        ILogger logger,
+        string exceptionType,
+        string exceptionMessage);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "JWT authorized but role check failed: sub={Subject} path={Path}")]
+    private static partial void LogJwtRoleCheckFailed(ILogger logger, string subject, string path);
 }
 
 internal static class McpAuthRoles

@@ -6,7 +6,11 @@ internal static class EmitterHelpers
                                                    namespace System.Runtime.CompilerServices
                                                    {
                                                        [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
-                                                       file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute;
+                                                       file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute
+                                                       {
+                                                           public int Version { get; } = version;
+                                                           public string Data { get; } = data;
+                                                       }
                                                    }
                                                    """;
 

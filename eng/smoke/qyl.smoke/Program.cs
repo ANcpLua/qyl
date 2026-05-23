@@ -36,7 +36,6 @@ Console.WriteLine($"#   otlp              {Environment.GetEnvironmentVariable("O
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddQylServiceDefaults(static opts =>
 {
-    opts.AdditionalActivitySources.Add("qyl.smoke");
     opts.EnableDefaultHealthChecks = false;
     opts.EnableDefaultHealthEndpoints = false;
 });
@@ -75,21 +74,17 @@ var agent = chatClient
         description: "PRD #173 quality gate — exercises cost + activity processors and inventory.",
         providerName: "ollama");
 
-using var smokeSource = new ActivitySource("qyl.smoke");
+using var conversation = ActivitySources.AgentSource.StartActivity(name: "smoke conversation");
+conversation?.SetTag(GenAiAttributes.ConversationId, conversationId);
 
-using (var conversation = smokeSource.StartActivity(name: "smoke conversation"))
+for (var i = 1; i <= turns; i++)
 {
-    conversation?.SetTag(GenAiAttributes.ConversationId, conversationId);
-
-    for (var i = 1; i <= turns; i++)
-    {
-        Console.WriteLine($"# turn {i}/{turns}: invoking SmokeAgent…");
-        var response = await agent
-            .RunAsync($"Are you alive? (turn {i})")
-            .ConfigureAwait(false);
-        var text = response.Text.Trim();
-        Console.WriteLine($"  → {text}");
-    }
+    Console.WriteLine($"# turn {i}/{turns}: invoking SmokeAgent…");
+    var response = await agent
+        .RunAsync($"Are you alive? (turn {i})")
+        .ConfigureAwait(false);
+    var text = response.Text.Trim();
+    Console.WriteLine($"  → {text}");
 }
 
 await Task.Delay(2_500).ConfigureAwait(false);

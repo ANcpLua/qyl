@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -31,8 +32,9 @@ public sealed partial class SuggestFixTool(HttpClient client)
 
         response.EnsureSuccessStatusCode();
         var spans = await response.Content.ReadFromJsonAsync<IReadOnlyList<SpanDetailDto>>(ct).ConfigureAwait(false);
+        spans = Guard.NotNull(spans);
 
-        var errorSpans = spans!.Where(s => s.Status is "error").ToList();
+        var errorSpans = spans.Where(s => s.Status is "error").ToList();
 
         if (errorMessage is not null)
         {

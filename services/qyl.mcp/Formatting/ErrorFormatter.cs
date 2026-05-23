@@ -8,6 +8,8 @@ internal static class ErrorFormatter
         error switch
         {
             HttpRequestException httpEx => FormatHttpError(httpEx, transport),
+            TaskCanceledException taskEx when taskEx.CancellationToken.IsCancellationRequested =>
+                FormatOperationCancelled(taskEx),
             TaskCanceledException { InnerException: TimeoutException or null } =>
                 "**Timeout:** The collector did not respond in time. Retry or check if qyl collector is running.",
             OperationCanceledException opEx => FormatOperationCancelled(opEx),

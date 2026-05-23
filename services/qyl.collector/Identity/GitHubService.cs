@@ -238,13 +238,14 @@ public sealed partial class GitHubService(
 
     public async Task<DeviceCodeResponse?> StartDeviceFlowAsync(CancellationToken ct = default)
     {
-        if (!IsDeviceFlowAvailable)
+        var clientId = _clientId;
+        if (string.IsNullOrWhiteSpace(clientId))
             return null;
 
         using var client = httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = _clientId!, ["scope"] = "repo"
+            ["client_id"] = clientId, ["scope"] = "repo"
         });
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/device/code");
@@ -265,13 +266,14 @@ public sealed partial class GitHubService(
 
     public async Task<DevicePollResponse> PollDeviceFlowAsync(string deviceCode, CancellationToken ct = default)
     {
-        if (!IsDeviceFlowAvailable)
+        var clientId = _clientId;
+        if (string.IsNullOrWhiteSpace(clientId))
             return new DevicePollResponse("error", null, "Device flow not configured");
 
         using var client = httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = _clientId!,
+            ["client_id"] = clientId,
             ["device_code"] = deviceCode,
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code"
         });

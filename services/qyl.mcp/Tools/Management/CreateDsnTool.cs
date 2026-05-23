@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
 using qyl.mcp.Formatting;
@@ -32,11 +33,12 @@ public sealed partial class CreateDsnTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<DsnDto>(ct).ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         return ResponseFormatter.FormatDetail(
             "DSN Created",
             [
-                ("DSN", $"`{result!.Dsn}` (save this — it may not be shown again)"),
+                ("DSN", $"`{result.Dsn}` (save this — it may not be shown again)"),
                 ("Label", result.Label),
                 ("Created", result.DateCreated)
             ]);

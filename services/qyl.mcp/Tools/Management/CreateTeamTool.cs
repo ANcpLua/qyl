@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -26,11 +27,12 @@ public sealed partial class CreateTeamTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<TeamDto>(ct).ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         return ResponseFormatter.FormatDetail(
             "Team Created",
             [
-                ("Name", result!.Name),
+                ("Name", result.Name),
                 ("Slug", $"`{result.Slug}`"),
                 ("Description", result.Description)
             ]);

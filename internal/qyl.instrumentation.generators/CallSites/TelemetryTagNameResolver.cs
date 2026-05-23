@@ -8,11 +8,13 @@ internal static class TelemetryTagNameResolver
 
     public static string ResolveName(ISymbol symbol, Compilation compilation, string? explicitName, string fallbackName)
     {
-        if (!string.IsNullOrWhiteSpace(explicitName))
-            return explicitName!;
+        if (explicitName is { } resolvedExplicitName && !string.IsNullOrWhiteSpace(resolvedExplicitName))
+            return resolvedExplicitName;
 
         var otel = ReadOtelOverride(symbol, compilation);
-        return !string.IsNullOrWhiteSpace(otel.Name) ? otel.Name! : fallbackName;
+        return otel.Name is { } resolvedOtelName && !string.IsNullOrWhiteSpace(resolvedOtelName)
+            ? resolvedOtelName
+            : fallbackName;
     }
 
     public static bool ResolveSkipIfNull(ISymbol symbol, Compilation compilation, bool? explicitSkipIfNull,

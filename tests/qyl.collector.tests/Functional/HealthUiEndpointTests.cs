@@ -1,9 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qyl.Collector.Auth;
@@ -44,7 +42,7 @@ public sealed class HealthUiEndpointTests : IClassFixture<HealthUiEndpointTests.
             .Should().NotBeNullOrWhiteSpace();
 
         var components = payload.GetProperty("components").EnumerateArray()
-            .Select(c => c.GetProperty("name").GetString())
+            .Select(static c => c.GetProperty("name").GetString())
             .ToArray();
 
         components.Should().Contain(["duckdb", "disk", "memory", "ingestion"]);
@@ -94,43 +92,18 @@ public sealed class HealthUiEndpointTests : IClassFixture<HealthUiEndpointTests.
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-        var location = response.Headers.Location;
-        location.Should().NotBeNull();
-        location!.OriginalString.Should().NotContain("t=" + ConfiguredToken,
+        var location = response.Headers.Location
+                       ?? throw new InvalidOperationException("Expected TokenAuthMiddleware to return a redirect Location.");
+        location.OriginalString.Should().NotContain("t=" + ConfiguredToken,
             because: "the middleware strips the token from the redirect target");
     }
 
-    public sealed class CollectorFactory : WebApplicationFactory<Program>
+    public sealed class CollectorFactory() : CollectorFunctionalFactory("health")
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment(Environments.Development);
-
-            builder.ConfigureAppConfiguration(static (_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    // ":memory:" DuckDB keeps the test fully in-process. Real
-                    // file-backed DuckDB behaviour (recovery, concurrency,
-                    // persistence) belongs in qyl-integration-tests, not here.
-                    ["QYL_DATA_PATH"] = ":memory:",
-                    ["QYL_OTLP_AUTH_MODE"] = "Unsecured",
-                });
-            });
-        }
-
         protected override IHost CreateHost(IHostBuilder builder)
         {
             var host = base.CreateHost(builder);
 
-            // Lock TokenAuthOptions.Token to a known value AFTER the production
-            // wiring has run. CollectorAuthExtensions reads QYL_TOKEN via
-            // config["QYL_TOKEN"] and falls back to TokenGenerator.Generate()
-            // when unset — mutating the resolved singleton sidesteps any
-            // config-source priority surprises and lets the redirect test
-            // construct a query token deterministically. TokenAuthOptions is
-            // a plain singleton with a settable Token property, so the
-            // mutation is safe.
             host.Services.GetRequiredService<TokenAuthOptions>().Token = ConfiguredToken;
 
             return host;

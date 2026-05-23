@@ -49,9 +49,8 @@ internal static class TracedCallSiteAnalyzer
             ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic, compilation);
         var returnCapture = ExtractReturnCapture(method, tracedReturnAttributeType);
         var typeParameters = ExtractTypeParameters(method);
-        var parameterTypes =
-            method.Parameters.Select(static p => p.Type.ToDisplayString()).ToArray().ToEquatableArray();
-        var parameterNames = method.Parameters.Select(static p => p.Name).ToArray().ToEquatableArray();
+        var parameterTypes = ExtractParameterTypes(method);
+        var parameterNames = ExtractParameterNames(method);
 
         var returnTypeName = method.ReturnType.ToDisplayString();
         var isAsyncEnumerable = returnTypeName.StartsWithOrdinal(AsyncEnumerablePrefix);
@@ -92,6 +91,30 @@ internal static class TracedCallSiteAnalyzer
             codeNamespace,
             codeLineNumber,
             interceptLocation);
+    }
+
+    private static EquatableArray<string> ExtractParameterTypes(IMethodSymbol method)
+    {
+        if (method.Parameters.Length is 0)
+            return default;
+
+        var parameterTypes = new List<string>(method.Parameters.Length);
+        foreach (var parameter in method.Parameters)
+            parameterTypes.Add(parameter.Type.ToDisplayString());
+
+        return parameterTypes.ToEquatableArray();
+    }
+
+    private static EquatableArray<string> ExtractParameterNames(IMethodSymbol method)
+    {
+        if (method.Parameters.Length is 0)
+            return default;
+
+        var parameterNames = new List<string>(method.Parameters.Length);
+        foreach (var parameter in method.Parameters)
+            parameterNames.Add(parameter.Name);
+
+        return parameterNames.ToEquatableArray();
     }
 
 
@@ -245,7 +268,7 @@ internal static class TracedCallSiteAnalyzer
                 isValueType));
         }
 
-        return tags.ToArray().ToEquatableArray();
+        return tags.ToEquatableArray();
     }
 
 
@@ -297,7 +320,7 @@ internal static class TracedCallSiteAnalyzer
             }
         }
 
-        return properties.ToArray().ToEquatableArray();
+        return properties.ToEquatableArray();
     }
 
 
@@ -333,13 +356,17 @@ internal static class TracedCallSiteAnalyzer
     }
 
 
-    private static EquatableArray<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method) =>
-        method.TypeParameters.IsEmpty
-            ? default
-            : method.TypeParameters
-                .Select(static tp => new TypeParameterConstraint(tp.Name, BuildConstraintClause(tp)))
-                .ToArray()
-                .ToEquatableArray();
+    private static EquatableArray<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method)
+    {
+        if (method.TypeParameters.IsEmpty)
+            return default;
+
+        var typeParameters = new List<TypeParameterConstraint>(method.TypeParameters.Length);
+        foreach (var typeParameter in method.TypeParameters)
+            typeParameters.Add(new TypeParameterConstraint(typeParameter.Name, BuildConstraintClause(typeParameter)));
+
+        return typeParameters.ToEquatableArray();
+    }
 
     private static string? BuildConstraintClause(ITypeParameterSymbol tp)
     {

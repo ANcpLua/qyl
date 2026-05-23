@@ -8,6 +8,8 @@ public sealed class QylAgentInventory : IQylAgentInventory
 {
     private const int ActivityWindowCap = 10_000;
 
+    internal const string InventorySizeMetricName = "qyl.observability.inventory.size";
+
     private readonly ConcurrentDictionary<string, AgentRegistration> _entries =
         new(StringComparer.Ordinal);
 
@@ -20,10 +22,9 @@ public sealed class QylAgentInventory : IQylAgentInventory
     {
         _time = time;
 
-        // Discarded: the Meter holds a strong reference internally, so we don't need a field.
         _ = ActivitySources.AgentMeter.CreateObservableGauge(
-            "qyl_observability_inventory_size",
-            () => _entries.Count,
+            InventorySizeMetricName,
+            () => (long)_entries.Count,
             unit: "{agent}",
             description: "Count of agents registered in the qyl inventory");
     }

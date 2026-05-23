@@ -1,10 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace Qyl.Collector.Tests.Functional.SchemaControl;
 
@@ -81,7 +77,9 @@ public sealed class SchemaPromotionEndpointsTests
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
         var promotionId = body.GetProperty("promotionId").GetString();
         promotionId.Should().NotBeNullOrWhiteSpace();
-        promotionId!.Should().StartWith("promo-", "PlanPromotionAsync stamps a 'promo-' prefix");
+        var promotionResourceId = promotionId
+                                  ?? throw new InvalidOperationException("Expected planner response to include a promotion id.");
+        promotionResourceId.Should().StartWith("promo-", "PlanPromotionAsync stamps a 'promo-' prefix");
 
         body.GetProperty("changeType").GetString().Should().Be("add_table");
         body.GetProperty("targetTable").GetString().Should().Be(uniqueTable);
@@ -89,9 +87,10 @@ public sealed class SchemaPromotionEndpointsTests
         body.GetProperty("sqlStatements").GetString().Should().Contain(uniqueTable,
             "the planner returns the generated DDL on POST even though it is not persisted");
 
-        response.Headers.Location.Should().NotBeNull();
-        response.Headers.Location!.OriginalString
-            .Should().EndWith($"/api/v1/schema/promotions/{promotionId}");
+        var location = response.Headers.Location
+                       ?? throw new InvalidOperationException("Expected promotion response to include a Location header.");
+        location.OriginalString
+            .Should().EndWith($"/api/v1/schema/promotions/{promotionResourceId}");
     }
 
     [Fact]
@@ -227,30 +226,10 @@ public sealed class SchemaPromotionEndpointsTests
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
         var id = body.GetProperty("promotionId").GetString();
         id.Should().NotBeNullOrWhiteSpace();
-        return id!;
+        return id ?? throw new InvalidOperationException("Expected seeded promotion response to include a promotion id.");
     }
 
-    public sealed class CollectorFactory : WebApplicationFactory<Program>
+    public sealed class CollectorFactory() : CollectorFunctionalFactory("schema")
     {
-        // Named in-memory DuckDB so each functional fixture has its own
-        // catalog, matching the pattern in ObserveSubscriptionEndpointsTests.
-        // Plain ":memory:" routes every connection at the same process-global
-        // catalog and triggers "Catalog write-write conflict on alter" when
-        // two fixtures' migration runs overlap.
-        private readonly string _dataPath = $":memory:qyl-schema-{Guid.NewGuid():N}";
-
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment(Environments.Development);
-
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["QYL_DATA_PATH"] = _dataPath,
-                    ["QYL_OTLP_AUTH_MODE"] = "Unsecured"
-                });
-            });
-        }
     }
 }

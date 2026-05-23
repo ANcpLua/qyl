@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -31,9 +32,10 @@ public sealed partial class SearchSessionsTool(HttpClient client)
             ("cursor", cursor));
 
         var result = await client.GetFromJsonAsync<PagedResult<SessionSummaryDto>>(url, ct).ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         return ResponseFormatter.FormatPagedList(
-            result!,
+            result,
             "Sessions",
             s => $"- `{s.SessionId}` | **{s.Status}** | {s.ServiceName} | {s.SpanCount} spans | {s.CreatedAt}",
             "search_sessions",

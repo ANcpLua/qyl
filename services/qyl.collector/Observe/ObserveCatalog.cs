@@ -7,16 +7,25 @@ internal static class ObserveCatalog
     private const string SchemaVersion = DomainContracts.SchemaVersion;
 
 
-    private static readonly CatalogDomain[] s_domains =
-        BuildDomains().ToArray();
+    private static readonly CatalogDomain[] s_domains = [.. BuildDomains()];
 
     public static CatalogResponse Build(SubscriptionManager subscriptions)
     {
-        var active = subscriptions.GetAll()
-            .Select(static s => new SubscriptionDto(
-                s.Id, s.Filter, s.Endpoint, s.CreatedAt,
-                s.ContractHash, s.SchemaVersion))
-            .ToArray();
+        var activeSubscriptions = subscriptions.GetAll();
+        var active = new SubscriptionDto[activeSubscriptions.Count];
+        var index = 0;
+
+        foreach (var subscription in activeSubscriptions)
+        {
+            active[index] = new SubscriptionDto(
+                subscription.Id,
+                subscription.Filter,
+                subscription.Endpoint,
+                subscription.CreatedAt,
+                subscription.ContractHash,
+                subscription.SchemaVersion);
+            index++;
+        }
 
         return new CatalogResponse(SchemaVersion, s_domains, active);
     }
@@ -25,29 +34,56 @@ internal static class ObserveCatalog
     {
         foreach (var contract in DomainContracts.All)
         {
+            var traceAttributes = contract.TraceAttributes.Length is 0
+                ? null
+                : BuildCatalogAttributes(contract.TraceAttributes);
+
+            var metricInstruments = contract.MetricInstruments.Length is 0
+                ? null
+                : BuildCatalogMetricInstruments(contract.MetricInstruments);
+
             var domain = new CatalogDomain(
                 contract.Name,
                 contract.Source,
                 contract.Signals,
-                contract.TraceAttributes.Length is 0
-                    ? null
-                    : contract.TraceAttributes
-                        .Select(static attribute => new CatalogAttribute(
-                            attribute.Name,
-                            attribute.Type,
-                            attribute.Required))
-                        .ToArray(),
-                contract.MetricInstruments.Length is 0
-                    ? null
-                    : contract.MetricInstruments
-                        .Select(static metric => new CatalogMetricInstrument(
-                            metric.Name,
-                            metric.Instrument,
-                            metric.Unit))
-                        .ToArray());
+                traceAttributes,
+                metricInstruments);
 
             yield return domain with { ContractHash = ComputeHash(domain) };
         }
+    }
+
+    private static CatalogAttribute[] BuildCatalogAttributes(IReadOnlyList<AttributeDef> attributes)
+    {
+        var result = new CatalogAttribute[attributes.Count];
+
+        for (var i = 0; i < attributes.Count; i++)
+        {
+            var attribute = attributes[i];
+            result[i] = new CatalogAttribute(
+                attribute.Name,
+                attribute.Type,
+                attribute.Required);
+        }
+
+        return result;
+    }
+
+    private static CatalogMetricInstrument[] BuildCatalogMetricInstruments(
+        IReadOnlyList<MetricDef> instruments)
+    {
+        var result = new CatalogMetricInstrument[instruments.Count];
+
+        for (var i = 0; i < instruments.Count; i++)
+        {
+            var instrument = instruments[i];
+            result[i] = new CatalogMetricInstrument(
+                instrument.Name,
+                instrument.Instrument,
+                instrument.Unit);
+        }
+
+        return result;
     }
 
     internal static string? GetDomainHash(string sourceName)
@@ -63,7 +99,13 @@ internal static class ObserveCatalog
                 ? string.Empty
                 : string.Join(",", domain.TraceAttributes
                     .OrderBy(static a => a.Name, StringComparer.Ordinal)
-                    .Select(static a => $"{a.Name}:{a.Type}:{(a.Required ? "1" : "0")}")));
+                    .Select(static a => $"{a.Name}:{a.Type}:{(a.Required ? "1" : "0")}")),
+            ":",
+            domain.MetricInstruments is null
+                ? string.Empty
+                : string.Join(",", domain.MetricInstruments
+                    .OrderBy(static m => m.Name, StringComparer.Ordinal)
+                    .Select(static m => $"{m.Name}:{m.Instrument}:{m.Unit}")));
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hash)[..8].ToLowerInvariant();

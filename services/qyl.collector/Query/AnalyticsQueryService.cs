@@ -99,7 +99,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                           + " MIN(start_time_unix_nano) AS started_at,"
                           + " MAX(end_time_unix_nano) AS ended_at,"
                           + " COUNT(*) AS turn_count,"
-                          + " SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,"
+                          + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
                           + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
                           + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
                           + " MAX(" + EnduserIdExpr + ") AS user_id,"
@@ -238,14 +238,14 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                           + " SELECT " + ConversationIdExpr + " AS conversation_id,"
                           + " sc.cluster_label,"
                           + " COUNT(*) AS span_count,"
-                          + " SUM(CASE WHEN s.status_code = 2 THEN 1 ELSE 0 END) AS error_count,"
+                          + " SUM(CASE WHEN TRY_CAST(s.status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
                           + " COALESCE(SUM(s.gen_ai_input_tokens + s.gen_ai_output_tokens), 0) AS total_tokens,"
                           + " MAX(" + DurationMsExpr + ") AS max_duration_ms"
                           + " FROM spans s"
                           + " INNER JOIN span_clusters sc ON s.span_id = sc.span_id"
                           + " WHERE " + OperationNameExpr + " IS NOT NULL"
                           + " AND s.start_time_unix_nano >= $1 AND s.start_time_unix_nano < $2"
-                          + " AND (s.status_code = 2 OR s.gen_ai_output_tokens = 0 OR "
+                          + " AND (TRY_CAST(s.status_code AS INTEGER) = 2 OR s.gen_ai_output_tokens = 0 OR "
                           + DurationMsExpr + " > ("
                           + " SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY "
                           + DurationMsExpr + "), 999999)"
@@ -590,7 +590,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                           + " MIN(start_time_unix_nano) AS started_at,"
                           + " MIN(name) AS topic,"
                           + " COUNT(*) AS turn_count,"
-                          + " SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,"
+                          + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
                           + " COALESCE(SUM(gen_ai_input_tokens), 0) + COALESCE(SUM(gen_ai_output_tokens), 0) AS total_tokens"
                           + " FROM spans"
                           + " WHERE " + EnduserIdExpr + " = $1"
@@ -623,8 +623,9 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             return null;
 
         var frequentTopics = conversations
-            .Where(c => c.Topic is not null)
-            .GroupBy(c => c.Topic!)
+            .Select(static c => c.Topic)
+            .OfType<string>()
+            .GroupBy(static topic => topic)
             .OrderByDescending(g => g.Count())
             .Take(5)
             .Select(g => g.Key)

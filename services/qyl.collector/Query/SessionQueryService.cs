@@ -12,7 +12,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                                                     MAX(end_time_unix_nano) AS last_activity,
                                                     COUNT(*) AS span_count,
                                                     COUNT(DISTINCT trace_id) AS trace_count,
-                                                    SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                                    SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,
                                                     COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
                                                     COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
                                                     COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,

@@ -18,7 +18,7 @@ public sealed class QylScopeInjectorTests
         var result = Injector.Inject(args, QylScope.ForTest());
 
         result.Should().BeSameAs(args);
-        result!["someExisting"].GetString().Should().Be("existing-value");
+        result["someExisting"].GetString().Should().Be("existing-value");
         result.Should().NotContainKey("serviceName");
         result.Should().NotContainKey("sessionId");
     }
@@ -38,9 +38,9 @@ public sealed class QylScopeInjectorTests
 
         var result = Injector.Inject(arguments: null, scope);
 
-        result.Should().NotBeNull();
-        result!["serviceName"].GetString().Should().Be("svc");
-        result["sessionId"].GetString().Should().Be("sess");
+        var injected = RequireInjected(result);
+        injected["serviceName"].GetString().Should().Be("svc");
+        injected["sessionId"].GetString().Should().Be("sess");
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class QylScopeInjectorTests
         var result = Injector.Inject(args, scope);
 
         result.Should().BeSameAs(args);
-        result!["serviceName"].GetString().Should().Be("only-service");
+        result["serviceName"].GetString().Should().Be("only-service");
         result.Should().NotContainKey("sessionId");
     }
 
@@ -65,7 +65,7 @@ public sealed class QylScopeInjectorTests
         var result = Injector.Inject(args, scope);
 
         result.Should().BeSameAs(args);
-        result!["sessionId"].GetString().Should().Be("only-session");
+        result["sessionId"].GetString().Should().Be("only-session");
         result.Should().NotContainKey("serviceName");
     }
 
@@ -80,7 +80,8 @@ public sealed class QylScopeInjectorTests
 
         var result = Injector.Inject(args, scope);
 
-        result!["serviceName"].GetString().Should().Be("caller-service");
+        result.Should().NotBeNull();
+        result["serviceName"].GetString().Should().Be("caller-service");
         result["sessionId"].GetString().Should().Be("scope-session");
     }
 
@@ -95,7 +96,8 @@ public sealed class QylScopeInjectorTests
 
         var result = Injector.Inject(args, scope);
 
-        result!["sessionId"].GetString().Should().Be("caller-session");
+        result.Should().NotBeNull();
+        result["sessionId"].GetString().Should().Be("caller-session");
         result["serviceName"].GetString().Should().Be("scope-service");
     }
 
@@ -116,7 +118,8 @@ public sealed class QylScopeInjectorTests
 
         var result = Injector.Inject(args, scope);
 
-        result!["serviceName"].ValueKind.Should().Be(JsonValueKind.String);
+        result.Should().NotBeNull();
+        result["serviceName"].ValueKind.Should().Be(JsonValueKind.String);
         result["serviceName"].GetString().Should().Be("scope-service");
     }
 
@@ -132,7 +135,7 @@ public sealed class QylScopeInjectorTests
         var result = Injector.Inject(args, scope);
 
         result.Should().HaveCount(1);
-        result!["ServiceName"].GetString().Should().Be("caller-service");
+        result["ServiceName"].GetString().Should().Be("caller-service");
     }
 
     [Fact]
@@ -143,7 +146,8 @@ public sealed class QylScopeInjectorTests
 
         var result = Injector.Inject(args, scope);
 
-        result!["serviceName"].GetString().Should().Be("svc-A");
+        result.Should().NotBeNull();
+        result["serviceName"].GetString().Should().Be("svc-A");
         result["sessionId"].GetString().Should().Be("sess-B");
     }
 
@@ -173,4 +177,10 @@ public sealed class QylScopeInjectorTests
     private static JsonElement Str(string value) => JsonSerializer.SerializeToElement(value);
 
     private static JsonElement Json(string json) => JsonSerializer.Deserialize<JsonElement>(json);
+
+    private static IDictionary<string, JsonElement> RequireInjected(IDictionary<string, JsonElement>? result)
+    {
+        result.Should().NotBeNull();
+        return result ?? throw new InvalidOperationException("Expected qyl scope injection to return arguments.");
+    }
 }

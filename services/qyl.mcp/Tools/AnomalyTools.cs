@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Web;
@@ -19,21 +20,27 @@ public sealed partial class AnomalyTools(HttpClient client)
         string metric,
         int hours = 24,
         double sensitivity = 2.0,
-        string? service = null) =>
+        string? service = null,
+        CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}",
-                ("service", service));
+                ("serviceName", service));
 
-            var response = await client.GetFromJsonAsync<AnomalyDetectionResponse>(
-                url, AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
+            using var collectorResponse = await client.GetAsync(url, ct).ConfigureAwait(false);
+            if (!collectorResponse.IsSuccessStatusCode)
+                return await FormatCollectorFailureAsync(
+                    "Anomaly detection query", collectorResponse, ct).ConfigureAwait(false);
+
+            var response = await collectorResponse.Content.ReadFromJsonAsync(
+                AnomalyJsonContext.Default.AnomalyDetectionResponse, ct).ConfigureAwait(false);
 
             if (response is null)
                 return "No anomaly detection data available.";
 
             StringBuilder sb = new();
-            sb.AppendLine($"# Anomaly Detection — {response.Metric}");
+            sb.AppendLine($"# Anomaly Detection - {response.Metric}");
             sb.AppendLine($"Window: {response.Hours}h, Sensitivity: {response.Sensitivity} sigma");
             sb.AppendLine();
             sb.AppendLine("## Baseline");
@@ -68,21 +75,27 @@ public sealed partial class AnomalyTools(HttpClient client)
     public partial Task<string> GetMetricBaselineAsync(
         string metric,
         int hours = 24,
-        string? service = null) =>
+        string? service = null,
+        CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}",
-                ("service", service));
+                ("serviceName", service));
 
-            var response = await client.GetFromJsonAsync<BaselineResponse>(
-                url, AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
+            using var collectorResponse = await client.GetAsync(url, ct).ConfigureAwait(false);
+            if (!collectorResponse.IsSuccessStatusCode)
+                return await FormatCollectorFailureAsync(
+                    "Metric baseline query", collectorResponse, ct).ConfigureAwait(false);
+
+            var response = await collectorResponse.Content.ReadFromJsonAsync(
+                AnomalyJsonContext.Default.BaselineResponse, ct).ConfigureAwait(false);
 
             if (response is null)
                 return "No baseline data available.";
 
             StringBuilder sb = new();
-            sb.AppendLine($"# Metric Baseline — {response.Metric}");
+            sb.AppendLine($"# Metric Baseline - {response.Metric}");
             sb.AppendLine($"Window: {response.Hours}h, Samples: {response.SampleCount:N0}");
             sb.AppendLine();
             sb.AppendLine($"- **Mean:** {response.Mean:F4}");
@@ -104,41 +117,62 @@ public sealed partial class AnomalyTools(HttpClient client)
         string period1End,
         string period2Start,
         string period2End,
-        string? service = null) =>
+        string? service = null,
+        CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var url = QueryString.AppendPairs(
                 $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}",
                 ("period1Start", period1Start), ("period1End", period1End),
                 ("period2Start", period2Start), ("period2End", period2End),
-                ("service", service));
+                ("serviceName", service));
 
-            var response = await client.GetFromJsonAsync<PeriodComparisonResponse>(
-                url, AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);
+            using var collectorResponse = await client.GetAsync(url, ct).ConfigureAwait(false);
+            if (!collectorResponse.IsSuccessStatusCode)
+                return await FormatCollectorFailureAsync(
+                    "Period comparison query", collectorResponse, ct).ConfigureAwait(false);
+
+            var response = await collectorResponse.Content.ReadFromJsonAsync(
+                AnomalyJsonContext.Default.PeriodComparisonResponse, ct).ConfigureAwait(false);
 
             if (response is null)
                 return "No comparison data available.";
 
             StringBuilder sb = new();
-            sb.AppendLine($"# Period Comparison — {response.Metric}");
+            sb.AppendLine($"# Period Comparison - {response.Metric}");
             sb.AppendLine();
             sb.AppendLine("| Stat | Period 1 | Period 2 | Delta | Change |");
             sb.AppendLine("|------|----------|----------|-------|--------|");
             sb.AppendLine(
                 $"| Mean | {response.Period1.Mean:F4} | {response.Period2.Mean:F4} | {response.MeanDelta:+0.0000;-0.0000;0.0000} | {response.MeanDeltaPercent:+0.0;-0.0;0.0}% |");
             sb.AppendLine(
-                $"| Std Dev | {response.Period1.StdDev:F4} | {response.Period2.StdDev:F4} | — | — |");
+                $"| Std Dev | {response.Period1.StdDev:F4} | {response.Period2.StdDev:F4} | n/a | n/a |");
             sb.AppendLine(
-                $"| P50 | {response.Period1.P50:F4} | {response.Period2.P50:F4} | — | — |");
+                $"| P50 | {response.Period1.P50:F4} | {response.Period2.P50:F4} | n/a | n/a |");
             sb.AppendLine(
-                $"| P95 | {response.Period1.P95:F4} | {response.Period2.P95:F4} | — | — |");
+                $"| P95 | {response.Period1.P95:F4} | {response.Period2.P95:F4} | n/a | n/a |");
             sb.AppendLine(
-                $"| P99 | {response.Period1.P99:F4} | {response.Period2.P99:F4} | — | — |");
+                $"| P99 | {response.Period1.P99:F4} | {response.Period2.P99:F4} | n/a | n/a |");
             sb.AppendLine(
-                $"| Samples | {response.Period1.SampleCount:N0} | {response.Period2.SampleCount:N0} | — | — |");
+                $"| Samples | {response.Period1.SampleCount:N0} | {response.Period2.SampleCount:N0} | n/a | n/a |");
 
             return sb.ToString();
         });
+
+    private static async Task<string> FormatCollectorFailureAsync(
+        string operation,
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        var message = await CollectorHelper.ReadCollectorErrorMessageAsync(response, ct)
+            .ConfigureAwait(false);
+        return response.StatusCode switch
+        {
+            HttpStatusCode.BadRequest => $"{operation} rejected: {message}",
+            HttpStatusCode.NotFound => $"{operation} target was not found. {message}",
+            _ => $"{operation} failed ({(int)response.StatusCode} {response.StatusCode}): {message}"
+        };
+    }
 }
 
 #region DTOs

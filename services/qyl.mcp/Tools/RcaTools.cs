@@ -31,9 +31,10 @@ internal sealed partial class RcaTools(IServiceProvider services, IQylMcpAgentsB
 
         var lineageResult = InvestigationLineage.TryEnter();
         if (!lineageResult.IsAllowed)
-            return lineageResult.RefusalReason!;
+            return lineageResult.RefusalReason ?? "Agent recursion limit reached.";
 
-        var lineage = lineageResult.Lineage!;
+        var lineage = lineageResult.Lineage
+                      ?? throw new InvalidOperationException("Expected allowed investigation lineage.");
         var investigation = InvestigationGuard.FromEnvironment(50);
 
         var guardedTools = DiscoverToolsFrom(

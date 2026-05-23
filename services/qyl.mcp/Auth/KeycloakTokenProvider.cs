@@ -61,14 +61,25 @@ public sealed partial class KeycloakTokenProvider : IDisposable
 
     private async ValueTask<string?> FetchTokenAsync(CancellationToken ct)
     {
-        var authority = _options.KeycloakAuthority!.TrimEnd('/');
+        var authorityValue = _options.KeycloakAuthority;
+        var clientId = _options.KeycloakClientId;
+        var clientSecret = _options.KeycloakClientSecret;
+
+        if (string.IsNullOrWhiteSpace(authorityValue) ||
+            string.IsNullOrWhiteSpace(clientId) ||
+            string.IsNullOrWhiteSpace(clientSecret))
+        {
+            return null;
+        }
+
+        var authority = authorityValue.TrimEnd('/');
         var tokenEndpoint = $"{authority}/protocol/openid-connect/token";
 
         using FormUrlEncodedContent form = new(
         [
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("client_id", _options.KeycloakClientId!),
-            new KeyValuePair<string, string>("client_secret", _options.KeycloakClientSecret!)
+            new KeyValuePair<string, string>("client_id", clientId),
+            new KeyValuePair<string, string>("client_secret", clientSecret)
         ]);
 
         var response = await _httpClient

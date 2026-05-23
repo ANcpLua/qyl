@@ -129,7 +129,7 @@ internal sealed partial class QueryStudioTools(HttpClient client)
                 .GroupBy(r => GetStringValue(r, "table_name"))
                 .Where(g => !string.IsNullOrEmpty(g.Key))
                 .Select(g => new QueryStudioTable(
-                    g.Key!,
+                    g.Key ?? throw new InvalidOperationException("Expected table_name to be present."),
                     g.Select(r => new QueryStudioColumn(
                         GetStringValue(r, "column_name") ?? "unknown",
                         GetStringValue(r, "data_type") ?? "unknown"

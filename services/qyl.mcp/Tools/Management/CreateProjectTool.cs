@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -25,11 +26,12 @@ public sealed partial class CreateProjectTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<ProjectInfoDto>(ct).ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         return ResponseFormatter.FormatDetail(
             "Project Created",
             [
-                ("Name", result!.Name),
+                ("Name", result.Name),
                 ("Slug", $"`{result.Slug}`"),
                 ("Description", result.Description),
                 ("Retention Days", result.RetentionDays?.ToString())

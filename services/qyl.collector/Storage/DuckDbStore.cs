@@ -1,3 +1,5 @@
+using Qyl.Collector.Telemetry;
+
 using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
@@ -109,7 +111,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     private readonly bool _isInMemory;
     private readonly Channel<WriteJob> _jobs;
 
-    private readonly Meter _meter = new("Qyl.Collector.storage", "1.0.0");
+    private readonly Meter _meter = new(QylTelemetry.StorageMeterName, QylTelemetry.ServiceVersion);
 
     private readonly SemaphoreSlim _readGate;
     private readonly ReadConnectionPolicy _readPolicy;
@@ -137,7 +139,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
-            FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = false
+            FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = false
         });
 
         _readPolicy = new ReadConnectionPolicy(databasePath, _isInMemory ? Connection : null);
@@ -233,7 +235,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 _droppedSpans.Add(spanCount);
             });
 
-        _jobs.Writer.TryWrite(job);
+        if (!_jobs.Writer.TryWrite(job))
+            job.OnAborted(new InvalidOperationException("The DuckDB write queue is full."));
+
         return ValueTask.CompletedTask;
     }
 

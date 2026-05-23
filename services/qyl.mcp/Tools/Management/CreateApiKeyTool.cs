@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -23,11 +24,12 @@ public sealed partial class CreateApiKeyTool(HttpClient client)
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<ApiKeyResponseDto>(ct).ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         return ResponseFormatter.FormatDetail(
             "API Key Created",
             [
-                ("Name", result!.Name),
+                ("Name", result.Name),
                 ("Prefix", $"`{result.Prefix}`"),
                 ("Key", $"`{result.Key}` (save this — it won't be shown again)")
             ]);

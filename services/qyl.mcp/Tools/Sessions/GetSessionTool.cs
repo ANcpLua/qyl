@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
 using qyl.mcp.Formatting;
@@ -29,9 +30,10 @@ public sealed partial class GetSessionTool(HttpClient client)
 
         response.EnsureSuccessStatusCode();
         var session = await response.Content.ReadFromJsonAsync<SessionDetailDto>(ct).ConfigureAwait(false);
+        session = Guard.NotNull(session);
 
         return ResponseFormatter.FormatDetail(
-            $"Session `{session!.SessionId}`",
+            $"Session `{session.SessionId}`",
             [
                 ("Status", session.Status),
                 ("Service", session.ServiceName),

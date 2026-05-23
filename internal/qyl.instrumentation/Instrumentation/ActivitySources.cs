@@ -15,6 +15,8 @@ public static class ActivitySources
 
     public const string Mcp = "qyl.mcp";
 
+    public const string ErrorCapture = "Qyl.Instrumentation.ErrorCapture";
+
     internal static readonly Assembly s_assembly = typeof(ActivitySources).Assembly;
 
     internal static readonly string s_version = GetVersion(s_assembly);

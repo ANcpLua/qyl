@@ -73,7 +73,7 @@ internal static class DomainContracts
         ],
         MetricInstruments:
         [
-            new("gen_ai.client.token.usage", "histogram", "token"),
+            new("gen_ai.client.token.usage", "histogram", "{token}"),
             new("gen_ai.client.operation.duration", "histogram", "s"),
         ],
         SchemaVersion: "semconv-1.40.0");
@@ -117,7 +117,10 @@ internal static class DomainContracts
             new("gen_ai.agent.name", "string", Required: false),
             new("gen_ai.operation.name", "string", Required: true),
         ],
-        MetricInstruments: [],
+        MetricInstruments:
+        [
+            new("qyl.observability.inventory.size", "gauge", "{agent}"),
+        ],
         SchemaVersion: "semconv-1.40.0");
 
     internal static readonly DomainDef[] All = [GenAi, Db, Traced, Agent];

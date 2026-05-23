@@ -258,7 +258,7 @@ public sealed partial class DuckDbStore
                                   SELECT
                                       service_name,
                                       COUNT(*) AS span_count,
-                                      COUNT(*) FILTER (WHERE status_code = 2) AS error_count,
+                                      COUNT(*) FILTER (WHERE TRY_CAST(status_code AS INTEGER) = 2) AS error_count,
                                       COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
                                       COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
                                       COALESCE(SUM(gen_ai_cost_usd), 0) AS cost_usd,

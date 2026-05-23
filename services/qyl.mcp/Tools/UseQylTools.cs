@@ -30,9 +30,10 @@ internal sealed partial class UseQylTools(IServiceProvider services, IQylMcpAgen
 
         var lineageResult = InvestigationLineage.TryEnter();
         if (!lineageResult.IsAllowed)
-            return lineageResult.RefusalReason!;
+            return lineageResult.RefusalReason ?? "Agent recursion limit reached.";
 
-        var lineage = lineageResult.Lineage!;
+        var lineage = lineageResult.Lineage
+                      ?? throw new InvalidOperationException("Expected allowed investigation lineage.");
         var investigation = InvestigationGuard.FromEnvironment();
 
         var guardedTools = QylToolManifest

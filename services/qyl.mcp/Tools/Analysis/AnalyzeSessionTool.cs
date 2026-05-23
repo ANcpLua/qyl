@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -31,11 +32,12 @@ public sealed partial class AnalyzeSessionTool(HttpClient client)
 
         response.EnsureSuccessStatusCode();
         var session = await response.Content.ReadFromJsonAsync<SessionDetailDto>(ct).ConfigureAwait(false);
+        session = Guard.NotNull(session);
 
         return ResponseFormatter.FormatDetail(
             $"Analysis of Session `{sessionId}`",
             [
-                ("Span Count", session!.SpanCount.ToString()),
+                ("Span Count", session.SpanCount.ToString()),
                 ("Status", session.Status),
                 ("Service", session.ServiceName),
                 ("Trace Count", session.Traces?.Count.ToString() ?? "0"),

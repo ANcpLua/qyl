@@ -24,7 +24,7 @@ internal static class AlertsMaterializer
                               SELECT service_name,
                                      SUM(CASE WHEN start_time_unix_nano >= $1 THEN 1 ELSE 0 END) as this_hr,
                                      SUM(CASE WHEN start_time_unix_nano < $1 THEN 1 ELSE 0 END) as prev_hr
-                              FROM spans WHERE status_code = 2 AND start_time_unix_nano >= $2
+                              FROM spans WHERE TRY_CAST(status_code AS INTEGER) = 2 AND start_time_unix_nano >= $2
                               GROUP BY service_name HAVING this_hr > prev_hr * 2 AND this_hr > 5
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = oneHourAgoNanos });

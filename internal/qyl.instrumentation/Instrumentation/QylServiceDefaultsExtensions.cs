@@ -28,9 +28,18 @@ namespace Qyl.Instrumentation.Instrumentation;
 
 public static class QylServiceDefaultsExtensions
 {
-    private static readonly string[] s_genAiActivitySources =
+    private static readonly string[] s_qylActivitySources =
     [
-        ActivitySources.GenAi,
+        "qyl.genai",
+        "qyl.db",
+        "qyl.traced",
+        "qyl.agent",
+        "qyl.mcp",
+        "Qyl.Instrumentation.ErrorCapture"
+    ];
+
+    private static readonly string[] s_genAiExternalActivitySources =
+    [
         "OpenAI.*",
         "Azure.AI.OpenAI.*",
         "Anthropic.*",
@@ -39,9 +48,8 @@ public static class QylServiceDefaultsExtensions
         "Experimental.Microsoft.Agents.AI"
     ];
 
-    private static readonly string[] s_genAiMeterNames =
+    private static readonly string[] s_genAiExternalMeterNames =
     [
-        ActivitySources.GenAi,
         "Microsoft.Extensions.AI",
         "Microsoft.Agents.AI",
         "Experimental.Microsoft.Agents.AI"
@@ -111,18 +119,11 @@ public static class QylServiceDefaultsExtensions
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
     }
 
-    internal static void ConfigureOpenTelemetry<TBuilder>(TBuilder builder, QylOptions options)
+    internal static void ConfigureQylTelemetry<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {
         var serviceName = builder.Environment.ApplicationName;
         var serviceVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "0.0.0";
-
-        builder.Logging.AddOpenTelemetry(logging =>
-        {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
-            options.ConfigureLogging?.Invoke(logging);
-        });
 
         var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         if (string.IsNullOrWhiteSpace(otlpEndpoint) && options.EnableAutoDiscovery)
@@ -136,6 +137,16 @@ public static class QylServiceDefaultsExtensions
         }
 
         var hasExporter = !string.IsNullOrWhiteSpace(otlpEndpoint);
+
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+            options.ConfigureLogging?.Invoke(logging);
+
+            if (hasExporter)
+                logging.AddOtlpExporter();
+        });
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource =>
@@ -159,7 +170,9 @@ public static class QylServiceDefaultsExtensions
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
 
-                foreach (var meter in s_genAiMeterNames)
+                metrics.AddMeter(ActivitySources.GenAi);
+
+                foreach (var meter in s_genAiExternalMeterNames)
                     metrics.AddMeter(meter);
 
                 metrics.AddMeter(ActivitySources.Db);
@@ -180,38 +193,33 @@ public static class QylServiceDefaultsExtensions
                     _ => new ParentBasedSampler(new AlwaysOnSampler())
                 });
 
-                if (hasExporter)
-                {
-                    tracing
-                        .AddSource(serviceName)
-                        .AddAspNetCoreInstrumentation(aspnet =>
-                        {
-                            aspnet.Filter = static ctx =>
-                                ctx.Request.Path != QylEndpoints.Health &&
-                                ctx.Request.Path != QylEndpoints.Alive;
-                        })
-                        .AddHttpClientInstrumentation();
+                tracing
+                    .AddSource(serviceName)
+                    .AddAspNetCoreInstrumentation(aspnet =>
+                    {
+                        aspnet.Filter = static ctx =>
+                            ctx.Request.Path != QylEndpoints.Health &&
+                            ctx.Request.Path != QylEndpoints.Alive;
+                    })
+                    .AddHttpClientInstrumentation();
 
-                    foreach (var source in s_genAiActivitySources)
-                        tracing.AddSource(source);
+                foreach (var source in s_genAiExternalActivitySources)
+                    tracing.AddSource(source);
 
-                    tracing.AddSource(ActivitySources.Db);
-                    tracing.AddSource(ActivitySources.Traced);
-                    tracing.AddSource(ActivitySources.Agent);
-                    tracing.AddSource(ActivitySources.Mcp);
+                foreach (var source in s_qylActivitySources)
+                    tracing.AddSource(source);
 
-                    foreach (var source in options.AdditionalActivitySources)
-                        tracing.AddSource(source);
+                foreach (var source in options.AdditionalActivitySources)
+                    tracing.AddSource(source);
 
-                    tracing.AddProcessor(new QylGenAiCostProcessor());
-                    tracing.AddProcessor<QylAgentActivityProcessor>();
-                }
+                tracing.AddProcessor(new QylGenAiCostProcessor());
+                tracing.AddProcessor<QylAgentActivityProcessor>();
 
                 options.ConfigureTracing?.Invoke(tracing);
-            });
 
-        if (hasExporter)
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+                if (hasExporter)
+                    tracing.AddOtlpExporter();
+            });
     }
 
     internal static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
@@ -259,7 +267,7 @@ public static class QylServiceDefaultsExtensions
             ConfigureKestrel(builder.Services);
             ConfigureJson(builder.Services, options);
 
-            ConfigureOpenTelemetry(builder, options);
+            ConfigureQylTelemetry(builder, options);
             if (options.EnableDefaultHealthChecks)
             {
                 ConfigureHealthChecks(builder);

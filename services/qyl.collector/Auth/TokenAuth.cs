@@ -200,7 +200,7 @@ public sealed class TokenAuthOptions
     public string QueryParameterName { get; set; } = "t";
 
     public string[] ExcludedPaths { get; set; } =
-        ["/health", "/alive", "/health/ui", "/v1/traces", "/v1/logs", "/v1/metrics"];
+        ["/health", "/alive", "/health/ui", "/v1/traces", "/v1/logs", "/v1/profiles"];
 }
 
 public sealed class TokenAuthMiddleware(
@@ -244,8 +244,8 @@ public sealed class TokenAuthMiddleware(
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            var bearerToken = BearerHeader.TryExtract(authHeader, out var t)
-                ? t!
+            var bearerToken = BearerHeader.TryExtract(authHeader, out var token) && token is not null
+                ? token
                 : authHeader;
 
             if (ValidateToken(bearerToken))

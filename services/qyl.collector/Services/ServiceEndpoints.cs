@@ -50,7 +50,7 @@ internal static class ServiceEndpoints
                               COALESCE(child.service_name, 'unknown') as target,
                               COUNT(*) as call_count,
                               AVG(child.duration_ns) as avg_duration_ns,
-                              COUNT(*) FILTER (WHERE child.status_code = 2) as error_count
+                              COUNT(*) FILTER (WHERE TRY_CAST(child.status_code AS INTEGER) = 2) as error_count
                           FROM spans child
                           JOIN spans parent ON child.parent_span_id = parent.span_id
                           WHERE child.service_name IS NOT NULL

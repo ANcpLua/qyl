@@ -15,6 +15,12 @@ public readonly record struct TokenUsage(int InputTokens, int OutputTokens);
 
 public static class GenAiInstrumentation
 {
+    private static readonly Func<ChatClientBuilder, ILoggerFactory?, string?, Action<OpenTelemetryChatClient>?, ChatClientBuilder>
+        s_useChatClientTelemetry = OpenTelemetryChatClientBuilderExtensions.UseOpenTelemetry;
+
+    private static readonly Func<AIAgentBuilder, string?, Action<OpenTelemetryAgent>?, AIAgentBuilder>
+        s_useAgentTelemetry = OpenTelemetryAgentBuilderExtensions.UseOpenTelemetry;
+
     private static readonly IServiceProvider s_defaultServices = new ServiceCollection()
         .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
         .BuildServiceProvider();
@@ -62,9 +68,7 @@ public static class GenAiInstrumentation
     {
         Guard.NotNull(builder);
 
-        builder.UseOpenTelemetry(
-            sourceName: sourceName ?? GenAiConstants.SourceName,
-            configure: configure);
+        s_useChatClientTelemetry(builder, null, sourceName ?? GenAiConstants.SourceName, configure);
         builder.Use(static (inner, services) =>
         {
             var loggerFactory = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
@@ -76,10 +80,13 @@ public static class GenAiInstrumentation
 
     public static AIAgentBuilder UseQylAgentTelemetry(
         this AIAgentBuilder builder,
-        string sourceName = "qyl.agent") =>
-        Guard.NotNull(builder)
-            .UseOpenTelemetry(sourceName)
-            .UseLogging();
+        string sourceName = "qyl.agent")
+    {
+        var agentBuilder = Guard.NotNull(builder);
+        s_useAgentTelemetry(agentBuilder, sourceName, null);
+        agentBuilder.UseLogging();
+        return agentBuilder;
+    }
 
     public static Activity? StartToolExecutionSpan(
         string toolName,
@@ -161,25 +168,22 @@ public static class GenAiInstrumentation
             sw.Stop();
             var duration = sw.Elapsed.TotalSeconds;
 
-            if (activity is not null)
+            if (extractUsage is not null)
             {
-                if (extractUsage is not null)
+                try
                 {
-                    try
-                    {
-                        var usage = extractUsage(result);
-                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens,
-                            duration);
-                    }
-                    catch
-                    {
-                        RecordDuration(provider, operation, duration);
-                    }
+                    var usage = extractUsage(result);
+                    RecordUsageAndDuration(activity, provider, operation, model, usage.InputTokens, usage.OutputTokens,
+                        duration);
                 }
-                else
+                catch
                 {
-                    RecordDuration(provider, operation, duration);
+                    RecordDuration(provider, operation, model, duration);
                 }
+            }
+            else
+            {
+                RecordDuration(provider, operation, model, duration);
             }
 
             return result;
@@ -187,8 +191,7 @@ public static class GenAiInstrumentation
         catch (Exception ex)
         {
             sw.Stop();
-            if (activity is not null)
-                RecordError(activity, ex, provider, operation, sw.Elapsed.TotalSeconds);
+            RecordError(activity, ex, provider, operation, model, sw.Elapsed.TotalSeconds);
             throw;
         }
     }
@@ -223,8 +226,7 @@ public static class GenAiInstrumentation
         catch (Exception ex)
         {
             sw.Stop();
-            if (activity is not null)
-                RecordError(activity, ex, provider, operation, sw.Elapsed.TotalSeconds);
+            RecordError(activity, ex, provider, operation, model, sw.Elapsed.TotalSeconds);
             throw;
         }
 
@@ -255,60 +257,98 @@ public static class GenAiInstrumentation
 
         if (caughtException is not null)
         {
-            if (activity is not null)
-                RecordError(activity, caughtException, provider, operation, duration);
+            RecordError(activity, caughtException, provider, operation, model, duration);
             throw caughtException;
         }
 
-        if (activity is not null && outputTokens > 0)
+        if (outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
-            s_tokenUsageHistogram.Record(outputTokens,
-                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
+            if (activity is not null)
+                activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+
+            RecordTokenUsage(
+                outputTokens,
+                provider,
+                operation,
+                model,
+                GenAiAttributes.TokenTypeValues.Output);
         }
 
-        s_operationDurationHistogram.Record(duration,
-            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
+        RecordDuration(provider, operation, model, duration);
     }
 
     private static void RecordUsageAndDuration(
-        Activity activity,
+        Activity? activity,
         string provider,
         string operation,
+        string? model,
         int inputTokens,
         int outputTokens,
         double durationSeconds)
     {
         if (inputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
-            s_tokenUsageHistogram.Record(inputTokens,
-                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Input));
+            activity?.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+            RecordTokenUsage(
+                inputTokens,
+                provider,
+                operation,
+                model,
+                GenAiAttributes.TokenTypeValues.Input);
         }
 
         if (outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
-            s_tokenUsageHistogram.Record(outputTokens,
-                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypeValues.Output));
+            activity?.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+            RecordTokenUsage(
+                outputTokens,
+                provider,
+                operation,
+                model,
+                GenAiAttributes.TokenTypeValues.Output);
         }
 
-        s_operationDurationHistogram.Record(durationSeconds,
-            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
+        RecordDuration(provider, operation, model, durationSeconds);
     }
 
-    private static void RecordDuration(string provider, string operation, double durationSeconds) =>
-        s_operationDurationHistogram.Record(durationSeconds,
-            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
+    private static void RecordTokenUsage(
+        long tokens,
+        string provider,
+        string operation,
+        string? model,
+        string tokenType)
+    {
+        var tags = CreateMetricTags(provider, operation, model);
+        tags.Add(GenAiAttributes.TokenType, tokenType);
+        s_tokenUsageHistogram.Record(tokens, in tags);
+    }
+
+    private static void RecordDuration(
+        string provider,
+        string operation,
+        string? model,
+        double durationSeconds)
+    {
+        var tags = CreateMetricTags(provider, operation, model);
+        s_operationDurationHistogram.Record(durationSeconds, in tags);
+    }
+
+    private static TagList CreateMetricTags(
+        string provider,
+        string operation,
+        string? model)
+    {
+        var tags = new TagList
+        {
+            { GenAiAttributes.OperationName, operation },
+            { GenAiAttributes.ProviderName, provider }
+        };
+
+        if (model is not null)
+            tags.Add(GenAiAttributes.RequestModel, model);
+
+        return tags;
+    }
 
     private static void ApplyDefaultOutputType(Activity activity, string operation)
     {
@@ -320,22 +360,23 @@ public static class GenAiInstrumentation
     }
 
     private static void RecordError(
-        Activity activity,
+        Activity? activity,
         Exception ex,
         string provider,
         string operation,
+        string? model,
         double durationSeconds)
     {
         var errorType = ex is HttpRequestException { StatusCode: { } code }
             ? ((int)code).ToString()
             : ex.GetType().Name;
 
-        ActivityExceptionTelemetry.Record(activity, ex, errorType);
+        if (activity is not null)
+            ActivityExceptionTelemetry.Record(activity, ex, errorType);
 
-        s_operationDurationHistogram.Record(durationSeconds,
-            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
-            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
-            new KeyValuePair<string, object?>(ErrorAttributes.Type, errorType));
+        var tags = CreateMetricTags(provider, operation, model);
+        tags.Add(ErrorAttributes.Type, errorType);
+        s_operationDurationHistogram.Record(durationSeconds, in tags);
     }
 
     #endregion

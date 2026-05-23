@@ -22,18 +22,20 @@
 
     <!-- self-describe the Roslyn reference; SDK name-matching injection is fragile under IDE LSPs -->
     <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
-
-    <!-- RS0030: BannedApiAnalyzers fires on the ANcpLua.Roslyn.Utilities.Sources
-         polyfills (TimeProvider, ByteSize). We don't own that source — suppress here. -->
-    <NoWarn>$(NoWarn);RS0030</NoWarn>
+    <InjectTimeProviderPolyfill>false</InjectTimeProviderPolyfill>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
-    <!-- VersionOverride bypasses Directory.Packages.props CPM (the package isn't centrally listed). -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"
                       VersionOverride="5.3.0"
                       PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="$(NuGetPackageRoot)ancplua.roslyn.utilities.sources/$(ANcpLuaRoslynUtilitiesVersion)/contentFiles/cs/any/ANcpLua.Roslyn.Utilities/Polyfills/TimeProvider/**/*.cs"/>
+    <Compile Remove="$(NuGetPackageRoot)ancplua.roslyn.utilities.sources/$(ANcpLuaRoslynUtilitiesVersion)/contentFiles/cs/any/ANcpLua.Roslyn.Utilities/Caching/ExpiringCache.cs"/>
+    <Compile Remove="$(NuGetPackageRoot)ancplua.roslyn.utilities.sources/$(ANcpLuaRoslynUtilitiesVersion)/contentFiles/cs/any/ANcpLua.Roslyn.Utilities/Text/ByteSize.cs"/>
   </ItemGroup>
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>

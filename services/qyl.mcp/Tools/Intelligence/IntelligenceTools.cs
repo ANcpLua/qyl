@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Web;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -70,12 +71,13 @@ public sealed class IntelligenceTools(HttpClient client)
         [Description("Issue ID to evaluate")] string? issueId = null,
         CancellationToken ct = default)
     {
-        if (traceId is null && issueId is null)
+        var sourceId = traceId ?? issueId;
+        if (sourceId is null)
             throw new QylQueryException("Provide either traceId or issueId.");
 
         var url = traceId is not null
             ? $"/api/v1/intelligence/evaluate?traceId={Uri.EscapeDataString(traceId)}"
-            : $"/api/v1/intelligence/evaluate?issueId={Uri.EscapeDataString(issueId!)}";
+            : $"/api/v1/intelligence/evaluate?issueId={Uri.EscapeDataString(sourceId)}";
 
         var response = await client.GetAsync(url, ct).ConfigureAwait(false);
 
@@ -88,11 +90,12 @@ public sealed class IntelligenceTools(HttpClient client)
             .ReadFromJsonAsync<IntelligenceEvaluateResponse>(
                 IntelligenceJsonContext.Default.IntelligenceEvaluateResponse, ct)
             .ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         var structured = new StructuredResponse
         {
-            Facts = result!.Matches,
-            Evidence = new EvidenceInfo { Sources = [traceId ?? issueId!] },
+            Facts = result.Matches,
+            Evidence = new EvidenceInfo { Sources = [sourceId] },
             Actions = result.Matches.Count > 0
                 ?
                 [
@@ -132,10 +135,11 @@ public sealed class IntelligenceTools(HttpClient client)
             .ReadFromJsonAsync<IntelligenceCausalResponse>(
                 IntelligenceJsonContext.Default.IntelligenceCausalResponse, ct)
             .ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         var structured = new StructuredResponse
         {
-            Facts = new { root_causes = result!.RootCauses, edges = result.Edges },
+            Facts = new { root_causes = result.RootCauses, edges = result.Edges },
             Analysis = result.RootCauses.Count > 0
                 ? new
                 {
@@ -234,10 +238,11 @@ public sealed class IntelligenceTools(HttpClient client)
             .ReadFromJsonAsync<IntelligenceStepResponse>(
                 IntelligenceJsonContext.Default.IntelligenceStepResponse, ct)
             .ConfigureAwait(false);
+        result = Guard.NotNull(result);
 
         var structured = new StructuredResponse
         {
-            Facts = result!.QueryResults,
+            Facts = result.QueryResults,
             Evidence = new EvidenceInfo { Sources = traceId is not null ? [traceId] : [] },
             Actions = result.HasNextStep
                 ?

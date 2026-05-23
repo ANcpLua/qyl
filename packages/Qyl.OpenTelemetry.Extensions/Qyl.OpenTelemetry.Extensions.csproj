@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RootNamespace>Qyl.OpenTelemetry.Extensions</RootNamespace>
     <PackageId>Qyl.OpenTelemetry.Extensions</PackageId>
-    <Description>Zero-boilerplate OpenTelemetry wiring for services that export to a qyl collector.</Description>
+    <Description>OpenTelemetry tracing wiring for qyl collectors with optional metrics pipeline registration.</Description>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ANcpLua.Roslyn.Utilities;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -31,11 +32,12 @@ public sealed partial class ArtifactTools(HttpClient client)
 
             var result = await response.Content.ReadFromJsonAsync(
                 ArtifactToolsJsonContext.Default.ArtifactStoreResponse).ConfigureAwait(false);
+            result = Guard.NotNull(result);
 
             var sb = new StringBuilder();
             sb.AppendLine("# Artifact Stored");
             sb.AppendLine();
-            sb.AppendLine($"- **ID:** `{result!.Id}`");
+            sb.AppendLine($"- **ID:** `{result.Id}`");
             sb.AppendLine($"- **URL:** `/a/{result.Id}`");
             sb.AppendLine($"- **Type:** {result.ContentType}");
             if (result.Title is not null)
@@ -60,9 +62,10 @@ public sealed partial class ArtifactTools(HttpClient client)
             var result = await client.GetFromJsonAsync(
                 $"/api/v1/artifacts/{Uri.EscapeDataString(id)}",
                 ArtifactToolsJsonContext.Default.ArtifactStoreResponse).ConfigureAwait(false);
+            result = Guard.NotNull(result);
 
             var sb = new StringBuilder();
-            if (result!.Title is not null)
+            if (result.Title is not null)
                 sb.AppendLine($"# {result.Title}");
             else
                 sb.AppendLine($"# Artifact {result.Id}");

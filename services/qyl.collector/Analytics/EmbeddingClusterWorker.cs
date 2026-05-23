@@ -120,8 +120,8 @@ public sealed partial class EmbeddingClusterWorker(
             else
             {
                 clusterId = centroids.Count;
-                clusterLabel = TruncateLabel(
-                    ExtractFirstUserMessage(spans[i].InputMessages)!);
+                var firstUserMessage = ExtractFirstUserMessage(spans[i].InputMessages) ?? spans[i].SpanName;
+                clusterLabel = TruncateLabel(firstUserMessage);
                 centroids.Add((vec, clusterLabel, 1));
             }
 

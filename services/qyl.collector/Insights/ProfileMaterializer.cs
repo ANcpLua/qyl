@@ -116,7 +116,7 @@ internal static class ProfileMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                              SELECT COUNT(*) FILTER (WHERE status_code=2) as errors, COUNT(*) as total
+                              SELECT COUNT(*) FILTER (WHERE TRY_CAST(status_code AS INTEGER) = 2) as errors, COUNT(*) as total
                               FROM spans WHERE start_time_unix_nano >= $1
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = sevenDaysAgoNanos });

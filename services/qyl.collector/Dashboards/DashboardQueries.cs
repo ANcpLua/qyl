@@ -25,7 +25,7 @@ public static class DashboardQueries
                                                SELECT
                                                    COUNT(*) AS total_requests,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
+                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%http.request.method%'
                                                """, ct).ConfigureAwait(false);
@@ -49,7 +49,7 @@ public static class DashboardQueries
                                                       ) AS route_name,
                                                       ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
                                                       COUNT(*) AS call_count,
-                                                      ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
+                                                      ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
                                                   FROM spans
                                                   WHERE attributes_json LIKE '%http.request.method%'
                                                   GROUP BY route_name
@@ -88,7 +88,7 @@ public static class DashboardQueries
                                                SELECT
                                                    COUNT(*) AS total_calls,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
+                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE (attributes_json LIKE '%http.client%' OR kind = 3)
                                                  AND attributes_json LIKE '%http.%'
@@ -114,7 +114,7 @@ public static class DashboardQueries
                                                      ) AS host_name,
                                                      ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
                                                      COUNT(*) AS call_count,
-                                                     ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
+                                                     ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
                                                  FROM spans
                                                  WHERE (attributes_json LIKE '%http.client%' OR kind = 3)
                                                    AND attributes_json LIKE '%http.%'
@@ -171,7 +171,7 @@ public static class DashboardQueries
                                                       COALESCE(gen_ai_request_model, gen_ai_response_model, 'unknown') AS model_name,
                                                       ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms,
                                                       COUNT(*) AS call_count,
-                                                      ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
+                                                      ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
                                                   FROM spans
                                                   WHERE gen_ai_provider_name IS NOT NULL OR gen_ai_request_model IS NOT NULL
                                                   GROUP BY model_name
@@ -211,7 +211,7 @@ public static class DashboardQueries
                                                    COUNT(*) AS total_queries,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
                                                    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_latency_ms,
-                                                   ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
+                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%db.system%'
                                                """, ct).ConfigureAwait(false);
@@ -237,7 +237,7 @@ public static class DashboardQueries
                                                    ) AS op_name,
                                                    ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
                                                    COUNT(*) AS call_count,
-                                                   ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
+                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%db.system%'
                                                GROUP BY op_name
@@ -318,7 +318,7 @@ public static class DashboardQueries
                                                SELECT
                                                    COUNT(*) AS total_messages,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
+                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%messaging.system%'
                                                """, ct).ConfigureAwait(false);
@@ -338,7 +338,7 @@ public static class DashboardQueries
                                                        COALESCE(json_extract_string(attributes_json, '$.messaging.system'), name) AS system_name,
                                                        ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms,
                                                        COUNT(*) AS msg_count,
-                                                       ROUND(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
+                                                       ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
                                                    FROM spans
                                                    WHERE attributes_json LIKE '%messaging.system%'
                                                    GROUP BY system_name

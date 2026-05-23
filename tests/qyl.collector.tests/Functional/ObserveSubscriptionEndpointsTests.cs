@@ -1,10 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace Qyl.Collector.Tests.Functional.Observe;
 
@@ -40,6 +36,55 @@ public sealed class ObserveSubscriptionEndpointsTests
     }
 
     [Fact]
+    public async Task Get_catalog_lists_agent_inventory_metric_contract()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(CatalogPath, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        var agentDomain = body.GetProperty("domains").EnumerateArray()
+            .Single(static domain => domain.GetProperty("source").GetString() == "qyl.agent");
+
+        agentDomain.GetProperty("signals").EnumerateArray()
+            .Select(static signal => signal.GetString())
+            .Should().Contain("metrics");
+
+        agentDomain.GetProperty("metric_instruments").EnumerateArray()
+            .Should().Contain(metric =>
+                metric.GetProperty("name").GetString() == "qyl.observability.inventory.size" &&
+                metric.GetProperty("instrument").GetString() == "gauge" &&
+                metric.GetProperty("unit").GetString() == "{agent}");
+
+        agentDomain.GetProperty("contract_hash").GetString()
+            .Should().NotBeNullOrWhiteSpace("metric instruments are part of the observe-domain contract");
+    }
+
+    [Fact]
+    public async Task Get_catalog_lists_genai_token_metric_with_ucum_unit()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(CatalogPath, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        var genAiDomain = body.GetProperty("domains").EnumerateArray()
+            .Single(static domain => domain.GetProperty("source").GetString() == "qyl.genai");
+
+        genAiDomain.GetProperty("metric_instruments").EnumerateArray()
+            .Should().Contain(metric =>
+                metric.GetProperty("name").GetString() == "gen_ai.client.token.usage" &&
+                metric.GetProperty("instrument").GetString() == "histogram" &&
+                metric.GetProperty("unit").GetString() == "{token}");
+    }
+
+    [Fact]
     public async Task Post_subscription_with_missing_filter_returns_400()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -65,7 +110,7 @@ public sealed class ObserveSubscriptionEndpointsTests
         using var response = await client.PostAsJsonAsync(SubscriptionsPath, new
         {
             filter = "qyl.collector",
-            endpoint = ""
+            endpoint = MissingEndpoint()
         }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -82,7 +127,7 @@ public sealed class ObserveSubscriptionEndpointsTests
         using var response = await client.PostAsJsonAsync(SubscriptionsPath, new
         {
             filter = "qyl.collector",
-            endpoint = "not-a-real-uri"
+            endpoint = NonAbsoluteEndpoint()
         }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -196,28 +241,11 @@ public sealed class ObserveSubscriptionEndpointsTests
         body.GetProperty("error").GetString().Should().Contain(unknownId);
     }
 
-    public sealed class CollectorFactory : WebApplicationFactory<Program>
+    public sealed class CollectorFactory() : CollectorFunctionalFactory("observe")
     {
-        // Named in-memory DuckDB: ":memory:<name>" gives each fixture its own
-        // catalog. The bare ":memory:" alias (which HealthUiEndpointTests uses)
-        // points every connection at the same process-global in-memory DB, so
-        // when xUnit runs functional test classes in parallel, their migration
-        // runs collide with "Catalog write-write conflict on alter". The unique
-        // suffix isolates fixtures without writing to disk.
-        private readonly string _dataPath = $":memory:qyl-obs-{Guid.NewGuid():N}";
-
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment(Environments.Development);
-
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["QYL_DATA_PATH"] = _dataPath,
-                    ["QYL_OTLP_AUTH_MODE"] = "Unsecured"
-                });
-            });
-        }
     }
+
+    private static string MissingEndpoint() => string.Empty;
+
+    private static string NonAbsoluteEndpoint() => string.Join('-', "not", "a", "real", "uri");
 }

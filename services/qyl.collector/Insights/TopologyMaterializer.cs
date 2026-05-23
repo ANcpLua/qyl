@@ -61,7 +61,7 @@ internal static class TopologyMaterializer
         {
             cmd.CommandText = """
                               SELECT service_name, status_message, COUNT(*) as error_count
-                              FROM spans WHERE status_code = 2 AND status_message IS NOT NULL
+                              FROM spans WHERE TRY_CAST(status_code AS INTEGER) = 2 AND status_message IS NOT NULL
                               GROUP BY service_name, status_message ORDER BY error_count DESC LIMIT 5
                               """;
 

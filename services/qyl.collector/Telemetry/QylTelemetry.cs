@@ -5,6 +5,9 @@ public static class QylTelemetry
 {
     public const string ServiceName = "Qyl.Collector";
     public const string ServiceVersion = "1.0.0";
+    public const string StorageMeterName = "Qyl.Collector.storage";
+    public const string ConversationsMeterName = "qyl.observability.conversations";
+    public const string ConversationSpanCountMetricName = "qyl.observability.conversation.span.count";
 
 
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
@@ -32,8 +35,21 @@ public static class QylMetrics
             "Approximate storage size in bytes");
 
     public static void RegisterStorageSizeCallback(Func<long> callback) =>
-        s_storageSizeCallback = callback;
+        System.Threading.Volatile.Write(ref s_storageSizeCallback, Guard.NotNull(callback));
 
-    private static long GetStorageSizeBytes() =>
-        s_storageSizeCallback?.Invoke() ?? 0;
+    private static long GetStorageSizeBytes()
+    {
+        var callback = System.Threading.Volatile.Read(ref s_storageSizeCallback);
+        if (callback is null)
+            return 0;
+
+        try
+        {
+            return Math.Max(0, callback());
+        }
+        catch
+        {
+            return 0;
+        }
+    }
 }
