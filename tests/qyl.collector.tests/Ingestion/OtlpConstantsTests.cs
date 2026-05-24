@@ -20,6 +20,6 @@ public sealed class OtlpConstantsTests
     [InlineData("/v1/logs", true)]
     [InlineData("/v1/profiles", true)]
     [InlineData("/v1/metrics", false)]
-    public void TokenAuthDefaults_BypassMatchMappedOtlpPaths(string path, bool isBypassed) =>
+    public void TokenAuthDefaults_BypassMatchesMappedOtlpPaths(string path, bool isBypassed) =>
         new TokenAuthOptions().ExcludedPaths.Contains(path).Should().Be(isBypassed);
 }

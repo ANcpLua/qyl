@@ -7,6 +7,25 @@ namespace Qyl.Mcp.Tests.Tools;
 
 public sealed class MetricsToolsTests
 {
+    private const string SuccessMetadataJson = """
+        {
+          "items": [
+            {
+              "name": "gen_ai.client.token.usage",
+              "type": "histogram",
+              "description": "Token usage",
+              "unit": "{token}",
+              "label_keys": [ "gen_ai.token.type", "service.name" ],
+              "services": [ "orders-api" ],
+              "services_truncated": true,
+              "service_limit": 1
+            }
+          ],
+          "next_cursor": "cursor-2",
+          "has_more": true
+        }
+        """;
+
     private const string SuccessSeriesJson = """
         {
           "metric_name": "gen_ai.client.token.usage",
@@ -23,12 +42,16 @@ public sealed class MetricsToolsTests
     public async Task ListMetrics_GET_v1_metrics()
     {
         using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/api/v1/metrics", HttpStatusCode.OK, """{ "items": [], "has_more": false }""");
+            .WithResponse("/api/v1/metrics", HttpStatusCode.OK, SuccessMetadataJson);
         using var client = handler.BuildHttpClient("https://collector.test");
 
-        await new ListMetricsTool(client).ListMetrics(ct: TestContext.Current.CancellationToken);
+        var output = await new ListMetricsTool(client).ListMetrics(ct: TestContext.Current.CancellationToken);
 
         handler.Requests.Should().ContainSingle().Which.Url.PathAndQuery.Should().Be("/api/v1/metrics");
+        output.Should().Contain("# Available Metrics (1)");
+        output.Should().Contain("**Has more:** yes");
+        output.Should().Contain("**Next cursor:** `cursor-2`");
+        output.Should().Contain("| `gen_ai.client.token.usage` | histogram | {token} | `gen_ai.token.type`, `service.name` | `orders-api` ... truncated at 1 | Token usage |");
     }
 
     [Theory]
@@ -56,7 +79,7 @@ public sealed class MetricsToolsTests
             .WithResponse("/api/v1/metrics/query", HttpStatusCode.OK, SuccessSeriesJson);
         using var client = handler.BuildHttpClient("https://collector.test");
 
-        await new QueryMetricsTool(client).QueryMetrics(
+        var output = await new QueryMetricsTool(client).QueryMetrics(
             "gen_ai.client.token.usage",
             from: "2026-05-23T10:00:00Z", to: "2026-05-23T11:00:00Z",
             ct: TestContext.Current.CancellationToken);
@@ -64,6 +87,10 @@ public sealed class MetricsToolsTests
         var request = handler.Requests.Should().ContainSingle().Subject;
         request.Method.Should().Be(HttpMethod.Post);
         request.Url.PathAndQuery.Should().Be("/api/v1/metrics/query");
+        output.Should().Contain("# Metric: `gen_ai.client.token.usage`");
+        output.Should().Contain("**Series:** 1");
+        output.Should().Contain("## Series: `service.name=orders-api`");
+        output.Should().Contain("| 2026-05-23T10:00:00.0000000Z | 30 |");
     }
 
     [Fact]
@@ -87,8 +114,10 @@ public sealed class MetricsToolsTests
             interval: "1h", tokenType: "input",
             ct: TestContext.Current.CancellationToken);
 
-        rawBody.Should().NotBeNull();
-        using var doc = JsonDocument.Parse(rawBody!);
+        if (rawBody is null)
+            throw new InvalidOperationException("Expected request body.");
+
+        using var doc = JsonDocument.Parse(rawBody);
         var body = doc.RootElement;
         body.GetProperty("metric_name").GetString().Should().Be("gen_ai.client.token.usage");
         body.GetProperty("filters").GetProperty("service.name").GetString().Should().Be("orders-api");

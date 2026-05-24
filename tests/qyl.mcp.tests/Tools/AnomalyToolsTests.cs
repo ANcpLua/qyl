@@ -30,7 +30,7 @@ public sealed class AnomalyToolsTests
     }
 
     [Fact]
-    public async Task GetMetricBaselineAsync_ForwardsCancellationToken()
+    public async Task GetMetricBaselineAsync_ReturnsCancelledMessage_WhenCancelledBeforeRequest()
     {
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();

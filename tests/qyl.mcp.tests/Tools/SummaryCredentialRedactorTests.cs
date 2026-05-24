@@ -36,8 +36,13 @@ public sealed class SummaryCredentialRedactorTests
     [InlineData("{\"password\":\"user-password\"}", "user-password")]
     [InlineData("X-Forgejo-OTP: 123456", "123456")]
     [InlineData("X-Gitea-OTP: 123456", "123456")]
-    public void Redact_StripsSecretFromInput(string input, string secret) =>
-        SummaryCredentialRedactor.Redact(input).Should().NotContain(secret);
+    public void Redact_StripsSecretFromInput(string input, string secret)
+    {
+        var redacted = SummaryCredentialRedactor.Redact(input);
+
+        redacted.Should().NotContain(secret);
+        redacted.Should().Contain("<redacted>");
+    }
 
     [Theory]
     [InlineData("TOKEN: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
