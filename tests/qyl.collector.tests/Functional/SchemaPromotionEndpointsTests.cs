@@ -15,42 +15,25 @@ public sealed class SchemaPromotionEndpointsTests
 
     public SchemaPromotionEndpointsTests(CollectorFactory factory) => _factory = factory;
 
-    [Fact]
-    public async Task Post_promotion_with_missing_target_table_returns_400()
+    [Theory]
+    [InlineData("add_column", "", "TargetTable")]
+    [InlineData("", "qyl_test_table", "ChangeType")]
+    public async Task Post_promotion_with_invalid_payload_returns_400(string changeType, string targetTable, string expectedFragment)
     {
         var ct = TestContext.Current.CancellationToken;
         using var client = _factory.CreateClient();
 
         using var response = await client.PostAsJsonAsync(PromotionsPath, new
         {
-            changeType = "add_column",
-            targetTable = "",
+            changeType,
+            targetTable,
             targetColumn = "extra",
             columnType = "VARCHAR"
         }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("TargetTable");
-    }
-
-    [Fact]
-    public async Task Post_promotion_with_missing_change_type_returns_400()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsJsonAsync(PromotionsPath, new
-        {
-            changeType = "",
-            targetTable = "qyl_test_table",
-            targetColumn = "extra",
-            columnType = "VARCHAR"
-        }, ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("ChangeType");
+        body.GetProperty("error").GetString().Should().Contain(expectedFragment);
     }
 
     [Fact]

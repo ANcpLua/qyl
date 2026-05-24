@@ -146,34 +146,19 @@ public sealed class McpMetricsEndpointsTests
         point.GetProperty("value").GetDouble().Should().Be(30);
     }
 
-    [Fact]
-    public async Task Get_mcp_metric_query_rejects_token_type_for_non_genai_token_metric()
+    [Theory]
+    [InlineData("/api/v1/mcp/metrics/request_count/query?tokenType=input", "tokenType")]
+    [InlineData("/api/v1/mcp/metrics/request_count/query?filter=project%3Ddemo", "service.name")]
+    public async Task Get_mcp_metric_query_rejects_invalid_request(string url, string expectedFragment)
     {
         var ct = TestContext.Current.CancellationToken;
         using var client = _factory.CreateClient();
 
-        using var response = await client.GetAsync(
-            "/api/v1/mcp/metrics/request_count/query?tokenType=input",
-            ct);
+        using var response = await client.GetAsync(url, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("tokenType");
-    }
-
-    [Fact]
-    public async Task Get_mcp_metric_query_rejects_unsupported_filter_shape()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.GetAsync(
-            "/api/v1/mcp/metrics/request_count/query?filter=project%3Ddemo",
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("service.name");
+        body.GetProperty("error").GetString().Should().Contain(expectedFragment);
     }
 
     private async Task SeedSpanAsync(
