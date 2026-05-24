@@ -12,8 +12,9 @@ public sealed class WithQylTelemetryEmissionTests
     public async Task WithQylTelemetry_EmitsActivityOn_qyl_genai_Source()
     {
         using var collector = new ActivityCollector("qyl.genai");
+        using var client = NewInstrumented();
 
-        await NewInstrumented().GetResponseAsync(
+        await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "Hi")],
             new ChatOptions { ModelId = "gpt-4o-mini" },
             TestContext.Current.CancellationToken);
@@ -28,8 +29,9 @@ public sealed class WithQylTelemetryEmissionTests
     public async Task WithQylTelemetry_EmittedActivity_Carries(string expectedTagKey)
     {
         using var collector = new ActivityCollector("qyl.genai");
+        using var client = NewInstrumented();
 
-        await NewInstrumented().GetResponseAsync(
+        await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "Hi")],
             new ChatOptions { ModelId = "gpt-4o-mini" },
             TestContext.Current.CancellationToken);
@@ -44,13 +46,13 @@ public sealed class WithQylTelemetryEmissionTests
     [Fact]
     public async Task WithQylTelemetry_DelegatesGetResponse_ToInnerClient()
     {
-        var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") }
+        using var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") }
             .WithResponse("ok");
+        using var client = inner.WithQylTelemetry("qyl.genai");
 
-        await inner.WithQylTelemetry("qyl.genai")
-            .GetResponseAsync(
-                [new ChatMessage(ChatRole.User, "ping")],
-                cancellationToken: TestContext.Current.CancellationToken);
+        await client.GetResponseAsync(
+            [new ChatMessage(ChatRole.User, "ping")],
+            cancellationToken: TestContext.Current.CancellationToken);
 
         inner.CallCount.Should().Be(1);
     }

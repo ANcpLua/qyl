@@ -13,21 +13,27 @@ public sealed class WithQylTelemetryWrapTests
     [Fact]
     public void WithQylTelemetry_WrapsPlainClient()
     {
-        var inner = NewFake();
+        using var inner = NewFake();
+        using var client = inner.WithQylTelemetry();
 
-        inner.WithQylTelemetry().Should().NotBeSameAs(inner);
+        client.Should().NotBeSameAs(inner);
     }
 
     [Fact]
-    public void WithQylTelemetry_WrapsExistingOpenTelemetryClient_InToolDecorator() =>
-        new OpenTelemetryChatClient(NewFake(), sourceName: "test")
-            .WithQylTelemetry()
-            .Should().BeOfType<ToolDecoratingChatClient>();
+    public void WithQylTelemetry_WrapsExistingOpenTelemetryClient_InToolDecorator()
+    {
+        using var inner = NewFake();
+        using var otel = new OpenTelemetryChatClient(inner, sourceName: "test");
+        using var client = otel.WithQylTelemetry();
+
+        client.Should().BeOfType<ToolDecoratingChatClient>();
+    }
 
     [Fact]
     public void WithQylTelemetry_ReturnsSameInstance_WhenAlreadyToolDecorated()
     {
-        var decorated = new ToolDecoratingChatClient(NewFake(), GenAiInstrumentation.WrapTool);
+        using var inner = NewFake();
+        using var decorated = new ToolDecoratingChatClient(inner, GenAiInstrumentation.WrapTool);
 
         decorated.WithQylTelemetry().Should().BeSameAs(decorated);
     }
@@ -37,9 +43,10 @@ public sealed class WithQylTelemetryWrapTests
     [InlineData(false)]
     public void WithQylTelemetry_FlipsSensitiveDataFlag_OnExistingOpenTelemetryClient(bool enable)
     {
-        var otel = new OpenTelemetryChatClient(NewFake(), sourceName: "test") { EnableSensitiveData = !enable };
+        using var inner = NewFake();
+        using var otel = new OpenTelemetryChatClient(inner, sourceName: "test") { EnableSensitiveData = !enable };
 
-        otel.WithQylTelemetry(enableSensitiveData: enable);
+        using var client = otel.WithQylTelemetry(enableSensitiveData: enable);
 
         otel.EnableSensitiveData.Should().Be(enable);
     }
