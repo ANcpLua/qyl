@@ -20,6 +20,9 @@ on:
       - "packages/**"
       - "qyl.slnx"
       - "services/qyl.collector/**"
+      - "services/qyl.dashboard/**"
+      - "services/qyl.loom/**"
+      - "services/qyl.loom.patterns/**"
       - "services/qyl.mcp/**"
       - "tests/qyl.e2e.tests/**"
   pull_request:
@@ -35,6 +38,9 @@ on:
       - "packages/**"
       - "qyl.slnx"
       - "services/qyl.collector/**"
+      - "services/qyl.dashboard/**"
+      - "services/qyl.loom/**"
+      - "services/qyl.loom.patterns/**"
       - "services/qyl.mcp/**"
       - "tests/qyl.e2e.tests/**"
   workflow_dispatch:

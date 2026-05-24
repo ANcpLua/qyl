@@ -7,7 +7,7 @@ namespace Qyl.Mcp.Tests.Tools;
 public sealed class AnomalyToolsTests
 {
     private const string BaselineOk = """
-        { "metric": "request_count", "hours": 24, "mean": 1, "std_dev": 0,
+        { "metric": "gen_ai.client.token.usage", "hours": 24, "mean": 1, "std_dev": 0,
           "p50": 1, "p95": 1, "p99": 1, "sample_count": 1 }
         """;
 
@@ -18,7 +18,7 @@ public sealed class AnomalyToolsTests
         handler.WithResponse("/api/v1/analytics/anomaly/baseline", HttpStatusCode.OK, BaselineOk);
         using var client = handler.BuildHttpClient("https://collector.test");
 
-        await new AnomalyTools(client).GetMetricBaselineAsync(
+        var output = await new AnomalyTools(client).GetMetricBaselineAsync(
             "gen_ai.client.token.usage",
             service: "orders-api",
             ct: TestContext.Current.CancellationToken);
@@ -27,6 +27,8 @@ public sealed class AnomalyToolsTests
         url.Should().Contain("metric=gen_ai.client.token.usage");
         url.Should().Contain("serviceName=orders-api");
         url.Should().NotContain("service=orders-api");
+        output.Should().Contain("# Metric Baseline - gen_ai.client.token.usage");
+        output.Should().Contain("Window: 24h, Samples: 1");
     }
 
     [Fact]
