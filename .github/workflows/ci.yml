@@ -88,14 +88,15 @@ jobs:
             -p:WarningsAsErrors=
 
       - name: Test
-        # `--filter-not-trait Category=regen` excludes opt-in heavy tests
-        # (e.g. RegenCleanTests, which shells out to Weaver). The dedicated
-        # `regen-clean` job covers that gate end-to-end.
+        # `Category=regen` and `Category=E2E` are opt-in heavy suites.
+        # The dedicated `regen-clean` job covers regeneration drift, and
+        # E2E (Docker) gates relevant PR/push changes with freshly built local images.
         run: |
           dotnet test --configuration Release --no-build \
             --results-directory ./TestResults \
             -- --report-trx --report-trx-filename test-results.trx \
-               --filter-not-trait Category=regen
+               --filter-not-trait Category=regen \
+               --filter-not-trait Category=E2E
 
       - name: Upload test results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

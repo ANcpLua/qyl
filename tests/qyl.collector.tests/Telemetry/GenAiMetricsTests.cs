@@ -36,7 +36,10 @@ public sealed class GenAiMetricsTests
         AssertCommonGenAiTags(outputTokens);
 
         var duration = measurements.Should().ContainSingle(static measurement =>
-            measurement.Name == "gen_ai.client.operation.duration").Subject;
+            measurement.Name == "gen_ai.client.operation.duration" &&
+            measurement.HasTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.Chat) &&
+            measurement.HasTag(GenAiAttributes.ProviderName, "openai") &&
+            measurement.HasTag(GenAiAttributes.RequestModel, "gpt-5.5")).Subject;
         duration.Unit.Should().Be("s");
         duration.Description.Should().Be("Operation duration");
         duration.Value.Should().BeGreaterThanOrEqualTo(0d);

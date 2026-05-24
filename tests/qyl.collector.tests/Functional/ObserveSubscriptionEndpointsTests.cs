@@ -84,55 +84,20 @@ public sealed class ObserveSubscriptionEndpointsTests
                 metric.GetProperty("unit").GetString() == "{token}");
     }
 
-    [Fact]
-    public async Task Post_subscription_with_missing_filter_returns_400()
+    [Theory]
+    [InlineData("", "http://localhost:4318/v1/traces", "filter")]
+    [InlineData("qyl.collector", "", "endpoint")]
+    [InlineData("qyl.collector", "not-a-real-uri", "absolute")]
+    public async Task Post_subscription_with_invalid_payload_returns_400(string filter, string endpoint, string expectedFragment)
     {
         var ct = TestContext.Current.CancellationToken;
         using var client = _factory.CreateClient();
 
-        using var response = await client.PostAsJsonAsync(SubscriptionsPath, new
-        {
-            filter = "",
-            endpoint = "http://localhost:4318/v1/traces"
-        }, ct);
+        using var response = await client.PostAsJsonAsync(SubscriptionsPath, new { filter, endpoint }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("filter");
-    }
-
-    [Fact]
-    public async Task Post_subscription_with_missing_endpoint_returns_400()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsJsonAsync(SubscriptionsPath, new
-        {
-            filter = "qyl.collector",
-            endpoint = MissingEndpoint()
-        }, ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("endpoint");
-    }
-
-    [Fact]
-    public async Task Post_subscription_with_non_absolute_endpoint_returns_400()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsJsonAsync(SubscriptionsPath, new
-        {
-            filter = "qyl.collector",
-            endpoint = NonAbsoluteEndpoint()
-        }, ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("absolute");
+        body.GetProperty("error").GetString().Should().Contain(expectedFragment);
     }
 
     [Fact]
@@ -245,7 +210,4 @@ public sealed class ObserveSubscriptionEndpointsTests
     {
     }
 
-    private static string MissingEndpoint() => string.Empty;
-
-    private static string NonAbsoluteEndpoint() => string.Join('-', "not", "a", "real", "uri");
 }
