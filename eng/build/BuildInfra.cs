@@ -43,12 +43,11 @@ interface IDocker : IHazSourcePaths
 
             DockerTasks.DockerBuild(s => s
                     .SetPath<DockerBuildSettings>(RootDirectory)
-                    .EnablePull()
                     .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1")
                     .CombineWith(ImageSpecs, static (settings, img) => settings
                         .SetFile(img.Dockerfile)
                         .SetTag(img.Tag)),
-                degreeOfParallelism: 2);
+                degreeOfParallelism: 4);
 
             foreach (var (_, _, tag) in ImageSpecs)
                 Log.Information("Built: {Tag}", tag);
