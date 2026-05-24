@@ -1,7 +1,5 @@
 using ANcpLua.Roslyn.Utilities.Testing.GeneratorHelpers;
-using AwesomeAssertions;
-using Qyl.Instrumentation.Generators;
-using Xunit;
+using Microsoft.CodeAnalysis;
 
 namespace Qyl.Instrumentation.Generators.Tests;
 
@@ -10,42 +8,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Multi_Tag_Measurements_Use_TagList_Instead_Of_Array()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -55,18 +18,8 @@ public sealed class MeterEmitterTests
                         [Tag("route")] string route,
                         [Tag("status_code")] int statusCode);
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("var tags = new global::System.Diagnostics.TagList { { \"route\", route }, { \"status_code\", statusCode } };")
             .And.Contain("_myappRequestDuration.Record(value, in tags);")
@@ -76,42 +29,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Gauge_Measurements_Record_Through_Standard_Gauge()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class GaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -121,18 +39,8 @@ public sealed class MeterEmitterTests
                         [Tag("queue")] string queue,
                         [Tag("priority")] string priority);
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.Gauge<long> _myappQueueDepth =")
             .And.Contain("_meter.CreateGauge<long>(\"myapp.queue.depth\", \"{item}\", \"Queued items.\");")
@@ -145,60 +53,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Standard_Instruments_Without_Value_Parameters_Are_Not_Emitted_Except_Parameterless_Counters()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class GaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class UpDownCounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -214,14 +69,7 @@ public sealed class MeterEmitterTests
                     [UpDownCounter("myapp.inflight")]
                     private static partial void AddInflight();
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("_meter.CreateCounter<long>(\"myapp.events\")")
@@ -236,52 +84,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Instruments_With_Unsupported_Value_Types_Are_Not_Emitted()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableGaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -297,14 +100,7 @@ public sealed class MeterEmitterTests
                     [ObservableGauge("myapp.state")]
                     private static string ObserveState() => "ready";
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("_meter.CreateCounter<long>(\"myapp.events\")")
@@ -319,36 +115,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Colliding_Metric_Names_Get_Unique_Field_Names()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -358,18 +125,8 @@ public sealed class MeterEmitterTests
                     [Counter("myapp.cache.hit")]
                     public static partial void RecordCacheDotHit();
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.Counter<long> _myappCacheHit =")
             .And.Contain("private static readonly global::System.Diagnostics.Metrics.Counter<long> _myappCacheHit2 =")
@@ -380,60 +137,15 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Valued_Counter_Uses_Method_Value_Type()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
                     [Counter("myapp.cost", Unit = "USD", Description = "Cost total.")]
                     public static partial void AddCost(double value, [Tag("provider")] string provider);
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.Counter<double> _myappCost =")
             .And.Contain("_meter.CreateCounter<double>(\"myapp.cost\", \"USD\", \"Cost total.\");")
@@ -443,44 +155,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Standard_Metric_Partial_Implementations_Preserve_Method_Accessibility()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -493,14 +168,7 @@ public sealed class MeterEmitterTests
                     [Histogram("myapp.private")]
                     private static partial void RecordPrivate(double value);
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("public static partial void AddPublic()")
@@ -513,50 +181,14 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Meter_Partial_Class_Preserves_Source_Type_Modifiers()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
                     [Counter("myapp.requests")]
                     public static partial void AddRequest();
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("public static partial class MyAppMetrics")
@@ -566,36 +198,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Nested_Meter_Class_Generates_Inside_Containing_Partial_Type()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableGaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 public static partial class Diagnostics
                 {
                     [Meter("myapp.metrics")]
@@ -605,14 +208,7 @@ public sealed class MeterEmitterTests
                         private static long ObserveQueueDepth() => 42;
                     }
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("    public static partial class Diagnostics\n    {\n        public static partial class MyAppMetrics")
@@ -627,6 +223,8 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Private_Nested_Observable_Meter_Generates_Accessible_Module_Initializer()
     {
+        // Custom source: this test stubs System.Diagnostics.Metrics.Meter and ObservableGauge
+        // so we can't reuse the shared preamble (which imports the real namespace).
         const string source = """
             using System;
 
@@ -693,59 +291,17 @@ public sealed class MeterEmitterTests
             }
             """;
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-        GeneratorTestHelper.AssertCompilationSucceeds<ServiceDefaultsSourceGenerator>(source);
+        var generated = RunAndGetMeter(source);
 
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
-            .Contain("    public static partial class Diagnostics\n    {\n        private static partial class MyAppMetrics")
-            .And.Contain("[global::System.Runtime.CompilerServices.ModuleInitializer]")
-            .And.Contain("internal static void __QylInitializeObservableInstruments()")
-            .And.Contain("_ = _myappQueueDepth;")
-            .And.Contain("MyAppMetrics.__QylInitializeObservableInstruments();")
-            .And.NotContain("global::MyApp.Diagnostics.MyAppMetrics.__QylInitializeObservableInstruments();")
-            .And.NotContain("QylObservableMeterInitializer");
+            .Contain("internal static void __QylInitializeObservableInstruments()")
+            .And.Contain("MyAppMetrics.__QylInitializeObservableInstruments();");
     }
 
     [Fact]
     public void Nested_Meter_Class_Under_Non_Partial_Containing_Type_Is_Not_Emitted()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.valid")]
                 public static partial class ValidMetrics
                 {
@@ -762,14 +318,7 @@ public sealed class MeterEmitterTests
                         public static partial void AddInvalidRequest();
                     }
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("myapp.valid.requests")
@@ -781,36 +330,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Generic_Meter_Type_Shapes_Are_Not_Emitted()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.valid")]
                 public static partial class ValidMetrics
                 {
@@ -834,14 +354,7 @@ public sealed class MeterEmitterTests
                         public static partial void AddNestedRequest();
                     }
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("myapp.valid.requests")
@@ -856,37 +369,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Escaped_CSharp_Identifiers_Are_Preserved_In_Generated_Meter_Code()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
+        var generated = RunAndGetMeter(MeterTestSources.Preamble + """
 
             namespace @event
             {
@@ -899,13 +382,7 @@ public sealed class MeterEmitterTests
                     public static partial void @default(long @long, [Tag("route")] string @string);
                 }
             }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """);
 
         generated.Should()
             .Contain("namespace @event")
@@ -922,42 +399,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Standard_Metric_Partial_Implementations_Preserve_Value_Parameter_Name()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -966,14 +408,7 @@ public sealed class MeterEmitterTests
                         double durationMs,
                         [Tag("route")] string route);
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("public static partial void RecordDuration(double durationMs, string route)")
@@ -985,44 +420,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Standard_Instruments_With_Unsupported_Partial_Method_Shapes_Are_Not_Emitted()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -1038,14 +436,7 @@ public sealed class MeterEmitterTests
                     [Counter("myapp.byref")]
                     public static partial void AddByRef(ref long value);
                 }
-            }
-            """;
-
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
+            """));
 
         generated.Should()
             .Contain("_meter.CreateCounter<long>(\"myapp.valid\")")
@@ -1060,54 +451,15 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Observable_Gauge_Callback_Generates_Observable_Instrument_And_Module_Initializer()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableGaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
                     [ObservableGauge("myapp.queue.depth", Unit = "{item}", Description = "Queued items.")]
                     private static long ObserveQueueDepth() => 42;
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.ObservableGauge<long> _myappQueueDepth =")
             .And.Contain("_meter.CreateObservableGauge<long>(\"myapp.queue.depth\", new global::System.Func<long>(ObserveQueueDepth), \"{item}\", \"Queued items.\");")
@@ -1122,38 +474,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Observable_Counter_Callback_Can_Return_Tagged_Measurements()
     {
-        const string source = """
-            using System;
-            using System.Collections.Generic;
-            using System.Diagnostics.Metrics;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableCounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -1164,18 +485,8 @@ public sealed class MeterEmitterTests
                         new(7, new KeyValuePair<string, object?>("route", "/checkout"))
                     ];
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.ObservableCounter<long> _myappRequests =")
             .And.Contain("_meter.CreateObservableCounter<long>(\"myapp.requests\", new global::System.Func<global::System.Collections.Generic.IEnumerable<global::System.Diagnostics.Metrics.Measurement<long>>>(ObserveRequests), \"{request}\", \"Observed requests.\");")
@@ -1186,38 +497,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Observable_UpDownCounter_Callback_Can_Return_Tagged_Measurement()
     {
-        const string source = """
-            using System;
-            using System.Collections.Generic;
-            using System.Diagnostics.Metrics;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableUpDownCounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.metrics")]
                 public static partial class MyAppMetrics
                 {
@@ -1225,18 +505,8 @@ public sealed class MeterEmitterTests
                     private static Measurement<double> ObserveWorkItems() =>
                         new(1.5, new KeyValuePair<string, object?>("queue", "main"));
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("private static readonly global::System.Diagnostics.Metrics.ObservableUpDownCounter<double> _myappWorkItems =")
             .And.Contain("_meter.CreateObservableUpDownCounter<double>(\"myapp.work.items\", new global::System.Func<global::System.Diagnostics.Metrics.Measurement<double>>(ObserveWorkItems), \"{item}\", \"Observed work.\");")
@@ -1247,31 +517,8 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Global_Namespace_Meter_Class_Generates_Valid_Partial_Class()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class ObservableGaugeAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
+        // Custom source: the meter class is at the global namespace, not inside MyApp.
+        var generated = RunAndGetMeter(MeterTestSources.Preamble + """
 
             [Qyl.Instrumentation.Instrumentation.Meter("global.metrics")]
             public static partial class GlobalMetrics
@@ -1279,17 +526,8 @@ public sealed class MeterEmitterTests
                 [Qyl.Instrumentation.Instrumentation.ObservableGauge("global.queue.depth")]
                 private static long ObserveQueueDepth() => 1;
             }
-            """;
+            """);
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("partial class GlobalMetrics")
             .And.Contain("[global::System.Runtime.CompilerServices.ModuleInitializer]")
@@ -1300,42 +538,7 @@ public sealed class MeterEmitterTests
     [Fact]
     public void String_Metadata_Is_Emitted_As_CSharp_Literals()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class HistogramAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Parameter)]
-                public sealed class TagAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
                 [Meter("myapp.\"metrics", Version = "2026\n05")]
                 public static partial class MyAppMetrics
                 {
@@ -1344,18 +547,8 @@ public sealed class MeterEmitterTests
                         double value,
                         [Tag("http.route\"quoted")] string route);
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("new global::System.Diagnostics.Metrics.Meter(\"myapp.\\\"metrics\", \"2026\\n05\")")
             .And.Contain("_meter.CreateHistogram<double>(\"myapp.request.\\\"duration\", \"ms\\n\", \"Request \\\"duration\\\".\\nLine two.\");")
@@ -1365,56 +558,31 @@ public sealed class MeterEmitterTests
     [Fact]
     public void Non_Ascii_Metadata_Is_Emitted_As_Escaped_CSharp_Literals()
     {
-        const string source = """
-            using System;
-
-            namespace Qyl.Instrumentation
-            {
-                public static class QylServiceDefaults;
-            }
-
-            namespace Qyl.Instrumentation.Instrumentation
-            {
-                [AttributeUsage(AttributeTargets.Class)]
-                public sealed class MeterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Version { get; set; }
-                }
-
-                [AttributeUsage(AttributeTargets.Method)]
-                public sealed class CounterAttribute(string name) : Attribute
-                {
-                    public string Name { get; } = name;
-                    public string? Unit { get; set; }
-                    public string? Description { get; set; }
-                }
-            }
-
-            namespace MyApp
-            {
-                using Qyl.Instrumentation.Instrumentation;
-
-                [Meter("myapp.m\u00e9trics")]
+        var generated = RunAndGetMeter(MeterTestSources.InMyAppNamespace("""
+                [Meter("myapp.métrics")]
                 public static partial class MyAppMetrics
                 {
-                    [Counter("myapp.r\u00e9quests", Description = "D\u00e9j\u00e0 vu.")]
+                    [Counter("myapp.réquests", Description = "Déjà vu.")]
                     public static partial void AddRequest();
                 }
-            }
-            """;
+            """));
 
-        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
-
-        var generatedTree = result.RunResult.GeneratedTrees
-            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
-        var generated = generatedTree.ToString();
-
-        generatedTree.GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .Should().BeEmpty();
         generated.Should()
             .Contain("[assembly: global::Qyl.Instrumentation.GeneratedMeterAttribute(\"myapp.m\\u00e9trics\")]")
             .And.Contain("_meter.CreateCounter<long>(\"myapp.r\\u00e9quests\", null, \"D\\u00e9j\\u00e0 vu.\");");
+    }
+
+    private static string RunAndGetMeter(string source)
+    {
+        var result = GeneratorTestHelper.RunGenerator<ServiceDefaultsSourceGenerator>(source);
+
+        var tree = result.RunResult.GeneratedTrees
+            .Single(static t => t.FilePath.EndsWith("MeterImplementations.g.cs", StringComparison.Ordinal));
+
+        tree.GetDiagnostics(TestContext.Current.CancellationToken)
+            .Where(static d => d.Severity == DiagnosticSeverity.Error)
+            .Should().BeEmpty();
+
+        return tree.ToString();
     }
 }
