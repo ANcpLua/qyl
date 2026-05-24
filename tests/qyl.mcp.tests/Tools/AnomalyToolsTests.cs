@@ -14,8 +14,8 @@ public sealed class AnomalyToolsTests
     [Fact]
     public async Task GetMetricBaselineAsync_UsesCollectorServiceNameQueryParameter()
     {
-        using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/metric/baseline", HttpStatusCode.OK, BaselineOk);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/metric/baseline", HttpStatusCode.OK, BaselineOk);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         await new AnomalyTools(client).GetMetricBaselineAsync(
@@ -34,8 +34,8 @@ public sealed class AnomalyToolsTests
     {
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
-        using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/metric/baseline", HttpStatusCode.OK, BaselineOk);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/metric/baseline", HttpStatusCode.OK, BaselineOk);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         var output = await new AnomalyTools(client).GetMetricBaselineAsync("request_count", ct: cts.Token);

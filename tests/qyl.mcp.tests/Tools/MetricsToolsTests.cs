@@ -41,8 +41,8 @@ public sealed class MetricsToolsTests
     [Fact]
     public async Task ListMetrics_GET_v1_metrics()
     {
-        using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/api/v1/metrics", HttpStatusCode.OK, SuccessMetadataJson);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/api/v1/metrics", HttpStatusCode.OK, SuccessMetadataJson);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         var output = await new ListMetricsTool(client).ListMetrics(ct: TestContext.Current.CancellationToken);
@@ -61,8 +61,8 @@ public sealed class MetricsToolsTests
     public async Task ListMetrics_ForwardsFiltersToQueryString(
         string? serviceName, string? namePattern, int? limit, int? serviceLimit, string? cursor, string expectedPathAndQuery)
     {
-        using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/api/v1/metrics", HttpStatusCode.OK, """{ "items": [], "has_more": false }""");
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/api/v1/metrics", HttpStatusCode.OK, """{ "items": [], "has_more": false }""");
         using var client = handler.BuildHttpClient("https://collector.test");
 
         await new ListMetricsTool(client).ListMetrics(
@@ -75,8 +75,8 @@ public sealed class MetricsToolsTests
     [Fact]
     public async Task QueryMetrics_POST_v1_metrics_query()
     {
-        using var handler = new FakeHttpMessageHandler()
-            .WithResponse("/api/v1/metrics/query", HttpStatusCode.OK, SuccessSeriesJson);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/api/v1/metrics/query", HttpStatusCode.OK, SuccessSeriesJson);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         var output = await new QueryMetricsTool(client).QueryMetrics(
@@ -97,14 +97,14 @@ public sealed class MetricsToolsTests
     public async Task QueryMetrics_SendsCanonicalPayloadShape()
     {
         string? rawBody = null;
-        using var handler = new FakeHttpMessageHandler()
-            .WithRequestValidator(req =>
-            {
-                if (req.Content is null) return;
-                using var reader = new StreamReader(req.Content.ReadAsStream());
-                rawBody = reader.ReadToEnd();
-            })
-            .WithResponse("/api/v1/metrics/query", HttpStatusCode.OK, SuccessSeriesJson);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithRequestValidator(req =>
+        {
+            if (req.Content is null) return;
+            using var reader = new StreamReader(req.Content.ReadAsStream());
+            rawBody = reader.ReadToEnd();
+        });
+        handler.WithResponse("/api/v1/metrics/query", HttpStatusCode.OK, SuccessSeriesJson);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         await new QueryMetricsTool(client).QueryMetrics(
@@ -161,7 +161,8 @@ public sealed class MetricsToolsTests
     [Fact]
     public async Task ListMetrics_FormatsCollector400_AsRejection()
     {
-        using var handler = new FakeHttpMessageHandler().WithResponse(
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse(
             "/api/v1/metrics", HttpStatusCode.BadRequest,
             """{ "error": "Project-scoped metrics are not available yet." }""");
         using var client = handler.BuildHttpClient("https://collector.test");
@@ -176,7 +177,8 @@ public sealed class MetricsToolsTests
     [InlineData(HttpStatusCode.NotFound, """{ "error": "Unknown metric 'missing_metric'." }""", "Metric `request_count` was not found. Unknown metric 'missing_metric'.")]
     public async Task QueryMetrics_FormatsCollectorError(HttpStatusCode status, string body, string expected)
     {
-        using var handler = new FakeHttpMessageHandler().WithResponse("/api/v1/metrics/query", status, body);
+        using var handler = new FakeHttpMessageHandler();
+        handler.WithResponse("/api/v1/metrics/query", status, body);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         var output = await new QueryMetricsTool(client).QueryMetrics(

@@ -12,7 +12,9 @@ public sealed class WithQylTelemetryEmissionTests
     public async Task WithQylTelemetry_EmitsActivityOn_qyl_genai_Source()
     {
         using var collector = new ActivityCollector("qyl.genai");
-        using var client = NewInstrumented();
+        using var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") };
+        inner.WithResponse("Hello from fake.");
+        using var client = inner.WithQylTelemetry("qyl.genai");
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "Hi")],
@@ -29,7 +31,9 @@ public sealed class WithQylTelemetryEmissionTests
     public async Task WithQylTelemetry_EmittedActivity_Carries(string expectedTagKey)
     {
         using var collector = new ActivityCollector("qyl.genai");
-        using var client = NewInstrumented();
+        using var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") };
+        inner.WithResponse("Hello from fake.");
+        using var client = inner.WithQylTelemetry("qyl.genai");
 
         await client.GetResponseAsync(
             [new ChatMessage(ChatRole.User, "Hi")],
@@ -46,8 +50,8 @@ public sealed class WithQylTelemetryEmissionTests
     [Fact]
     public async Task WithQylTelemetry_DelegatesGetResponse_ToInnerClient()
     {
-        using var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") }
-            .WithResponse("ok");
+        using var inner = new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") };
+        inner.WithResponse("ok");
         using var client = inner.WithQylTelemetry("qyl.genai");
 
         await client.GetResponseAsync(
@@ -56,9 +60,4 @@ public sealed class WithQylTelemetryEmissionTests
 
         inner.CallCount.Should().Be(1);
     }
-
-    private static IChatClient NewInstrumented() =>
-        new FakeChatClient { Metadata = new ChatClientMetadata("openai", null, "gpt-4o-mini") }
-            .WithResponse("Hello from fake.")
-            .WithQylTelemetry("qyl.genai");
 }
