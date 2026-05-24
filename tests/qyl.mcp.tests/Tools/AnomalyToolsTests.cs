@@ -45,16 +45,18 @@ public sealed class AnomalyToolsTests
         output.Should().Be("**Cancelled:** The operation was cancelled.");
     }
 
-    public static TheoryData<Func<AnomalyTools, Task<string>>, string, string> RejectionCases() =>
+    public static TheoryData<Func<AnomalyTools, Task<string>>, string, string, string> RejectionCases() =>
         new()
         {
             {
                 static tools => tools.GetMetricBaselineAsync("missing_metric", ct: TestContext.Current.CancellationToken),
+                "/api/v1/analytics/anomaly/baseline",
                 """{ "error": "Unknown metric 'missing_metric'. Valid metrics: request_count" }""",
                 "Metric baseline query rejected: Unknown metric 'missing_metric'. Valid metrics: request_count"
             },
             {
                 static tools => tools.DetectAnomaliesAsync("request_count", sensitivity: 0, ct: TestContext.Current.CancellationToken),
+                "/api/v1/analytics/anomaly/anomalies",
                 """{ "error": "Query parameter 'sensitivity' must be greater than zero." }""",
                 "Anomaly detection query rejected: Query parameter 'sensitivity' must be greater than zero."
             },
@@ -64,6 +66,7 @@ public sealed class AnomalyToolsTests
                     "2026-05-23T10:00:00Z", "2026-05-23T09:00:00Z",
                     "2026-05-22T10:00:00Z", "2026-05-22T11:00:00Z",
                     ct: TestContext.Current.CancellationToken),
+                "/api/v1/analytics/anomaly/compare",
                 """{ "error": "period1Start must be earlier than period1End." }""",
                 "Period comparison query rejected: period1Start must be earlier than period1End."
             },
@@ -72,11 +75,10 @@ public sealed class AnomalyToolsTests
     [Theory]
     [MemberData(nameof(RejectionCases))]
     public async Task AnomalyTools_FormatsCollectorValidationMessage(
-        Func<AnomalyTools, Task<string>> call, string collectorBody, string expected)
+        Func<AnomalyTools, Task<string>> call, string endpoint, string collectorBody, string expected)
     {
         using var handler = new FakeHttpMessageHandler();
-        handler.DefaultStatusCode = HttpStatusCode.BadRequest;
-        handler.WithResponse("/", HttpStatusCode.BadRequest, collectorBody);
+        handler.WithResponse(endpoint, HttpStatusCode.BadRequest, collectorBody);
         using var client = handler.BuildHttpClient("https://collector.test");
 
         var output = await call(new AnomalyTools(client));
