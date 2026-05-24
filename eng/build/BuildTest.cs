@@ -224,6 +224,7 @@ interface IQylTest : ITest, IHazSourcePaths
         if (needsTestcontainers) EnsureTestcontainersConfigured();
 
         DotNetTasks.DotNetTest(s => s
+            .SetConfiguration(Configuration)
             .SetNoBuild(true)
             .SetNoRestore(true)
             .SetResultsDirectory(TestResultsDirectory)
@@ -259,6 +260,7 @@ interface IQylTest : ITest, IHazSourcePaths
         }
 
         DotNetTasks.DotNetTest(s => s
+            .SetConfiguration(Configuration)
             .SetNoBuild(true)
             .SetNoRestore(true)
             .SetResultsDirectory(TestResultsDirectory)
