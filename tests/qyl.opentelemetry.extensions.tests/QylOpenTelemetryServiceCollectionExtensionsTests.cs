@@ -11,10 +11,10 @@ public sealed class QylOpenTelemetryServiceCollectionExtensionsTests
 
     public static TheoryData<Action<QylOtelOptions>> HappyPathConfigurations() => new()
     {
-        o => { o.Endpoint = s_traceEndpoint; o.ServiceName = "orders-api"; o.MeterNames.Add("orders-api"); },
-        o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; },
-        o => { o.EnableTracing = false; o.ServiceName = "orders-api"; o.MeterNames.Add("orders-api"); },
-        o => { o.EnableTracing = false; o.ServiceName = "orders-api"; o.ConfigureMetrics = m => m.AddMeter("orders-api"); },
+        static o => { o.Endpoint = s_traceEndpoint; o.ServiceName = "orders-api"; o.MeterNames.Add("orders-api"); },
+        static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; },
+        static o => { o.EnableTracing = false; o.ServiceName = "orders-api"; o.MeterNames.Add("orders-api"); },
+        static o => { o.EnableTracing = false; o.ServiceName = "orders-api"; o.ConfigureMetrics = static m => m.AddMeter("orders-api"); },
     };
 
     [Theory]
@@ -87,18 +87,18 @@ public sealed class QylOpenTelemetryServiceCollectionExtensionsTests
     public static TheoryData<Action<QylOtelOptions>, string> RejectionCases() => new()
     {
         // Tracing on but no endpoint → Endpoint required
-        { o => { o.ServiceName = "orders-api"; }, nameof(QylOtelOptions.Endpoint) },
+        { static o => { o.ServiceName = "orders-api"; }, nameof(QylOtelOptions.Endpoint) },
         // Missing service name variants
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = null; }, nameof(QylOtelOptions.ServiceName) },
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = ""; }, nameof(QylOtelOptions.ServiceName) },
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = " "; }, nameof(QylOtelOptions.ServiceName) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = null; }, nameof(QylOtelOptions.ServiceName) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = ""; }, nameof(QylOtelOptions.ServiceName) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = " "; }, nameof(QylOtelOptions.ServiceName) },
         // Invalid sample rates
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = -0.01; }, nameof(QylOtelOptions.SampleRate) },
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = 1.01; }, nameof(QylOtelOptions.SampleRate) },
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = double.NaN; }, nameof(QylOtelOptions.SampleRate) },
-        { o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = double.PositiveInfinity; }, nameof(QylOtelOptions.SampleRate) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = -0.01; }, nameof(QylOtelOptions.SampleRate) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = 1.01; }, nameof(QylOtelOptions.SampleRate) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = double.NaN; }, nameof(QylOtelOptions.SampleRate) },
+        { static o => { o.EnableTracing = false; o.EnableMetrics = true; o.ServiceName = "orders-api"; o.SampleRate = double.PositiveInfinity; }, nameof(QylOtelOptions.SampleRate) },
         // Whitespace meter name
-        { o => { o.Endpoint = s_traceEndpoint; o.ServiceName = "orders-api"; o.MeterNames.Add(" "); }, nameof(QylOtelOptions.MeterNames) },
+        { static o => { o.Endpoint = s_traceEndpoint; o.ServiceName = "orders-api"; o.MeterNames.Add(" "); }, nameof(QylOtelOptions.MeterNames) },
     };
 
     [Theory]
