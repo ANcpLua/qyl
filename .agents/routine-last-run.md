@@ -4,6 +4,91 @@ Lightweight breadcrumb for scheduled agent routines. Each entry under
 `## <routine-name> YYYY-MM-DD HH:MM` records the state the routine exited in,
 so the next run can resume from the same line of work without re-discovering it.
 
+## qyl-e2e-tests 2026-05-24 09:46
+
+**Outcome:** BLOCKED — Docker daemon still not running. Third consecutive
+scheduled run of `qyl-e2e-tests` to hit this exact wall (2026-05-19,
+2026-05-20, 2026-05-24; there was no scheduled e2e run on 05-21/22/23 — the
+gap between 05-20 and 05-24 is the cron cadence, not me skipping). No code
+touched.
+
+**Blocker (identical to 2026-05-19 / 2026-05-20):** OrbStack's Docker socket
+is still missing — `docker info` fails with `dial unix
+/Users/ancplua/.orbstack/run/docker.sock: connect: no such file or directory`.
+`/Applications/OrbStack.app` is installed but the daemon is not started.
+Bringing the desktop daemon up is the user's call; this routine does not
+launch GUI apps autonomously.
+
+**State on arrival:**
+- Worktree clean on `claude/clever-feynman-0c4209` (auto-generated isolation
+  branch under `.claude/worktrees/`).
+- `dotnet build` not attempted — a build cannot unblock a missing Docker
+  daemon and the existing E2E tests would build green anyway (commit
+  `0b08beba fix(tests/e2e): heal release-mode bit-rot…` landed since 05-20).
+- E2E project on main currently ships **three** scenarios — one more than at
+  the 2026-05-20 entry. New scenario landed via a non-routine commit:
+  - `tests/qyl.e2e.tests/Bootstrap/WireMockLlmSeamTests.cs`
+  - `tests/qyl.e2e.tests/Scenarios/OtlpHttpTraceIngestionRoundtripTests.cs`
+  - `tests/qyl.e2e.tests/Scenarios/McpServerExposesCatalogTests.cs` ← **new**,
+    from `83503c39 test(e2e/mcp): cover qyl-mcp's /llms.txt agent-discovery
+    surface`. Closes carry-forward gap #2 from the 2026-05-20 entry (MCP
+    catalog/discovery surface).
+- CI investment also moved while this routine was blocked: `80c5b917 ci: gate
+  docker e2e on relevant changes`, `5aead24b ci: keep docker e2e out of
+  backend gate`, `3a1ea5a6 ci(e2e-docker): cache layers…`,
+  `d56ea7e2 ci(e2e-docker): no-op nudge to benchmark warm GHA cache`. The
+  E2E pipeline is being actively tuned by other PRs even though the
+  workstation-side routine has been no-op for a week.
+
+**Carry-forward gaps (revised — gap #2 was closed externally):**
+1. **Priority-1 production bug — still present, verified today.**
+   `services/qyl.collector/Storage/DuckDbSchema.g.sql:313,317` declares
+   `kind VARCHAR NOT NULL` and `status_code VARCHAR NOT NULL`, but
+   `internal/qyl.collector.storage.generators/DuckDbEmitter.cs:184,221`
+   still emits `reader.Col(N).AsByte` / `reader.Col(N).GetByte(0)` for
+   those columns. Every `GET /api/v1/traces` row read throws
+   `InvalidCastException`. Same line numbers as the 2026-05-20 entry —
+   the `527f9294 chore: emit DuckDbSchema.g.sql…` commit that touched
+   the schema did not realign the generator. Not an E2E fix; needs its
+   own focused PR with migration testing. Once landed, extend
+   `OtlpHttpTraceIngestionRoundtripTests` to also assert
+   `GET /api/v1/traces/{traceId}` returns the row.
+2. **MCP → collector read-through scenario.** Drive an MCP tool over
+   JSON-RPC that reads spans **previously ingested via OTLP/HTTP** (not
+   the catalog/discovery surface that `McpServerExposesCatalogTests` now
+   covers — that's a different seam). The round-trip assertion is the
+   one with real production value, and it's gated on gap #1 above.
+3. **Chat ingest → trace at sink with credential redaction.** Requires
+   adding an OTel collector sink container with a file exporter to
+   `QylTopologyFixture` (or migrating the fixture to TUnit.Aspire, which
+   is the SKILL.md-prescribed direction but conflicts with the repo's
+   xUnit-v3 reality — same TUnit-vs-xUnit conflict that
+   `qyl-unit-tests` 2026-05-22 resolved by following CLAUDE.md). Keep
+   xUnit; add the sink container; assert redaction at the sink.
+
+**Pattern flag — escalated:**
+
+The 2026-05-20 entry warned: "If this becomes three [consecutive Docker-down
+no-ops], worth considering whether the routine should attempt a non-
+interactive `open -gja OrbStack`." We're now at three. **I am still not
+auto-launching OrbStack** — the reasoning from 2026-05-20 stands (agents
+shouldn't auto-launch GUI apps without explicit instruction). But the
+pattern is now a real signal worth raising:
+
+- **User-side fix that would actually solve this:** add OrbStack to macOS
+  Login Items (System Settings → General → Login Items → Open at Login).
+  After that the daemon is up whenever the workstation is, and this routine
+  stops being a perpetual no-op without anyone touching the schedule.
+- **Routine-side change worth considering:** the cron entry could check
+  `docker info` from a pre-task script and **skip the run entirely** (not
+  even invoke the agent) when Docker is down, instead of paying the
+  agent-spawn cost only to produce a no-op log entry like this one. That
+  removes the per-day noise but loses the cross-channel observation value
+  this entry just demonstrated (gap #2 closing was worth noticing). Net:
+  leave the schedule alone; the cost of a no-op log entry is small.
+
+**Handoff:** none. PR for this log entry only.
+
 ## qyl-functional-tests 2026-05-22 (auto)
 
 **Outcome:** Added end-to-end functional coverage for `/api/v1/configurator/*`
