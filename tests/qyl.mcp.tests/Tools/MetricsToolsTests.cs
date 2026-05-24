@@ -237,7 +237,7 @@ public sealed class MetricsToolsTests
 
     [Theory]
     [InlineData(HttpStatusCode.BadRequest, """{ "error": "Query parameter 'filter' supports service.name=<value> only." }""", "Metric query rejected: Query parameter 'filter' supports service.name=<value> only.")]
-    [InlineData(HttpStatusCode.NotFound, """{ "error": "Unknown metric 'missing_metric'." }""", "Metric `request_count` was not found. Unknown metric 'missing_metric'.")]
+    [InlineData(HttpStatusCode.NotFound, """{ "error": "Unknown metric 'request_count'." }""", "Metric `request_count` was not found. Unknown metric 'request_count'.")]
     public async Task QueryMetrics_FormatsCollectorError(HttpStatusCode status, string body, string expected)
     {
         using var handler = new FakeHttpMessageHandler();

@@ -17,6 +17,7 @@ on:
       - "Directory.Build.props"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
+      - "core/specs/**"
       - "eng/**"
       - "global.json"
       - "internal/**"
@@ -35,6 +36,7 @@ on:
       - "Directory.Build.props"
       - "Directory.Build.targets"
       - "Directory.Packages.props"
+      - "core/specs/**"
       - "eng/**"
       - "global.json"
       - "internal/**"
@@ -51,6 +53,9 @@ on:
     - cron: "17 3 * * 0"
 
 permissions:
+  # actions: write is required for type=gha BuildKit cache export/import;
+  # without it, docker/build-push-action silently falls back to a no-op cache.
+  actions: write
   contents: read
   packages: read
 
