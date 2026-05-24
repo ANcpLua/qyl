@@ -637,201 +637,74 @@ public sealed class MetricsEndpointsTests
             .GetProperty("value").GetDouble().Should().Be(35);
     }
 
-    [Fact]
-    public async Task Post_metrics_query_rejects_missing_explicit_window()
+    public static TheoryData<string, string[]> PostQueryRejectionCases() => new()
     {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "request_count"
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("start_time");
-    }
-
-    [Fact]
-    public async Task Post_metrics_query_rejects_duplicate_service_filter_aliases()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "request_count",
-                          "filters": {
-                            "service.name": "orders-api",
-                            "service": "checkout-api"
-                          },
-                          "start_time": "2026-05-23T09:59:00Z",
-                          "end_time": "2026-05-23T11:00:00Z"
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("service.name");
-        body.GetProperty("error").GetString().Should().Contain("more than once");
-    }
-
-    [Fact]
-    public async Task Post_metrics_query_rejects_token_type_filter_for_non_token_metric()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "request_count",
-                          "filters": {
-                            "gen_ai.token.type": "input"
-                          },
-                          "start_time": "2026-05-23T09:59:00Z",
-                          "end_time": "2026-05-23T11:00:00Z"
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("gen_ai.token.type");
-        body.GetProperty("error").GetString().Should().Contain("gen_ai.client.token.usage");
-    }
-
-    [Fact]
-    public async Task Post_metrics_query_rejects_unknown_token_type_filter_value()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "gen_ai.client.token.usage",
-                          "filters": {
-                            "gen_ai.token.type": "total"
-                          },
-                          "start_time": "2026-05-23T09:59:00Z",
-                          "end_time": "2026-05-23T11:00:00Z"
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("input");
-        body.GetProperty("error").GetString().Should().Contain("output");
-    }
-
-    [Fact]
-    public async Task Post_metrics_query_rejects_unsupported_grouping()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "request_count",
-                          "start_time": "2026-05-23T09:59:00Z",
-                          "end_time": "2026-05-23T11:00:00Z",
-                          "group_by": [ "host.name" ]
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("service.name");
-    }
-
-    [Fact]
-    public async Task Post_metrics_query_rejects_empty_grouping_label()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent("""
-                        {
-                          "metric_name": "request_count",
-                          "start_time": "2026-05-23T09:59:00Z",
-                          "end_time": "2026-05-23T11:00:00Z",
-                          "group_by": [ null ]
-                        }
-                        """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("non-empty");
-    }
+        // missing window
+        {
+            """{ "metric_name": "request_count" }""",
+            ["start_time"]
+        },
+        // duplicate service alias
+        {
+            """{ "metric_name": "request_count", "filters": { "service.name": "orders-api", "service": "checkout-api" }, "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z" }""",
+            ["service.name", "more than once"]
+        },
+        // token_type filter on non-token metric
+        {
+            """{ "metric_name": "request_count", "filters": { "gen_ai.token.type": "input" }, "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z" }""",
+            ["gen_ai.token.type", "gen_ai.client.token.usage"]
+        },
+        // unknown token_type value
+        {
+            """{ "metric_name": "gen_ai.client.token.usage", "filters": { "gen_ai.token.type": "total" }, "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z" }""",
+            ["input", "output"]
+        },
+        // unsupported grouping
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "group_by": [ "host.name" ] }""",
+            ["service.name"]
+        },
+        // empty grouping label
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "group_by": [ null ] }""",
+            ["non-empty"]
+        },
+        // series_limit below contract bound
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "series_limit": 0 }""",
+            ["series_limit", "1000"]
+        },
+        // series_limit above contract bound
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "series_limit": 1001 }""",
+            ["series_limit", "1000"]
+        },
+        // point_limit below contract bound
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "point_limit": 0 }""",
+            ["point_limit", "100000"]
+        },
+        // point_limit above contract bound
+        {
+            """{ "metric_name": "request_count", "start_time": "2026-05-23T09:59:00Z", "end_time": "2026-05-23T11:00:00Z", "point_limit": 100001 }""",
+            ["point_limit", "100000"]
+        },
+    };
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1001)]
-    public async Task Post_metrics_query_rejects_series_limit_outside_contract_bounds(int seriesLimit)
+    [MemberData(nameof(PostQueryRejectionCases))]
+    public async Task Post_metrics_query_rejects_invalid_request(string body, string[] expectedFragments)
     {
         var ct = TestContext.Current.CancellationToken;
         using var client = _factory.CreateClient();
 
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent($$"""
-                          {
-                            "metric_name": "request_count",
-                            "start_time": "2026-05-23T09:59:00Z",
-                            "end_time": "2026-05-23T11:00:00Z",
-                            "series_limit": {{seriesLimit}}
-                          }
-                          """),
-            ct);
+        using var response = await client.PostAsync("/api/v1/metrics/query", JsonContent(body), ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("series_limit");
-        body.GetProperty("error").GetString().Should().Contain("1000");
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(100001)]
-    public async Task Post_metrics_query_rejects_point_limit_outside_contract_bounds(int pointLimit)
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var client = _factory.CreateClient();
-
-        using var response = await client.PostAsync(
-            "/api/v1/metrics/query",
-            JsonContent($$"""
-                          {
-                            "metric_name": "request_count",
-                            "start_time": "2026-05-23T09:59:00Z",
-                            "end_time": "2026-05-23T11:00:00Z",
-                            "point_limit": {{pointLimit}}
-                          }
-                          """),
-            ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
-        body.GetProperty("error").GetString().Should().Contain("point_limit");
-        body.GetProperty("error").GetString().Should().Contain("100000");
+        var error = (await response.Content.ReadFromJsonAsync<JsonElement>(ct))
+            .GetProperty("error").GetString();
+        foreach (var fragment in expectedFragments)
+            error.Should().Contain(fragment);
     }
 
     [Fact]
