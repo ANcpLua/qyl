@@ -90,7 +90,7 @@ jobs:
       - name: Test
         # `Category=regen` and `Category=E2E` are opt-in heavy suites.
         # The dedicated `regen-clean` job covers regeneration drift, and
-        # the E2E (Docker) workflow builds local images before running Docker topology tests.
+        # E2E (Docker) gates relevant PR/push changes with freshly built local images.
         run: |
           dotnet test --configuration Release --no-build \
             --results-directory ./TestResults \

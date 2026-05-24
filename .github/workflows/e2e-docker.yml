@@ -7,6 +7,36 @@
 name: E2E (Docker)
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/e2e-docker.yml"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
+      - "eng/**"
+      - "global.json"
+      - "internal/**"
+      - "packages/**"
+      - "qyl.slnx"
+      - "services/qyl.collector/**"
+      - "services/qyl.mcp/**"
+      - "tests/qyl.e2e.tests/**"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/e2e-docker.yml"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "Directory.Packages.props"
+      - "eng/**"
+      - "global.json"
+      - "internal/**"
+      - "packages/**"
+      - "qyl.slnx"
+      - "services/qyl.collector/**"
+      - "services/qyl.mcp/**"
+      - "tests/qyl.e2e.tests/**"
   workflow_dispatch:
   schedule:
     - cron: "17 3 * * 0"
@@ -69,7 +99,7 @@ jobs:
         run: ./eng/build.sh Generate
 
       - name: Restore dependencies
-        run: dotnet restore -p:TreatWarningsAsErrors=false
+        run: dotnet restore
 
       - name: Run Docker topology E2E
         run: ./eng/build.sh E2ETests --configuration Release
