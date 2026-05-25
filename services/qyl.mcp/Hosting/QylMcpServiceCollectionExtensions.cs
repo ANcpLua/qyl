@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qyl.Generated;
 using qyl.mcp.Agents;
-using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Auth;
 using qyl.mcp.Clients;
 using qyl.mcp.Scoping;
@@ -50,7 +49,6 @@ internal static class QylMcpServiceCollectionExtensions
 
         QylToolManifest.RegisterServices(services, skills);
 
-        services.AddCollectorToolClient<ArtifactTools>();
         services.AddSingleton(TimeProvider.System);
 
         if (skills.IsEnabled(QylSkillKind.Debug))
@@ -86,7 +84,6 @@ internal static class QylMcpServiceCollectionExtensions
         jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
         jsonOptions.TypeInfoResolverChain.Add(LoomMcpJsonContext.Default);
-        jsonOptions.TypeInfoResolverChain.Add(ErrorExplorerJsonContext.Default);
 
         return jsonOptions;
     }

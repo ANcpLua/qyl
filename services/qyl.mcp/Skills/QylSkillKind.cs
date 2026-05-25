@@ -16,7 +16,5 @@ public enum QylSkillKind
 
     Loom,
 
-    Apps,
-
     Debug
 }

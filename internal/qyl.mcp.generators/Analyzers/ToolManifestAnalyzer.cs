@@ -191,8 +191,7 @@ internal static class ToolManifestAnalyzer
             4 => "Build",
             5 => "Anomaly",
             6 => "Loom",
-            7 => "Apps",
-            8 => "Debug",
+            7 => "Debug",
             _ => "Inspect"
         };
 

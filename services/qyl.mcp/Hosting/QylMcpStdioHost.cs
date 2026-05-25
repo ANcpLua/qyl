@@ -13,12 +13,7 @@ internal static class QylMcpStdioHost
 
         var jsonOptions = builder.Services.AddQylMcpCommonServices(builder.Configuration, skills, scope);
 
-        QylMcpServerRegistration.Configure(
-            builder.Services,
-            skills,
-            jsonOptions,
-            McpTransportMode.Stdio,
-            hostOptions: null);
+        QylMcpServerRegistration.Configure(builder.Services, skills, jsonOptions);
 
         var host = builder.Build();
         await host.RunAsync().ConfigureAwait(false);

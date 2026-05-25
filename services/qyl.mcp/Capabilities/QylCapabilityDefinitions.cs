@@ -329,30 +329,6 @@ internal sealed class AnomalyDetectionCapability;
     RelatedCapabilities = ["error_investigation", "agentic_investigation", "anomaly_detection"])]
 internal sealed class LoomTriageAndFixCapability;
 
-[QylCapabilityDefinition("mcp_apps", QylSkillKind.Apps,
-    Title = "Interactive MCP Apps",
-    Summary =
-        "Open qyl's interactive app surfaces for traces, errors, and query workflows when a visual or operator-facing experience is better than raw tool chaining.",
-    Tags = ["apps", "ui", "trace-viewer", "query-studio"],
-    UseCases =
-    [
-        "Launch a visual investigation aid from an MCP host.",
-        "Inspect query schema or execute targeted queries through a UI-oriented workflow."
-    ],
-    PrimaryIdentifiers = ["trace_id", "issue_id", "query"],
-    ScopingHints =
-    [
-        "App tools are best when a host supports MCP app resources cleanly.",
-        "Use low-level tools first if you only need one fact, not an interactive surface."
-    ],
-    EvidenceHints =
-    [
-        "Apps are presentation surfaces over the same telemetry contracts; they do not replace evidence capture.",
-        "Prefer UI flows when human operator inspection is part of the workflow."
-    ],
-    RelatedCapabilities = ["trace_investigation", "error_investigation", "service_discovery"])]
-internal sealed class McpAppsCapability;
-
 [QylCapabilityDefinition("debugger_control", QylSkillKind.Debug,
     Title = "Debugger Control",
     Summary =

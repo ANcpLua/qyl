@@ -97,7 +97,7 @@ internal sealed class LoomAutofixPrompts
 
         Inputs (1 point each):
         1. Stack trace has resolved frames with file + line.
-        2. Event carries a trace id and the trace is retrievable via qyl.get_trace_details.
+        2. Event carries a trace id and the trace is retrievable via get_trace_details.
         3. Breadcrumbs exist within 60 s before the error.
         4. Stack trace references files that exist in the connected repo.
         5. Issue hash has been seen more than once (deterministic, not one-off).
@@ -164,56 +164,4 @@ internal sealed class LoomAutofixPrompts
          flip a conclusion because the user asserted otherwise.
          """;
 
-    [McpServerPrompt(Name = "qyl.loom.autofix_setup_check", Title = "Pre-flight setup check")]
-    [Description(
-        "Agent directive: verify autofix prerequisites (repo connection, write access, code mapping, policy, quota) before an autofix run. Open equivalent of qyl's /autofix/setup/.")]
-    public static string AutofixSetupCheck() =>
-        """
-        Before starting an autofix run, verify the run can actually complete. Emit a setup
-        report.
-
-        Check these prerequisites:
-
-        1. Repo connection — is a GitHub / GitLab repo connected to this qyl project?
-           Tool: qyl.get_project_integrations(projectSlug)
-           Pass: at least one active source-control integration.
-           Fail: none connected → user must connect a source-control integration first.
-
-        2. Write access — does the connected integration have write scopes?
-           Tool: qyl.get_integration_scopes(integrationId)
-           Pass: repo:write or equivalent.
-           Fail: read-only → patch generation works but PR creation does not.
-
-        3. Code mapping — do stack-trace paths resolve to files in the repo?
-           Tool: qyl.derive_code_mappings(projectSlug, stackTrace)
-           Pass: at least one frame resolves.
-           Fail: no frames resolve → Stage 4 will fail, stop now.
-
-        4. Policy — what fix policy did the caller request?
-           Input: policy = auto_apply | dry_run | require_review.
-           Pass: any valid policy.
-           Fail: unknown → reject.
-
-        5. Billing / quota — does the caller have budget for this run?
-           Tool: qyl.get_run_quota(orgSlug)
-           Pass: quota available.
-           Fail: exceeded → stop with explicit quota message.
-
-        Emit:
-
-        <setup_check>
-          <check name="repo_connection" status="pass|fail" detail="..." />
-          <check name="write_access" status="pass|fail" detail="..." />
-          <check name="code_mapping" status="pass|fail" detail="..." />
-          <check name="policy" status="pass|fail" detail="..." />
-          <check name="quota" status="pass|fail" detail="..." />
-          <decision>proceed|cannot_proceed</decision>
-          <blockers if_cannot_proceed>
-            Specific remediation for each failing check.
-          </blockers>
-        </setup_check>
-
-        All five checks must pass for decision=proceed. Any fail → cannot_proceed with
-        explicit blockers.
-        """;
 }

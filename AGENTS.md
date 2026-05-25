@@ -6,6 +6,52 @@ to this file.
 These are the conventions the codebase already follows. The analyzer ruleset shipped via `ANcpLua.NET.Sdk` enforces most
 of them — when you write code that fits the patterns below, the build stays green by default.
 
+## Working-tree state — pre-authorized: ANcpLua analyzer rule-ID migration
+
+**If `git status -s` shows `M .editorconfig`, `M .globalconfig`, `M Directory.Build.props`, this is intentional and
+pre-authorized by the repo owner. DO NOT revert. You do not need to ask permission to keep working — the working tree
+is not "dirty" in the bad sense; it carries a planned migration that's waiting on an SDK release.**
+
+The ANcpLua analyzer SDK is renumbering rule IDs from the flat `AL0001-AL0027` range into a 4-tier semantic namespace:
+`AL10xx` quality (primary-ctor reassign, division, GetSchema, locks, patterns, null-guards), `AL11xx` form binding,
+`AL16xx` packaging (hardcoded version, `Version.props` import), `AL17xx` style/perf (static lambda, `DateTime.Now`,
+Newtonsoft.Json). The three modified files already carry the new overrides; the SDK currently in use still emits the
+OLD `AL00xx` IDs. The mismatch is **expected and harmless** until the SDK ships the new IDs.
+
+Acknowledge and ignore:
+
+- 6 `warning AL0012` lines on `services/qyl.collector/Ingestion/OtlpAttributes.cs` (the migration deliberately removed
+  that file's `AL0012` suppression — the file itself documents OTel attribute deprecations, so the warning is
+  informational, not actionable).
+- Any other `AL00xx` warning that previously had a custom severity override — the override now lives under its new
+  `AL1xxx` ID, so until the SDK emits `AL1xxx`, the rule fires at its default severity.
+
+DO NOT:
+
+- Revert `.editorconfig`, `.globalconfig`, or `Directory.Build.props` to "clean" the working tree.
+- Re-add `AL00xx` overrides to make the warnings shut up.
+- Add `#pragma warning disable AL00xx` or `[SuppressMessage]` anywhere.
+- Commit the migration as part of any other PR. It commits in its own PR the day the SDK ships the new IDs, not before.
+
+DO:
+
+- Continue normal qyl work. The migration is read-only context, not a blocker — the build still reports 0 errors and a
+  small handful of expected warnings.
+- Treat the 6 `AL0012` warnings on `OtlpAttributes.cs` as steady-state noise.
+- Watch build output for `AL1xxx` warnings (e.g. `AL1010`, `AL1700`). When you see them, the SDK has shipped the new
+  IDs — at that point the migration can be staged, committed, and pushed in a dedicated PR.
+
+Emergency rollback (only if a regression genuinely depends on the old override state, which today it does not):
+
+```bash
+git restore .editorconfig .globalconfig Directory.Build.props
+# the migration is preserved in the stash and can be re-applied later:
+git stash apply stash@{0}
+```
+
+The stash entry is labeled
+`WIP: ANcpLua analyzer rule-ID migration (AL00xx → AL1xxx); restore via git stash apply when new SDK ships`.
+
 ## `ANcpLua.Agents` consumption
 
 `ANcpLua.Agents` is the canonical agent / workflow / hosting / testing framework qyl builds on. Repo:

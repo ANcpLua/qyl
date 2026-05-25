@@ -364,7 +364,6 @@ internal static class ToolManifestEmitter
             "Build" => "build",
             "Anomaly" => "anomaly",
             "Loom" => "loom",
-            "Apps" => "apps",
             "Debug" => "debug",
             _ => "core"
         };

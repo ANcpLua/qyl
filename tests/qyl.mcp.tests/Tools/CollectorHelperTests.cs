@@ -1,4 +1,3 @@
-using qyl.mcp;
 using qyl.mcp.Tools;
 
 namespace Qyl.Mcp.Tests.Tools;
@@ -26,7 +25,6 @@ public sealed class CollectorHelperTests
     public async Task ExecuteAsync_PrefixesFormattedError_WhenPrefixSupplied(string? prefix, string expectedStart) =>
         (await CollectorHelper.ExecuteAsync(
             static () => throw new OperationCanceledException(),
-            McpTransportMode.Stdio,
             prefix))
             .Should().StartWith(expectedStart);
 }

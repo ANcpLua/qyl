@@ -68,6 +68,17 @@ public static class CollectorAuthExtensions
             services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
         }
 
+        services.AddSingleton(TimeProvider.System);
+
+        services.Configure<TokenEncryptionOptions>(opts =>
+            opts.Key = config[TokenEncryptionOptions.KeyEnvVar]);
+        services.AddSingleton<ITokenEncryption, AesGcmTokenEncryption>();
+
+        services.AddSingleton<IMcpTokenStore>(sp => new McpTokenStore(
+            sp.GetRequiredService<DuckDbStore>(),
+            sp.GetRequiredService<TimeProvider>()));
+        services.AddHostedService<McpTokenCleanupService>();
+
         return services;
     }
 }

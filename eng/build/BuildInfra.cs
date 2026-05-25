@@ -30,7 +30,6 @@ interface IDocker : IHazSourcePaths
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
         ("qyl-loom",      ServicesDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom")),
-        ("qyl-mcp",       ServicesDirectory / "qyl.mcp"  / "Dockerfile", FormatImageName("qyl-mcp")),
         ("qyl-dashboard", DashboardDirectory             / "Dockerfile", FormatImageName("qyl-dashboard"))
     ];
 
