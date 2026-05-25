@@ -76,8 +76,7 @@ public sealed partial class StructuredLogTools(HttpClient client)
     [QylCapability("trace_investigation", QylCapabilityRole.FollowUp)]
     [QylCapability("log_investigation")]
     [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
-        TaskSupport = ToolTaskSupport.Optional)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     public partial Task<string> ListTraceLogsAsync(
         string traceId)
     {

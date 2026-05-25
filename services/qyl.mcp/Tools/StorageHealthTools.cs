@@ -83,8 +83,7 @@ public sealed partial class StorageHealthTools(HttpClient client)
 
     [QylCapability("health_and_storage")]
     [McpServerTool(Name = "qyl.get_system_context", Title = "Get System Context",
-        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true,
-        TaskSupport = ToolTaskSupport.Optional)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     public partial Task<string> GetSystemContextAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
         var response = await client.GetAsync("/api/v1/insights").ConfigureAwait(false);
