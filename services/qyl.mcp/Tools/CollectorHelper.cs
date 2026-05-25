@@ -5,14 +5,8 @@ namespace qyl.mcp.Tools;
 
 internal static class CollectorHelper
 {
-    public static Task<string> ExecuteAsync(
-        Func<Task<string>> operation,
-        string? errorPrefix = null) =>
-        ExecuteAsync(operation, McpTransportMode.Stdio, errorPrefix);
-
     public static async Task<string> ExecuteAsync(
         Func<Task<string>> operation,
-        McpTransportMode transport,
         string? errorPrefix = null)
     {
         try
@@ -21,15 +15,15 @@ internal static class CollectorHelper
         }
         catch (HttpRequestException ex)
         {
-            return FormatWithPrefix(ex, transport, errorPrefix);
+            return FormatWithPrefix(ex, errorPrefix);
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException or null)
         {
-            return FormatWithPrefix(ex, transport, errorPrefix);
+            return FormatWithPrefix(ex, errorPrefix);
         }
         catch (OperationCanceledException ex)
         {
-            return FormatWithPrefix(ex, transport, errorPrefix);
+            return FormatWithPrefix(ex, errorPrefix);
         }
     }
 
@@ -55,9 +49,9 @@ internal static class CollectorHelper
         return body;
     }
 
-    private static string FormatWithPrefix(Exception ex, McpTransportMode transport, string? errorPrefix)
+    private static string FormatWithPrefix(Exception ex, string? errorPrefix)
     {
-        var formatted = ErrorFormatter.FormatForLlm(ex, transport);
+        var formatted = ErrorFormatter.FormatForLlm(ex);
         return errorPrefix is not null ? $"{errorPrefix}: {formatted}" : formatted;
     }
 }

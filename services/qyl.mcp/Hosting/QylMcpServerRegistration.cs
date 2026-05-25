@@ -1,34 +1,22 @@
-using System.Collections.Frozen;
 using System.Text.Json;
-using ANcpLua.Agents.Mcp.Hosting.Authentication;
 using ANcpLua.Agents.Mcp.Hosting.Filters;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Qyl.Generated;
 using Qyl.Instrumentation.Instrumentation.Mcp;
-using qyl.mcp.Apps.ErrorExplorer;
-using qyl.mcp.Apps.QueryStudio;
-using qyl.mcp.Apps.TraceExplorer;
-using qyl.mcp.Auth;
 using qyl.mcp.Metadata;
 using qyl.mcp.Scoping;
 
 namespace qyl.mcp.Hosting;
 
-internal static partial class QylMcpServerRegistration
+internal static class QylMcpServerRegistration
 {
-    private const string LoggerCategory = "qyl.mcp.Hosting.QylMcpServerRegistration";
-
     public static void Configure(
         IServiceCollection services,
         SkillConfiguration skills,
-        JsonSerializerOptions jsonOptions,
-        McpTransportMode transport,
-        McpHostOptions? hostOptions)
+        JsonSerializerOptions jsonOptions)
     {
         services.AddSingleton<IMcpTaskStore>(_ => new InMemoryMcpTaskStore(
             TimeSpan.FromHours(1),
@@ -48,149 +36,13 @@ internal static partial class QylMcpServerRegistration
         services.AddOptions<McpServerOptions>()
             .Configure<IMcpTaskStore>((options, taskStore) => options.TaskStore = taskStore);
 
-        builder = transport switch
-        {
-            McpTransportMode.Http => builder.WithHttpTransport(options =>
-            {
-                if (hostOptions is not null)
-                    options.Stateless = hostOptions.Stateless;
-            }),
-            _ => builder.WithStdioServerTransport()
-        };
-
-        if (transport is McpTransportMode.Http)
-        {
-            services.AddAuthorization();
-            builder.AddAuthorizationFilters();
-
-            if (hostOptions is { RequiresAuthentication: true })
-            {
-                if (string.IsNullOrWhiteSpace(hostOptions.KeycloakAudience))
-                {
-                    throw new InvalidOperationException(
-                        $"{McpAuthOptions.KeycloakAuthorityEnvVar} is set but " +
-                        $"{McpHostOptions.KeycloakAudienceEnvVar} is empty. " +
-                        "Audience validation must be explicit — refusing to start with " +
-                        "any-token-from-realm policy.");
-                }
-
-                ConfigureOAuth(builder, hostOptions);
-            }
-        }
-
         builder
-            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options =>
-            {
-                options.Transport = transport switch
-                {
-                    McpTransportMode.Http => "http",
-                    _ => "stdio"
-                };
-            })
-            .WithQylAdminFilter(options =>
-            {
-                options.RequiredRole = McpAuthRoles.Admin;
-                options.AdminToolNames = QylAdminTools.Names;
-            })
+            .WithStdioServerTransport()
+            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options => options.Transport = "stdio")
             .WithQylScopeInjection<QylScope>()
             .WithAnthropicResultSizeMeta(thresholdChars: 10_000)
             .WithTools<CapabilityTools>(jsonOptions);
 
         QylToolManifest.RegisterTools(builder, skills, jsonOptions);
-
-        if (skills.IsEnabled(QylSkillKind.Apps))
-        {
-            builder
-                .WithResources<TraceExplorerResource>()
-                .WithResources<ErrorExplorerResource>()
-                .WithResources([QueryStudioResource.Create()]);
-        }
     }
-
-    private static void ConfigureOAuth(IMcpServerBuilder builder, McpHostOptions hostOptions)
-    {
-        var authority = RequireConfigured(hostOptions.KeycloakAuthority, McpAuthOptions.KeycloakAuthorityEnvVar);
-        var audience = RequireConfigured(hostOptions.KeycloakAudience, McpHostOptions.KeycloakAudienceEnvVar);
-
-        builder.WithQylOAuthProtectedResource(options =>
-        {
-            options.Authority = authority;
-            options.Audience = audience;
-            options.ResolveResourceUrl = req => new Uri(hostOptions.ResolvePublicMcpUrl(req));
-            options.ConfigureMetadata = metadata =>
-            {
-                metadata.ResourceName = QylServerMetadata.DisplayName;
-                metadata.ResourceDocumentation = new Uri(QylServerMetadata.DocumentationUrl);
-            };
-            options.ConfigureJwtEvents = events =>
-            {
-                events.OnTokenValidated = OnTokenValidatedAsync;
-                events.OnAuthenticationFailed = OnAuthenticationFailedAsync;
-                events.OnForbidden = OnForbiddenAsync;
-            };
-        });
-
-        static Task OnTokenValidatedAsync(TokenValidatedContext context)
-        {
-            var logger = CreateLogger(context.HttpContext.RequestServices);
-            var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
-            var audience = context.Principal?.FindFirst("aud")?.Value ?? "(unspecified)";
-            LogJwtValidated(logger, subject, audience);
-            return Task.CompletedTask;
-        }
-
-        static Task OnAuthenticationFailedAsync(AuthenticationFailedContext context)
-        {
-            var logger = CreateLogger(context.HttpContext.RequestServices);
-            LogJwtAuthenticationFailed(
-                logger,
-                context.Exception.GetType().Name,
-                context.Exception.Message);
-            return Task.CompletedTask;
-        }
-
-        static Task OnForbiddenAsync(ForbiddenContext context)
-        {
-            var logger = CreateLogger(context.HttpContext.RequestServices);
-            var subject = context.Principal?.FindFirst("sub")?.Value ?? "(unknown)";
-            LogJwtRoleCheckFailed(
-                logger,
-                subject,
-                context.HttpContext.Request.Path.ToString());
-            return Task.CompletedTask;
-        }
-
-        static ILogger CreateLogger(IServiceProvider services) =>
-            services.GetRequiredService<ILoggerFactory>()
-                .CreateLogger(LoggerCategory);
-    }
-
-    private static string RequireConfigured(string? value, string environmentVariable) =>
-        string.IsNullOrWhiteSpace(value)
-            ? throw new InvalidOperationException($"{environmentVariable} is required when MCP OAuth is enabled.")
-            : value;
-
-    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "JWT validated: sub={Subject} aud={Audience}")]
-    private static partial void LogJwtValidated(ILogger logger, string subject, string audience);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "JWT authentication failed: {ExceptionType}: {ExceptionMessage}")]
-    private static partial void LogJwtAuthenticationFailed(
-        ILogger logger,
-        string exceptionType,
-        string exceptionMessage);
-
-    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
-        Message = "JWT authorized but role check failed: sub={Subject} path={Path}")]
-    private static partial void LogJwtRoleCheckFailed(ILogger logger, string subject, string path);
-}
-
-internal static class McpAuthRoles
-{
-    public const string Admin = "qyl:admin";
-}
-
-internal static class QylAdminTools
-{
-    public static readonly IReadOnlySet<string> Names = FrozenSet<string>.Empty;
 }

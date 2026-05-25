@@ -24,7 +24,6 @@ internal static class QylSkillCatalog
             QylSkillKind.Build => "build",
             QylSkillKind.Anomaly => "anomaly",
             QylSkillKind.Loom => "loom",
-            QylSkillKind.Apps => "apps",
             QylSkillKind.Debug => "debug",
             _ => "core"
         };
