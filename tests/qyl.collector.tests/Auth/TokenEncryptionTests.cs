@@ -73,7 +73,7 @@ public sealed class TokenEncryptionTests
     [Fact]
     public void Constructor_ThrowsWhenKeyEnvVarMissing()
     {
-        var act = () => Create(key: null);
+        var act = static () => Create(key: null);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*QYL_TOKEN_ENCRYPTION_KEY is required*");
     }
@@ -81,7 +81,7 @@ public sealed class TokenEncryptionTests
     [Fact]
     public void Constructor_ThrowsWhenKeyIsNotBase64()
     {
-        var act = () => Create("not!base64!");
+        var act = static () => Create("not!base64!");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*must be a valid base64 string*");
     }
