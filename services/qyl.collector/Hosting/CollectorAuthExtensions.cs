@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Qyl.Collector.Auth;
 
 namespace Qyl.Collector.Hosting;
@@ -50,22 +51,43 @@ public static class CollectorAuthExtensions
             ]
         });
 
-        var keycloakAuthority = config["QYL_KEYCLOAK_AUTHORITY"];
-        var keycloakAudience = config["QYL_KEYCLOAK_AUDIENCE"];
+        var keycloakAuthority = config[KeycloakOptions.AuthorityEnvVar];
+        var keycloakAudience = config[KeycloakOptions.AudienceEnvVar];
+
+        services.Configure<KeycloakOptions>(opts =>
+        {
+            opts.Authority = keycloakAuthority;
+            opts.Audience = keycloakAudience;
+            opts.ClientId = config[KeycloakOptions.ClientIdEnvVar];
+            opts.ClientSecret = config[KeycloakOptions.ClientSecretEnvVar];
+            var allowed = config[KeycloakOptions.AllowedRedirectsEnvVar];
+            if (!string.IsNullOrWhiteSpace(allowed))
+            {
+                opts.AllowedRedirects = allowed
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+        });
 
         if (!string.IsNullOrWhiteSpace(keycloakAuthority))
         {
-            services.AddHttpClient("Keycloak").AddStandardResilienceHandler();
+            services.AddHttpClient(KeycloakClient.HttpClientName).AddStandardResilienceHandler();
             services.AddSingleton<IKeycloakJwksValidator>(sp =>
                 new KeycloakJwksValidator(
                     keycloakAuthority,
                     keycloakAudience,
-                    sp.GetRequiredService<IHttpClientFactory>().CreateClient("Keycloak"),
+                    sp.GetRequiredService<IHttpClientFactory>().CreateClient(KeycloakClient.HttpClientName),
                     sp.GetRequiredService<ILogger<KeycloakJwksValidator>>()));
+            services.AddSingleton<IKeycloakClient>(sp =>
+                new KeycloakClient(
+                    sp.GetRequiredService<IHttpClientFactory>().CreateClient(KeycloakClient.HttpClientName),
+                    sp.GetRequiredService<IOptions<KeycloakOptions>>(),
+                    sp.GetRequiredService<TimeProvider>(),
+                    sp.GetRequiredService<ILogger<KeycloakClient>>()));
         }
         else
         {
             services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
+            services.AddSingleton<IKeycloakClient>(NullKeycloakClient.Instance);
         }
 
         services.AddSingleton(TimeProvider.System);
@@ -75,6 +97,9 @@ public static class CollectorAuthExtensions
         services.AddSingleton<ITokenEncryption, AesGcmTokenEncryption>();
 
         services.AddSingleton<IMcpTokenStore>(sp => new McpTokenStore(
+            sp.GetRequiredService<DuckDbStore>(),
+            sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IPkceStateStore>(sp => new PkceStateStore(
             sp.GetRequiredService<DuckDbStore>(),
             sp.GetRequiredService<TimeProvider>()));
         services.AddHostedService<McpTokenCleanupService>();
