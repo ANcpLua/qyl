@@ -96,6 +96,8 @@
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
+    <!-- qyl-PRD E2.a: qyl.mcp library-consumable for in-process HTTP MCP host. -->
+    <ProjectReference Include="..\qyl.mcp\qyl.mcp.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

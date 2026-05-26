@@ -26,7 +26,12 @@ using LoomMcpJsonContext = Qyl.Contracts.Loom.LoomMcpJsonContext;
 
 namespace qyl.mcp.Hosting;
 
-internal static class QylMcpServiceCollectionExtensions
+/// <summary>
+/// DI registrations shared by every qyl-mcp host (stdio dev host + in-process
+/// collector HTTP host). Public so the collector can register the same
+/// services without duplicating the JSON-context wiring and skill setup.
+/// </summary>
+public static class QylMcpServiceCollectionExtensions
 {
     public static JsonSerializerOptions AddQylMcpCommonServices(
         this IServiceCollection services,
