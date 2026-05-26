@@ -13,7 +13,7 @@ internal sealed partial class RegressionTools(HttpClient http)
     [QylCapability("anomaly_detection", QylCapabilityRole.FollowUp)]
     [QylCapability("loom_triage_and_fix")]
     [McpServerTool(Name = "qyl.check_regressions", Title = "Check Regressions for Service",
-        ReadOnly = false, Destructive = false, Idempotent = true,
+        ReadOnly = true, Destructive = false, Idempotent = true,
         TaskSupport = ToolTaskSupport.Optional)]
     public async partial Task<string> CheckRegressionsAsync(
         string serviceName,

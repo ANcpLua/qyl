@@ -11,7 +11,7 @@ namespace qyl.mcp.Tools;
 internal sealed partial class FixTools(HttpClient http)
 {
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true,
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true,
         TaskSupport = ToolTaskSupport.Required)]
     public async partial Task<LoomToolEnvelope<LoomFixRunDto>> GenerateFixAsync(
         string issueId,

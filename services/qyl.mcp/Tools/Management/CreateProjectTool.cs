@@ -13,7 +13,7 @@ public sealed partial class CreateProjectTool(HttpClient client)
         Name = "create_project",
         Title = "Create Project",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = false)]
     public async partial Task<string> CreateProjectAsync(
         string name,

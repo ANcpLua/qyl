@@ -13,7 +13,7 @@ public sealed partial class MarkTraceReviewedTool(HttpClient client)
         Name = "mark_trace_reviewed",
         Title = "Mark Trace Reviewed",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> MarkTraceReviewed(
         string traceId,

@@ -15,7 +15,7 @@ public sealed partial class LinkErrorsTool(HttpClient client)
         Name = "link_errors",
         Title = "Link Error Issues",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> LinkErrors(
         string issueId,

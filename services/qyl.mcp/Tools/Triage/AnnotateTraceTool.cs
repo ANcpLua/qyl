@@ -14,7 +14,7 @@ public sealed partial class AnnotateTraceTool(HttpClient client)
         Name = "annotate_trace",
         Title = "Annotate Trace",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> AnnotateTrace(
         string traceId,

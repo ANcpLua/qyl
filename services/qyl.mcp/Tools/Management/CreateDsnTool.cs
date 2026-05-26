@@ -16,7 +16,7 @@ public sealed partial class CreateDsnTool(HttpClient client)
         Name = "create_dsn",
         Title = "Create DSN",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = false)]
     public async partial Task<string> CreateDsnAsync(
         string projectSlug,
