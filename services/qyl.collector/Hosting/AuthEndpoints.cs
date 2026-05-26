@@ -1,4 +1,5 @@
 using System.Globalization;
+using ANcpLua.Roslyn.Utilities.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -7,6 +8,10 @@ using Qyl.Collector.Auth;
 using Qyl.Collector.Storage;
 
 namespace Qyl.Collector.Hosting;
+
+/// <summary>JSON body returned by POST /auth/refresh on success.</summary>
+public sealed record RefreshResponse(
+    [property: JsonPropertyName("expires_at")] string ExpiresAt);
 
 /// <summary>
 /// `/auth/*` endpoints driving the OIDC authorization-code + PKCE flow that
@@ -55,12 +60,25 @@ public static partial class AuthEndpoints
         Message = "id_token missing required claim {Claim} on /auth/callback")]
     private static partial void LogIdTokenMissingClaim(ILogger logger, string claim);
 
+    [LoggerMessage(EventId = 9, Level = LogLevel.Information,
+        Message = "Opaque token refresh succeeded — new expires_at={ExpiresAt}")]
+    private static partial void LogRefreshSucceeded(ILogger logger, DateTimeOffset expiresAt);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Warning,
+        Message = "Upstream refresh failed — revoking opaque token locally")]
+    private static partial void LogRefreshUpstreamFailed(ILogger logger);
+
+    [LoggerMessage(EventId = 11, Level = LogLevel.Information,
+        Message = "Opaque token revoked locally")]
+    private static partial void LogRevoked(ILogger logger);
+
     public static IEndpointRouteBuilder MapQylAuth(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/auth");
         group.MapGet("/authorize", AuthorizeAsync);
         group.MapGet("/callback", CallbackAsync);
-        // /auth/refresh, /auth/revoke — E1.d
+        group.MapPost("/refresh", RefreshAsync);
+        group.MapPost("/revoke", RevokeAsync);
         return routes;
     }
 
@@ -340,5 +358,114 @@ public static partial class AuthEndpoints
             separator.ToString(),
             "token=", Uri.EscapeDataString(opaqueToken),
             "&expires_at=", Uri.EscapeDataString(expiresIso));
+    }
+
+    /// <summary>
+    /// Per qyl-PRD Stage E1.d. Refresh-token grant via Keycloak. Decrypts the
+    /// stored refresh, posts to <c>token_endpoint</c>, on success re-encrypts
+    /// and updates <c>encrypted_refresh</c> + <c>refresh_expires_at</c>; on
+    /// upstream failure (refresh expired or revoked at Keycloak) revokes the
+    /// opaque token locally and returns 401. The underlying Keycloak token
+    /// is never returned to the client — only the new <c>expires_at</c>.
+    /// </summary>
+    internal static async Task<IResult> RefreshAsync(
+        HttpContext context,
+        IKeycloakClient keycloak,
+        IMcpTokenStore tokenStore,
+        ITokenEncryption encryption,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken ct)
+    {
+        var logger = loggerFactory.CreateLogger("Qyl.Collector.Auth.Refresh");
+
+        if (!TryExtractBearer(context.Request, out var opaque))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Bearer token required",
+                detail: "Authorization header must be 'Bearer <opaque-token>'.");
+        }
+
+        var stored = await tokenStore.GetByOpaqueTokenAsync(opaque, ct).ConfigureAwait(false);
+        if (stored is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Token unknown",
+                detail: "The opaque token is unknown, expired, or revoked.");
+        }
+
+        var refreshToken = Encoding.UTF8.GetString(encryption.Decrypt(stored.EncryptedRefresh));
+        var tokens = await keycloak.ExchangeRefreshTokenAsync(refreshToken, ct).ConfigureAwait(false);
+        if (tokens is null)
+        {
+            LogRefreshUpstreamFailed(logger);
+            await tokenStore.RevokeAsync(stored.TokenHash, ct).ConfigureAwait(false);
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Refresh rejected upstream",
+                detail: "Keycloak rejected the refresh; opaque token revoked locally.");
+        }
+
+        var newRefreshExpiresAt = timeProvider.GetUtcNow().AddSeconds(tokens.RefreshExpiresIn);
+        var newEncrypted = encryption.Encrypt(Encoding.UTF8.GetBytes(tokens.RefreshToken));
+        await tokenStore.UpdateRefreshAsync(stored.TokenHash, newEncrypted, newRefreshExpiresAt, ct).ConfigureAwait(false);
+
+        LogRefreshSucceeded(logger, newRefreshExpiresAt);
+        return Results.Json(
+            new RefreshResponse(newRefreshExpiresAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
+            QylSerializerContext.Default.RefreshResponse);
+    }
+
+    /// <summary>
+    /// Per qyl-PRD Stage E1.d. RFC 7009 revocation — best-effort upstream
+    /// revoke plus mandatory local revoke. Always returns 204 to avoid
+    /// disclosing whether the token existed (RFC 7009 §2.2).
+    /// </summary>
+    internal static async Task<IResult> RevokeAsync(
+        HttpContext context,
+        IKeycloakClient keycloak,
+        IMcpTokenStore tokenStore,
+        ITokenEncryption encryption,
+        ILoggerFactory loggerFactory,
+        CancellationToken ct)
+    {
+        var logger = loggerFactory.CreateLogger("Qyl.Collector.Auth.Revoke");
+
+        if (!TryExtractBearer(context.Request, out var opaque))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Bearer token required",
+                detail: "Authorization header must be 'Bearer <opaque-token>'.");
+        }
+
+        var stored = await tokenStore.GetByOpaqueTokenAsync(opaque, ct).ConfigureAwait(false);
+        if (stored is not null)
+        {
+            var refreshToken = Encoding.UTF8.GetString(encryption.Decrypt(stored.EncryptedRefresh));
+            // KeycloakClient.RevokeRefreshTokenAsync swallows HTTP errors — local revoke is source of truth.
+            await keycloak.RevokeRefreshTokenAsync(refreshToken, ct).ConfigureAwait(false);
+            await tokenStore.RevokeAsync(stored.TokenHash, ct).ConfigureAwait(false);
+            LogRevoked(logger);
+        }
+
+        // Per RFC 7009 §2.2: don't disclose token existence on revoke.
+        return Results.NoContent();
+    }
+
+    private static bool TryExtractBearer(HttpRequest request, out string token)
+    {
+        var header = request.Headers.Authorization.FirstOrDefault();
+        if (string.IsNullOrEmpty(header)
+            || !BearerHeader.TryExtract(header, out var extracted)
+            || string.IsNullOrEmpty(extracted))
+        {
+            token = string.Empty;
+            return false;
+        }
+        token = extracted;
+        return true;
     }
 }
