@@ -254,9 +254,21 @@ internal sealed class McpTokenStore : IMcpTokenStore
             UserId: reader.GetString(1),
             TenantId: reader.GetString(2),
             Scopes: reader.GetString(3),
-            EncryptedRefresh: (byte[])reader.GetValue(4),
+            EncryptedRefresh: ReadBlob(reader, 4),
             RefreshExpiresAt: new DateTimeOffset(reader.GetDateTime(5), TimeSpan.Zero),
             CreatedAt: new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero),
             LastUsedAt: new DateTimeOffset(reader.GetDateTime(7), TimeSpan.Zero),
             RevokedAt: reader.IsDBNull(8) ? null : new DateTimeOffset(reader.GetDateTime(8), TimeSpan.Zero));
+
+    // DuckDB.NET surfaces BLOB columns as UnmanagedMemoryStream, not byte[] —
+    // the older `(byte[])reader.GetValue(ordinal)` cast throws. GetStream is
+    // the ADO.NET-portable BLOB read path; we copy into a managed buffer the
+    // crypto layer can own.
+    private static byte[] ReadBlob(System.Data.Common.DbDataReader reader, int ordinal)
+    {
+        using var stream = reader.GetStream(ordinal);
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -30,11 +31,35 @@ public static partial class AuthEndpoints
         Message = "Keycloak discovery failed on /auth/authorize")]
     private static partial void LogDiscoveryFailed(ILogger logger, Exception ex);
 
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "Keycloak returned authorization error {Error} on /auth/callback")]
+    private static partial void LogAuthorizationError(ILogger logger, string error);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Warning,
+        Message = "PKCE state row missing/expired on /auth/callback")]
+    private static partial void LogPkceMissing(ILogger logger);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Warning,
+        Message = "Keycloak rejected authorization-code exchange on /auth/callback")]
+    private static partial void LogTokenExchangeFailed(ILogger logger);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Warning,
+        Message = "id_token signature/audience/issuer/lifetime validation failed on /auth/callback")]
+    private static partial void LogIdTokenInvalid(ILogger logger);
+
+    [LoggerMessage(EventId = 7, Level = LogLevel.Warning,
+        Message = "id_token nonce mismatch on /auth/callback — possible replay")]
+    private static partial void LogNonceMismatch(ILogger logger);
+
+    [LoggerMessage(EventId = 8, Level = LogLevel.Warning,
+        Message = "id_token missing required claim {Claim} on /auth/callback")]
+    private static partial void LogIdTokenMissingClaim(ILogger logger, string claim);
+
     public static IEndpointRouteBuilder MapQylAuth(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/auth");
         group.MapGet("/authorize", AuthorizeAsync);
-        // /auth/callback — E1.c
+        group.MapGet("/callback", CallbackAsync);
         // /auth/refresh, /auth/revoke — E1.d
         return routes;
     }
@@ -174,5 +199,146 @@ public static partial class AuthEndpoints
     {
         var request = context.Request;
         return $"{request.Scheme}://{request.Host}{request.PathBase}/auth/callback";
+    }
+
+    /// <summary>
+    /// Per qyl-PRD Stage E1.c. Consumes the PKCE state row, exchanges the
+    /// authorization code for tokens at Keycloak's <c>token_endpoint</c>,
+    /// validates the <c>id_token</c> JWT (signature, audience, issuer,
+    /// lifetime, nonce binding), encrypts the upstream refresh_token,
+    /// mints an opaque MCP token via <see cref="IMcpTokenStore"/>, and
+    /// 302s the user-agent back at the client redirect with the opaque
+    /// token in the URL fragment (never the query — fragments aren't
+    /// logged by proxies).
+    /// </summary>
+    /// <param name="state">Random opaque value minted by /auth/authorize, identifies the PKCE row to consume.</param>
+    /// <param name="code">Authorization code returned by Keycloak.</param>
+    /// <param name="error">Set by Keycloak when the user denies consent or the request is otherwise rejected.</param>
+    /// <param name="errorDescription">Human-readable detail accompanying <paramref name="error"/>.</param>
+    internal static async Task<IResult> CallbackAsync(
+        [FromQuery] string? state,
+        [FromQuery] string? code,
+        [FromQuery] string? error,
+        [FromQuery(Name = "error_description")] string? errorDescription,
+        HttpContext context,
+        IKeycloakClient keycloak,
+        IKeycloakJwksValidator jwksValidator,
+        IPkceStateStore pkceStore,
+        IMcpTokenStore tokenStore,
+        ITokenEncryption encryption,
+        TimeProvider timeProvider,
+        IOptions<KeycloakOptions> optionsAccessor,
+        ILoggerFactory loggerFactory,
+        CancellationToken ct)
+    {
+        var logger = loggerFactory.CreateLogger("Qyl.Collector.Auth.Callback");
+
+        // Surface user-denied / Keycloak-rejected authorizations directly.
+        if (!string.IsNullOrEmpty(error))
+        {
+            LogAuthorizationError(logger, error);
+            return Results.BadRequest(new ErrorResponse(
+                error,
+                errorDescription ?? "Keycloak rejected the authorization request."));
+        }
+
+        if (string.IsNullOrWhiteSpace(state))
+            return Results.BadRequest(new ErrorResponse("invalid_request", "state query parameter is required"));
+
+        if (string.IsNullOrWhiteSpace(code))
+            return Results.BadRequest(new ErrorResponse("invalid_request", "code query parameter is required"));
+
+        var options = optionsAccessor.Value;
+        if (!options.IsEnabled)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Keycloak not configured",
+                detail: $"Set {KeycloakOptions.AuthorityEnvVar} + {KeycloakOptions.ClientIdEnvVar} to enable /auth/* endpoints.");
+        }
+
+        // Single-use, TTL-gated. Second call with the same state returns null.
+        var pkce = await pkceStore.ConsumeAsync(state, ct).ConfigureAwait(false);
+        if (pkce is null)
+        {
+            LogPkceMissing(logger);
+            return Results.BadRequest(new ErrorResponse(
+                "invalid_state",
+                "state is unknown, expired, or already consumed."));
+        }
+
+        // Same redirect_uri value MUST be sent that /authorize sent — Keycloak binds them.
+        var collectorCallback = BuildCollectorCallbackUri(context);
+        var tokens = await keycloak.ExchangeAuthorizationCodeAsync(
+            code, pkce.CodeVerifier, collectorCallback, ct).ConfigureAwait(false);
+        if (tokens is null)
+        {
+            LogTokenExchangeFailed(logger);
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Token exchange rejected",
+                detail: "The authorization code or PKCE verifier was not accepted.");
+        }
+
+        var claims = await jwksValidator.ValidateAsync(tokens.IdToken, ct).ConfigureAwait(false);
+        if (claims is null)
+        {
+            LogIdTokenInvalid(logger);
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "id_token invalid",
+                detail: "Token signature, audience, issuer, or lifetime validation failed.");
+        }
+
+        // Nonce binding: validator doesn't check nonce; we must. Fixed-time compare to
+        // prevent timing oracles on partial-match-length leaks.
+        if (!claims.TryGetValue("nonce", out var nonceClaim) ||
+            !CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(nonceClaim),
+                Encoding.UTF8.GetBytes(pkce.Nonce)))
+        {
+            LogNonceMismatch(logger);
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "id_token nonce mismatch",
+                detail: "id_token did not bind to this authorization request.");
+        }
+
+        if (!claims.TryGetValue("sub", out var subject) || string.IsNullOrWhiteSpace(subject))
+        {
+            LogIdTokenMissingClaim(logger, "sub");
+            return Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "id_token incomplete",
+                detail: "Token did not carry a stable user identifier.");
+        }
+
+        var encryptedRefresh = encryption.Encrypt(Encoding.UTF8.GetBytes(tokens.RefreshToken));
+        var refreshExpiresAt = timeProvider.GetUtcNow().AddSeconds(tokens.RefreshExpiresIn);
+
+        var issued = await tokenStore.CreateAsync(new McpTokenCreate(
+            UserId: subject,
+            TenantId: pkce.TenantId,
+            Scopes: tokens.Scope ?? string.Empty,
+            EncryptedRefresh: encryptedRefresh,
+            RefreshExpiresAt: refreshExpiresAt), ct).ConfigureAwait(false);
+
+        return Results.Redirect(BuildClientCallbackUri(pkce.ClientRedirectUri, issued.OpaqueToken, refreshExpiresAt));
+    }
+
+    /// <summary>
+    /// Build the fragment-bearing redirect back to the client. Token goes in
+    /// the URL fragment, never the query string — fragments are not sent in
+    /// the <c>Referer</c> header and not logged by HTTP proxies.
+    /// </summary>
+    private static string BuildClientCallbackUri(string clientRedirectUri, string opaqueToken, DateTimeOffset expiresAt)
+    {
+        var separator = clientRedirectUri.Contains('#') ? '&' : '#';
+        var expiresIso = expiresAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
+        return string.Concat(
+            clientRedirectUri,
+            separator.ToString(),
+            "token=", Uri.EscapeDataString(opaqueToken),
+            "&expires_at=", Uri.EscapeDataString(expiresIso));
     }
 }
