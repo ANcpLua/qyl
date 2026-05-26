@@ -71,41 +71,30 @@ dotnet_diagnostic.IDE0200.severity = warning  # Lambda can be made static
 dotnet_diagnostic.CS1591.severity = none # Missing XML comment (disabled globally)
 
 # =============================================================================
-# ANcpLua.Analyzers (AL)
+# ANcpLua.Analyzers (AL) — sorted by ascending rule ID
 # =============================================================================
 
-# Errors - bugs that must be fixed
-dotnet_diagnostic.AL0001.severity = error      # Primary constructor reassignment
-dotnet_diagnostic.AL0003.severity = error      # Division by zero
-dotnet_diagnostic.AL0007.severity = error      # GetSchema explicit implementation
-dotnet_diagnostic.AL0008.severity = error      # GetSchema returns null
-dotnet_diagnostic.AL0009.severity = error      # Don't call GetSchema
-dotnet_diagnostic.AL0020.severity = error      # IFormCollection attribute
-dotnet_diagnostic.AL0021.severity = error      # Multiple form sources
-dotnet_diagnostic.AL0022.severity = error      # Mixed form collection/DTO
-dotnet_diagnostic.AL0023.severity = error      # Unsupported form type
-dotnet_diagnostic.AL0024.severity = error      # Form/body conflict
-
-# Warnings - should fix
-dotnet_diagnostic.AL0002.severity = warning    # Repeated negated patterns
-dotnet_diagnostic.AL0004.severity = warning    # Span pattern matching
-dotnet_diagnostic.AL0005.severity = warning    # Span SequenceEqual
-dotnet_diagnostic.AL0006.severity = warning    # Field/parameter name conflict
-dotnet_diagnostic.AL0011.severity = warning    # Lock on non-Lock
-dotnet_diagnostic.AL0012.severity = warning    # Deprecated OTel convention
-
-# AL0017: Hardcoded version rule is for SDK development, not consumer projects using CPM
-dotnet_diagnostic.AL0017.severity = none
-
-# Suggestions - style preferences
-dotnet_diagnostic.AL0013.severity = suggestion # Missing schema URL
-dotnet_diagnostic.AL0014.severity = suggestion # Pattern matching style
-dotnet_diagnostic.AL0015.severity = suggestion # Null-guard style
-dotnet_diagnostic.AL0016.severity = suggestion # Declaration + null-check
-dotnet_diagnostic.AL0025.severity = warning    # Static lambda
-
-# Disabled by default
-dotnet_diagnostic.AL0010.severity = none       # Type should be partial
+dotnet_diagnostic.AL1000.severity = error      # Primary constructor reassignment
+dotnet_diagnostic.AL1001.severity = warning    # Repeated negated patterns
+dotnet_diagnostic.AL1002.severity = error      # Division by zero
+dotnet_diagnostic.AL1003.severity = warning    # Span pattern matching
+dotnet_diagnostic.AL1004.severity = warning    # Span SequenceEqual
+dotnet_diagnostic.AL1005.severity = warning    # Field/parameter name conflict
+dotnet_diagnostic.AL1006.severity = error      # GetSchema explicit implementation
+dotnet_diagnostic.AL1007.severity = error      # GetSchema returns null
+dotnet_diagnostic.AL1008.severity = error      # Don't call GetSchema
+dotnet_diagnostic.AL1009.severity = warning    # Lock on non-Lock
+dotnet_diagnostic.AL1010.severity = suggestion # Pattern matching style
+dotnet_diagnostic.AL1011.severity = suggestion # Null-guard style
+dotnet_diagnostic.AL1012.severity = suggestion # Declaration + null-check
+dotnet_diagnostic.AL1100.severity = error      # IFormCollection attribute
+dotnet_diagnostic.AL1101.severity = error      # Multiple form sources
+dotnet_diagnostic.AL1102.severity = error      # Mixed form collection/DTO
+dotnet_diagnostic.AL1103.severity = error      # Unsupported form type
+dotnet_diagnostic.AL1104.severity = error      # Form/body conflict
+# AL1600: Hardcoded version rule is for SDK development, not consumer projects using CPM
+dotnet_diagnostic.AL1600.severity = none
+dotnet_diagnostic.AL1700.severity = warning    # Static lambda
 
 # =============================================================================
 # ANALYZER INFRASTRUCTURE (RS)

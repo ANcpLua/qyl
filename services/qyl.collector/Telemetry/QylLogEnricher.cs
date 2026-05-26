@@ -1,4 +1,5 @@
 
+using System.Net;
 using Microsoft.Extensions.Diagnostics.Enrichment;
 
 namespace Qyl.Collector.Telemetry;
@@ -12,24 +13,20 @@ public sealed class QylLogEnricher : ILogEnricher
         collector.Add(QylAttr.Auth.InstanceId, _instanceId);
 
         var activity = Activity.Current;
-        if (activity is not null)
+        if (activity is null) return;
+
+        collector.Add("trace.id", activity.TraceId.ToString());
+        collector.Add("span.id", activity.SpanId.ToString());
+
+        foreach (var kv in activity.TagObjects)
         {
-            collector.Add("trace.id", activity.TraceId.ToString());
-            collector.Add("span.id", activity.SpanId.ToString());
-
-            if (activity.GetTagItem("session.id") is { } sessionId)
+            switch (kv.Key)
             {
-                collector.Add("session.id", sessionId.ToString() ?? string.Empty);
-            }
-
-            if (activity.GetTagItem("gen_ai.provider.name") is { } provider)
-            {
-                collector.Add("gen_ai.provider.name", provider.ToString() ?? string.Empty);
-            }
-
-            if (activity.GetTagItem("gen_ai.request.model") is { } model)
-            {
-                collector.Add("gen_ai.request.model", model.ToString() ?? string.Empty);
+                case "session.id":
+                case "gen_ai.provider.name":
+                case "gen_ai.request.model":
+                    collector.Add(kv.Key, kv.Value?.ToString() ?? string.Empty);
+                    break;
             }
         }
     }
@@ -37,6 +34,14 @@ public sealed class QylLogEnricher : ILogEnricher
 
 public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor) : ILogEnricher
 {
+    private static readonly IPNetwork[] s_privateRanges =
+    [
+        IPNetwork.Parse("10.0.0.0/8"),
+        IPNetwork.Parse("172.16.0.0/12"),
+        IPNetwork.Parse("192.168.0.0/16"),
+        IPNetwork.Parse("fc00::/7"),
+    ];
+
     public void Enrich(IEnrichmentTagCollector collector)
     {
         if (httpContextAccessor.HttpContext is not { } context) return;
@@ -52,18 +57,7 @@ public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
         var remoteIp = context.Connection.RemoteIpAddress;
         if (remoteIp is not null)
         {
-            var ipString = remoteIp.ToString();
-            if (ipString.StartsWithOrdinal("127.") ||
-                ipString.StartsWithOrdinal("::1") ||
-                ipString.StartsWithOrdinal("10.") ||
-                ipString.StartsWithOrdinal("192.168."))
-            {
-                collector.Add("client.address", ipString);
-            }
-            else
-            {
-                collector.Add("client.address", "[redacted]");
-            }
+            collector.Add("client.address", IsLocalAddress(remoteIp) ? remoteIp.ToString() : "[redacted]");
         }
 
         collector.Add("http.request.method", context.Request.Method);
@@ -72,5 +66,15 @@ public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
         {
             collector.Add("http.request.content_type", context.Request.ContentType);
         }
+    }
+
+    private static bool IsLocalAddress(IPAddress address)
+    {
+        if (IPAddress.IsLoopback(address)) return true;
+        foreach (var range in s_privateRanges.AsSpan())
+        {
+            if (range.Contains(address)) return true;
+        }
+        return false;
     }
 }

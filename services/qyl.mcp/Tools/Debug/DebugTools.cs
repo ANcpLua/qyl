@@ -254,7 +254,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         return sb.Length > 0 ? sb.ToString() : "No text output from debugger.";
     }
 
-    private static Dictionary<string, object?>? BuildArgs(params (string key, object? value)[] pairs)
+    private static Dictionary<string, object?>? BuildArgs(params ReadOnlySpan<(string key, object? value)> pairs)
     {
         Dictionary<string, object?>? args = null;
         foreach (var (key, value) in pairs)

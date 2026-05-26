@@ -13,7 +13,7 @@ public sealed class QylAgentActivityProcessor : BaseProcessor<Activity>
     {
         if (data is null) return;
 
-        if (data.GetTagItem("gen_ai.agent.name") is not string agentName || agentName.Length == 0)
+        if (data.GetTagItem("gen_ai.agent.name") is not string agentName || agentName.Length is 0)
             return;
 
         var endUtc = data.StartTimeUtc + data.Duration;
