@@ -15,7 +15,7 @@ public sealed partial class AnalyzeSessionTool(HttpClient client)
     [McpServerTool(
         Name = "analyze_session",
         Title = "Analyze Session",
-        ReadOnly = false,
+        ReadOnly = true,
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]

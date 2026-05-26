@@ -15,7 +15,7 @@ public sealed partial class SuggestFixTool(HttpClient client)
     [McpServerTool(
         Name = "suggest_fix",
         Title = "Suggest Fix",
-        ReadOnly = false,
+        ReadOnly = true,
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]

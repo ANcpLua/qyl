@@ -13,7 +13,7 @@ public sealed partial class CreateApiKeyTool(HttpClient client)
         Name = "create_api_key",
         Title = "Create API Key",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = false)]
     public async partial Task<string> CreateApiKeyAsync(
         string name,
