@@ -27,16 +27,15 @@ internal static class GeneratorPipelineHelpers
         string generatedFileName,
         string diagnosticId)
         where T : class, IEquatable<T> =>
-        values
-            .CollectAsEquatableArray()
-            .Combine(enabledFlag)
-            .SelectAndReportExceptions((input, _) =>
+        values.RegisterCollectedEmitter(
+            context,
+            enabledFlag,
+            arr =>
             {
-                if (!input.Right || input.Left.IsDefaultOrEmpty) return FileWithName.Empty;
-                var sourceCode = emitter(input.Left.AsImmutableArray());
+                var sourceCode = emitter(arr);
                 return string.IsNullOrEmpty(sourceCode)
                     ? FileWithName.Empty
                     : new FileWithName(generatedFileName, sourceCode);
-            }, context, diagnosticId)
-            .AddSource(context);
+            },
+            diagnosticId);
 }

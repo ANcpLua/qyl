@@ -76,9 +76,9 @@ internal sealed partial class RcaTools(IServiceProvider services, IQylMcpAgentsB
         }
     }
 
-    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
+    private List<AIFunction> DiscoverToolsFrom(params ReadOnlySpan<Type> toolTypes)
     {
-        var allowed = new HashSet<Type>(toolTypes);
+        HashSet<Type> allowed = [.. toolTypes];
         return QylToolManifest.CreateTools(services, allowed.Contains);
     }
 }

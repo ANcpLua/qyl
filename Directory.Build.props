@@ -5,7 +5,7 @@
        Uses ANcpLua.NET.Sdk for shared infrastructure
        ======================================================================= -->
 
-  <!-- AL0018 in .editorconfig line 55; AL0086 scoped to hosting in .editorconfig -->
+  <!-- AL1601 (Version.props not imported) is disabled in .editorconfig — qyl manages its own props. -->
 
   <!-- Central Package Management (native .NET 8+) -->
   <PropertyGroup>

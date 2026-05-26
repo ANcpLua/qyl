@@ -38,43 +38,34 @@ dotnet_diagnostic.IDE0011.severity = none
 # =============================================================================
 # Code fixes are automatically available when diagnostics are enabled.
 # Severity must be at least 'suggestion' for IDE code fixes to appear.
+# Sorted by ascending rule ID.
 # =============================================================================
 
-# Errors - bugs that must be fixed (code fixes available)
-dotnet_diagnostic.AL0001.severity = error # Primary constructor reassignment → fix: remove reassignment
-dotnet_diagnostic.AL0003.severity = error # Division by zero → fix: add zero check
-dotnet_diagnostic.AL0007.severity = error # GetSchema explicit impl → fix: make implicit
-dotnet_diagnostic.AL0008.severity = error # GetSchema returns null → fix: return proper schema
-dotnet_diagnostic.AL0009.severity = error # Don't call GetSchema → fix: remove call
-dotnet_diagnostic.AL0020.severity = error # IFormCollection attribute → fix: add attribute
-dotnet_diagnostic.AL0021.severity = error # Multiple form sources → fix: consolidate
-dotnet_diagnostic.AL0022.severity = error # Mixed form collection/DTO → fix: separate
-dotnet_diagnostic.AL0023.severity = error # Unsupported form type → fix: use supported type
-dotnet_diagnostic.AL0024.severity = error # Form/body conflict → fix: remove conflict
-
-# Warnings - should fix (code fixes available)
-dotnet_diagnostic.AL0002.severity = warning # Repeated negated patterns → fix: simplify
-dotnet_diagnostic.AL0004.severity = warning # Span pattern matching → fix: use span overload
-dotnet_diagnostic.AL0005.severity = warning # Span SequenceEqual → fix: use SequenceEqual
-dotnet_diagnostic.AL0006.severity = warning # Field/parameter name conflict → fix: rename
-dotnet_diagnostic.AL0011.severity = warning # Lock on non-Lock → fix: use Lock type
-dotnet_diagnostic.AL0012.severity = warning # Deprecated OTel convention → fix: use new convention
-# AL0017: Hardcoded version - disabled for CPM projects
-dotnet_diagnostic.AL0017.severity = none
-# AL0018: Version.props not imported - disabled (qyl manages its own props)
-dotnet_diagnostic.AL0018.severity = none
-dotnet_diagnostic.AL0026.severity = warning # DateTime.Now/UtcNow
-dotnet_diagnostic.AL0027.severity = warning # Newtonsoft.Json
-
-# Suggestions - style preferences (code fixes available in IDE)
-dotnet_diagnostic.AL0013.severity = suggestion # Missing schema URL → fix: add URL
-dotnet_diagnostic.AL0014.severity = suggestion # Pattern matching style → fix: modernize pattern
-dotnet_diagnostic.AL0015.severity = suggestion # Null-guard style → fix: use ArgumentNullException.ThrowIfNull
-dotnet_diagnostic.AL0016.severity = suggestion # Declaration + null-check → fix: combine
-dotnet_diagnostic.AL0025.severity = warning
-
-# Disabled by default
-dotnet_diagnostic.AL0010.severity = none # Type should be partial
+dotnet_diagnostic.AL1000.severity = error # Primary constructor reassignment → fix: remove reassignment
+dotnet_diagnostic.AL1001.severity = warning # Repeated negated patterns → fix: simplify
+dotnet_diagnostic.AL1002.severity = error # Division by zero → fix: add zero check
+dotnet_diagnostic.AL1003.severity = warning # Span pattern matching → fix: use span overload
+dotnet_diagnostic.AL1004.severity = warning # Span SequenceEqual → fix: use SequenceEqual
+dotnet_diagnostic.AL1005.severity = warning # Field/parameter name conflict → fix: rename
+dotnet_diagnostic.AL1006.severity = error # GetSchema explicit impl → fix: make implicit
+dotnet_diagnostic.AL1007.severity = error # GetSchema returns null → fix: return proper schema
+dotnet_diagnostic.AL1008.severity = error # Don't call GetSchema → fix: remove call
+dotnet_diagnostic.AL1009.severity = warning # Lock on non-Lock → fix: use Lock type
+dotnet_diagnostic.AL1010.severity = suggestion # Pattern matching style → fix: modernize pattern
+dotnet_diagnostic.AL1011.severity = suggestion # Null-guard style → fix: use ArgumentNullException.ThrowIfNull
+dotnet_diagnostic.AL1012.severity = suggestion # Declaration + null-check → fix: combine
+dotnet_diagnostic.AL1100.severity = error # IFormCollection attribute → fix: add attribute
+dotnet_diagnostic.AL1101.severity = error # Multiple form sources → fix: consolidate
+dotnet_diagnostic.AL1102.severity = error # Mixed form collection/DTO → fix: separate
+dotnet_diagnostic.AL1103.severity = error # Unsupported form type → fix: use supported type
+dotnet_diagnostic.AL1104.severity = error # Form/body conflict → fix: remove conflict
+# AL1600: Hardcoded version - disabled for CPM projects
+dotnet_diagnostic.AL1600.severity = none
+# AL1601: Version.props not imported - disabled (qyl manages its own props)
+dotnet_diagnostic.AL1601.severity = none
+dotnet_diagnostic.AL1700.severity = warning
+dotnet_diagnostic.AL1701.severity = warning # DateTime.Now/UtcNow
+dotnet_diagnostic.AL1702.severity = warning # Newtonsoft.Json
 
 # =============================================================================
 # NAMING CONVENTIONS — dotnet/runtime style
@@ -276,11 +267,10 @@ dotnet_diagnostic.CA1819.severity = none # Arrays for protobuf
 dotnet_diagnostic.CA1002.severity = none # OTLP wire format
 
 [services/qyl.collector/Ingestion/OtlpAttributes.cs]
-dotnet_diagnostic.AL0012.severity = none # File defines deprecated OTel attribute keys for migration — false positive
-dotnet_diagnostic.QYL0002.severity = none # SchemaNormalizer.DeprecatedMappings IS the migration dictionary
+dotnet_diagnostic.QYL0001.severity = none # SchemaNormalizer.DeprecatedMappings IS the migration dictionary
 
 [services/qyl.collector/Ingestion/OtlpConverter.cs]
-dotnet_diagnostic.QYL0002.severity = none # ExtractGenAiAttributes falls back to deprecated names for backward compat
+dotnet_diagnostic.QYL0001.severity = none # ExtractGenAiAttributes falls back to deprecated names for backward compat
 
 # =============================================================================
 # STORAGE (recursive)
@@ -361,22 +351,17 @@ dotnet_diagnostic.CA1819.severity = none # Tool definition arrays
 # =============================================================================
 
 [src/qyl.hosting/**/*.cs]
-dotnet_diagnostic.AL0086.severity = none # Activity.SetTag(string, object?) is the only API — boxing unavoidable
 resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel activity names
 
 [src/qyl.copilot/**/*.cs]
-dotnet_diagnostic.AL0086.severity = none # Activity.SetTag with string[] — OTel convention for finish_reasons
 resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel GenAI operation names
-
-[src/qyl.servicedefaults/**/*.cs]
-dotnet_diagnostic.AL0086.severity = none # Activity.SetTag with token counts — OTel GenAI convention requires int values
 
 # =============================================================================
 # PROGRAM.CS
 # =============================================================================
 
 [src/**/Program.cs]
-dotnet_diagnostic.QYL0002.severity = suggestion # Backward compat fallback
+dotnet_diagnostic.QYL0001.severity = suggestion # Backward compat fallback
 
 # =============================================================================
 # TESTS
