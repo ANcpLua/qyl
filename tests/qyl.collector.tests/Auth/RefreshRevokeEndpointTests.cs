@@ -44,7 +44,7 @@ public sealed class RefreshRevokeEndpointTests
             TenantId: TestTenant,
             Scopes: "openid profile email offline_access",
             EncryptedRefresh: encryption.Encrypt(Encoding.UTF8.GetBytes(OldRefreshPayload)),
-            RefreshExpiresAt: DateTimeOffset.UtcNow.AddMinutes(30)),
+            RefreshExpiresAt: TimeProvider.System.GetUtcNow().AddMinutes(30)),
             TestContext.Current.CancellationToken);
         return (issued.OpaqueToken, issued.TokenHash);
     }
@@ -162,7 +162,7 @@ public sealed class RefreshRevokeEndpointTests
         DateTimeOffset.TryParse(json.Value.ExpiresAt, System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
             .Should().BeTrue("expires_at MUST be ISO 8601 round-trippable");
-        parsed.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(30),
+        parsed.Should().BeAfter(TimeProvider.System.GetUtcNow().AddMinutes(30),
             "RefreshExpiresIn=3600s pushes the new expiry far past the seeded 30 min");
     }
 
