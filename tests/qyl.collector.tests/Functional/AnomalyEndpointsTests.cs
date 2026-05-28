@@ -100,8 +100,16 @@ public sealed class AnomalyEndpointsTests
         errors.Should().Contain(static message => message.Contains("gen_ai.client.token.usage", StringComparison.Ordinal));
     }
 
-    private static readonly DateTimeOffset TokenStart =
-        new(2026, 5, 23, 10, 0, 0, TimeSpan.Zero);
+    // Relative anchor (top-of-hour, 2h back) so both seeded spans share one hourly bucket and stay inside the endpoint's hours=24 window; a fixed date ages out.
+    private static DateTimeOffset TokenStart
+    {
+        get
+        {
+            var now = TimeProvider.System.GetUtcNow();
+            var topOfHour = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, 0, 0, TimeSpan.Zero);
+            return topOfHour.AddHours(-2);
+        }
+    }
 
     private async Task SeedSpanAsync(
         string spanId,
