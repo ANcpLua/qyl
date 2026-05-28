@@ -16,7 +16,7 @@ public sealed partial class SetErrorPriorityTool(HttpClient client)
         Name = "set_error_priority",
         Title = "Set Error Priority",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> SetErrorPriority(
         string issueId,

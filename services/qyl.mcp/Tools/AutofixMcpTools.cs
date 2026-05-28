@@ -116,7 +116,7 @@ internal sealed partial class AutofixMcpTools(HttpClient http)
 
     [QylCapability("loom_triage_and_fix", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.approve_fix_run", Title = "Approve Fix Run",
-        ReadOnly = false, Destructive = false, Idempotent = true,
+        ReadOnly = false, Destructive = true, Idempotent = true,
         TaskSupport = ToolTaskSupport.Required)]
     public async partial Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> ApproveFixRunAsync(
         string issueId,
@@ -155,7 +155,7 @@ internal sealed partial class AutofixMcpTools(HttpClient http)
     }
 
     [McpServerTool(Name = "qyl.reject_fix_run", Title = "Reject Fix Run",
-        ReadOnly = false, Destructive = false, Idempotent = true)]
+        ReadOnly = false, Destructive = true, Idempotent = true)]
     public async partial Task<LoomToolEnvelope<LoomFixRunTransitionResponse>> RejectFixRunAsync(
         string issueId,
         string runId,

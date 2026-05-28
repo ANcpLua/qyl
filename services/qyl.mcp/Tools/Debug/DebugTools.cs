@@ -43,7 +43,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
 
     [QylCapability("debugger_control")]
     [McpServerTool(Name = "qyl.debug.start_session", Title = "Start Debug Session",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> StartDebugSessionAsync(
         string configurationName,
         CancellationToken ct = default) =>
@@ -51,7 +51,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
             new Dictionary<string, object?> { ["configurationName"] = configurationName }, ct);
 
     [McpServerTool(Name = "qyl.debug.stop_session", Title = "Stop Debug Session",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> StopDebugSessionAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
@@ -79,7 +79,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
 
     [QylCapability("debugger_control", QylCapabilityRole.FollowUp)]
     [McpServerTool(Name = "qyl.debug.set_breakpoint", Title = "Set Breakpoint",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> SetBreakpointAsync(
         string filePath,
         int lineNumber,
@@ -91,7 +91,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
             ("condition", condition), ("logExpression", logExpression)), ct);
 
     [McpServerTool(Name = "qyl.debug.remove_breakpoint", Title = "Remove Breakpoint",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> RemoveBreakpointAsync(
         string breakpointId,
         CancellationToken ct = default) =>
@@ -105,42 +105,42 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
 
 
     [McpServerTool(Name = "qyl.debug.resume", Title = "Resume Execution",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> ResumeAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("resume", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.pause", Title = "Pause Execution",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> PauseAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("pause", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.step_over", Title = "Step Over",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> StepOverAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_over", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.step_into", Title = "Step Into",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> StepIntoAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_into", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.step_out", Title = "Step Out",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> StepOutAsync(
         string? sessionId = null,
         CancellationToken ct = default) =>
         CallRiderToolAsync("step_out", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.run_to_line", Title = "Run to Line",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public partial Task<string> RunToLineAsync(
         string filePath,
         int lineNumber,
@@ -172,7 +172,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
             ("frameIndex", frameIndex), ("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.set_variable", Title = "Set Variable Value",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> SetVariableAsync(
         string variableName,
         string value,
@@ -200,7 +200,7 @@ internal sealed partial class DebugTools(RiderMcpProxy proxy, JetBrainsDiscovery
         CallRiderToolAsync("list_threads", BuildArgs(("sessionId", sessionId)), ct);
 
     [McpServerTool(Name = "qyl.debug.select_frame", Title = "Select Stack Frame",
-        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+        ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     public partial Task<string> SelectStackFrameAsync(
         int frameIndex,
         string? sessionId = null,

@@ -11,12 +11,54 @@ using qyl.mcp.Scoping;
 
 namespace qyl.mcp.Hosting;
 
-internal static class QylMcpServerRegistration
+/// <summary>
+/// Entry point for wiring the qyl MCP server into a host's DI container.
+/// Public so the collector (HTTP transport) and qyl-mcp's own stdio host can
+/// share the same tool/instrumentation/scope-injection setup, varying only
+/// the transport.
+/// </summary>
+public static class QylMcpServerRegistration
 {
-    public static void Configure(
+    /// <summary>
+    /// qyl-mcp's stdio dev host wiring. Existing entry point — preserved.
+    /// </summary>
+    public static void ConfigureForStdio(
         IServiceCollection services,
         SkillConfiguration skills,
         JsonSerializerOptions jsonOptions)
+    {
+        var builder = ConfigureCore(services, skills, jsonOptions, transportLabel: "stdio");
+        builder.WithStdioServerTransport();
+    }
+
+    /// <summary>
+    /// HTTP transport wiring for the in-process collector host (qyl-PRD E2.b).
+    /// Stateless mode: no <c>Mcp-Session-Id</c> required; safe behind a
+    /// load-balanced collector pool.
+    /// </summary>
+    public static IMcpServerBuilder ConfigureForHttp(
+        IServiceCollection services,
+        SkillConfiguration skills,
+        JsonSerializerOptions jsonOptions)
+    {
+        var builder = ConfigureCore(services, skills, jsonOptions, transportLabel: "http");
+        builder.WithHttpTransport(static o =>
+        {
+            o.Stateless = true;
+            // ConfigureSessionOptions for per-request claim scoping is wired by E2.c.
+        });
+        return builder;
+    }
+
+    /// <summary>
+    /// Transport-agnostic shared setup: task store, server info, instrumentation,
+    /// scope injection, capability tools, and the generated tool manifest.
+    /// </summary>
+    private static IMcpServerBuilder ConfigureCore(
+        IServiceCollection services,
+        SkillConfiguration skills,
+        JsonSerializerOptions jsonOptions,
+        string transportLabel)
     {
         services.AddSingleton<IMcpTaskStore>(_ => new InMemoryMcpTaskStore(
             TimeSpan.FromHours(1),
@@ -37,12 +79,21 @@ internal static class QylMcpServerRegistration
             .Configure<IMcpTaskStore>((options, taskStore) => options.TaskStore = taskStore);
 
         builder
-            .WithStdioServerTransport()
-            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options => options.Transport = "stdio")
+            .UseQylMcpInstrumentation(TelemetryConstants.ActivitySource, options => options.Transport = transportLabel)
             .WithQylScopeInjection<QylScope>()
             .WithAnthropicResultSizeMeta(thresholdChars: 10_000)
             .WithTools<CapabilityTools>(jsonOptions);
 
         QylToolManifest.RegisterTools(builder, skills, jsonOptions);
+        return builder;
     }
+
+    // Extension point: kept for any downstream caller that still wires stdio
+    // via the original entry. Forwards to ConfigureForStdio.
+    [Obsolete("Use ConfigureForStdio for the qyl-mcp dev host, or ConfigureForHttp for the in-process collector host.", error: false)]
+    public static void Configure(
+        IServiceCollection services,
+        SkillConfiguration skills,
+        JsonSerializerOptions jsonOptions)
+        => ConfigureForStdio(services, skills, jsonOptions);
 }
