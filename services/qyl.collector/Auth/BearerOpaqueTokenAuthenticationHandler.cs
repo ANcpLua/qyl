@@ -15,7 +15,6 @@ internal sealed class BearerOpaqueTokenAuthenticationHandler(
     : AuthenticationHandler<BearerOpaqueTokenAuthenticationOptions>(options, logger, encoder)
 {
     internal const string TenantClaimType = "qyl.tenant_id";
-    private const string TenantRouteKey = "tenant";
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -27,16 +26,9 @@ internal sealed class BearerOpaqueTokenAuthenticationHandler(
         if (record is null)
             return AuthenticateResult.Fail("invalid token");
 
-        // Confused-deputy guard: a token is valid only at its own tenant's route. A tenant
-        // mismatch reports the same failure as a bad token so a caller cannot probe which
-        // tenants a token is valid for.
-        var routeTenant = Context.Request.RouteValues.TryGetValue(TenantRouteKey, out var raw)
-            ? raw as string
-            : null;
-        if (string.IsNullOrEmpty(routeTenant)
-            || !string.Equals(routeTenant, record.TenantId, StringComparison.Ordinal))
-            return AuthenticateResult.Fail("invalid token");
-
+        // Identity only. The route {tenant} == token TenantId check is an AUTHORIZATION concern
+        // (McpTenantMatchRequirement), so a valid token at the wrong tenant yields 403 (authenticated
+        // but forbidden), not 401. The route is addressing; the token tenant claim below is authority.
         if (Options.TouchLastUsed)
             await tokenStore.TouchLastUsedAsync(record.TokenHash, Context.RequestAborted).ConfigureAwait(false);
 

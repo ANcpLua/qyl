@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.AspNetCore.Authentication;
 using Qyl.Collector.Auth;
@@ -117,10 +118,11 @@ public static class CollectorAuthExtensions
     public static bool IsMcpTenantAuthEnabled(IConfiguration config) =>
         config.GetValue<bool>(McpTenantAuthEnabledEnvVar);
 
-    // Registers the BearerOpaque scheme (opaque-token validation against IMcpTokenStore, tenant-bound),
-    // the RFC 9728 protected-resource-metadata endpoint, and the per-tenant "McpTenant" authz policy.
-    // Call only when QYL_MCP_TENANT_AUTH_ENABLED is set — until the realm-scoped mint (PR-2) lands the
-    // tenant boundary is forgeable, so Program.cs gates the endpoint behind the same flag.
+    // Registers the BearerOpaque scheme (opaque-token validation against IMcpTokenStore), the RFC 9728
+    // protected-resource-metadata endpoint, and the "McpTenant" policy. The policy authenticates the
+    // token (401 if missing/invalid) then enforces route {tenant} == token TenantId via
+    // McpTenantMatchRequirement (403 on mismatch). Authorization derives from the token, never the route.
+    // Call only when QYL_MCP_TENANT_AUTH_ENABLED is set; Program.cs gates the endpoint behind the same flag.
     public static IServiceCollection AddQylMcpAuthentication(this IServiceCollection services)
     {
         services.AddAuthentication(BearerOpaqueTokenAuthenticationOptions.SchemeName)
@@ -132,7 +134,9 @@ public static class CollectorAuthExtensions
         services.AddAuthorizationBuilder()
             .AddPolicy(McpTenantPolicy, static policy => policy
                 .RequireAuthenticatedUser()
-                .RequireClaim(BearerOpaqueTokenAuthenticationHandler.TenantClaimType));
+                .AddRequirements(new McpTenantMatchRequirement()));
+
+        services.AddSingleton<IAuthorizationHandler, McpTenantMatchAuthorizationHandler>();
 
         return services;
     }
