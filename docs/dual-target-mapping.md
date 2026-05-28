@@ -138,7 +138,7 @@ var ns = typeSymbol.ContainingNamespace.IsGlobalNamespace
 
 This is the consumer's chosen namespace (where they place their `[SemanticConventionAttributes("…")]`-decorated partial class), **not** the MSBuild `RootNamespace` property the earlier Phase 0 draft hypothesized. Both satisfy the substantive §2.1 invariant (single string token, no conditional emit logic). The `ContainingNamespace` approach is strictly better than the original design: one consumer can host multiple marker classes in distinct namespaces, which the `RootNamespace` model cannot express. **Phase 4 ratifies `ContainingNamespace` as canonical.**
 
-Invariant test: `tests/qyl.opentelemetry.semconv.sourcegen.tests/NamespaceParameterizationTest.cs` runs the generator under two distinct consumer namespaces (`ConsumerA.Telemetry`, `ConsumerB.Different.Nested.Path`) and asserts `bodyA.Should().Be(bodyB)` after stripping the namespace declaration line — strict byte-equality of everything except the namespace token. Verified PASS by `weaver-spec-auditor` Phase 3 audit (`docs/weaver-audit-phase3-report.md` Evidence row "§2.1 emit-logic invariant").
+Invariant test: `tests/qyl.opentelemetry.semconv.sourcegen.tests/NamespaceParameterizationTest.cs` runs the generator under two distinct consumer namespaces (`ConsumerA.Telemetry`, `ConsumerB.Different.Nested.Path`) and asserts `bodyA.Should().Be(bodyB)` after stripping the namespace declaration line — strict byte-equality of everything except the namespace token. Verified PASS by `weaver-spec-auditor` Phase 3 emit-logic invariant audit (§2.1).
 
 If a maintainer-requested change on contrib appears to require branching emit logic, that is automatic P0 escalation to the orchestrator (§3 invariant **(d)**).
 
