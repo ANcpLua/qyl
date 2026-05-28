@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.AspNetCore.Authentication;
 using Qyl.Collector.Auth;
 
 namespace Qyl.Collector.Hosting;
@@ -48,7 +50,8 @@ public static class CollectorAuthExtensions
                 "/api/",
                 "/assets/",
                 "/favicon.ico",
-                "/auth/"
+                "/auth/",
+                "/mcp/"
             ]
         });
 
@@ -104,6 +107,32 @@ public static class CollectorAuthExtensions
             sp.GetRequiredService<DuckDbStore>(),
             sp.GetRequiredService<TimeProvider>()));
         services.AddHostedService<McpTokenCleanupService>();
+
+        return services;
+    }
+
+    public const string McpTenantAuthEnabledEnvVar = "QYL_MCP_TENANT_AUTH_ENABLED";
+    public const string McpTenantPolicy = "McpTenant";
+
+    public static bool IsMcpTenantAuthEnabled(IConfiguration config) =>
+        config.GetValue<bool>(McpTenantAuthEnabledEnvVar);
+
+    // Registers the BearerOpaque scheme (opaque-token validation against IMcpTokenStore, tenant-bound),
+    // the RFC 9728 protected-resource-metadata endpoint, and the per-tenant "McpTenant" authz policy.
+    // Call only when QYL_MCP_TENANT_AUTH_ENABLED is set — until the realm-scoped mint (PR-2) lands the
+    // tenant boundary is forgeable, so Program.cs gates the endpoint behind the same flag.
+    public static IServiceCollection AddQylMcpAuthentication(this IServiceCollection services)
+    {
+        services.AddAuthentication(BearerOpaqueTokenAuthenticationOptions.SchemeName)
+            .AddScheme<BearerOpaqueTokenAuthenticationOptions, BearerOpaqueTokenAuthenticationHandler>(
+                BearerOpaqueTokenAuthenticationOptions.SchemeName,
+                static options => options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme)
+            .AddMcp(static options => options.Events.OnResourceMetadataRequest = QylMcpResourceMetadata.PopulateAsync);
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(McpTenantPolicy, static policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim(BearerOpaqueTokenAuthenticationHandler.TenantClaimType));
 
         return services;
     }

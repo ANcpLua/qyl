@@ -47,6 +47,8 @@ public static class QylMcpServerRegistration
             o.Stateless = true;
             // ConfigureSessionOptions for per-request claim scoping is not yet wired.
         });
+        // Honors [Authorize]/[AllowAnonymous] on tools; required for ASP.NET Core auth integration.
+        builder.AddAuthorizationFilters();
         return builder;
     }
 
