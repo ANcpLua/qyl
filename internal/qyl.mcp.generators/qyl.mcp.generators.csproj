@@ -23,12 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Sources 2.2.22 added Enumerator.cs which needs IAsyncEnumerator<> (netstandard2.1+).
-         The generator doesn't use it; exclude rather than pulling Microsoft.Bcl.AsyncInterfaces. -->
-    <Compile Remove="$(NuGetPackageRoot)ancplua.roslyn.utilities.sources/$(ANcpLuaRoslynUtilitiesVersion)/contentFiles/cs/any/ANcpLua.Roslyn.Utilities/Enumerator.cs"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
     <Using Include="ANcpLua.Roslyn.Utilities.Models"/>
   </ItemGroup>
