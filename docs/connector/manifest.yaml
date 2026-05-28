@@ -1,6 +1,6 @@
 # qyl MCP Connector — Anthropic Connector Directory submission manifest
 #
-# Status: Draft v1.0 — 2026-05-26. Prepared for qyl-PRD Stage E3.b.
+# Status: Draft v1.0 — 2026-05-26. Prepared for the Anthropic Connector Directory submission.
 # Submission via the form at claude.com/docs/connectors/building/submission.md.
 # All `https://qyl.ai/...` URLs below MUST be live (200 OK) before submission.
 #
@@ -51,7 +51,7 @@ oauth_authorization_endpoint: "https://collector.qyl.ai/auth/authorize"
 oauth_token_endpoint: "https://collector.qyl.ai/auth/callback"
 # RFC 9728 Protected Resource Metadata — Claude can also auto-discover
 # the OAuth endpoints from this URL (preferred over the hard-coded fields
-# above; Stage E2.b ships the endpoint).
+# above; this endpoint ships with the /mcp/{tenant} host, still to be built).
 protected_resource_metadata: "https://collector.qyl.ai/mcp/{tenant}/.well-known/oauth-protected-resource"
 
 scopes_required:
@@ -95,8 +95,8 @@ submission_checklist:
   - "⏳ Terms of service hosted at terms_of_service_url and returns 200 (PENDING)."
   - "⏳ Logo PNGs exist at assets URLs and return 200 (PENDING design assets)."
   - "⏳ Screenshots exist at assets URLs and return 200 (PENDING real-claude-conversation captures)."
-  - "⏳ Phase 2 (E1) merged on main — opens /auth/* endpoints in prod (PENDING PR #372 review)."
-  - "⏳ Phase 3 (E2.b/c/d) merged — /mcp/{tenant} endpoint live with Bearer auth (PENDING)."
+  - "⏳ Phase 2 (/auth/*) merged on main via PR #372 — prod deploy PENDING."
+  - "⏳ Phase 3 (/mcp/{tenant} host + Bearer auth + RFC 9728 metadata) merged — PENDING (next build)."
   - "⏳ QYL_KEYCLOAK_* env vars set on Railway collector service (PENDING)."
   - "⏳ Real Keycloak realm provisioned at the Authority URL with PKCE-required client (PENDING)."
   - "⏳ End-to-end smoke: a fresh user with no prior qyl access can: find listing → click Connect → see qyl tools → make a real tool call successfully."

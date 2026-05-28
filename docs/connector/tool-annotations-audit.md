@@ -4,8 +4,7 @@
 > qyl MCP server. Generated from `services/qyl.mcp/Tools/**/*.cs` on
 > 2026-05-26 against 124 tool methods.
 >
-> Deliverable for qyl-PRD Stage E3.a (Phase 4 — Anthropic Connector Directory
-> submission).
+> Deliverable for the Anthropic Connector Directory submission.
 
 ## Summary
 

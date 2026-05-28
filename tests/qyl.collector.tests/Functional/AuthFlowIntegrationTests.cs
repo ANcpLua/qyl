@@ -14,7 +14,7 @@ using Qyl.Collector.Storage;
 namespace Qyl.Collector.Tests.Functional;
 
 /// <summary>
-/// Stage E1.e integration coverage — drives the real collector wiring
+/// End-to-end /auth flow integration coverage — drives the real collector wiring
 /// (Kestrel + DI + middleware + endpoints + DuckDB + AES-GCM) via
 /// <see cref="WebApplicationFactory{TEntryPoint}"/>, with only the
 /// Keycloak HTTP boundary replaced by stubs.

@@ -171,7 +171,7 @@ public sealed class AuthorizeEndpointTests
     [Fact]
     public async Task Authorize_AllowsAnyRedirect_WhenAllowlistEmpty()
     {
-        // Dev mode: empty allowlist means pass-through (per qyl-PRD).
+        // Dev mode: empty allowlist means pass-through.
         var result = await AuthEndpoints.AuthorizeAsync(
             tenant: "demo", redirect_uri: "http://localhost:9000/cb",
             context: NewContext(),

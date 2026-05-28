@@ -1,7 +1,7 @@
 # qyl MCP Connector — Privacy Policy
 
 > **Status:** Draft v1.0 — 2026-05-26. Prepared for Anthropic Connector
-> Directory submission (qyl-PRD Stage E3.b). Pending public hosting at the
+> Directory submission. Pending public hosting at the
 > URL declared in `manifest.yaml` (`privacy_policy_url`).
 
 This document describes what data the **qyl MCP connector** accesses on

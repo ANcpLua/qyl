@@ -10,10 +10,10 @@ using Qyl.Collector.Storage;
 namespace Qyl.Collector.Tests.Auth;
 
 /// <summary>
-/// Stage E1.d coverage. Real <see cref="McpTokenStore"/> + real AES-GCM
-/// encryption — only Keycloak HTTP surface is stubbed. Tests prove the
-/// refresh-rotation, upstream-failure-then-local-revoke, and idempotent
-/// revoke invariants from qyl-PRD.
+/// /auth/refresh + /auth/revoke coverage. Real <see cref="McpTokenStore"/> +
+/// real AES-GCM encryption — only the Keycloak HTTP surface is stubbed. Tests
+/// prove the refresh-rotation, upstream-failure-then-local-revoke, and
+/// idempotent revoke invariants.
 /// </summary>
 public sealed class RefreshRevokeEndpointTests
 {

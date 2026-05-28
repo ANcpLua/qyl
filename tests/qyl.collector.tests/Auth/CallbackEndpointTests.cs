@@ -10,7 +10,7 @@ using Qyl.Collector.Storage;
 namespace Qyl.Collector.Tests.Auth;
 
 /// <summary>
-/// Stage E1.c coverage. Uses real <see cref="PkceStateStore"/>, real
+/// /auth/callback coverage. Uses real <see cref="PkceStateStore"/>, real
 /// <see cref="McpTokenStore"/>, and real <see cref="AesGcmTokenEncryption"/>
 /// so the tests exercise the same SQL + crypto code that ships in production;
 /// only the Keycloak HTTP surface (<see cref="IKeycloakClient"/>) and the

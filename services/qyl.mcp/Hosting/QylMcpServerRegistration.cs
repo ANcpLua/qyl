@@ -32,7 +32,7 @@ public static class QylMcpServerRegistration
     }
 
     /// <summary>
-    /// HTTP transport wiring for the in-process collector host (qyl-PRD E2.b).
+    /// HTTP transport wiring for the in-process collector host.
     /// Stateless mode: no <c>Mcp-Session-Id</c> required; safe behind a
     /// load-balanced collector pool.
     /// </summary>
@@ -45,7 +45,7 @@ public static class QylMcpServerRegistration
         builder.WithHttpTransport(static o =>
         {
             o.Stateless = true;
-            // ConfigureSessionOptions for per-request claim scoping is wired by E2.c.
+            // ConfigureSessionOptions for per-request claim scoping is not yet wired.
         });
         return builder;
     }
