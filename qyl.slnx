@@ -40,14 +40,7 @@
     <Project Path="internal/qyl.mcp.generators/qyl.mcp.generators.csproj" />
   </Folder>
 
-  <Folder Name="/tests/">
-    <Project Path="tests/qyl.collector.integration.tests/qyl.collector.integration.tests.csproj" />
-    <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
-    <Project Path="tests/qyl.e2e.tests/qyl.e2e.tests.csproj" />
-    <Project Path="tests/qyl.instrumentation.generators.tests/qyl.instrumentation.generators.tests.csproj" />
-    <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj" />
-    <Project Path="tests/qyl.opentelemetry.extensions.tests/qyl.opentelemetry.extensions.tests.csproj" />
-  </Folder>
+  <Folder Name="/tests/" />
 
   <Folder Name="/eng/">
     <Project Path="eng/build/build.csproj" />
