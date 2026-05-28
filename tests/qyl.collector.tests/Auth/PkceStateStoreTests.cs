@@ -22,7 +22,7 @@ public sealed class PkceStateStoreTests
         var consumed = await sut.ConsumeAsync("state-001", TestContext.Current.CancellationToken);
 
         consumed.Should().NotBeNull();
-        consumed.CodeVerifier.Should().Be("verifier-payload");
+        consumed!.CodeVerifier.Should().Be("verifier-payload");
         consumed.TenantId.Should().Be("demo");
         consumed.ClientRedirectUri.Should().Be("http://localhost:9000/cb");
         consumed.Nonce.Should().Be("nonce-001");

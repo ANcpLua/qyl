@@ -17,7 +17,7 @@
     <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills + Testing).
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.22</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAnalyzersVersion>2.0.0</ANcpLuaAnalyzersVersion>
+    <ANcpLuaAnalyzersVersion>2.0.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
     <!-- ANcpLua.Agents.Mcp[.Hosting] is on its own version train, decoupled from
