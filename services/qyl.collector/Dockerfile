@@ -41,6 +41,8 @@ COPY services/qyl.collector/*.csproj services/qyl.collector/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
 COPY internal/qyl.collector.storage.generators/*.csproj internal/qyl.collector.storage.generators/
+COPY services/qyl.mcp/*.csproj services/qyl.mcp/
+COPY internal/qyl.mcp.generators/*.csproj internal/qyl.mcp.generators/
 
 # Restore dependencies
 WORKDIR /src/services/qyl.collector
@@ -57,6 +59,8 @@ COPY services/qyl.collector/ services/qyl.collector/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
 COPY internal/qyl.collector.storage.generators/ internal/qyl.collector.storage.generators/
+COPY services/qyl.mcp/ services/qyl.mcp/
+COPY internal/qyl.mcp.generators/ internal/qyl.mcp.generators/
 
 # Publish
 WORKDIR /src/services/qyl.collector
