@@ -17,7 +17,7 @@ public sealed partial class SnoozeErrorTool(HttpClient client)
         Name = "snooze_error",
         Title = "Snooze Error Issue",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> SnoozeError(
         string issueId,

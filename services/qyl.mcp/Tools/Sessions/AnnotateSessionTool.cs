@@ -14,7 +14,7 @@ public sealed partial class AnnotateSessionTool(HttpClient client)
         Name = "annotate_session",
         Title = "Annotate Session",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = true)]
     public async partial Task<string> AnnotateSession(
         string sessionId,

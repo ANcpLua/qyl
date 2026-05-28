@@ -44,7 +44,7 @@ internal sealed partial class TriageTools(HttpClient http)
     }
 
     [McpServerTool(Name = "qyl.trigger_triage", Title = "Trigger Triage",
-        ReadOnly = false, Destructive = false, Idempotent = false,
+        ReadOnly = false, Destructive = true, Idempotent = false,
         TaskSupport = ToolTaskSupport.Optional)]
     public async partial Task<string> TriggerTriageAsync(
         string issueId,

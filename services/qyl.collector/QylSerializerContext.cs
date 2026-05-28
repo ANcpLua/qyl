@@ -36,6 +36,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ComponentHealth))]
 [JsonSerializable(typeof(IReadOnlyList<ComponentHealth>))]
 [JsonSerializable(typeof(ErrorResponse))]
+[JsonSerializable(typeof(Qyl.Collector.Hosting.RefreshResponse))]
 [JsonSerializable(typeof(SpanBatch))]
 [JsonSerializable(typeof(SpanStorageRow))]
 [JsonSerializable(typeof(List<SpanStorageRow>))]

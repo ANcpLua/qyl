@@ -14,7 +14,7 @@ public sealed partial class CreateTeamTool(HttpClient client)
         Name = "create_team",
         Title = "Create Team",
         ReadOnly = false,
-        Destructive = false,
+        Destructive = true,
         Idempotent = false)]
     public async partial Task<string> CreateTeamAsync(
         string name,

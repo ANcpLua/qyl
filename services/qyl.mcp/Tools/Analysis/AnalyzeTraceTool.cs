@@ -14,7 +14,7 @@ public sealed partial class AnalyzeTraceTool(HttpClient client)
     [McpServerTool(
         Name = "analyze_trace",
         Title = "Analyze Trace",
-        ReadOnly = false,
+        ReadOnly = true,
         Destructive = false,
         OpenWorld = true,
         TaskSupport = ToolTaskSupport.Optional)]
