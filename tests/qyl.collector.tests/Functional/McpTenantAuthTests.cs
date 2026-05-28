@@ -123,7 +123,7 @@ public sealed class McpTenantAuthTests : IClassFixture<McpTenantAuthTests.Enable
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
-            builder.ConfigureAppConfiguration((_, config) =>
+            builder.ConfigureAppConfiguration(static (_, config) =>
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["QYL_MCP_TENANT_AUTH_ENABLED"] = "true",
