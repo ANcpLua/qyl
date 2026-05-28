@@ -20,6 +20,9 @@ public sealed class KeycloakOptions
     /// <remarks>Discovery doc is fetched from <c>{Authority}/.well-known/openid-configuration</c>.</remarks>
     public const string AuthorityEnvVar = "QYL_KEYCLOAK_AUTHORITY";
 
+    /// <summary>Keycloak server base URL with no realm segment — e.g. <c>https://kc.example</c>. Used to template per-tenant issuers <c>{BaseUrl}/realms/{tenant}</c>.</summary>
+    public const string BaseUrlEnvVar = "QYL_KEYCLOAK_BASE_URL";
+
     /// <summary>Expected <c>aud</c> claim on incoming id_tokens (separate from ClientId in confidential-client flows).</summary>
     public const string AudienceEnvVar = "QYL_KEYCLOAK_AUDIENCE";
 
@@ -36,6 +39,7 @@ public sealed class KeycloakOptions
     public const string AllowedRedirectsEnvVar = "QYL_OAUTH_ALLOWED_REDIRECTS";
 
     public string? Authority { get; set; }
+    public string? BaseUrl { get; set; }
     public string? Audience { get; set; }
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }

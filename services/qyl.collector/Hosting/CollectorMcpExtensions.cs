@@ -12,11 +12,11 @@ namespace Qyl.Collector.Hosting;
 /// tool surface.
 /// </summary>
 /// <remarks>
-/// qyl-PRD Stage E2.a deliverable. The actual route mapping (<c>app.MapMcp(
-/// "/mcp/{tenant}")</c>) + Bearer-opaque-token authentication handler + RFC
-/// 9728 protected-resource-metadata endpoint are wired by Stage E2.b in
-/// <c>QylMcpRouteExtensions</c>; per-request <see cref="QylScope"/>
-/// (per-tenant claims → scope injector) is wired by Stage E2.c.
+/// Registration only. The route mapping (<c>app.MapMcp("/mcp/{tenant}")</c>),
+/// the Bearer-opaque-token authentication handler, and the RFC 9728
+/// protected-resource-metadata endpoint are not yet wired; the placeholder
+/// process-level <see cref="QylScope"/> below is still to be replaced by a
+/// per-request, per-tenant scope derived from the authenticated principal.
 /// </remarks>
 public static class CollectorMcpExtensions
 {
@@ -29,9 +29,8 @@ public static class CollectorMcpExtensions
         IConfiguration configuration)
     {
         var skills = SkillConfiguration.FromEnvironment();
-        // Placeholder process-level scope. E2.c replaces this with a per-request
-        // ConfigureSessionOptions callback that derives QylScope from the
-        // authenticated ClaimsPrincipal's qyl.tenant_id claim.
+        // Placeholder process-level scope, still to be replaced by a per-request
+        // QylScope derived from the authenticated ClaimsPrincipal's qyl.tenant_id claim.
         var defaultScope = QylScope.FromEnvironment();
 
         var jsonOptions = services.AddQylMcpCommonServices(configuration, skills, defaultScope);

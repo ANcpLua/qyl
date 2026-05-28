@@ -1,7 +1,7 @@
 # qyl Connector Directory — Submission Status
 
 > Live tracker for the qyl MCP connector's Anthropic Connector Directory
-> submission (qyl-PRD Stage E3). Update inline as gates close.
+> submission. Update inline as gates close.
 
 | Stage | Status | Date | Notes |
 |---|---|---|---|
@@ -29,8 +29,8 @@ are operational.
 2. **Logo + screenshots** — Anthropic's listing card and detail page
    require these to render. Without them the listing looks broken even
    if approved.
-3. **Phase 2 (PR #372) + Phase 3 (PR upcoming) merged** — `/auth/*` and
-   `/mcp/{tenant}` must be live in prod before a reviewer can do the
+3. **Phase 2 merged (PR #372) + Phase 3 (`/mcp/{tenant}`) still to ship** — both
+   `/auth/*` and `/mcp/{tenant}` must be live in prod before a reviewer can do the
    end-to-end smoke test the submission form requires.
 4. **Keycloak realm provisioned** — real OAuth round-trip needs a live
    identity provider, not a dev stub.

@@ -83,7 +83,7 @@ public static partial class AuthEndpoints
     }
 
     /// <summary>
-    /// Per qyl-PRD Stage E1.b. Validates the requested client redirect URI
+    /// Validates the requested client redirect URI
     /// against the allowlist, mints PKCE state + nonce, stores the row in
     /// <c>mcp_pkce_state</c> BEFORE returning the redirect (no race), and
     /// 302s the user-agent at Keycloak's <c>authorization_endpoint</c> with
@@ -220,7 +220,7 @@ public static partial class AuthEndpoints
     }
 
     /// <summary>
-    /// Per qyl-PRD Stage E1.c. Consumes the PKCE state row, exchanges the
+    /// Consumes the PKCE state row, exchanges the
     /// authorization code for tokens at Keycloak's <c>token_endpoint</c>,
     /// validates the <c>id_token</c> JWT (signature, audience, issuer,
     /// lifetime, nonce binding), encrypts the upstream refresh_token,
@@ -361,7 +361,7 @@ public static partial class AuthEndpoints
     }
 
     /// <summary>
-    /// Per qyl-PRD Stage E1.d. Refresh-token grant via Keycloak. Decrypts the
+    /// Refresh-token grant via Keycloak. Decrypts the
     /// stored refresh, posts to <c>token_endpoint</c>, on success re-encrypts
     /// and updates <c>encrypted_refresh</c> + <c>refresh_expires_at</c>; on
     /// upstream failure (refresh expired or revoked at Keycloak) revokes the
@@ -419,7 +419,7 @@ public static partial class AuthEndpoints
     }
 
     /// <summary>
-    /// Per qyl-PRD Stage E1.d. RFC 7009 revocation — best-effort upstream
+    /// RFC 7009 revocation — best-effort upstream
     /// revoke plus mandatory local revoke. Always returns 204 to avoid
     /// disclosing whether the token existed (RFC 7009 §2.2).
     /// </summary>
