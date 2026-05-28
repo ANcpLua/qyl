@@ -17,8 +17,12 @@ organization) operate. Claude connects to that service over MCP, mints an
 opaque token via the Keycloak login flow, and uses the token to invoke
 read and write tools defined under `services/qyl.mcp/Tools/`.
 
-The connector does not aggregate data across qyl deployments. Each
-qyl-collector serves exactly one tenant's data.
+A single collector may serve multiple tenants on one host. The
+`{tenant}` route segment selects the tenant namespace, but
+authorization derives from the authenticated token. The collector MUST
+compare the route `{tenant}` with the token-bound `TenantId`; mismatch
+returns `403 Forbidden`. The connector does not aggregate data across
+deployments, and no token may read another tenant's namespace.
 
 ## 2. Data accessed
 
@@ -85,7 +89,7 @@ constant-time lookup.
 | Stage | What happens |
 |---|---|
 | Mint | User completes OAuth 2.1 + PKCE login at Keycloak. The collector receives an authorization code, exchanges it for Keycloak tokens, validates the id_token (signature, audience, issuer, lifetime, nonce binding), encrypts the refresh_token with AES-GCM, and persists a row in `mcp_tokens`. Returns the opaque token to Claude via URL fragment (never query, so it's not in proxy logs). |
-| Use | Claude sends the opaque token as `Authorization: Bearer <opaque>` on every MCP request. Collector looks up via constant-time hash compare, populates `HttpContext.User` with the user's sub + tenant claim. |
+| Use | Claude sends the opaque token as `Authorization: Bearer <opaque>` on every MCP request to `/mcp/{tenant}`. Collector looks up via constant-time hash compare and populates `HttpContext.User` with the user's sub + tenant claim. Authorization then compares the route `{tenant}` to the token-bound tenant claim — a mismatch is `403 Forbidden` (the route is addressing only; the token is the authority). |
 | Refresh | `POST /auth/refresh` decrypts the stored Keycloak refresh, exchanges it at Keycloak, encrypts the rotated refresh, updates the row. Returns only the new `expires_at` to Claude — the underlying Keycloak refresh is never returned. |
 | Revoke | `POST /auth/revoke` calls Keycloak's RFC 7009 revocation endpoint (best-effort) and sets `revoked_at` locally (source of truth). Idempotent — returns 204 even if the token doesn't exist (RFC 7009 §2.2 non-disclosure). |
 | Cleanup | Background service deletes expired or grace-period-elapsed rows every 5 minutes. |

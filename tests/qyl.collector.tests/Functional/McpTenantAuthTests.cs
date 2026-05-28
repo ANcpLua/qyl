@@ -28,20 +28,37 @@ public sealed class McpTenantAuthTests : IClassFixture<McpTenantAuthTests.Enable
         using var response = await client.SendAsync(McpPost($"/mcp/{Tenant}", token), ct);
 
         // The MCP protocol response itself is not the subject — only that the request
-        // cleared the authorization gate (anything other than a 401).
+        // cleared BOTH the authentication gate (401) and the tenant-authorization gate (403).
         response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
     }
 
     [Fact]
-    public async Task ValidToken_AtWrongTenant_Unauthorized()
+    public async Task ValidToken_AtWrongTenant_Forbidden()
     {
+        // Authenticated (the token is valid) but the route {tenant} != the token-bound
+        // TenantId. The route is addressing only; the token is the authorization authority,
+        // so a mismatch is 403 Forbidden (authenticated-but-not-authorized), not 401.
         var ct = TestContext.Current.CancellationToken;
         var token = await SeedTokenAsync(_factory, Tenant, ct);
 
         using var client = _factory.CreateClient();
         using var response = await client.SendAsync(McpPost("/mcp/other-tenant", token), ct);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task TokenForTenantA_CannotAccessTenantB_Forbidden()
+    {
+        // A token minted for tenant "acme" must not reach "globex"'s namespace.
+        var ct = TestContext.Current.CancellationToken;
+        var tokenForAcme = await SeedTokenAsync(_factory, "acme", ct);
+
+        using var client = _factory.CreateClient();
+        using var response = await client.SendAsync(McpPost("/mcp/globex", tokenForAcme), ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

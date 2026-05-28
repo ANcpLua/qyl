@@ -30,11 +30,14 @@ long_description: |
     `qyl.generate_fix`, `qyl.approve_fix_run`, `create_project`,
     `annotate_trace`, debugger ops, …
 
-  Multi-tenant by design — each qyl-collector deployment serves
-  exactly one tenant. Authentication is OAuth 2.1 + PKCE with Keycloak
-  as the identity provider; the connector exchanges Keycloak tokens
-  for opaque MCP bearer tokens stored in your qyl-collector's local
-  DuckDB.
+  Multi-tenant by design — a single collector may serve multiple
+  tenants on one host. The {tenant} route segment selects the tenant
+  namespace, but authorization derives from the authenticated token:
+  the collector compares the route {tenant} with the token-bound
+  TenantId and returns 403 Forbidden on mismatch. Authentication is
+  OAuth 2.1 + PKCE with Keycloak as the identity provider; the
+  connector exchanges Keycloak tokens for opaque MCP bearer tokens
+  stored in your qyl-collector's local DuckDB.
 
   See the [tool annotations
   audit](https://qyl.ai/connector/tool-annotations-audit) for the
