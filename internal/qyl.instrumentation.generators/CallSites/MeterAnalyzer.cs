@@ -35,7 +35,7 @@ internal static class MeterAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
             return null;
 
-        var attributeTypes = MetricAttributeTypes.Create(context.SemanticModel.Compilation);
+        var attributeTypes = MetricAttributeTypes.Create();
         return FindAttribute(context.Attributes, attributeTypes.Meter) is not { } meterAttr
             ? null
             : BuildDefinition(classSyntax, classSymbol, meterAttr, attributeTypes,
@@ -312,14 +312,11 @@ internal static class MeterAnalyzer
 
     private static AttributeData? FindAttribute(
         ImmutableArray<AttributeData> attributes,
-        INamedTypeSymbol? attributeType)
+        string attributeMetadataName)
     {
-        if (attributeType is null)
-            return null;
-
         foreach (var attribute in attributes)
         {
-            if (attribute.AttributeClass.IsEqualTo(attributeType))
+            if (TelemetryTagNameResolver.HasAttributeMetadataName(attribute, attributeMetadataName))
                 return attribute;
         }
 
@@ -350,7 +347,7 @@ internal static class MeterAnalyzer
 
     private static (int Count, string? TypeName, string? Name, ITypeSymbol? Type) FindMetricValueParameter(
         IMethodSymbol method,
-        INamedTypeSymbol? tagAttributeType)
+        string tagAttributeType)
     {
         var count = 0;
         string? typeName = null;
@@ -533,28 +530,28 @@ internal static class MeterAnalyzer
         kind is MetricKind.ObservableCounter or MetricKind.ObservableGauge or MetricKind.ObservableUpDownCounter;
 
     private readonly record struct MetricAttributeTypes(
-        INamedTypeSymbol? Meter,
-        INamedTypeSymbol? Counter,
-        INamedTypeSymbol? Histogram,
-        INamedTypeSymbol? Gauge,
-        INamedTypeSymbol? UpDownCounter,
-        INamedTypeSymbol? ObservableCounter,
-        INamedTypeSymbol? ObservableGauge,
-        INamedTypeSymbol? ObservableUpDownCounter,
-        INamedTypeSymbol? Tag,
-        INamedTypeSymbol? Otel)
+        string Meter,
+        string Counter,
+        string Histogram,
+        string Gauge,
+        string UpDownCounter,
+        string ObservableCounter,
+        string ObservableGauge,
+        string ObservableUpDownCounter,
+        string Tag,
+        string Otel)
     {
-        public static MetricAttributeTypes Create(Compilation compilation) =>
+        public static MetricAttributeTypes Create() =>
             new(
-                compilation.GetTypeByMetadataName(MeterAttributeMetadataName),
-                compilation.GetTypeByMetadataName(CounterAttributeFullName),
-                compilation.GetTypeByMetadataName(HistogramAttributeFullName),
-                compilation.GetTypeByMetadataName(GaugeAttributeFullName),
-                compilation.GetTypeByMetadataName(UpDownCounterAttributeFullName),
-                compilation.GetTypeByMetadataName(ObservableCounterAttributeFullName),
-                compilation.GetTypeByMetadataName(ObservableGaugeAttributeFullName),
-                compilation.GetTypeByMetadataName(ObservableUpDownCounterAttributeFullName),
-                compilation.GetTypeByMetadataName(TagAttributeFullName),
-                TelemetryTagNameResolver.GetOtelAttributeType(compilation));
+                MeterAttributeMetadataName,
+                CounterAttributeFullName,
+                HistogramAttributeFullName,
+                GaugeAttributeFullName,
+                UpDownCounterAttributeFullName,
+                ObservableCounterAttributeFullName,
+                ObservableGaugeAttributeFullName,
+                ObservableUpDownCounterAttributeFullName,
+                TagAttributeFullName,
+                TelemetryTagNameResolver.OTelAttributeMetadataName);
     }
 }
