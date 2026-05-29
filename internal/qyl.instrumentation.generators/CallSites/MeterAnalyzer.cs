@@ -35,10 +35,10 @@ internal static class MeterAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
             return null;
 
-        return IncrementalPipelineHelpers.FindAttributeByName(context.Attributes, context.SemanticModel.Compilation,
-            MeterAttributeMetadataName) is not { } meterAttr
+        var attributeTypes = MetricAttributeTypes.Create(context.SemanticModel.Compilation);
+        return FindAttribute(context.Attributes, attributeTypes.Meter) is not { } meterAttr
             ? null
-            : BuildDefinition(classSyntax, classSymbol, meterAttr, context.SemanticModel.Compilation,
+            : BuildDefinition(classSyntax, classSymbol, meterAttr, attributeTypes,
                 IncrementalPipelineHelpers.FormatSortKey(context.TargetNode));
     }
 
@@ -46,7 +46,7 @@ internal static class MeterAnalyzer
         ClassDeclarationSyntax classSyntax,
         INamedTypeSymbol classSymbol,
         AttributeData meterAttr,
-        Compilation compilation,
+        MetricAttributeTypes attributeTypes,
         string sortKey)
     {
         if (!classSyntax.Modifiers.Any(SyntaxKind.PartialKeyword))
@@ -62,7 +62,7 @@ internal static class MeterAnalyzer
         if (meterName is null)
             return null;
 
-        var methods = ExtractMetricMethods(classSymbol, compilation);
+        var methods = ExtractMetricMethods(classSymbol, attributeTypes);
         if (methods.Length is 0)
             return null;
 
@@ -181,7 +181,7 @@ internal static class MeterAnalyzer
 
     private static EquatableArray<MetricMethodDefinition> ExtractMetricMethods(
         INamespaceOrTypeSymbol classSymbol,
-        Compilation compilation)
+        MetricAttributeTypes attributeTypes)
     {
         var methods = new List<MetricMethodDefinition>();
 
@@ -190,39 +190,7 @@ internal static class MeterAnalyzer
             if (member is not IMethodSymbol { IsStatic: true } method)
                 continue;
 
-            var counterAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    CounterAttributeFullName);
-            var histogramAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    HistogramAttributeFullName);
-            var gaugeAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    GaugeAttributeFullName);
-            var upDownCounterAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    UpDownCounterAttributeFullName);
-            var observableCounterAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    ObservableCounterAttributeFullName);
-            var observableGaugeAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    ObservableGaugeAttributeFullName);
-            var observableUpDownCounterAttr =
-                IncrementalPipelineHelpers.FindAttributeByName(method.GetAttributes(), compilation,
-                    ObservableUpDownCounterAttributeFullName);
-
-            var (kind, attr) = counterAttr is not null ? (MetricKind.Counter, counterAttr)
-                : histogramAttr is not null ? (MetricKind.Histogram, histogramAttr)
-                : gaugeAttr is not null ? (MetricKind.Gauge, gaugeAttr)
-                : upDownCounterAttr is not null ? (MetricKind.UpDownCounter, upDownCounterAttr)
-                : observableCounterAttr is not null ? (MetricKind.ObservableCounter, observableCounterAttr)
-                : observableGaugeAttr is not null ? (MetricKind.ObservableGauge, observableGaugeAttr)
-                : observableUpDownCounterAttr is not null
-                    ? (MetricKind.ObservableUpDownCounter, observableUpDownCounterAttr)
-                : default;
-
-            if (attr is null)
+            if (!TryGetMetricAttribute(method, attributeTypes, out var kind, out var attr))
                 continue;
 
             if (method.TypeParameters.Length is not 0)
@@ -247,7 +215,7 @@ internal static class MeterAnalyzer
             }
             else
             {
-                var valueParameter = FindMetricValueParameter(method, compilation);
+                var valueParameter = FindMetricValueParameter(method, attributeTypes.Tag);
                 if (!HasSupportedValueParameterShape(kind, valueParameter.Count) ||
                     (valueParameter.Type is not null && !IsSupportedMetricValueType(valueParameter.Type)))
                 {
@@ -262,7 +230,7 @@ internal static class MeterAnalyzer
             if (metricName is null || (isObservable && valueTypeName is null))
                 continue;
 
-            var tags = isObservable ? default : ExtractTags(method, compilation);
+            var tags = isObservable ? default : ExtractTags(method, attributeTypes);
 
             methods.Add(new MetricMethodDefinition(
                 EscapeIdentifier(method.Name),
@@ -278,6 +246,84 @@ internal static class MeterAnalyzer
         }
 
         return methods.ToEquatableArray();
+    }
+
+    private static bool TryGetMetricAttribute(
+        IMethodSymbol method,
+        MetricAttributeTypes attributeTypes,
+        out MetricKind kind,
+        [NotNullWhen(true)] out AttributeData? attribute)
+    {
+        var attributes = method.GetAttributes();
+
+        if (FindAttribute(attributes, attributeTypes.Counter) is { } counterAttr)
+        {
+            kind = MetricKind.Counter;
+            attribute = counterAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.Histogram) is { } histogramAttr)
+        {
+            kind = MetricKind.Histogram;
+            attribute = histogramAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.Gauge) is { } gaugeAttr)
+        {
+            kind = MetricKind.Gauge;
+            attribute = gaugeAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.UpDownCounter) is { } upDownCounterAttr)
+        {
+            kind = MetricKind.UpDownCounter;
+            attribute = upDownCounterAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.ObservableCounter) is { } observableCounterAttr)
+        {
+            kind = MetricKind.ObservableCounter;
+            attribute = observableCounterAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.ObservableGauge) is { } observableGaugeAttr)
+        {
+            kind = MetricKind.ObservableGauge;
+            attribute = observableGaugeAttr;
+            return true;
+        }
+
+        if (FindAttribute(attributes, attributeTypes.ObservableUpDownCounter) is { } observableUpDownCounterAttr)
+        {
+            kind = MetricKind.ObservableUpDownCounter;
+            attribute = observableUpDownCounterAttr;
+            return true;
+        }
+
+        kind = default;
+        attribute = null;
+        return false;
+    }
+
+    private static AttributeData? FindAttribute(
+        ImmutableArray<AttributeData> attributes,
+        INamedTypeSymbol? attributeType)
+    {
+        if (attributeType is null)
+            return null;
+
+        foreach (var attribute in attributes)
+        {
+            if (attribute.AttributeClass.IsEqualTo(attributeType))
+                return attribute;
+        }
+
+        return null;
     }
 
     private static bool HasUnsupportedMetricParameters(IMethodSymbol method)
@@ -304,7 +350,7 @@ internal static class MeterAnalyzer
 
     private static (int Count, string? TypeName, string? Name, ITypeSymbol? Type) FindMetricValueParameter(
         IMethodSymbol method,
-        Compilation compilation)
+        INamedTypeSymbol? tagAttributeType)
     {
         var count = 0;
         string? typeName = null;
@@ -313,8 +359,7 @@ internal static class MeterAnalyzer
 
         foreach (var param in method.Parameters)
         {
-            if (IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation,
-                    TagAttributeFullName) is not null)
+            if (FindAttribute(param.GetAttributes(), tagAttributeType) is not null)
                 continue;
 
             count++;
@@ -457,22 +502,23 @@ internal static class MeterAnalyzer
         return (name, unit, description);
     }
 
-    private static EquatableArray<MetricTagParameter> ExtractTags(IMethodSymbol method, Compilation compilation)
+    private static EquatableArray<MetricTagParameter> ExtractTags(
+        IMethodSymbol method,
+        MetricAttributeTypes attributeTypes)
     {
         var tags = new List<MetricTagParameter>();
 
         foreach (var param in method.Parameters)
         {
-            if (IncrementalPipelineHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName)
-                is not
-                { } tagAttr)
+            if (FindAttribute(param.GetAttributes(), attributeTypes.Tag) is not { } tagAttr)
                 continue;
 
             string? explicitTagName = null;
             if (tagAttr.TryGetConstructorArgument<string>(0, out var tagNameValue))
                 explicitTagName = tagNameValue;
 
-            var tagName = TelemetryTagNameResolver.ResolveName(param, compilation, explicitTagName, param.Name);
+            var tagName =
+                TelemetryTagNameResolver.ResolveName(param, attributeTypes.Otel, explicitTagName, param.Name);
 
             tags.Add(new MetricTagParameter(
                 EscapeIdentifier(param.Name),
@@ -485,4 +531,30 @@ internal static class MeterAnalyzer
 
     private static bool IsObservable(MetricKind kind) =>
         kind is MetricKind.ObservableCounter or MetricKind.ObservableGauge or MetricKind.ObservableUpDownCounter;
+
+    private readonly record struct MetricAttributeTypes(
+        INamedTypeSymbol? Meter,
+        INamedTypeSymbol? Counter,
+        INamedTypeSymbol? Histogram,
+        INamedTypeSymbol? Gauge,
+        INamedTypeSymbol? UpDownCounter,
+        INamedTypeSymbol? ObservableCounter,
+        INamedTypeSymbol? ObservableGauge,
+        INamedTypeSymbol? ObservableUpDownCounter,
+        INamedTypeSymbol? Tag,
+        INamedTypeSymbol? Otel)
+    {
+        public static MetricAttributeTypes Create(Compilation compilation) =>
+            new(
+                compilation.GetTypeByMetadataName(MeterAttributeMetadataName),
+                compilation.GetTypeByMetadataName(CounterAttributeFullName),
+                compilation.GetTypeByMetadataName(HistogramAttributeFullName),
+                compilation.GetTypeByMetadataName(GaugeAttributeFullName),
+                compilation.GetTypeByMetadataName(UpDownCounterAttributeFullName),
+                compilation.GetTypeByMetadataName(ObservableCounterAttributeFullName),
+                compilation.GetTypeByMetadataName(ObservableGaugeAttributeFullName),
+                compilation.GetTypeByMetadataName(ObservableUpDownCounterAttributeFullName),
+                compilation.GetTypeByMetadataName(TagAttributeFullName),
+                TelemetryTagNameResolver.GetOtelAttributeType(compilation));
+    }
 }

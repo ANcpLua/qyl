@@ -1,4 +1,5 @@
 
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -28,9 +29,15 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(tableTypes, static (spc, tableInfo) =>
         {
             var source = DuckDbEmitter.Emit(tableInfo);
-            spc.AddSource($"{tableInfo.TypeName}.DuckDb.g.cs", SourceText.From(source, Encoding.UTF8));
+            spc.AddSource(GetHintName(tableInfo), SourceText.From(source, Encoding.UTF8));
         });
     }
+
+    private static string GetHintName(DuckDbTableInfo tableInfo) =>
+        string.IsNullOrEmpty(tableInfo.Namespace) ||
+        string.Equals(tableInfo.Namespace, "<global namespace>", StringComparison.Ordinal)
+            ? $"{tableInfo.TypeName}.DuckDb.g.cs"
+            : $"{tableInfo.Namespace}.{tableInfo.TypeName}.DuckDb.g.cs";
 
     private static DuckDbTableInfo? ExtractTableInfo(GeneratorAttributeSyntaxContext ctx)
     {
@@ -63,20 +70,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var columns = new List<DuckDbColumnInfo>();
         var ordinal = 0;
 
-        foreach (var member in typeSymbol.GetMembers())
+        foreach (var prop in GetPublicMappedProperties(typeSymbol))
         {
-            if (member is not IPropertySymbol prop)
-                continue;
-
-            if (prop.DeclaredAccessibility != Accessibility.Public)
-                continue;
-
-            if (prop.GetMethod is null)
-                continue;
-
-            if (prop.HasAttribute(DuckDbIgnoreAttribute))
-                continue;
-
             var columnInfo = ExtractColumnInfo(prop, ordinal);
             if (columnInfo is not null)
             {
@@ -93,6 +88,41 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             tableName,
             onConflict,
             columns.ToArray().ToEquatableArray());
+    }
+
+    private static List<IPropertySymbol> GetPublicMappedProperties(INamedTypeSymbol typeSymbol)
+    {
+        var properties = new List<IPropertySymbol>();
+        foreach (var member in typeSymbol.GetMembers())
+        {
+            if (member is not IPropertySymbol prop)
+                continue;
+
+            if (prop.DeclaredAccessibility != Accessibility.Public)
+                continue;
+
+            if (prop.GetMethod is null)
+                continue;
+
+            if (prop.HasAttribute(DuckDbIgnoreAttribute))
+                continue;
+
+            properties.Add(prop);
+        }
+
+        properties.Sort(static (left, right) =>
+            StringComparer.Ordinal.Compare(GetPropertySortKey(left), GetPropertySortKey(right)));
+        return properties;
+    }
+
+    private static string GetPropertySortKey(IPropertySymbol property)
+    {
+        if (property.DeclaringSyntaxReferences.FirstOrDefault() is not { } syntaxReference)
+            return property.MetadataName;
+
+        var filePath = syntaxReference.SyntaxTree.FilePath;
+        var position = syntaxReference.Span.Start.ToString(CultureInfo.InvariantCulture);
+        return string.Concat(filePath, ":", position, ":", property.MetadataName);
     }
 
     private static DuckDbColumnInfo? ExtractColumnInfo(IPropertySymbol prop, int defaultOrdinal)

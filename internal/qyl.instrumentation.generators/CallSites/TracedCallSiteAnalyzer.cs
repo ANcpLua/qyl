@@ -43,10 +43,15 @@ internal static class TracedCallSiteAnalyzer
 
         var tracedTagAttributeType = compilation.GetTypeByMetadataName(TracedTagAttributeFullName);
         var tracedReturnAttributeType = compilation.GetTypeByMetadataName(TracedReturnAttributeFullName);
+        var otelAttributeType = TelemetryTagNameResolver.GetOtelAttributeType(compilation);
 
-        var tracedTags = ExtractTracedTags(method, tracedTagAttributeType, compilation);
+        var tracedTags = ExtractTracedTags(method, tracedTagAttributeType, otelAttributeType);
         var tracedTagProperties =
-            ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic, compilation);
+            ExtractTracedTagProperties(
+                method.ContainingType,
+                tracedTagAttributeType,
+                otelAttributeType,
+                method.IsStatic);
         var returnCapture = ExtractReturnCapture(method, tracedReturnAttributeType);
         var typeParameters = ExtractTypeParameters(method);
         var parameterTypes = ExtractParameterTypes(method);
@@ -220,7 +225,7 @@ internal static class TracedCallSiteAnalyzer
     private static EquatableArray<TracedTagParameter> ExtractTracedTags(
         IMethodSymbol method,
         INamedTypeSymbol? tracedTagAttributeType,
-        Compilation compilation)
+        INamedTypeSymbol? otelAttributeType)
     {
         if (tracedTagAttributeType is null)
             return default;
@@ -250,8 +255,10 @@ internal static class TracedCallSiteAnalyzer
                 }
             }
 
-            var tagName = TelemetryTagNameResolver.ResolveName(parameter, compilation, explicitTagName, parameter.Name);
-            var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(parameter, compilation, explicitSkipIfNull);
+            var tagName =
+                TelemetryTagNameResolver.ResolveName(parameter, otelAttributeType, explicitTagName, parameter.Name);
+            var skipIfNull =
+                TelemetryTagNameResolver.ResolveSkipIfNull(parameter, otelAttributeType, explicitSkipIfNull);
 
             var isValueType = parameter.Type is
                 { IsValueType: true, OriginalDefinition.SpecialType: not SpecialType.System_Nullable_T };
@@ -275,8 +282,8 @@ internal static class TracedCallSiteAnalyzer
     private static EquatableArray<TracedTagProperty> ExtractTracedTagProperties(
         INamedTypeSymbol containingType,
         INamedTypeSymbol? tracedTagAttributeType,
-        bool methodIsStatic,
-        Compilation compilation)
+        INamedTypeSymbol? otelAttributeType,
+        bool methodIsStatic)
     {
         if (tracedTagAttributeType is null)
             return default;
@@ -305,8 +312,10 @@ internal static class TracedCallSiteAnalyzer
                         explicitSkipIfNull = sv;
                 }
 
-                var tagName = TelemetryTagNameResolver.ResolveName(member, compilation, explicitTagName, member.Name);
-                var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(member, compilation, explicitSkipIfNull);
+                var tagName =
+                    TelemetryTagNameResolver.ResolveName(member, otelAttributeType, explicitTagName, member.Name);
+                var skipIfNull =
+                    TelemetryTagNameResolver.ResolveSkipIfNull(member, otelAttributeType, explicitSkipIfNull);
 
                 var isNullable = member.Type.IsReferenceType ||
                                  member.NullableAnnotation == NullableAnnotation.Annotated;

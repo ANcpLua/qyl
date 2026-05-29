@@ -4,34 +4,56 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 
 internal static class TelemetryTagNameResolver
 {
-    private const string OTelAttributeMetadataName = "Qyl.Instrumentation.Instrumentation.OTelAttribute";
+    public const string OTelAttributeMetadataName = "Qyl.Instrumentation.Instrumentation.OTelAttribute";
 
-    public static string ResolveName(ISymbol symbol, Compilation compilation, string? explicitName, string fallbackName)
+    public static INamedTypeSymbol? GetOtelAttributeType(Compilation compilation) =>
+        compilation.GetTypeByMetadataName(OTelAttributeMetadataName);
+
+    public static string ResolveName(
+        ISymbol symbol,
+        INamedTypeSymbol? otelAttributeType,
+        string? explicitName,
+        string fallbackName)
     {
         if (explicitName is { } resolvedExplicitName && !string.IsNullOrWhiteSpace(resolvedExplicitName))
             return resolvedExplicitName;
 
-        var otel = ReadOtelOverride(symbol, compilation);
+        var otel = ReadOtelOverride(symbol, otelAttributeType);
         return otel.Name is { } resolvedOtelName && !string.IsNullOrWhiteSpace(resolvedOtelName)
             ? resolvedOtelName
             : fallbackName;
     }
 
-    public static bool ResolveSkipIfNull(ISymbol symbol, Compilation compilation, bool? explicitSkipIfNull,
+    public static bool ResolveSkipIfNull(
+        ISymbol symbol,
+        INamedTypeSymbol? otelAttributeType,
+        bool? explicitSkipIfNull,
         bool defaultValue = true)
     {
         if (explicitSkipIfNull.HasValue)
             return explicitSkipIfNull.Value;
 
-        var otel = ReadOtelOverride(symbol, compilation);
+        var otel = ReadOtelOverride(symbol, otelAttributeType);
         return otel.SkipIfNull ?? defaultValue;
     }
 
-    private static (string? Name, bool? SkipIfNull) ReadOtelOverride(ISymbol symbol, Compilation compilation)
+    private static (string? Name, bool? SkipIfNull) ReadOtelOverride(
+        ISymbol symbol,
+        INamedTypeSymbol? otelAttributeType)
     {
-        var attribute =
-            IncrementalPipelineHelpers.FindAttributeByName(symbol.GetAttributes(), compilation,
-                OTelAttributeMetadataName);
+        if (otelAttributeType is null)
+            return default;
+
+        AttributeData? attribute = null;
+        foreach (var candidate in symbol.GetAttributes())
+        {
+            if (!candidate.AttributeClass.IsEqualTo(otelAttributeType))
+                continue;
+
+            attribute = candidate;
+            break;
+        }
+
         if (attribute is null)
             return default;
 

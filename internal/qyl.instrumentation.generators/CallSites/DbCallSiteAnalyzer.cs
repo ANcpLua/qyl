@@ -22,14 +22,15 @@ internal static class DbCallSiteAnalyzer
             ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
         ];
 
-    private static readonly HashSet<string> s_candidateMethodNames =
-    [
-        ..Matchers.Select(static matcher => matcher.MethodName)
-    ];
-
     public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
         IncrementalPipelineHelpers.GetInvokedMethodName(node) is { } methodName &&
-        s_candidateMethodNames.Contains(methodName);
+        methodName is "ExecuteReader" or
+            "ExecuteReaderAsync" or
+            "ExecuteNonQuery" or
+            "ExecuteNonQueryAsync" or
+            "ExecuteScalar" or
+            "ExecuteScalarAsync" or
+            "ExecuteDbDataReaderAsync";
 
     public static DbCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,

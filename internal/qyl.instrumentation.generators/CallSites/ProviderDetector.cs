@@ -5,9 +5,14 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 
 internal static class ProviderDetector
 {
-    public static string? GetGenAiProviderId(string typeName) =>
-        ProviderRegistry.GenAiProviders
-            .Where(p => typeName.Contains(p.TypeContains, StringComparison.OrdinalIgnoreCase))
-            .Select(static p => p.ProviderId)
-            .FirstOrDefault();
+    public static string? GetGenAiProviderId(string typeName)
+    {
+        foreach (var provider in ProviderRegistry.GenAiProviders)
+        {
+            if (typeName.Contains(provider.TypeContains, StringComparison.OrdinalIgnoreCase))
+                return provider.ProviderId;
+        }
+
+        return null;
+    }
 }
