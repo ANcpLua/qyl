@@ -31,9 +31,8 @@ public sealed record KeycloakTokenResponse(
 internal sealed partial class KeycloakClientJsonContext : JsonSerializerContext;
 
 /// <summary>
-/// OIDC client for the user-facing authorization-code + PKCE flow. Single
-/// instance per process; thread-safe via a <c>System.Threading.Lock</c>
-/// guarding the discovery cache.
+/// OIDC client for the user-facing authorization-code + PKCE flow. Thread-safe
+/// via a <c>System.Threading.Lock</c> guarding the discovery cache.
 /// </summary>
 /// <remarks>
 /// Distinct from <c>qyl.mcp/Auth/KeycloakTokenProvider</c> which is the
@@ -62,8 +61,6 @@ public interface IKeycloakClient
 
 internal sealed partial class KeycloakClient : IKeycloakClient
 {
-    public const string HttpClientName = "Keycloak";
-
     private readonly Uri _discoveryUri;
     private readonly HttpClient _httpClient;
     private readonly KeycloakOptions _options;

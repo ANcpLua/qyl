@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Http.Resilience;
 using ModelContextProtocol.AspNetCore.Authentication;
 using Qyl.Collector.Auth;
 
@@ -75,19 +75,12 @@ public static class CollectorAuthExtensions
 
         if (!string.IsNullOrWhiteSpace(keycloakAuthority))
         {
-            services.AddHttpClient(KeycloakClient.HttpClientName).AddStandardResilienceHandler();
-            services.AddSingleton<IKeycloakJwksValidator>(sp =>
-                new KeycloakJwksValidator(
-                    keycloakAuthority,
-                    keycloakAudience,
-                    sp.GetRequiredService<IHttpClientFactory>().CreateClient(KeycloakClient.HttpClientName),
-                    sp.GetRequiredService<ILogger<KeycloakJwksValidator>>()));
-            services.AddSingleton<IKeycloakClient>(sp =>
-                new KeycloakClient(
-                    sp.GetRequiredService<IHttpClientFactory>().CreateClient(KeycloakClient.HttpClientName),
-                    sp.GetRequiredService<IOptions<KeycloakOptions>>(),
-                    sp.GetRequiredService<TimeProvider>(),
-                    sp.GetRequiredService<ILogger<KeycloakClient>>()));
+            Action<HttpStandardResilienceOptions> configureKeycloakResilience = static _ => { };
+
+            services.AddHttpClient<IKeycloakJwksValidator, KeycloakJwksValidator>()
+                .AddStandardResilienceHandler(configureKeycloakResilience);
+            services.AddHttpClient<IKeycloakClient, KeycloakClient>()
+                .AddStandardResilienceHandler(configureKeycloakResilience);
         }
         else
         {

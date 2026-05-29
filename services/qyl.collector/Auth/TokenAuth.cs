@@ -1,11 +1,11 @@
+using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Http;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
-using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Auth;
-
 
 public interface IKeycloakJwksValidator
 {
@@ -35,13 +35,20 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
     private DateTimeOffset _keysExpiry = DateTimeOffset.MinValue;
 
     public KeycloakJwksValidator(
-        string authority,
-        string? audience,
         HttpClient httpClient,
+        IOptions<KeycloakOptions> options,
         ILogger<KeycloakJwksValidator> logger)
     {
-        _authority = authority.TrimEnd('/');
-        _audience = audience;
+        var keycloak = options.Value;
+        if (string.IsNullOrWhiteSpace(keycloak.Authority))
+        {
+            throw new InvalidOperationException(
+                $"{KeycloakOptions.AuthorityEnvVar} is required to use IKeycloakJwksValidator. " +
+                "Register NullKeycloakJwksValidator.Instance in DI when Keycloak is unconfigured.");
+        }
+
+        _authority = keycloak.Authority.TrimEnd('/');
+        _audience = keycloak.Audience;
         _httpClient = httpClient;
         _logger = logger;
     }
