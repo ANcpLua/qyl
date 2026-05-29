@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup Label="Package Versions">
-    <DotNetRuntimeVersion>10.0.7</DotNetRuntimeVersion>
-    <MicrosoftExtensionsVersion>10.5.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsAiVersion>10.5.2</MicrosoftExtensionsAiVersion>
+    <DotNetRuntimeVersion>10.0.8</DotNetRuntimeVersion>
+    <MicrosoftExtensionsVersion>10.6.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsAiVersion>10.6.0</MicrosoftExtensionsAiVersion>
     <OpenTelemetryVersion>1.15.3</OpenTelemetryVersion>
     <OpenTelemetryAspNetCoreInstrumentationVersion>1.15.1</OpenTelemetryAspNetCoreInstrumentationVersion>
     <DuckDBVersion>1.5.0</DuckDBVersion>
@@ -35,20 +35,14 @@
          intentional: BitNet hosting has no dependency on ANcpLua.Agents core. -->
     <ANcpLuaAgentsHostingBitNetVersion>1.4.10-alpha.1</ANcpLuaAgentsHostingBitNetVersion>
 
-    <!-- MAF (Microsoft.Agents.AI.*) versions. The conditional import of
-         framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props in
-         Directory.Packages.props only fires when the sibling checkout exists;
-         the NuGet-resolved SDK does not auto-import its own Build/Common/Version.props.
-         Inlining here keeps the repo buildable in either configuration.
-         Bumped to 1.6.1 (2026-05-19) so ANcpLua.Agents.Mcp 0.1.0 — which is
-         packed against MAF 1.6.1 — restores without NU1109 downgrade conflict. -->
-    <MicrosoftAgentsAIVersion>1.6.1</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIAbstractionsVersion>1.6.1</MicrosoftAgentsAIAbstractionsVersion>
-    <MicrosoftAgentsAIWorkflowsVersion>1.6.1</MicrosoftAgentsAIWorkflowsVersion>
-    <MicrosoftAgentsAIOpenAIVersion>1.6.1</MicrosoftAgentsAIOpenAIVersion>
-    <MicrosoftAgentsAIHostingVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIHostingVersion>
-    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
-    <MicrosoftAgentsAIDevUIVersion>1.6.1-preview.260514.1</MicrosoftAgentsAIDevUIVersion>
+    <!-- MAF (Microsoft.Agents.AI.*) — mirrors SDK truth; inlined so the repo builds with or without the sibling SDK checkout. -->
+    <MicrosoftAgentsAIVersion>1.8.0</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIAbstractionsVersion>1.8.0</MicrosoftAgentsAIAbstractionsVersion>
+    <MicrosoftAgentsAIWorkflowsVersion>1.8.0</MicrosoftAgentsAIWorkflowsVersion>
+    <MicrosoftAgentsAIOpenAIVersion>1.8.0</MicrosoftAgentsAIOpenAIVersion>
+    <MicrosoftAgentsAIHostingVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
+    <MicrosoftAgentsAIDevUIVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIDevUIVersion>
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.11.0</SystemClientModelVersion>
