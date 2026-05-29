@@ -49,30 +49,34 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         if (!typeDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
             return null;
 
+        // ForAttributeWithMetadataName already guarantees this target carries [DuckDbTable],
+        // so read the matched attribute directly instead of re-resolving its type per target.
+        if (ctx.Attributes is not [{ } tableAttr, ..])
+            return null;
+
         string? tableName = null;
         string? onConflict = null;
 
-        var tableAttr = typeSymbol.GetAttribute(DuckDbTableAttribute);
-        if (tableAttr is not null)
-        {
-            if (tableAttr.ConstructorArguments.Length > 0)
-                tableName = tableAttr.ConstructorArguments[0].Value as string;
+        if (tableAttr.ConstructorArguments.Length > 0)
+            tableName = tableAttr.ConstructorArguments[0].Value as string;
 
-            foreach (var named in tableAttr.NamedArguments.Where(static named => named.Key == "OnConflict"))
-            {
-                onConflict = named.Value.Value as string;
-            }
-        }
+        foreach (var named in tableAttr.NamedArguments.Where(static named => named.Key == "OnConflict"))
+            onConflict = named.Value.Value as string;
 
         if (tableName is not { Length: > 0 })
             return null;
 
+        // Resolve the per-property attribute types once per table, not once per property.
+        var compilation = ctx.SemanticModel.Compilation;
+        var columnAttributeType = compilation.GetTypeByMetadataName(DuckDbColumnAttribute);
+        var ignoreAttributeType = compilation.GetTypeByMetadataName(DuckDbIgnoreAttribute);
+
         var columns = new List<DuckDbColumnInfo>();
         var ordinal = 0;
 
-        foreach (var prop in GetPublicMappedProperties(typeSymbol))
+        foreach (var prop in GetPublicMappedProperties(typeSymbol, ignoreAttributeType))
         {
-            var columnInfo = ExtractColumnInfo(prop, ordinal);
+            var columnInfo = ExtractColumnInfo(prop, ordinal, columnAttributeType);
             if (columnInfo is not null)
             {
                 columns.Add(columnInfo.Value);
@@ -90,7 +94,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             columns.ToArray().ToEquatableArray());
     }
 
-    private static List<IPropertySymbol> GetPublicMappedProperties(INamedTypeSymbol typeSymbol)
+    private static List<IPropertySymbol> GetPublicMappedProperties(
+        INamedTypeSymbol typeSymbol,
+        INamedTypeSymbol? ignoreAttributeType)
     {
         var properties = new List<IPropertySymbol>();
         foreach (var member in typeSymbol.GetMembers())
@@ -104,7 +110,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             if (prop.GetMethod is null)
                 continue;
 
-            if (prop.HasAttribute(DuckDbIgnoreAttribute))
+            if (FindAttribute(prop, ignoreAttributeType) is not null)
                 continue;
 
             properties.Add(prop);
@@ -125,14 +131,17 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         return string.Concat(filePath, ":", position, ":", property.MetadataName);
     }
 
-    private static DuckDbColumnInfo? ExtractColumnInfo(IPropertySymbol prop, int defaultOrdinal)
+    private static DuckDbColumnInfo? ExtractColumnInfo(
+        IPropertySymbol prop,
+        int defaultOrdinal,
+        INamedTypeSymbol? columnAttributeType)
     {
         string? columnName = null;
         var isUBigInt = false;
         var excludeFromInsert = false;
         var ordinal = defaultOrdinal;
 
-        var colAttr = prop.GetAttribute(DuckDbColumnAttribute);
+        var colAttr = FindAttribute(prop, columnAttributeType);
         if (colAttr is not null)
         {
             if (colAttr.ConstructorArguments.Length > 0)
@@ -173,6 +182,20 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             isUBigInt,
             excludeFromInsert,
             ordinal);
+    }
+
+    private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol? attributeType)
+    {
+        if (attributeType is null)
+            return null;
+
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (attribute.AttributeClass.IsEqualTo(attributeType))
+                return attribute;
+        }
+
+        return null;
     }
 
     private static string ToSnakeCase(string name)

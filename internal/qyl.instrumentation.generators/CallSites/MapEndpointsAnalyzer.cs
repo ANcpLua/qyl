@@ -30,9 +30,8 @@ internal static class MapEndpointsAnalyzer
             } methodSymbol)
             return null;
 
-        if (IncrementalPipelineHelpers.FindAttributeByName(
-                context.Attributes, context.SemanticModel.Compilation, MapEndpointsAttributeMetadataName)
-            is not { } attr)
+        // ForAttributeWithMetadataName already filtered to [QylMapEndpoints]; read the match directly.
+        if (context.Attributes is not [{ } attr, ..])
             return null;
 
         var order = attr.ConstructorArguments is [{ Value: int value }, ..] ? value : 100;

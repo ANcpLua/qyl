@@ -25,9 +25,8 @@ internal static class QylHealthCheckAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol { IsAbstract: false } classSymbol)
             return null;
 
-        if (IncrementalPipelineHelpers.FindAttributeByName(
-                context.Attributes, context.SemanticModel.Compilation, QylHealthCheckAttributeMetadataName)
-            is not { } attr)
+        // ForAttributeWithMetadataName already filtered to [QylHealthCheck]; read the match directly.
+        if (context.Attributes is not [{ } attr, ..])
             return null;
 
         if (attr.ConstructorArguments is not [{ Value: string name }, { Values: var tagConstants }, ..])

@@ -26,9 +26,8 @@ internal static class QylServiceAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol { IsAbstract: false } classSymbol)
             return null;
 
-        if (IncrementalPipelineHelpers.FindAttributeByName(
-                context.Attributes, context.SemanticModel.Compilation, QylServiceAttributeMetadataName)
-            is not { } attr)
+        // ForAttributeWithMetadataName already filtered to [QylService]; read the match directly.
+        if (context.Attributes is not [{ } attr, ..])
             return null;
 
         var lifetimeIndex = attr.ConstructorArguments is [{ Value: int i }, ..] ? i : 0;
