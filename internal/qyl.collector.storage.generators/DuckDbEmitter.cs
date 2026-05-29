@@ -63,16 +63,13 @@ internal static class DuckDbEmitter
                 }
             }
 
-            sb.Append('"').Append(EscapeIdentifier(columns[i].ColumnName)).Append('"');
+            sb.Append(SqlIdentifier.Quote(columns[i].ColumnName));
         }
 
         sb.AppendLine();
         sb.AppendLine("        \"\"\";");
         sb.AppendLine();
     }
-
-    private static string EscapeIdentifier(string identifier) =>
-        identifier.Contains('"', StringComparison.Ordinal) ? identifier.Replace("\"", "\"\"") : identifier;
 
     private static void EmitAddParameters(StringBuilder sb, string typeName, IEnumerable<DuckDbColumnInfo> columns)
     {

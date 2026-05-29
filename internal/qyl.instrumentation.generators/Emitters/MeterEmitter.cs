@@ -163,7 +163,7 @@ internal static class MeterEmitter
 
         for (var i = 0; i < methods.Length; i++)
         {
-            var baseName = ToFieldName(methods[i].MetricName);
+            var baseName = methods[i].MetricName.ToFieldName("_metric");
             var fieldName = baseName;
             var suffix = 2;
 
@@ -409,7 +409,7 @@ internal static class MeterEmitter
             "_",
             ToIdentifierSuffix(qualifiedName),
             "_",
-            StableHash(qualifiedName));
+            qualifiedName.ToFnv1aHash());
     }
 
     private static string BuildQualifiedMeterClassName(MeterDefinition meter)
@@ -429,21 +429,6 @@ internal static class MeterEmitter
     private static string ToIdentifierSuffix(string value) =>
         value.Length is 0 ? "Meter" : value.SanitizeIdentifier();
 
-    private static string StableHash(string value)
-    {
-        const uint offsetBasis = 2166136261;
-        const uint prime = 16777619;
-
-        var hash = offsetBasis;
-        foreach (var ch in value)
-        {
-            hash ^= ch;
-            hash *= prime;
-        }
-
-        return hash.ToString("x8", CultureInfo.InvariantCulture);
-    }
-
     private static bool IsGlobalNamespace(string namespaceName) =>
         string.IsNullOrEmpty(namespaceName) ||
         string.Equals(namespaceName, "<global namespace>", StringComparison.Ordinal);
@@ -451,81 +436,6 @@ internal static class MeterEmitter
     private static bool IsObservable(MetricMethodDefinition method) =>
         method.Kind is MetricKind.ObservableCounter or MetricKind.ObservableGauge or MetricKind.ObservableUpDownCounter;
 
-    private static string ToFieldName(string metricName)
-    {
-        var result = new StringBuilder("_");
-        var upperNext = false;
-
-        foreach (var ch in metricName)
-        {
-            if (!char.IsLetterOrDigit(ch) && ch != '_')
-            {
-                upperNext = true;
-                continue;
-            }
-
-            result.Append(upperNext ? char.ToUpperInvariant(ch) : ch);
-            upperNext = false;
-        }
-
-        return result.Length > 1 ? result.ToString() : "_metric";
-    }
-
-    private static string StringLiteral(string value)
-    {
-        var builder = new StringBuilder(value.Length + 2);
-        builder.Append('"');
-
-        foreach (var ch in value)
-        {
-            switch (ch)
-            {
-                case '"':
-                    builder.Append("\\\"");
-                    break;
-                case '\\':
-                    builder.Append("\\\\");
-                    break;
-                case '\0':
-                    builder.Append("\\0");
-                    break;
-                case '\a':
-                    builder.Append("\\a");
-                    break;
-                case '\b':
-                    builder.Append("\\b");
-                    break;
-                case '\f':
-                    builder.Append("\\f");
-                    break;
-                case '\n':
-                    builder.Append("\\n");
-                    break;
-                case '\r':
-                    builder.Append("\\r");
-                    break;
-                case '\t':
-                    builder.Append("\\t");
-                    break;
-                case '\v':
-                    builder.Append("\\v");
-                    break;
-                default:
-                    if (char.IsControl(ch) || ch > '\x7e')
-                    {
-                        builder.Append("\\u");
-                        builder.Append(((int)ch).ToString("x4", CultureInfo.InvariantCulture));
-                    }
-                    else
-                    {
-                        builder.Append(ch);
-                    }
-                    break;
-            }
-        }
-
-        builder.Append('"');
-        return builder.ToString();
-    }
+    private static string StringLiteral(string value) => $"\"{value.EscapeCSharpString()}\"";
 
 }
