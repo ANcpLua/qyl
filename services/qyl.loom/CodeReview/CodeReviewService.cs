@@ -53,8 +53,11 @@ public sealed partial class CodeReviewService(
         {
             var agent = agents.BuildCodeReviewAgent();
 
-            var response = await agent.RunAsync(prompt, cancellationToken: ct).ConfigureAwait(false);
-            var comments = ParseReviewComments(response.Text);
+            var response = await agent.RunAsync<CodeReviewComment[]>(
+                prompt,
+                serializerOptions: CodeReviewJsonContext.Default.Options,
+                cancellationToken: ct).ConfigureAwait(false);
+            var comments = response.Result ?? [];
             LogReviewComplete(comments.Length);
 
             CodeReviewResult result = new()
@@ -160,24 +163,6 @@ public sealed partial class CodeReviewService(
         catch (HttpRequestException)
         {
             return null;
-        }
-    }
-
-    private static CodeReviewComment[] ParseReviewComments(string text)
-    {
-        var jsonStart = text.IndexOf('[');
-        var jsonEnd = text.LastIndexOf(']');
-        if (jsonStart < 0 || jsonEnd <= jsonStart)
-            return [];
-
-        var json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
-        try
-        {
-            return JsonSerializer.Deserialize(json, CodeReviewJsonContext.Default.CodeReviewCommentArray) ?? [];
-        }
-        catch (JsonException)
-        {
-            return [];
         }
     }
 

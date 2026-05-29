@@ -57,12 +57,21 @@ public sealed partial class ExplorationInsightService(
         {
             var agent = agents.BuildExplorationInsightAgent();
 
-            var response = await agent.RunAsync(
+            var response = await agent.RunAsync<InsightLlmResponse>(
                 $"Error details:\n{context}",
+                serializerOptions: ExplorationJsonContext.Default.Options,
                 cancellationToken: ct).ConfigureAwait(false);
 
-            var parsed = TryParseInsight(response.Text, issueId);
-            if (parsed is not null) return parsed;
+            if (response.Result is { } parsed)
+            {
+                return new ExplorationInsight
+                {
+                    IssueId = issueId,
+                    WhatHappened = parsed.WhatHappened ?? "Unknown",
+                    InitialGuess = parsed.InitialGuess ?? "Unable to determine",
+                    InTheTrace = parsed.InTheTrace
+                };
+            }
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -120,29 +129,6 @@ public sealed partial class ExplorationInsightService(
         }
 
         return sb.ToString();
-    }
-
-    private static ExplorationInsight? TryParseInsight(string text, string issueId)
-    {
-        var start = text.IndexOf('{');
-        var end = text.LastIndexOf('}');
-        if (start < 0 || end <= start) return null;
-
-        try
-        {
-            var r = JsonSerializer.Deserialize(text.AsSpan(start, end - start + 1),
-                ExplorationJsonContext.Default.InsightLlmResponse);
-            if (r is null) return null;
-
-            return new ExplorationInsight
-            {
-                IssueId = issueId,
-                WhatHappened = r.WhatHappened ?? "Unknown",
-                InitialGuess = r.InitialGuess ?? "Unable to determine",
-                InTheTrace = r.InTheTrace
-            };
-        }
-        catch (JsonException) { return null; }
     }
 
     [LoggerMessage(Level = LogLevel.Debug,

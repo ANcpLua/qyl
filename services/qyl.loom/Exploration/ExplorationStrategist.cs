@@ -22,9 +22,11 @@ public sealed partial class ExplorationStrategist(
         {
             var agent = agents.BuildExplorationStrategistAgent();
 
-            var response = await agent.RunAsync(BuildUserMessage(session), cancellationToken: ct)
-                .ConfigureAwait(false);
-            return ExplorationResponseParser.TryParseSolution(response.Text);
+            var response = await agent.RunAsync<ExplorationSolution>(
+                BuildUserMessage(session),
+                serializerOptions: ExplorationJsonContext.Default.Options,
+                cancellationToken: ct).ConfigureAwait(false);
+            return response.Result;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

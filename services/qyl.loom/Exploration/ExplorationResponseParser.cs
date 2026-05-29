@@ -27,19 +27,6 @@ internal static class ExplorationResponseParser
         return json.TryDeserialize(ExplorationJsonContext.Default.ExplorationRootCause);
     }
 
-    internal static ExplorationSolution? TryParseSolution(string text)
-    {
-        var start = text.IndexOf('{');
-        if (start < 0)
-            return null;
-
-        var json = ExtractJsonObject(text, start);
-        if (json == "{}")
-            return null;
-
-        return json.TryDeserialize(ExplorationJsonContext.Default.ExplorationSolution);
-    }
-
     private static string ExtractJsonObject(string text, int start)
     {
         var depth = 0;

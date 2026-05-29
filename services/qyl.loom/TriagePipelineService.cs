@@ -113,12 +113,12 @@ public sealed partial class TriagePipelineService(
 
         try
         {
-            var response = await agent.RunAsync(userMessage, cancellationToken: ct).ConfigureAwait(false);
+            var response = await agent.RunAsync<LlmTriageResponse>(
+                userMessage,
+                serializerOptions: TriageJsonContext.Default.Options,
+                cancellationToken: ct).ConfigureAwait(false);
 
-            var text = response.Text;
-            var parsed = TryParseResponse(text);
-
-            if (parsed is not null)
+            if (response.Result is { } parsed)
             {
                 return new TriageResult
                 {
@@ -185,23 +185,6 @@ public sealed partial class TriagePipelineService(
             >= 0.2 => "manual",
             _ => "skip"
         };
-
-    private static LlmTriageResponse? TryParseResponse(string text)
-    {
-        var jsonStart = text.IndexOf('{');
-        var jsonEnd = text.LastIndexOf('}');
-        if (jsonStart < 0 || jsonEnd <= jsonStart) return null;
-
-        var json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
-        try
-        {
-            return JsonSerializer.Deserialize(json, TriageJsonContext.Default.LlmTriageResponse);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Triage pipeline disabled via QYL_TRIAGE_ENABLED=false")]
     private partial void LogTriageDisabled();
