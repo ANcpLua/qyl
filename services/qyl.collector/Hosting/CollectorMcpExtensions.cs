@@ -12,11 +12,9 @@ namespace Qyl.Collector.Hosting;
 /// tool surface.
 /// </summary>
 /// <remarks>
-/// Registration only. The route mapping (<c>app.MapMcp("/mcp/{tenant}")</c>),
-/// the Bearer-opaque-token authentication handler, and the RFC 9728
-/// protected-resource-metadata endpoint are not yet wired; the placeholder
-/// process-level <see cref="QylScope"/> below is still to be replaced by a
-/// per-request, per-tenant scope derived from the authenticated principal.
+    /// Registration only. The route mapping (<c>app.MapMcp("/mcp/{tenant}")</c>),
+    /// JWT bearer authentication, and the RFC 9728 protected-resource-metadata
+    /// endpoint are wired by <see cref="CollectorAuthExtensions"/>.
 /// </remarks>
 public static class CollectorMcpExtensions
 {

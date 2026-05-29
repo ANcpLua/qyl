@@ -11,13 +11,11 @@ public static class CollectorMiddlewareExtensions
     {
         var otlpCorsOptions = app.Services.GetRequiredService<OtlpCorsOptions>();
         var otlpApiKeyOptions = app.Services.GetRequiredService<OtlpApiKeyOptions>();
-        var tokenAuthOptions = app.Services.GetRequiredService<TokenAuthOptions>();
 
         if (otlpCorsOptions.IsEnabled)
             app.UseMiddleware<OtlpCorsMiddleware>(otlpCorsOptions);
 
         app.UseMiddleware<OtlpApiKeyMiddleware>(otlpApiKeyOptions);
-        app.UseMiddleware<TokenAuthMiddleware>(tokenAuthOptions);
 
         app.UseRequestDecompression();
 

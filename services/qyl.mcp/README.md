@@ -27,18 +27,18 @@ Code, Cursor, etc.) to spawn `qyl-mcp` with the collector URL in the environment
 | Variable                     | Default                 | Purpose                                                                    |
 |------------------------------|-------------------------|----------------------------------------------------------------------------|
 | `QYL_COLLECTOR_URL`          | `http://localhost:5100` | qyl collector base URL                                                     |
-| `QYL_MCP_TOKEN`              | none                    | Outbound auth token used by qyl.mcp when calling qyl.collector             |
-| `QYL_KEYCLOAK_AUTHORITY`     | none                    | Keycloak/OIDC authority for collector-facing auth (client-credentials)     |
-| `QYL_KEYCLOAK_CLIENT_ID`     | none                    | Client credentials for qyl.mcp -> qyl.collector                            |
-| `QYL_KEYCLOAK_CLIENT_SECRET` | none                    | Client credentials for qyl.mcp -> qyl.collector                            |
+| `QYL_KEYCLOAK_AUTHORITY`     | none                    | Keycloak/OIDC authority for collector-facing JWTs and daemon tokens        |
+| `QYL_KEYCLOAK_CLIENT_ID`     | none                    | Client credentials for daemon qyl.mcp -> qyl.collector calls               |
+| `QYL_KEYCLOAK_CLIENT_SECRET` | none                    | Client credentials for daemon qyl.mcp -> qyl.collector calls               |
+| `QYL_KEYCLOAK_SCOPE`         | `qyl.collector`         | Client-credentials scope requested for daemon collector calls              |
 | `QYL_SKILLS`                 | `all`                   | Comma-separated skill filter (`inspect,health,analytics,agent,...`) or `all` |
 | `QYL_SERVICE`                | none                    | Scope all tool queries to a single service name                            |
 | `QYL_SESSION`                | none                    | Scope all tool queries to a single session id                              |
 
 ## Auth
 
-`qyl.mcp` authenticates outbound to `qyl.collector` using either a shared token (`QYL_MCP_TOKEN`) or Keycloak
-client-credentials (`QYL_KEYCLOAK_*` trio). Inbound auth and the public-facing OAuth flow live in `qyl.collector`.
+`qyl.mcp` forwards an incoming user Bearer token to `qyl.collector` when one exists. Background/daemon calls use
+Keycloak client credentials via `Duende.AccessTokenManagement`; no static shared collector key is supported.
 
 ## Monitor your MCP server with qyl
 

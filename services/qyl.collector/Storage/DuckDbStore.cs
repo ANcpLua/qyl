@@ -1559,9 +1559,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.ProjectsDdl, "\n",
             DuckDbSchema.ProjectEnvironmentsDdl, "\n",
             DuckDbSchema.HandshakeChallengesDdl, "\n",
-            DuckDbSchema.GitHubTokensDdl, "\n",
-            DuckDbSchema.McpTokensDdl, "\n",
-            DuckDbSchema.McpPkceStateDdl);
+            DuckDbSchema.GitHubTokensDdl);
         identityCmd.ExecuteNonQuery();
 
         using var provisioningCmd = con.CreateCommand();

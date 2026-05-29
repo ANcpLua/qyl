@@ -35,9 +35,8 @@ long_description: |
   namespace, but authorization derives from the authenticated token:
   the collector compares the route {tenant} with the token-bound
   TenantId and returns 403 Forbidden on mismatch. Authentication is
-  OAuth 2.1 + PKCE with Keycloak as the identity provider; the
-  connector exchanges Keycloak tokens for opaque MCP bearer tokens
-  stored in your qyl-collector's local DuckDB.
+  OAuth 2.1 + PKCE with Keycloak as the identity provider; MCP clients send
+  Keycloak-issued access tokens directly to the connector.
 
   See the [tool annotations
   audit](https://qyl.ai/connector/tool-annotations-audit) for the
@@ -47,14 +46,13 @@ long_description: |
 # user supplies at install time (the slug of their qyl tenant).
 server_url: "https://collector.qyl.ai/mcp/{tenant}"
 
-# OAuth 2.1 + PKCE flow per RFC 6749 + RFC 7636. The collector itself
-# acts as the OAuth client to the user's Keycloak; Claude only sees the
-# opaque bearer token returned by /auth/callback.
-oauth_authorization_endpoint: "https://collector.qyl.ai/auth/authorize"
-oauth_token_endpoint: "https://collector.qyl.ai/auth/callback"
+# OAuth 2.1 + PKCE flow per RFC 6749 + RFC 7636. External MCP clients act as
+# OAuth clients against Keycloak; the collector is only a protected resource.
+oauth_authorization_endpoint: "https://keycloak.example.com/realms/{tenant}/protocol/openid-connect/auth"
+oauth_token_endpoint: "https://keycloak.example.com/realms/{tenant}/protocol/openid-connect/token"
 # RFC 9728 Protected Resource Metadata — Claude can also auto-discover
 # the OAuth endpoints from this URL (preferred over the hard-coded fields
-# above; this endpoint ships with the /mcp/{tenant} host, still to be built).
+# above.
 protected_resource_metadata: "https://collector.qyl.ai/mcp/{tenant}/.well-known/oauth-protected-resource"
 
 scopes_required:

@@ -40,7 +40,8 @@ public static class QylMcpServiceCollectionExtensions
         QylScope scope)
     {
         services.AddRedaction();
-        services.AddMcpAuth(configuration);
+        services.AddHttpContextAccessor();
+        services.AddCollectorClientCredentials(configuration);
         services.AddSingleton(skills);
         services.AddSingleton(scope);
         services.AddSingleton<IQylConstraintInjector<QylScope>, QylScopeInjector>();

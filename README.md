@@ -238,10 +238,10 @@ Never edit `*.g.cs` or `api.ts` — edit TypeSpec and regenerate.
 | `QYL_GRPC_PORT`                | 4317                  | OTLP/gRPC port (0=disable)               |
 | `QYL_OTLP_PORT`                | 4318                  | OTLP HTTP/protobuf port (0=disable)      |
 | `QYL_DATA_PATH`                | ./qyl.duckdb          | DuckDB file location                     |
-| `QYL_TOKEN`                    | (none)                | Auth token                               |
 | `QYL_COLLECTOR_URL`            | http://localhost:5100 | Collector URL for `qyl.mcp` / `qyl.loom` |
 | `QYL_MCP_TRANSPORT`            | stdio                 | MCP transport (`stdio` or `http`)        |
-| `QYL_MCP_TOKEN`                | (none)                | MCP bearer-token auth                    |
+| `QYL_KEYCLOAK_AUTHORITY`       | (none)                | Keycloak realm URL for JWT validation    |
+| `QYL_KEYCLOAK_AUDIENCE`        | (none)                | Expected collector API audience          |
 | `QYL_SKILLS`                   | all non-debug         | Enabled MCP skill families               |
 | `QYL_AGENT_API_KEY`            | (none)                | LLM API key for agent-backed tools       |
 | `QYL_AGENT_MODEL`              | (none)                | LLM model for agent-backed tools         |

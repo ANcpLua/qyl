@@ -1,3 +1,4 @@
+using Duende.AccessTokenManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
@@ -9,9 +10,10 @@ using ANcpLua.Roslyn.Utilities;
 namespace qyl.mcp;
 
 internal static class McpCollectorHttpClientExtensions
-{
-    public const string CollectorClientName = "qyl.collector";
-    private static readonly TimeSpan s_defaultTimeout = TimeSpan.FromSeconds(30);
+    {
+        public const string CollectorClientName = "qyl.collector";
+        public const string CollectorClientCredentialsName = "qyl.collector.client_credentials";
+        private static readonly TimeSpan s_defaultTimeout = TimeSpan.FromSeconds(30);
 
     public static IHttpClientBuilder AddCollectorHttpClient(
         this IServiceCollection services,
@@ -33,6 +35,7 @@ internal static class McpCollectorHttpClientExtensions
         }
 
         services.AddTransient<CollectorConcurrencyLimiter>();
+        services.AddTransient<CollectorBearerForwardingHandler>();
 
         var httpClientBuilder = services
             .AddHttpClient(CollectorClientName, client =>
@@ -40,8 +43,13 @@ internal static class McpCollectorHttpClientExtensions
                 client.BaseAddress = baseAddress;
             })
             .AddHttpMessageHandler<CollectorConcurrencyLimiter>()
-            .AddMcpAuthHandler()
-            .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()))
+            .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()));
+
+        if (services.IsCollectorClientCredentialsConfigured())
+            httpClientBuilder.AddClientCredentialsTokenHandler(ClientCredentialsClientName.Parse(CollectorClientCredentialsName));
+
+        httpClientBuilder
+            .AddHttpMessageHandler<CollectorBearerForwardingHandler>()
             .AddExtendedHttpClientLogging();
 
         services.Replace(ServiceDescriptor.Transient<HttpClient>(static sp =>
