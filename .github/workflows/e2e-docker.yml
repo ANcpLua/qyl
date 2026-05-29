@@ -1,7 +1,8 @@
 # =============================================================================
 # Docker End-to-End Validation
 # -----------------------------------------------------------------------------
-# Builds the two qyl images the E2E suite actually exercises (collector + mcp)
+# Builds the qyl images the E2E suite actually exercises (collector + loom +
+# dashboard)
 # with GHA-backed BuildKit layer caching, then runs Category=E2E tests against
 # the local Docker daemon. Nuke's DockerImageBuild target is skipped because we
 # already produced the tags it would have produced.
@@ -114,18 +115,27 @@ jobs:
           cache-from: type=gha,scope=qyl-collector
           cache-to: type=gha,mode=max,scope=qyl-collector
 
-      - name: Build qyl-mcp image (cached)
+      - name: Build qyl-loom image (cached)
         uses: docker/build-push-action@5176d81f87c23d6fc96624dfdbcd9f3830bbe445 # v6.5.0
         with:
           context: .
-          file: services/qyl.mcp/Dockerfile
-          tags: qyl-mcp:latest
+          file: services/qyl.loom/Dockerfile
+          tags: qyl-loom:latest
           load: true
-          cache-from: type=gha,scope=qyl-mcp
-          cache-to: type=gha,mode=max,scope=qyl-mcp
+          cache-from: type=gha,scope=qyl-loom
+          cache-to: type=gha,mode=max,scope=qyl-loom
+
+      - name: Build qyl-dashboard image (cached)
+        uses: docker/build-push-action@5176d81f87c23d6fc96624dfdbcd9f3830bbe445 # v6.5.0
+        with:
+          context: .
+          file: services/qyl.dashboard/Dockerfile
+          tags: qyl-dashboard:latest
+          load: true
+          cache-from: type=gha,scope=qyl-dashboard
+          cache-to: type=gha,mode=max,scope=qyl-dashboard
 
       - name: Run Docker topology E2E
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./eng/build.sh E2ETests --configuration Release --skip DockerImageBuild
-
