@@ -28,13 +28,10 @@ builder.Services.AddQylCollectorTelemetry(builder.Environment);
 builder.Services.AddQylCollectorFeatures(builder.Configuration);
 builder.WebHost.ConfigureQylCollectorKestrel(builder.Configuration);
 
-// Multi-tenant MCP endpoint (/mcp/{tenant}) + opaque-bearer auth + RFC 9728 PRM.
-// Services register unconditionally (cheap, inert with no endpoint mapped); the endpoint and
-// its auth middleware are flag-gated below from app.Configuration. The tenant boundary is
-// forgeable until the realm-scoped mint (PR-2), so the flag stays off by default and must
-// not be enabled before PR-2.
+// Multi-tenant MCP endpoint (/mcp/{tenant}) + Keycloak JWT bearer auth + RFC 9728 PRM.
+// Services register unconditionally; the endpoint and auth middleware are flag-gated below.
 builder.Services.AddQylCollectorMcp(builder.Configuration);
-builder.Services.AddQylMcpAuthentication();
+builder.Services.AddQylMcpAuthentication(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -44,12 +41,12 @@ app.UseQylCollectorMiddleware();
 var mcpTenantAuthEnabled = CollectorAuthExtensions.IsMcpTenantAuthEnabled(app.Configuration);
 if (mcpTenantAuthEnabled)
 {
+    CollectorAuthExtensions.EnsureMcpTenantAuthConfiguration(app.Configuration);
     app.UseAuthentication();
     app.UseAuthorization();
 }
 
 app.MapQylCollectorEndpoints();
-app.MapQylAuth();
 
 if (mcpTenantAuthEnabled)
     app.MapMcp("/mcp/{tenant}").RequireAuthorization(CollectorAuthExtensions.McpTenantPolicy);

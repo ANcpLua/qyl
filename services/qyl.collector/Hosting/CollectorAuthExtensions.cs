@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Http.Resilience;
 using ModelContextProtocol.AspNetCore.Authentication;
 using Qyl.Collector.Auth;
 
@@ -40,67 +40,18 @@ public static class CollectorAuthExtensions
 
         services.AddSingleton(otlpApiKeyOptions);
 
-        var token = config["QYL_TOKEN"] ?? TokenGenerator.Generate();
-        services.AddSingleton(new TokenAuthOptions
-        {
-            Token = token,
-            ExcludedPaths =
-            [
-                "/health", "/alive", "/health/ui",
-                "/v1/traces", "/v1/logs", "/v1/profiles",
-                "/api/",
-                "/assets/",
-                "/favicon.ico",
-                "/auth/",
-                "/mcp/"
-            ]
-        });
-
-        var keycloakAuthority = config[KeycloakOptions.AuthorityEnvVar];
-        var keycloakAudience = config[KeycloakOptions.AudienceEnvVar];
-
         services.Configure<KeycloakOptions>(opts =>
         {
-            opts.Authority = keycloakAuthority;
-            opts.Audience = keycloakAudience;
-            opts.ClientId = config[KeycloakOptions.ClientIdEnvVar];
-            opts.ClientSecret = config[KeycloakOptions.ClientSecretEnvVar];
-            var allowed = config[KeycloakOptions.AllowedRedirectsEnvVar];
-            if (!string.IsNullOrWhiteSpace(allowed))
-            {
-                opts.AllowedRedirects = allowed
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            }
+            opts.Authority = config[KeycloakOptions.AuthorityEnvVar];
+            opts.BaseUrl = config[KeycloakOptions.BaseUrlEnvVar];
+            opts.Audience = config[KeycloakOptions.AudienceEnvVar];
+
+            var tenantClaim = config[KeycloakOptions.TenantClaimEnvVar];
+            if (!string.IsNullOrWhiteSpace(tenantClaim))
+                opts.TenantClaim = tenantClaim;
         });
 
-        if (!string.IsNullOrWhiteSpace(keycloakAuthority))
-        {
-            Action<HttpStandardResilienceOptions> configureKeycloakResilience = static _ => { };
-
-            services.AddHttpClient<IKeycloakJwksValidator, KeycloakJwksValidator>()
-                .AddStandardResilienceHandler(configureKeycloakResilience);
-            services.AddHttpClient<IKeycloakClient, KeycloakClient>()
-                .AddStandardResilienceHandler(configureKeycloakResilience);
-        }
-        else
-        {
-            services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
-            services.AddSingleton<IKeycloakClient>(NullKeycloakClient.Instance);
-        }
-
         services.AddSingleton(TimeProvider.System);
-
-        services.Configure<TokenEncryptionOptions>(opts =>
-            opts.Key = config[TokenEncryptionOptions.KeyEnvVar]);
-        services.AddSingleton<ITokenEncryption, AesGcmTokenEncryption>();
-
-        services.AddSingleton<IMcpTokenStore>(sp => new McpTokenStore(
-            sp.GetRequiredService<DuckDbStore>(),
-            sp.GetRequiredService<TimeProvider>()));
-        services.AddSingleton<IPkceStateStore>(sp => new PkceStateStore(
-            sp.GetRequiredService<DuckDbStore>(),
-            sp.GetRequiredService<TimeProvider>()));
-        services.AddHostedService<McpTokenCleanupService>();
 
         return services;
     }
@@ -111,17 +62,24 @@ public static class CollectorAuthExtensions
     public static bool IsMcpTenantAuthEnabled(IConfiguration config) =>
         config.GetValue<bool>(McpTenantAuthEnabledEnvVar);
 
-    // Registers the BearerOpaque scheme (opaque-token validation against IMcpTokenStore), the RFC 9728
-    // protected-resource-metadata endpoint, and the "McpTenant" policy. The policy authenticates the
-    // token (401 if missing/invalid) then enforces route {tenant} == token TenantId via
-    // McpTenantMatchRequirement (403 on mismatch). Authorization derives from the token, never the route.
+    // Registers JWT bearer validation against Keycloak, the RFC 9728 protected-resource-metadata endpoint,
+    // and the "McpTenant" policy. The policy authenticates the token (401 if missing/invalid) then enforces
+    // route {tenant} == the configured JWT tenant claim via McpTenantMatchRequirement (403 on mismatch).
     // Call only when QYL_MCP_TENANT_AUTH_ENABLED is set; Program.cs gates the endpoint behind the same flag.
-    public static IServiceCollection AddQylMcpAuthentication(this IServiceCollection services)
+    public static IServiceCollection AddQylMcpAuthentication(
+        this IServiceCollection services,
+        IConfiguration config,
+        IHostEnvironment environment)
     {
-        services.AddAuthentication(BearerOpaqueTokenAuthenticationOptions.SchemeName)
-            .AddScheme<BearerOpaqueTokenAuthenticationOptions, BearerOpaqueTokenAuthenticationHandler>(
-                BearerOpaqueTokenAuthenticationOptions.SchemeName,
-                static options => options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme)
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.Authority = config[KeycloakOptions.AuthorityEnvVar];
+                options.Audience = config[KeycloakOptions.AudienceEnvVar];
+                options.RequireHttpsMetadata = !environment.IsDevelopment();
+                options.MapInboundClaims = false;
+                options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
+            })
             .AddMcp(static options => options.Events.OnResourceMetadataRequest = QylMcpResourceMetadata.PopulateAsync);
 
         services.AddAuthorizationBuilder()
@@ -132,5 +90,13 @@ public static class CollectorAuthExtensions
         services.AddSingleton<IAuthorizationHandler, McpTenantMatchAuthorizationHandler>();
 
         return services;
+    }
+
+    public static void EnsureMcpTenantAuthConfiguration(IConfiguration config)
+    {
+        if (string.IsNullOrWhiteSpace(config[KeycloakOptions.AuthorityEnvVar]))
+            throw new InvalidOperationException($"{KeycloakOptions.AuthorityEnvVar} is required when {McpTenantAuthEnabledEnvVar}=true.");
+        if (string.IsNullOrWhiteSpace(config[KeycloakOptions.AudienceEnvVar]))
+            throw new InvalidOperationException($"{KeycloakOptions.AudienceEnvVar} is required when {McpTenantAuthEnabledEnvVar}=true.");
     }
 }

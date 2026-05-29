@@ -92,11 +92,28 @@ jobs:
         # The dedicated `regen-clean` job covers regeneration drift, and
         # E2E (Docker) gates relevant PR/push changes with freshly built local images.
         run: |
-          dotnet test --configuration Release --no-build \
-            --results-directory ./TestResults \
-            -- --report-trx --report-trx-filename test-results.trx \
-               --filter-not-trait Category=regen \
-               --filter-not-trait Category=E2E
+          mapfile -t test_projects < <(
+            find . -name '*.csproj' \
+              -not -path './Artifacts/*' \
+              -not -path './artifacts/*' \
+              -not -path '*/bin/*' \
+              -not -path '*/obj/*' \
+              -print \
+              | xargs grep -lE '<IsTestProject>true|Microsoft\.NET\.Test\.Sdk|xunit|MSTest|NUnit|Microsoft\.Testing\.Platform' || true
+          )
+
+          if [ "${#test_projects[@]}" -eq 0 ]; then
+            echo "No test projects found; skipping dotnet test."
+            exit 0
+          fi
+
+          for project in "${test_projects[@]}"; do
+            dotnet test "$project" --configuration Release --no-build \
+              --results-directory ./TestResults \
+              -- --report-trx --report-trx-filename "$(basename "$project" .csproj).trx" \
+                 --filter-not-trait Category=regen \
+                 --filter-not-trait Category=E2E
+          done
 
       - name: Upload test results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

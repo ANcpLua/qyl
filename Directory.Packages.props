@@ -49,6 +49,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Duende.AccessTokenManagement" Version="$(DuendeAccessTokenManagementVersion)"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
@@ -89,8 +90,6 @@
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(MicrosoftAgentsAIHostingAGUIAspNetCoreVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsAIDevUIVersion)"/>
-    <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
-    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- OpenAI -->
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>

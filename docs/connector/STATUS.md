@@ -29,8 +29,7 @@ are operational.
 2. **Logo + screenshots** — Anthropic's listing card and detail page
    require these to render. Without them the listing looks broken even
    if approved.
-3. **Phase 2 merged (PR #372) + Phase 3 (`/mcp/{tenant}`) still to ship** — both
-   `/auth/*` and `/mcp/{tenant}` must be live in prod before a reviewer can do the
-   end-to-end smoke test the submission form requires.
+3. **`/mcp/{tenant}` live with Keycloak JWT bearer validation** — the collector no
+   longer hosts `/auth/*`; external MCP clients authenticate against Keycloak.
 4. **Keycloak realm provisioned** — real OAuth round-trip needs a live
-   identity provider, not a dev stub.
+   identity provider with MCP clients registered for direct access-token issuance.

@@ -33,7 +33,7 @@ internal static class ErrorFormatter
             HttpStatusCode.BadRequest =>
                 ("Invalid Request", "Check the parameters and try again with corrected values."),
             HttpStatusCode.Unauthorized =>
-                ("Authentication Required", "Check QYL_MCP_TOKEN or QYL_KEYCLOAK_* environment variables."),
+                ("Authentication Required", "Send a Keycloak bearer token or configure QYL_KEYCLOAK_* client credentials."),
             HttpStatusCode.Forbidden =>
                 ("Access Denied", "This operation requires elevated permissions (qyl:admin role)."),
             >= HttpStatusCode.InternalServerError =>

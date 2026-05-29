@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 
 namespace Qyl.Collector.Auth;
 
@@ -12,6 +13,7 @@ namespace Qyl.Collector.Auth;
 internal sealed class McpTenantMatchRequirement : IAuthorizationRequirement;
 
 internal sealed partial class McpTenantMatchAuthorizationHandler(
+    IOptions<KeycloakOptions> options,
     ILogger<McpTenantMatchAuthorizationHandler> logger)
     : AuthorizationHandler<McpTenantMatchRequirement>
 {
@@ -27,8 +29,8 @@ internal sealed partial class McpTenantMatchAuthorizationHandler(
             ? raw as string
             : null;
 
-        // Authority is the token, never the route. A token carrying no tenant claim matches nothing.
-        var tokenTenant = context.User.FindFirst(BearerOpaqueTokenAuthenticationHandler.TenantClaimType)?.Value;
+        var tenantClaim = options.Value.TenantClaim;
+        var tokenTenant = context.User.FindFirst(tenantClaim)?.Value;
 
         if (!string.IsNullOrEmpty(tokenTenant)
             && !string.IsNullOrEmpty(routeTenant)
@@ -38,11 +40,11 @@ internal sealed partial class McpTenantMatchAuthorizationHandler(
             return Task.CompletedTask;
         }
 
-        LogTenantDenied(tokenTenant ?? "(none)", routeTenant ?? "(none)");
+        LogTenantDenied(tokenTenant ?? "(none)", routeTenant ?? "(none)", tenantClaim);
         return Task.CompletedTask;
     }
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "MCP tenant authorization denied — token tenant '{TokenTenant}' cannot access route tenant '{RouteTenant}'")]
-    private partial void LogTenantDenied(string tokenTenant, string routeTenant);
+        Message = "MCP tenant authorization denied — token tenant '{TokenTenant}' from claim '{TenantClaim}' cannot access route tenant '{RouteTenant}'")]
+    private partial void LogTenantDenied(string tokenTenant, string routeTenant, string tenantClaim);
 }

@@ -28,7 +28,7 @@ internal static class QylMcpResourceMetadata
             Resource = $"{request.Scheme}://{request.Host}/mcp/{tenant}",
             AuthorizationServers = [$"{baseUrl}/realms/{tenant}"],
             BearerMethodsSupported = ["header"],
-            ScopesSupported = ["openid", "profile", "email", "offline_access"]
+            ScopesSupported = ["qyl.collector"]
         };
         return Task.CompletedTask;
     }
