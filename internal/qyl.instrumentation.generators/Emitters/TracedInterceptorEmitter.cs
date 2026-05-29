@@ -58,7 +58,7 @@ internal static class TracedInterceptorEmitter
         foreach (var name in invocations.Select(static i => i.ActivitySourceName).Distinct(StringComparer.Ordinal)
                      .OrderBy(static n => n, StringComparer.Ordinal))
         {
-            var field = Sanitize(name);
+            var field = name.SanitizeIdentifier();
             var candidate = field;
             var n = 1;
             while (!used.Add(candidate)) candidate = $"{field}_{n++}";
@@ -66,13 +66,6 @@ internal static class TracedInterceptorEmitter
         }
 
         return map;
-    }
-
-    private static string Sanitize(string name)
-    {
-        var sb = new StringBuilder(name.Length);
-        foreach (var c in name) sb.Append(char.IsLetterOrDigit(c) ? c : '_');
-        return sb.ToString();
     }
 
     private static void AppendActivitySourcesClass(IndentedStringBuilder sb, Dictionary<string, string> fieldNames)
@@ -101,7 +94,7 @@ internal static class TracedInterceptorEmitter
         var parameters = EmitterHelpers.BuildParameterList(
             cs.ContainingTypeName, cs.ParameterTypes, cs.ParameterNames, cs.IsStatic, typeParamNames);
         var arguments = EmitterHelpers.BuildArgumentList(cs.ParameterNames);
-        var field = fieldNames.TryGetValue(cs.ActivitySourceName, out var f) ? f : Sanitize(cs.ActivitySourceName);
+        var field = fieldNames.TryGetValue(cs.ActivitySourceName, out var f) ? f : cs.ActivitySourceName.SanitizeIdentifier();
         var call = cs.IsStatic
             ? $"global::{cs.ContainingTypeName}.{cs.MethodName}{typeParams}({arguments})"
             : $"@this.{cs.MethodName}{typeParams}({arguments})";

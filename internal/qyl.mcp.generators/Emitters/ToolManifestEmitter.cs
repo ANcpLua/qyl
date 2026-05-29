@@ -387,15 +387,6 @@ internal static class ToolManifestEmitter
 
     private static string BoolLiteral(bool value) => value ? "true" : "false";
 
-    private static string StringLiteral(string? value)
-    {
-        if (value is null)
-            return "null";
-
-        return "\"" + value
-            .ReplaceOrdinal("\\", @"\\")
-            .ReplaceOrdinal("\"", "\\\"")
-            .ReplaceOrdinal("\r", "\\r")
-            .ReplaceOrdinal("\n", "\\n") + "\"";
-    }
+    private static string StringLiteral(string? value) =>
+        value is null ? "null" : $"\"{value.EscapeCSharpString()}\"";
 }

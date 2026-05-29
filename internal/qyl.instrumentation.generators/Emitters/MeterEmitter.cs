@@ -426,15 +426,8 @@ internal static class MeterEmitter
         return builder.ToString();
     }
 
-    private static string ToIdentifierSuffix(string value)
-    {
-        var builder = new StringBuilder(value.Length);
-
-        foreach (var ch in value)
-            builder.Append(char.IsLetterOrDigit(ch) ? ch : '_');
-
-        return builder.Length is 0 ? "Meter" : builder.ToString();
-    }
+    private static string ToIdentifierSuffix(string value) =>
+        value.Length is 0 ? "Meter" : value.SanitizeIdentifier();
 
     private static string StableHash(string value)
     {
