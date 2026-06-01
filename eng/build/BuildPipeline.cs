@@ -13,30 +13,20 @@ namespace Qyl.Build;
 [ParameterPrefix(nameof(IPipeline))]
 interface IPipeline : IHazSourcePaths
 {
-    AbsolutePath TypeSpecDirectory => RootDirectory / "core" / "specs";
-    AbsolutePath TypeSpecEntry => TypeSpecDirectory / "main.tsp";
     AbsolutePath SemconvDirectory => RootDirectory / "eng" / "semconv";
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 
-    Target TypeSpecInstall => d => d
-        .Unlisted()
-        .Description("npm install in core/specs (--legacy-peer-deps per mandate .npmrc)")
-        .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
-        .Executes(() => NpmTasks.NpmInstall(s => s
-            .SetProcessWorkingDirectory<NpmInstallSettings>(TypeSpecDirectory)
-            .AddProcessAdditionalArguments("--legacy-peer-deps")));
-
-    Target TypeSpecCompile => d => d
-        .Unlisted()
-        .Description(
-            "Run six TypeSpec native emitters (csharp + duckdb + ts-types + client-csharp + client-js + json-schema)")
-        .DependsOn(TypeSpecInstall)
-        .DependsOn(OtelConventions)
-        .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
-        .Executes(() => NpmTasks.NpmRun(s => s
-            .SetProcessWorkingDirectory<NpmRunSettings>(TypeSpecDirectory)
-            .SetCommand("compile")));
-
+    // The TypeSpec pipeline (TypeSpecInstall/TypeSpecCompile + the `Generate` aggregate) was
+    // removed: core/specs is gone, REST clients now generate on demand via Scalar.Kiota.Extension
+    // (services/qyl.collector), and OTel semantic-convention constants ship as external NuGet
+    // packages (Qyl.OpenTelemetry.SemanticConventions{,.Incubating}). The Roslyn source generators
+    // under internal/*.generators still run at compile time.
+    //
+    // FOLLOW-UP: OtelConventions + eng/semconv/scripts/run-weaver.sh still target several deleted
+    // paths (core/specs/.../otel-attribute-registry.json, packages/qyl-client, docs/attributes) and
+    // also rewrite the now-external OTel packages. It only runs on explicit `nuke OtelConventions`,
+    // so it is non-blocking, but it needs a dedicated pass to drop the dead destinations and the
+    // external-OTel output, keeping only the still-local qyl-owned Qyl.SemanticConventions.
     Target OtelConventions => d => d
         .Unlisted()
         .Description("Weaver → semconv.ts + C# OTel/qyl packages (idempotent)")
@@ -101,11 +91,6 @@ interface IPipeline : IHazSourcePaths
                 Log.Information("OtelConventions: {Template} → {Output}", templateSet, outputDir);
             }
         });
-
-    Target Generate => d => d
-        .Description("Regenerate ALL code from TypeSpec + Weaver")
-        .DependsOn(TypeSpecCompile)
-        .DependsOn(OtelConventions);
 
     Target FrontendInstall => d => d
         .Unlisted()

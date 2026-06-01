@@ -3,6 +3,7 @@ using Qyl.Collector;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Telemetry;
 using Qyl.Instrumentation.Instrumentation;
+using Scalar.Kiota.Extension;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -10,7 +11,8 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddQylServiceDefaults(options =>
 {
-    options.EnableOpenApi = false;
+    // Expose OpenAPI only in Development — it backs the dev-only Scalar/Kiota client-SDK UI below.
+    options.EnableOpenApi = builder.Environment.IsDevelopment();
     options.EnableAutoDiscovery = false;
     options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
     options.ConfigureMetrics = static metrics =>
@@ -33,6 +35,16 @@ builder.WebHost.ConfigureQylCollectorKestrel(builder.Configuration);
 builder.Services.AddQylCollectorMcp(builder.Configuration);
 builder.Services.AddQylMcpAuthentication(builder.Configuration, builder.Environment);
 
+// Dev-only: generate REST client SDKs (TypeScript + C#) on demand from this collector's OpenAPI
+// document, served through a Scalar UI. Replaces the retired committed TypeSpec client packages.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScalarWithKiota(static options => options
+        .WithTitle("Qyl Collector API")
+        .WithSdkName("QylClient")
+        .WithLanguages("TypeScript", "CSharp"));
+}
+
 var app = builder.Build();
 
 await app.InitializeQylCollectorAsync().ConfigureAwait(false);
@@ -50,6 +62,13 @@ app.MapQylCollectorEndpoints();
 
 if (mcpTenantAuthEnabled)
     app.MapMcp("/mcp/{tenant}").RequireAuthorization(CollectorAuthExtensions.McpTenantPolicy);
+
+// Dev-only: /openapi/v1.json (Kiota source) + Scalar UI with on-demand SDK download at /scalar.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarWithKiota("/scalar");
+}
 
 StartupBanner.Print(
     $"http://localhost:{ports.Http}", ports.Http, ports.Grpc, ports.OtlpHttp,
