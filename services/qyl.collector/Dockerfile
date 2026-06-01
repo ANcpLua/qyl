@@ -35,8 +35,6 @@ COPY eng/ eng/
 COPY packages/Qyl.Contracts/*.csproj packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/*.csproj packages/Qyl.SemanticConventions/
 COPY packages/Qyl.Telemetry/*.csproj packages/Qyl.Telemetry/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/*.csproj packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY services/qyl.collector/*.csproj services/qyl.collector/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
@@ -53,8 +51,6 @@ WORKDIR /src
 COPY packages/Qyl.Contracts/ packages/Qyl.Contracts/
 COPY packages/Qyl.SemanticConventions/ packages/Qyl.SemanticConventions/
 COPY packages/Qyl.Telemetry/ packages/Qyl.Telemetry/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions/ packages/Qyl.OpenTelemetry.SemanticConventions/
-COPY packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/ packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/
 COPY services/qyl.collector/ services/qyl.collector/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
