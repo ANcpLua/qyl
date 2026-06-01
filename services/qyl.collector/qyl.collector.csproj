@@ -26,21 +26,13 @@
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
-  <!-- @typespec/http-server-csharp emits controllers + operations + lib + models.
-       Only lib/ (TypeSpec.Helpers + JsonConverters) compiles. The rest are excluded:
-         - controllers/, operations/: MVC placeholders; the collector routes via
-           minimal-API (MapQylCollectorEndpoints), not these stubs.
-         - models/: duplicates canonical domain types already produced by
-           @qyl/typespec-emit-csharp into packages/Qyl.Contracts/ (see
-           core/specs/tspconfig.yaml). Two copies in the same namespace trigger
-           CS0436. Drop the MVC-emitter copy; Qyl.Contracts is authoritative. -->
-  <ItemGroup>
-    <Compile Remove="Generated/generated/controllers/**/*.cs"/>
-    <Compile Remove="Generated/generated/operations/**/*.cs"/>
-    <Compile Remove="Generated/generated/models/**/*.cs"/>
-  </ItemGroup>
+  <!-- Generated/generated/lib/ (TypeSpec.Helpers + JsonConverters) is the only surviving
+       scaffolding from the retired @typespec/http-server-csharp pipeline; it compiles and is
+       load-bearing for serialization. The MVC controllers/operations/models stubs it used to
+       emit were never wired up (the collector routes via minimal-API MapQylCollectorEndpoints,
+       and Qyl.Contracts is the authoritative model source) and have been deleted. -->
 
-  <!-- CS1573 / CS1591 scoping for the emitter's Generated subtree lives in
+  <!-- CS1573 / CS1591 scoping for the lib/ subtree lives in
        services/qyl.collector/Generated/.editorconfig (file-scoped severity overrides
        beat csproj item metadata for analyzer diagnostics and keep the suppression
        discoverable at the offending file's location). -->
@@ -86,6 +78,13 @@
   <!-- Auth: Keycloak JWT validation via ASP.NET Core JwtBearer -->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+  </ItemGroup>
+
+  <!-- Dev-only: serves a Scalar UI that generates REST client SDKs (TypeScript + C#) on demand
+       from this collector's own OpenAPI document, via Kiota. Replaces the retired committed
+       TypeSpec client packages. Activated only in Development (see Program.cs). -->
+  <ItemGroup>
+    <PackageReference Include="Scalar.Kiota.Extension"/>
   </ItemGroup>
 
   <!-- Core dependencies -->

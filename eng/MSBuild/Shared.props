@@ -6,8 +6,7 @@
        ======================================================================= -->
 
   <!-- Global Usings for OTel (modern TFMs only — netstandard2.0 lacks System.Diagnostics.Metrics).
-       Gated on ImplicitUsings so projects that explicitly opt out (e.g. Qyl.Client, whose
-       TypeSpec-emitted output collides with System.Diagnostics.Trace) get the disable-honored
+       Gated on ImplicitUsings so projects that explicitly opt out get the disable-honored
        contract they expect. Mirrors ANcpLua.NET.Sdk's Common.targets which guards its own
        <Using Include="..."/> block the same way. -->
   <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' AND ('$(ImplicitUsings)' == 'true' OR '$(ImplicitUsings)' == 'enable')">

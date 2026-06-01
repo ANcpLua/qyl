@@ -26,7 +26,6 @@ interface IVerify : IHazSourcePaths
     Target VerifyGeneratedCode => d => d
         .Unlisted()
         .Description("Verify generated C# code compiles")
-        .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(async () =>
         {
@@ -73,7 +72,6 @@ interface IVerify : IHazSourcePaths
     Target VerifyDuckDbSchema => d => d
         .Unlisted()
         .Description("Verify generated DuckDB schema is valid")
-        .DependsOn<IPipeline>(static x => x.Generate)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(async () =>
         {
@@ -113,7 +111,6 @@ interface IVerify : IHazSourcePaths
     Target VerifyFrontendTypes => d => d
         .Unlisted()
         .Description("Verify frontend TypeScript types compile")
-        .DependsOn<IPipeline>(static x => x.TypeSpecCompile)
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
@@ -129,8 +126,7 @@ interface IVerify : IHazSourcePaths
 
     Target VerifyGeneratedFilesClean => d => d
         .Unlisted()
-        .Description("CI gate: verify generated files match HEAD after regeneration")
-        .DependsOn<IPipeline>(static x => x.Generate)
+        .Description("CI gate: verify committed generated files match HEAD")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -168,8 +164,8 @@ interface IVerify : IHazSourcePaths
                 Log.Error("  Generated file changed: {File}", file);
 
             throw new InvalidOperationException(
-                $"{dirtyFiles.Count} generated file(s) changed after regeneration. " +
-                "Run 'nuke Generate' and commit the output.");
+                $"{dirtyFiles.Count} committed generated file(s) have uncommitted changes. " +
+                "Rebuild (Roslyn source generators) / 'nuke OtelConventions' and commit the output.");
         });
 
     Target Verify => d => d
