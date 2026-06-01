@@ -1,7 +1,7 @@
 
 using Microsoft.AspNetCore.Mvc;
-using Qyl.Common.Pagination;
-using Qyl.Domains.Alerting;
+using ANcpLua.OtelConventions.Common.Pagination;
+using ANcpLua.OtelConventions.Domains.Alerting;
 
 namespace Qyl.Collector.Alerts;
 

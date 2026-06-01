@@ -122,6 +122,9 @@
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.0.0"/>
+    <!-- C# API contract types emitted from the @o-ancpplua/otel-conventions-api TypeSpec contract
+         (ANcpLua.OtelConventions.* namespaces); replaces the in-repo generated Qyl.Contracts models. -->
+    <PackageVersion Include="ANcpLua.OtelConventions.Api" Version="0.1.0"/>
     <!-- On-demand REST client SDK generation (TypeScript + C#) from the collector's OpenAPI
          document; replaces the retired @typespec/http-client-csharp + ts-http-runtime emitters.
          Dev-only — gated to Development in services/qyl.collector/Program.cs. -->
