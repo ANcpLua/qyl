@@ -122,6 +122,10 @@
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.0.0"/>
+    <!-- On-demand REST client SDK generation (TypeScript + C#) from the collector's OpenAPI
+         document; replaces the retired @typespec/http-client-csharp + ts-http-runtime emitters.
+         Dev-only — gated to Development in services/qyl.collector/Program.cs. -->
+    <PackageVersion Include="Scalar.Kiota.Extension" Version="1.1.0"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>

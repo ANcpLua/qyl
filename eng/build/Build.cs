@@ -64,10 +64,9 @@ sealed class Build : NukeBuild,
         .DependsOn<ICoverage>(static x => x.Coverage);
 
     Target Full => d => d
-        .Description("Full CI pipeline (backend + frontend + TypeSpec + verification)")
+        .Description("Full CI pipeline (backend + frontend + verification)")
         .DependsOn(Clean)
         .DependsOn<ICoverage>(static x => x.Coverage)
-        .DependsOn<IPipeline>(static x => x.Generate)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendTest)

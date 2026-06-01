@@ -17,7 +17,6 @@
   <Folder Name="/packages/">
     <Project Path="packages/Qyl.Contracts/Qyl.Contracts.csproj" />
     <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
-    <Project Path="packages/Qyl.Client/Qyl.Client.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
     <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
