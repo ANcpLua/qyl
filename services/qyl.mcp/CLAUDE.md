@@ -7,123 +7,110 @@
 **Language:** C# latest  
 **SDK:** ANcpLua.NET.Sdk
 
+The whole service already runs on the official `ModelContextProtocol` SDK 1.3.0 — there is **no hand-rolled
+protocol plumbing** (no manual `tools/list`, `CallToolResult`, JSON-RPC, or schema building). Everything below is
+either a real correctness invariant or a simplification target. Nothing here is "load-bearing by tradition" — if a
+section reads like it's protecting code, simplify the code and update the section.
+
 ## Banned APIs
 
-- Use `TimeProvider` instead of current-time APIs
-- Use `Lock` instead of `object` for locking
-- Use `System.Text.Json` instead of Newtonsoft
+- `TimeProvider` instead of current-time APIs
+- `Lock` instead of `object` for locking
+- `System.Text.Json` instead of Newtonsoft
 
-## Result Cap Coaching
+## Result cap coaching
 
-Tools that return lists/search results use `ResponseFormatter.AppendResultCap` to coach the LLM when the result cap is
-hit. Constraints:
+List/search tools call `ResponseFormatter.AppendResultCap` so the LLM knows a cap truncated the output. Caps are
+per-tool (25 search / 50 errors / 100 spans), so there is no shared `RESULT_LIMIT`. Fixed-scope tools
+(`list_trace_logs`, `get_error_issue` events, `export_for_agent`) return everything and skip it. This is the current
+shape, not a mandate — if `FormatPagedList` or a filter cleans it up, use it.
 
-- **No shared `RESULT_LIMIT` constant.** Tools have legitimately different defaults (25 for search, 50 for errors, 100
-  for spans).
-- **No migration of ad-hoc tools to `FormatPagedList`.** Different tools need different formats.
-- **No filter-level enforcement.** Coaching is explicit and context-aware at the tool level.
-- **Fixed-scope tools skip coaching.** `list_trace_logs`, `get_error_issue` events, `export_for_agent`.
+## Tool generator
 
-## Generator
+`internal/qyl.mcp.generators/` emits `QylToolManifest` (`ToolTypes[]`, `ToolDescriptors[]`, `RegisterTools(...)`,
+`RegisterServices(...)`, `CreateTools(...)`) — the single MCP tool-discovery generator. It only layers skill-aware
+manifest emission on top of the SDK's dispatch. Emitter uses `IndentedStringBuilder.BeginBlock()` (the
+`Indent()/Outdent()` pair is internal).
 
-`internal/qyl.mcp.generators/` emits `QylToolManifest` with `ToolTypes[]`, `ToolDescriptors[]`, `RegisterTools(...)`,
-`RegisterServices(...)`, and `CreateTools(...)`. It is the **single** MCP tool-discovery generator in qyl — the legacy
-`Qyl.Agents.Generator` / `Qyl.Agents.Abstractions` / `Qyl.Agents` triad was removed 2026-04-20. Both `qyl.mcp` and
-`qyl.loom` stand on the official `ModelContextProtocol` SDK for protocol + dispatch; `qyl.mcp.generators` layers
-skill-aware manifest emission on top.
+`RegisterTools(...)` emits per-method `McpServerTool.Create(...)` carrying a `Meta` `JsonObject` (`qyl.skill`,
+`qyl.capabilities.starting`, `qyl.capabilities.followUp`). It is per-method **only** because `WithTools<T>()` has no
+per-tool `Meta` hook — if the SDK adds one, collapse back to `WithTools<T>()`.
 
-### Meta-attachment emission (2026-04-21 refactor)
+### Two dispatch surfaces — both wired, not redundant
 
-`RegisterTools(IMcpServerBuilder, SkillConfiguration, JsonSerializerOptions)` emits **explicit per-method**
-`McpServerTool.Create(methodInfo, targetFactory, new McpServerToolCreateOptions { ..., Meta = ... })` registrations
-with `qyl.skill` + `qyl.capabilities.starting` + `qyl.capabilities.followUp` attached via `JsonObject`. The previous
-`.WithTools<T>()` reflection path is gone — not for AOT reasons, but because `WithTools<T>()` has no per-tool `Meta`
-attachment point. Skill-gating is inline: one `if (skills.IsEnabled(QylSkillKind.X))` per owning class.
+| Surface | Consumer | Note |
+|---|---|---|
+| `RegisterTools(builder, skills, jsonOpts)` → `McpServerTool.Create` | MCP `tools/call` | external protocol, skill-gated, carries `_meta` |
+| `CreateTools(services, predicate)` → `List<AIFunction>` | `UseQylTools`, `RcaTools` | embedded-agent `UseFunctionInvocation`, inside one tool call |
 
-`CreateTools(IServiceProvider, Func<Type, bool>)` emit is **preserved** — two load-bearing consumers
-(`Tools/UseQylTools.cs` + `Tools/RcaTools.cs`) materialize `List<AIFunction>` for embedded-agent
-`UseFunctionInvocation` loops. Second dispatch path parallel to the MCP protocol surface.
+These are independent paths: `tools/list._meta` cannot bridge an inside-a-tool-call dispatch, so deleting
+`CreateTools` breaks the meta-tools. Keep both until the embedded-agent loop itself is removed.
 
-### QylToolManifest emits two dispatch surfaces
+### Meta-tool recursion guard
 
-| Surface                                                             | Consumer                                                | Purpose                                                                |
-|---------------------------------------------------------------------|---------------------------------------------------------|------------------------------------------------------------------------|
-| `RegisterTools(builder, skills, jsonOpts)` + `McpServerTool.Create` | `QylMcpServerRegistration.Configure` → MCP `tools/call` | External protocol surface, skill-gated, carries `_meta`                |
-| `CreateTools(services, predicate) → List<AIFunction>`               | `UseQylTools`, `RcaTools`                               | Embedded-agent `UseFunctionInvocation` loop (inside one MCP tool call) |
+`UseQylTools` and `RcaTools` materialize other tools and MUST exclude their own type from
+`CreateTools(services, predicate)` (`static type => type != typeof(UseQylTools)`). Without it the meta-tool
+discovers itself and the embedded agent loops until the spawn budget trips. `InvestigationLineage.TryEnter()` is a
+backstop, not a substitute.
 
-Both load-bearing. Deleting `CreateTools()` silently breaks the meta-tools — `tools/list._meta` can't bridge an
-inside-a-tool-call dispatch path.
+## Capability metadata — mostly load-bearing (verified repo-wide)
 
-### Meta-tool invariants
+`Capabilities/` is **not** dead weight; the generator depends on most of it. Three tiers:
 
-Tools that materialize other tools (`UseQylTools`, `RcaTools`) MUST pass a predicate to
-`QylToolManifest.CreateTools(services, predicate)` that excludes their own type
-(`static type => type != typeof(UseQylTools)`). Without this guard the meta-tool recursively discovers itself and
-the embedded agent loops until the spawn budget trips. `InvestigationLineage.TryEnter()` is a backstop, not a
-substitute.
-
-### Retired — `qyl://manifest`
-
-Deleted on the 2026-04-21 destruction pass. `QylMcpManifestBuilder` + `QylMcpMetadataCatalog` + `/mcp.json` HTTP
-endpoint are gone. Skill/capability tagging now flows through `tools/list._meta`; server-internal counts come from
-`QylToolManifest.ToolDescriptors.Length`.
-
-### Emitter style
-
-Uses `IndentedStringBuilder.BeginBlock()` pattern (not `Indent()/Outdent()` which are internal).
+- **`QylCapabilityAttribute` (`[QylCapability(id, role)]`)** — tags **74 tool methods**. `qyl.mcp.generators`
+  reads it to emit each tool's `tools/list._meta` (`qyl.capabilities.starting` / `qyl.capabilities.followUp`,
+  `ToolManifestEmitter.cs:280-281`). Deleting it breaks the 74 tools, the generator, and the `_meta`.
+- **`QylCapabilityDefinitionAttribute` + `QylCapabilityDefinitions` (16 defs) + `QylCapabilityDescriptor`** — the
+  generator turns these into `QylToolManifest.Capabilities[]`. They are the **source** of the capability hints,
+  not a duplicate of `_meta`. Load-bearing.
+- **`CapabilityTools` (`qyl.list_capabilities`, `qyl.get_capability_guide`) + `QylCapabilityCatalog` (~190 LOC)** —
+  the only optional part. Two LLM-facing introspection tools with no *internal* consumers; removing them drops a
+  client-discovery affordance but breaks nothing else. A deliberate product call, not dead-code cleanup.
 
 ## Agent-layer telemetry
 
-Every `AIAgent` constructed in this project uses `.AsBuilder().UseQylAgentTelemetry().Build()` at the composition
-root. Helper lives in `internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs` and bundles
-`UseOpenTelemetry("qyl.agent")` + `UseLogging()`. Diagnostic `QYL0135` (`AgentCompositionRootAnalyzer`) fires if any
-construction site misses the wrap — symbol-based detection, rename- and namespace-collision-safe. Canonical shape
-in the MAF-qyl overlay skill.
+Every `AIAgent` is built with `.AsBuilder().UseQylAgentTelemetry().Build()` at the composition root
+(`internal/qyl.instrumentation/Instrumentation/GenAi/GenAiInstrumentation.cs`, bundling `UseOpenTelemetry("qyl.agent")`
++ `UseLogging()`). Diagnostic `QYL0135` (`AgentCompositionRootAnalyzer`) fires on any construction site that misses
+the wrap. Canonical shape lives in the MAF-qyl overlay skill.
 
 ## MCP-server telemetry
 
-The MCP-server filter stack lives in `internal/qyl.instrumentation/Instrumentation/Mcp/QylMcpServerInstrumentation.cs`.
-Composition root calls `.UseQylMcpInstrumentation(TelemetryConstants.ActivitySource)` (or
-`ActivitySources.McpSource` directly) on the `IMcpServerBuilder` immediately after the transport — the facade
-registers the JSON-RPC envelope filters and the `tools/call` / `resources/read` / `prompts/get` request filters that
-emit one OTel span per primitive plus the `gen_ai.execute_tool {name}` child for every tool invocation. Both
-`qyl.mcp` and `qyl.loom` share this single facade so MCP traffic on either service is indistinguishable in span
-shape, attribute set, and status mapping.
+The filter stack lives in `internal/qyl.instrumentation/Instrumentation/Mcp/QylMcpServerInstrumentation.cs`. The
+composition root calls `.UseQylMcpInstrumentation(TelemetryConstants.ActivitySource)` on the `IMcpServerBuilder`
+immediately after the transport; the facade registers the JSON-RPC envelope filters and the per-primitive request
+filters that emit one OTel span plus the `gen_ai.execute_tool {name}` child per invocation. `qyl.mcp` and `qyl.loom`
+share this one facade.
 
-- **Never re-implement the filters inline.** Adding a parallel `WithMessageFilters` / `AddCallToolFilter` block that
-  emits its own activity is the same kind of drift that `[QYL0135]` catches at the agent layer; one canonical
-  facade per cross-cutting concern.
-- **PII is opt-in.** `RecordInputs` and `RecordOutputs` are off by default. Enable per call site with
-  `options => { options.RecordInputs = true; }` only when you have an explicit need (debugging, replay) and the
-  tool surface is known not to carry credentials or customer data.
-- **Silent errors get span status.** `CallToolResult.IsError = true` is mapped to `ActivityStatusCode.Error` with
-  message `"Tool returned IsError"` — the facade does this for you, so do not duplicate the IsError handling
-  inside individual tools.
+- **One facade, no inline filters.** A parallel `WithMessageFilters` / `AddCallToolFilter` block emitting its own
+  activity is the drift `[QYL0135]` catches at the agent layer — same rule, MCP layer.
+- **PII is opt-in.** `RecordInputs` / `RecordOutputs` are off by default; enable per call site only when the tool
+  surface is known not to carry credentials or customer data.
+- **`IsError` is handled centrally.** `CallToolResult.IsError = true` → `ActivityStatusCode.Error` in the facade;
+  don't duplicate it per tool.
 
-The downstream business filter (admin denial, scope injection, anthropic max-result-size meta) chains *after* the
-facade — it stays in `QylMcpServerRegistration` and contains zero telemetry concerns.
+The downstream business filter (admin denial, scope injection, anthropic max-result-size meta) chains after the
+facade in `QylMcpServerRegistration` and carries zero telemetry concerns.
 
 ## TaskSupport classification
 
-`TaskSupport` on `[McpServerTool(...)]` (MCP SDK experimental; `<NoWarn>MCPEXP001</NoWarn>` scoped to this csproj):
+`TaskSupport` on `[McpServerTool(...)]` (SDK-experimental; `<NoWarn>MCPEXP001</NoWarn>` scoped to this csproj):
 
-- **Required** — `qyl.approve_fix_run`, `qyl.generate_fix` (start async pipelines with side effects).
+- **Required** — side-effecting async pipelines (`qyl.approve_fix_run`, `qyl.generate_fix`).
 - **Optional** — agent-invoking meta-tools (`qyl.use_qyl`, `qyl.root_cause_analysis`, `qyl.summarize_*`) and
   long-form searches (`qyl.search_spans`, `qyl.find_similar_errors`, `qyl.list_errors`, anything >10k rows).
-- **Forbidden** (default — omit the attribute) — fast reads (`qyl.get_*_by_id`, `qyl.health_check`,
-  `qyl.list_services`, single-record fetches).
+- **Forbidden** (omit the attribute) — fast reads (`qyl.get_*_by_id`, `qyl.health_check`, `qyl.list_services`).
 
 ## MCP prompt registration
 
-Only `CodeReviewPrompt` (lives in `services/qyl.loom/CodeReview/`) is promoted to `[McpServerPromptType]` — real
-template with `Build(prTitle, diffContent, knownErrorPatterns)`. Registered in `services/qyl.loom/Program.cs` via
-`.WithPrompts<CodeReviewPrompt>()`. The four summary prompt constants under `Agents/` (`RcaPrompt.Prompt`,
-`ErrorSummaryPrompt.Prompt`, `TraceSummaryPrompt.Prompt`, `SessionSummaryPrompt.Prompt`) stay as internal
-`static const string` — system-prompt constants consumed via `ChatOptions.Instructions`, not MCP protocol templates.
-Grep `\.Build(` (not `*Prompt`) when deciding what belongs in `prompts/list`.
+Only `CodeReviewPrompt` (`services/qyl.loom/CodeReview/`) is a real `[McpServerPromptType]` — `Build(prTitle,
+diffContent, knownErrorPatterns)`, registered via `.WithPrompts<CodeReviewPrompt>()` in `qyl.loom/Program.cs`. The
+four `Agents/` summary constants (`RcaPrompt.Prompt`, etc.) are `static const string` consumed via
+`ChatOptions.Instructions`, not MCP templates. Grep `\.Build(` (not `*Prompt`) to decide what belongs in
+`prompts/list`.
 
 ## Task store
 
-`InMemoryMcpTaskStore` registered singleton in `QylMcpServerRegistration` with `defaultTtl: 1h, maxTtl: 6h,
-pollInterval: 1s, maxTasks: 500` and wired onto `McpServerOptions.TaskStore` via DI. Required for tools declared with
-`TaskSupport = Required`.
+`InMemoryMcpTaskStore` is registered singleton in `QylMcpServerRegistration` (`defaultTtl: 1h, maxTtl: 6h,
+pollInterval: 1s, maxTasks: 500`) and wired onto `McpServerOptions.TaskStore` via DI. Required for
+`TaskSupport = Required` tools.
