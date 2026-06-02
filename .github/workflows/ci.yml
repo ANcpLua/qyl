@@ -1,8 +1,9 @@
 # =============================================================================
 # Continuous Integration
 # -----------------------------------------------------------------------------
-# Validates backend (.NET 10) and frontend (React 19) on every push/PR to main.
-# Runs tests, linting, type checking, and dependency audits.
+# Local truth is the NUKE build in eng/build. qyl no longer regenerates API
+# contracts, OpenAPI, or semconv packages inside this repository; those come from
+# qyl-api-schema and Qyl.OpenTelemetry.SemanticConventions packages.
 # =============================================================================
 
 name: CI
@@ -17,7 +18,7 @@ permissions:
   contents: read
   checks: write
   pull-requests: write
-  packages: read     # required to restore @o-ancpplua/otel-conventions-api from GitHub Packages npm
+  packages: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,6 +27,8 @@ concurrency:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NODE_VERSION: "22"
 
 jobs:
@@ -36,8 +39,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
@@ -55,72 +56,27 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: core/specs/package-lock.json
-          # Auth setup for @o-ancpplua/otel-conventions-api on GitHub Packages.
-          # setup-node@v6 writes a temp .npmrc with the matching token line; the
-          # NODE_AUTH_TOKEN env var on the install step provides the credential.
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@o-ancpplua'
+          cache: npm
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
-      - name: Cache Weaver binary
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: .tools/weaver
-          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh', 'eng/semconv/bootstrap-weaver.ps1', 'eng/semconv/scripts/bootstrap-weaver.sh', 'eng/semconv/scripts/bootstrap-weaver.ps1') }}
-
-      # packages/Qyl.Contracts/Generated/ is gitignored (regenerated from TypeSpec on every
-      # build). The .NET compile references those types, so we regenerate before `dotnet build`.
-      - name: Regenerate TypeSpec artifacts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./eng/build.sh Generate
-
-      - name: Restore dependencies
-        run: dotnet restore -p:TreatWarningsAsErrors=false
+      - name: Restore
+        run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
       - name: Build
-        run: |
-          dotnet build --configuration Release --no-restore \
-            -p:RunAnalyzers=false \
-            -p:RunAnalyzersDuringBuild=false \
-            -p:TreatWarningsAsErrors=false \
-            -p:WarningsAsErrors=
+        run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config
+
+      - name: Verify
+        run: ./eng/build.sh Verify --Configuration Release
 
       - name: Test
-        # `Category=regen` and `Category=E2E` are opt-in heavy suites.
-        # The dedicated `regen-clean` job covers regeneration drift, and
-        # E2E (Docker) gates relevant PR/push changes with freshly built local images.
-        run: |
-          mapfile -t test_projects < <(
-            find . -name '*.csproj' \
-              -not -path './Artifacts/*' \
-              -not -path './artifacts/*' \
-              -not -path '*/bin/*' \
-              -not -path '*/obj/*' \
-              -print \
-              | xargs grep -lE '<IsTestProject>true|Microsoft\.NET\.Test\.Sdk|xunit|MSTest|NUnit|Microsoft\.Testing\.Platform' || true
-          )
-
-          if [ "${#test_projects[@]}" -eq 0 ]; then
-            echo "No test projects found; skipping dotnet test."
-            exit 0
-          fi
-
-          for project in "${test_projects[@]}"; do
-            dotnet test "$project" --configuration Release --no-build \
-              --results-directory ./TestResults \
-              -- --report-trx --report-trx-filename "$(basename "$project" .csproj).trx" \
-                 --filter-not-trait Category=regen \
-                 --filter-not-trait Category=E2E
-          done
+        run: ./eng/build.sh Test --Configuration Release
 
       - name: Upload test results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: always()
+        if: always() && hashFiles('Artifacts/TestResults/**') != ''
         with:
-          name: backend-test-results
-          path: ./TestResults/*.trx
+          name: test-results
+          path: Artifacts/TestResults
           retention-days: 14
 
   frontend:
@@ -135,14 +91,14 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: npm
           cache-dependency-path: services/qyl.dashboard/package-lock.json
 
-      - name: Install dependencies
+      - name: Install
         working-directory: services/qyl.dashboard
         run: npm ci
 
-      - name: Type check
+      - name: Typecheck
         working-directory: services/qyl.dashboard
         run: npm run typecheck
 
@@ -150,131 +106,21 @@ jobs:
         working-directory: services/qyl.dashboard
         run: npm run lint
 
-      - name: Test
-        working-directory: services/qyl.dashboard
-        run: |
-          if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
-            npm run test -- --run --reporter=verbose
-          else
-            echo "No test files found, skipping tests"
-          fi
-
       - name: Build
         working-directory: services/qyl.dashboard
         run: npm run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: frontend-dist
-          path: services/qyl.dashboard/dist
-          retention-days: 14
-
-  frontend-coverage:
-    name: Frontend Coverage
-    runs-on: ubuntu-latest
-    needs: frontend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
-
-      - name: Install dependencies
+      - name: Coverage
         working-directory: services/qyl.dashboard
-        run: npm ci
-
-      - name: Run tests with coverage
-        working-directory: services/qyl.dashboard
-        run: |
-          if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
-            npm run test:coverage
-          else
-            echo "No test files found, skipping coverage"
-          fi
+        run: npm run test:coverage
 
       - name: Upload coverage report
-        if: hashFiles('services/qyl.dashboard/coverage/**') != ''
+        if: always() && hashFiles('services/qyl.dashboard/coverage/**') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: frontend-coverage
           path: services/qyl.dashboard/coverage
           retention-days: 14
-
-  schema-drift:
-    name: Schema Drift (TypeSpec → Generated)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          submodules: true
-
-      - name: Verify SEMCONV_STAGING_DIR safety guard
-        run: bash eng/semconv/test-staging-dir-guard.sh
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
-        with:
-          global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            **/Directory.Packages.props
-            **/*.csproj
-            **/*.fsproj
-            **/packages.lock.json
-            **/nuget.config
-
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: core/specs/package-lock.json
-          # Auth setup for @o-ancpplua/otel-conventions-api on GitHub Packages.
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@o-ancpplua'
-
-      - name: Cache Weaver binary
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: .tools/weaver
-          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh', 'eng/semconv/bootstrap-weaver.ps1', 'eng/semconv/scripts/bootstrap-weaver.sh', 'eng/semconv/scripts/bootstrap-weaver.ps1') }}
-
-      - name: Restore build tool dependencies
-        run: dotnet restore eng/build/build.csproj
-
-      - name: Regenerate from TypeSpec
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./eng/build.sh Generate
-
-      - name: Assert no generated file drift
-        run: |
-          if ! git diff --exit-code -- \
-            packages/Qyl.Contracts/ \
-            services/qyl.collector/Storage/DuckDbSchema.g.cs \
-            services/qyl.dashboard/src/types/api.ts \
-            internal/qyl.instrumentation/ \
-            internal/qyl.instrumentation.generators/Generated/ \
-            core/openapi/; then
-            echo "::error::Generated files are stale. Run 'nuke Generate' locally and commit the result."
-            git diff --stat -- \
-              packages/Qyl.Contracts/ \
-              services/qyl.collector/Storage/DuckDbSchema.g.cs \
-              services/qyl.dashboard/src/types/api.ts \
-              internal/qyl.instrumentation/ \
-              internal/qyl.instrumentation.generators/Generated/ \
-              core/openapi/
-            exit 1
-          fi
 
   dependency-audit:
     name: Dependency Audit
@@ -284,82 +130,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
 
-      - name: Audit frontend dependencies
-        working-directory: services/qyl.dashboard
-        run: npm audit --audit-level=high
-        continue-on-error: true
+      - name: Restore
+        run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
-        with:
-          global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            **/Directory.Packages.props
-            **/*.csproj
-            **/*.fsproj
-            **/packages.lock.json
-            **/nuget.config
-
-      - name: Audit .NET dependencies
-        run: dotnet list package --vulnerable --include-transitive
-        continue-on-error: true
-
-  regen-clean:
-    # T2 — wide-scope regen-clean gate.
-    # Schema-drift uses path-scoped diffs; PR #188 slipped through because its
-    # regen oversight fell outside those paths. This job runs `nuke OtelConventions`
-    # on a clean checkout and asserts `git status --porcelain` is empty so that
-    # any drift — generated, template-side, or registry — fails the PR loudly.
-    name: Regen Clean (T2)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          submodules: true
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
-        with:
-          global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            **/Directory.Packages.props
-            **/*.csproj
-            **/*.fsproj
-            **/packages.lock.json
-            **/nuget.config
-
-      - name: Cache Weaver binary
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: .tools/weaver
-          key: weaver-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/semconv/bootstrap-weaver.sh', 'eng/semconv/bootstrap-weaver.ps1', 'eng/semconv/scripts/bootstrap-weaver.sh', 'eng/semconv/scripts/bootstrap-weaver.ps1') }}
-
-      - name: Restore build tool dependencies
-        run: dotnet restore eng/build/build.csproj
-
-      - name: Regenerate semconv outputs
-        run: ./eng/build.sh OtelConventions
-
-      - name: Assert wide-scope regen-clean tree
+      - name: Audit .NET packages
         run: |
-          drift="$(git status --porcelain)"
-          if [[ -n "$drift" ]]; then
-            echo "::error::Regeneration produced uncommitted changes. Run 'nuke OtelConventions' locally and commit the result."
-            echo ""
-            echo "Files that drifted:"
-            printf '%s\n' "$drift"
-            echo ""
-            echo "Diff summary:"
-            git diff --stat
-            exit 1
-          fi
-          echo "Wide-scope regen-clean tree confirmed: git status --porcelain is empty."
+          while IFS= read -r -d '' project; do
+            dotnet list "$project" package --vulnerable --include-transitive
+          done < <(
+            find . -name '*.csproj' \
+              -not -path './Artifacts/*' \
+              -not -path './artifacts/*' \
+              -not -path '*/bin/*' \
+              -not -path '*/obj/*' \
+              -print0
+          )
+
+      - name: Audit frontend packages
+        working-directory: services/qyl.dashboard
+        run: |
+          npm ci
+          npm audit --audit-level=high

@@ -1,52 +1,9 @@
 
 namespace Qyl.Collector.Ingestion;
 
-
-public sealed record OtlpExportTraceServiceRequest
-{
-    public List<OtlpResourceSpans>? ResourceSpans { get; init; }
-}
-
-public sealed record OtlpResourceSpans
-{
-    public OtlpResource? Resource { get; init; }
-    public List<OtlpScopeSpans>? ScopeSpans { get; init; }
-
-    public string? SchemaUrl { get; init; }
-}
-
 public sealed record OtlpResource
 {
     public List<OtlpKeyValue>? Attributes { get; init; }
-}
-
-public sealed record OtlpScopeSpans
-{
-    public List<OtlpSpan>? Spans { get; init; }
-
-    public string? SchemaUrl { get; init; }
-}
-
-public sealed record OtlpSpan
-{
-    public string? TraceId { get; init; }
-    public string? SpanId { get; init; }
-    public string? ParentSpanId { get; init; }
-    public string? Name { get; init; }
-    public int? Kind { get; init; }
-
-    public ulong StartTimeUnixNano { get; init; }
-
-    public ulong EndTimeUnixNano { get; init; }
-
-    public OtlpStatus? Status { get; init; }
-    public List<OtlpKeyValue>? Attributes { get; init; }
-}
-
-public sealed record OtlpStatus
-{
-    public int? Code { get; init; }
-    public string? Message { get; init; }
 }
 
 public sealed record OtlpKeyValue
@@ -74,35 +31,6 @@ public sealed record OtlpArrayValue
 public sealed record OtlpKeyValueList
 {
     public List<OtlpKeyValue>? Values { get; init; }
-}
-
-
-public sealed record OtlpExportLogsServiceRequest
-{
-    public List<OtlpResourceLogs>? ResourceLogs { get; init; }
-}
-
-public sealed record OtlpResourceLogs
-{
-    public OtlpResource? Resource { get; init; }
-    public List<OtlpScopeLogs>? ScopeLogs { get; init; }
-}
-
-public sealed record OtlpScopeLogs
-{
-    public List<OtlpLogRecord>? LogRecords { get; init; }
-}
-
-public sealed record OtlpLogRecord
-{
-    public ulong TimeUnixNano { get; init; }
-    public ulong ObservedTimeUnixNano { get; init; }
-    public int? SeverityNumber { get; init; }
-    public string? SeverityText { get; init; }
-    public OtlpAnyValue? Body { get; init; }
-    public List<OtlpKeyValue>? Attributes { get; init; }
-    public string? TraceId { get; init; }
-    public string? SpanId { get; init; }
 }
 
 

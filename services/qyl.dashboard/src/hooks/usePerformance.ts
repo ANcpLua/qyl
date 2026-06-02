@@ -3,11 +3,14 @@ import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
 interface StorageStats {
-    spanCount: number;
-    sessionCount: number;
-    logCount: number;
-    oldestSpan: string | null;
-    newestSpan: string | null;
+    spansExported: number;
+    spansDropped: number;
+    metricsExported: number;
+    metricsDropped: number;
+    logsExported: number;
+    logsDropped: number;
+    exportErrors: number;
+    queueUtilization: number;
 }
 
 export interface TrafficBucket {

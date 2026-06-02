@@ -1,4 +1,5 @@
 using Qyl.Collector.Cost;
+using OpenTelemetry.Proto.Collector.Trace.V1;
 using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
@@ -8,7 +9,7 @@ public sealed class TraceServiceImpl(
     ITelemetrySseBroadcaster broadcaster,
     SpanRingBuffer ringBuffer,
     ModelPricingService pricingService)
-    : TraceServiceBase
+    : TraceService.TraceServiceBase
 {
     private readonly ITelemetrySseBroadcaster _broadcaster = Guard.NotNull(broadcaster);
     private readonly ModelPricingService _pricingService = Guard.NotNull(pricingService);
@@ -21,7 +22,7 @@ public sealed class TraceServiceImpl(
     {
         try
         {
-            var spans = OtlpConverter.ConvertProtoToStorageRows(request);
+            var spans = OtlpConverter.ConvertTraceRequestToStorageRows(request);
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 

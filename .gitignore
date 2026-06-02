@@ -1,10 +1,6 @@
 # Build outputs (UseArtifactsOutput centralizes to artifacts/)
 artifacts/
 !src/**/Artifacts/
-# Generated semconv staging (Weaver intermediate; final outputs ship via install -m 0644)
-Artifacts/semconv/
-# Scalar.Kiota.Extension on-demand client SDK output (dev-only, regenerated from OpenAPI)
-**/wwwroot/.scalar-kiota/
 # Loom/Claude agent worktrees (`git worktree add .agents/worktrees/<slug> …`); the
 # worktree directory itself isn't checked in — only the trees it spawns live there.
 .agents/worktrees/
@@ -28,10 +24,9 @@ project.lock.json
 # TypeSpec emitter outputs are tracked on purpose: alpha emitters
 # (`@typespec/http-client-csharp`, `@typespec/http-server-csharp`) are not yet
 # fully deterministic, and qyl's own emitters evolve with the .tsp inputs.
-# Committing the output makes fresh clones build without `nuke Generate`,
+# Committing the output makes fresh clones build from reviewed generated files,
 # turns every regen delta into a reviewable diff, and caps the blast radius
-# of emitter regressions. Regenerate with `nuke Generate` and commit the
-# resulting diff; do not hand-edit files under */Generated/.
+# of emitter regressions. Do not hand-edit files under */Generated/.
 
 # .NET
 *.user
@@ -172,11 +167,5 @@ images/
 # Local agent scratchpads (objective.json etc.) — not repo content
 .blackboard/
 
-# Local tool downloads — platform-specific weaver binary only; the
-# semconv-upstream tree is a git submodule pinned to a semconv tag and
-# therefore NOT ignored.
-.tools/weaver/
-# Weaver output scratchpad
-eng/semconv/out/
 .DS_Store
 *.bak

@@ -11,6 +11,7 @@ public static class CollectorEndpointExtensions
     public static WebApplication MapQylCollectorEndpoints(this WebApplication app)
     {
         app.MapGrpcService<TraceServiceImpl>();
+        app.MapGrpcService<LogsServiceImpl>();
 
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
@@ -61,29 +62,12 @@ public static class CollectorEndpointExtensions
         try
         {
             List<SpanStorageRow> spans;
-            var contentType = context.Request.ContentType;
+            var otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, ct);
+            if (otlpData.ResourceSpans.Count is 0)
+                return Results.Accepted();
 
-            List<ServiceInstanceRecord> serviceInstances;
-            if (OtlpProtobufParser.IsProtobufContentType(contentType))
-            {
-                var protoRequest = await OtlpProtobufParser.ParseFromRequestAsync(context.Request, ct);
-                if (protoRequest.ResourceSpans.Count is 0)
-                    return Results.Accepted();
-
-                spans = OtlpConverter.ConvertProtoToStorageRows(protoRequest);
-                serviceInstances = OtlpConverter.ExtractServiceInstancesFromProto(protoRequest);
-            }
-            else
-            {
-                var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
-                    QylSerializerContext.Default.OtlpExportTraceServiceRequest, ct);
-
-                if (otlpData?.ResourceSpans is null)
-                    return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
-
-                spans = OtlpConverter.ConvertJsonToStorageRows(otlpData);
-                serviceInstances = OtlpConverter.ExtractServiceInstancesFromJson(otlpData);
-            }
+            spans = OtlpConverter.ConvertTraceRequestToStorageRows(otlpData);
+            var serviceInstances = OtlpConverter.ExtractServiceInstances(otlpData);
 
             if (spans.Count is 0) return Results.Accepted();
 
@@ -112,25 +96,11 @@ public static class CollectorEndpointExtensions
         try
         {
             List<LogStorageRow> logs;
-            var contentType = context.Request.ContentType;
+            var otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, ct);
+            if (otlpData.ResourceLogs.Count is 0)
+                return Results.Accepted();
 
-            if (OtlpProtobufParser.IsProtobufContentType(contentType))
-            {
-                var protoRequest = await OtlpLogProtobufParser.ParseFromRequestAsync(context.Request, ct);
-                if (protoRequest.ResourceLogs.Count is 0)
-                    return Results.Accepted();
-
-                logs = OtlpConverter.ConvertProtoLogsToStorageRows(protoRequest);
-            }
-            else
-            {
-                var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportLogsServiceRequest>(ct);
-
-                if (otlpData?.ResourceLogs is null)
-                    return Results.BadRequest(new ErrorResponse("Invalid OTLP logs format"));
-
-                logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
-            }
+            logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
 
             if (logs.Count is 0) return Results.Accepted();
 
@@ -198,13 +168,14 @@ public static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
+        var boundedLimit = Math.Clamp(limit ?? 500, 1, 1_000);
         var logs = await store.GetLogsAsync(
             session, trace, level, minSeverity, search,
             serviceName: serviceName,
-            limit: limit ?? 500,
+            limit: boundedLimit,
             ct: ct);
 
-        return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
+        return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
     private static ServerSentEventsResult<SseItem<object?>> StreamLogsLiveAsync(
@@ -255,7 +226,7 @@ public static class CollectorEndpointExtensions
 
             if (dedupedPayload.Count > 0)
             {
-                var payload = dedupedPayload.Select(LiveLogProjection.ToDto).ToArray();
+                var payload = dedupedPayload.Select(LogMapper.ToContract).ToArray();
                 yield return new SseItem<object?>(new { logs = payload }, "logs");
             }
 
@@ -309,7 +280,7 @@ public static class CollectorEndpointExtensions
             limit: limit ?? 100,
             ct: ct);
 
-        return Results.Ok(new { profiles, total = profiles.Count });
+        return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
     private static async Task<IResult> GetProfileByIdAsync(
@@ -318,7 +289,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var detail = await store.GetProfileDetailAsync(profileId, ct);
-        return detail is not null ? Results.Ok(detail) : Results.NotFound();
+        return detail is not null ? Results.Ok(ProfileMapper.ToContract(detail)) : Results.NotFound();
     }
 
     private static async Task<IResult> GetTraceProfilesAsync(
@@ -327,7 +298,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
-        return Results.Ok(new { profiles, total = profiles.Count });
+        return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
 
@@ -342,14 +313,7 @@ public static class CollectorEndpointExtensions
             after = TimeProvider.System.GetUtcNow().UtcDateTime.AddHours(-hours.Value);
 
         var stats = await queryService.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
-        return Results.Ok(new
-        {
-            requestCount = stats.RequestCount,
-            totalInputTokens = stats.InputTokens,
-            totalOutputTokens = stats.OutputTokens,
-            totalCostUsd = stats.TotalCostUsd,
-            averageEvalScore = (double?)null
-        });
+        return Results.Ok(ContractStatsMapper.ToContract(stats));
     }
 
     private static async Task<IResult> GetGenAiSpansAsync(
@@ -402,7 +366,7 @@ public static class CollectorEndpointExtensions
     private static async Task<IResult> GetTelemetryStatsAsync(DuckDbStore store, CancellationToken ct)
     {
         var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
-        return Results.Ok(stats);
+        return Results.Ok(ContractStatsMapper.ToContract(stats));
     }
 
 

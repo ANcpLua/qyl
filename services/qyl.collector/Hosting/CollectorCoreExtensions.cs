@@ -1,5 +1,3 @@
-using Qyl.Collector.Grpc;
-
 namespace Qyl.Collector.Hosting;
 
 public static class CollectorCoreExtensions
@@ -23,7 +21,6 @@ public static class CollectorCoreExtensions
             options.ResponseCompressionLevel = CompressionLevel.Optimal;
             options.ResponseCompressionAlgorithm = "gzip";
         });
-        services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceServiceMethodProvider>();
 
         var ringBufferCapacity = config.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);
         services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));

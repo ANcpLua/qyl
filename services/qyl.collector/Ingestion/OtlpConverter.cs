@@ -1,5 +1,13 @@
 
-using Qyl.Collector.Grpc;
+using Google.Protobuf;
+using Google.Protobuf.Collections;
+using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Trace.V1;
+using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
+using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
+using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
+using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
 using Qyl.Collector.Services;
 using Qyl.Collector.Primitives;
 
@@ -10,9 +18,9 @@ public static class OtlpConverter
     private static readonly LogSourceEnricher s_logSourceEnricher =
         new(new SourceLocationCache(), new PdbSourceResolver());
 
-    #region Proto Conversion (gRPC endpoint)
+    #region OTLP Trace Conversion
 
-    public static List<SpanStorageRow> ConvertProtoToStorageRows(ExportTraceServiceRequest request)
+    public static List<SpanStorageRow> ConvertTraceRequestToStorageRows(ExportTraceServiceRequest request)
     {
         var spans = new List<SpanStorageRow>();
 
@@ -46,28 +54,32 @@ public static class OtlpConverter
         return spans;
     }
 
-    private static string ExtractServiceNameFromProto(OtlpResourceProto? resource)
+    private static string ExtractServiceNameFromProto(ProtoResource? resource)
     {
-        if (resource?.Attributes is null) return "unknown";
+        if (resource is null) return "unknown";
 
         foreach (var attr in resource.Attributes)
         {
-            if (attr is { Key: SemanticAttributeKeys.ServiceName, Value.StringValue: not null })
+            if (attr is
+                {
+                    Key: SemanticAttributeKeys.ServiceName,
+                    Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
+                })
                 return attr.Value.StringValue;
         }
 
         return "unknown";
     }
 
-    private static Dictionary<string, string> ExtractResourceAttributesFromProto(OtlpResourceProto? resource)
+    private static Dictionary<string, string> ExtractResourceAttributesFromProto(ProtoResource? resource)
     {
         var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (resource?.Attributes is null) return attrs;
+        if (resource is null) return attrs;
 
         foreach (var attr in resource.Attributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            var value = ConvertAnyValueToString(attr.Value);
+            var value = ConvertProtoAnyValueToString(attr.Value);
             if (value is not null) attrs[attr.Key] = value;
         }
 
@@ -75,125 +87,50 @@ public static class OtlpConverter
     }
 
     private static Dictionary<string, string> ExtractAttributesFromProto(
-        List<OtlpKeyValueProto>? protoAttributes,
+        RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [SemanticAttributeKeys.ServiceName] = serviceName };
-
-        if (protoAttributes is null) return attributes;
 
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
 
-            var value = ConvertAnyValueToString(attr.Value);
+            var value = ConvertProtoAnyValueToString(attr.Value);
             if (value is not null) attributes[attr.Key] = value;
         }
 
         return attributes;
     }
 
-    private static string? ConvertAnyValueToString(OtlpAnyValueProto? value)
+    private static string? ConvertProtoAnyValueToString(ProtoAnyValue? value)
     {
         if (value is null) return null;
 
-        if (value.StringValue is not null) return value.StringValue;
-        if (value.IntValue.HasValue) return value.IntValue.Value.ToString();
-        if (value.DoubleValue.HasValue) return value.DoubleValue.Value.ToString(CultureInfo.InvariantCulture);
-        if (value.BoolValue.HasValue) return value.BoolValue.Value.ToString().ToLowerInvariant();
-        if (value.BytesValue is not null) return Convert.ToBase64String(value.BytesValue);
-        if (value.ArrayValue is not null)
+        return value.ValueCase switch
         {
-            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static (string? v) => v is not null)
-                .ToArray();
-            return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
-        }
-
-        if (value.KvlistValue is null) return null;
-        var dict = value.KvlistValue
-            .Where(static kv => ConvertAnyValueToString(kv.Value) is not null)
-            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertAnyValueToString(kv.Value));
-        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+            ProtoAnyValue.ValueOneofCase.StringValue => value.StringValue,
+            ProtoAnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
+            ProtoAnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString(CultureInfo.InvariantCulture),
+            ProtoAnyValue.ValueOneofCase.BoolValue => value.BoolValue.ToString().ToLowerInvariant(),
+            ProtoAnyValue.ValueOneofCase.BytesValue => Convert.ToBase64String(value.BytesValue.ToByteArray()),
+            ProtoAnyValue.ValueOneofCase.ArrayValue => SerializeProtoArray(value.ArrayValue.Values),
+            ProtoAnyValue.ValueOneofCase.KvlistValue => SerializeProtoKeyValueList(value.KvlistValue.Values),
+            _ => null
+        };
     }
 
     private static SpanStorageRow CreateStorageRowFromProto(
-        OtlpSpanProto span,
+        ProtoSpan span,
         string serviceName,
         Dictionary<string, string> attributes,
         string? baggageJson,
         string? schemaUrl,
         string? resourceJson) =>
         CreateStorageRow(
-            span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
-            span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
-            span.Status?.Code, span.Status?.Message,
-            serviceName, attributes, baggageJson, schemaUrl, resourceJson);
-
-    #endregion
-
-    #region JSON Conversion (HTTP endpoint)
-
-    public static List<SpanStorageRow> ConvertJsonToStorageRows(OtlpExportTraceServiceRequest otlp)
-    {
-        var spans = new List<SpanStorageRow>();
-
-        foreach (var resourceSpan in otlp.ResourceSpans ?? [])
-        {
-            var serviceName = resourceSpan.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
-                              ?? "unknown";
-            var resourceJson = SerializeAttributes(resourceSpan.Resource?.Attributes);
-            var schemaUrl = resourceSpan.SchemaUrl;
-
-            foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
-            {
-                var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
-                    ? scopeSpan.SchemaUrl
-                    : schemaUrl;
-
-                foreach (var span in scopeSpan.Spans ?? [])
-                {
-                    var attributes = ExtractAttributesFromJson(span.Attributes, serviceName);
-                    var baggageJson = ExtractBaggageJson(attributes);
-                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl,
-                        resourceJson));
-                }
-            }
-        }
-
-        return spans;
-    }
-
-    private static Dictionary<string, string> ExtractAttributesFromJson(
-        List<OtlpKeyValue>? jsonAttributes,
-        string serviceName)
-    {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [SemanticAttributeKeys.ServiceName] = serviceName };
-
-        if (jsonAttributes is null) return attributes;
-
-        foreach (var attr in jsonAttributes)
-        {
-            if (attr.Key is null) continue;
-
-            var value = ConvertJsonValueToString(attr.Value);
-            if (value is not null) attributes[attr.Key] = value;
-        }
-
-        return attributes;
-    }
-
-    private static SpanStorageRow CreateStorageRowFromJson(
-        OtlpSpan span,
-        string serviceName,
-        Dictionary<string, string> attributes,
-        string? baggageJson,
-        string? schemaUrl,
-        string? resourceJson) =>
-        CreateStorageRow(
-            span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
-            span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
-            span.Status?.Code, span.Status?.Message,
+            ToHex(span.SpanId), ToHex(span.TraceId), ToHex(span.ParentSpanId), span.Name,
+            (int)span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
+            span.Status is not null ? (int)span.Status.Code : null, span.Status?.Message,
             serviceName, attributes, baggageJson, schemaUrl, resourceJson);
 
     #endregion
@@ -285,46 +222,7 @@ public static class OtlpConverter
         };
     }
 
-    public static List<ServiceInstanceRecord> ExtractServiceInstancesFromJson(OtlpExportTraceServiceRequest otlp)
-    {
-        var instances = new List<ServiceInstanceRecord>();
-
-        foreach (var resourceSpan in otlp.ResourceSpans ?? [])
-        {
-            var resourceAttrs = new Dictionary<string, string>(StringComparer.Ordinal);
-            if (resourceSpan.Resource?.Attributes is not null)
-            {
-                foreach (var attr in resourceSpan.Resource.Attributes)
-                {
-                    if (string.IsNullOrEmpty(attr.Key)) continue;
-                    var value = ConvertJsonValueToString(attr.Value);
-                    if (value is not null) resourceAttrs[attr.Key] = value;
-                }
-            }
-
-            var firstSpan = resourceSpan.ScopeSpans?.FirstOrDefault()?.Spans?.FirstOrDefault();
-            Dictionary<string, string>? spanAttrs = null;
-            ulong timestamp = 0;
-
-            if (firstSpan is not null)
-            {
-                spanAttrs = ExtractAttributesFromJson(firstSpan.Attributes,
-                    resourceAttrs.GetValueOrDefault(SemanticAttributeKeys.ServiceName) ?? "unknown");
-                timestamp = firstSpan.StartTimeUnixNano;
-            }
-
-            if (timestamp is 0)
-                timestamp = QylTimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
-
-            var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
-            if (instance is not null)
-                instances.Add(instance);
-        }
-
-        return instances;
-    }
-
-    public static List<ServiceInstanceRecord> ExtractServiceInstancesFromProto(ExportTraceServiceRequest request)
+    public static List<ServiceInstanceRecord> ExtractServiceInstances(ExportTraceServiceRequest request)
     {
         var instances = new List<ServiceInstanceRecord>();
 
@@ -332,7 +230,7 @@ public static class OtlpConverter
         {
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
 
-            OtlpSpanProto? firstSpan = null;
+            ProtoSpan? firstSpan = null;
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
             {
                 if (scopeSpan.Spans.Count > 0)
@@ -399,6 +297,30 @@ public static class OtlpConverter
                    ?? new Dictionary<string, string>(StringComparer.Ordinal);
 
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+    }
+
+    private static string SerializeProtoArray(RepeatedField<ProtoAnyValue> values)
+    {
+        var items = values.Select(ConvertProtoAnyValueToString)
+            .Where(static (string? v) => v is not null)
+            .ToArray();
+
+        return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
+    }
+
+    private static string SerializeProtoKeyValueList(RepeatedField<ProtoKeyValue> values)
+    {
+        var dict = values
+            .Where(static kv => ConvertProtoAnyValueToString(kv.Value) is not null)
+            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertProtoAnyValueToString(kv.Value) ?? "");
+
+        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+    }
+
+    private static string? ToHex(ByteString value)
+    {
+        if (value.Length is 0) return null;
+        return Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();
     }
 
     private static string? ExtractBaggageJson(IReadOnlyDictionary<string, string> attributes)
@@ -492,20 +414,21 @@ public static class OtlpConverter
 
     #region Logs Conversion
 
-    public static List<LogStorageRow> ConvertLogsToStorageRows(OtlpExportLogsServiceRequest otlp)
+    public static List<LogStorageRow> ConvertLogsToStorageRows(ExportLogsServiceRequest otlp)
     {
         var logs = new List<LogStorageRow>();
 
-        foreach (var resourceLogs in otlp.ResourceLogs ?? [])
+        foreach (var resourceLogs in otlp.ResourceLogs)
         {
-            var serviceName = resourceLogs.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
-                              ?? "unknown";
+            var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
 
-            var resourceJson = SerializeAttributes(resourceLogs.Resource?.Attributes);
+            var resourceAttrs = ExtractResourceAttributesFromProto(resourceLogs.Resource);
+            var resourceJson = resourceAttrs.Count > 0
+                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
+                : null;
 
-            foreach (var scopeLogs in resourceLogs.ScopeLogs ?? [])
-            foreach (var log in scopeLogs.LogRecords ?? [])
+            foreach (var scopeLogs in resourceLogs.ScopeLogs)
+            foreach (var log in scopeLogs.LogRecords)
             {
                 logs.Add(CreateLogStorageRow(log, serviceName, resourceJson));
             }
@@ -515,29 +438,29 @@ public static class OtlpConverter
     }
 
     private static LogStorageRow CreateLogStorageRow(
-        OtlpLogRecord log,
+        ProtoLogRecord log,
         string serviceName,
         string? resourceJson)
     {
-        var sessionId = log.Attributes?
-            .FirstOrDefault(static a =>
-                a.Key is not null && a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
-            ?.Value?.StringValue;
+        var sessionId = log.Attributes
+            .FirstOrDefault(static a => a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
+            is { Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } sessionAttr
+            ? sessionAttr.Value.StringValue
+            : null;
 
-        var body = log.Body?.StringValue
-                   ?? log.Body?.IntValue?.ToString()
-                   ?? log.Body?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-                   ?? log.Body?.BoolValue?.ToString();
+        var body = ConvertProtoAnyValueToString(log.Body);
 
-        var severityNumber = log.SeverityNumber ?? 0;
-        var severityText = log.SeverityText ?? SeverityNumberToText(severityNumber);
-        var sourceLocation = s_logSourceEnricher.Enrich(log);
+        var severityNumber = (int)log.SeverityNumber;
+        var severityText = string.IsNullOrEmpty(log.SeverityText)
+            ? SeverityNumberToText(severityNumber)
+            : log.SeverityText;
+        var sourceLocation = s_logSourceEnricher.Enrich(log.Attributes);
 
         return new LogStorageRow
         {
             LogId = Guid.NewGuid().ToString("N"),
-            TraceId = string.IsNullOrEmpty(log.TraceId) ? null : log.TraceId,
-            SpanId = string.IsNullOrEmpty(log.SpanId) ? null : log.SpanId,
+            TraceId = ToHex(log.TraceId),
+            SpanId = ToHex(log.SpanId),
             SessionId = sessionId,
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
@@ -545,13 +468,27 @@ public static class OtlpConverter
             SeverityText = severityText,
             Body = body,
             ServiceName = serviceName,
-            AttributesJson = SerializeAttributes(log.Attributes),
+            AttributesJson = SerializeProtoAttributes(log.Attributes),
             ResourceJson = resourceJson,
             SourceFile = sourceLocation?.FilePath,
             SourceLine = sourceLocation?.Line,
             SourceColumn = sourceLocation?.Column,
             SourceMethod = sourceLocation?.MethodName
         };
+    }
+
+    private static string? SerializeProtoAttributes(RepeatedField<ProtoKeyValue> attributes)
+    {
+        if (attributes.Count is 0) return null;
+
+        var dict = new Dictionary<string, string>(attributes.Count, StringComparer.Ordinal);
+        foreach (var attr in attributes)
+        {
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            dict[attr.Key] = ConvertProtoAnyValueToString(attr.Value) ?? "";
+        }
+
+        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
 
     private static string? SerializeAttributes(List<OtlpKeyValue>? attributes)
@@ -762,57 +699,6 @@ public static class OtlpConverter
         string? Resolve(int? index) =>
             index is { } i and >= 0 && i < strings.Count ? strings[i] : null;
     }
-
-    #endregion
-
-    #region Proto Log Conversion
-
-    public static List<LogStorageRow> ConvertProtoLogsToStorageRows(ExportLogsServiceRequestProto proto)
-    {
-        var jsonDto = new OtlpExportLogsServiceRequest
-        {
-            ResourceLogs = proto.ResourceLogs.Select(static rl => new OtlpResourceLogs
-            {
-                Resource = rl.Resource is not null
-                    ? new OtlpResource { Attributes = rl.Resource.Attributes.Select(MapProtoKeyValue).ToList() }
-                    : null,
-                ScopeLogs = rl.ScopeLogs.Select(static sl => new OtlpScopeLogs
-                {
-                    LogRecords = sl.LogRecords.Select(static lr => new OtlpLogRecord
-                    {
-                        TimeUnixNano = lr.TimeUnixNano,
-                        ObservedTimeUnixNano = lr.ObservedTimeUnixNano,
-                        SeverityNumber = lr.SeverityNumber,
-                        SeverityText = lr.SeverityText,
-                        Body = lr.Body is not null ? MapProtoAnyValue(lr.Body) : null,
-                        Attributes = lr.Attributes?.Select(MapProtoKeyValue).ToList(),
-                        TraceId = lr.TraceId,
-                        SpanId = lr.SpanId
-                    }).ToList()
-                }).ToList()
-            }).ToList()
-        };
-        return ConvertLogsToStorageRows(jsonDto);
-    }
-
-    private static OtlpKeyValue MapProtoKeyValue(OtlpKeyValueProto proto) =>
-        new() { Key = proto.Key, Value = proto.Value is not null ? MapProtoAnyValue(proto.Value) : null };
-
-    private static OtlpAnyValue MapProtoAnyValue(OtlpAnyValueProto proto) =>
-        new()
-        {
-            StringValue = proto.StringValue,
-            BoolValue = proto.BoolValue,
-            IntValue = proto.IntValue,
-            DoubleValue = proto.DoubleValue,
-            ArrayValue = proto.ArrayValue is { Count: > 0 }
-                ? new OtlpArrayValue { Values = proto.ArrayValue.Select(MapProtoAnyValue).ToList() }
-                : null,
-            KvlistValue = proto.KvlistValue is { Count: > 0 }
-                ? new OtlpKeyValueList { Values = proto.KvlistValue.Select(MapProtoKeyValue).ToList() }
-                : null,
-            BytesValue = proto.BytesValue is not null ? Convert.ToBase64String(proto.BytesValue) : null
-        };
 
     #endregion
 }

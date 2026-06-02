@@ -45,6 +45,90 @@ const LOG_LEVEL_CONFIG: Record<
 
 const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
+interface ContractAttribute {
+    key: string;
+    value: string | number | boolean | string[] | number[] | boolean[];
+}
+
+interface ContractLogRecord {
+    timeUnixNano?: number | string;
+    observedTimeUnixNano?: number | string | null;
+    traceId?: string | null;
+    spanId?: string | null;
+    severityNumber?: number;
+    severityText?: number | string | null;
+    body?: unknown;
+    attributes?: ContractAttribute[] | Record<string, string | number | boolean | string[] | number[] | boolean[]> | null;
+    resource?: { serviceName?: string | null } | null;
+    timestamp?: string;
+    observedTimestamp?: string;
+    serviceName?: string;
+}
+
+function normalizeLogRecord(log: ContractLogRecord): LogRecord {
+    const timeUnixNano = log.timeUnixNano ?? 0;
+    const observedUnixNano = log.observedTimeUnixNano ?? timeUnixNano;
+    const severityNumber = log.severityNumber ?? 0;
+
+    return {
+        timestamp: log.timestamp ?? unixNanoToIso(timeUnixNano),
+        observedTimestamp: log.observedTimestamp ?? unixNanoToIso(observedUnixNano),
+        traceId: log.traceId ?? undefined,
+        spanId: log.spanId ?? undefined,
+        severityNumber,
+        severityText: normalizeSeverity(log.severityText, severityNumber),
+        body: normalizeBody(log.body),
+        attributes: normalizeAttributes(log.attributes),
+        serviceName: log.serviceName ?? log.resource?.serviceName ?? 'unknown',
+    };
+}
+
+function normalizeSeverity(severityText: number | string | null | undefined, severityNumber: number): LogLevel {
+    if (typeof severityText === 'string') {
+        const normalized = severityText.trim().toLowerCase();
+        if (LOG_LEVELS.includes(normalized as LogLevel)) return normalized as LogLevel;
+    }
+
+    return severityNumber >= 21 ? 'fatal'
+        : severityNumber >= 17 ? 'error'
+            : severityNumber >= 13 ? 'warn'
+                : severityNumber >= 9 ? 'info'
+                    : severityNumber >= 5 ? 'debug'
+                        : 'trace';
+}
+
+function normalizeBody(body: unknown): string {
+    if (body === undefined || body === null) return '';
+    if (typeof body === 'string') return body;
+    if (typeof body === 'object' && 'stringValue' in body && typeof body.stringValue === 'string') return body.stringValue;
+    return JSON.stringify(body);
+}
+
+function normalizeAttributes(
+    attributes?: ContractLogRecord['attributes'],
+): LogRecord['attributes'] {
+    if (!attributes) return {};
+    if (Array.isArray(attributes)) {
+        const record: LogRecord['attributes'] = {};
+        for (const attr of attributes) record[attr.key] = attr.value;
+        return record;
+    }
+    return attributes;
+}
+
+function unixNanoToIso(value: number | string | null | undefined): string {
+    if (typeof value === 'string' && value.length > 0) {
+        const millis = Number(BigInt(value) / 1_000_000n);
+        return new Date(millis).toISOString();
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return new Date(value / 1_000_000).toISOString();
+    }
+
+    return new Date(0).toISOString();
+}
+
 // =============================================================================
 // LogRow Component (memoized for virtualization performance)
 // =============================================================================
@@ -245,11 +329,11 @@ function useLiveLogs(
                 try {
                     const data = JSON.parse(e.data);
                     // Handle both single log and batch formats
-                    const logs: LogRecord[] = Array.isArray(data.logs)
-                        ? data.logs
+                    const logs = Array.isArray(data.logs)
+                        ? data.logs.map(normalizeLogRecord)
                         : Array.isArray(data)
-                            ? data
-                            : [data];
+                            ? data.map(normalizeLogRecord)
+                            : [normalizeLogRecord(data)];
                     queueLogs(logs);
                 } catch (err) {
                     console.error('Failed to parse log event:', err);
@@ -261,7 +345,9 @@ function useLiveLogs(
                 try {
                     const data = JSON.parse(e.data);
                     if (data.logs || data.body) {
-                        const logs: LogRecord[] = data.logs ? data.logs : [data];
+                        const logs = data.logs
+                            ? data.logs.map(normalizeLogRecord)
+                            : [normalizeLogRecord(data)];
                         queueLogs(logs);
                     }
                 } catch {

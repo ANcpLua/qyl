@@ -1,3 +1,6 @@
+using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
+using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
+
 namespace Qyl.Collector.Ingestion;
 
 public sealed class LogSourceEnricher
@@ -11,9 +14,9 @@ public sealed class LogSourceEnricher
         _pdbResolver = pdbResolver;
     }
 
-    public SourceLocation? Enrich(OtlpLogRecord log)
+    public SourceLocation? Enrich(IEnumerable<ProtoKeyValue> attributes)
     {
-        var attrs = ToAttributeMap(log.Attributes);
+        var attrs = ToAttributeMap(attributes);
 
         var file = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFilePath);
         var method = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFunctionName);
@@ -39,21 +42,23 @@ public sealed class LogSourceEnricher
         return _cache.GetOrAdd(methodKey, () => _pdbResolver.ResolveFromCurrentMethod(method));
     }
 
-    private static Dictionary<string, string?> ToAttributeMap(IReadOnlyList<OtlpKeyValue>? attributes)
+    private static Dictionary<string, string?> ToAttributeMap(IEnumerable<ProtoKeyValue> attributes)
     {
         var map = new Dictionary<string, string?>(StringComparer.Ordinal);
-        if (attributes is null)
-            return map;
 
         foreach (var kv in attributes)
         {
             if (string.IsNullOrWhiteSpace(kv.Key))
                 continue;
 
-            map[kv.Key] = kv.Value?.StringValue
-                       ?? kv.Value?.IntValue?.ToString(CultureInfo.InvariantCulture)
-                       ?? kv.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-                       ?? kv.Value?.BoolValue?.ToString();
+            map[kv.Key] = kv.Value.ValueCase switch
+            {
+                ProtoAnyValue.ValueOneofCase.StringValue => kv.Value.StringValue,
+                ProtoAnyValue.ValueOneofCase.IntValue => kv.Value.IntValue.ToString(CultureInfo.InvariantCulture),
+                ProtoAnyValue.ValueOneofCase.DoubleValue => kv.Value.DoubleValue.ToString(CultureInfo.InvariantCulture),
+                ProtoAnyValue.ValueOneofCase.BoolValue => kv.Value.BoolValue.ToString(),
+                _ => null
+            };
         }
 
         return map;

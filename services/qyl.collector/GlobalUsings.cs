@@ -13,7 +13,6 @@ global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using System.Threading.Channels;
 global using DuckDB.NET.Data;
-global using Grpc.AspNetCore.Server.Model;
 global using Grpc.Core;
 global using Microsoft.AspNetCore.Http.HttpResults;
 global using Qyl.Collector.Ingestion;

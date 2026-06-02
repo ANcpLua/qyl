@@ -26,6 +26,17 @@ import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
 import {extractToolCallInfo, hasToolDefinitions, ToolCallViewer, ToolDefinitionsViewer,} from '@/components/genai';
 import type {TimeFilter} from '@/hooks/use-agent-insights';
 import {useAgentLlmCalls, useAgentTokens} from '@/hooks/use-agent-insights';
+import {
+    GEN_AI_PROVIDER_NAME,
+    GEN_AI_REQUEST_MODEL,
+    GEN_AI_REQUEST_TEMPERATURE,
+    GEN_AI_RESPONSE_FINISH_REASONS,
+    GEN_AI_RESPONSE_MODEL,
+    GEN_AI_TOOL_CALL_ID,
+    GEN_AI_TOOL_NAME,
+    GEN_AI_USAGE_INPUT_TOKENS,
+    GEN_AI_USAGE_OUTPUT_TOKENS,
+} from '@/lib/semconv';
 
 interface GenAiStats {
     requestCount: number;
@@ -64,16 +75,106 @@ interface GenAiSpansResponse {
     total: number;
 }
 
+interface ContractAttribute {
+    key: string;
+    value: unknown;
+}
+
+interface ContractSpan {
+    spanId: string;
+    traceId: string;
+    parentSpanId?: string | null;
+    name: string;
+    kind: number;
+    startTimeUnixNano: number;
+    endTimeUnixNano: number;
+    attributes?: ContractAttribute[] | null;
+    status?: { code?: number; message?: string | null } | null;
+    resource?: { serviceName?: string | null } | null;
+}
+
+interface CursorPageSpan {
+    items?: ContractSpan[];
+    hasMore: boolean;
+}
+
+interface ContractGenAiStats {
+    totalOperations: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    estimatedCostUsd?: number | null;
+}
+
+const GEN_AI_USAGE_COST = 'gen_ai.usage.cost';
+
 async function fetchGenAiStats(): Promise<GenAiStats> {
     const res = await fetch('/api/v1/genai/stats');
     if (!res.ok) throw new Error('Failed to fetch GenAI stats');
-    return res.json();
+    const body = (await res.json()) as ContractGenAiStats;
+    return {
+        requestCount: body.totalOperations,
+        totalInputTokens: body.totalInputTokens,
+        totalOutputTokens: body.totalOutputTokens,
+        totalCostUsd: body.estimatedCostUsd ?? 0,
+    };
 }
 
 async function fetchGenAiSpans(limit = 50): Promise<GenAiSpansResponse> {
     const res = await fetch(`/api/v1/genai/spans?limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch GenAI spans');
-    return res.json();
+    const body = (await res.json()) as CursorPageSpan;
+    const spans = (body.items ?? []).map(toGenAiSpan);
+    return {spans, total: spans.length};
+}
+
+function toGenAiSpan(span: ContractSpan): GenAiSpan {
+    const attributes = toAttributeRecord(span.attributes);
+
+    return {
+        spanId: span.spanId,
+        traceId: span.traceId,
+        name: span.name,
+        kind: span.kind,
+        startTimeUnixNano: span.startTimeUnixNano,
+        endTimeUnixNano: span.endTimeUnixNano,
+        durationNs: Math.max(0, span.endTimeUnixNano - span.startTimeUnixNano),
+        statusCode: span.status?.code ?? 0,
+        statusMessage: span.status?.message ?? undefined,
+        serviceName: span.resource?.serviceName ?? undefined,
+        genAiProviderName: stringAttr(attributes, GEN_AI_PROVIDER_NAME),
+        genAiRequestModel: stringAttr(attributes, GEN_AI_REQUEST_MODEL),
+        genAiResponseModel: stringAttr(attributes, GEN_AI_RESPONSE_MODEL),
+        genAiInputTokens: numberAttr(attributes, GEN_AI_USAGE_INPUT_TOKENS),
+        genAiOutputTokens: numberAttr(attributes, GEN_AI_USAGE_OUTPUT_TOKENS),
+        genAiTemperature: numberAttr(attributes, GEN_AI_REQUEST_TEMPERATURE),
+        genAiStopReason: stringAttr(attributes, GEN_AI_RESPONSE_FINISH_REASONS),
+        genAiToolName: stringAttr(attributes, GEN_AI_TOOL_NAME),
+        genAiToolCallId: stringAttr(attributes, GEN_AI_TOOL_CALL_ID),
+        genAiCostUsd: numberAttr(attributes, GEN_AI_USAGE_COST),
+        attributesJson: JSON.stringify(attributes),
+    };
+}
+
+function toAttributeRecord(attributes?: ContractAttribute[] | null): Record<string, unknown> {
+    const record: Record<string, unknown> = {};
+    for (const attr of attributes ?? []) record[attr.key] = attr.value;
+    return record;
+}
+
+function stringAttr(attributes: Record<string, unknown>, key: string): string | undefined {
+    const value = attributes[key];
+    if (value === undefined || value === null) return undefined;
+    return Array.isArray(value) ? value.join(',') : String(value);
+}
+
+function numberAttr(attributes: Record<string, unknown>, key: string): number | undefined {
+    const value = attributes[key];
+    if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    }
+    return undefined;
 }
 
 const CHART_COLORS = [
