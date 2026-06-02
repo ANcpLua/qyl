@@ -2,6 +2,29 @@ namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {
+    public const string ProfilesDdl = """
+                                      CREATE TABLE IF NOT EXISTS profiles (
+                                          profile_id VARCHAR NOT NULL,
+                                          PRIMARY KEY (profile_id),
+                                          trace_id VARCHAR,
+                                          span_id VARCHAR,
+                                          session_id VARCHAR,
+                                          time_unix_nano UBIGINT NOT NULL,
+                                          duration_nano UBIGINT NOT NULL,
+                                          sample_count INTEGER NOT NULL,
+                                          sample_type VARCHAR,
+                                          sample_unit VARCHAR,
+                                          original_payload_format VARCHAR,
+                                          service_name VARCHAR,
+                                          profile_frame_type VARCHAR,
+                                          attributes_json VARCHAR,
+                                          resource_json VARCHAR,
+                                          profile_data_json VARCHAR,
+                                          schema_url VARCHAR(256),
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                      );
+                                      """;
+
     public const string ProfileFunctionsDdl = """
                                               CREATE TABLE IF NOT EXISTS profile_functions (
                                                   profile_id VARCHAR NOT NULL,

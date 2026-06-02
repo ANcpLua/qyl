@@ -1,5 +1,3 @@
-using Qyl.Collector.Intelligence;
-
 namespace Qyl.Collector.Hosting;
 
 public static class CollectorStorageExtensions
@@ -12,10 +10,6 @@ public static class CollectorStorageExtensions
         services.ActivateSingleton<DuckDbStore>();
 
         services.AddSingleton(static sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
-
-        services.AddSingleton<IPatternEngine>(
-            new PatternEngine(DiagnosticPatternCatalog.Patterns, DiagnosticPatternCatalog.CausalRules,
-                DiagnosticPatternCatalog.InvestigationStrategies));
 
         return services;
     }

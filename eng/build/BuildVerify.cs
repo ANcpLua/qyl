@@ -36,7 +36,7 @@ interface IVerify : IHazSourcePaths
 
             if (generatedFiles.Count is 0)
             {
-                Log.Warning("No generated files found to verify");
+                Log.Information("No committed generated C# files found to verify");
                 return;
             }
 
@@ -70,7 +70,7 @@ interface IVerify : IHazSourcePaths
 
     Target VerifyDuckDbSchema => d => d
         .Unlisted()
-        .Description("Verify generated DuckDB schema is valid")
+        .Description("Verify committed DuckDB schema artifact policy")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(async () =>
         {
@@ -79,7 +79,7 @@ interface IVerify : IHazSourcePaths
 
             if (!schemaFile.FileExists())
             {
-                Log.Warning("DuckDbSchema.g.sql not found, skipping DuckDB verification");
+                Log.Information("No committed TypeSpec DuckDB schema artifact found; collector storage schema is runtime-owned.");
                 return;
             }
 
@@ -135,11 +135,7 @@ interface IVerify : IHazSourcePaths
                 "diff --name-only",
                 RootDirectory, logOutput: false, logInvocation: false);
 
-            string[] activeGeneratedFiles =
-            [
-                "services/qyl.collector/Storage/DuckDbSchema.g.cs",
-                "services/qyl.collector/Storage/DuckDbSchema.g.sql"
-            ];
+            string[] activeGeneratedFiles = [];
 
             var dirtyFiles = diffOutput
                 .Select(static o => o.Text.Trim())
@@ -511,6 +507,43 @@ interface IVerify : IHazSourcePaths
                 "GetInsightHashAsync",
                 "UpsertInsightAsync",
                 "InsightRow",
+                "AddQylCollectorFeatures",
+                "GitHubService",
+                "HandshakeService",
+                "ProjectService",
+                "WorkspaceService",
+                "GenerationJobService",
+                "GenerationProfileService",
+                "WorkflowRunService",
+                "SchemaPlanner",
+                "SchemaExecutor",
+                "IPatternEngine",
+                "PatternEngine",
+                "DiagnosticPatternCatalog",
+                "SemanticDiffService",
+                "DistributionComparer",
+                "StatisticalMath",
+                "StoreArtifactAsync",
+                "InsertAgentRunAsync",
+                "InsertAlertRuleAsync",
+                "GetRegressionEventsAsync",
+                "WorkflowRunEntity",
+                "GenerationJobRecord",
+                "GitHubRepo",
+                "ArtifactRow",
+                "AlertRuleEntity",
+                "RegressionEventRow",
+                "AgentRunRecord",
+                "ToolCallRecord",
+                "AgentDecisionRecord",
+                "IssueService",
+                "ErrorIssueRow",
+                "ErrorIssueEventRow",
+                "ErrorBreadcrumbRow",
+                "MigrationRunner",
+                "ClearAllSessionsAsync",
+                "session_entities",
+                "_schema_versions",
                 "JsonSerializable(typeof(AgentDecisionRecord))",
                 "JsonSerializable(typeof(AgentRunRecord))",
                 "JsonSerializable(typeof(ErrorCategoryStat))",
@@ -538,6 +571,23 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Contracts",
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Metrics",
+                RootDirectory / "services" / "qyl.collector" / "Alerts",
+                RootDirectory / "services" / "qyl.collector" / "Analytics",
+                RootDirectory / "services" / "qyl.collector" / "Artifacts",
+                RootDirectory / "services" / "qyl.collector" / "Conversations",
+                RootDirectory / "services" / "qyl.collector" / "Dashboards",
+                RootDirectory / "services" / "qyl.collector" / "Identity",
+                RootDirectory / "services" / "qyl.collector" / "Insights",
+                RootDirectory / "services" / "qyl.collector" / "Intelligence",
+                RootDirectory / "services" / "qyl.collector" / "Provisioning",
+                RootDirectory / "services" / "qyl.collector" / "SchemaControl",
+                RootDirectory / "services" / "qyl.collector" / "Search",
+                RootDirectory / "services" / "qyl.collector" / "Services",
+                RootDirectory / "services" / "qyl.collector" / "Tracking",
+                RootDirectory / "services" / "qyl.collector" / "Workflows",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "Migrations",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.cs",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
                 RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
@@ -649,8 +699,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  Verification Complete");
             Log.Information("═══════════════════════════════════════════════════════════════");
-            Log.Information("  Generated C# code compiles");
-            Log.Information("  DuckDB schema is valid");
+            Log.Information("  Generated C# files are absent or compile");
+            Log.Information("  Committed TypeSpec DuckDB schema artifact stays absent");
             Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");

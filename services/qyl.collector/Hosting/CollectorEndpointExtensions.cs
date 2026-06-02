@@ -337,7 +337,6 @@ public static class CollectorEndpointExtensions
                 "spans" or "traces" => await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
                 "logs" => await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
                 "profiles" => await store.ClearAllProfilesAsync(ct).ConfigureAwait(false),
-                "sessions" => await store.ClearAllSessionsAsync(ct).ConfigureAwait(false),
                 _ => throw new ArgumentException($"Unknown telemetry type: {type}")
             };
             return TypedResults.Ok(new ClearTelemetryResponse
@@ -359,7 +358,7 @@ public static class CollectorEndpointExtensions
             SpansDeleted = result.SpansDeleted,
             LogsDeleted = result.LogsDeleted,
             ProfilesDeleted = result.ProfilesDeleted,
-            SessionsDeleted = result.SessionsDeleted,
+            SessionsDeleted = 0,
             ConsoleCleared = 0,
             Type = "all"
         });

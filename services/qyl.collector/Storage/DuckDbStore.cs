@@ -102,7 +102,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
 
     private static readonly FrozenSet<string> s_allowedClearTables = FrozenSet.Create(
-        StringComparer.Ordinal, "spans", "logs", "profiles", "session_entities");
+        StringComparer.Ordinal, "spans", "logs", "profiles");
 
 
     private readonly CancellationTokenSource _cts = new();
@@ -184,22 +184,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     private DuckDBConnection Connection { get; }
 
     private string DatabasePath { get; }
-
-
-    public Task ApplyPendingMigrationsAsync(
-        MigrationRunner migrationRunner,
-        int currentSchemaVersion,
-        string? migrationDirectory,
-        CancellationToken ct = default)
-    {
-        Guard.NotNull(migrationRunner);
-
-        return ExecuteWriteAsync((con, _) =>
-        {
-            migrationRunner.ApplyPendingMigrations(con, currentSchemaVersion, migrationDirectory);
-            return ValueTask.CompletedTask;
-        }, ct);
-    }
 
 
     public async ValueTask DisposeAsync()
@@ -546,8 +530,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<int> ClearAllProfilesAsync(CancellationToken ct = default) => ClearTableAsync("profiles", ct);
 
-    public Task<int> ClearAllSessionsAsync(CancellationToken ct = default) => ClearTableAsync("session_entities", ct);
-
     private async Task<int> ClearTableAsync(string tableName, CancellationToken ct) =>
         await ExecuteWriteAsync(async (con, token) =>
         {
@@ -561,7 +543,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
-            int spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted;
+            int spansDeleted, logsDeleted, profilesDeleted;
 
             await using (var cmd = con.CreateCommand())
             {
@@ -591,16 +573,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 profilesDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
-            await using (var cmd = con.CreateCommand())
-            {
-                cmd.Transaction = tx;
-                cmd.CommandText = "DELETE FROM session_entities";
-                sessionsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
-
             await tx.CommitAsync(token).ConfigureAwait(false);
 
-            return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted);
+            return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted);
         }, ct).ConfigureAwait(false);
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
@@ -1428,41 +1403,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceMethod ?? (object)DBNull.Value });
     }
 
-
-    private Task<T?> ReadOneAsync<T>(
-        string sql, Action<DuckDBCommand>? addParams, Func<DbDataReader, T> mapper,
-        CancellationToken ct = default) where T : class
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = sql;
-            addParams?.Invoke(cmd);
-            using var reader = cmd.ExecuteReader();
-            return reader.Read() ? mapper(reader) : null;
-        }, ct);
-    }
-
-    private Task<IReadOnlyList<T>> ReadManyAsync<T>(
-        string sql, Action<DuckDBCommand>? addParams, Func<DbDataReader, T> mapper,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<T>>(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = sql;
-            addParams?.Invoke(cmd);
-            var results = new List<T>();
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                results.Add(mapper(reader));
-            return results;
-        }, ct);
-    }
-
-
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var manualLogsCmd = con.CreateCommand();
@@ -1481,59 +1421,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         profilesCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
-        cmd.CommandText = NormalizeGeneratedSchemaDdl(DuckDbSchema.GetSchemaDdl());
+        cmd.CommandText = string.Concat(
+            DuckDbSchema.SpansDdl, "\n",
+            DuckDbSchema.ErrorsDdl, "\n",
+            DuckDbSchema.CoreIndexesDdl);
         cmd.ExecuteNonQuery();
-
-        using var extCmd = con.CreateCommand();
-        extCmd.CommandText = DuckDbSchema.WorkflowExecutionsDdl;
-        extCmd.ExecuteNonQuery();
-
-        using var workflowRunsCmd = con.CreateCommand();
-        workflowRunsCmd.CommandText = string.Concat(
-            DuckDbSchema.WorkflowRunsV2Ddl, "\n",
-            DuckDbSchema.WorkflowNodesV2Ddl, "\n",
-            DuckDbSchema.WorkflowCheckpointsV2Ddl, "\n",
-            DuckDbSchema.WorkflowEventsV2Ddl);
-        workflowRunsCmd.ExecuteNonQuery();
-
-        using var errorsCmd = con.CreateCommand();
-        errorsCmd.CommandText = """
-                                CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
-                                CREATE INDEX IF NOT EXISTS idx_errors_category ON errors(category);
-                                CREATE INDEX IF NOT EXISTS idx_errors_status ON errors(status);
-                                CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
-                                """;
-        errorsCmd.ExecuteNonQuery();
-
-        using var identityCmd = con.CreateCommand();
-        identityCmd.CommandText = string.Concat(
-            DuckDbSchema.WorkspacesDdl, "\n",
-            DuckDbSchema.ProjectsDdl, "\n",
-            DuckDbSchema.ProjectEnvironmentsDdl, "\n",
-            DuckDbSchema.HandshakeChallengesDdl, "\n",
-            DuckDbSchema.GitHubTokensDdl);
-        identityCmd.ExecuteNonQuery();
-
-        using var provisioningCmd = con.CreateCommand();
-        provisioningCmd.CommandText = string.Concat(
-            DuckDbSchema.ConfigSelectionsDdl, "\n",
-            DuckDbSchema.GenerationJobsDdl);
-        provisioningCmd.ExecuteNonQuery();
-
-        using var agentRunsCmd = con.CreateCommand();
-        agentRunsCmd.CommandText = string.Concat(
-            DuckDbSchema.AgentRunsDdl, "\n",
-            DuckDbSchema.ToolCallsDdl, "\n",
-            DuckDbSchema.AgentDecisionsDdl);
-        agentRunsCmd.ExecuteNonQuery();
-
-        using var schemaPromotionsCmd = con.CreateCommand();
-        schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;
-        schemaPromotionsCmd.ExecuteNonQuery();
-
-        using var artifactsCmd = con.CreateCommand();
-        artifactsCmd.CommandText = DuckDbSchema.ArtifactsDdl;
-        artifactsCmd.ExecuteNonQuery();
 
         using var costCmd = con.CreateCommand();
         costCmd.CommandText = string.Concat(
@@ -1541,44 +1433,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.ModelPricingTiersDdl, "\n",
             DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
-    }
-
-    private static string NormalizeGeneratedSchemaDdl(string ddl)
-    {
-        var statements = ddl.Split(";\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        var normalized = new List<string>(statements.Length);
-
-        foreach (var statement in statements)
-        {
-            if (!statement.StartsWithOrdinal("CREATE TABLE IF NOT EXISTS "))
-            {
-                normalized.Add(statement);
-                continue;
-            }
-
-            var lines = statement.Split('\n').ToList();
-            var createdAtIndexes = new List<int>();
-
-            for (var i = 0; i < lines.Count; i++)
-            {
-                if (lines[i].TrimStart().StartsWithIgnoreCase("created_at "))
-                {
-                    createdAtIndexes.Add(i);
-                }
-            }
-
-            if (createdAtIndexes.Count > 1)
-            {
-                foreach (var index in createdAtIndexes.Take(createdAtIndexes.Count - 1).OrderDescending())
-                {
-                    lines.RemoveAt(index);
-                }
-            }
-
-            normalized.Add(string.Join('\n', lines));
-        }
-
-        return string.Join(";\n", normalized) + ";\n";
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1787,7 +1641,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 }
 
 
-public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted, int SessionsDeleted)
+public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted)
 {
-    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted + SessionsDeleted;
+    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted;
 }
