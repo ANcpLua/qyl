@@ -9,49 +9,20 @@
     <GoogleProtobufVersion>3.34.0</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.78.0</GrpcToolsVersion>
-    <XunitVersion>3.2.2</XunitVersion>
-    <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
-    <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
-    <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
-    <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
-    <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills).
+    <!-- Single version for ANcpLua.Roslyn.Utilities packages used in this repo.
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.26</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAnalyzersVersion>2.0.1</ANcpLuaAnalyzersVersion>
-    <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
-    <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
-    <!-- BitNet hosting ships from ANcpLua/ANcpLua.Agents alongside the OpenAI
-         hosting package; alpha channel until the runtime contract stabilises.
-         First publish to nuget.org is 1.4.10-alpha.1 — earlier alphas were
-         silently dropped from the upstream publish workflow's pack step
-         (ANcpLua/ANcpLua.Agents@2f0f882 + 0314ccb fixed both the pack-line gap
-         and the Must-Publish gate that blocked the recovery release). The
-         intra-package version skew with ANcpLuaAgents*Version=1.4.3 is
-         intentional: BitNet hosting has no dependency on ANcpLua.Agents core. -->
-    <ANcpLuaAgentsHostingBitNetVersion>1.4.10-alpha.1</ANcpLuaAgentsHostingBitNetVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) — mirrors SDK truth; inlined so the repo builds with or without the sibling SDK checkout. -->
     <MicrosoftAgentsAIVersion>1.8.0</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIAbstractionsVersion>1.8.0</MicrosoftAgentsAIAbstractionsVersion>
-    <MicrosoftAgentsAIWorkflowsVersion>1.8.0</MicrosoftAgentsAIWorkflowsVersion>
-    <MicrosoftAgentsAIOpenAIVersion>1.8.0</MicrosoftAgentsAIOpenAIVersion>
     <MicrosoftAgentsAIHostingVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIHostingVersion>
-    <MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIHostingAGUIAspNetCoreVersion>
-    <MicrosoftAgentsAIDevUIVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIDevUIVersion>
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
-    <SystemClientModelVersion>1.11.0</SystemClientModelVersion>
-    <DuendeAccessTokenManagementVersion>4.2.0</DuendeAccessTokenManagementVersion>
     <NukeVersion>10.1.0</NukeVersion>
-    <NetArchTestVersion>1.3.2</NetArchTestVersion>
     <SpectreConsoleVersion>0.55.2</SpectreConsoleVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
-    <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
-    <!-- E2E test topology: WireMock for deterministic LLM stubbing, Testcontainers for
-         Docker-driven topology spin-up. Used only by tests/qyl.e2e.tests. -->
-    <WireMockNetVersion>2.6.0</WireMockNetVersion>
-    <TestcontainersVersion>4.11.0</TestcontainersVersion>
   </PropertyGroup>
 </Project>

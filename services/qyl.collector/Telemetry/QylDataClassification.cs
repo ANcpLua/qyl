@@ -4,7 +4,7 @@ using Microsoft.Extensions.Compliance.Redaction;
 
 namespace Qyl.Collector.Telemetry;
 
-public static class QylDataClassification
+internal static class QylDataClassification
 {
     public static DataClassification Pii => new("PII", "GDPR:PersonalData");
 
@@ -15,7 +15,7 @@ public static class QylDataClassification
     public static DataClassification InternalId => new("InternalId", "Internal:Identifier");
 }
 
-public sealed class PromptContentRedactor : Redactor
+internal sealed class PromptContentRedactor : Redactor
 {
     private const int MaxLength = 100;
     private const string Suffix = "...[truncated]";
@@ -42,7 +42,7 @@ public sealed class PromptContentRedactor : Redactor
     }
 }
 
-public sealed class HashingRedactor : Redactor
+internal sealed class HashingRedactor : Redactor
 {
     private const int HashLength = 16;
 
@@ -59,7 +59,7 @@ public sealed class HashingRedactor : Redactor
     }
 }
 
-public static class QylRedactionExtensions
+internal static class QylRedactionExtensions
 {
     public static IRedactionBuilder AddQylRedactors(this IRedactionBuilder builder)
     {

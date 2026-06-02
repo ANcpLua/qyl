@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorStorageExtensions
+internal static class CollectorStorageExtensions
 {
     private const string DefaultDataPath = "qyl.duckdb";
 

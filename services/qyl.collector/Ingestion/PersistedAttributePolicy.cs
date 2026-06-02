@@ -41,8 +41,7 @@ internal static class PersistedAttributePolicy
         MessagingAttributes.System,
         OtelAttributes.ScopeName,
         ProfileAttributes.FrameType,
-        ServerAttributes.Address,
-        UrlAttributes.Path);
+        ServerAttributes.Address);
 
     private static readonly FrozenSet<string> s_resourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,

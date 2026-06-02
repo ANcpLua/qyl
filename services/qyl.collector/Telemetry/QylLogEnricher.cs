@@ -4,7 +4,7 @@ using HttpAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Http.Htt
 
 namespace Qyl.Collector.Telemetry;
 
-public sealed class QylLogEnricher : ILogEnricher
+internal sealed class QylLogEnricher : ILogEnricher
 {
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
 
@@ -14,7 +14,7 @@ public sealed class QylLogEnricher : ILogEnricher
     }
 }
 
-public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor) : ILogEnricher
+internal sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor) : ILogEnricher
 {
     public void Enrich(IEnrichmentTagCollector collector)
     {

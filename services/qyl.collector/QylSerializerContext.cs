@@ -52,4 +52,4 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(MetaStatus))]
 [JsonSerializable(typeof(MetaLinks))]
 [JsonSerializable(typeof(MetaPorts))]
-public partial class QylSerializerContext : JsonSerializerContext;
+internal partial class QylSerializerContext : JsonSerializerContext;

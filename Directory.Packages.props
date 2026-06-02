@@ -14,7 +14,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- OpenTelemetry -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
@@ -28,17 +27,13 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <!-- Microsoft.Extensions -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
     <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->
     <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
@@ -48,50 +43,27 @@
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Duende.AccessTokenManagement" Version="$(DuendeAccessTokenManagementVersion)"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
     <!-- System -->
     <PackageVersion Include="System.IO.Hashing" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="System.Reflection.Metadata" Version="$(DotNetRuntimeVersion)"/>
     <!-- DuckDB -->
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
     <!-- gRPC & Protobuf -->
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
     <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
-    <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2) -->
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitVersion)"/>
-    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingTrxVersion)"/>
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="$(MicrosoftTestingCodeCoverageVersion)"/>
-    <!-- Architecture Tests -->
-    <PackageVersion Include="NetArchTest.Rules" Version="$(NetArchTestVersion)"/>
-    <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftCodeAnalysisAnalyzersVersion)"/>
     <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Polyfills" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
-    <PackageVersion Include="ANcpLua.Agents.Testing" Version="$(ANcpLuaAgentsTestingVersion)"/>
-    <PackageVersion Include="ANcpLua.Agents.Hosting.OpenAI" Version="$(ANcpLuaAgentsHostingOpenAIVersion)"/>
-    <PackageVersion Include="ANcpLua.Agents.Hosting.BitNet" Version="$(ANcpLuaAgentsHostingBitNetVersion)"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
-    <!-- Microsoft.Agents.AI (MAF 1.4) -->
+    <!-- Microsoft.Agents.AI -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsAIAbstractionsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsAIWorkflowsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(MicrosoftAgentsAIOpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(MicrosoftAgentsAIHostingAGUIAspNetCoreVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsAIDevUIVersion)"/>
     <!-- OpenAI -->
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>
-    <!-- Serialization runtime dep for the OpenAI / Microsoft.Extensions.AI stack -->
-    <PackageVersion Include="System.ClientModel" Version="$(SystemClientModelVersion)"/>
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
@@ -102,9 +74,6 @@
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.8"/>
     <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <!-- E2E test topology (tests/qyl.e2e.tests only): deterministic LLM stub + Docker topology -->
-    <PackageVersion Include="WireMock.Net" Version="$(WireMockNetVersion)"/>
-    <PackageVersion Include="Testcontainers" Version="$(TestcontainersVersion)"/>
     <!-- Qyl-private vendor-fork of the upstream OTel semantic-conventions source-generator
          work in opentelemetry-dotnet-contrib#4424. Published-but-unlisted on nuget.org while
          the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).

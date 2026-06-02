@@ -61,41 +61,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                              baggage_json, schema_url, created_at
                                              """;
 
-
-    private const string ErrorUpsertSql = """
-                                          INSERT INTO errors
-                                              (error_id, error_type, message, category, fingerprint,
-                                               first_seen, last_seen, occurrence_count,
-                                               affected_users, affected_services, status,
-                                               assigned_to, issue_url, sample_traces)
-                                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, [$10], $11, $12, $13, [$14])
-                                          ON CONFLICT (fingerprint) DO UPDATE SET
-                                              last_seen = EXCLUDED.last_seen,
-                                              occurrence_count = errors.occurrence_count + 1,
-                                              affected_users = CASE
-                                                  WHEN EXCLUDED.affected_users IS NULL THEN errors.affected_users
-                                                  WHEN errors.affected_users IS NULL THEN EXCLUDED.affected_users
-                                                  ELSE GREATEST(errors.affected_users, EXCLUDED.affected_users)
-                                              END,
-                                              affected_services = list_distinct(
-                                                  list_concat(
-                                                      COALESCE(errors.affected_services, []::VARCHAR[]),
-                                                      COALESCE(EXCLUDED.affected_services, []::VARCHAR[])
-                                                  )
-                                              ),
-                                              sample_traces = CASE
-                                                  WHEN len(COALESCE(errors.sample_traces, []::VARCHAR[])) >= 10
-                                                      THEN errors.sample_traces
-                                                  ELSE list_distinct(
-                                                      list_concat(
-                                                          COALESCE(errors.sample_traces, []::VARCHAR[]),
-                                                          COALESCE(EXCLUDED.sample_traces, []::VARCHAR[])
-                                                      )
-                                                  )
-                                              END
-                                          """;
-
-
     private const int MaxProfilesPerBatch = 50;
 
     private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
@@ -598,47 +563,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             }
         }, ct).ConfigureAwait(false);
 
-    public async Task<int> DeleteSpansBeforeAsync(ulong timestampNanos, CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)timestampNanos });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-    public async Task<int> DeleteOldestSpansAsync(long count, CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              DELETE FROM spans
-                              WHERE span_id IN (
-                                  SELECT span_id FROM spans
-                                  ORDER BY start_time_unix_nano ASC
-                                  LIMIT $1
-                              )
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = count });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-    public async Task<int> DeleteOldestLogsAsync(long count, CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              DELETE FROM logs
-                              WHERE rowid IN (
-                                  SELECT rowid FROM logs
-                                  ORDER BY time_unix_nano ASC
-                                  LIMIT $1
-                              )
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = count });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
     public Task<int> ClearAllSpansAsync(CancellationToken ct = default) => ClearTableAsync("spans", ct);
 
     public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
@@ -759,8 +683,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 qb.Add("severity_text = $N", severityText);
             if (minSeverity.HasValue)
                 qb.Add("severity_number >= $N", minSeverity.Value);
-            if (!string.IsNullOrEmpty(search))
-                qb.Add("body LIKE $N", $"%{search}%");
+            if (!string.IsNullOrWhiteSpace(search))
+                qb.Add("(body ILIKE $N OR severity_text ILIKE $N OR service_name ILIKE $N OR attributes_json ILIKE $N)",
+                    $"%{search}%");
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
             if (after.HasValue)
@@ -1041,33 +966,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         return rows;
     }
 
-    private static void AddErrorUpsertParameters(DuckDBCommand cmd, ErrorEvent error, string errorId, DateTime now)
-    {
-        cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
-        cmd.Parameters.Add(new DuckDBParameter { Value = now });
-        cmd.Parameters.Add(new DuckDBParameter { Value = now });
-        cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
-        cmd.Parameters.Add(new DuckDBParameter { Value = string.IsNullOrWhiteSpace(error.UserId) ? DBNull.Value : 1L });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
-        cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
-        cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
-    }
-
-    public async Task<int> ArchiveToParquetAsync(
-        string outputDirectory,
-        TimeSpan olderThan,
-        CancellationToken ct = default) =>
-        await ExecuteWriteAsync(
-            (con, token) => ArchiveInternalAsync(con, outputDirectory, olderThan, token),
-            ct).ConfigureAwait(false);
-
-
     private async Task WriterLoopAsync()
     {
         try
@@ -1164,88 +1062,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         }
 
         await tx.CommitAsync(ct).ConfigureAwait(false);
-
-        await ExtractAndUpsertErrorsAsync(con, batch.Spans, ct).ConfigureAwait(false);
-    }
-
-    private static async ValueTask ExtractAndUpsertErrorsAsync(
-        DuckDBConnection con,
-        IEnumerable<SpanStorageRow> spans,
-        CancellationToken ct)
-    {
-        List<ErrorEvent>? errors = null;
-        foreach (var span in spans)
-        {
-            if (ErrorExtractor.Extract(span) is { } errorEvent)
-            {
-                errors ??= [];
-                errors.Add(errorEvent);
-            }
-        }
-
-        if (errors is null) return;
-
-        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
-        foreach (var error in errors)
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = ErrorUpsertSql;
-            AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        await tx.CommitAsync(ct).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<int> ArchiveInternalAsync(
-        DuckDBConnection con,
-        string outputDirectory,
-        TimeSpan olderThan,
-        CancellationToken ct)
-    {
-        ValidateArchiveDirectory(outputDirectory);
-        Directory.CreateDirectory(outputDirectory);
-
-        var now = TimeProvider.System.GetUtcNow();
-        var cutoffMs = (now - olderThan).ToUnixTimeMilliseconds();
-        var cutoffNano = (ulong)cutoffMs * 1_000_000UL;
-        var timestamp = now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-
-        await using var countCmd = con.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time_unix_nano < $1";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
-        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
-        if (count is 0)
-            return 0;
-
-        var finalPath = Path.GetFullPath(Path.Combine(outputDirectory, $"spans_{timestamp}.parquet"));
-        var tempPath = finalPath + ".tmp";
-
-        ValidateDuckDbSqlPath(finalPath);
-        ValidateDuckDbSqlPath(tempPath);
-
-        await using (var exportCmd = con.CreateCommand())
-        {
-            exportCmd.CommandText = "COPY (SELECT * FROM spans WHERE start_time_unix_nano < $1)"
-                                    + " TO '" + tempPath + "'"
-                                    + " (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)";
-            exportCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
-            await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        File.Move(tempPath, finalPath, true);
-
-        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
-        await using var deleteCmd = con.CreateCommand();
-        deleteCmd.Transaction = tx;
-        deleteCmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
-        deleteCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
-        await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        await tx.CommitAsync(ct).ConfigureAwait(false);
-
-        return count;
     }
 
     private static string BuildMultiRowSpanInsertSql(int spanCount)
@@ -1408,7 +1224,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             DuckDbSchema.SpansDdl, "\n",
-            DuckDbSchema.ErrorsDdl, "\n",
             DuckDbSchema.CoreIndexesDdl);
         cmd.ExecuteNonQuery();
 
@@ -1467,42 +1282,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             SchemaUrl = reader.Col(14).AsString,
             CreatedAt = reader.Col(15).AsDateTimeOffset
         };
-
-    private static void ValidateDuckDbSqlPath(string fullPath)
-    {
-        if (fullPath.Contains('\'') || fullPath.Contains(';') || fullPath.Contains("--") ||
-            fullPath.Contains('\n') || fullPath.Contains('\r') || fullPath.Contains('\0'))
-            throw new ArgumentException("Invalid path characters detected", nameof(fullPath));
-    }
-
-    private static void ValidateArchiveDirectory(string outputDirectory)
-    {
-        Guard.NotNullOrWhiteSpace(outputDirectory);
-
-        if (outputDirectory.Contains("..") || outputDirectory.Contains('\0'))
-        {
-            throw new ArgumentException("Output directory contains invalid traversal sequences",
-                nameof(outputDirectory));
-        }
-
-        var fullPath = Path.GetFullPath(outputDirectory);
-
-        if (fullPath.Contains(".."))
-            throw new ArgumentException("Canonicalized path still contains traversal", nameof(outputDirectory));
-
-        string[] dangerousPrefixes = OperatingSystem.IsWindows()
-            ? [@"C:\Windows", @"C:\Program Files", @"C:\Program Files (x86)"]
-            : ["/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/var/run", "/System"];
-
-        foreach (var prefix in dangerousPrefixes)
-        {
-            if (fullPath.StartsWithIgnoreCase(prefix))
-            {
-                throw new ArgumentException($"Output directory cannot be under system path: {prefix}",
-                    nameof(outputDirectory));
-            }
-        }
-    }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 

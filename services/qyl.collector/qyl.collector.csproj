@@ -49,7 +49,6 @@
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
     <!-- HealthChecks is transitive from HealthChecks.Common - explicit reference causes NU1510 -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>

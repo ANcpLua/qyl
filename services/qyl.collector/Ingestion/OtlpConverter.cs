@@ -1,4 +1,5 @@
 
+using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -301,7 +302,7 @@ internal static class OtlpConverter
             ? sessionAttr.Value.StringValue
             : null;
 
-        var body = ConvertProtoAnyValueToString(log.Body);
+        var body = ConvertProtoAnyValueToSafeLogBody(log.Body);
 
         var severityNumber = (int)log.SeverityNumber;
         var severityText = string.IsNullOrEmpty(log.SeverityText)
@@ -342,6 +343,18 @@ internal static class OtlpConverter
         }
 
         return PersistedAttributePolicy.SerializeLogAttributes(dict);
+    }
+
+    private static string? ConvertProtoAnyValueToSafeLogBody(ProtoAnyValue? value)
+    {
+        var raw = ConvertProtoAnyValueToString(value);
+        if (string.IsNullOrEmpty(raw))
+            return raw;
+
+        var bytes = Encoding.UTF8.GetBytes(raw);
+        var hash = SHA256.HashData(bytes);
+        var fingerprint = Convert.ToHexString(hash.AsSpan(0, 8)).ToLowerInvariant();
+        return $"sha256:{fingerprint};chars:{raw.Length};bytes:{bytes.Length}";
     }
 
     private static string SeverityNumberToText(int severityNumber) => severityNumber switch

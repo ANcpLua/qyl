@@ -37,22 +37,21 @@ internal sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptio
     {
         if (string.IsNullOrEmpty(key)) return false;
 
-        var keyBytes = Encoding.UTF8.GetBytes(key);
+        if (FixedTimeEquals(key, options.PrimaryApiKey))
+            return true;
 
-        if (!string.IsNullOrEmpty(options.PrimaryApiKey))
-        {
-            var primaryBytes = Encoding.UTF8.GetBytes(options.PrimaryApiKey);
-            if (CryptographicOperations.FixedTimeEquals(keyBytes, primaryBytes))
-                return true;
-        }
+        return FixedTimeEquals(key, options.SecondaryApiKey);
+    }
 
-        if (!string.IsNullOrEmpty(options.SecondaryApiKey))
-        {
-            var secondaryBytes = Encoding.UTF8.GetBytes(options.SecondaryApiKey);
-            if (CryptographicOperations.FixedTimeEquals(keyBytes, secondaryBytes))
-                return true;
-        }
+    private static bool FixedTimeEquals(string candidate, string? expected)
+    {
+        if (string.IsNullOrEmpty(expected) || candidate.Length != expected.Length)
+            return false;
 
-        return false;
+        var diff = 0;
+        for (var i = 0; i < candidate.Length; i++)
+            diff |= candidate[i] ^ expected[i];
+
+        return diff is 0;
     }
 }

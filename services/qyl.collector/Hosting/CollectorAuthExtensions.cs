@@ -5,7 +5,7 @@ using Qyl.Instrumentation.Instrumentation.Inventory;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorAuthExtensions
+internal static class CollectorAuthExtensions
 {
     public static IServiceCollection AddQylCollectorAuth(
         this IServiceCollection services,

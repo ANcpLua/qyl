@@ -4,15 +4,13 @@ using Microsoft.Extensions.Diagnostics.Latency;
 
 namespace Qyl.Collector.Telemetry;
 
-public static class TelemetryExtensions
+internal static class TelemetryExtensions
 {
     public static void AddQylTelemetry(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
 
         services.AddRedaction(static builder => builder.AddQylRedactors());
-
-        services.AddHttpLogging();
 
         services.AddExceptionSummarizer(static builder =>
         {
@@ -64,8 +62,6 @@ public static class TelemetryExtensions
     {
         var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
-        app.UseHttpLogging();
-
         if (!env.IsEnvironment("Testing"))
         {
             var latencyContext = app.ApplicationServices.GetService<ILatencyContext>();
@@ -77,7 +73,7 @@ public static class TelemetryExtensions
     }
 }
 
-public static class QylLoggingBuilderExtensions
+internal static class QylLoggingBuilderExtensions
 {
     public static ILoggingBuilder AddQylLogging(this ILoggingBuilder builder, IHostEnvironment environment)
     {

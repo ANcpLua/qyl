@@ -3,7 +3,7 @@ using Qyl.Collector.Telemetry;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorInitializationExtensions
+internal static class CollectorInitializationExtensions
 {
     public static async Task InitializeQylCollectorAsync(this WebApplication app)
     {

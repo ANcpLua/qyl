@@ -18,7 +18,6 @@ global using Qyl.Collector.Ingestion;
 global using Qyl.Collector.Realtime;
 global using Qyl.Collector.Storage;
 global using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;
-global using Qyl.Collector.Errors;
 global using Qyl.Collector.Mapping;
 global using Qyl.Instrumentation;
 global using QylAttr;

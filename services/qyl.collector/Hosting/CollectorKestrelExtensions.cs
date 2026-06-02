@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorKestrelExtensions
+internal static class CollectorKestrelExtensions
 {
     public static ConfigureWebHostBuilder ConfigureQylCollectorKestrel(
         this ConfigureWebHostBuilder webHost,

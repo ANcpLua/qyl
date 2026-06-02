@@ -29,9 +29,9 @@ internal sealed class ProfilesServiceImpl(DuckDbStore store)
         {
             throw new RpcException(new Status(StatusCode.Unavailable, "Service is shutting down"));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            throw new RpcException(new Status(StatusCode.Internal, $"Failed to process profile data: {ex.Message}"));
+            throw new RpcException(new Status(StatusCode.Internal, "Failed to process profile data."));
         }
     }
 }

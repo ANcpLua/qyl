@@ -89,6 +89,62 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorHasNoUnexpectedPublicTypes => d => d
+        .Unlisted()
+        .Description("Verify collector does not expose public types outside the ASP.NET Program hook")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .SelectMany(file => File.ReadAllLines(file)
+                    .Select((line, index) => (
+                        File: RootDirectory.GetRelativePathTo(file).ToString(),
+                        Line: index + 1,
+                        Text: line.TrimStart()))
+                    .Where(static line => IsUnexpectedPublicType(line.Text)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector exposes no public type surface outside Program");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Public collector type at {File}:{Line}: {Text}",
+                    offender.File, offender.Line, offender.Text);
+
+            throw new InvalidOperationException(
+                "The collector is an application, not a contract assembly. Keep collector types internal; " +
+                "public API contracts must come from Qyl.Api.Contracts.");
+
+            static bool IsUnexpectedPublicType(string line)
+            {
+                if (line is "public partial class Program;")
+                    return false;
+
+                return line.StartsWith("public class ", StringComparison.Ordinal)
+                       || line.StartsWith("public static class ", StringComparison.Ordinal)
+                       || line.StartsWith("public static partial class ", StringComparison.Ordinal)
+                       || line.StartsWith("public sealed class ", StringComparison.Ordinal)
+                       || line.StartsWith("public partial class ", StringComparison.Ordinal)
+                       || line.StartsWith("public sealed partial class ", StringComparison.Ordinal)
+                       || line.StartsWith("public record ", StringComparison.Ordinal)
+                       || line.StartsWith("public sealed record ", StringComparison.Ordinal)
+                       || line.StartsWith("public readonly record ", StringComparison.Ordinal)
+                       || line.StartsWith("public partial record ", StringComparison.Ordinal)
+                       || line.StartsWith("public struct ", StringComparison.Ordinal)
+                       || line.StartsWith("public readonly struct ", StringComparison.Ordinal)
+                       || line.StartsWith("public enum ", StringComparison.Ordinal);
+            }
+        });
+
     Target VerifyCollectorHasNoPublicLocalModels => d => d
         .Unlisted()
         .Description("Verify collector-local DTO models do not become public API")
@@ -542,6 +598,30 @@ interface IVerify : IHazSourcePaths
                 "GetErrorStatsAsync",
                 "UpdateErrorStatusAsync",
                 "GetErrorByIdAsync",
+                "ErrorExtractor",
+                "ErrorFingerprinter",
+                "ErrorCategorizer",
+                "ErrorEvent",
+                "ErrorUpsertSql",
+                "ErrorsDdl",
+                "ExtractAndUpsertErrorsAsync",
+                "AddErrorUpsertParameters",
+                "DeleteSpansBeforeAsync",
+                "DeleteOldestSpansAsync",
+                "DeleteOldestLogsAsync",
+                "ArchiveToParquetAsync",
+                "ArchiveInternalAsync",
+                "ValidateArchiveDirectory",
+                "ValidateDuckDbSqlPath",
+                "errors(fingerprint)",
+                "CREATE TABLE IF NOT EXISTS errors",
+                "AddHttpLogging(",
+                "UseHttpLogging(",
+                "UrlAttributes.Path",
+                "body LIKE",
+                "CopyToAsync(payload",
+                "Encoding.UTF8.GetBytes(options.",
+                "ex.Message",
                 "record ErrorRow",
                 "record ErrorStats",
                 "record ErrorCategoryStat",
@@ -593,6 +673,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Artifacts",
                 RootDirectory / "services" / "qyl.collector" / "Conversations",
                 RootDirectory / "services" / "qyl.collector" / "Dashboards",
+                RootDirectory / "services" / "qyl.collector" / "Errors",
                 RootDirectory / "services" / "qyl.collector" / "Identity",
                 RootDirectory / "services" / "qyl.collector" / "Insights",
                 RootDirectory / "services" / "qyl.collector" / "Intelligence",
@@ -723,6 +804,7 @@ interface IVerify : IHazSourcePaths
         .Description("Run collector and frontend verification checks")
         .DependsOn(VerifyFrontendTypes)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
+        .DependsOn(VerifyCollectorHasNoUnexpectedPublicTypes)
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
@@ -737,6 +819,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Committed TypeSpec DuckDB schema artifact stays absent");
             Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Collector public API is explicitly mapped");
+            Log.Information("  Collector exposes no public type surface outside Program");
             Log.Information("  Collector-local DTO models are internal");
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");

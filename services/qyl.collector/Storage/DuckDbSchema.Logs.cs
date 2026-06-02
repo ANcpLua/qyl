@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Storage;
 
-public static partial class DuckDbSchema
+internal static partial class DuckDbSchema
 {
     public const string ManualLogsDdl = """
                                         CREATE TABLE IF NOT EXISTS logs (

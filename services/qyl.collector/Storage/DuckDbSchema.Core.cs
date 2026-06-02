@@ -1,27 +1,7 @@
 namespace Qyl.Collector.Storage;
 
-public static partial class DuckDbSchema
+internal static partial class DuckDbSchema
 {
-    public const string ErrorsDdl = """
-                                    CREATE TABLE IF NOT EXISTS errors (
-                                        error_id VARCHAR NOT NULL,
-                                        error_type VARCHAR NOT NULL,
-                                        message VARCHAR NOT NULL,
-                                        category VARCHAR NOT NULL,
-                                        fingerprint VARCHAR NOT NULL,
-                                        first_seen TIMESTAMP NOT NULL,
-                                        last_seen TIMESTAMP NOT NULL,
-                                        occurrence_count BIGINT NOT NULL,
-                                        affected_users BIGINT,
-                                        affected_services VARCHAR[],
-                                        status VARCHAR NOT NULL,
-                                        assigned_to VARCHAR,
-                                        issue_url VARCHAR,
-                                        sample_traces VARCHAR[],
-                                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                    );
-                                    """;
-
     public const string SpansDdl = """
                                    CREATE TABLE IF NOT EXISTS spans (
                                        span_id VARCHAR NOT NULL,
@@ -62,9 +42,5 @@ public static partial class DuckDbSchema
                                          CREATE INDEX IF NOT EXISTS idx_spans_service_name ON spans(service_name);
                                          CREATE INDEX IF NOT EXISTS idx_spans_gen_ai_provider_name ON spans(gen_ai_provider_name);
                                          CREATE INDEX IF NOT EXISTS idx_spans_gen_ai_request_model ON spans(gen_ai_request_model);
-                                         CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
-                                         CREATE INDEX IF NOT EXISTS idx_errors_category ON errors(category);
-                                         CREATE INDEX IF NOT EXISTS idx_errors_status ON errors(status);
-                                         CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
                                          """;
 }

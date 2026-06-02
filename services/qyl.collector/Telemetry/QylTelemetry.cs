@@ -3,7 +3,7 @@ using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
 
 namespace Qyl.Collector.Telemetry;
 
-public static class QylTelemetry
+internal static class QylTelemetry
 {
     public const string ServiceName = "Qyl.Collector";
     public const string ServiceVersion = "1.0.0";
@@ -23,7 +23,7 @@ public static class QylTelemetry
     });
 }
 
-public static class QylMetrics
+internal static class QylMetrics
 {
     private static Func<long>? s_storageSizeCallback;
 
@@ -54,9 +54,9 @@ public static class QylMetrics
     }
 }
 
-public static class QylLatencyNames
+internal static class QylLatencyNames
 {
-    public static class Checkpoints
+    internal static class Checkpoints
     {
         public const string DbQuery = "collector.db_query";
         public const string SpanIngest = "collector.span_ingest";
@@ -65,14 +65,14 @@ public static class QylLatencyNames
         public const string GenAiExtract = "collector.genai_extract";
     }
 
-    public static class Measures
+    internal static class Measures
     {
         public const string IngestionDuration = "collector.ingestion_duration";
         public const string QueryDuration = "collector.query_duration";
         public const string StorageDuration = "collector.storage_duration";
     }
 
-    public static class Tags
+    internal static class Tags
     {
         public const string SpanCount = "collector.span_count";
     }

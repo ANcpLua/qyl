@@ -5,10 +5,11 @@ namespace Qyl.Collector.Realtime;
 internal sealed class LiveLogDeduplicator
 {
     private readonly Dictionary<string, DedupBucket> _buckets = new(StringComparer.Ordinal);
+    private readonly int _maxBuckets;
     private readonly int _maxSuppressed;
     private readonly TimeSpan _window;
 
-    public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100)
+    public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100, int maxBuckets = 2_048)
     {
         if (window <= TimeSpan.Zero)
         {
@@ -16,9 +17,11 @@ internal sealed class LiveLogDeduplicator
         }
 
         Guard.NotLessThan(maxSuppressed, 1);
+        Guard.NotLessThan(maxBuckets, 1);
 
         _window = window;
         _maxSuppressed = maxSuppressed;
+        _maxBuckets = maxBuckets;
     }
 
     public IReadOnlyList<DeduplicatedLiveLog> ProcessBatch(IEnumerable<LogStorageRow> orderedLogs)
@@ -46,6 +49,9 @@ internal sealed class LiveLogDeduplicator
                 continue;
             }
 
+            if (_buckets.Count >= _maxBuckets)
+                EvictOldestBucket(output);
+
             _buckets[key] = new DedupBucket(log, timestamp);
             output.Add(new DeduplicatedLiveLog(log));
         }
@@ -66,6 +72,13 @@ internal sealed class LiveLogDeduplicator
         var severity = log.SeverityText ?? string.Empty;
         var body = log.Body ?? string.Empty;
         return $"{service}\u001f{severity}\u001f{body}";
+    }
+
+    private void EvictOldestBucket(ICollection<DeduplicatedLiveLog> output)
+    {
+        var oldest = _buckets.MinBy(static pair => pair.Value.LastSeenUtc);
+        EmitSummary(oldest.Value, output);
+        _buckets.Remove(oldest.Key);
     }
 
     private static void EmitSummary(DedupBucket bucket, ICollection<DeduplicatedLiveLog> output)

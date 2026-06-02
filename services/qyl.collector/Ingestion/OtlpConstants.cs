@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
-public static class OtlpConstants
+internal static class OtlpConstants
 {
     public static readonly string[] Paths = ["/v1/traces", "/v1/logs", "/v1/profiles"];
 

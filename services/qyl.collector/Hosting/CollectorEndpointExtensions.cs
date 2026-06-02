@@ -6,7 +6,7 @@ using Qyl.Api.Contracts.Common.Pagination;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorEndpointExtensions
+internal static class CollectorEndpointExtensions
 {
     public static WebApplication MapQylCollectorEndpoints(this WebApplication app)
     {

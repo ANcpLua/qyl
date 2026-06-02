@@ -3,7 +3,7 @@ using Qyl.Collector.Telemetry;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorTelemetryExtensions
+internal static class CollectorTelemetryExtensions
 {
     public static IServiceCollection AddQylCollectorTelemetry(
         this IServiceCollection services,

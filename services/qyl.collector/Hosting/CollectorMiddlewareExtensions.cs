@@ -5,7 +5,7 @@ using Qyl.Collector.Telemetry;
 
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorMiddlewareExtensions
+internal static class CollectorMiddlewareExtensions
 {
     public static WebApplication UseQylCollectorMiddleware(this WebApplication app)
     {
