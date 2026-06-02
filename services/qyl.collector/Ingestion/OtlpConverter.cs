@@ -2,10 +2,13 @@
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
+using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
 using Qyl.Collector.Services;
@@ -261,44 +264,6 @@ public static class OtlpConverter
         return instances;
     }
 
-    private static string? ConvertJsonValueToString(OtlpAnyValue? value)
-    {
-        if (value is null)
-            return null;
-
-        if (value.StringValue is not null)
-            return value.StringValue;
-        if (value.IntValue.HasValue)
-            return value.IntValue.Value.ToString();
-        if (value.DoubleValue.HasValue)
-            return value.DoubleValue.Value.ToString(CultureInfo.InvariantCulture);
-        if (value.BoolValue.HasValue)
-            return value.BoolValue.Value.ToString().ToLowerInvariant();
-        if (value.BytesValue is not null)
-            return value.BytesValue;
-
-        if (value.ArrayValue is not null)
-        {
-            var items = value.ArrayValue.Values
-                            ?.Select(ConvertJsonValueToString)
-                            .Where(static (string? v) => v is not null)
-                            .ToArray() ??
-                        [];
-
-            return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
-        }
-
-        if (value.KvlistValue is null)
-            return null;
-
-        var dict = value.KvlistValue.Values
-                       ?.Where(static kv => ConvertJsonValueToString(kv.Value) is not null)
-                       .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value) ?? "")
-                   ?? new Dictionary<string, string>(StringComparer.Ordinal);
-
-        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
-    }
-
     private static string SerializeProtoArray(RepeatedField<ProtoAnyValue> values)
     {
         var items = values.Select(ConvertProtoAnyValueToString)
@@ -491,20 +456,6 @@ public static class OtlpConverter
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
 
-    private static string? SerializeAttributes(List<OtlpKeyValue>? attributes)
-    {
-        if (attributes is null || attributes.Count is 0) return null;
-
-        var dict = new Dictionary<string, string>(attributes.Count);
-        foreach (var attr in attributes)
-        {
-            if (attr.Key is null) continue;
-            dict[attr.Key] = ConvertJsonValueToString(attr.Value) ?? "";
-        }
-
-        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
-    }
-
     private static string SeverityNumberToText(int severityNumber) => severityNumber switch
     {
         >= 1 and <= 4 => "TRACE",
@@ -520,28 +471,31 @@ public static class OtlpConverter
 
     #region Profiles Conversion
 
-    public static List<ProfileConversionResult> ConvertProfilesToNormalizedRows(OtlpExportProfilesServiceRequest otlp)
+    public static List<ProfileConversionResult> ConvertProfilesToNormalizedRows(ExportProfilesServiceRequest otlp)
     {
         var results = new List<ProfileConversionResult>();
+        var dictionary = otlp.Dictionary ?? new ProtoProfilesDictionary();
 
-        foreach (var resourceProfiles in otlp.ResourceProfiles ?? [])
+        foreach (var resourceProfiles in otlp.ResourceProfiles)
         {
-            var serviceName = resourceProfiles.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
-                              ?? "unknown";
+            var serviceName = ExtractServiceNameFromProto(resourceProfiles.Resource);
 
-            var resourceJson = SerializeAttributes(resourceProfiles.Resource?.Attributes);
+            var resourceAttrs = ExtractResourceAttributesFromProto(resourceProfiles.Resource);
+            var resourceJson = resourceAttrs.Count > 0
+                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
+                : null;
             var schemaUrl = resourceProfiles.SchemaUrl;
 
-            foreach (var scopeProfiles in resourceProfiles.ScopeProfiles ?? [])
+            foreach (var scopeProfiles in resourceProfiles.ScopeProfiles)
             {
                 var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeProfiles.SchemaUrl)
                     ? scopeProfiles.SchemaUrl
                     : schemaUrl;
 
-                foreach (var profile in scopeProfiles.Profiles ?? [])
+                foreach (var profile in scopeProfiles.Profiles)
                 {
-                    results.Add(CreateNormalizedProfile(profile, serviceName, resourceJson, effectiveSchemaUrl));
+                    results.Add(CreateNormalizedProfile(profile, dictionary, serviceName, resourceJson,
+                        effectiveSchemaUrl));
                 }
             }
         }
@@ -550,32 +504,23 @@ public static class OtlpConverter
     }
 
     private static ProfileConversionResult CreateNormalizedProfile(
-        OtlpProfile profile,
+        ProtoProfile profile,
+        ProtoProfilesDictionary dictionary,
         string serviceName,
         string? resourceJson,
         string? schemaUrl)
     {
-        var profileId = profile.ProfileId ?? Guid.NewGuid().ToString("N")[..16];
-        var strings = profile.StringTable ?? [];
+        var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
+        var attributes = ExtractProfileAttributes(profile.AttributeIndices, dictionary);
 
-        var sessionId = profile.Attributes?
-            .FirstOrDefault(static a =>
-                a.Key is not null && a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
-            ?.Value?.StringValue;
+        var sessionId = attributes.GetFirstValueOrDefault(SemanticAttributeKeys.SessionCorrelationKeys);
 
-        var profileFrameType = profile.Attributes?
-            .FirstOrDefault(static a => a.Key == "profile.frame.type")?.Value?.StringValue;
+        var profileFrameType = attributes.GetValueOrDefault(SemanticAttributeKeys.ProfileFrameType);
 
-        string? traceId = null;
-        string? spanId = null;
-        if (profile.LinkTable is { Count: > 0 })
-        {
-            traceId = profile.LinkTable[0].TraceId;
-            spanId = profile.LinkTable[0].SpanId;
-        }
+        var (traceId, spanId) = ResolveProfileLink(profile, dictionary);
 
-        var sampleType = Resolve(profile.SampleType?.TypeStrindex);
-        var sampleUnit = Resolve(profile.SampleType?.UnitStrindex);
+        var sampleType = Resolve(profile.SampleType?.TypeStrindex ?? 0, dictionary);
+        var sampleUnit = Resolve(profile.SampleType?.UnitStrindex ?? 0, dictionary);
 
         var header = new ProfileStorageRow
         {
@@ -585,42 +530,44 @@ public static class OtlpConverter
             SessionId = sessionId,
             TimeUnixNano = profile.TimeUnixNano,
             DurationNano = profile.DurationNano,
-            SampleCount = profile.Samples?.Count ?? 0,
+            SampleCount = profile.Sample.Count,
             SampleType = sampleType,
             SampleUnit = sampleUnit,
-            OriginalPayloadFormat = profile.OriginalPayloadFormat,
+            OriginalPayloadFormat = NullIfEmpty(profile.OriginalPayloadFormat),
             ServiceName = serviceName,
             ProfileFrameType = profileFrameType,
-            AttributesJson = SerializeAttributes(profile.Attributes),
+            AttributesJson = attributes.Count > 0
+                ? JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString)
+                : null,
             ResourceJson = resourceJson,
-            ProfileDataJson = JsonSerializer.Serialize(profile, QylSerializerContext.Default.OtlpProfile),
+            ProfileDataJson = JsonFormatter.Default.Format(profile),
             SchemaUrl = schemaUrl
         };
 
         var functions = new List<ProfileFunctionRow>();
-        foreach (var (f, i) in (profile.FunctionTable ?? []).Select(static (f, i) => (f, i)))
+        foreach (var (f, i) in dictionary.FunctionTable.Select(static (f, i) => (f, i)))
         {
             functions.Add(new ProfileFunctionRow
             {
                 ProfileId = profileId,
                 Ordinal = i,
-                Name = Resolve(f.NameStrindex),
-                SystemName = Resolve(f.SystemNameStrindex),
-                Filename = Resolve(f.FilenameStrindex),
+                Name = Resolve(f.NameStrindex, dictionary),
+                SystemName = Resolve(f.SystemNameStrindex, dictionary),
+                Filename = Resolve(f.FilenameStrindex, dictionary),
                 StartLine = f.StartLine
             });
         }
 
         var locations = new List<ProfileLocationRow>();
-        foreach (var (loc, i) in (profile.LocationTable ?? []).Select(static (l, i) => (l, i)))
+        foreach (var (loc, i) in dictionary.LocationTable.Select(static (l, i) => (l, i)))
         {
             string? linesJson = null;
-            if (loc.Lines is { Count: > 0 })
+            if (loc.Line.Count > 0)
             {
                 linesJson = JsonSerializer.Serialize(
-                    loc.Lines.Select(static line => new
+                    loc.Line.Select(static line => new
                     {
-                        functionOrdinal = line.FunctionIndex, line = line.Line, column = line.Column
+                        functionOrdinal = line.FunctionIndex, line = line.Line_, column = line.Column
                     }));
             }
 
@@ -635,13 +582,13 @@ public static class OtlpConverter
         }
 
         var mappings = new List<ProfileMappingRow>();
-        foreach (var (m, i) in (profile.MappingTable ?? []).Select(static (m, i) => (m, i)))
+        foreach (var (m, i) in dictionary.MappingTable.Select(static (m, i) => (m, i)))
         {
             mappings.Add(new ProfileMappingRow
             {
                 ProfileId = profileId,
                 Ordinal = i,
-                Filename = Resolve(m.FilenameStrindex),
+                Filename = Resolve(m.FilenameStrindex, dictionary),
                 MemoryStart = m.MemoryStart,
                 MemoryLimit = m.MemoryLimit,
                 FileOffset = m.FileOffset
@@ -649,14 +596,15 @@ public static class OtlpConverter
         }
 
         var samples = new List<ProfileSampleRow>();
-        foreach (var (s, i) in (profile.Samples ?? []).Select(static (s, i) => (s, i)))
+        foreach (var (s, i) in profile.Sample.Select(static (s, i) => (s, i)))
         {
             string? linkTraceId = null;
             string? linkSpanId = null;
-            if (s.LinkIndex is { } li && profile.LinkTable is not null && li >= 0 && li < profile.LinkTable.Count)
+            if (s.LinkIndex > 0 && s.LinkIndex < dictionary.LinkTable.Count)
             {
-                linkTraceId = profile.LinkTable[li].TraceId;
-                linkSpanId = profile.LinkTable[li].SpanId;
+                var link = dictionary.LinkTable[s.LinkIndex];
+                linkTraceId = ToHex(link.TraceId);
+                linkSpanId = ToHex(link.SpanId);
             }
 
             samples.Add(new ProfileSampleRow
@@ -666,21 +614,21 @@ public static class OtlpConverter
                 StackOrdinal = s.StackIndex,
                 LinkTraceId = linkTraceId,
                 LinkSpanId = linkSpanId,
-                ValuesJson = s.Values is { Count: > 0 } ? JsonSerializer.Serialize(s.Values) : null,
-                TimestampsJson = s.TimestampsUnixNano is { Count: > 0 }
+                ValuesJson = s.Values.Count > 0 ? JsonSerializer.Serialize(s.Values) : null,
+                TimestampsJson = s.TimestampsUnixNano.Count > 0
                     ? JsonSerializer.Serialize(s.TimestampsUnixNano)
                     : null
             });
         }
 
         var stacks = new List<ProfileStackRow>();
-        foreach (var (st, i) in (profile.StackTable ?? []).Select(static (st, i) => (st, i)))
+        foreach (var (st, i) in dictionary.StackTable.Select(static (st, i) => (st, i)))
         {
             stacks.Add(new ProfileStackRow
             {
                 ProfileId = profileId,
                 Ordinal = i,
-                LocationOrdinalsJson = st.LocationIndices is { Count: > 0 }
+                LocationOrdinalsJson = st.LocationIndices.Count > 0
                     ? JsonSerializer.Serialize(st.LocationIndices)
                     : null
             });
@@ -695,10 +643,62 @@ public static class OtlpConverter
             Samples = samples,
             Stacks = stacks
         };
-
-        string? Resolve(int? index) =>
-            index is { } i and >= 0 && i < strings.Count ? strings[i] : null;
     }
+
+    private static Dictionary<string, string> ExtractProfileAttributes(
+        RepeatedField<int> indices,
+        ProtoProfilesDictionary dictionary)
+    {
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var index in indices)
+        {
+            if (index < 0 || index >= dictionary.AttributeTable.Count)
+                continue;
+
+            var attribute = dictionary.AttributeTable[index];
+            var key = Resolve(attribute.KeyStrindex, dictionary);
+            if (string.IsNullOrEmpty(key))
+                continue;
+
+            var value = ConvertProtoAnyValueToString(attribute.Value);
+            if (value is not null)
+                attributes[key] = value;
+        }
+
+        return attributes;
+    }
+
+    private static (string? TraceId, string? SpanId) ResolveProfileLink(
+        ProtoProfile profile,
+        ProtoProfilesDictionary dictionary)
+    {
+        foreach (var sample in profile.Sample)
+        {
+            if (sample.LinkIndex <= 0 || sample.LinkIndex >= dictionary.LinkTable.Count)
+                continue;
+
+            var link = dictionary.LinkTable[sample.LinkIndex];
+            if (link.TraceId.Length > 0 || link.SpanId.Length > 0)
+                return (ToHex(link.TraceId), ToHex(link.SpanId));
+        }
+
+        foreach (var link in dictionary.LinkTable)
+        {
+            if (link.TraceId.Length > 0 || link.SpanId.Length > 0)
+                return (ToHex(link.TraceId), ToHex(link.SpanId));
+        }
+
+        return (null, null);
+    }
+
+    private static string? Resolve(int index, ProtoProfilesDictionary dictionary) =>
+        index >= 0 && index < dictionary.StringTable.Count
+            ? NullIfEmpty(dictionary.StringTable[index])
+            : null;
+
+    private static string? NullIfEmpty(string? value) =>
+        string.IsNullOrEmpty(value) ? null : value;
 
     #endregion
 }

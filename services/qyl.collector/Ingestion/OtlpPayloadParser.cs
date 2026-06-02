@@ -1,6 +1,7 @@
 using System.Text;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Qyl.Collector.Ingestion;
@@ -25,6 +26,13 @@ public static class OtlpPayloadParser
         IsProtobufContentType(request.ContentType)
             ? ParseProtobufAsync(request, ExportLogsServiceRequest.Parser, ct)
             : ParseJsonAsync<ExportLogsServiceRequest>(request, ct);
+
+    public static Task<ExportProfilesServiceRequest> ParseProfilesRequestAsync(
+        HttpRequest request,
+        CancellationToken ct = default) =>
+        IsProtobufContentType(request.ContentType)
+            ? ParseProtobufAsync(request, ExportProfilesServiceRequest.Parser, ct)
+            : ParseJsonAsync<ExportProfilesServiceRequest>(request, ct);
 
     private static async Task<T> ParseProtobufAsync<T>(
         HttpRequest request,

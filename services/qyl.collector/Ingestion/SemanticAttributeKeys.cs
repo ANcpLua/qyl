@@ -15,6 +15,7 @@ using IncubatingDeploymentAttributes = Qyl.OpenTelemetry.SemanticConventions.Inc
 using MessagingAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Messaging.MessagingAttributes;
 using McpAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Mcp.McpAttributes;
 using OsAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Os.OsAttributes;
+using ProfileAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Profile.ProfileAttributes;
 using SessionAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Session.SessionAttributes;
 using UserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.User.UserAttributes;
 using EnduserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Enduser.EnduserAttributes;
@@ -62,6 +63,7 @@ internal static class SemanticAttributeKeys
     internal const string McpSessionId = McpAttributes.SessionId;
     internal const string OtelScopeName = StableOtelAttributes.ScopeName;
     internal const string OsType = OsAttributes.Type;
+    internal const string ProfileFrameType = ProfileAttributes.FrameType;
     internal const string ServiceInstanceId = StableServiceAttributes.InstanceId;
     internal const string ServiceName = StableServiceAttributes.Name;
     internal const string ServiceNamespace = StableServiceAttributes.Namespace;

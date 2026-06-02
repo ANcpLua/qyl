@@ -247,8 +247,3 @@ public sealed record TelemetryMessage(
     TelemetrySignal Signal,
     object? Data,
     DateTimeOffset Timestamp);
-
-public sealed record TelemetryEventDto(
-    string EventType,
-    object? Data,
-    DateTimeOffset Timestamp);

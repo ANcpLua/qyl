@@ -12,6 +12,7 @@ public static class CollectorEndpointExtensions
     {
         app.MapGrpcService<TraceServiceImpl>();
         app.MapGrpcService<LogsServiceImpl>();
+        app.MapGrpcService<ProfilesServiceImpl>();
 
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
@@ -242,10 +243,9 @@ public static class CollectorEndpointExtensions
     {
         try
         {
-            var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportProfilesServiceRequest>(ct);
-
-            if (otlpData?.ResourceProfiles is null)
-                return Results.BadRequest(new ErrorResponse("Invalid OTLP profiles format"));
+            var otlpData = await OtlpPayloadParser.ParseProfilesRequestAsync(context.Request, ct);
+            if (otlpData.ResourceProfiles.Count is 0)
+                return Results.Accepted();
 
             var results = OtlpConverter.ConvertProfilesToNormalizedRows(otlpData);
 

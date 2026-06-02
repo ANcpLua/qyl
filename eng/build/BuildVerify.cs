@@ -239,6 +239,7 @@ interface IVerify : IHazSourcePaths
                 "\"messaging.",
                 "\"meter.name\"",
                 "\"os.",
+                "\"profile.",
                 "\"otel.scope.",
                 "\"qyl.capability.",
                 "\"server.",
@@ -298,8 +299,43 @@ interface IVerify : IHazSourcePaths
                 "OtlpResourceLogsProto",
                 "OtlpScopeLogsProto",
                 "OtlpLogRecordProto",
-                "ExportLogsServiceRequestProto"
+                "ExportLogsServiceRequestProto",
+                "OtlpExportProfilesServiceRequest",
+                "OtlpResourceProfiles",
+                "OtlpScopeProfiles",
+                "OtlpProfile",
+                "OtlpValueType",
+                "OtlpProfileSample",
+                "OtlpProfileFunction",
+                "OtlpProfileLocation",
+                "OtlpProfileLine",
+                "OtlpProfileMapping",
+                "OtlpProfileLink",
+                "OtlpProfileStack"
             ];
+
+            static bool ContainsRemovedToken(string text, string token)
+            {
+                if (!token.All(static c => char.IsLetterOrDigit(c) || c is '_'))
+                    return text.Contains(token, StringComparison.Ordinal);
+
+                var index = 0;
+                while ((index = text.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+                {
+                    var before = index is 0 ? '\0' : text[index - 1];
+                    var afterIndex = index + token.Length;
+                    var after = afterIndex >= text.Length ? '\0' : text[afterIndex];
+
+                    if (!IsIdentifierChar(before) && !IsIdentifierChar(after))
+                        return true;
+
+                    index += token.Length;
+                }
+
+                return false;
+            }
+
+            static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
 
             var offenders = CollectorDirectory.GlobFiles("**/*.cs")
                 .Where(static f =>
@@ -312,7 +348,7 @@ interface IVerify : IHazSourcePaths
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
                 .SelectMany(file => removedTokens
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Where(token => ContainsRemovedToken(file.Text, token))
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
