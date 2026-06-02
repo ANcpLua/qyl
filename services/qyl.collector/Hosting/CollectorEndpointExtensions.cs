@@ -3,7 +3,6 @@ using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Meta;
 using Qyl.Api.Contracts.Common.Pagination;
-using Qyl.Instrumentation.Generators;
 
 namespace Qyl.Collector.Hosting;
 
@@ -41,8 +40,6 @@ public static class CollectorEndpointExtensions
         api.MapGet("/telemetry/stats", GetTelemetryStatsAsync);
 
         api.MapGet("/meta", GetMeta);
-
-        app.MapQylGeneratedEndpoints();
 
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
             Results.File(Path.Combine(env.WebRootPath, "qyl.js"), "application/javascript"));

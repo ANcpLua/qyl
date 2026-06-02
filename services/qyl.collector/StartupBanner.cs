@@ -95,7 +95,7 @@ public static class StartupBanner
         if (grpcPort > 0)
             Console.WriteLine($"    gRPC TraceService       - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
-        Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
+        Console.WriteLine("    GET  /api/v1/logs/live  - SSE live log tail");
         Console.ResetColor();
         Console.WriteLine();
 

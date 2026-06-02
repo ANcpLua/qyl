@@ -163,12 +163,46 @@ interface IVerify : IHazSourcePaths
                 "Run the owning generator and commit the output.");
         });
 
+    Target VerifyCollectorPublicApiIsExplicit => d => d
+        .Unlisted()
+        .Description("Verify collector does not publish source-generator discovered endpoint modules")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var files = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static f =>
+                {
+                    var path = f.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                });
+
+            var offenders = files
+                .Where(static file => File.ReadAllText(file).Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal))
+                .Select(file => RootDirectory.GetRelativePathTo(file).ToString())
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector public API is explicitly mapped");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Generated endpoint mapper call: {File}", offender);
+
+            throw new InvalidOperationException(
+                "Do not publish collector-local endpoint modules through MapQylGeneratedEndpoints. " +
+                "Expose contract-backed routes explicitly from CollectorEndpointExtensions.");
+        });
+
     Target Verify => d => d
         .Description("Run all generated code verification checks")
         .DependsOn(VerifyGeneratedCode)
         .DependsOn(VerifyDuckDbSchema)
         .DependsOn(VerifyFrontendTypes)
         .DependsOn(VerifyGeneratedFilesClean)
+        .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");
@@ -178,6 +212,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  DuckDB schema is valid");
             Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Generated files match HEAD");
+            Log.Information("  Collector public API is explicitly mapped");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 }
