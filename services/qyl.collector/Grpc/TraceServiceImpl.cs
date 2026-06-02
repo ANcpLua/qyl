@@ -4,7 +4,7 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-public sealed class TraceServiceImpl(
+internal sealed class TraceServiceImpl(
     DuckDbStore store,
     SpanRingBuffer ringBuffer,
     ModelPricingService pricingService)
@@ -24,8 +24,7 @@ public sealed class TraceServiceImpl(
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 
-            var batch = _pricingService.EnrichBatchWithCost(
-                new SpanBatch(spans).WithCodexTransformations());
+            var batch = _pricingService.EnrichBatchWithCost(new SpanBatch(spans));
 
             _ringBuffer.PushRange(batch.Spans);
 

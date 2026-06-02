@@ -14,10 +14,10 @@ using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
 
 namespace Qyl.Collector.Ingestion;
 
-public static class OtlpConverter
+internal static class OtlpConverter
 {
     private static readonly LogSourceEnricher s_logSourceEnricher =
-        new(new SourceLocationCache(), new PdbSourceResolver());
+        new(new SourceLocationCache());
 
     #region OTLP Trace Conversion
 
@@ -142,10 +142,6 @@ public static class OtlpConverter
     {
         var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
         var genAi = ExtractGenAiAttributes(attributes);
-        var keepCodexForPendingTransform =
-            CodexTelemetryMapper.IsCodexSpan(name) ||
-            PersistedAttributePolicy.HasCodexAttributes(attributes);
-
         return new SpanStorageRow
         {
             SpanId = spanId ?? "",
@@ -170,9 +166,7 @@ public static class OtlpConverter
             GenAiToolName = genAi.ToolName,
             GenAiToolCallId = genAi.ToolCallId,
             GenAiCostUsd = genAi.CostUsd,
-            AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(
-                attributes,
-                keepCodexForPendingTransform),
+            AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes),
             ResourceJson = resourceJson,
             BaggageJson = null,
             SchemaUrl = schemaUrl

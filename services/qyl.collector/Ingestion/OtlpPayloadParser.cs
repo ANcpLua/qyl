@@ -6,7 +6,7 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Qyl.Collector.Ingestion;
 
-public static class OtlpPayloadParser
+internal static class OtlpPayloadParser
 {
     private const string ProtobufContentType = "application/x-protobuf";
 

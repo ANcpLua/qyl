@@ -4,7 +4,7 @@ using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
 
-public sealed partial class DuckDbStore : IAsyncDisposable
+internal sealed partial class DuckDbStore : IAsyncDisposable
 {
 
     private const int MaxSpansPerBatch = 100;
@@ -939,145 +939,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
     }
 
-    public async Task UpsertErrorAsync(ErrorEvent error, CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = ErrorUpsertSql;
-            AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
-            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-    public Task<IReadOnlyList<ErrorRow>> GetErrorsAsync(
-        string? category = null,
-        string? status = null,
-        string? serviceName = null,
-        int limit = 100,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<ErrorRow>>(con =>
-        {
-            var rows = new List<ErrorRow>();
-            var qb = new QueryBuilder();
-
-            if (!string.IsNullOrEmpty(category))
-                qb.Add("category = $N", category);
-            if (!string.IsNullOrEmpty(status))
-                qb.Add("status = $N", status);
-            if (!string.IsNullOrEmpty(serviceName))
-            {
-                qb.Add("list_contains(affected_services, $N)", serviceName);
-            }
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT error_id, error_type, message, category, fingerprint,"
-                              + " first_seen, last_seen, occurrence_count,"
-                              + " affected_users, array_to_string(affected_services, ',') AS affected_services, status,"
-                              + " assigned_to, issue_url, array_to_string(sample_traces, ',') AS sample_traces"
-                              + " FROM errors " + qb.WhereClause
-                              + " ORDER BY last_seen DESC LIMIT "
-                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                rows.Add(MapErrorRow(reader));
-
-            return rows;
-        }, ct);
-    }
-
-    public Task<ErrorStats> GetErrorStatsAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync(con =>
-        {
-            var byCategory = new List<ErrorCategoryStat>();
-            long totalCount = 0;
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT category, SUM(occurrence_count) as total
-                              FROM errors
-                              GROUP BY category
-                              ORDER BY total DESC
-                              """;
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var count = reader.GetInt64(1);
-                totalCount += count;
-                byCategory.Add(new ErrorCategoryStat { Category = reader.GetString(0), Count = count });
-            }
-
-            return new ErrorStats { TotalCount = totalCount, ByCategory = byCategory };
-        }, ct);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ErrorRow MapErrorRow(DbDataReader reader) =>
-        new()
-        {
-            ErrorId = reader.GetString(0),
-            ErrorType = reader.GetString(1),
-            Message = reader.GetString(2),
-            Category = reader.GetString(3),
-            Fingerprint = reader.GetString(4),
-            FirstSeen = new DateTimeOffset(reader.GetDateTime(5), TimeSpan.Zero),
-            LastSeen = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero),
-            OccurrenceCount = reader.GetInt64(7),
-            AffectedUserIds = reader.Col(8).AsInt64?.ToString(CultureInfo.InvariantCulture),
-            AffectedServices = reader.Col(9).AsString,
-            Status = reader.GetString(10),
-            AssignedTo = reader.Col(11).AsString,
-            IssueUrl = reader.Col(12).AsString,
-            SampleTraces = reader.Col(13).AsString
-        };
-
-    public async Task UpdateErrorStatusAsync(string errorId, string status, string? assignedTo = null,
-        CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = assignedTo is not null
-                ? "UPDATE errors SET status = $1, assigned_to = $2 WHERE error_id = $3"
-                : "UPDATE errors SET status = $1 WHERE error_id = $2";
-
-            cmd.Parameters.Add(new DuckDBParameter { Value = status });
-            if (assignedTo is not null)
-                cmd.Parameters.Add(new DuckDBParameter { Value = assignedTo });
-            cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
-
-            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-    public Task<ErrorRow?> GetErrorByIdAsync(string errorId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<ErrorRow?>(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT error_id, error_type, message, category, fingerprint,
-                                     first_seen, last_seen, occurrence_count, affected_users,
-                                     array_to_string(affected_services, ',') AS affected_services,
-                                     status, assigned_to, issue_url,
-                                     array_to_string(sample_traces, ',') AS sample_traces
-                              FROM errors WHERE error_id = $1
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
-
-            using var reader = cmd.ExecuteReader();
-            return reader.Read() ? MapErrorRow(reader) : null;
-        }, ct);
-    }
-
-
     public async Task<int> ArchiveToParquetAsync(
         string outputDirectory,
         TimeSpan olderThan,
@@ -1641,7 +1502,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 }
 
 
-public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted)
+internal sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted)
 {
     public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted;
 }

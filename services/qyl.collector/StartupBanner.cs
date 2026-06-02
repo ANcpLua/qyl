@@ -1,6 +1,6 @@
 namespace Qyl.Collector;
 
-public static class StartupBanner
+internal static class StartupBanner
 {
     private const string Logo = """
                                    ██████╗ ██╗   ██╗██╗

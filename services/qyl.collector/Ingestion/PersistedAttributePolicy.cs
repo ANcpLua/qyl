@@ -3,7 +3,6 @@ namespace Qyl.Collector.Ingestion;
 internal static class PersistedAttributePolicy
 {
     private const string BaggagePrefix = "baggage.";
-    private const string CodexPrefix = "codex.";
 
     private static readonly FrozenSet<string> s_spanAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
@@ -52,12 +51,8 @@ internal static class PersistedAttributePolicy
         SemanticAttributeKeys.UrlFull,
         SemanticAttributeKeys.UserId);
 
-    internal static string? SerializeSpanAttributes(
-        IReadOnlyDictionary<string, string> attributes,
-        bool keepCodexForPendingTransform = false) =>
-        Serialize(attributes, keepCodexForPendingTransform
-            ? ShouldPersistSpanAttributeForPendingTransform
-            : ShouldPersistSpanAttribute);
+    internal static string? SerializeSpanAttributes(IReadOnlyDictionary<string, string> attributes) =>
+        Serialize(attributes, ShouldPersistSpanAttribute);
 
     internal static string? SerializeLogAttributes(IReadOnlyDictionary<string, string> attributes) =>
         Serialize(attributes, ShouldPersistSpanAttribute);
@@ -67,15 +62,6 @@ internal static class PersistedAttributePolicy
 
     internal static string? SerializeResourceAttributes(IReadOnlyDictionary<string, string> attributes) =>
         Serialize(attributes, ShouldPersistResourceAttribute);
-
-    internal static bool HasCodexAttributes(IReadOnlyDictionary<string, string> attributes)
-    {
-        foreach (var key in attributes.Keys)
-            if (key.StartsWithOrdinal(CodexPrefix))
-                return true;
-
-        return false;
-    }
 
     private static string? Serialize(
         IReadOnlyDictionary<string, string> attributes,
@@ -97,17 +83,8 @@ internal static class PersistedAttributePolicy
             : JsonSerializer.Serialize(persisted, QylSerializerContext.Default.DictionaryStringString);
     }
 
-    private static bool ShouldPersistSpanAttribute(string key) =>
-        ShouldPersistSpanAttribute(key, keepCodexForPendingTransform: false);
-
-    private static bool ShouldPersistSpanAttributeForPendingTransform(string key) =>
-        ShouldPersistSpanAttribute(key, keepCodexForPendingTransform: true);
-
-    private static bool ShouldPersistSpanAttribute(string key, bool keepCodexForPendingTransform)
+    private static bool ShouldPersistSpanAttribute(string key)
     {
-        if (keepCodexForPendingTransform && key.StartsWithOrdinal(CodexPrefix))
-            return true;
-
         if (IsDenied(key))
             return false;
 
@@ -126,7 +103,6 @@ internal static class PersistedAttributePolicy
     private static bool IsDenied(string key) =>
         s_deniedExactKeys.Contains(key) ||
         key.StartsWithOrdinal(BaggagePrefix) ||
-        key.StartsWithOrdinal(CodexPrefix) ||
         key.ContainsOrdinal("password") ||
         key.ContainsOrdinal("secret") ||
         key.ContainsOrdinal("authorization") ||

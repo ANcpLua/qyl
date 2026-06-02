@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
-public sealed class OtlpApiKeyOptions
+internal sealed class OtlpApiKeyOptions
 {
     private static readonly string[] s_validAuthModes = ["ApiKey", "Unsecured"];
 

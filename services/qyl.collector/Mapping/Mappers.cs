@@ -53,7 +53,7 @@ internal static class ContractJson
         };
 }
 
-public static class SpanMapper
+internal static class SpanMapper
 {
     public static Span ToContract(SpanStorageRow record, string serviceName, string? serviceVersion = null) =>
         ToContractCore(
@@ -156,7 +156,7 @@ public static class SpanMapper
     }
 }
 
-public static class LogMapper
+internal static class LogMapper
 {
     public static LogRecord ToContract(LogStorageRow record, string? bodyOverride = null) =>
         new()
@@ -211,7 +211,7 @@ public static class LogMapper
     }
 }
 
-public static class ProfileMapper
+internal static class ProfileMapper
 {
     public static Profile ToContract(ProfileStorageRow record) =>
         new()
@@ -361,7 +361,7 @@ public static class ProfileMapper
     }
 }
 
-public static class ContractStatsMapper
+internal static class ContractStatsMapper
 {
     public static Qyl.Api.Contracts.Domains.AI.GenAi.GenAiStats ToContract(SessionGenAiStats stats) =>
         new()
@@ -398,7 +398,7 @@ internal static class AttributeParsing
         string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
 }
 
-public static class SessionMapper
+internal static class SessionMapper
 {
     public static SessionEntity ToContract(SessionQueryRow summary)
     {

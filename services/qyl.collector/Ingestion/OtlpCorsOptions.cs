@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
-public sealed class OtlpCorsOptions
+internal sealed class OtlpCorsOptions
 {
     public string? AllowedOrigins { get; set; }
 

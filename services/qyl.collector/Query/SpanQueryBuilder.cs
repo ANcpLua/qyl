@@ -1,7 +1,7 @@
 
 namespace Qyl.Collector.Query;
 
-public sealed class SpanQueryBuilder
+internal sealed class SpanQueryBuilder
 {
     private readonly bool _distinct;
     private readonly List<string> _groupByCols;
@@ -250,7 +250,7 @@ public sealed class SpanQueryBuilder
 }
 
 
-public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Parameters)
+internal readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Parameters)
 {
     public void ApplyTo(DuckDBCommand cmd)
     {
@@ -269,7 +269,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
 }
 
 
-public readonly struct SpanColumn
+internal readonly struct SpanColumn
 {
     private readonly string _name;
 
@@ -292,7 +292,7 @@ public readonly struct SpanColumn
 }
 
 
-public enum CompareOp
+internal enum CompareOp
 {
     Eq,
     Ne,

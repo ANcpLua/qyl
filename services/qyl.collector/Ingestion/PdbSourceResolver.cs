@@ -3,10 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace Qyl.Collector.Ingestion;
 
-[QylService(QylLifetime.Singleton)]
-public sealed partial class PdbSourceResolver
+internal static partial class PdbSourceResolver
 {
-    public SourceLocation? ResolveFromStackTrace(string? stackTrace)
+    public static SourceLocation? ResolveFromStackTrace(string? stackTrace)
     {
         if (string.IsNullOrWhiteSpace(stackTrace))
             return null;
@@ -26,7 +25,7 @@ public sealed partial class PdbSourceResolver
         return null;
     }
 
-    public SourceLocation? ResolveFromCurrentMethod(string? methodName)
+    public static SourceLocation? ResolveFromCurrentMethod(string? methodName)
     {
         if (string.IsNullOrWhiteSpace(methodName))
             return null;
@@ -59,7 +58,7 @@ public sealed partial class PdbSourceResolver
         return null;
     }
 
-    public bool HasPortablePdb(string assemblyPath)
+    public static bool HasPortablePdb(string assemblyPath)
     {
         if (!File.Exists(assemblyPath))
             return false;

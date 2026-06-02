@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Hosting;
 
-public sealed record CollectorPortOptions
+internal sealed record CollectorPortOptions
 {
     public required int Http { get; init; }
 

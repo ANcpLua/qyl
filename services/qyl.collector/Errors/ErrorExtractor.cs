@@ -2,9 +2,9 @@ using ANcpLua.Agents;
 
 namespace Qyl.Collector.Errors;
 
-public static class ErrorExtractor
+internal static class ErrorExtractor
 {
-    public static ErrorEvent? Extract(SpanStorageRow span)
+    internal static ErrorEvent? Extract(SpanStorageRow span)
     {
         if (span.StatusCode != 2) return null;
 

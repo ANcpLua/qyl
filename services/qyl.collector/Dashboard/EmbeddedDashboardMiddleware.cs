@@ -1,7 +1,7 @@
 
 namespace Qyl.Collector.Dashboard;
 
-public sealed partial class EmbeddedDashboardMiddleware
+internal sealed partial class EmbeddedDashboardMiddleware
 {
     private const string ResourcePrefix = "Qyl.Collector.wwwroot.";
     private readonly string _basePath;
@@ -179,14 +179,14 @@ public sealed partial class EmbeddedDashboardMiddleware
     }
 }
 
-public sealed record CachedResource(
+internal sealed record CachedResource(
     byte[] Content,
     byte[]? CompressedContent,
     string ETag,
     string ContentType,
     bool IsCacheable);
 
-public static class EmbeddedDashboardExtensions
+internal static class EmbeddedDashboardExtensions
 {
     private static readonly bool s_cachedHasEmbeddedDashboard =
         typeof(EmbeddedDashboardMiddleware).Assembly

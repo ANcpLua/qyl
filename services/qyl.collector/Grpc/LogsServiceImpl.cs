@@ -3,7 +3,7 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-public sealed class LogsServiceImpl(DuckDbStore store)
+internal sealed class LogsServiceImpl(DuckDbStore store)
     : LogsService.LogsServiceBase
 {
     private readonly DuckDbStore _store = Guard.NotNull(store);

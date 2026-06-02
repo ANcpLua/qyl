@@ -70,8 +70,7 @@ public static class CollectorEndpointExtensions
 
             if (spans.Count is 0) return Results.Accepted();
 
-            var batch = pricingService.EnrichBatchWithCost(
-                new SpanBatch(spans).WithCodexTransformations());
+            var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
             ringBuffer.PushRange(batch.Spans);
             await store.EnqueueAsync(batch, ct);
 

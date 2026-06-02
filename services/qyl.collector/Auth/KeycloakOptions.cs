@@ -6,7 +6,7 @@ namespace Qyl.Collector.Auth;
 /// <remarks>
 /// Populated from the environment variables named by the <c>*EnvVar</c> constants below.
 /// </remarks>
-public sealed class KeycloakOptions
+internal sealed class KeycloakOptions
 {
     /// <summary>Base URL of the Keycloak realm — e.g. <c>https://kc.example/realms/qyl</c>.</summary>
     /// <remarks>Discovery doc is fetched from <c>{Authority}/.well-known/openid-configuration</c>.</remarks>

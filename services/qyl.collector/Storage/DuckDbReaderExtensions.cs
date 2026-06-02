@@ -1,9 +1,9 @@
 namespace Qyl.Collector.Storage;
 
-public sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
+internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
 [DuckDbTable("spans")]
-public sealed partial record SpanStorageRow
+internal sealed partial record SpanStorageRow
 {
     public required string SpanId { get; init; }
     public required string TraceId { get; init; }
@@ -42,7 +42,7 @@ public sealed partial record SpanStorageRow
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
-public sealed record StorageStats
+internal sealed record StorageStats
 {
     public long SpanCount { get; init; }
     public long SessionCount { get; init; }
@@ -51,7 +51,7 @@ public sealed record StorageStats
     public ulong? NewestSpanTime { get; init; }
 }
 
-public sealed record LogStorageRow
+internal sealed record LogStorageRow
 {
     public required string LogId { get; init; }
     public string? TraceId { get; init; }
@@ -76,7 +76,7 @@ public sealed record LogStorageRow
 }
 
 [DuckDbTable("profiles")]
-public sealed partial record ProfileStorageRow
+internal sealed partial record ProfileStorageRow
 {
     public required string ProfileId { get; init; }
     public string? TraceId { get; init; }
@@ -103,7 +103,7 @@ public sealed partial record ProfileStorageRow
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
-public sealed record ProfileFunctionRow
+internal sealed record ProfileFunctionRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -113,7 +113,7 @@ public sealed record ProfileFunctionRow
     public long? StartLine { get; init; }
 }
 
-public sealed record ProfileLocationRow
+internal sealed record ProfileLocationRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -122,7 +122,7 @@ public sealed record ProfileLocationRow
     public string? LinesJson { get; init; }
 }
 
-public sealed record ProfileMappingRow
+internal sealed record ProfileMappingRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -132,7 +132,7 @@ public sealed record ProfileMappingRow
     public ulong? FileOffset { get; init; }
 }
 
-public sealed record ProfileSampleRow
+internal sealed record ProfileSampleRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -143,14 +143,14 @@ public sealed record ProfileSampleRow
     public string? TimestampsJson { get; init; }
 }
 
-public sealed record ProfileStackRow
+internal sealed record ProfileStackRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
     public string? LocationOrdinalsJson { get; init; }
 }
 
-public sealed record ProfileDetail
+internal sealed record ProfileDetail
 {
     public required ProfileStorageRow Profile { get; init; }
     public required IReadOnlyList<ProfileFunctionRow> Functions { get; init; }
@@ -160,7 +160,7 @@ public sealed record ProfileDetail
     public required IReadOnlyList<ProfileStackRow> Stacks { get; init; }
 }
 
-public sealed record ProfileConversionResult
+internal sealed record ProfileConversionResult
 {
     public required ProfileStorageRow Profile { get; init; }
     public required List<ProfileFunctionRow> Functions { get; init; }

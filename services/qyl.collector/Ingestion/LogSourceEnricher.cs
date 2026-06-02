@@ -3,16 +3,11 @@ using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 
 namespace Qyl.Collector.Ingestion;
 
-public sealed class LogSourceEnricher
+internal sealed class LogSourceEnricher
 {
     private readonly SourceLocationCache _cache;
-    private readonly PdbSourceResolver _pdbResolver;
 
-    public LogSourceEnricher(SourceLocationCache cache, PdbSourceResolver pdbResolver)
-    {
-        _cache = cache;
-        _pdbResolver = pdbResolver;
-    }
+    public LogSourceEnricher(SourceLocationCache cache) => _cache = cache;
 
     public SourceLocation? Enrich(IEnumerable<ProtoKeyValue> attributes)
     {
@@ -32,14 +27,14 @@ public sealed class LogSourceEnricher
         if (!string.IsNullOrWhiteSpace(stackTrace))
         {
             var key = $"stack:{stackTrace.GetHashCode(StringComparison.Ordinal)}";
-            return _cache.GetOrAdd(key, () => _pdbResolver.ResolveFromStackTrace(stackTrace));
+            return _cache.GetOrAdd(key, () => PdbSourceResolver.ResolveFromStackTrace(stackTrace));
         }
 
         if (string.IsNullOrWhiteSpace(method))
             return null;
 
         var methodKey = $"method:{method}";
-        return _cache.GetOrAdd(methodKey, () => _pdbResolver.ResolveFromCurrentMethod(method));
+        return _cache.GetOrAdd(methodKey, () => PdbSourceResolver.ResolveFromCurrentMethod(method));
     }
 
     private static Dictionary<string, string?> ToAttributeMap(IEnumerable<ProtoKeyValue> attributes)

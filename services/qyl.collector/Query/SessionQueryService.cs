@@ -3,7 +3,7 @@ using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Query;
 
-public sealed class SessionQueryService(DuckDbStore store)
+internal sealed class SessionQueryService(DuckDbStore store)
 {
     private const string SessionSelectColumns = """
                                                 SELECT
@@ -256,7 +256,7 @@ public sealed class SessionQueryService(DuckDbStore store)
 }
 
 
-public sealed record SessionQueryRow
+internal sealed record SessionQueryRow
 {
     public required string SessionId { get; init; }
     public DateTime StartTime { get; init; }
@@ -275,7 +275,7 @@ public sealed record SessionQueryRow
     public IReadOnlyList<string> Services { get; init; } = [];
 }
 
-public sealed record SessionGenAiStats
+internal sealed record SessionGenAiStats
 {
     public long RequestCount { get; init; }
     public long InputTokens { get; init; }

@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
-public sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
+internal sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
 {
     public async Task InvokeAsync(HttpContext context)
     {

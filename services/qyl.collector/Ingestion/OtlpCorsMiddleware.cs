@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Ingestion;
 
-public sealed class OtlpCorsMiddleware
+internal sealed class OtlpCorsMiddleware
 {
     private readonly bool _allowAll;
     private readonly string _allowedHeadersHeader;

@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Realtime;
 
-public sealed class SpanRingBuffer
+internal sealed class SpanRingBuffer
 {
     private readonly SpanStorageRow?[] _buffer;
     private readonly Lock _lock = new();

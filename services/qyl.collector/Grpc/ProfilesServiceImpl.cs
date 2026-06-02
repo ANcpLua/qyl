@@ -3,7 +3,7 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-public sealed class ProfilesServiceImpl(DuckDbStore store)
+internal sealed class ProfilesServiceImpl(DuckDbStore store)
     : ProfilesService.ProfilesServiceBase
 {
     private readonly DuckDbStore _store = Guard.NotNull(store);

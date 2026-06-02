@@ -211,6 +211,66 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorHasNoPublicLocalModels => d => d
+        .Unlisted()
+        .Description("Verify collector-local DTO models do not become public API")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .SelectMany(file => File.ReadAllLines(file)
+                    .Select((line, index) => (
+                        File: RootDirectory.GetRelativePathTo(file).ToString(),
+                        Line: index + 1,
+                        Text: line.TrimStart()))
+                    .Where(static line => IsPublicLocalModelDeclaration(line.Text)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector-local DTO models are internal");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Public collector-local model at {File}:{Line}: {Text}",
+                    offender.File, offender.Line, offender.Text);
+
+            throw new InvalidOperationException(
+                "Do not create public collector-local DTO/model surfaces. Public API models must come from Qyl.Api.Contracts.");
+
+            static bool IsPublicLocalModelDeclaration(string line)
+            {
+                if (line.StartsWith("public sealed record ", StringComparison.Ordinal) ||
+                    line.StartsWith("public sealed partial record ", StringComparison.Ordinal) ||
+                    line.StartsWith("public readonly record ", StringComparison.Ordinal) ||
+                    line.StartsWith("public readonly struct SpanColumn", StringComparison.Ordinal) ||
+                    line.StartsWith("public enum CompareOp", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (!line.StartsWith("public sealed class ", StringComparison.Ordinal))
+                    return false;
+
+                var nameStart = "public sealed class ".Length;
+                var nameEnd = line.IndexOfAny([' ', '(', ':', '<'], nameStart);
+                var className = nameEnd < 0 ? line[nameStart..] : line[nameStart..nameEnd];
+
+                return className.EndsWith("Options", StringComparison.Ordinal) ||
+                       className.EndsWith("Entry", StringComparison.Ordinal) ||
+                       className.EndsWith("Row", StringComparison.Ordinal) ||
+                       className.EndsWith("Stats", StringComparison.Ordinal) ||
+                       className.EndsWith("Result", StringComparison.Ordinal);
+            }
+        });
+
     Target VerifyCollectorUsesSemanticConstants => d => d
         .Unlisted()
         .Description("Verify collector semantic attribute keys flow through generated constants")
@@ -540,6 +600,16 @@ interface IVerify : IHazSourcePaths
                 "ErrorIssueRow",
                 "ErrorIssueEventRow",
                 "ErrorBreadcrumbRow",
+                "CodexTelemetryMapper",
+                "WithCodexTransformations",
+                "codex.",
+                "GetErrorsAsync",
+                "GetErrorStatsAsync",
+                "UpdateErrorStatusAsync",
+                "GetErrorByIdAsync",
+                "record ErrorRow",
+                "record ErrorStats",
+                "record ErrorCategoryStat",
                 "MigrationRunner",
                 "ClearAllSessionsAsync",
                 "session_entities",
@@ -690,6 +760,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyFrontendTypes)
         .DependsOn(VerifyGeneratedFilesClean)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
+        .DependsOn(VerifyCollectorHasNoPublicLocalModels)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
@@ -704,6 +775,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");
+            Log.Information("  Collector-local DTO models are internal");
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");

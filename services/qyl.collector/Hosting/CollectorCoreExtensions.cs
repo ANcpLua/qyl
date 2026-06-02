@@ -1,6 +1,6 @@
 namespace Qyl.Collector.Hosting;
 
-public static class CollectorCoreExtensions
+internal static class CollectorCoreExtensions
 {
     public static CollectorPortOptions AddQylCollectorCore(
         this IServiceCollection services,

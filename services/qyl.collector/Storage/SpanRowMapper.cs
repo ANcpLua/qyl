@@ -1,7 +1,7 @@
 
 namespace Qyl.Collector.Storage;
 
-public static class SpanRowMapper
+internal static class SpanRowMapper
 {
     public static SpanStorageRow MapByName(DbDataReader reader) =>
         new()

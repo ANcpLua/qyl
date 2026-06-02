@@ -1,7 +1,7 @@
 namespace Qyl.Collector.Cost;
 
 [QylService(QylLifetime.Singleton)]
-public sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
+internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
 {
     private readonly Lock _lock = new();
     private FrozenDictionary<string, PricingEntry> _cache = FrozenDictionary<string, PricingEntry>.Empty;
@@ -199,14 +199,14 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
     private partial void LogSeedDataLoaded(int count, string path);
 }
 
-public sealed record PricingEntry(
+internal sealed record PricingEntry(
     decimal InputCostPerMillion,
     decimal OutputCostPerMillion,
     decimal? ReasoningCostPerMillion,
     decimal? CacheReadCostPerMillion,
     decimal? CacheWriteCostPerMillion);
 
-public sealed class SeedPricingEntry
+internal sealed class SeedPricingEntry
 {
     [JsonPropertyName("provider")] public required string Provider { get; init; }
 
