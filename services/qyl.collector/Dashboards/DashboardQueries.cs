@@ -2,33 +2,33 @@ namespace Qyl.Collector.Dashboards;
 
 public static class DashboardQueries
 {
-    public static async Task<IReadOnlyList<DashboardWidget>> GetWidgetsAsync(
-        string dashboardId, DuckDBConnection con, CancellationToken ct) =>
+    public static IReadOnlyList<DashboardWidget> GetWidgets(
+        string dashboardId, DuckDBConnection con) =>
         dashboardId switch
         {
-            "api-performance" => await ApiPerformanceAsync(con, ct).ConfigureAwait(false),
-            "external-apis" => await ExternalApisAsync(con, ct).ConfigureAwait(false),
-            "genai" => await GenAiAsync(con, ct).ConfigureAwait(false),
-            "database" => await DatabaseAsync(con, ct).ConfigureAwait(false),
-            "error-tracker" => await ErrorTrackerAsync(con, ct).ConfigureAwait(false),
-            "messaging" => await MessagingAsync(con, ct).ConfigureAwait(false),
+            "api-performance" => ApiPerformance(con),
+            "external-apis" => ExternalApis(con),
+            "genai" => GenAi(con),
+            "database" => Database(con),
+            "error-tracker" => ErrorTracker(con),
+            "messaging" => Messaging(con),
             _ => []
         };
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> ApiPerformanceAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> ApiPerformance(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_requests,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
                                                    ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%http.request.method%'
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -40,7 +40,7 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topRoutes = await QueryTopNAsync(con, """
+        var topRoutes = QueryTopN(con, """
                                                   SELECT
                                                       COALESCE(
                                                           json_extract_string(attributes_json, '$.http.route'),
@@ -55,13 +55,12 @@ public static class DashboardQueries
                                                   GROUP BY route_name
                                                   ORDER BY p95_ms DESC
                                                   LIMIT 10
-                                                  """, "route_name", "p95_ms", "ms", "call_count", "err_rate", ct)
-            .ConfigureAwait(false);
+                                                  """, "route_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topRoutes.Count > 0)
             widgets.Add(new DashboardWidget("api-top-routes", "Top Routes by P95 Latency", "table", topRoutes));
 
-        var throughput = await QueryTimeSeriesAsync(con, """
+        var throughput = QueryTimeSeries(con, """
                                                          SELECT
                                                              strftime(time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1e9)), '%H:%M') AS bucket,
                                                              COUNT(*) AS req_count
@@ -70,7 +69,7 @@ public static class DashboardQueries
                                                            AND start_time_unix_nano >= (epoch_ns(now()) - 86400000000000)
                                                          GROUP BY bucket
                                                          ORDER BY bucket
-                                                         """, "bucket", "req_count", ct).ConfigureAwait(false);
+                                                         """, "bucket", "req_count");
 
         if (throughput.Count > 0)
             widgets.Add(new DashboardWidget("api-throughput", "Request Throughput (24h)", "chart", throughput));
@@ -79,12 +78,12 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> ExternalApisAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> ExternalApis(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_calls,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
@@ -92,7 +91,7 @@ public static class DashboardQueries
                                                FROM spans
                                                WHERE (attributes_json LIKE '%http.client%' OR kind = 3)
                                                  AND attributes_json LIKE '%http.%'
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -104,7 +103,7 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topHosts = await QueryTopNAsync(con, """
+        var topHosts = QueryTopN(con, """
                                                  SELECT
                                                      COALESCE(
                                                          json_extract_string(attributes_json, '$.server.address'),
@@ -121,8 +120,7 @@ public static class DashboardQueries
                                                  GROUP BY host_name
                                                  ORDER BY call_count DESC
                                                  LIMIT 10
-                                                 """, "host_name", "p95_ms", "ms", "call_count", "err_rate", ct)
-            .ConfigureAwait(false);
+                                                 """, "host_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topHosts.Count > 0)
             widgets.Add(new DashboardWidget("ext-top-hosts", "Top External Hosts", "table", topHosts));
@@ -131,12 +129,12 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> GenAiAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> GenAi(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_requests,
                                                    COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,
@@ -145,7 +143,7 @@ public static class DashboardQueries
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms
                                                FROM spans
                                                WHERE gen_ai_provider_name IS NOT NULL OR gen_ai_request_model IS NOT NULL
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -166,7 +164,7 @@ public static class DashboardQueries
                 new StatCardData("Latency", stats.GetValueOrDefault("avg_latency_ms", "0"), "ms")));
         }
 
-        var topModels = await QueryTopNAsync(con, """
+        var topModels = QueryTopN(con, """
                                                   SELECT
                                                       COALESCE(gen_ai_request_model, gen_ai_response_model, 'unknown') AS model_name,
                                                       ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms,
@@ -177,13 +175,12 @@ public static class DashboardQueries
                                                   GROUP BY model_name
                                                   ORDER BY call_count DESC
                                                   LIMIT 10
-                                                  """, "model_name", "avg_ms", "ms", "call_count", "err_rate", ct)
-            .ConfigureAwait(false);
+                                                  """, "model_name", "avg_ms", "ms", "call_count", "err_rate");
 
         if (topModels.Count > 0)
             widgets.Add(new DashboardWidget("genai-top-models", "Usage by Model", "table", topModels));
 
-        var tokenSeries = await QueryTimeSeriesAsync(con, """
+        var tokenSeries = QueryTimeSeries(con, """
                                                           SELECT
                                                               strftime(time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1e9)), '%H:%M') AS bucket,
                                                               COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS total_tokens
@@ -192,7 +189,7 @@ public static class DashboardQueries
                                                             AND start_time_unix_nano >= (epoch_ns(now()) - 86400000000000)
                                                           GROUP BY bucket
                                                           ORDER BY bucket
-                                                          """, "bucket", "total_tokens", ct).ConfigureAwait(false);
+                                                          """, "bucket", "total_tokens");
 
         if (tokenSeries.Count > 0)
             widgets.Add(new DashboardWidget("genai-token-usage", "Token Usage (24h)", "chart", tokenSeries));
@@ -201,12 +198,12 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> DatabaseAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> Database(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_queries,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
@@ -214,7 +211,7 @@ public static class DashboardQueries
                                                    ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%db.system%'
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -228,7 +225,7 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topOps = await QueryTopNAsync(con, """
+        var topOps = QueryTopN(con, """
                                                SELECT
                                                    COALESCE(
                                                        json_extract_string(attributes_json, '$.db.operation.name'),
@@ -243,8 +240,7 @@ public static class DashboardQueries
                                                GROUP BY op_name
                                                ORDER BY p95_ms DESC
                                                LIMIT 10
-                                               """, "op_name", "p95_ms", "ms", "call_count", "err_rate", ct)
-            .ConfigureAwait(false);
+                                               """, "op_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topOps.Count > 0)
             widgets.Add(new DashboardWidget("db-top-ops", "Slowest Operations", "table", topOps));
@@ -253,18 +249,18 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> ErrorTrackerAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> ErrorTracker(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_errors,
                                                    COUNT(DISTINCT service_name) AS affected_services
                                                FROM logs
                                                WHERE severity_number >= 17
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -274,7 +270,7 @@ public static class DashboardQueries
                 new StatCardData("Services", stats.GetValueOrDefault("affected_services", "0"))));
         }
 
-        var topErrors = await QueryTopNAsync(con, """
+        var topErrors = QueryTopN(con, """
                                                   SELECT
                                                       COALESCE(SUBSTRING(body, 1, 120), 'unknown') AS error_name,
                                                       ROUND(0, 1) AS placeholder_val,
@@ -285,13 +281,12 @@ public static class DashboardQueries
                                                   GROUP BY error_name
                                                   ORDER BY occurrence_count DESC
                                                   LIMIT 10
-                                                  """, "error_name", "placeholder_val", null, "occurrence_count", null,
-            ct).ConfigureAwait(false);
+                                                  """, "error_name", "placeholder_val", null, "occurrence_count", null);
 
         if (topErrors.Count > 0)
             widgets.Add(new DashboardWidget("err-top", "Top Errors", "table", topErrors));
 
-        var errorSeries = await QueryTimeSeriesAsync(con, """
+        var errorSeries = QueryTimeSeries(con, """
                                                           SELECT
                                                               strftime(time_bucket(INTERVAL '1 hour', to_timestamp(time_unix_nano / 1e9)), '%H:%M') AS bucket,
                                                               COUNT(*) AS error_count
@@ -300,7 +295,7 @@ public static class DashboardQueries
                                                             AND time_unix_nano >= (epoch_ns(now()) - 86400000000000)
                                                           GROUP BY bucket
                                                           ORDER BY bucket
-                                                          """, "bucket", "error_count", ct).ConfigureAwait(false);
+                                                          """, "bucket", "error_count");
 
         if (errorSeries.Count > 0)
             widgets.Add(new DashboardWidget("err-timeline", "Errors Over Time (24h)", "chart", errorSeries));
@@ -309,19 +304,19 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<IReadOnlyList<DashboardWidget>> MessagingAsync(
-        DuckDBConnection con, CancellationToken ct)
+    private static IReadOnlyList<DashboardWidget> Messaging(
+        DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
 
-        var stats = await QueryStatsAsync(con, """
+        var stats = QueryStats(con, """
                                                SELECT
                                                    COUNT(*) AS total_messages,
                                                    ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
                                                    ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
                                                FROM spans
                                                WHERE attributes_json LIKE '%messaging.system%'
-                                               """, ct).ConfigureAwait(false);
+                                               """);
 
         if (stats.Count > 0)
         {
@@ -333,7 +328,7 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topSystems = await QueryTopNAsync(con, """
+        var topSystems = QueryTopN(con, """
                                                    SELECT
                                                        COALESCE(json_extract_string(attributes_json, '$.messaging.system'), name) AS system_name,
                                                        ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms,
@@ -344,8 +339,7 @@ public static class DashboardQueries
                                                    GROUP BY system_name
                                                    ORDER BY msg_count DESC
                                                    LIMIT 10
-                                                   """, "system_name", "avg_ms", "ms", "msg_count", "err_rate", ct)
-            .ConfigureAwait(false);
+                                                   """, "system_name", "avg_ms", "ms", "msg_count", "err_rate");
 
         if (topSystems.Count > 0)
             widgets.Add(new DashboardWidget("msg-systems", "Messaging Systems", "table", topSystems));
@@ -354,21 +348,21 @@ public static class DashboardQueries
     }
 
 
-    private static async Task<Dictionary<string, string>> QueryStatsAsync(
-        DuckDBConnection con, string sql, CancellationToken ct)
+    private static Dictionary<string, string> QueryStats(
+        DuckDBConnection con, string sql)
     {
         var result = new Dictionary<string, string>();
         try
         {
-            await using var cmd = con.CreateCommand();
+            using var cmd = con.CreateCommand();
             cmd.CommandText = sql;
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            using var reader = cmd.ExecuteReader();
 
-            if (await reader.ReadAsync(ct).ConfigureAwait(false))
+            if (reader.Read())
             {
                 for (var i = 0; i < reader.FieldCount; i++)
                 {
-                    result[reader.GetName(i)] = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
+                    result[reader.GetName(i)] = reader.IsDBNull(i)
                         ? "0"
                         : reader.GetValue(i).ToString() ?? "0";
                 }
@@ -382,20 +376,19 @@ public static class DashboardQueries
         return result;
     }
 
-    private static async Task<IReadOnlyList<TopNRow>> QueryTopNAsync(
+    private static IReadOnlyList<TopNRow> QueryTopN(
         DuckDBConnection con, string sql,
         string nameCol, string valueCol, string? unit,
-        string? countCol, string? errorRateCol,
-        CancellationToken ct)
+        string? countCol, string? errorRateCol)
     {
         var rows = new List<TopNRow>();
         try
         {
-            await using var cmd = con.CreateCommand();
+            using var cmd = con.CreateCommand();
             cmd.CommandText = sql;
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            using var reader = cmd.ExecuteReader();
 
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            while (reader.Read())
             {
                 var name = reader[nameCol].ToString() ?? "unknown";
                 var value = Convert.ToDouble(reader[valueCol]);
@@ -413,17 +406,17 @@ public static class DashboardQueries
         return rows;
     }
 
-    private static async Task<IReadOnlyList<TimeSeriesPoint>> QueryTimeSeriesAsync(
-        DuckDBConnection con, string sql, string timeCol, string valueCol, CancellationToken ct)
+    private static IReadOnlyList<TimeSeriesPoint> QueryTimeSeries(
+        DuckDBConnection con, string sql, string timeCol, string valueCol)
     {
         var points = new List<TimeSeriesPoint>();
         try
         {
-            await using var cmd = con.CreateCommand();
+            using var cmd = con.CreateCommand();
             cmd.CommandText = sql;
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            using var reader = cmd.ExecuteReader();
 
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            while (reader.Read())
             {
                 var time = reader[timeCol].ToString() ?? "";
                 var value = Convert.ToDouble(reader[valueCol]);

@@ -148,44 +148,46 @@ internal static class IntelligenceEndpoints
         if (service is not null)
             query = query.ReplaceOrdinal("${service_name}", service);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = query;
-
-        var rows = new List<Dictionary<string, object?>>();
-        try
+        return await store.ExecuteReadAsync<IResult>(con =>
         {
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = query;
+
+            var rows = new List<Dictionary<string, object?>>();
+            try
             {
-                var row = new Dictionary<string, object?>(StringComparer.Ordinal);
-                for (var i = 0; i < reader.FieldCount; i++)
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    row[reader.GetName(i)] = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
-                        ? null
-                        : reader.GetValue(i);
-                }
+                    var row = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    for (var i = 0; i < reader.FieldCount; i++)
+                    {
+                        row[reader.GetName(i)] = reader.IsDBNull(i)
+                            ? null
+                            : reader.GetValue(i);
+                    }
 
-                rows.Add(row);
+                    rows.Add(row);
+                }
             }
-        }
-        catch (DuckDBException ex)
-        {
+            catch (DuckDBException ex)
+            {
+                return TypedResults.Ok(new
+                {
+                    query_results = Array.Empty<object>(),
+                    step_description = step.Description,
+                    has_next_step = stepIndex + 1 < strategy.Steps.Count,
+                    error = ex.Message
+                });
+            }
+
             return TypedResults.Ok(new
             {
-                query_results = Array.Empty<object>(),
+                query_results = rows,
                 step_description = step.Description,
-                has_next_step = stepIndex + 1 < strategy.Steps.Count,
-                error = ex.Message
+                has_next_step = stepIndex + 1 < strategy.Steps.Count
             });
-        }
-
-        return TypedResults.Ok(new
-        {
-            query_results = rows,
-            step_description = step.Description,
-            has_next_step = stepIndex + 1 < strategy.Steps.Count
-        });
+        }, ct).ConfigureAwait(false);
     }
 
     private static List<Signal> ExtractSignals(IReadOnlyList<SpanStorageRow> spans)
@@ -247,28 +249,30 @@ internal static class IntelligenceEndpoints
         signals.Add(new Signal { Attribute = attribute, Operator = SignalOperator.Eq, Value = value });
     }
 
-    private static async Task<IReadOnlyList<SpanStorageRow>> GetSpansForIssueAsync(
+    private static Task<IReadOnlyList<SpanStorageRow>> GetSpansForIssueAsync(
         DuckDbStore store,
         string errorType,
         CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT *
-                          FROM spans
-                          WHERE TRY_CAST(status_code AS INTEGER) = 2
-                            AND status_message ILIKE $1
-                          ORDER BY start_time_unix_nano DESC
-                          LIMIT 50
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = $"%{errorType}%" });
+        return store.ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT *
+                              FROM spans
+                              WHERE TRY_CAST(status_code AS INTEGER) = 2
+                                AND status_message ILIKE $1
+                              ORDER BY start_time_unix_nano DESC
+                              LIMIT 50
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = $"%{errorType}%" });
 
-        var spans = new List<SpanStorageRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            spans.Add(SpanStorageRow.MapFromReader(reader));
+            var spans = new List<SpanStorageRow>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                spans.Add(SpanStorageRow.MapFromReader(reader));
 
-        return spans;
+            return spans;
+        }, ct);
     }
 }

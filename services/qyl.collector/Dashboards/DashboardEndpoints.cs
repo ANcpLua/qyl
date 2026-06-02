@@ -24,8 +24,7 @@ public static class DashboardEndpoints
             if (dashboard is null || !dashboard.IsAvailable)
                 return TypedResults.NotFound();
 
-            await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-            var widgets = await DashboardQueries.GetWidgetsAsync(id, lease.Connection, ct).ConfigureAwait(false);
+            var widgets = await store.ExecuteReadAsync(con => DashboardQueries.GetWidgets(id, con), ct).ConfigureAwait(false);
 
             return TypedResults.Ok(new DashboardData(
                 dashboard.Id,
@@ -45,8 +44,7 @@ public static class DashboardEndpoints
             if (dashboard is null || !dashboard.IsAvailable)
                 return TypedResults.NotFound();
 
-            await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-            var widgets = await DashboardQueries.GetWidgetsAsync(id, lease.Connection, ct).ConfigureAwait(false);
+            var widgets = await store.ExecuteReadAsync(con => DashboardQueries.GetWidgets(id, con), ct).ConfigureAwait(false);
 
             return TypedResults.Ok(new { widgets });
         });

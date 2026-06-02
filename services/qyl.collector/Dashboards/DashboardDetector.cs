@@ -37,26 +37,28 @@ public sealed class DashboardDetector(DuckDbStore store)
 
     public async Task<IReadOnlyList<DashboardDefinition>> DetectAsync(CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        var results = new List<DashboardDefinition>(s_templates.Count);
-
-        foreach (var tpl in s_templates)
+        return await store.ExecuteReadAsync<IReadOnlyList<DashboardDefinition>>(con =>
         {
-            var available = await ExistsAsync(lease.Connection, tpl.DetectionQuery, ct).ConfigureAwait(false);
-            results.Add(new DashboardDefinition(tpl.Id, tpl.Title, tpl.Description, tpl.Icon, available));
-        }
+            var results = new List<DashboardDefinition>(s_templates.Count);
 
-        return results;
+            foreach (var tpl in s_templates)
+            {
+                var available = Exists(con, tpl.DetectionQuery);
+                results.Add(new DashboardDefinition(tpl.Id, tpl.Title, tpl.Description, tpl.Icon, available));
+            }
+
+            return results;
+        }, ct);
     }
 
-    private static async Task<bool> ExistsAsync(DuckDBConnection con, string query, CancellationToken ct)
+    private static bool Exists(DuckDBConnection con, string query)
     {
         try
         {
-            await using var cmd = con.CreateCommand();
+            using var cmd = con.CreateCommand();
             cmd.CommandText = query;
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            return await reader.ReadAsync(ct).ConfigureAwait(false);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read();
         }
         catch
         {

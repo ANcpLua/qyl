@@ -42,41 +42,43 @@ internal static class CostEndpoints
     {
         var safeGroupBy = SqlBuilder.Whitelisted(groupBy, s_validGroupBy);
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 1000);
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        var providerClause = string.IsNullOrWhiteSpace(providerFilter)
-            ? ""
-            : " AND gen_ai_provider_name = $" + cmd.AddParam(providerFilter);
-
-        cmd.CommandText = "SELECT " + safeGroupBy + ", COUNT(*) AS call_count,"
-                          + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
-                          + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
-                          + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
-                          + " FROM spans"
-                          + " WHERE gen_ai_request_model IS NOT NULL"
-                          + TimeFilter(hours) + providerClause
-                          + " GROUP BY " + safeGroupBy
-                          + " ORDER BY total_cost DESC LIMIT " + boundedLimit.ToString(CultureInfo.InvariantCulture);
-
-        var items = new List<Dictionary<string, object?>>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        var groupCols = safeGroupBy.Split(',', StringSplitOptions.TrimEntries);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var row = new Dictionary<string, object?>(StringComparer.Ordinal);
-            for (var i = 0; i < groupCols.Length; i++)
-                row[ToCamel(groupCols[i])] = reader.Col(i).AsString;
+            using var cmd = con.CreateCommand();
 
-            var offset = groupCols.Length;
-            row["callCount"] = reader.Col(offset).GetInt64(0);
-            row["totalInputTokens"] = reader.Col(offset + 1).GetInt64(0);
-            row["totalOutputTokens"] = reader.Col(offset + 2).GetInt64(0);
-            row["totalCost"] = reader.Col(offset + 3).GetDouble(0);
-            items.Add(row);
-        }
+            var providerClause = string.IsNullOrWhiteSpace(providerFilter)
+                ? ""
+                : " AND gen_ai_provider_name = $" + cmd.AddParam(providerFilter);
 
-        return TypedResults.Ok(new { items, total = items.Count });
+            cmd.CommandText = "SELECT " + safeGroupBy + ", COUNT(*) AS call_count,"
+                              + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
+                              + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
+                              + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+                              + " FROM spans"
+                              + " WHERE gen_ai_request_model IS NOT NULL"
+                              + TimeFilter(hours) + providerClause
+                              + " GROUP BY " + safeGroupBy
+                              + " ORDER BY total_cost DESC LIMIT " + boundedLimit.ToString(CultureInfo.InvariantCulture);
+
+            var items = new List<Dictionary<string, object?>>();
+            using var reader = cmd.ExecuteReader();
+            var groupCols = safeGroupBy.Split(',', StringSplitOptions.TrimEntries);
+            while (reader.Read())
+            {
+                var row = new Dictionary<string, object?>(StringComparer.Ordinal);
+                for (var i = 0; i < groupCols.Length; i++)
+                    row[ToCamel(groupCols[i])] = reader.Col(i).AsString;
+
+                var offset = groupCols.Length;
+                row["callCount"] = reader.Col(offset).GetInt64(0);
+                row["totalInputTokens"] = reader.Col(offset + 1).GetInt64(0);
+                row["totalOutputTokens"] = reader.Col(offset + 2).GetInt64(0);
+                row["totalCost"] = reader.Col(offset + 3).GetDouble(0);
+                items.Add(row);
+            }
+
+            return (IResult)TypedResults.Ok(new { items, total = items.Count });
+        }, ct);
     }
 
     private static async Task<IResult> GetCostTimeseriesAsync(
@@ -84,41 +86,43 @@ internal static class CostEndpoints
         string? service, string? model, CancellationToken ct)
     {
         var trunc = SqlBuilder.Whitelisted(bucket is "day" ? "day" : "hour", s_validTruncInterval);
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        var extra = "";
-        if (!string.IsNullOrWhiteSpace(service))
-            extra += " AND service_name = $" + cmd.AddParam(service);
-        if (!string.IsNullOrWhiteSpace(model))
-            extra += " AND gen_ai_request_model = $" + cmd.AddParam(model);
-
-        cmd.CommandText = "SELECT date_trunc('" + trunc +
-                          "', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,"
-                          + " COUNT(*) AS call_count,"
-                          + " COALESCE(SUM(gen_ai_input_tokens), 0),"
-                          + " COALESCE(SUM(gen_ai_output_tokens), 0),"
-                          + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
-                          + " FROM spans"
-                          + " WHERE gen_ai_request_model IS NOT NULL"
-                          + TimeFilter(hours ?? 168) + extra
-                          + " GROUP BY bucket ORDER BY bucket ASC";
-
-        var items = new List<object>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            items.Add(new
-            {
-                bucket = reader.Col(0).AsDateTime,
-                callCount = reader.Col(1).GetInt64(0),
-                totalInputTokens = reader.Col(2).GetInt64(0),
-                totalOutputTokens = reader.Col(3).GetInt64(0),
-                totalCost = reader.Col(4).GetDouble(0)
-            });
-        }
+            using var cmd = con.CreateCommand();
 
-        return TypedResults.Ok(new { items, total = items.Count, bucketSize = trunc });
+            var extra = "";
+            if (!string.IsNullOrWhiteSpace(service))
+                extra += " AND service_name = $" + cmd.AddParam(service);
+            if (!string.IsNullOrWhiteSpace(model))
+                extra += " AND gen_ai_request_model = $" + cmd.AddParam(model);
+
+            cmd.CommandText = "SELECT date_trunc('" + trunc +
+                              "', to_timestamp(start_time_unix_nano / 1000000000)) AS bucket,"
+                              + " COUNT(*) AS call_count,"
+                              + " COALESCE(SUM(gen_ai_input_tokens), 0),"
+                              + " COALESCE(SUM(gen_ai_output_tokens), 0),"
+                              + " COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost"
+                              + " FROM spans"
+                              + " WHERE gen_ai_request_model IS NOT NULL"
+                              + TimeFilter(hours ?? 168) + extra
+                              + " GROUP BY bucket ORDER BY bucket ASC";
+
+            var items = new List<object>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                items.Add(new
+                {
+                    bucket = reader.Col(0).AsDateTime,
+                    callCount = reader.Col(1).GetInt64(0),
+                    totalInputTokens = reader.Col(2).GetInt64(0),
+                    totalOutputTokens = reader.Col(3).GetInt64(0),
+                    totalCost = reader.Col(4).GetDouble(0)
+                });
+            }
+
+            return (IResult)TypedResults.Ok(new { items, total = items.Count, bucketSize = trunc });
+        }, ct);
     }
 
     private static async Task<IResult> GetBudgetAsync(
@@ -130,25 +134,27 @@ internal static class CostEndpoints
             : (double?)null;
 
         var period = hours ?? 720;
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT COALESCE(SUM(gen_ai_cost_usd), 0), COUNT(*) FROM spans"
-                          + " WHERE gen_ai_request_model IS NOT NULL" + TimeFilter(period);
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        await reader.ReadAsync(ct).ConfigureAwait(false);
-        var spent = reader.Col(0).GetDouble(0);
-        var calls = reader.Col(1).GetInt64(0);
-
-        return TypedResults.Ok(new
+        return await store.ExecuteReadAsync(con =>
         {
-            budgetUsd,
-            totalSpent = spent,
-            remaining = budgetUsd.HasValue ? budgetUsd.Value - spent : (double?)null,
-            percentUsed = budgetUsd is > 0 ? spent / budgetUsd.Value * 100 : (double?)null,
-            totalCalls = calls,
-            periodHours = period
-        });
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT COALESCE(SUM(gen_ai_cost_usd), 0), COUNT(*) FROM spans"
+                              + " WHERE gen_ai_request_model IS NOT NULL" + TimeFilter(period);
+
+            using var reader = cmd.ExecuteReader();
+            reader.Read();
+            var spent = reader.Col(0).GetDouble(0);
+            var calls = reader.Col(1).GetInt64(0);
+
+            return (IResult)TypedResults.Ok(new
+            {
+                budgetUsd,
+                totalSpent = spent,
+                remaining = budgetUsd.HasValue ? budgetUsd.Value - spent : (double?)null,
+                percentUsed = budgetUsd is > 0 ? spent / budgetUsd.Value * 100 : (double?)null,
+                totalCalls = calls,
+                periodHours = period
+            });
+        }, ct);
     }
 
     private static async Task<IResult> UpsertPricingAsync(

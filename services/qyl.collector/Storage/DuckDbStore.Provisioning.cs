@@ -27,26 +27,27 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<ConfigSelectionRecord?> GetConfigSelectionAsync(
+    public Task<ConfigSelectionRecord?> GetConfigSelectionAsync(
         string workspaceId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<ConfigSelectionRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT workspace_id, profile_id, custom_overrides, updated_at
+                              FROM config_selections
+                              WHERE workspace_id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT workspace_id, profile_id, custom_overrides, updated_at
-                          FROM config_selections
-                          WHERE workspace_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapConfigSelection(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapConfigSelection(reader);
-
-        return null;
+            return null;
+        }, ct);
     }
 
 
@@ -82,27 +83,28 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<GenerationJobRecord?> GetGenerationJobAsync(
+    public Task<GenerationJobRecord?> GetGenerationJobAsync(
         string jobId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<GenerationJobRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, workspace_id, profile_id, status,
+                                     output_path, error_message, queued_at, completed_at
+                              FROM generation_jobs
+                              WHERE id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = jobId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, workspace_id, profile_id, status,
-                                 output_path, error_message, queued_at, completed_at
-                          FROM generation_jobs
-                          WHERE id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = jobId });
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapGenerationJob(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapGenerationJob(reader);
-
-        return null;
+            return null;
+        }, ct);
     }
 
     public async Task UpdateGenerationJobAsync(
@@ -127,30 +129,31 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<IReadOnlyList<GenerationJobRecord>> GetGenerationJobsByWorkspaceAsync(
+    public Task<IReadOnlyList<GenerationJobRecord>> GetGenerationJobsByWorkspaceAsync(
         string workspaceId,
         int limit = 50,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<GenerationJobRecord>>(con =>
+        {
+            var clampedLimit = Math.Clamp(limit, 1, 1000);
 
-        var clampedLimit = Math.Clamp(limit, 1, 1000);
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT id, workspace_id, profile_id, status,"
+                              + " output_path, error_message, queued_at, completed_at"
+                              + " FROM generation_jobs WHERE workspace_id = $1"
+                              + " ORDER BY queued_at DESC LIMIT "
+                              + clampedLimit.ToString(CultureInfo.InvariantCulture);
+            cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT id, workspace_id, profile_id, status,"
-                          + " output_path, error_message, queued_at, completed_at"
-                          + " FROM generation_jobs WHERE workspace_id = $1"
-                          + " ORDER BY queued_at DESC LIMIT "
-                          + clampedLimit.ToString(CultureInfo.InvariantCulture);
-        cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
+            var jobs = new List<GenerationJobRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                jobs.Add(MapGenerationJob(reader));
 
-        var jobs = new List<GenerationJobRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            jobs.Add(MapGenerationJob(reader));
-
-        return jobs;
+            return jobs;
+        }, ct);
     }
 
 

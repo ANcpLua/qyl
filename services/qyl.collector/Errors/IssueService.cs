@@ -111,13 +111,15 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
 
     public async Task<ErrorIssueRow?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = IssueSelectSql + " WHERE id = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+        return await store.ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = IssueSelectSql + " WHERE id = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapIssue(reader) : null;
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? MapIssue(reader) : null;
+        }, ct);
     }
 
     public async Task<IReadOnlyList<ErrorIssueRow>> ListIssuesAsync(
@@ -130,8 +132,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         int offset = 0,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-
         var conditions = new List<string>();
         var parameters = new List<DuckDBParameter>();
         var paramIndex = 1;
@@ -170,23 +170,26 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         var clampedLimit = Math.Clamp(limit, 1, 1000);
         var clampedOffset = Math.Max(offset, 0);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = IssueSelectSql
-                          + " " + whereClause
-                          + " ORDER BY last_seen_at DESC"
-                          + " LIMIT $" + (paramIndex++).ToString(CultureInfo.InvariantCulture)
-                          + " OFFSET $" + paramIndex.ToString(CultureInfo.InvariantCulture);
+        return await store.ExecuteReadAsync<IReadOnlyList<ErrorIssueRow>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = IssueSelectSql
+                              + " " + whereClause
+                              + " ORDER BY last_seen_at DESC"
+                              + " LIMIT $" + (paramIndex++).ToString(CultureInfo.InvariantCulture)
+                              + " OFFSET $" + paramIndex.ToString(CultureInfo.InvariantCulture);
 
-        cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
-        cmd.Parameters.Add(new DuckDBParameter { Value = clampedOffset });
+            cmd.Parameters.AddRange(parameters);
+            cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
+            cmd.Parameters.Add(new DuckDBParameter { Value = clampedOffset });
 
-        var results = new List<ErrorIssueRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapIssue(reader));
+            var results = new List<ErrorIssueRow>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapIssue(reader));
 
-        return results;
+            return results;
+        }, ct);
     }
 
 
@@ -311,28 +314,30 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         int limit = 100,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, issue_id, trace_id, span_id, message, stack_trace,
-                                 stack_frames_json, environment, release_version,
-                                 user_id, user_ip, request_url, request_method,
-                                 browser, os, device, runtime, runtime_version,
-                                 context_json, tags_json, timestamp
-                          FROM error_issue_events
-                          WHERE issue_id = $1
-                          ORDER BY timestamp DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
+        return await store.ExecuteReadAsync<IReadOnlyList<ErrorIssueEventRow>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, issue_id, trace_id, span_id, message, stack_trace,
+                                     stack_frames_json, environment, release_version,
+                                     user_id, user_ip, request_url, request_method,
+                                     browser, os, device, runtime, runtime_version,
+                                     context_json, tags_json, timestamp
+                              FROM error_issue_events
+                              WHERE issue_id = $1
+                              ORDER BY timestamp DESC
+                              LIMIT $2
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
 
-        var results = new List<ErrorIssueEventRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapIssueEvent(reader));
+            var results = new List<ErrorIssueEventRow>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapIssueEvent(reader));
 
-        return results;
+            return results;
+        }, ct);
     }
 
 
@@ -341,37 +346,39 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         int limit = 200,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, event_id, breadcrumb_type, category, message,
-                                 level, data_json, timestamp
-                          FROM error_breadcrumbs
-                          WHERE event_id = $1
-                          ORDER BY timestamp ASC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = eventId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
-
-        var results = new List<ErrorBreadcrumbRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync<IReadOnlyList<ErrorBreadcrumbRow>>(con =>
         {
-            results.Add(new ErrorBreadcrumbRow
-            {
-                Id = reader.GetString(0),
-                EventId = reader.GetString(1),
-                BreadcrumbType = reader.GetString(2),
-                Category = reader.Col(3).AsString,
-                Message = reader.Col(4).AsString,
-                Level = reader.GetString(5),
-                DataJson = reader.Col(6).AsString,
-                Timestamp = reader.GetDateTime(7)
-            });
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, event_id, breadcrumb_type, category, message,
+                                     level, data_json, timestamp
+                              FROM error_breadcrumbs
+                              WHERE event_id = $1
+                              ORDER BY timestamp ASC
+                              LIMIT $2
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = eventId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
 
-        return results;
+            var results = new List<ErrorBreadcrumbRow>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new ErrorBreadcrumbRow
+                {
+                    Id = reader.GetString(0),
+                    EventId = reader.GetString(1),
+                    BreadcrumbType = reader.GetString(2),
+                    Category = reader.Col(3).AsString,
+                    Message = reader.Col(4).AsString,
+                    Level = reader.GetString(5),
+                    DataJson = reader.Col(6).AsString,
+                    Timestamp = reader.GetDateTime(7)
+                });
+            }
+
+            return results;
+        }, ct);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

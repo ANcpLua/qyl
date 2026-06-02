@@ -111,135 +111,137 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<IReadOnlyList<ServiceSummary>> GetServicesAsync(
+    public Task<IReadOnlyList<ServiceSummary>> GetServicesAsync(
         string? typeFilter = null,
         string? statusFilter = null,
         int limit = 100,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        var qb = new QueryBuilder();
-        if (typeFilter is not null)
-            qb.Add("service_type = $N", typeFilter);
-
-        switch (statusFilter)
+        return ExecuteReadAsync<IReadOnlyList<ServiceSummary>>(con =>
         {
-            case "active":
-                qb.AddCondition("active_instances > 0");
-                break;
-            case "inactive":
-                qb.AddCondition("active_instances = 0");
-                break;
-        }
+            var qb = new QueryBuilder();
+            if (typeFilter is not null)
+                qb.Add("service_type = $N", typeFilter);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT service_namespace, service_name, service_type,"
-                          + " latest_version, provider_name, default_model,"
-                          + " first_seen, last_seen, last_error_at,"
-                          + " total_instances, active_instances,"
-                          + " environments, versions_seen,"
-                          + " total_spans, total_logs, total_errors,"
-                          + " total_input_tokens, total_output_tokens,"
-                          + " total_cost_usd, total_duration_ns,"
-                          + " avg_duration_ns, error_rate"
-                          + " FROM services "
-                          + qb.WhereClause
-                          + " ORDER BY last_seen DESC LIMIT "
-                          + limit.ToString(CultureInfo.InvariantCulture);
-        qb.ApplyTo(cmd);
-
-        var results = new List<ServiceSummary>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-        {
-            results.Add(new ServiceSummary
+            switch (statusFilter)
             {
-                ServiceNamespace = reader.Col(0).AsString ?? "",
-                ServiceName = reader.Col(1).AsString ?? "",
-                ServiceType = reader.Col(2).AsString ?? "traditional",
-                LatestVersion = reader.Col(3).AsString,
-                ProviderName = reader.Col(4).AsString,
-                DefaultModel = reader.Col(5).AsString,
-                FirstSeen = reader.Col(6).AsDateTimeOffset ?? default,
-                LastSeen = reader.Col(7).AsDateTimeOffset ?? default,
-                LastErrorAt = reader.Col(8).AsDateTimeOffset,
-                TotalInstances = reader.Col(9).GetInt32(0),
-                ActiveInstances = reader.Col(10).GetInt32(0),
-                TotalSpans = reader.Col(13).GetInt64(0),
-                TotalLogs = reader.Col(14).GetInt64(0),
-                TotalErrors = reader.Col(15).GetInt64(0),
-                TotalInputTokens = reader.Col(16).GetInt64(0),
-                TotalOutputTokens = reader.Col(17).GetInt64(0),
-                TotalCostUsd = reader.Col(18).GetDouble(0),
-                ErrorRate = reader.Col(21).AsDouble
-            });
-        }
+                case "active":
+                    qb.AddCondition("active_instances > 0");
+                    break;
+                case "inactive":
+                    qb.AddCondition("active_instances = 0");
+                    break;
+            }
 
-        return results;
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT service_namespace, service_name, service_type,"
+                              + " latest_version, provider_name, default_model,"
+                              + " first_seen, last_seen, last_error_at,"
+                              + " total_instances, active_instances,"
+                              + " environments, versions_seen,"
+                              + " total_spans, total_logs, total_errors,"
+                              + " total_input_tokens, total_output_tokens,"
+                              + " total_cost_usd, total_duration_ns,"
+                              + " avg_duration_ns, error_rate"
+                              + " FROM services "
+                              + qb.WhereClause
+                              + " ORDER BY last_seen DESC LIMIT "
+                              + limit.ToString(CultureInfo.InvariantCulture);
+            qb.ApplyTo(cmd);
+
+            var results = new List<ServiceSummary>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new ServiceSummary
+                {
+                    ServiceNamespace = reader.Col(0).AsString ?? "",
+                    ServiceName = reader.Col(1).AsString ?? "",
+                    ServiceType = reader.Col(2).AsString ?? "traditional",
+                    LatestVersion = reader.Col(3).AsString,
+                    ProviderName = reader.Col(4).AsString,
+                    DefaultModel = reader.Col(5).AsString,
+                    FirstSeen = reader.Col(6).AsDateTimeOffset ?? default,
+                    LastSeen = reader.Col(7).AsDateTimeOffset ?? default,
+                    LastErrorAt = reader.Col(8).AsDateTimeOffset,
+                    TotalInstances = reader.Col(9).GetInt32(0),
+                    ActiveInstances = reader.Col(10).GetInt32(0),
+                    TotalSpans = reader.Col(13).GetInt64(0),
+                    TotalLogs = reader.Col(14).GetInt64(0),
+                    TotalErrors = reader.Col(15).GetInt64(0),
+                    TotalInputTokens = reader.Col(16).GetInt64(0),
+                    TotalOutputTokens = reader.Col(17).GetInt64(0),
+                    TotalCostUsd = reader.Col(18).GetDouble(0),
+                    ErrorRate = reader.Col(21).AsDouble
+                });
+            }
+
+            return results;
+        }, ct);
     }
 
-    public async Task<ServiceDetail?> GetServiceDetailAsync(
+    public Task<ServiceDetail?> GetServiceDetailAsync(
         string serviceName,
         string? serviceType = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        var typeClause = serviceType is not null ? "AND service_type = $2" : "";
-        cmd.CommandText = "SELECT service_namespace, service_name, service_instance_id, service_type,"
-                          + " service_version, deployment_environment, os_type, host_arch,"
-                          + " agent_name, provider_name, default_model,"
-                          + " first_seen, last_seen, last_error_at, status,"
-                          + " total_spans, total_logs, total_errors,"
-                          + " total_input_tokens, total_output_tokens, total_cost_usd"
-                          + " FROM service_instances"
-                          + " WHERE service_name = $1 " + typeClause
-                          + " ORDER BY last_seen DESC";
-        cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-        if (serviceType is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = serviceType });
-
-        var instances = new List<ServiceInstanceDto>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<ServiceDetail?>(con =>
         {
-            instances.Add(new ServiceInstanceDto
+            using var cmd = con.CreateCommand();
+            var typeClause = serviceType is not null ? "AND service_type = $2" : "";
+            cmd.CommandText = "SELECT service_namespace, service_name, service_instance_id, service_type,"
+                              + " service_version, deployment_environment, os_type, host_arch,"
+                              + " agent_name, provider_name, default_model,"
+                              + " first_seen, last_seen, last_error_at, status,"
+                              + " total_spans, total_logs, total_errors,"
+                              + " total_input_tokens, total_output_tokens, total_cost_usd"
+                              + " FROM service_instances"
+                              + " WHERE service_name = $1 " + typeClause
+                              + " ORDER BY last_seen DESC";
+            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
+            if (serviceType is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = serviceType });
+
+            var instances = new List<ServiceInstanceDto>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                ServiceNamespace = reader.Col(0).AsString ?? "",
-                ServiceName = reader.Col(1).AsString ?? "",
-                ServiceInstanceId = reader.Col(2).AsString ?? "",
-                ServiceType = reader.Col(3).AsString ?? "traditional",
-                ServiceVersion = reader.Col(4).AsString,
-                DeploymentEnvironment = reader.Col(5).AsString,
-                OsType = reader.Col(6).AsString,
-                HostArch = reader.Col(7).AsString,
-                AgentName = reader.Col(8).AsString,
-                ProviderName = reader.Col(9).AsString,
-                DefaultModel = reader.Col(10).AsString,
-                FirstSeen = reader.Col(11).AsDateTimeOffset ?? default,
-                LastSeen = reader.Col(12).AsDateTimeOffset ?? default,
-                LastErrorAt = reader.Col(13).AsDateTimeOffset,
-                Status = reader.Col(14).AsString ?? "active",
-                TotalSpans = reader.Col(15).GetInt64(0),
-                TotalLogs = reader.Col(16).GetInt64(0),
-                TotalErrors = reader.Col(17).GetInt64(0),
-                TotalInputTokens = reader.Col(18).GetInt64(0),
-                TotalOutputTokens = reader.Col(19).GetInt64(0),
-                TotalCostUsd = reader.Col(20).GetDouble(0)
-            });
-        }
+                instances.Add(new ServiceInstanceDto
+                {
+                    ServiceNamespace = reader.Col(0).AsString ?? "",
+                    ServiceName = reader.Col(1).AsString ?? "",
+                    ServiceInstanceId = reader.Col(2).AsString ?? "",
+                    ServiceType = reader.Col(3).AsString ?? "traditional",
+                    ServiceVersion = reader.Col(4).AsString,
+                    DeploymentEnvironment = reader.Col(5).AsString,
+                    OsType = reader.Col(6).AsString,
+                    HostArch = reader.Col(7).AsString,
+                    AgentName = reader.Col(8).AsString,
+                    ProviderName = reader.Col(9).AsString,
+                    DefaultModel = reader.Col(10).AsString,
+                    FirstSeen = reader.Col(11).AsDateTimeOffset ?? default,
+                    LastSeen = reader.Col(12).AsDateTimeOffset ?? default,
+                    LastErrorAt = reader.Col(13).AsDateTimeOffset,
+                    Status = reader.Col(14).AsString ?? "active",
+                    TotalSpans = reader.Col(15).GetInt64(0),
+                    TotalLogs = reader.Col(16).GetInt64(0),
+                    TotalErrors = reader.Col(17).GetInt64(0),
+                    TotalInputTokens = reader.Col(18).GetInt64(0),
+                    TotalOutputTokens = reader.Col(19).GetInt64(0),
+                    TotalCostUsd = reader.Col(20).GetDouble(0)
+                });
+            }
 
-        if (instances.Count is 0)
-            return null;
+            if (instances.Count is 0)
+                return null;
 
-        return new ServiceDetail
-        {
-            ServiceName = serviceName, ServiceType = instances[0].ServiceType, Instances = instances
-        };
+            return new ServiceDetail
+            {
+                ServiceName = serviceName, ServiceType = instances[0].ServiceType, Instances = instances
+            };
+        }, ct);
     }
 
     public async Task UpdateServiceAggregatesAsync(CancellationToken ct = default) =>

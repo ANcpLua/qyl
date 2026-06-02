@@ -29,25 +29,26 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<WorkspaceRecord?> GetWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    public Task<WorkspaceRecord?> GetWorkspaceAsync(string workspaceId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<WorkspaceRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT workspace_id, name, service_name, sdk_version, runtime_version,
+                                     framework, git_commit, status, first_seen, last_heartbeat, metadata_json
+                              FROM workspaces
+                              WHERE workspace_id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT workspace_id, name, service_name, sdk_version, runtime_version,
-                                 framework, git_commit, status, first_seen, last_heartbeat, metadata_json
-                          FROM workspaces
-                          WHERE workspace_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapWorkspace(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapWorkspace(reader);
-
-        return null;
+            return null;
+        }, ct);
     }
 
     public async Task UpdateHeartbeatAsync(string workspaceId, CancellationToken ct = default) =>
@@ -62,27 +63,28 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<IReadOnlyList<WorkspaceRecord>> GetWorkspacesAsync(
+    public Task<IReadOnlyList<WorkspaceRecord>> GetWorkspacesAsync(
         int limit = 50,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<WorkspaceRecord>>(con =>
+        {
+            var clampedLimit = Math.Clamp(limit, 1, 1000);
 
-        var clampedLimit = Math.Clamp(limit, 1, 1000);
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT workspace_id, name, service_name, sdk_version, runtime_version,"
+                              + " framework, git_commit, status, first_seen, last_heartbeat, metadata_json"
+                              + " FROM workspaces ORDER BY last_heartbeat DESC LIMIT "
+                              + clampedLimit.ToString(CultureInfo.InvariantCulture);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT workspace_id, name, service_name, sdk_version, runtime_version,"
-                          + " framework, git_commit, status, first_seen, last_heartbeat, metadata_json"
-                          + " FROM workspaces ORDER BY last_heartbeat DESC LIMIT "
-                          + clampedLimit.ToString(CultureInfo.InvariantCulture);
+            var workspaces = new List<WorkspaceRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                workspaces.Add(MapWorkspace(reader));
 
-        var workspaces = new List<WorkspaceRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            workspaces.Add(MapWorkspace(reader));
-
-        return workspaces;
+            return workspaces;
+        }, ct);
     }
 
     public async Task<bool> DeleteWorkspaceAsync(string workspaceId, CancellationToken ct = default) =>
@@ -113,57 +115,59 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<ProjectRecord?> GetProjectAsync(string projectId, CancellationToken ct = default)
+    public Task<ProjectRecord?> GetProjectAsync(string projectId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<ProjectRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT project_id, workspace_id, name, description, created_at, updated_at
+                              FROM projects
+                              WHERE project_id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT project_id, workspace_id, name, description, created_at, updated_at
-                          FROM projects
-                          WHERE project_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapProject(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapProject(reader);
-
-        return null;
+            return null;
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<ProjectRecord>> GetProjectsAsync(
+    public Task<IReadOnlyList<ProjectRecord>> GetProjectsAsync(
         string workspaceId,
         int limit = 50,
         string? cursor = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<ProjectRecord>>(con =>
+        {
+            var clampedLimit = Math.Clamp(limit, 1, 1000);
+            var qb = new QueryBuilder();
+            qb.Add("workspace_id = $N", workspaceId);
 
-        var clampedLimit = Math.Clamp(limit, 1, 1000);
-        var qb = new QueryBuilder();
-        qb.Add("workspace_id = $N", workspaceId);
+            if (!string.IsNullOrEmpty(cursor))
+                qb.Add("project_id > $N", cursor);
 
-        if (!string.IsNullOrEmpty(cursor))
-            qb.Add("project_id > $N", cursor);
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT project_id, workspace_id, name, description, created_at, updated_at"
+                              + " FROM projects " + qb.WhereClause
+                              + " ORDER BY project_id ASC LIMIT "
+                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT project_id, workspace_id, name, description, created_at, updated_at"
-                          + " FROM projects " + qb.WhereClause
-                          + " ORDER BY project_id ASC LIMIT "
-                          + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+            qb.ApplyTo(cmd);
+            cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
 
-        qb.ApplyTo(cmd);
-        cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
+            var projects = new List<ProjectRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                projects.Add(MapProject(reader));
 
-        var projects = new List<ProjectRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            projects.Add(MapProject(reader));
-
-        return projects;
+            return projects;
+        }, ct);
     }
 
     public async Task<bool> DeleteProjectAsync(string projectId, CancellationToken ct = default) =>
@@ -195,28 +199,29 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<IReadOnlyList<ProjectEnvironmentRecord>> GetProjectEnvironmentsAsync(
+    public Task<IReadOnlyList<ProjectEnvironmentRecord>> GetProjectEnvironmentsAsync(
         string projectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<ProjectEnvironmentRecord>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT environment_id, project_id, name, description, created_at
+                              FROM project_environments
+                              WHERE project_id = $1
+                              ORDER BY created_at ASC
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT environment_id, project_id, name, description, created_at
-                          FROM project_environments
-                          WHERE project_id = $1
-                          ORDER BY created_at ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            var envs = new List<ProjectEnvironmentRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                envs.Add(MapProjectEnvironment(reader));
 
-        var envs = new List<ProjectEnvironmentRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            envs.Add(MapProjectEnvironment(reader));
-
-        return envs;
+            return envs;
+        }, ct);
     }
 
     public async Task<bool> DeleteProjectEnvironmentAsync(
@@ -252,31 +257,32 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<HandshakeChallengeRecord?> GetHandshakeChallengeAsync(
+    public Task<HandshakeChallengeRecord?> GetHandshakeChallengeAsync(
         string workspaceId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT workspace_id, code_challenge, created_at
-                          FROM handshake_challenges
-                          WHERE workspace_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<HandshakeChallengeRecord?>(con =>
         {
-            return new HandshakeChallengeRecord(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetDateTime(2));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT workspace_id, code_challenge, created_at
+                              FROM handshake_challenges
+                              WHERE workspace_id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
-        return null;
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return new HandshakeChallengeRecord(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetDateTime(2));
+            }
+
+            return null;
+        }, ct);
     }
 
     public async Task DeleteHandshakeChallengeAsync(
@@ -318,30 +324,31 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<GitHubTokenRecord?> GetGitHubTokenAsync(CancellationToken ct = default)
+    public Task<GitHubTokenRecord?> GetGitHubTokenAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT token, scope, github_login, auth_method, created_at
-                          FROM github_tokens
-                          WHERE key = 'default'
-                          """;
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<GitHubTokenRecord?>(static con =>
         {
-            return new GitHubTokenRecord(
-                reader.GetString(0),
-                reader.Col(1).AsString,
-                reader.Col(2).AsString,
-                reader.Col(3).AsString ?? "pat",
-                reader.Col(4).AsDateTime ?? TimeProvider.System.GetUtcNow().UtcDateTime);
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT token, scope, github_login, auth_method, created_at
+                              FROM github_tokens
+                              WHERE key = 'default'
+                              """;
 
-        return null;
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return new GitHubTokenRecord(
+                    reader.GetString(0),
+                    reader.Col(1).AsString,
+                    reader.Col(2).AsString,
+                    reader.Col(3).AsString ?? "pat",
+                    reader.Col(4).AsDateTime ?? TimeProvider.System.GetUtcNow().UtcDateTime);
+            }
+
+            return null;
+        }, ct);
     }
 
     public async Task<bool> DeleteGitHubTokenAsync(CancellationToken ct = default) =>

@@ -14,8 +14,6 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         if (string.IsNullOrWhiteSpace(queryText))
             return [];
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-
         var likePattern = $"%{SqlLikeEscape.Escape(queryText)}%";
 
         var conditions = new List<string>();
@@ -36,42 +34,47 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         var additionalWhere = conditions.Count > 0 ? $"AND {string.Join(" AND ", conditions)}" : "";
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT d.id, d.entity_type, d.entity_id, d.title, d.body, d.url,"
-                          + " d.tags_json, d.boost, d.indexed_at,"
-                          + " COALESCE(t.score, 0.0) + d.boost AS relevance_score"
-                          + " FROM search_documents d"
-                          + " LEFT JOIN ("
-                          + "     SELECT document_id, SUM(term_frequency) AS score"
-                          + "     FROM search_terms WHERE term ILIKE $1 ESCAPE '\\'"
-                          + "     GROUP BY document_id"
-                          + " ) t ON t.document_id = d.id"
-                          + " WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)"
-                          + " " + additionalWhere
-                          + " ORDER BY relevance_score DESC, d.updated_at DESC"
-                          + " LIMIT $" + paramIndex.ToString(CultureInfo.InvariantCulture);
-
-        cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 200) });
-
-        var results = new List<SearchDocumentResult>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        var results = await store.ExecuteReadAsync(con =>
         {
-            results.Add(new SearchDocumentResult
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT d.id, d.entity_type, d.entity_id, d.title, d.body, d.url,"
+                              + " d.tags_json, d.boost, d.indexed_at,"
+                              + " COALESCE(t.score, 0.0) + d.boost AS relevance_score"
+                              + " FROM search_documents d"
+                              + " LEFT JOIN ("
+                              + "     SELECT document_id, SUM(term_frequency) AS score"
+                              + "     FROM search_terms WHERE term ILIKE $1 ESCAPE '\\'"
+                              + "     GROUP BY document_id"
+                              + " ) t ON t.document_id = d.id"
+                              + " WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)"
+                              + " " + additionalWhere
+                              + " ORDER BY relevance_score DESC, d.updated_at DESC"
+                              + " LIMIT $" + paramIndex.ToString(CultureInfo.InvariantCulture);
+
+            cmd.Parameters.AddRange(parameters);
+            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 200) });
+
+            var rows = new List<SearchDocumentResult>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                Id = reader.GetString(0),
-                EntityType = reader.GetString(1),
-                EntityId = reader.GetString(2),
-                Title = reader.GetString(3),
-                Body = reader.Col(4).AsString,
-                Url = reader.Col(5).AsString,
-                TagsJson = reader.Col(6).AsString,
-                Boost = reader.GetDouble(7),
-                IndexedAt = reader.GetDateTime(8),
-                RelevanceScore = reader.GetDouble(9)
-            });
-        }
+                rows.Add(new SearchDocumentResult
+                {
+                    Id = reader.GetString(0),
+                    EntityType = reader.GetString(1),
+                    EntityId = reader.GetString(2),
+                    Title = reader.GetString(3),
+                    Body = reader.Col(4).AsString,
+                    Url = reader.Col(5).AsString,
+                    TagsJson = reader.Col(6).AsString,
+                    Boost = reader.GetDouble(7),
+                    IndexedAt = reader.GetDateTime(8),
+                    RelevanceScore = reader.GetDouble(9)
+                });
+            }
+
+            return rows;
+        }, ct).ConfigureAwait(false);
 
         await LogQueryAuditAsync(queryText, entityType, projectId, results.Count, ct).ConfigureAwait(false);
 
@@ -88,33 +91,34 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2)
             return [];
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-
         var likePattern = $"{SqlLikeEscape.Escape(prefix)}%";
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT term, field, SUM(term_frequency) AS total_freq
-                          FROM search_terms
-                          WHERE term ILIKE $1 ESCAPE '\'
-                          GROUP BY term, field
-                          ORDER BY total_freq DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
-        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 50) });
-
-        var suggestions = new List<SearchTermSuggestion>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync<IReadOnlyList<SearchTermSuggestion>>(con =>
         {
-            suggestions.Add(new SearchTermSuggestion
-            {
-                Term = reader.GetString(0), Field = reader.GetString(1), Frequency = reader.GetInt32(2)
-            });
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT term, field, SUM(term_frequency) AS total_freq
+                              FROM search_terms
+                              WHERE term ILIKE $1 ESCAPE '\'
+                              GROUP BY term, field
+                              ORDER BY total_freq DESC
+                              LIMIT $2
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
+            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 50) });
 
-        return suggestions;
+            var suggestions = new List<SearchTermSuggestion>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                suggestions.Add(new SearchTermSuggestion
+                {
+                    Term = reader.GetString(0), Field = reader.GetString(1), Frequency = reader.GetInt32(2)
+                });
+            }
+
+            return suggestions;
+        }, ct).ConfigureAwait(false);
     }
 
 

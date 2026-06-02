@@ -29,52 +29,54 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<SchemaPromotionRecord?> GetSchemaPromotionAsync(
+    public Task<SchemaPromotionRecord?> GetSchemaPromotionAsync(
         string promotionId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<SchemaPromotionRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, profile_id, source_attribute, target_column, target_type,
+                                     target_table, status, applied_at, created_at, sql_statements
+                              FROM schema_promotions
+                              WHERE id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = promotionId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, profile_id, source_attribute, target_column, target_type,
-                                 target_table, status, applied_at, created_at, sql_statements
-                          FROM schema_promotions
-                          WHERE id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = promotionId });
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return MapSchemaPromotion(reader);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapSchemaPromotion(reader);
-
-        return null;
+            return null;
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<SchemaPromotionRecord>> GetSchemaPromotionsByStatusAsync(
+    public Task<IReadOnlyList<SchemaPromotionRecord>> GetSchemaPromotionsByStatusAsync(
         string status,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<SchemaPromotionRecord>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, profile_id, source_attribute, target_column, target_type,
+                                     target_table, status, applied_at, created_at, sql_statements
+                              FROM schema_promotions
+                              WHERE status = $1
+                              ORDER BY created_at DESC
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = status });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, profile_id, source_attribute, target_column, target_type,
-                                 target_table, status, applied_at, created_at, sql_statements
-                          FROM schema_promotions
-                          WHERE status = $1
-                          ORDER BY created_at DESC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = status });
+            using var reader = cmd.ExecuteReader();
+            var results = new List<SchemaPromotionRecord>();
+            while (reader.Read())
+                results.Add(MapSchemaPromotion(reader));
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        var results = new List<SchemaPromotionRecord>();
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapSchemaPromotion(reader));
-
-        return results;
+            return results;
+        }, ct);
     }
 
     public async Task UpdateSchemaPromotionStatusAsync(

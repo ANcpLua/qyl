@@ -91,76 +91,79 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         var (startNano, endNano) = ResolvePeriod(period, offset);
         var skip = (page - 1) * pageSize;
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "WITH convos AS ("
-                          + " SELECT " + ConversationIdExpr + " AS conversation_id,"
-                          + " MIN(start_time_unix_nano) AS started_at,"
-                          + " MAX(end_time_unix_nano) AS ended_at,"
-                          + " COUNT(*) AS turn_count,"
-                          + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
-                          + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
-                          + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
-                          + " MAX(" + EnduserIdExpr + ") AS user_id,"
-                          + " MIN(name) AS first_question"
-                          + " FROM spans"
-                          + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                          + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
-                          + " AND ($3::VARCHAR IS NULL OR " + EnduserIdExpr + " IS NOT DISTINCT FROM $3)"
-                          + " AND ($4::VARCHAR IS NULL OR gen_ai_request_model IS NOT DISTINCT FROM $4)"
-                          + " GROUP BY conversation_id"
-                          + ") SELECT conversation_id, started_at, ended_at, turn_count, error_count,"
-                          + " total_input_tokens, total_output_tokens, user_id, first_question"
-                          + " FROM convos"
-                          + " WHERE ($5::BOOLEAN IS NULL OR (error_count > 0) = $5)"
-                          + " ORDER BY started_at DESC LIMIT $6 OFFSET $7";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = userId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = model ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = hasErrors.HasValue ? hasErrors.Value : DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
-        cmd.Parameters.Add(new DuckDBParameter { Value = skip });
-
-        var conversations = new List<ConversationSummary>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var startedAt = reader.Col(1).GetUInt64(0);
-            var endedAt = reader.Col(2).GetUInt64(0);
+            using var cmd = con.CreateCommand();
 
-            conversations.Add(new ConversationSummary
+            cmd.CommandText = "WITH convos AS ("
+                              + " SELECT " + ConversationIdExpr + " AS conversation_id,"
+                              + " MIN(start_time_unix_nano) AS started_at,"
+                              + " MAX(end_time_unix_nano) AS ended_at,"
+                              + " COUNT(*) AS turn_count,"
+                              + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
+                              + " COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,"
+                              + " COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,"
+                              + " MAX(" + EnduserIdExpr + ") AS user_id,"
+                              + " MIN(name) AS first_question"
+                              + " FROM spans"
+                              + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                              + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+                              + " AND ($3::VARCHAR IS NULL OR " + EnduserIdExpr + " IS NOT DISTINCT FROM $3)"
+                              + " AND ($4::VARCHAR IS NULL OR gen_ai_request_model IS NOT DISTINCT FROM $4)"
+                              + " GROUP BY conversation_id"
+                              + ") SELECT conversation_id, started_at, ended_at, turn_count, error_count,"
+                              + " total_input_tokens, total_output_tokens, user_id, first_question"
+                              + " FROM convos"
+                              + " WHERE ($5::BOOLEAN IS NULL OR (error_count > 0) = $5)"
+                              + " ORDER BY started_at DESC LIMIT $6 OFFSET $7";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = userId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = model ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = hasErrors.HasValue ? hasErrors.Value : DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
+            cmd.Parameters.Add(new DuckDBParameter { Value = skip });
+
+            var conversations = new List<ConversationSummary>();
+            using (var reader = cmd.ExecuteReader())
             {
-                ConversationId = reader.GetString(0),
-                StartTime = TimeConversions.UnixNanoToDateTime(startedAt),
-                DurationMs = TimeConversions.NanosToMs(endedAt - startedAt),
-                TurnCount = reader.Col(3).GetInt64(0),
-                ErrorCount = reader.Col(4).GetInt64(0),
-                HasErrors = reader.Col(4).GetInt64(0) > 0,
-                TotalInputTokens = reader.Col(5).GetInt64(0),
-                TotalOutputTokens = reader.Col(6).GetInt64(0),
-                UserId = reader.Col(7).AsString,
-                FirstQuestion = reader.Col(8).AsString
-            });
-        }
+                while (reader.Read())
+                {
+                    var startedAt = reader.Col(1).GetUInt64(0);
+                    var endedAt = reader.Col(2).GetUInt64(0);
 
-        await using var countCmd = lease.Connection.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
-                               + " FROM spans"
-                               + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                               + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+                    conversations.Add(new ConversationSummary
+                    {
+                        ConversationId = reader.GetString(0),
+                        StartTime = TimeConversions.UnixNanoToDateTime(startedAt),
+                        DurationMs = TimeConversions.NanosToMs(endedAt - startedAt),
+                        TurnCount = reader.Col(3).GetInt64(0),
+                        ErrorCount = reader.Col(4).GetInt64(0),
+                        HasErrors = reader.Col(4).GetInt64(0) > 0,
+                        TotalInputTokens = reader.Col(5).GetInt64(0),
+                        TotalOutputTokens = reader.Col(6).GetInt64(0),
+                        UserId = reader.Col(7).AsString,
+                        FirstQuestion = reader.Col(8).AsString
+                    });
+                }
+            }
 
-        var total = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
+            using var countCmd = con.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
+                                   + " FROM spans"
+                                   + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                                   + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
 
-        return new ConversationListResult
-        {
-            Conversations = conversations, Total = total, Page = page, PageSize = pageSize
-        };
+            var total = (long)(countCmd.ExecuteScalar() ?? 0L);
+
+            return new ConversationListResult
+            {
+                Conversations = conversations, Total = total, Page = page, PageSize = pageSize
+            };
+        }, ct);
     }
 
 
@@ -168,50 +171,52 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         string conversationId,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "SELECT span_id, name, start_time_unix_nano, end_time_unix_nano, duration_ns,"
-                          + " status_code, status_message,"
-                          + " gen_ai_provider_name, gen_ai_request_model,"
-                          + " gen_ai_input_tokens, gen_ai_output_tokens,"
-                          + " gen_ai_tool_name, gen_ai_stop_reason,"
-                          + " " + OperationNameExpr + " AS operation_name,"
-                          + " " + EnduserIdExpr + " AS enduser_id,"
-                          + " " + DataSourceIdExpr + " AS data_source_id"
-                          + " FROM spans WHERE " + ConversationIdExpr + " = $1"
-                          + " ORDER BY start_time_unix_nano ASC";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = conversationId });
-
-        var turns = new List<ConversationTurn>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync<ConversationDetail?>(con =>
         {
-            var startNano = reader.Col(2).GetUInt64(0);
+            using var cmd = con.CreateCommand();
 
-            turns.Add(new ConversationTurn
+            cmd.CommandText = "SELECT span_id, name, start_time_unix_nano, end_time_unix_nano, duration_ns,"
+                              + " status_code, status_message,"
+                              + " gen_ai_provider_name, gen_ai_request_model,"
+                              + " gen_ai_input_tokens, gen_ai_output_tokens,"
+                              + " gen_ai_tool_name, gen_ai_stop_reason,"
+                              + " " + OperationNameExpr + " AS operation_name,"
+                              + " " + EnduserIdExpr + " AS enduser_id,"
+                              + " " + DataSourceIdExpr + " AS data_source_id"
+                              + " FROM spans WHERE " + ConversationIdExpr + " = $1"
+                              + " ORDER BY start_time_unix_nano ASC";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = conversationId });
+
+            var turns = new List<ConversationTurn>();
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
             {
-                SpanId = reader.GetString(0),
-                Name = reader.GetString(1),
-                Timestamp = TimeConversions.UnixNanoToDateTime(startNano),
-                DurationMs = TimeConversions.NanosToMs(reader.Col(4).GetUInt64(0)),
-                StatusCode = reader.Col(5).GetByte(0),
-                StatusMessage = reader.Col(6).AsString,
-                Provider = reader.Col(7).AsString,
-                Model = reader.Col(8).AsString,
-                InputTokens = reader.Col(9).GetInt64(0),
-                OutputTokens = reader.Col(10).GetInt64(0),
-                ToolName = reader.Col(11).AsString,
-                StopReason = reader.Col(12).AsString,
-                OperationName = reader.Col(13).AsString,
-                UserId = reader.Col(14).AsString,
-                DataSourceId = reader.Col(15).AsString
-            });
-        }
+                var startNano = reader.Col(2).GetUInt64(0);
 
-        return turns.Count is 0 ? null : new ConversationDetail { ConversationId = conversationId, Turns = turns };
+                turns.Add(new ConversationTurn
+                {
+                    SpanId = reader.GetString(0),
+                    Name = reader.GetString(1),
+                    Timestamp = TimeConversions.UnixNanoToDateTime(startNano),
+                    DurationMs = TimeConversions.NanosToMs(reader.Col(4).GetUInt64(0)),
+                    StatusCode = reader.Col(5).GetByte(0),
+                    StatusMessage = reader.Col(6).AsString,
+                    Provider = reader.Col(7).AsString,
+                    Model = reader.Col(8).AsString,
+                    InputTokens = reader.Col(9).GetInt64(0),
+                    OutputTokens = reader.Col(10).GetInt64(0),
+                    ToolName = reader.Col(11).AsString,
+                    StopReason = reader.Col(12).AsString,
+                    OperationName = reader.Col(13).AsString,
+                    UserId = reader.Col(14).AsString,
+                    DataSourceId = reader.Col(15).AsString
+                });
+            }
+
+            return turns.Count is 0 ? null : new ConversationDetail { ConversationId = conversationId, Turns = turns };
+        }, ct);
     }
 
 
@@ -222,74 +227,76 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     {
         var (startNano, endNano) = ResolvePeriod(period, offset);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-
-        await using var countCmd = lease.Connection.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
-                               + " FROM spans"
-                               + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                               + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "WITH uncertain AS ("
-                          + " SELECT " + ConversationIdExpr + " AS conversation_id,"
-                          + " sc.cluster_label,"
-                          + " COUNT(*) AS span_count,"
-                          + " SUM(CASE WHEN TRY_CAST(s.status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
-                          + " COALESCE(SUM(s.gen_ai_input_tokens + s.gen_ai_output_tokens), 0) AS total_tokens,"
-                          + " MAX(" + DurationMsExpr + ") AS max_duration_ms"
-                          + " FROM spans s"
-                          + " INNER JOIN span_clusters sc ON s.span_id = sc.span_id"
-                          + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                          + " AND s.start_time_unix_nano >= $1 AND s.start_time_unix_nano < $2"
-                          + " AND (TRY_CAST(s.status_code AS INTEGER) = 2 OR s.gen_ai_output_tokens = 0 OR "
-                          + DurationMsExpr + " > ("
-                          + " SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY "
-                          + DurationMsExpr + "), 999999)"
-                          + " FROM spans WHERE " + OperationNameExpr + " IS NOT NULL"
-                          + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2))"
-                          + " GROUP BY conversation_id, sc.cluster_label"
-                          + ") SELECT cluster_label AS topic,"
-                          + " COUNT(DISTINCT conversation_id) AS conversation_count,"
-                          + " array_agg(DISTINCT conversation_id ORDER BY conversation_id) AS sample_ids,"
-                          + " SUM(error_count) AS total_errors,"
-                          + " MAX(max_duration_ms) AS max_duration_ms"
-                          + " FROM uncertain GROUP BY cluster_label"
-                          + " HAVING COUNT(DISTINCT conversation_id) >= 2"
-                          + " ORDER BY conversation_count DESC LIMIT 50";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-
-        var gaps = new List<CoverageGap>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var topic = reader.Col(0).AsString ?? "unknown";
-            var conversationCount = reader.Col(1).GetInt64(0);
-            var sampleIds = ReadStringList(reader, 2);
-            var totalErrors = reader.Col(3).GetInt64(0);
+            using var countCmd = con.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
+                                   + " FROM spans"
+                                   + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                                   + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            var totalConversations = (long)(countCmd.ExecuteScalar() ?? 0L);
 
-            gaps.Add(new CoverageGap
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "WITH uncertain AS ("
+                              + " SELECT " + ConversationIdExpr + " AS conversation_id,"
+                              + " sc.cluster_label,"
+                              + " COUNT(*) AS span_count,"
+                              + " SUM(CASE WHEN TRY_CAST(s.status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
+                              + " COALESCE(SUM(s.gen_ai_input_tokens + s.gen_ai_output_tokens), 0) AS total_tokens,"
+                              + " MAX(" + DurationMsExpr + ") AS max_duration_ms"
+                              + " FROM spans s"
+                              + " INNER JOIN span_clusters sc ON s.span_id = sc.span_id"
+                              + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                              + " AND s.start_time_unix_nano >= $1 AND s.start_time_unix_nano < $2"
+                              + " AND (TRY_CAST(s.status_code AS INTEGER) = 2 OR s.gen_ai_output_tokens = 0 OR "
+                              + DurationMsExpr + " > ("
+                              + " SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY "
+                              + DurationMsExpr + "), 999999)"
+                              + " FROM spans WHERE " + OperationNameExpr + " IS NOT NULL"
+                              + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2))"
+                              + " GROUP BY conversation_id, sc.cluster_label"
+                              + ") SELECT cluster_label AS topic,"
+                              + " COUNT(DISTINCT conversation_id) AS conversation_count,"
+                              + " array_agg(DISTINCT conversation_id ORDER BY conversation_id) AS sample_ids,"
+                              + " SUM(error_count) AS total_errors,"
+                              + " MAX(max_duration_ms) AS max_duration_ms"
+                              + " FROM uncertain GROUP BY cluster_label"
+                              + " HAVING COUNT(DISTINCT conversation_id) >= 2"
+                              + " ORDER BY conversation_count DESC LIMIT 50";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+
+            var gaps = new List<CoverageGap>();
+            using (var reader = cmd.ExecuteReader())
             {
-                Topic = topic,
-                ConversationCount = conversationCount,
-                Finding = totalErrors > 0
-                    ? $"{conversationCount} conversations about '{topic}' had errors or uncertain outcomes"
-                    : $"{conversationCount} conversations about '{topic}' had high latency or empty responses",
-                Recommendation = $"Review documentation coverage for '{topic}' and add targeted content",
-                SampleConversationIds = [.. sampleIds.Take(5)]
-            });
-        }
+                while (reader.Read())
+                {
+                    var topic = reader.Col(0).AsString ?? "unknown";
+                    var conversationCount = reader.Col(1).GetInt64(0);
+                    var sampleIds = ReadStringList(reader, 2);
+                    var totalErrors = reader.Col(3).GetInt64(0);
 
-        return new CoverageGapsResult
-        {
-            ConversationsProcessed = totalConversations, GapsIdentified = gaps.Count, Gaps = gaps
-        };
+                    gaps.Add(new CoverageGap
+                    {
+                        Topic = topic,
+                        ConversationCount = conversationCount,
+                        Finding = totalErrors > 0
+                            ? $"{conversationCount} conversations about '{topic}' had errors or uncertain outcomes"
+                            : $"{conversationCount} conversations about '{topic}' had high latency or empty responses",
+                        Recommendation = $"Review documentation coverage for '{topic}' and add targeted content",
+                        SampleConversationIds = [.. sampleIds.Take(5)]
+                    });
+                }
+            }
+
+            return new CoverageGapsResult
+            {
+                ConversationsProcessed = totalConversations, GapsIdentified = gaps.Count, Gaps = gaps
+            };
+        }, ct);
     }
 
 
@@ -301,53 +308,55 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     {
         var (startNano, endNano) = ResolvePeriod(period, offset);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-
-        await using var countCmd = lease.Connection.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
-                               + " FROM spans"
-                               + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                               + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT sc.cluster_label AS topic,"
-                          + " COUNT(DISTINCT " + ConversationIdExpr + ") AS conversation_count,"
-                          + " array_agg(DISTINCT " + ConversationIdExpr + " ORDER BY " + ConversationIdExpr +
-                          ") AS sample_ids"
-                          + " FROM spans s"
-                          + " INNER JOIN span_clusters sc ON s.span_id = sc.span_id"
-                          + " WHERE " + OperationNameExpr + " IS NOT NULL"
-                          + " AND s.start_time_unix_nano >= $1 AND s.start_time_unix_nano < $2"
-                          + " GROUP BY sc.cluster_label"
-                          + " HAVING COUNT(DISTINCT " + ConversationIdExpr + ") >= $3"
-                          + " ORDER BY conversation_count DESC LIMIT 50";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = minConversations });
-
-        var clusters = new List<TopQuestionCluster>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var sampleIds = ReadStringList(reader, 2);
+            using var countCmd = con.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(DISTINCT " + ConversationIdExpr + ")"
+                                   + " FROM spans"
+                                   + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                                   + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            var totalConversations = (long)(countCmd.ExecuteScalar() ?? 0L);
 
-            clusters.Add(new TopQuestionCluster
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT sc.cluster_label AS topic,"
+                              + " COUNT(DISTINCT " + ConversationIdExpr + ") AS conversation_count,"
+                              + " array_agg(DISTINCT " + ConversationIdExpr + " ORDER BY " + ConversationIdExpr +
+                              ") AS sample_ids"
+                              + " FROM spans s"
+                              + " INNER JOIN span_clusters sc ON s.span_id = sc.span_id"
+                              + " WHERE " + OperationNameExpr + " IS NOT NULL"
+                              + " AND s.start_time_unix_nano >= $1 AND s.start_time_unix_nano < $2"
+                              + " GROUP BY sc.cluster_label"
+                              + " HAVING COUNT(DISTINCT " + ConversationIdExpr + ") >= $3"
+                              + " ORDER BY conversation_count DESC LIMIT 50";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = minConversations });
+
+            var clusters = new List<TopQuestionCluster>();
+            using (var reader = cmd.ExecuteReader())
             {
-                Topic = reader.Col(0).AsString ?? "unknown",
-                ConversationCount = reader.Col(1).GetInt64(0),
-                SampleConversationIds = [.. sampleIds.Take(5)]
-            });
-        }
+                while (reader.Read())
+                {
+                    var sampleIds = ReadStringList(reader, 2);
 
-        return new TopQuestionsResult
-        {
-            ConversationsProcessed = totalConversations, ClustersIdentified = clusters.Count, Clusters = clusters
-        };
+                    clusters.Add(new TopQuestionCluster
+                    {
+                        Topic = reader.Col(0).AsString ?? "unknown",
+                        ConversationCount = reader.Col(1).GetInt64(0),
+                        SampleConversationIds = [.. sampleIds.Take(5)]
+                    });
+                }
+            }
+
+            return new TopQuestionsResult
+            {
+                ConversationsProcessed = totalConversations, ClustersIdentified = clusters.Count, Clusters = clusters
+            };
+        }, ct);
     }
 
 
@@ -358,36 +367,38 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     {
         var (startNano, endNano) = ResolvePeriod(period, offset);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "SELECT " + DataSourceIdExpr + " AS source_id,"
-                          + " COUNT(*) AS citation_count,"
-                          + " array_agg(DISTINCT name ORDER BY name) AS top_questions"
-                          + " FROM spans"
-                          + " WHERE " + DataSourceIdExpr + " IS NOT NULL"
-                          + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
-                          + " GROUP BY source_id ORDER BY citation_count DESC LIMIT 100";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-
-        var sources = new List<SourceUsage>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var topQuestions = ReadStringList(reader, 2);
+            using var cmd = con.CreateCommand();
 
-            sources.Add(new SourceUsage
+            cmd.CommandText = "SELECT " + DataSourceIdExpr + " AS source_id,"
+                              + " COUNT(*) AS citation_count,"
+                              + " array_agg(DISTINCT name ORDER BY name) AS top_questions"
+                              + " FROM spans"
+                              + " WHERE " + DataSourceIdExpr + " IS NOT NULL"
+                              + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+                              + " GROUP BY source_id ORDER BY citation_count DESC LIMIT 100";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+
+            var sources = new List<SourceUsage>();
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
             {
-                SourceId = reader.Col(0).AsString ?? "unknown",
-                CitationCount = reader.Col(1).GetInt64(0),
-                TopQuestions = [.. topQuestions.Take(5)]
-            });
-        }
+                var topQuestions = ReadStringList(reader, 2);
 
-        return new SourceAnalyticsResult { Sources = sources };
+                sources.Add(new SourceUsage
+                {
+                    SourceId = reader.Col(0).AsString ?? "unknown",
+                    CitationCount = reader.Col(1).GetInt64(0),
+                    TopQuestions = [.. topQuestions.Take(5)]
+                });
+            }
+
+            return new SourceAnalyticsResult { Sources = sources };
+        }, ct);
     }
 
 
@@ -398,121 +409,123 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
     {
         var (startNano, endNano) = ResolvePeriod(period, offset);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = """
-                          SELECT
-                              COUNT(*) AS total_feedback,
-                              SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS upvotes,
-                              SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS downvotes
-                          FROM spans
-                          WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-                            AND start_time_unix_nano >= $1
-                            AND start_time_unix_nano < $2
-                          """;
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-
-        long totalFeedback = 0, upvotes = 0, downvotes = 0;
-        await using (var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            if (await reader.ReadAsync(ct).ConfigureAwait(false))
+            using var cmd = con.CreateCommand();
+
+            cmd.CommandText = """
+                              SELECT
+                                  COUNT(*) AS total_feedback,
+                                  SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS upvotes,
+                                  SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS downvotes
+                              FROM spans
+                              WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                AND start_time_unix_nano >= $1
+                                AND start_time_unix_nano < $2
+                              """;
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+
+            long totalFeedback = 0, upvotes = 0, downvotes = 0;
+            using (var reader = cmd.ExecuteReader())
             {
-                totalFeedback = reader.Col(0).GetInt64(0);
-                upvotes = reader.Col(1).GetInt64(0);
-                downvotes = reader.Col(2).GetInt64(0);
-            }
-        }
-
-        await using var modelCmd = lease.Connection.CreateCommand();
-        modelCmd.CommandText = """
-                               SELECT
-                                   gen_ai_request_model AS model,
-                                   COUNT(*) AS feedback_count,
-                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
-                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
-                               FROM spans
-                               WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-                                 AND gen_ai_request_model IS NOT NULL
-                                 AND start_time_unix_nano >= $1
-                                 AND start_time_unix_nano < $2
-                               GROUP BY gen_ai_request_model
-                               ORDER BY feedback_count DESC
-                               """;
-
-        modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-
-        var byModel = new List<SatisfactionByModel>();
-        await using (var modelReader = await modelCmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
-        {
-            while (await modelReader.ReadAsync(ct).ConfigureAwait(false))
-            {
-                var up = modelReader.Col(2).GetInt64(0);
-                var down = modelReader.Col(3).GetInt64(0);
-                var total = up + down;
-
-                byModel.Add(new SatisfactionByModel
+                if (reader.Read())
                 {
-                    Model = modelReader.Col(0).AsString ?? "unknown",
-                    Rate = total > 0 ? (double)up / total : 0,
-                    Downvotes = down
-                });
+                    totalFeedback = reader.Col(0).GetInt64(0);
+                    upvotes = reader.Col(1).GetInt64(0);
+                    downvotes = reader.Col(2).GetInt64(0);
+                }
             }
-        }
 
-        await using var topicCmd = lease.Connection.CreateCommand();
-        topicCmd.CommandText = """
-                               SELECT
-                                   sc.cluster_label AS topic,
-                                   COUNT(*) AS feedback_count,
-                                   SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
-                                   SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
-                               FROM spans s
-                               INNER JOIN span_clusters sc ON s.span_id = sc.span_id
-                               WHERE s.attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-                                 AND s.start_time_unix_nano >= $1
-                                 AND s.start_time_unix_nano < $2
-                               GROUP BY sc.cluster_label
-                               HAVING SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
-                               ORDER BY down DESC
-                               LIMIT 20
-                               """;
+            using var modelCmd = con.CreateCommand();
+            modelCmd.CommandText = """
+                                   SELECT
+                                       gen_ai_request_model AS model,
+                                       COUNT(*) AS feedback_count,
+                                       SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
+                                       SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
+                                   FROM spans
+                                   WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                     AND gen_ai_request_model IS NOT NULL
+                                     AND start_time_unix_nano >= $1
+                                     AND start_time_unix_nano < $2
+                                   GROUP BY gen_ai_request_model
+                                   ORDER BY feedback_count DESC
+                                   """;
 
-        topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
 
-        var byTopic = new List<SatisfactionByTopic>();
-        await using (var topicReader = await topicCmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
-        {
-            while (await topicReader.ReadAsync(ct).ConfigureAwait(false))
+            var byModel = new List<SatisfactionByModel>();
+            using (var modelReader = modelCmd.ExecuteReader())
             {
-                var up = topicReader.Col(2).GetInt64(0);
-                var down = topicReader.Col(3).GetInt64(0);
-                var total = up + down;
-
-                byTopic.Add(new SatisfactionByTopic
+                while (modelReader.Read())
                 {
-                    Topic = topicReader.Col(0).AsString ?? "unknown",
-                    Rate = total > 0 ? (double)up / total : 0,
-                    Downvotes = down
-                });
+                    var up = modelReader.Col(2).GetInt64(0);
+                    var down = modelReader.Col(3).GetInt64(0);
+                    var total = up + down;
+
+                    byModel.Add(new SatisfactionByModel
+                    {
+                        Model = modelReader.Col(0).AsString ?? "unknown",
+                        Rate = total > 0 ? (double)up / total : 0,
+                        Downvotes = down
+                    });
+                }
             }
-        }
 
-        var satisfactionRate = totalFeedback > 0 ? (double)upvotes / totalFeedback : 0;
+            using var topicCmd = con.CreateCommand();
+            topicCmd.CommandText = """
+                                   SELECT
+                                       sc.cluster_label AS topic,
+                                       COUNT(*) AS feedback_count,
+                                       SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
+                                       SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
+                                   FROM spans s
+                                   INNER JOIN span_clusters sc ON s.span_id = sc.span_id
+                                   WHERE s.attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                     AND s.start_time_unix_nano >= $1
+                                     AND s.start_time_unix_nano < $2
+                                   GROUP BY sc.cluster_label
+                                   HAVING SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
+                                   ORDER BY down DESC
+                                   LIMIT 20
+                                   """;
 
-        return new SatisfactionResult
-        {
-            TotalFeedback = totalFeedback,
-            Upvotes = upvotes,
-            Downvotes = downvotes,
-            SatisfactionRate = satisfactionRate,
-            ByModel = byModel,
-            ByTopic = byTopic
-        };
+            topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+
+            var byTopic = new List<SatisfactionByTopic>();
+            using (var topicReader = topicCmd.ExecuteReader())
+            {
+                while (topicReader.Read())
+                {
+                    var up = topicReader.Col(2).GetInt64(0);
+                    var down = topicReader.Col(3).GetInt64(0);
+                    var total = up + down;
+
+                    byTopic.Add(new SatisfactionByTopic
+                    {
+                        Topic = topicReader.Col(0).AsString ?? "unknown",
+                        Rate = total > 0 ? (double)up / total : 0,
+                        Downvotes = down
+                    });
+                }
+            }
+
+            var satisfactionRate = totalFeedback > 0 ? (double)upvotes / totalFeedback : 0;
+
+            return new SatisfactionResult
+            {
+                TotalFeedback = totalFeedback,
+                Upvotes = upvotes,
+                Downvotes = downvotes,
+                SatisfactionRate = satisfactionRate,
+                ByModel = byModel,
+                ByTopic = byTopic
+            };
+        }, ct);
     }
 
 
@@ -526,56 +539,59 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         var (startNano, endNano) = ResolvePeriod(period, offset);
         var skip = (page - 1) * pageSize;
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "SELECT " + EnduserIdExpr + " AS user_id,"
-                          + " COUNT(DISTINCT " + ConversationIdExpr + ") AS conversation_count,"
-                          + " MIN(start_time_unix_nano) AS first_seen,"
-                          + " MAX(end_time_unix_nano) AS last_seen,"
-                          + " array_agg(DISTINCT name ORDER BY name) AS top_topics"
-                          + " FROM spans"
-                          + " WHERE " + EnduserIdExpr + " IS NOT NULL"
-                          + " AND " + OperationNameExpr + " IS NOT NULL"
-                          + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
-                          + " GROUP BY user_id ORDER BY conversation_count DESC"
-                          + " LIMIT $3 OFFSET $4";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
-        cmd.Parameters.Add(new DuckDBParameter { Value = skip });
-
-        var users = new List<UserSummary>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            var firstSeen = reader.Col(2).GetUInt64(0);
-            var lastSeen = reader.Col(3).GetUInt64(0);
-            var topics = ReadStringList(reader, 4);
+            using var cmd = con.CreateCommand();
 
-            users.Add(new UserSummary
+            cmd.CommandText = "SELECT " + EnduserIdExpr + " AS user_id,"
+                              + " COUNT(DISTINCT " + ConversationIdExpr + ") AS conversation_count,"
+                              + " MIN(start_time_unix_nano) AS first_seen,"
+                              + " MAX(end_time_unix_nano) AS last_seen,"
+                              + " array_agg(DISTINCT name ORDER BY name) AS top_topics"
+                              + " FROM spans"
+                              + " WHERE " + EnduserIdExpr + " IS NOT NULL"
+                              + " AND " + OperationNameExpr + " IS NOT NULL"
+                              + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2"
+                              + " GROUP BY user_id ORDER BY conversation_count DESC"
+                              + " LIMIT $3 OFFSET $4";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
+            cmd.Parameters.Add(new DuckDBParameter { Value = skip });
+
+            var users = new List<UserSummary>();
+            using (var reader = cmd.ExecuteReader())
             {
-                UserId = reader.GetString(0),
-                ConversationCount = reader.Col(1).GetInt64(0),
-                FirstSeen = TimeConversions.UnixNanoToDateTime(firstSeen),
-                LastSeen = TimeConversions.UnixNanoToDateTime(lastSeen),
-                TopTopics = [.. topics.Take(5)]
-            });
-        }
+                while (reader.Read())
+                {
+                    var firstSeen = reader.Col(2).GetUInt64(0);
+                    var lastSeen = reader.Col(3).GetUInt64(0);
+                    var topics = ReadStringList(reader, 4);
 
-        await using var countCmd = lease.Connection.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(DISTINCT " + EnduserIdExpr + ")"
-                               + " FROM spans"
-                               + " WHERE " + EnduserIdExpr + " IS NOT NULL"
-                               + " AND " + OperationNameExpr + " IS NOT NULL"
-                               + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
-        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
-        var total = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
+                    users.Add(new UserSummary
+                    {
+                        UserId = reader.GetString(0),
+                        ConversationCount = reader.Col(1).GetInt64(0),
+                        FirstSeen = TimeConversions.UnixNanoToDateTime(firstSeen),
+                        LastSeen = TimeConversions.UnixNanoToDateTime(lastSeen),
+                        TopTopics = [.. topics.Take(5)]
+                    });
+                }
+            }
 
-        return new UserListResult { Users = users, Total = total };
+            using var countCmd = con.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(DISTINCT " + EnduserIdExpr + ")"
+                                   + " FROM spans"
+                                   + " WHERE " + EnduserIdExpr + " IS NOT NULL"
+                                   + " AND " + OperationNameExpr + " IS NOT NULL"
+                                   + " AND start_time_unix_nano >= $1 AND start_time_unix_nano < $2";
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
+            countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
+            var total = (long)(countCmd.ExecuteScalar() ?? 0L);
+
+            return new UserListResult { Users = users, Total = total };
+        }, ct);
     }
 
 
@@ -583,41 +599,45 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         string userId,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "SELECT " + ConversationIdExpr + " AS conversation_id,"
-                          + " MIN(start_time_unix_nano) AS started_at,"
-                          + " MIN(name) AS topic,"
-                          + " COUNT(*) AS turn_count,"
-                          + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
-                          + " COALESCE(SUM(gen_ai_input_tokens), 0) + COALESCE(SUM(gen_ai_output_tokens), 0) AS total_tokens"
-                          + " FROM spans"
-                          + " WHERE " + EnduserIdExpr + " = $1"
-                          + " AND " + OperationNameExpr + " IS NOT NULL"
-                          + " GROUP BY conversation_id ORDER BY started_at DESC LIMIT 100";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = userId });
-
-        var conversations = new List<UserConversation>();
-        long totalTokens = 0;
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        var (conversations, totalTokens) = await store.ExecuteReadAsync(con =>
         {
-            var startedAt = reader.Col(1).GetUInt64(0);
-            var tokens = reader.Col(5).GetInt64(0);
-            totalTokens += tokens;
+            using var cmd = con.CreateCommand();
 
-            conversations.Add(new UserConversation
+            cmd.CommandText = "SELECT " + ConversationIdExpr + " AS conversation_id,"
+                              + " MIN(start_time_unix_nano) AS started_at,"
+                              + " MIN(name) AS topic,"
+                              + " COUNT(*) AS turn_count,"
+                              + " SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) AS error_count,"
+                              + " COALESCE(SUM(gen_ai_input_tokens), 0) + COALESCE(SUM(gen_ai_output_tokens), 0) AS total_tokens"
+                              + " FROM spans"
+                              + " WHERE " + EnduserIdExpr + " = $1"
+                              + " AND " + OperationNameExpr + " IS NOT NULL"
+                              + " GROUP BY conversation_id ORDER BY started_at DESC LIMIT 100";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = userId });
+
+            var rows = new List<UserConversation>();
+            long tokenSum = 0;
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
             {
-                ConversationId = reader.GetString(0),
-                Date = TimeConversions.UnixNanoToDateTime(startedAt),
-                Topic = reader.Col(2).AsString,
-                TurnCount = reader.Col(3).GetInt64(0),
-                Satisfied = reader.Col(4).GetInt64(0) is 0
-            });
-        }
+                var startedAt = reader.Col(1).GetUInt64(0);
+                var tokens = reader.Col(5).GetInt64(0);
+                tokenSum += tokens;
+
+                rows.Add(new UserConversation
+                {
+                    ConversationId = reader.GetString(0),
+                    Date = TimeConversions.UnixNanoToDateTime(startedAt),
+                    Topic = reader.Col(2).AsString,
+                    TurnCount = reader.Col(3).GetInt64(0),
+                    Satisfied = reader.Col(4).GetInt64(0) is 0
+                });
+            }
+
+            return (rows, tokenSum);
+        }, ct);
 
         if (conversations.Count is 0)
             return null;

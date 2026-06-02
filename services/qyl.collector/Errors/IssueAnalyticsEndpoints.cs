@@ -33,34 +33,36 @@ public static class IssueAnalyticsEndpoints
 
         var cutoff = TimeProvider.System.GetUtcNow().AddHours(-clampedHours);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = "SELECT time_bucket(INTERVAL '"
-                          + clampedBucket.ToString(CultureInfo.InvariantCulture)
-                          + " minutes', timestamp) AS bucket, COUNT(*) AS count"
-                          + " FROM error_issue_events"
-                          + " WHERE issue_id = $1 AND timestamp >= $2"
-                          + " GROUP BY bucket ORDER BY bucket ASC";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = cutoff.UtcDateTime });
-
-        List<TimelineBucket> buckets = [];
-        try
+        return await store.ExecuteReadAsync(con =>
         {
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            using var cmd = con.CreateCommand();
+
+            cmd.CommandText = "SELECT time_bucket(INTERVAL '"
+                              + clampedBucket.ToString(CultureInfo.InvariantCulture)
+                              + " minutes', timestamp) AS bucket, COUNT(*) AS count"
+                              + " FROM error_issue_events"
+                              + " WHERE issue_id = $1 AND timestamp >= $2"
+                              + " GROUP BY bucket ORDER BY bucket ASC";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = cutoff.UtcDateTime });
+
+            List<TimelineBucket> buckets = [];
+            try
             {
-                buckets.Add(new TimelineBucket(reader.GetDateTime(0), (int)reader.GetInt64(1)));
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    buckets.Add(new TimelineBucket(reader.GetDateTime(0), (int)reader.GetInt64(1)));
+                }
             }
-        }
-        catch (DuckDBException ex) when (ex.Message.Contains("does not exist"))
-        {
-            return TypedResults.Ok(new { items = buckets, total = 0 });
-        }
+            catch (DuckDBException ex) when (ex.Message.Contains("does not exist"))
+            {
+                return (IResult)TypedResults.Ok(new { items = buckets, total = 0 });
+            }
 
-        return TypedResults.Ok(new { items = buckets, total = buckets.Count });
+            return (IResult)TypedResults.Ok(new { items = buckets, total = buckets.Count });
+        }, ct);
     }
 
     private static async Task<IResult> FindSimilarAsync(
@@ -71,34 +73,36 @@ public static class IssueAnalyticsEndpoints
     {
         var clampedLimit = Math.Clamp(limit ?? 10, 1, 100);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = """
-                          SELECT sc2.span_id, sc2.cluster_label, sc2.distance,
-                                 ABS(sc1.distance - sc2.distance) AS similarity_score
-                          FROM span_clusters sc1
-                          JOIN span_clusters sc2 ON sc1.cluster_id = sc2.cluster_id AND sc1.span_id != sc2.span_id
-                          WHERE sc1.span_id = $1
-                          ORDER BY similarity_score ASC
-                          LIMIT $2
-                          """;
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = spanId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
-
-        List<SimilarSpan> results = [];
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            results.Add(new SimilarSpan(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetDouble(2),
-                reader.GetDouble(3)));
-        }
+            using var cmd = con.CreateCommand();
 
-        return TypedResults.Ok(new { items = results, total = results.Count });
+            cmd.CommandText = """
+                              SELECT sc2.span_id, sc2.cluster_label, sc2.distance,
+                                     ABS(sc1.distance - sc2.distance) AS similarity_score
+                              FROM span_clusters sc1
+                              JOIN span_clusters sc2 ON sc1.cluster_id = sc2.cluster_id AND sc1.span_id != sc2.span_id
+                              WHERE sc1.span_id = $1
+                              ORDER BY similarity_score ASC
+                              LIMIT $2
+                              """;
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = spanId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
+
+            List<SimilarSpan> results = [];
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new SimilarSpan(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetDouble(2),
+                    reader.GetDouble(3)));
+            }
+
+            return (IResult)TypedResults.Ok(new { items = results, total = results.Count });
+        }, ct);
     }
 }
 

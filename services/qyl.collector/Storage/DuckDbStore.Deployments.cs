@@ -4,58 +4,60 @@ namespace Qyl.Collector.Storage;
 
 public sealed partial class DuckDbStore
 {
-    public async Task<IReadOnlyList<DeploymentRecord>> GetRecentDeploymentsAsync(
+    public Task<IReadOnlyList<DeploymentRecord>> GetRecentDeploymentsAsync(
         int limit, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<DeploymentRecord>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT deployment_id, service_name, service_version, environment,
+                                     status, strategy, start_time, end_time, duration_s,
+                                     deployed_by, git_commit, git_branch, previous_version,
+                                     rollback_target, replica_count, healthy_replicas,
+                                     error_message, created_at
+                              FROM deployments
+                              ORDER BY start_time DESC
+                              LIMIT $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT deployment_id, service_name, service_version, environment,
-                                 status, strategy, start_time, end_time, duration_s,
-                                 deployed_by, git_commit, git_branch, previous_version,
-                                 rollback_target, replica_count, healthy_replicas,
-                                 error_message, created_at
-                          FROM deployments
-                          ORDER BY start_time DESC
-                          LIMIT $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            var results = new List<DeploymentRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapDeployment(reader));
 
-        var results = new List<DeploymentRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapDeployment(reader));
-
-        return results;
+            return results;
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<DeploymentRecord>> GetDeploymentsAfterAsync(
+    public Task<IReadOnlyList<DeploymentRecord>> GetDeploymentsAfterAsync(
         DateTime since, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<DeploymentRecord>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT deployment_id, service_name, service_version, environment,
+                                     status, strategy, start_time, end_time, duration_s,
+                                     deployed_by, git_commit, git_branch, previous_version,
+                                     rollback_target, replica_count, healthy_replicas,
+                                     error_message, created_at
+                              FROM deployments
+                              WHERE start_time > $1
+                              ORDER BY start_time ASC
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = since });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT deployment_id, service_name, service_version, environment,
-                                 status, strategy, start_time, end_time, duration_s,
-                                 deployed_by, git_commit, git_branch, previous_version,
-                                 rollback_target, replica_count, healthy_replicas,
-                                 error_message, created_at
-                          FROM deployments
-                          WHERE start_time > $1
-                          ORDER BY start_time ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = since });
+            var results = new List<DeploymentRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapDeployment(reader));
 
-        var results = new List<DeploymentRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapDeployment(reader));
-
-        return results;
+            return results;
+        }, ct);
     }
 
     private static DeploymentRecord MapDeployment(DbDataReader reader) =>

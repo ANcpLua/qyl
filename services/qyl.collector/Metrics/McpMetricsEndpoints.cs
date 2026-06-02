@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.Json.Serialization;
 using ANcpLua.Roslyn.Utilities.Time;
 
 namespace Qyl.Collector.Metrics;
@@ -115,7 +113,7 @@ internal static class McpMetricsEndpoints
         return [DerivedMetricCatalog.ServiceNameLabel];
     }
 
-    internal static async Task<List<McpMetricPoint>> QueryMetricPointsAsync(
+    internal static Task<List<McpMetricPoint>> QueryMetricPointsAsync(
         DuckDbStore store,
         DerivedMetricDefinition metric,
         DateTimeOffset start,
@@ -131,35 +129,37 @@ internal static class McpMetricsEndpoints
             metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
             serviceName is null ? string.Empty : " AND service_name = $3");
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
-            SELECT
-                time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
-                CAST(({metric.Expression}) AS DOUBLE) AS metric_value
-            FROM spans
-            WHERE {where}
-            GROUP BY bucket
-            ORDER BY bucket ASC
-            """);
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        if (serviceName is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-
-        List<McpMetricPoint> points = [];
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return store.ExecuteReadAsync(con =>
         {
-            points.Add(new McpMetricPoint(
-                reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
-                reader.GetDouble(1)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
+                SELECT
+                    time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
+                    CAST(({metric.Expression}) AS DOUBLE) AS metric_value
+                FROM spans
+                WHERE {where}
+                GROUP BY bucket
+                ORDER BY bucket ASC
+                """);
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            if (serviceName is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
 
-        return points;
+            List<McpMetricPoint> points = [];
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                points.Add(new McpMetricPoint(
+                    reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
+                    reader.GetDouble(1)));
+            }
+
+            return points;
+        }, ct);
     }
 
-    internal static async Task<List<McpMetricServicePoint>> QueryMetricPointsByServiceAsync(
+    internal static Task<List<McpMetricServicePoint>> QueryMetricPointsByServiceAsync(
         DuckDbStore store,
         DerivedMetricDefinition metric,
         DateTimeOffset start,
@@ -176,37 +176,39 @@ internal static class McpMetricsEndpoints
             metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
             serviceName is null ? string.Empty : " AND service_name = $3");
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
-            SELECT
-                time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
-                service_name,
-                CAST(({metric.Expression}) AS DOUBLE) AS metric_value
-            FROM spans
-            WHERE {where}
-            GROUP BY bucket, service_name
-            ORDER BY service_name ASC, bucket ASC
-            """);
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        if (serviceName is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-
-        List<McpMetricServicePoint> points = [];
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return store.ExecuteReadAsync(con =>
         {
-            points.Add(new McpMetricServicePoint(
-                reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
-                reader.GetString(1),
-                reader.GetDouble(2)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
+                SELECT
+                    time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
+                    service_name,
+                    CAST(({metric.Expression}) AS DOUBLE) AS metric_value
+                FROM spans
+                WHERE {where}
+                GROUP BY bucket, service_name
+                ORDER BY service_name ASC, bucket ASC
+                """);
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            if (serviceName is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
 
-        return points;
+            List<McpMetricServicePoint> points = [];
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                points.Add(new McpMetricServicePoint(
+                    reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
+                    reader.GetString(1),
+                    reader.GetDouble(2)));
+            }
+
+            return points;
+        }, ct);
     }
 
-    internal static async Task<List<McpMetricPoint>> QueryGenAiTokenUsagePointsAsync(
+    internal static Task<List<McpMetricPoint>> QueryGenAiTokenUsagePointsAsync(
         DuckDbStore store,
         DateTimeOffset start,
         DateTimeOffset end,
@@ -223,7 +225,7 @@ internal static class McpMetricsEndpoints
         };
 
         if (tokenColumn.Length is 0)
-            return [];
+            return Task.FromResult<List<McpMetricPoint>>([]);
 
         var startNano = TimeConversions.ToUnixNano(start);
         var endNano = TimeConversions.ToUnixNano(end);
@@ -232,35 +234,37 @@ internal static class McpMetricsEndpoints
             $" AND {tokenColumn} IS NOT NULL",
             serviceName is null ? string.Empty : " AND service_name = $3");
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
-            SELECT
-                time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
-                CAST(COALESCE(SUM({tokenColumn}), 0) AS DOUBLE) AS metric_value
-            FROM spans
-            WHERE {where}
-            GROUP BY bucket
-            ORDER BY bucket ASC
-            """);
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        if (serviceName is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-
-        List<McpMetricPoint> points = [];
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return store.ExecuteReadAsync(con =>
         {
-            points.Add(new McpMetricPoint(
-                reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
-                reader.GetDouble(1)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
+                SELECT
+                    time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
+                    CAST(COALESCE(SUM({tokenColumn}), 0) AS DOUBLE) AS metric_value
+                FROM spans
+                WHERE {where}
+                GROUP BY bucket
+                ORDER BY bucket ASC
+                """);
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            if (serviceName is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
 
-        return points;
+            List<McpMetricPoint> points = [];
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                points.Add(new McpMetricPoint(
+                    reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
+                    reader.GetDouble(1)));
+            }
+
+            return points;
+        }, ct);
     }
 
-    internal static async Task<List<McpMetricServicePoint>> QueryGenAiTokenUsagePointsByServiceAsync(
+    internal static Task<List<McpMetricServicePoint>> QueryGenAiTokenUsagePointsByServiceAsync(
         DuckDbStore store,
         DateTimeOffset start,
         DateTimeOffset end,
@@ -277,7 +281,7 @@ internal static class McpMetricsEndpoints
         };
 
         if (tokenColumn.Length is 0)
-            return [];
+            return Task.FromResult<List<McpMetricServicePoint>>([]);
 
         var startNano = TimeConversions.ToUnixNano(start);
         var endNano = TimeConversions.ToUnixNano(end);
@@ -287,34 +291,36 @@ internal static class McpMetricsEndpoints
             $" AND {tokenColumn} IS NOT NULL",
             serviceName is null ? string.Empty : " AND service_name = $3");
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
-            SELECT
-                time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
-                service_name,
-                CAST(COALESCE(SUM({tokenColumn}), 0) AS DOUBLE) AS metric_value
-            FROM spans
-            WHERE {where}
-            GROUP BY bucket, service_name
-            ORDER BY service_name ASC, bucket ASC
-            """);
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        if (serviceName is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-
-        List<McpMetricServicePoint> points = [];
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return store.ExecuteReadAsync(con =>
         {
-            points.Add(new McpMetricServicePoint(
-                reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
-                reader.GetString(1),
-                reader.GetDouble(2)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Create(CultureInfo.InvariantCulture, $"""
+                SELECT
+                    time_bucket({intervalSql}, to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,
+                    service_name,
+                    CAST(COALESCE(SUM({tokenColumn}), 0) AS DOUBLE) AS metric_value
+                FROM spans
+                WHERE {where}
+                GROUP BY bucket, service_name
+                ORDER BY service_name ASC, bucket ASC
+                """);
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            if (serviceName is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
 
-        return points;
+            List<McpMetricServicePoint> points = [];
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                points.Add(new McpMetricServicePoint(
+                    reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
+                    reader.GetString(1),
+                    reader.GetDouble(2)));
+            }
+
+            return points;
+        }, ct);
     }
 
     internal static bool TryResolveWindow(
