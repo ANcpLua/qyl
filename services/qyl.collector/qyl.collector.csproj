@@ -90,6 +90,9 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
+    <!-- API contract models (ANcpLua.OtelConventions.* namespaces), emitted from the external
+         @o-ancpplua/otel-conventions-api TypeSpec contract; replaces Qyl.Contracts/Generated. -->
+    <PackageReference Include="ANcpLua.OtelConventions.Api"/>
     <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
     <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
