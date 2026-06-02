@@ -1,11 +1,9 @@
-
 using Qyl.Api.Contracts.Domains.Alerting;
 
 namespace Qyl.Collector.Storage;
 
 public sealed partial class DuckDbStore
 {
-
     private const string AlertRuleInsertSql = """
                                               INSERT INTO alert_rules (
                                                   id, project_id, name, description, rule_type,

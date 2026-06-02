@@ -71,7 +71,7 @@ internal static class ServiceEndpoints
                     Source = reader.GetString(0),
                     Target = reader.GetString(1),
                     CallCount = reader.Col(2).GetInt64(0),
-                    AvgDurationNs = reader.Col(3).AsDouble,
+                    AvgDurationMs = reader.Col(3).AsDouble is { } avgDurationNs ? avgDurationNs / 1_000_000d : null,
                     ErrorCount = reader.Col(4).GetInt64(0)
                 });
             }
@@ -168,7 +168,7 @@ internal sealed record ServiceEdgeDto
     [JsonPropertyName("source")] public required string Source { get; init; }
     [JsonPropertyName("target")] public required string Target { get; init; }
     [JsonPropertyName("call_count")] public long CallCount { get; init; }
-    [JsonPropertyName("avg_duration_ns")] public double? AvgDurationNs { get; init; }
+    [JsonPropertyName("avg_duration_ms")] public double? AvgDurationMs { get; init; }
     [JsonPropertyName("error_count")] public long ErrorCount { get; init; }
 }
 

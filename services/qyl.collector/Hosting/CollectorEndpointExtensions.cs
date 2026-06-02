@@ -2,6 +2,7 @@ using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Meta;
+using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Instrumentation.Generators;
 
 namespace Qyl.Collector.Hosting;
@@ -25,8 +26,6 @@ public static class CollectorEndpointExtensions
 
         api.MapGet("/traces", GetTracesAsync);
         api.MapGet("/traces/{traceId}", SpanEndpoints.GetTraceAsync);
-
-        api.MapPost("/ingest", IngestNativeAsync);
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/logs/live", StreamLogsLiveAsync);
@@ -158,7 +157,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var sessions = await queryService.GetSessionsAsync(limit ?? 100, 0, serviceName, ct: ct).ConfigureAwait(false);
-        var response = SessionMapper.ToListResponse(sessions, sessions.Count, false);
+        var response = SessionMapper.ToPage(sessions, sessions.Count, false);
         return Results.Ok(response);
     }
 
@@ -168,7 +167,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct) =>
         await queryService.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound()
-            : Results.Ok(SessionMapper.ToDto(session));
+            : Results.Ok(SessionMapper.ToContract(session));
 
 
     private static async Task<IResult> GetTracesAsync(
@@ -178,35 +177,16 @@ public static class CollectorEndpointExtensions
     {
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
         var spans = await store.GetSpansAsync(limit: boundedLimit, ct: ct).ConfigureAwait(false);
-        return Results.Ok(new { items = spans, total = spans.Count });
-    }
+        var traces = spans
+            .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
+            .Select(static group =>
+            {
+                var spanContracts = SpanMapper.ToContracts(group, static r => (r.ServiceName ?? "unknown", null));
+                return SpanMapper.ToTrace(group.Key, spanContracts);
+            })
+            .ToList();
 
-
-    private static async Task<IResult> IngestNativeAsync(
-        HttpContext context,
-        DuckDbStore store,
-        ITelemetrySseBroadcaster broadcaster,
-        SpanRingBuffer ringBuffer,
-        CancellationToken ct)
-    {
-        SpanBatch? batch;
-        try
-        {
-            batch = await context.Request.ReadFromJsonAsync<SpanBatch>(
-                QylSerializerContext.Default.SpanBatch, ct);
-
-            if (batch is null || batch.Spans.Count is 0)
-                return Results.BadRequest(new ErrorResponse("Empty or invalid batch"));
-        }
-        catch (JsonException)
-        {
-            return Results.BadRequest(new ErrorResponse("Invalid JSON"));
-        }
-
-        ringBuffer.PushRange(batch.Spans);
-        await store.EnqueueAsync(batch, ct);
-        broadcaster.PublishSpans(batch);
-        return Results.Accepted();
+        return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
     }
 
 
@@ -383,33 +363,9 @@ public static class CollectorEndpointExtensions
     {
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
         var spans = await queryService.GetGenAiSpansAsync(session_id, boundedLimit, ct).ConfigureAwait(false);
+        var spanContracts = SpanMapper.ToContracts(spans, static span => (span.ServiceName ?? "unknown", null));
 
-        var items = spans.Select(static span => new
-        {
-            spanId = span.SpanId,
-            traceId = span.TraceId,
-            name = span.Name,
-            kind = span.Kind,
-            startTimeUnixNano = span.StartTimeUnixNano,
-            endTimeUnixNano = span.EndTimeUnixNano,
-            durationNs = span.DurationNs,
-            statusCode = span.StatusCode,
-            statusMessage = span.StatusMessage,
-            serviceName = span.ServiceName,
-            genAiProviderName = span.GenAiProviderName,
-            genAiRequestModel = span.GenAiRequestModel,
-            genAiResponseModel = span.GenAiResponseModel,
-            genAiInputTokens = span.GenAiInputTokens,
-            genAiOutputTokens = span.GenAiOutputTokens,
-            genAiTemperature = span.GenAiTemperature,
-            genAiStopReason = span.GenAiStopReason,
-            genAiToolName = span.GenAiToolName,
-            genAiToolCallId = span.GenAiToolCallId,
-            genAiCostUsd = span.GenAiCostUsd,
-            attributesJson = span.AttributesJson
-        });
-
-        return Results.Ok(new { spans = items, total = spans.Count });
+        return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
     }
 
 

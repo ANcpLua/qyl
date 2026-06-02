@@ -5,6 +5,12 @@ using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
 using Qyl.Collector.Search;
+using Qyl.Api.Contracts.Common;
+using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.Domains.Observe.Session;
+using Qyl.Api.Contracts.OTel.Traces;
+using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
+using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
 
 namespace Qyl.Collector;
 
@@ -17,20 +23,23 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(GenAiStats))]
 [JsonSerializable(typeof(TelemetryEventDto))]
 [JsonSerializable(typeof(TelemetryMessage))]
-[JsonSerializable(typeof(SpanDto))]
-[JsonSerializable(typeof(SpanDto[]))]
-[JsonSerializable(typeof(List<SpanDto>))]
-[JsonSerializable(typeof(GenAiSpanDataDto))]
-[JsonSerializable(typeof(SpanEventDto))]
-[JsonSerializable(typeof(SpanLinkDto))]
-[JsonSerializable(typeof(SessionDto))]
-[JsonSerializable(typeof(SessionDto[]))]
-[JsonSerializable(typeof(List<SessionDto>))]
-[JsonSerializable(typeof(SessionGenAiStatsDto))]
-[JsonSerializable(typeof(SessionListResponseDto))]
-[JsonSerializable(typeof(SpanListResponseDto))]
-[JsonSerializable(typeof(TraceResponseDto))]
-[JsonSerializable(typeof(SpanBatchDto))]
+[JsonSerializable(typeof(Span))]
+[JsonSerializable(typeof(Span[]))]
+[JsonSerializable(typeof(List<Span>))]
+[JsonSerializable(typeof(SpanEvent))]
+[JsonSerializable(typeof(SpanLink))]
+[JsonSerializable(typeof(SpanStatus))]
+[JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.Trace), TypeInfoPropertyName = "OtelTrace")]
+[JsonSerializable(typeof(CursorPageSpan))]
+[JsonSerializable(typeof(CursorPageTrace))]
+[JsonSerializable(typeof(SessionEntity))]
+[JsonSerializable(typeof(SessionEntity[]))]
+[JsonSerializable(typeof(List<SessionEntity>))]
+[JsonSerializable(typeof(SessionGenAiUsage))]
+[JsonSerializable(typeof(CursorPageSessionEntity))]
+[JsonSerializable(typeof(Resource))]
+[JsonSerializable(typeof(InstrumentationScope))]
+[JsonSerializable(typeof(ContractAttribute))]
 [JsonSerializable(typeof(HealthUiResponse))]
 [JsonSerializable(typeof(ComponentHealth))]
 [JsonSerializable(typeof(IReadOnlyList<ComponentHealth>))]

@@ -1,5 +1,4 @@
 using Qyl.Collector.Intelligence;
-using Qyl.Api.Contracts.Intelligence;
 
 namespace Qyl.Collector.Hosting;
 

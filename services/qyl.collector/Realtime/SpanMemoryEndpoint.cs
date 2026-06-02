@@ -1,3 +1,5 @@
+using Qyl.Api.Contracts.OTel.Traces;
+
 namespace Qyl.Collector.Realtime;
 
 public static class SpanMemoryEndpoints
@@ -29,11 +31,11 @@ public static class SpanMemoryEndpoints
         int? limit)
     {
         var spans = buffer.GetLatest(limit ?? 100, out var generation);
-        var dtos = SpanMapper.ToDtos(spans, static r => (r.ServiceName ?? "unknown", null));
+        var spanContracts = SpanMapper.ToContracts(spans, static r => (r.ServiceName ?? "unknown", null));
 
         return Results.Ok(new RecentSpansResponse
         {
-            Spans = dtos,
+            Spans = spanContracts,
             Generation = generation,
             Source = "memory",
             BufferCount = buffer.Count,
@@ -59,16 +61,15 @@ public static class SpanMemoryEndpoints
             });
         }
 
-        var dtos = SpanMapper.ToDtos(spans, static r => (r.ServiceName ?? "unknown", null));
-        var rootSpan = dtos.FirstOrDefault(static s => s.ParentSpanId is null);
+        var spanContracts = SpanMapper.ToContracts(spans, static r => (r.ServiceName ?? "unknown", null));
+        var rootSpan = spanContracts.FirstOrDefault(static s => s.ParentSpanId is null);
 
         return Results.Ok(new TraceFromMemoryResponse
         {
             TraceId = traceId,
             Found = true,
-            Spans = dtos,
+            Spans = spanContracts,
             RootSpan = rootSpan,
-            DurationMs = rootSpan?.DurationMs,
             Generation = generation,
             Source = "memory"
         });
@@ -80,11 +81,11 @@ public static class SpanMemoryEndpoints
         int? limit)
     {
         var spans = buffer.GetBySessionId(sessionId, limit ?? 100, out var generation);
-        var dtos = SpanMapper.ToDtos(spans, static r => (r.ServiceName ?? "unknown", null));
+        var spanContracts = SpanMapper.ToContracts(spans, static r => (r.ServiceName ?? "unknown", null));
 
         return Results.Ok(new SessionSpansFromMemoryResponse
         {
-            SessionId = sessionId, Spans = dtos, Generation = generation, Source = "memory"
+            SessionId = sessionId, Spans = spanContracts, Generation = generation, Source = "memory"
         });
     }
 
@@ -102,7 +103,7 @@ public static class SpanMemoryEndpoints
 
 public sealed record RecentSpansResponse
 {
-    public required List<SpanDto> Spans { get; init; }
+    public required List<Span> Spans { get; init; }
     public required ulong Generation { get; init; }
     public required string Source { get; init; }
     public required int BufferCount { get; init; }
@@ -113,9 +114,8 @@ public sealed record TraceFromMemoryResponse
 {
     public required string TraceId { get; init; }
     public required bool Found { get; init; }
-    public required List<SpanDto> Spans { get; init; }
-    public SpanDto? RootSpan { get; init; }
-    public double? DurationMs { get; init; }
+    public required List<Span> Spans { get; init; }
+    public Span? RootSpan { get; init; }
     public required ulong Generation { get; init; }
     public required string Source { get; init; }
 }
@@ -123,7 +123,7 @@ public sealed record TraceFromMemoryResponse
 public sealed record SessionSpansFromMemoryResponse
 {
     public required string SessionId { get; init; }
-    public required List<SpanDto> Spans { get; init; }
+    public required List<Span> Spans { get; init; }
     public required ulong Generation { get; init; }
     public required string Source { get; init; }
 }
