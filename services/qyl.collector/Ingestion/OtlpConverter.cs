@@ -11,8 +11,6 @@ using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
-using Qyl.Collector.Services;
-using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -179,88 +177,6 @@ public static class OtlpConverter
             BaggageJson = null,
             SchemaUrl = schemaUrl
         };
-    }
-
-    public static ServiceInstanceRecord? ExtractServiceInstance(
-        IReadOnlyDictionary<string, string> resourceAttributes,
-        IReadOnlyDictionary<string, string>? spanAttributes,
-        ulong timestampNano)
-    {
-        if (!resourceAttributes.TryGetValue(SemanticAttributeKeys.ServiceName, out var serviceName) ||
-            serviceName is "unknown" or "")
-            return null;
-
-        var serviceType = ServiceClassifier.Classify(resourceAttributes, spanAttributes);
-
-        string? metadataJson = null;
-        Dictionary<string, string>? capabilities = null;
-        foreach (var (key, value) in resourceAttributes)
-        {
-            if (!key.StartsWithOrdinal(SemanticAttributeKeys.QylCapabilityPrefix) || string.IsNullOrEmpty(value))
-                continue;
-            capabilities ??= new Dictionary<string, string>(StringComparer.Ordinal);
-            capabilities[key] = value;
-        }
-
-        if (capabilities is not null)
-            metadataJson = JsonSerializer.Serialize(capabilities, QylSerializerContext.Default.DictionaryStringString);
-
-        return new ServiceInstanceRecord
-        {
-            ServiceNamespace = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceNamespace) ?? "",
-            ServiceName = serviceName,
-            ServiceInstanceId = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceInstanceId)
-                                ?? serviceName,
-            ServiceType = serviceType,
-            ServiceVersion = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceVersion),
-            DeploymentEnvironment = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.DeploymentEnvironmentName),
-            OsType = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.OsType),
-            HostArch = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.HostArch),
-            AgentName = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentName),
-            ProviderName = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiProviderName),
-            DefaultModel = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestModel),
-            TimestampNano = timestampNano,
-            MetadataJson = metadataJson
-        };
-    }
-
-    public static List<ServiceInstanceRecord> ExtractServiceInstances(ExportTraceServiceRequest request)
-    {
-        var instances = new List<ServiceInstanceRecord>();
-
-        foreach (var resourceSpan in request.ResourceSpans)
-        {
-            var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
-
-            ProtoSpan? firstSpan = null;
-            foreach (var scopeSpan in resourceSpan.ScopeSpans)
-            {
-                if (scopeSpan.Spans.Count > 0)
-                {
-                    firstSpan = scopeSpan.Spans[0];
-                    break;
-                }
-            }
-
-            Dictionary<string, string>? spanAttrs = null;
-            ulong timestamp = 0;
-
-            if (firstSpan is not null)
-            {
-                spanAttrs = ExtractAttributesFromProto(firstSpan.Attributes,
-                    resourceAttrs.GetValueOrDefault(SemanticAttributeKeys.ServiceName) ?? "unknown");
-                timestamp = firstSpan.StartTimeUnixNano;
-            }
-
-            if (timestamp is 0)
-                timestamp = QylTimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
-
-            var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
-            if (instance is not null)
-                instances.Add(instance);
-        }
-
-        return instances;
     }
 
     private static string SerializeProtoArray(RepeatedField<ProtoAnyValue> values)

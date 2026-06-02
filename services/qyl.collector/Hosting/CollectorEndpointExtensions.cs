@@ -67,7 +67,6 @@ public static class CollectorEndpointExtensions
                 return Results.Accepted();
 
             spans = OtlpConverter.ConvertTraceRequestToStorageRows(otlpData);
-            var serviceInstances = OtlpConverter.ExtractServiceInstances(otlpData);
 
             if (spans.Count is 0) return Results.Accepted();
 
@@ -75,9 +74,6 @@ public static class CollectorEndpointExtensions
                 new SpanBatch(spans).WithCodexTransformations());
             ringBuffer.PushRange(batch.Spans);
             await store.EnqueueAsync(batch, ct);
-
-            foreach (var si in serviceInstances)
-                await store.UpsertServiceInstanceAsync(si, ct);
 
             return Results.Accepted();
         }

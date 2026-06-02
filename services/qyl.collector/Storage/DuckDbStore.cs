@@ -603,81 +603,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted, sessionsDeleted);
         }, ct).ConfigureAwait(false);
 
-
-    public Task<string?> GetInsightHashAsync(string tier, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT content_hash FROM materialized_insights WHERE tier = $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = tier });
-
-            var result = cmd.ExecuteScalar();
-            return result as string;
-        }, ct);
-    }
-
-    public Task<IReadOnlyList<InsightRow>> GetAllInsightsAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<InsightRow>>(static con =>
-        {
-            var rows = new List<InsightRow>();
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT tier, content_markdown, content_hash, materialized_at,
-                                     span_count_at_materialization, duration_ms
-                              FROM materialized_insights
-                              ORDER BY tier
-                              """;
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                rows.Add(new InsightRow(
-                    reader.GetString(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    new DateTimeOffset(reader.GetDateTime(3), TimeSpan.Zero),
-                    reader.Col(4).GetInt64(0),
-                    reader.Col(5).GetDouble(0)));
-            }
-
-            return rows;
-        }, ct);
-    }
-
-    public async Task UpsertInsightAsync(
-        string tier,
-        string markdown,
-        string hash,
-        long spanCount,
-        double durationMs,
-        CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              INSERT INTO materialized_insights
-                                  (tier, content_markdown, content_hash, materialized_at, span_count_at_materialization, duration_ms)
-                              VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)
-                              ON CONFLICT (tier) DO UPDATE SET
-                                  content_markdown = EXCLUDED.content_markdown,
-                                  content_hash = EXCLUDED.content_hash,
-                                  materialized_at = EXCLUDED.materialized_at,
-                                  span_count_at_materialization = EXCLUDED.span_count_at_materialization,
-                                  duration_ms = EXCLUDED.duration_ms
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = tier });
-            cmd.Parameters.Add(new DuckDBParameter { Value = markdown });
-            cmd.Parameters.Add(new DuckDBParameter { Value = hash });
-            cmd.Parameters.Add(new DuckDBParameter { Value = spanCount });
-            cmd.Parameters.Add(new DuckDBParameter { Value = durationMs });
-            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -1571,10 +1496,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.WorkflowEventsV2Ddl);
         workflowRunsCmd.ExecuteNonQuery();
 
-        using var insightsCmd = con.CreateCommand();
-        insightsCmd.CommandText = DuckDbSchema.MaterializedInsightsDdl;
-        insightsCmd.ExecuteNonQuery();
-
         using var errorsCmd = con.CreateCommand();
         errorsCmd.CommandText = """
                                 CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
@@ -1609,14 +1530,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var schemaPromotionsCmd = con.CreateCommand();
         schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;
         schemaPromotionsCmd.ExecuteNonQuery();
-
-        using var serviceRegistryCmd = con.CreateCommand();
-        serviceRegistryCmd.CommandText = ServiceInstancesDdl;
-        serviceRegistryCmd.ExecuteNonQuery();
-
-        using var servicesViewCmd = con.CreateCommand();
-        servicesViewCmd.CommandText = ServicesViewDdl;
-        servicesViewCmd.ExecuteNonQuery();
 
         using var artifactsCmd = con.CreateCommand();
         artifactsCmd.CommandText = DuckDbSchema.ArtifactsDdl;
@@ -1873,14 +1786,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
 }
 
-
-public sealed record InsightRow(
-    string Tier,
-    string ContentMarkdown,
-    string ContentHash,
-    DateTimeOffset MaterializedAt,
-    long SpanCountAtMaterialization,
-    double DurationMs);
 
 public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted, int SessionsDeleted)
 {
