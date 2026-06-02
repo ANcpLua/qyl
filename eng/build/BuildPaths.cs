@@ -16,7 +16,6 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath InternalDirectory => RootDirectory / "internal";
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
-    AbsolutePath ProtocolDirectory => PackagesDirectory / "Qyl.Contracts";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
@@ -26,23 +25,9 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
 
 sealed record CodegenPaths(AbsolutePath Root)
 {
-    AbsolutePath Core => Root / "core";
-    public AbsolutePath OpenApi => Core / "openapi";
-    public AbsolutePath Protocol => Root / "packages" / "Qyl.Contracts";
     AbsolutePath Collector => Root / "services" / "qyl.collector";
     public AbsolutePath CollectorObserve => Collector / "Observe";
     public AbsolutePath CollectorStorage => Collector / "Storage";
-    public AbsolutePath Migrations => CollectorStorage / "Migrations";
-    public AbsolutePath Dashboard => Root / "services" / "qyl.dashboard";
-    public AbsolutePath InstrumentationGenerator => Root / "internal" / "qyl.instrumentation.generators";
-
-    public static string[] WeaverOutputs =>
-    [
-        "services/qyl.dashboard/src/lib/semconv.ts",
-        "core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json",
-        "packages/qyl-client/src/conventions.ts",
-        "docs/attributes/qyl.attrs.md",
-    ];
 
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
 }

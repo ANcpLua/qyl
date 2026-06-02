@@ -1,4 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
 public sealed class SpanRingBuffer
@@ -89,25 +88,24 @@ public sealed class SpanRingBuffer
 
     public SpanRecord[] GetByTraceId(string traceId, out ulong generation)
     {
-        if (!TraceId.TryParse(traceId, null, out var tid))
+        if (string.IsNullOrWhiteSpace(traceId))
         {
             generation = Generation;
             return [];
         }
 
-        return Query(s => s.TraceId == tid, Capacity, out generation);
+        return Query(s => string.Equals(s.TraceId, traceId, StringComparison.Ordinal), Capacity, out generation);
     }
 
     public SpanRecord[] GetBySessionId(string sessionId, int maxCount, out ulong generation)
     {
-        var sid = new SessionId(sessionId);
-        if (!sid.IsValid)
+        if (string.IsNullOrWhiteSpace(sessionId))
         {
             generation = Generation;
             return [];
         }
 
-        return Query(s => s.SessionId == sid.Value, maxCount, out generation);
+        return Query(s => string.Equals(s.SessionId, sessionId, StringComparison.Ordinal), maxCount, out generation);
     }
 
     public void Clear()

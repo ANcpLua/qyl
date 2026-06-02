@@ -1,4 +1,6 @@
 
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+
 namespace Qyl.Collector.Ingestion;
 
 public static class CodexTelemetryMapper

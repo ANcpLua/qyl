@@ -30,8 +30,7 @@ interface IVerify : IHazSourcePaths
         .Executes(async () =>
         {
             var paths = CodegenPaths.From(this);
-            var generatedFiles = paths.Protocol.GlobFiles("**/*.g.cs")
-                .Concat(paths.CollectorStorage.GlobFiles("*.g.cs"))
+            var generatedFiles = paths.CollectorStorage.GlobFiles("*.g.cs")
                 .Where(f => !f.ToString().Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
                 .ToList();
 
@@ -136,22 +135,19 @@ interface IVerify : IHazSourcePaths
                 "diff --name-only",
                 RootDirectory, logOutput: false, logInvocation: false);
 
-            string[] generatedSuffixes = [".g.cs", ".g.sql", ".g.tsp", ".g.ts"];
-
-            string[] weaverSchemaPrefixes =
+            string[] activeGeneratedPrefixes =
             [
-                "packages/Qyl.OpenTelemetry.SemanticConventions/schemas/",
-                "packages/Qyl.OpenTelemetry.SemanticConventions.Incubating/schemas/",
+                "services/qyl.collector/Observe/Generated/",
+                "services/qyl.collector/Storage/"
             ];
 
             var dirtyFiles = diffOutput
                 .Select(static o => o.Text.Trim())
                 .Where(static f => f.Length > 0)
                 .Where(f =>
-                    generatedSuffixes.Any(s => f.EndsWith(s, StringComparison.OrdinalIgnoreCase)) ||
-                    f.Contains("core/openapi/", StringComparison.OrdinalIgnoreCase) ||
-                    CodegenPaths.WeaverOutputs.Contains(f, StringComparer.OrdinalIgnoreCase) ||
-                    weaverSchemaPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase) && (f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))))
+                    activeGeneratedPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase)) &&
+                    (f.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+                     f.EndsWith(".g.sql", StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
             if (dirtyFiles.Count is 0)
@@ -165,7 +161,7 @@ interface IVerify : IHazSourcePaths
 
             throw new InvalidOperationException(
                 $"{dirtyFiles.Count} committed generated file(s) have uncommitted changes. " +
-                "Rebuild (Roslyn source generators) / 'nuke OtelConventions' and commit the output.");
+                "Run the owning generator and commit the output.");
         });
 
     Target Verify => d => d

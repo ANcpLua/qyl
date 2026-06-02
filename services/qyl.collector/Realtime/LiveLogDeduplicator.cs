@@ -1,6 +1,5 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
-using ANcpLua.Roslyn.Utilities;
 namespace Qyl.Collector.Realtime;
 
 internal sealed class LiveLogDeduplicator
@@ -28,7 +27,7 @@ internal sealed class LiveLogDeduplicator
 
         foreach (var log in orderedLogs)
         {
-            var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
+            var timestamp = QylTimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
             FlushExpired(timestamp, output);
 
             var key = BuildKey(log);

@@ -32,9 +32,6 @@
     <!-- Microsoft.Agents.AI for AIAgentBuilder + UseLogging + UseOpenTelemetry (agent-layer) -->
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
 
-    <!-- ModelContextProtocol for IMcpServerBuilder + filter surface (Mcp/QylMcpServerInstrumentation) -->
-    <PackageReference Include="ModelContextProtocol"/>
-
     <!-- .NET 10 Telemetry (Enrichment, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
@@ -62,9 +59,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Shared types -->
-    <ProjectReference Include="../../packages/Qyl.Contracts/Qyl.Contracts.csproj"/>
-    <ProjectReference Include="../../packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
 

@@ -1,4 +1,3 @@
-using OpenTelemetry.Metrics;
 using Qyl.Collector;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Telemetry;
@@ -30,11 +29,6 @@ builder.Services.AddQylCollectorTelemetry(builder.Environment);
 builder.Services.AddQylCollectorFeatures(builder.Configuration);
 builder.WebHost.ConfigureQylCollectorKestrel(builder.Configuration);
 
-// Multi-tenant MCP endpoint (/mcp/{tenant}) + Keycloak JWT bearer auth + RFC 9728 PRM.
-// Services register unconditionally; the endpoint and auth middleware are flag-gated below.
-builder.Services.AddQylCollectorMcp(builder.Configuration);
-builder.Services.AddQylMcpAuthentication(builder.Configuration, builder.Environment);
-
 // Dev-only: generate REST client SDKs (TypeScript + C#) on demand from this collector's OpenAPI
 // document, served through a Scalar UI. Replaces the retired committed TypeSpec client packages.
 if (builder.Environment.IsDevelopment())
@@ -50,18 +44,7 @@ var app = builder.Build();
 await app.InitializeQylCollectorAsync().ConfigureAwait(false);
 app.UseQylCollectorMiddleware();
 
-var mcpTenantAuthEnabled = CollectorAuthExtensions.IsMcpTenantAuthEnabled(app.Configuration);
-if (mcpTenantAuthEnabled)
-{
-    CollectorAuthExtensions.EnsureMcpTenantAuthConfiguration(app.Configuration);
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
-
 app.MapQylCollectorEndpoints();
-
-if (mcpTenantAuthEnabled)
-    app.MapMcp("/mcp/{tenant}").RequireAuthorization(CollectorAuthExtensions.McpTenantPolicy);
 
 // Dev-only: /openapi/v1.json (Kiota source) + Scalar UI with on-demand SDK download at /scalar.
 if (app.Environment.IsDevelopment())

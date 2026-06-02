@@ -1,7 +1,7 @@
 
 using Microsoft.AspNetCore.Mvc;
-using ANcpLua.OtelConventions.Common.Pagination;
-using ANcpLua.OtelConventions.Domains.Alerting;
+using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.Domains.Alerting;
 
 namespace Qyl.Collector.Alerts;
 
@@ -106,3 +106,5 @@ public static class AlertsEndpoints
         });
     }
 }
+
+public sealed record AlertFiringAcknowledgement(string? AcknowledgedBy);

@@ -1,5 +1,4 @@
 
-using Qyl.Contracts.Generated;
 using SemconvVersionParser = ANcpLua.Roslyn.Utilities.OTel.SemconvVersion;
 
 namespace Qyl.Collector.Observe;

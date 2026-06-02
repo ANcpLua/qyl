@@ -1,5 +1,3 @@
-
-using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 

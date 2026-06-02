@@ -6,7 +6,7 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 
 internal static class QylServiceAnalyzer
 {
-    internal const string QylServiceAttributeMetadataName = "Qyl.Contracts.Observability.QylServiceAttribute";
+    internal const string QylServiceAttributeMetadataName = "Qyl.Instrumentation.QylServiceAttribute";
 
     private static readonly string[] s_lifetimeNames = ["Singleton", "Scoped", "Transient"];
 

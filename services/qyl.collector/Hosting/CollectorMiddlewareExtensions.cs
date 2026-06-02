@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Qyl.Collector.Auth;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Telemetry;
 

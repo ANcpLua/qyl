@@ -1,4 +1,4 @@
-using Qyl.Contracts.Intelligence;
+using Qyl.Api.Contracts.Intelligence;
 
 namespace Qyl.Collector.Intelligence;
 

@@ -21,9 +21,6 @@ app.AddDashboard("dashboard", port: 5050, project: "services/qyl.dashboard")
    .WithCollector(collectorProd)
    .WaitFor(collectorDev, collectorProd);
 
-app.AddMcp("mcp", project: "services/qyl.mcp")
-   .WaitFor(collectorDev);
-
 await app.Build().RunAsync();
 ```
 
@@ -43,7 +40,6 @@ v0.1.0 — qyl distributed-app runner
 │ collector-dev   │   ●    │ 5100  │ http://127.0.0.1:5100 │
 │ collector-prod  │   ●    │ 5101  │ http://127.0.0.1:5101 │
 │ dashboard       │   ●    │ 5050  │ http://127.0.0.1:5050 │
-│ mcp             │   ●    │ 18891 │ http://127.0.0.1:18891│
 ╰─────────────────┴────────┴───────┴───────────────────────╯
 [S] Stop   [R] Restart   [B] Open browser   [H] Help   [Esc] Exit
 ```

@@ -1,9 +1,7 @@
-
 using System.Collections.ObjectModel;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http.Resilience;
 using Qyl.Run.Internal;
 
 namespace Qyl.Run;
@@ -42,13 +40,6 @@ public sealed class QylAppBuilder
         string environment = QylConstants.Environments.Dev, string? project = null, string? description = null)
     {
         return AddCore(name, QylConstants.ResourceKinds.Dashboard, port, environment, project, null,
-            description);
-    }
-
-    public IQylResourceBuilder AddMcp(string name, int port = QylConstants.Ports.McpStreamable,
-        string environment = QylConstants.Environments.Dev, string? project = null, string? description = null)
-    {
-        return AddCore(name, QylConstants.ResourceKinds.Mcp, port, environment, project, null,
             description);
     }
 

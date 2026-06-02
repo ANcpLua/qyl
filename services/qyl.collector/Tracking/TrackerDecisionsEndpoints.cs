@@ -1,5 +1,3 @@
-using Qyl.Collector.Storage;
-
 namespace Qyl.Collector.Tracking;
 
 public sealed record TopTrackerResponse(

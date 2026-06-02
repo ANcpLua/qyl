@@ -1,4 +1,4 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Insights;
 
@@ -12,9 +12,9 @@ internal static class AlertsMaterializer
             sb.AppendLine("## Known Issues (auto-detected)");
 
             var now = timeProvider.GetUtcNow();
-            var oneHourAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-1));
-            var twoHoursAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-2));
-            var twentyFourHoursAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-24));
+            var oneHourAgoNanos = (decimal)QylTimeConversions.ToUnixNanoUnsigned(now.AddHours(-1));
+            var twoHoursAgoNanos = (decimal)QylTimeConversions.ToUnixNanoUnsigned(now.AddHours(-2));
+            var twentyFourHoursAgoNanos = (decimal)QylTimeConversions.ToUnixNanoUnsigned(now.AddHours(-24));
 
             var hasAlerts = false;
 

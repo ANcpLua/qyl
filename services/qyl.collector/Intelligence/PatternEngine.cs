@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Qyl.Contracts.Intelligence;
+using Qyl.Api.Contracts.Intelligence;
 
 namespace Qyl.Collector.Intelligence;
 
@@ -77,7 +77,7 @@ public sealed class PatternEngine(
     private static bool EvaluateSignal(Signal required, IReadOnlyList<Signal> observed) =>
         required.Operator switch
         {
-            SignalOperator.NotExists => !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute)),
+            SignalOperator.Not_exists => !observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute)),
             SignalOperator.Exists => observed.Any(o => o.Attribute.EqualsOrdinal(required.Attribute)),
             _ => observed
                 .Where(obs => obs.Attribute.EqualsOrdinal(required.Attribute))
@@ -96,7 +96,7 @@ public sealed class PatternEngine(
                                       && expectedValue is not null
                                       && Regex.IsMatch(observedValue, expectedValue, RegexOptions.None,
                                           TimeSpan.FromSeconds(1)),
-            SignalOperator.InSet => observedValue is not null
+            SignalOperator.In_set => observedValue is not null
                                     && expectedValue is not null
                                     && expectedValue.Split(',').Contains(observedValue, StringComparer.Ordinal),
             SignalOperator.Gt => CompareNumeric(observedValue, expectedValue) > 0,

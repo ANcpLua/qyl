@@ -1,5 +1,3 @@
-using Qyl.Contracts.Generated;
-
 namespace Qyl.Collector.Observe;
 
 internal static class ObserveCatalog

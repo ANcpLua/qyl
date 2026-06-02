@@ -1,6 +1,6 @@
 using System.Numerics;
 using Qyl.Collector.Search;
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Storage;
 
@@ -105,10 +105,10 @@ public sealed partial class DuckDbStore
 
     private static DateTime ReadTimestamp(object value) => value switch
     {
-        ulong ulongValue => TimeConversions.UnixNanoToDateTime(ulongValue),
-        long longValue when longValue >= 0 => TimeConversions.UnixNanoToDateTime((ulong)longValue),
-        decimal decimalValue => TimeConversions.UnixNanoToDateTime((ulong)decimalValue),
-        BigInteger bigIntegerValue => TimeConversions.UnixNanoToDateTime((ulong)bigIntegerValue),
+        ulong ulongValue => QylTimeConversions.UnixNanoToDateTime(ulongValue),
+        long longValue when longValue >= 0 => QylTimeConversions.UnixNanoToDateTime((ulong)longValue),
+        decimal decimalValue => QylTimeConversions.UnixNanoToDateTime((ulong)decimalValue),
+        BigInteger bigIntegerValue => QylTimeConversions.UnixNanoToDateTime((ulong)bigIntegerValue),
         DateTime dateTimeValue => DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc),
         DateTimeOffset dateTimeOffsetValue => dateTimeOffsetValue.UtcDateTime,
         _ => TimeProvider.System.GetUtcNow().UtcDateTime

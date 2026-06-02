@@ -1,5 +1,5 @@
 using Qyl.Collector.Services;
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Storage;
 
@@ -86,7 +86,7 @@ public sealed partial class DuckDbStore
                                                     """;
 
     private static DateTime NanoToDateTime(ulong nanos) =>
-        TimeConversions.UnixNanoToDateTime(nanos);
+        QylTimeConversions.UnixNanoToDateTime(nanos);
 
     public async Task UpsertServiceInstanceAsync(ServiceInstanceRecord instance, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>

@@ -18,24 +18,11 @@
   </ItemGroup>
 
   <!-- Expose internals to test project -->
-  <ItemGroup>
-    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
-  </ItemGroup>
+
 
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
-
-  <!-- Generated/generated/lib/ (TypeSpec.Helpers + JsonConverters) is the only surviving
-       scaffolding from the retired @typespec/http-server-csharp pipeline; it compiles and is
-       load-bearing for serialization. The MVC controllers/operations/models stubs it used to
-       emit were never wired up (the collector routes via minimal-API MapQylCollectorEndpoints,
-       and Qyl.Contracts is the authoritative model source) and have been deleted. -->
-
-  <!-- CS1573 / CS1591 scoping for the lib/ subtree lives in
-       services/qyl.collector/Generated/.editorconfig (file-scoped severity overrides
-       beat csproj item metadata for analyzer diagnostics and keep the suppression
-       discoverable at the offending file's location). -->
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
@@ -43,7 +30,7 @@
     <PackageReference Include="DuckDB.NET.Data.Full"/>
   </ItemGroup>
 
-  <!-- M.E.AI for IChatClient/IEmbeddingGenerator (Autofix, Triage, Insights) -->
+  <!-- M.E.AI for IChatClient/IEmbeddingGenerator-backed insights -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI"/>
   </ItemGroup>
@@ -89,17 +76,11 @@
 
   <!-- Core dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\..\packages\Qyl.Contracts\Qyl.Contracts.csproj"/>
-    <!-- API contract models (ANcpLua.OtelConventions.* namespaces), emitted from the external
-         @o-ancpplua/otel-conventions-api TypeSpec contract; replaces Qyl.Contracts/Generated. -->
-    <PackageReference Include="ANcpLua.OtelConventions.Api"/>
     <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
-    <ProjectReference Include="..\..\packages\Qyl.SemanticConventions\Qyl.SemanticConventions.csproj"/>
+    <PackageReference Include="Qyl.Api.Contracts"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
-    <!-- qyl-PRD E2.a: qyl.mcp library-consumable for in-process HTTP MCP host. -->
-    <ProjectReference Include="..\qyl.mcp\qyl.mcp.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

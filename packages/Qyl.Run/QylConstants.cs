@@ -17,7 +17,6 @@ public static class QylConstants
         public const int Dashboard = 18888;
         public const int OtlpGrpc = 4317;
         public const int OtlpHttp = 4318;
-        public const int McpStreamable = 18891;
         public const int DynamicAllocation = 0;
     }
 
@@ -25,8 +24,6 @@ public static class QylConstants
     {
         public const string Dashboard = "dashboard";
         public const string Collector = "collector";
-        public const string Mcp = "mcp";
-        public const string Loom = "loom";
         public const string Project = "project";
     }
 

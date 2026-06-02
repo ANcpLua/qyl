@@ -1,4 +1,4 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Storage;
 
@@ -187,7 +187,7 @@ public sealed partial class DuckDbStore
                               """;
             cmd.Parameters.Add(new DuckDBParameter
             {
-                Value = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
+                Value = QylTimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
             });
             cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;

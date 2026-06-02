@@ -1,6 +1,5 @@
-using Qyl.Collector.AgentRuns;
 using Qyl.Collector.Intelligence;
-using Qyl.Contracts.Intelligence;
+using Qyl.Api.Contracts.Intelligence;
 
 namespace Qyl.Collector.Hosting;
 
@@ -15,10 +14,10 @@ public static class CollectorStorageExtensions
 
         services.AddSingleton(static sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
         services.AddSingleton(static sp => new AnalyticsQueryService(sp.GetRequiredService<DuckDbStore>()));
-        services.AddSingleton(static sp => new AgentInsightsService(sp.GetRequiredService<DuckDbStore>()));
 
         services.AddSingleton<IPatternEngine>(
-            new PatternEngine(DiagnosticPatterns.All, CausalRules.All, InvestigationStrategies.All));
+            new PatternEngine(DiagnosticPatternCatalog.Patterns, DiagnosticPatternCatalog.CausalRules,
+                DiagnosticPatternCatalog.InvestigationStrategies));
 
         return services;
     }

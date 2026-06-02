@@ -63,7 +63,7 @@ internal static class MetricsEndpoints
         int? serviceLimit,
         CancellationToken ct)
     {
-        var metric = McpMetricsEndpoints.FindMetric(metricName);
+        var metric = DerivedMetricQueries.FindMetric(metricName);
         if (metric is null)
             return TypedResults.NotFound(new PublicMetricsError($"Unknown metric '{metricName}'."));
 
@@ -86,14 +86,14 @@ internal static class MetricsEndpoints
         if (string.IsNullOrWhiteSpace(body.MetricName))
             return TypedResults.BadRequest(new PublicMetricsError("Property 'metric_name' is required."));
 
-        var metric = McpMetricsEndpoints.FindMetric(body.MetricName);
+        var metric = DerivedMetricQueries.FindMetric(body.MetricName);
         if (metric is null)
             return TypedResults.NotFound(new PublicMetricsError($"Unknown metric '{body.MetricName}'."));
 
         if (!TryResolveQueryWindow(body, out var start, out var end, out var windowError))
             return TypedResults.BadRequest(new PublicMetricsError(windowError));
 
-        if (!McpMetricsEndpoints.TryResolveInterval(body.Step, out var intervalSql, out var intervalError))
+        if (!DerivedMetricQueries.TryResolveInterval(body.Step, out var intervalSql, out var intervalError))
             return TypedResults.BadRequest(new PublicMetricsError(intervalError));
 
         if (!TryResolveMetricFilters(body.Filters, metric, out var filters, out var filterError))
@@ -143,7 +143,7 @@ internal static class MetricsEndpoints
         List<PublicMetricMetadata> metadata = [];
         var resolvedServiceName = string.IsNullOrWhiteSpace(serviceName) ? null : serviceName.Trim();
 
-        foreach (var metric in McpMetricsEndpoints.GetMetricDefinitions())
+        foreach (var metric in DerivedMetricQueries.GetMetricDefinitions())
         {
             if (!MatchesNamePattern(metric.Name, namePattern))
                 continue;
@@ -257,7 +257,7 @@ internal static class MetricsEndpoints
             metric.Description,
             metric.Unit,
             metric.Type,
-            McpMetricsEndpoints.GetLabelKeys(metric),
+            DerivedMetricQueries.GetLabelKeys(metric),
             services.Services,
             services.ServicesTruncated,
             serviceLimit);
@@ -457,7 +457,7 @@ internal static class MetricsEndpoints
                     return false;
                 }
 
-                if (!McpMetricsEndpoints.SupportsGenAiDimensions(metric))
+                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
                 {
                     error = "Metric filters support gen_ai.provider.name only for GenAI-derived metrics.";
                     return false;
@@ -479,7 +479,7 @@ internal static class MetricsEndpoints
                     return false;
                 }
 
-                if (!McpMetricsEndpoints.SupportsGenAiDimensions(metric))
+                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
                 {
                     error = "Metric filters support gen_ai.request.model only for GenAI-derived metrics.";
                     return false;
@@ -495,7 +495,7 @@ internal static class MetricsEndpoints
 
             error = IsGenAiTokenUsageMetric(metric)
                 ? "Metric filters support service.name, gen_ai.provider.name, gen_ai.request.model, and gen_ai.token.type only."
-                : McpMetricsEndpoints.SupportsGenAiDimensions(metric)
+                : DerivedMetricQueries.SupportsGenAiDimensions(metric)
                     ? "Metric filters support service.name, gen_ai.provider.name, and gen_ai.request.model only."
                     : "Metric filters support service.name only.";
             return false;
@@ -562,7 +562,7 @@ internal static class MetricsEndpoints
 
             if (label.Equals(DerivedMetricCatalog.GenAiProviderNameLabel, StringComparison.Ordinal))
             {
-                if (!McpMetricsEndpoints.SupportsGenAiDimensions(metric))
+                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
                 {
                     error = "Grouping supports gen_ai.provider.name only for GenAI-derived metrics.";
                     return false;
@@ -580,7 +580,7 @@ internal static class MetricsEndpoints
 
             if (label.Equals(DerivedMetricCatalog.GenAiRequestModelLabel, StringComparison.Ordinal))
             {
-                if (!McpMetricsEndpoints.SupportsGenAiDimensions(metric))
+                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
                 {
                     error = "Grouping supports gen_ai.request.model only for GenAI-derived metrics.";
                     return false;
@@ -598,7 +598,7 @@ internal static class MetricsEndpoints
 
             error = IsGenAiTokenUsageMetric(metric)
                 ? "Grouping supports service.name, gen_ai.provider.name, gen_ai.request.model, and gen_ai.token.type only for gen_ai.client.token.usage."
-                : McpMetricsEndpoints.SupportsGenAiDimensions(metric)
+                : DerivedMetricQueries.SupportsGenAiDimensions(metric)
                     ? "Grouping supports service.name, gen_ai.provider.name, and gen_ai.request.model only for GenAI-derived metrics."
                     : "Grouping supports service.name only for derived span metrics.";
             return false;
@@ -714,8 +714,8 @@ internal static class MetricsEndpoints
         CancellationToken ct)
     {
         var groupedLabels = GetGroupedLabelColumns(grouping);
-        var startNano = TimeConversions.ToUnixNano(start);
-        var endNano = TimeConversions.ToUnixNano(end);
+        var startNano = QylTimeConversions.ToUnixNano(start);
+        var endNano = QylTimeConversions.ToUnixNano(end);
         var where = BuildMetricWhereClause(predicate, filters, groupedLabels);
         var sql = BuildMetricQuerySql(expression, intervalSql, where, groupedLabels, limits.SqlRowLimit);
 
@@ -933,7 +933,7 @@ internal static class MetricsEndpoints
 
     private static bool IsGenAiTokenUsageMetric(DerivedMetricDefinition metric)
     {
-        return McpMetricsEndpoints.IsGenAiTokenUsageMetric(metric);
+        return DerivedMetricQueries.IsGenAiTokenUsageMetric(metric);
     }
 }
 

@@ -1570,10 +1570,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     private static void InitializeSchema(DuckDBConnection con)
     {
-        using var manualFixRunsCmd = con.CreateCommand();
-        manualFixRunsCmd.CommandText = DuckDbSchema.ManualFixRunsDdl;
-        manualFixRunsCmd.ExecuteNonQuery();
-
         using var manualLogsCmd = con.CreateCommand();
         manualLogsCmd.CommandText = DuckDbSchema.ManualLogsDdl;
         manualLogsCmd.ExecuteNonQuery();
@@ -1633,10 +1629,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.GenerationJobsDdl);
         provisioningCmd.ExecuteNonQuery();
 
-        using var issueEventsCmd = con.CreateCommand();
-        issueEventsCmd.CommandText = IssueEventsDdl;
-        issueEventsCmd.ExecuteNonQuery();
-
         using var agentRunsCmd = con.CreateCommand();
         agentRunsCmd.CommandText = string.Concat(
             DuckDbSchema.AgentRunsDdl, "\n",
@@ -1647,28 +1639,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var spanClustersCmd = con.CreateCommand();
         spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
         spanClustersCmd.ExecuteNonQuery();
-
-        using var codingAgentCmd = con.CreateCommand();
-        codingAgentCmd.CommandText = string.Concat(
-            DuckDbSchema.CodingAgentRunsDdl, "\n",
-            DuckDbSchema.LoomSettingsDdl);
-        codingAgentCmd.ExecuteNonQuery();
-
-        using var triageCmd = con.CreateCommand();
-        triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
-        triageCmd.ExecuteNonQuery();
-
-        using var autofixStepsCmd = con.CreateCommand();
-        autofixStepsCmd.CommandText = DuckDbSchema.AutofixStepsDdl;
-        autofixStepsCmd.ExecuteNonQuery();
-
-        using var handoffsCmd = con.CreateCommand();
-        handoffsCmd.CommandText = DuckDbSchema.AgentHandoffsDdl;
-        handoffsCmd.ExecuteNonQuery();
-
-        using var githubEventsCmd = con.CreateCommand();
-        githubEventsCmd.CommandText = DuckDbSchema.GitHubEventsDdl;
-        githubEventsCmd.ExecuteNonQuery();
 
         using var schemaPromotionsCmd = con.CreateCommand();
         schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;

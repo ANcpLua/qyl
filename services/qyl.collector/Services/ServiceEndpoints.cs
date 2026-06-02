@@ -10,7 +10,7 @@ internal static class ServiceEndpoints
         group.MapGet("/", GetServicesAsync);
         group.MapGet("/{serviceName}", GetServiceDetailAsync);
 
-        app.MapGet("/api/v1/mcp/services/map", GetServiceMapAsync);
+        group.MapGet("/map", GetServiceMapAsync);
 
         return app;
     }
@@ -62,11 +62,11 @@ internal static class ServiceEndpoints
                               LIMIT 500
                               """;
 
-            var rows = new List<McpServiceEdgeDto>();
+            var rows = new List<ServiceEdgeDto>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                rows.Add(new McpServiceEdgeDto
+                rows.Add(new ServiceEdgeDto
                 {
                     Source = reader.GetString(0),
                     Target = reader.GetString(1),
@@ -86,7 +86,7 @@ internal static class ServiceEndpoints
             nodeSet.Add(edge.Target);
         }
 
-        return TypedResults.Ok(new McpServiceMapDto { Nodes = [.. nodeSet.Order()], Edges = edges });
+        return TypedResults.Ok(new ServiceMapDto { Nodes = [.. nodeSet.Order()], Edges = edges });
     }
 }
 
@@ -163,7 +163,7 @@ internal sealed record ServicesResponse
 internal sealed partial class ServiceSerializerContext : JsonSerializerContext;
 
 
-internal sealed record McpServiceEdgeDto
+internal sealed record ServiceEdgeDto
 {
     [JsonPropertyName("source")] public required string Source { get; init; }
     [JsonPropertyName("target")] public required string Target { get; init; }
@@ -172,8 +172,8 @@ internal sealed record McpServiceEdgeDto
     [JsonPropertyName("error_count")] public long ErrorCount { get; init; }
 }
 
-internal sealed record McpServiceMapDto
+internal sealed record ServiceMapDto
 {
     [JsonPropertyName("nodes")] public required IReadOnlyList<string> Nodes { get; init; }
-    [JsonPropertyName("edges")] public required IReadOnlyList<McpServiceEdgeDto> Edges { get; init; }
+    [JsonPropertyName("edges")] public required IReadOnlyList<ServiceEdgeDto> Edges { get; init; }
 }

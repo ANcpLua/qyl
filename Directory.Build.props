@@ -55,7 +55,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>opentelemetry;genai;observability;llm;ai;telemetry;mcp</PackageTags>
+    <PackageTags>opentelemetry;genai;observability;llm;ai;telemetry</PackageTags>
     <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
   </PropertyGroup>
 

@@ -1,4 +1,4 @@
-using Qyl.Contracts.Intelligence;
+using Qyl.Api.Contracts.Intelligence;
 
 namespace Qyl.Collector.Intelligence;
 
@@ -20,6 +20,7 @@ internal static class IntelligenceEndpoints
     private static async Task<IResult> EvaluateAsync(
         IPatternEngine engine,
         SessionQueryService queryService,
+        IssueService issueService,
         DuckDbStore store,
         string? traceId,
         string? issueId,
@@ -38,7 +39,7 @@ internal static class IntelligenceEndpoints
         }
         else if (issueId is not null)
         {
-            var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+            var issue = await issueService.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null)
                 return TypedResults.NotFound();
 
@@ -79,7 +80,7 @@ internal static class IntelligenceEndpoints
         _ = ct;
         var ids = patternIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        var allPatterns = DiagnosticPatterns.All;
+        var allPatterns = DiagnosticPatternCatalog.Patterns;
         var matches = new List<PatternMatch>();
         foreach (var id in ids)
         {
@@ -106,7 +107,7 @@ internal static class IntelligenceEndpoints
         CancellationToken ct)
     {
         _ = ct;
-        var pattern = DiagnosticPatterns.All.FirstOrDefault(p => p.Id.EqualsOrdinal(patternId));
+        var pattern = DiagnosticPatternCatalog.Patterns.FirstOrDefault(p => p.Id.EqualsOrdinal(patternId));
         if (pattern is null)
             return ValueTask.FromResult<IResult>(TypedResults.NotFound());
 
@@ -135,7 +136,7 @@ internal static class IntelligenceEndpoints
         string? service,
         CancellationToken ct)
     {
-        var strategy = InvestigationStrategies.All.FirstOrDefault(s => s.Id.EqualsOrdinal(strategyId));
+        var strategy = DiagnosticPatternCatalog.InvestigationStrategies.FirstOrDefault(s => s.Id.EqualsOrdinal(strategyId));
 
         if (strategy is null || stepIndex < 0 || stepIndex >= strategy.Steps.Count)
             return TypedResults.NotFound();

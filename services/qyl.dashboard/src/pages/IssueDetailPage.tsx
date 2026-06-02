@@ -20,9 +20,6 @@ import {Input} from '@/components/ui/input';
 import {CopyableText} from '@/components/ui';
 import type {IssueEvent} from '@/hooks/use-issues';
 import {useAssignIssue, useIssue, useIssueEvents, useUpdateIssueStatus} from '@/hooks/use-issues';
-import {useCodingAgentRuns, useFixRuns, useLaunchCodingAgent, useLoomSettings} from '@/hooks/use-coding-agents';
-import {CodingAgentResultCard} from '@/components/coding-agents/CodingAgentResultCard';
-import {LoomSidebar} from '@/components/Loom/LoomSidebar';
 
 const statusStyles: Record<string, string> = {
     new: 'bg-signal-red/20 text-signal-red border-signal-red/40',
@@ -133,11 +130,6 @@ export function IssueDetailPage() {
 
     const {data: issue, isLoading: issueLoading, error: issueError} = useIssue(issueId ?? '');
     const {data: events = [], isLoading: eventsLoading} = useIssueEvents(issueId ?? '');
-    const {data: fixRuns = []} = useFixRuns(issueId);
-    const latestFixRun = fixRuns[0];
-    const {data: codingAgentRuns = []} = useCodingAgentRuns(latestFixRun?.run_id);
-    const {data: LoomSettings} = useLoomSettings();
-    const launchAgent = useLaunchCodingAgent();
     const updateStatus = useUpdateIssueStatus();
     const assignIssue = useAssignIssue();
 
@@ -315,41 +307,6 @@ export function IssueDetailPage() {
                     </div>
                 )}
 
-                {/* Coding Agent Runs */}
-                {latestFixRun && (
-                    <div>
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em]">CODING AGENTS</h2>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={launchAgent.isPending}
-                                onClick={() => launchAgent.mutate({
-                                    fixRunId: latestFixRun.run_id,
-                                    provider: LoomSettings?.default_coding_agent,
-                                })}
-                                className="text-xs font-bold tracking-wider"
-                            >
-                                {launchAgent.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin"/>}
-                                Launch Agent
-                            </Button>
-                        </div>
-                        {codingAgentRuns.length === 0 ? (
-                            <Card>
-                                <CardContent className="py-6 text-center">
-                                    <p className="text-brutal-slate text-sm">No coding agent runs yet</p>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <div className="space-y-2">
-                                {codingAgentRuns.map((run) => (
-                                    <CodingAgentResultCard key={run.id} run={run}/>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
                 {/* Event timeline */}
                 <div>
                     <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em] mb-3">EVENT TIMELINE</h2>
@@ -371,8 +328,6 @@ export function IssueDetailPage() {
                     </div>
                 </div>
             </div>
-            {/* Loom AI sidebar */}
-            {issueId && <LoomSidebar issueId={issueId}/>}
         </div>
     );
 }

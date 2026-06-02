@@ -1,5 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
-
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
@@ -13,12 +11,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Qyl.Contracts.Observability;
+using Qyl.Instrumentation;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
 using Qyl.Instrumentation.Instrumentation.GenAi;
@@ -34,7 +31,6 @@ public static class QylServiceDefaultsExtensions
         "qyl.db",
         "qyl.traced",
         "qyl.agent",
-        "qyl.mcp",
         "Qyl.Instrumentation.ErrorCapture"
     ];
 

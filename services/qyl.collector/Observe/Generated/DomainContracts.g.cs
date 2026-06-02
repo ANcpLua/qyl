@@ -1,5 +1,5 @@
 
-namespace Qyl.Contracts.Generated;
+namespace Qyl.Collector.Observe;
 
 internal readonly record struct AttributeDef(
     string Name,

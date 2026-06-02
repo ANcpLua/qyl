@@ -13,8 +13,6 @@ public static class ActivitySources
 
     public const string Agent = "qyl.agent";
 
-    public const string Mcp = "qyl.mcp";
-
     public const string ErrorCapture = "Qyl.Instrumentation.ErrorCapture";
 
     internal static readonly Assembly s_assembly = typeof(ActivitySources).Assembly;
@@ -26,8 +24,6 @@ public static class ActivitySources
     public static ActivitySource DbSource => field ??= new ActivitySource(Db, s_version);
 
     public static ActivitySource AgentSource => field ??= new ActivitySource(Agent, s_version);
-
-    public static ActivitySource McpSource => field ??= new ActivitySource(Mcp, s_version);
 
     public static Meter GenAiMeter => field ??= new Meter(GenAi, s_version);
 

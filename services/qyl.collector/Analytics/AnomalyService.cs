@@ -217,11 +217,11 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         predicate is null ? string.Empty : $"AND ({predicate})";
 
     private static long ComputeCutoffNano(int hours) =>
-        TimeConversions.ToUnixNano(
+        QylTimeConversions.ToUnixNano(
             TimeProvider.System.GetUtcNow().AddHours(-hours));
 
     private static long DateTimeToUnixNano(DateTime dt) =>
-        TimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
+        QylTimeConversions.ToUnixNano(new DateTimeOffset(dt, TimeSpan.Zero));
 
 
     [LoggerMessage(Level = LogLevel.Information,

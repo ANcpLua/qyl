@@ -2,13 +2,6 @@
   "$schema": "../build/build.schema.json",
   "Solution": "../../qyl.slnx",
   "SkipVerify": false,
-  "ForceGenerate": false,
-  "DryRunGenerate": false,
-  "Push": false,
-  "ComposeBuild": false,
-  "ForceRecreate": false,
-  "RemoveVolumes": false,
   "StopOnFail": false,
-  "LiveOutput": false,
-  "FailOnBreaking": false
+  "LiveOutput": false
 }

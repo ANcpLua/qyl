@@ -14,9 +14,9 @@ namespace Qyl.Build;
     "ci",
     GitHubActionsImage.UbuntuLatest,
     AutoGenerate = false,
-    OnPushBranches = ["main", "develop", "feature/*"],
-    OnPullRequestBranches = ["main", "develop"],
-    InvokedTargets = ["Test"],
+    OnPushBranches = ["main"],
+    OnPullRequestBranches = ["main"],
+    InvokedTargets = ["Ci"],
     FetchDepth = 0)]
 sealed class Build : NukeBuild,
     ICoverage,
@@ -24,8 +24,6 @@ sealed class Build : NukeBuild,
     IDocker,
     IPipeline,
     IVerify,
-    IInstrument,
-    IPackMcp,
     IPricing,
     ISmoke
 {
@@ -59,18 +57,22 @@ sealed class Build : NukeBuild,
         });
 
     Target Ci => d => d
-        .Description("Full CI pipeline (backend only)")
+        .Description("Local CI gate: backend, frontend, and generated artifacts")
         .DependsOn(Clean)
-        .DependsOn<ICoverage>(static x => x.Coverage);
-
-    Target Full => d => d
-        .Description("Full CI pipeline (backend + frontend + verification)")
-        .DependsOn(Clean)
-        .DependsOn<ICoverage>(static x => x.Coverage)
+        .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
-        .DependsOn<IPipeline>(static x => x.FrontendTest)
         .DependsOn<IPipeline>(static x => x.FrontendLint);
+
+    Target Full => d => d
+        .Description("Full local gate: CI plus existing test and smoke targets")
+        .DependsOn(Clean)
+        .DependsOn<ICompile>(static x => x.Compile)
+        .DependsOn<IVerify>(static x => x.Verify)
+        .DependsOn<IPipeline>(static x => x.FrontendBuild)
+        .DependsOn<IPipeline>(static x => x.FrontendLint)
+        .DependsOn<IQylTest>(static x => x.Test)
+        .DependsOn<ISmoke>(static x => x.Smoke);
 
     Target Dev => d => d
         .Description("Start development environment (Docker + compile)")
@@ -94,5 +96,5 @@ sealed class Build : NukeBuild,
 
     T From<T>() where T : INukeBuild => (T)(object)this;
 
-    public static int Main() => Execute<Build>(static x => ((IQylTest)x).Test);
+    public static int Main() => Execute<Build>(static x => ((ICompile)x).Compile);
 }

@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Query;
 
@@ -48,7 +48,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         CancellationToken ct)
     {
         var now = timeProvider.GetUtcNow();
-        var nowNano = TimeConversions.ToUnixNanoUnsigned(now);
+        var nowNano = QylTimeConversions.ToUnixNanoUnsigned(now);
 
         ulong after;
         if (!string.IsNullOrWhiteSpace(sinceCursor))
@@ -59,7 +59,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         else
         {
             var duration = s_windowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
-            after = TimeConversions.ToUnixNanoUnsigned(now - duration);
+            after = QylTimeConversions.ToUnixNanoUnsigned(now - duration);
         }
 
         var logs = await FetchLogsAsync(after, null, serviceName, minSeverity, search, ct).ConfigureAwait(false);
@@ -108,7 +108,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             var body = log.Body ?? string.Empty;
             var template = ExtractPattern(body);
             var key = $"{service}\u001f{template}";
-            var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
+            var timestamp = QylTimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
             var severity = LiveLogProjection.NormalizeSeverity(log.SeverityText, log.SeverityNumber);
 
             if (!groups.TryGetValue(key, out var accumulator))
@@ -165,8 +165,8 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         DateTime? newestTimestamp = null;
         if (logs.Count > 0)
         {
-            oldestTimestamp = TimeConversions.UnixNanoToDateTime(logs.Min(static l => l.TimeUnixNano));
-            newestTimestamp = TimeConversions.UnixNanoToDateTime(logs.Max(static l => l.TimeUnixNano));
+            oldestTimestamp = QylTimeConversions.UnixNanoToDateTime(logs.Min(static l => l.TimeUnixNano));
+            newestTimestamp = QylTimeConversions.UnixNanoToDateTime(logs.Max(static l => l.TimeUnixNano));
         }
 
         var bySeverity = s_severityOrder
@@ -190,7 +190,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
 
         var started = timeProvider.GetUtcNow();
         var deadline = started + timeout;
-        var after = TimeConversions.ToUnixNanoUnsigned(started);
+        var after = QylTimeConversions.ToUnixNanoUnsigned(started);
         var polls = 0;
 
         while (timeProvider.GetUtcNow() < deadline && !ct.IsCancellationRequested)
@@ -280,15 +280,15 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         if (startTime.HasValue)
         {
             return (
-                TimeConversions.ToUnixNanoUnsigned(startTime.Value),
-                endTime.HasValue ? TimeConversions.ToUnixNanoUnsigned(endTime.Value) : null);
+                QylTimeConversions.ToUnixNanoUnsigned(startTime.Value),
+                endTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(endTime.Value) : null);
         }
 
         var duration = s_windowDurations.GetValueOrDefault(window, TimeSpan.FromMinutes(5));
         var now = timeProvider.GetUtcNow();
         return (
-            TimeConversions.ToUnixNanoUnsigned(now - duration),
-            endTime.HasValue ? TimeConversions.ToUnixNanoUnsigned(endTime.Value) : null);
+            QylTimeConversions.ToUnixNanoUnsigned(now - duration),
+            endTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(endTime.Value) : null);
     }
 
     private static (IReadOnlyList<LogSummaryIssue> Issues, FrozenSet<string> ResolvedPatterns)
@@ -307,7 +307,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             {
                 var pattern = ExtractPattern(message);
                 var key = $"{service}\u001f{pattern}";
-                var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
+                var timestamp = QylTimeConversions.UnixNanoToDateTime(log.TimeUnixNano);
 
                 if (!groups.TryGetValue(key, out var acc))
                 {

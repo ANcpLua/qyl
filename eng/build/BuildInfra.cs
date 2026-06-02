@@ -29,7 +29,6 @@ interface IDocker : IHazSourcePaths
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
-        ("qyl-loom",      ServicesDirectory / "qyl.loom" / "Dockerfile", FormatImageName("qyl-loom")),
         ("qyl-dashboard", DashboardDirectory             / "Dockerfile", FormatImageName("qyl-dashboard"))
     ];
 

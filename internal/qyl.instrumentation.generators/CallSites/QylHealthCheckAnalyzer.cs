@@ -7,7 +7,7 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 internal static class QylHealthCheckAnalyzer
 {
     internal const string QylHealthCheckAttributeMetadataName =
-        "Qyl.Contracts.Observability.QylHealthCheckAttribute";
+        "Qyl.Instrumentation.QylHealthCheckAttribute";
 
     public static bool CouldBeHealthCheckClass(SyntaxNode node, CancellationToken _) =>
         node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };

@@ -4,7 +4,7 @@ public static class HealthUiEndpoints
 {
     public static readonly DateTimeOffset StartTime = TimeProvider.System.GetUtcNow();
 
-    public static readonly SemVer AppVersion = ResolveVersion();
+    public static readonly string AppVersion = ResolveVersion();
 
     [QylMapEndpoints]
     public static IEndpointRouteBuilder MapHealthUiEndpoint(this IEndpointRouteBuilder app)
@@ -16,7 +16,7 @@ public static class HealthUiEndpoints
         return app;
     }
 
-    private static SemVer ResolveVersion()
+    private static string ResolveVersion()
     {
         const string version = BuildVersion.InformationalVersion;
         var plusIndex = version.IndexOf('+');

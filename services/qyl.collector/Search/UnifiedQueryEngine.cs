@@ -1,4 +1,4 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Search;
 
@@ -188,6 +188,6 @@ internal static class UnifiedQueryEngine
         var endDto = end.HasValue ? new DateTimeOffset(end.Value, TimeSpan.Zero) : now;
         var startDto = start.HasValue ? new DateTimeOffset(start.Value, TimeSpan.Zero) : endDto - s_defaultWindow;
 
-        return (TimeConversions.ToUnixNanoUnsigned(startDto), TimeConversions.ToUnixNanoUnsigned(endDto));
+        return (QylTimeConversions.ToUnixNanoUnsigned(startDto), QylTimeConversions.ToUnixNanoUnsigned(endDto));
     }
 }

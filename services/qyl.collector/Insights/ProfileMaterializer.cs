@@ -1,4 +1,4 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Insights;
 
@@ -12,8 +12,8 @@ internal static class ProfileMaterializer
             sb.AppendLine("## Performance Profile (last 7d)");
 
             var now = timeProvider.GetUtcNow();
-            var sevenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-7));
-            var fourteenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-14));
+            var sevenDaysAgoNanos = (decimal)QylTimeConversions.ToUnixNanoUnsigned(now.AddDays(-7));
+            var fourteenDaysAgoNanos = (decimal)QylTimeConversions.ToUnixNanoUnsigned(now.AddDays(-14));
 
             using (var cmd = con.CreateCommand())
             {

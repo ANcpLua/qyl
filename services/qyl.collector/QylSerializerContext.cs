@@ -5,7 +5,6 @@ using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
 using Qyl.Collector.Search;
-using Qyl.Contracts.Copilot;
 
 namespace Qyl.Collector;
 
@@ -74,14 +73,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(IReadOnlyList<DashboardWidget>))]
 [JsonSerializable(typeof(IReadOnlyList<TopNRow>))]
 [JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
-[JsonSerializable(typeof(ChatRequest))]
-[JsonSerializable(typeof(ByokLlmConfig))]
-[JsonSerializable(typeof(WorkflowRunRequest))]
-[JsonSerializable(typeof(CopilotAuthStatus))]
-[JsonSerializable(typeof(StreamUpdate))]
-[JsonSerializable(typeof(AgentRunAudit))]
-[JsonSerializable(typeof(AgentDecision))]
-[JsonSerializable(typeof(AgentEvidenceLink))]
 [JsonSerializable(typeof(AgentRunRecord))]
 [JsonSerializable(typeof(ToolCallRecord))]
 [JsonSerializable(typeof(AgentDecisionRecord))]

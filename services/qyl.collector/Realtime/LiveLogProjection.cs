@@ -1,4 +1,4 @@
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Realtime;
 
@@ -6,9 +6,9 @@ internal static class LiveLogProjection
 {
     public static LiveLogDto ToDto(LogStorageRow log, int repeatCount = 1, bool isDuplicateSummary = false)
     {
-        var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano).ToString("O");
+        var timestamp = QylTimeConversions.UnixNanoToDateTime(log.TimeUnixNano).ToString("O");
         var observedTimestamp = log.ObservedTimeUnixNano.HasValue
-            ? TimeConversions.UnixNanoToDateTime(log.ObservedTimeUnixNano.Value).ToString("O")
+            ? QylTimeConversions.UnixNanoToDateTime(log.ObservedTimeUnixNano.Value).ToString("O")
             : timestamp;
 
         var body = log.Body ?? string.Empty;

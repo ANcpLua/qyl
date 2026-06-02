@@ -1,7 +1,7 @@
 
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Services;
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -317,7 +317,7 @@ public static class OtlpConverter
             }
 
             if (timestamp is 0)
-                timestamp = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
+                timestamp = QylTimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
 
             var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
             if (instance is not null)
@@ -356,7 +356,7 @@ public static class OtlpConverter
             }
 
             if (timestamp is 0)
-                timestamp = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
+                timestamp = QylTimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
 
             var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
             if (instance is not null)

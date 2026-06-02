@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace Qyl.Collector.Metrics;
 
 internal static class DerivedMetricCatalog

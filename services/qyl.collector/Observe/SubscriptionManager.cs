@@ -1,6 +1,5 @@
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
-using Qyl.Contracts.Generated;
 
 namespace Qyl.Collector.Observe;
 

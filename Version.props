@@ -20,10 +20,6 @@
     <ANcpLuaAnalyzersVersion>2.0.1</ANcpLuaAnalyzersVersion>
     <ANcpLuaAgentsTestingVersion>1.4.3</ANcpLuaAgentsTestingVersion>
     <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
-    <!-- ANcpLua.Agents.Mcp[.Hosting] is on its own version train, decoupled from
-         the 1.4.x ANcpLua.Agents core line. Tracks the MCP SDK cadence rather
-         than MAF. First publish 0.1.0 (2026-05-19). -->
-    <ANcpLuaAgentsMcpVersion>0.1.0</ANcpLuaAgentsMcpVersion>
     <ANcpLuaAgentsHostingOpenAIVersion>1.4.3-alpha.1</ANcpLuaAgentsHostingOpenAIVersion>
     <!-- BitNet hosting ships from ANcpLua/ANcpLua.Agents alongside the OpenAI
          hosting package; alpha channel until the runtime contract stabilises.
@@ -46,11 +42,9 @@
 
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <SystemClientModelVersion>1.11.0</SystemClientModelVersion>
-    <ModelContextProtocolVersion>1.3.0</ModelContextProtocolVersion>
     <DuendeAccessTokenManagementVersion>4.2.0</DuendeAccessTokenManagementVersion>
     <NukeVersion>10.1.0</NukeVersion>
     <NetArchTestVersion>1.3.2</NetArchTestVersion>
-    <YamlDotNetVersion>17.1.0</YamlDotNetVersion>
     <SpectreConsoleVersion>0.55.2</SpectreConsoleVersion>
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>

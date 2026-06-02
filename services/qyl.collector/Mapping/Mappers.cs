@@ -1,5 +1,3 @@
-using Qyl.Contracts.Primitives;
-
 namespace Qyl.Collector.Mapping;
 
 public static class SpanMapper
@@ -15,10 +13,10 @@ public static class SpanMapper
     public static SpanRecord ToRecord(SpanStorageRow row) =>
         new()
         {
-            SpanId = new SpanId(row.SpanId),
-            TraceId = new TraceId(row.TraceId),
-            ParentSpanId = row.ParentSpanId is { } parentId ? new SpanId(parentId) : default(SpanId?),
-            SessionId = row.SessionId is { } sessId ? new SessionId(sessId) : default(SessionId?),
+            SpanId = row.SpanId,
+            TraceId = row.TraceId,
+            ParentSpanId = row.ParentSpanId,
+            SessionId = row.SessionId,
             Name = row.Name,
             Kind = (SpanKind)row.Kind,
             StartTimeUnixNano = (long)row.StartTimeUnixNano,
@@ -155,8 +153,8 @@ public static class SpanMapper
         string? genAiRequestModel, string? genAiResponseModel, double? genAiCostUsd,
         double? genAiTemperature, string? genAiStopReason, string? genAiToolName, string? genAiToolCallId)
     {
-        var startTime = TimeConversions.UnixNanoToDateTime(startTimeUnixNano);
-        var endTime = TimeConversions.UnixNanoToDateTime(endTimeUnixNano);
+        var startTime = QylTimeConversions.UnixNanoToDateTime(startTimeUnixNano);
+        var endTime = QylTimeConversions.UnixNanoToDateTime(endTimeUnixNano);
 
         return new SpanDto
         {
@@ -170,7 +168,7 @@ public static class SpanMapper
             StatusMessage = statusMessage,
             StartTime = startTime.ToString("O"),
             EndTime = endTime.ToString("O"),
-            DurationMs = TimeConversions.NanosToMs(durationNs),
+            DurationMs = QylTimeConversions.NanosToMs(durationNs),
             ServiceName = serviceName,
             ServiceVersion = serviceVersion,
             Attributes = ParseAttributes(attributesJson),

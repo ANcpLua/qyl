@@ -6,7 +6,7 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 
 internal static class HostedServiceAnalyzer
 {
-    internal const string HostedServiceAttributeMetadataName = "Qyl.Contracts.Observability.QylHostedServiceAttribute";
+    internal const string HostedServiceAttributeMetadataName = "Qyl.Instrumentation.QylHostedServiceAttribute";
 
     public static bool CouldBeHostedServiceClass(SyntaxNode node, CancellationToken _) =>
         node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };

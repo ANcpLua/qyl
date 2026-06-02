@@ -3,7 +3,6 @@ import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import {
     Bot,
-    Brain,
     Database,
     Keyboard,
     Loader2,
@@ -25,7 +24,6 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {toast} from 'sonner';
 import {LLM_PROVIDERS, type LlmProvider, useLlmConfig} from '@/hooks/use-llm-config';
-import {LoomSettingsSection} from '@/components/coding-agents/LoomSettingsSection';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -42,7 +40,6 @@ const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
     {key: 'T', description: 'Go to Traces'},
     {key: 'C', description: 'Go to Console / Logs'},
-    {key: 'S', description: 'Go to Loom'},
     {key: 'M', description: 'Go to Metrics / GenAI'},
     {key: '/', description: 'Go to Search'},
     {key: 'A', description: 'Go to Agents'},
@@ -215,7 +212,7 @@ export function SettingsPage() {
             </div>
 
             <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-7">
+                <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="general">
                         <Settings className="w-4 h-4 mr-2"/>
                         General
@@ -223,10 +220,6 @@ export function SettingsPage() {
                     <TabsTrigger value="ai">
                         <Bot className="w-4 h-4 mr-2"/>
                         AI
-                    </TabsTrigger>
-                    <TabsTrigger value="Loom">
-                        <Brain className="w-4 h-4 mr-2"/>
-                        Loom
                     </TabsTrigger>
                     <TabsTrigger value="appearance">
                         <Paintbrush className="w-4 h-4 mr-2"/>
@@ -282,11 +275,6 @@ export function SettingsPage() {
                 {/* AI Provider */}
                 <TabsContent value="ai" className="space-y-4">
                     <AiSettingsTab/>
-                </TabsContent>
-
-                {/* Loom */}
-                <TabsContent value="Loom" className="space-y-4">
-                    <LoomSettingsSection/>
                 </TabsContent>
 
                 {/* Appearance */}

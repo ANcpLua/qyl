@@ -6,7 +6,7 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 
 internal static class MapEndpointsAnalyzer
 {
-    internal const string MapEndpointsAttributeMetadataName = "Qyl.Contracts.Observability.QylMapEndpointsAttribute";
+    internal const string MapEndpointsAttributeMetadataName = "Qyl.Instrumentation.QylMapEndpointsAttribute";
 
     public static bool CouldBeMapEndpointsMethod(SyntaxNode node, CancellationToken _) =>
         node is MethodDeclarationSyntax { AttributeLists.Count: > 0 };

@@ -15,18 +15,13 @@
   </Folder>
 
   <Folder Name="/packages/">
-    <Project Path="packages/Qyl.Contracts/Qyl.Contracts.csproj" />
     <Project Path="packages/Qyl.Telemetry/Qyl.Telemetry.csproj" />
     <Project Path="packages/Qyl.OpenTelemetry.Extensions/Qyl.OpenTelemetry.Extensions.csproj" />
-    <Project Path="packages/Qyl.SemanticConventions/Qyl.SemanticConventions.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
   </Folder>
 
   <Folder Name="/services/">
     <Project Path="services/qyl.collector/qyl.collector.csproj" />
-    <Project Path="services/qyl.loom/qyl.loom.csproj" />
-    <Project Path="services/qyl.loom.patterns/qyl.loom.patterns.csproj" />
-    <Project Path="services/qyl.mcp/qyl.mcp.csproj" />
     <Project Path="services/qyl.dashboard/qyl.dashboard.esproj" />
   </Folder>
 
@@ -34,7 +29,6 @@
     <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj" />
     <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
     <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
-    <Project Path="internal/qyl.mcp.generators/qyl.mcp.generators.csproj" />
   </Folder>
 
   <Folder Name="/tests/" />

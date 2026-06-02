@@ -1,5 +1,5 @@
 
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Query;
 
@@ -207,8 +207,8 @@ public sealed class SessionQueryService(DuckDbStore store)
         {
             var startTimeNano = reader.Col(1).GetUInt64(0);
             var lastActivityNano = reader.Col(2).GetUInt64(0);
-            var startTime = TimeConversions.UnixNanoToDateTime(startTimeNano);
-            var lastActivity = TimeConversions.UnixNanoToDateTime(lastActivityNano);
+            var startTime = QylTimeConversions.UnixNanoToDateTime(startTimeNano);
+            var lastActivity = QylTimeConversions.UnixNanoToDateTime(lastActivityNano);
 
             var spanCount = reader.Col(3).GetInt64(0);
             var errorCount = reader.Col(5).GetInt64(0);
@@ -220,7 +220,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                 SessionId = reader.GetString(0),
                 StartTime = startTime,
                 LastActivity = lastActivity,
-                DurationMs = TimeConversions.NanosToMs(lastActivityNano - startTimeNano),
+                DurationMs = QylTimeConversions.NanosToMs(lastActivityNano - startTimeNano),
                 SpanCount = spanCount,
                 TraceCount = reader.Col(4).GetInt64(0),
                 ErrorCount = errorCount,

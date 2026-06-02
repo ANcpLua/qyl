@@ -1,5 +1,5 @@
 
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Query;
 
@@ -136,8 +136,8 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                     conversations.Add(new ConversationSummary
                     {
                         ConversationId = reader.GetString(0),
-                        StartTime = TimeConversions.UnixNanoToDateTime(startedAt),
-                        DurationMs = TimeConversions.NanosToMs(endedAt - startedAt),
+                        StartTime = QylTimeConversions.UnixNanoToDateTime(startedAt),
+                        DurationMs = QylTimeConversions.NanosToMs(endedAt - startedAt),
                         TurnCount = reader.Col(3).GetInt64(0),
                         ErrorCount = reader.Col(4).GetInt64(0),
                         HasErrors = reader.Col(4).GetInt64(0) > 0,
@@ -199,8 +199,8 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                 {
                     SpanId = reader.GetString(0),
                     Name = reader.GetString(1),
-                    Timestamp = TimeConversions.UnixNanoToDateTime(startNano),
-                    DurationMs = TimeConversions.NanosToMs(reader.Col(4).GetUInt64(0)),
+                    Timestamp = QylTimeConversions.UnixNanoToDateTime(startNano),
+                    DurationMs = QylTimeConversions.NanosToMs(reader.Col(4).GetUInt64(0)),
                     StatusCode = reader.Col(5).GetByte(0),
                     StatusMessage = reader.Col(6).AsString,
                     Provider = reader.Col(7).AsString,
@@ -573,8 +573,8 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                     {
                         UserId = reader.GetString(0),
                         ConversationCount = reader.Col(1).GetInt64(0),
-                        FirstSeen = TimeConversions.UnixNanoToDateTime(firstSeen),
-                        LastSeen = TimeConversions.UnixNanoToDateTime(lastSeen),
+                        FirstSeen = QylTimeConversions.UnixNanoToDateTime(firstSeen),
+                        LastSeen = QylTimeConversions.UnixNanoToDateTime(lastSeen),
                         TopTopics = [.. topics.Take(5)]
                     });
                 }
@@ -629,7 +629,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                 rows.Add(new UserConversation
                 {
                     ConversationId = reader.GetString(0),
-                    Date = TimeConversions.UnixNanoToDateTime(startedAt),
+                    Date = QylTimeConversions.UnixNanoToDateTime(startedAt),
                     Topic = reader.Col(2).AsString,
                     TurnCount = reader.Col(3).GetInt64(0),
                     Satisfied = reader.Col(4).GetInt64(0) is 0

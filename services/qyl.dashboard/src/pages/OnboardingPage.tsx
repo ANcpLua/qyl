@@ -53,8 +53,8 @@ const scopeGroups: ScopeGroup[] = [
         icon: Search,
     },
     {
-        title: 'Run Loom investigations',
-        description: 'Delegate RCA and fix suggestions without mixing analysis into raw evidence.',
+        title: 'Analyze telemetry changes',
+        description: 'Compare traces, errors, metrics, and sessions without mixing analysis into raw evidence.',
         level: 'analyze',
         icon: Sparkles,
     },
@@ -66,7 +66,7 @@ const scopeGroups: ScopeGroup[] = [
     },
     {
         title: 'Keep the collector separate',
-        description: 'qyl.mcp stays HTTP-only and separate from the collector data plane.',
+        description: 'qyl keeps ingestion, storage, and query responsibilities inside the collector data plane.',
         level: 'inspect',
         icon: Server,
     },
@@ -89,7 +89,7 @@ const launchSteps: LaunchStep[] = [
     },
     {
         title: 'Inspect and automate',
-        description: 'Use the operator surface first, then add qyl.mcp and Loom when you want agents involved.',
+        description: 'Use the operator surface first, then add client integrations from the public OpenAPI contract.',
     },
 ];
 
@@ -198,11 +198,11 @@ function ScopeRow({scope}: { scope: ScopeGroup }) {
 }
 
 function HeroScene({
-                       mcpSurface,
+                       contractSurface,
                        transportLabel,
                        githubLabel,
                    }: {
-    mcpSurface: string;
+    contractSurface: string;
     transportLabel: string;
     githubLabel: string;
 }) {
@@ -314,11 +314,10 @@ function HeroScene({
                     </div>
                     <code
                         className="mt-3 block overflow-x-auto rounded-[14px] bg-black/25 px-3 py-2 font-mono text-sm text-amber-50">
-                        {mcpSurface}
+                        {contractSurface}
                     </code>
                     <p className="mt-3 text-sm leading-6 text-amber-50/80">
-                        qyl.mcp stays separate from qyl.collector. Facts flow through the collector; agent access is
-                        scoped through the MCP surface.
+                        qyl.collector owns telemetry facts, storage, and query APIs. Client access is scoped through the public API contract.
                     </p>
                 </div>
 
@@ -439,7 +438,7 @@ export function OnboardingPage() {
 
                             <nav className="hidden items-center gap-7 text-sm text-brutal-slate lg:flex">
                                 <a href="#surface" className="transition-colors hover:text-brutal-white">Surface</a>
-                                <a href="#mcp" className="transition-colors hover:text-brutal-white">MCP</a>
+                                <a href="#contract" className="transition-colors hover:text-brutal-white">API</a>
                                 <a href="#otlp" className="transition-colors hover:text-brutal-white">OTLP</a>
                                 <a href="#launch" className="transition-colors hover:text-brutal-white">Launch</a>
                             </nav>
@@ -565,25 +564,24 @@ export function OnboardingPage() {
 
                             <HeroScene
                                 githubLabel={githubSummary}
-                                mcpSurface="qyl.mcp /mcp   streamable-http   separate-service"
+                                contractSurface="qyl.collector /api/v1   OpenAPI   contract-first"
                                 transportLabel={transportSummary}
                             />
                         </div>
                     </section>
 
-                    <section id="mcp" className="border-b border-white/6">
+                    <section id="contract" className="border-b border-white/6">
                         <div className="mx-auto max-w-[1480px] px-6 py-20 lg:px-10 xl:px-16">
                             <div className="grid gap-14 lg:grid-cols-[minmax(0,26rem)_1fr]">
                                 <div className="lg:sticky lg:top-24 lg:self-start">
-                                    <Eyebrow>MCP surface</Eyebrow>
+                                    <Eyebrow>API contract</Eyebrow>
                                     <div className="mt-5">
-                                        <SectionTitle>Give your agent scoped access to telemetry.</SectionTitle>
+                                            <SectionTitle>Give integrations scoped access to telemetry.</SectionTitle>
                                     </div>
                                     <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
-                                        qyl.mcp stays separate from the collector and exposes the telemetry surface over
-                                        stdio or Streamable HTTP.
+                                        qyl.collector exposes telemetry data over REST, SSE, OTLP HTTP, and OTLP gRPC.
                                         The contract keeps raw facts, AI analysis, and proposed actions explicitly
-                                        separated so operators can trust what the agent is looking at.
+                                        separated so operators can trust what each integration reads.
                                     </p>
                                 </div>
 
@@ -624,8 +622,7 @@ export function OnboardingPage() {
                                                         Analysis
                                                     </div>
                                                     <p className="mt-2 text-sm leading-6 text-brutal-slate">
-                                                        Loom reasoning and pattern evaluation layered on top without
-                                                        rewriting the evidence.
+                                                        Pattern evaluation layers on top without rewriting the evidence.
                                                     </p>
                                                 </div>
                                                 <div className="border-l border-amber-300/35 pl-4">
@@ -651,15 +648,15 @@ export function OnboardingPage() {
                                                 <div
                                                     className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
                                                     <div className="font-semibold text-brutal-white">Local mode</div>
-                                                    <div className="mt-1 text-brutal-slate">stdio transport for local
-                                                        agent workflows.
+                                                    <div className="mt-1 text-brutal-slate">Run collector and dashboard
+                                                        from the same checkout.
                                                     </div>
                                                 </div>
                                                 <div
                                                     className="rounded-[20px] border border-white/8 bg-white/4 px-4 py-3">
                                                     <div className="font-semibold text-brutal-white">Remote mode</div>
-                                                    <div className="mt-1 text-brutal-slate">Streamable HTTP at <code
-                                                        className="font-mono text-brutal-white">/mcp</code>.
+                                                    <div className="mt-1 text-brutal-slate">REST and SSE under <code
+                                                        className="font-mono text-brutal-white">/api/v1</code>.
                                                     </div>
                                                 </div>
                                                 <div
@@ -667,8 +664,8 @@ export function OnboardingPage() {
                                                     <div className="font-semibold text-brutal-white">Collector
                                                         boundary
                                                     </div>
-                                                    <div className="mt-1 text-brutal-slate">MCP stays HTTP-only; no
-                                                        project reference to the collector runtime.
+                                                    <div className="mt-1 text-brutal-slate">The collector owns
+                                                        telemetry facts, storage, and query APIs.
                                                     </div>
                                                 </div>
                                             </div>
@@ -886,10 +883,7 @@ export function OnboardingPage() {
                                             <SectionTitle>One image to launch. One surface to inspect.</SectionTitle>
                                         </div>
                                         <p className="mt-6 max-w-[34rem] text-base leading-7 text-brutal-slate">
-                                            Start with the collector and dashboard. Add qyl.mcp when you want
-                                            natural-language telemetry access. Add Loom when you want multi-step AI
-                                            investigation and autofix. The product layers stay separate, but the
-                                            operator story stays coherent.
+                                            Start with the collector and dashboard. Add generated clients from the OpenAPI contract when an external integration needs the telemetry surface.
                                         </p>
                                     </div>
                                 </div>
@@ -936,7 +930,7 @@ export function OnboardingPage() {
                                                 <StatusRow
                                                     active
                                                     label="Product split"
-                                                    value="collector + dashboard first, mcp + loom layered after"
+                                                    value="collector + dashboard first, generated clients later"
                                                 />
                                             </div>
                                             <div className="border-t border-white/8">

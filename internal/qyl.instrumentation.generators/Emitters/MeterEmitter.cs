@@ -1,4 +1,3 @@
-using System.Globalization;
 using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;

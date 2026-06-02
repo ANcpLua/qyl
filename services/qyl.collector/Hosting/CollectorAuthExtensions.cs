@@ -1,7 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using ModelContextProtocol.AspNetCore.Authentication;
 using Qyl.Collector.Auth;
 
 namespace Qyl.Collector.Hosting;
@@ -56,47 +52,4 @@ public static class CollectorAuthExtensions
         return services;
     }
 
-    public const string McpTenantAuthEnabledEnvVar = "QYL_MCP_TENANT_AUTH_ENABLED";
-    public const string McpTenantPolicy = "McpTenant";
-
-    public static bool IsMcpTenantAuthEnabled(IConfiguration config) =>
-        config.GetValue<bool>(McpTenantAuthEnabledEnvVar);
-
-    // Registers JWT bearer validation against Keycloak, the RFC 9728 protected-resource-metadata endpoint,
-    // and the "McpTenant" policy. The policy authenticates the token (401 if missing/invalid) then enforces
-    // route {tenant} == the configured JWT tenant claim via McpTenantMatchRequirement (403 on mismatch).
-    // Call only when QYL_MCP_TENANT_AUTH_ENABLED is set; Program.cs gates the endpoint behind the same flag.
-    public static IServiceCollection AddQylMcpAuthentication(
-        this IServiceCollection services,
-        IConfiguration config,
-        IHostEnvironment environment)
-    {
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.Authority = config[KeycloakOptions.AuthorityEnvVar];
-                options.Audience = config[KeycloakOptions.AudienceEnvVar];
-                options.RequireHttpsMetadata = !environment.IsDevelopment();
-                options.MapInboundClaims = false;
-                options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
-            })
-            .AddMcp(static options => options.Events.OnResourceMetadataRequest = QylMcpResourceMetadata.PopulateAsync);
-
-        services.AddAuthorizationBuilder()
-            .AddPolicy(McpTenantPolicy, static policy => policy
-                .RequireAuthenticatedUser()
-                .AddRequirements(new McpTenantMatchRequirement()));
-
-        services.AddSingleton<IAuthorizationHandler, McpTenantMatchAuthorizationHandler>();
-
-        return services;
-    }
-
-    public static void EnsureMcpTenantAuthConfiguration(IConfiguration config)
-    {
-        if (string.IsNullOrWhiteSpace(config[KeycloakOptions.AuthorityEnvVar]))
-            throw new InvalidOperationException($"{KeycloakOptions.AuthorityEnvVar} is required when {McpTenantAuthEnabledEnvVar}=true.");
-        if (string.IsNullOrWhiteSpace(config[KeycloakOptions.AudienceEnvVar]))
-            throw new InvalidOperationException($"{KeycloakOptions.AudienceEnvVar} is required when {McpTenantAuthEnabledEnvVar}=true.");
-    }
 }

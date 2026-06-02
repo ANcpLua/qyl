@@ -1,5 +1,12 @@
 namespace Qyl.Collector.Health;
 
+public enum HealthStatus
+{
+    Healthy,
+    Degraded,
+    Unhealthy
+}
+
 public sealed record HealthUiResponse
 {
     public required HealthStatus Status { get; init; }

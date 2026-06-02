@@ -1,6 +1,5 @@
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 

@@ -1,5 +1,5 @@
 using ANcpLua.Roslyn.Utilities.Text;
-using Qyl.Contracts.Primitives;
+using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Health;
 
@@ -30,7 +30,7 @@ public sealed class HealthUiService(
         var overallStatus = DetermineOverallStatus(components);
 
         var lastIngestionTime = latest.Length > 0
-            ? TimeConversions.NanosToDateTimeOffset(latest[0].StartTimeUnixNano).ToString("o")
+            ? QylTimeConversions.NanosToDateTimeOffset(latest[0].StartTimeUnixNano).ToString("o")
             : null;
 
         return new HealthUiResponse
@@ -207,7 +207,7 @@ public sealed class HealthUiService(
 
         if (latest.Length > 0)
         {
-            var lastTime = TimeConversions.NanosToDateTimeOffset(latest[0].StartTimeUnixNano);
+            var lastTime = QylTimeConversions.NanosToDateTimeOffset(latest[0].StartTimeUnixNano);
             var now = TimeProvider.System.GetUtcNow();
             secondsSinceLastIngestion = (long)(now - lastTime).TotalSeconds;
             hasRecentData = secondsSinceLastIngestion < 300;
