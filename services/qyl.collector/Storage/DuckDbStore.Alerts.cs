@@ -1,5 +1,5 @@
 
-using Qyl.Domains.Alerting;
+using ANcpLua.OtelConventions.Domains.Alerting;
 
 namespace Qyl.Collector.Storage;
 
