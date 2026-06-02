@@ -55,7 +55,6 @@ public static class CollectorEndpointExtensions
     private static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         DuckDbStore store,
-        ITelemetrySseBroadcaster broadcaster,
         SpanRingBuffer ringBuffer,
         ModelPricingService pricingService,
         CancellationToken ct)
@@ -80,7 +79,6 @@ public static class CollectorEndpointExtensions
             foreach (var si in serviceInstances)
                 await store.UpsertServiceInstanceAsync(si, ct);
 
-            broadcaster.PublishSpans(batch);
             return Results.Accepted();
         }
         catch (Exception)

@@ -53,9 +53,7 @@ public static class TelemetryExtensions
             QylLatencyNames.Measures.QueryDuration,
             QylLatencyNames.Measures.StorageDuration);
 
-        services.RegisterTagNames(
-            SemanticAttributeKeys.SessionId,
-            QylLatencyNames.Tags.SpanCount);
+        services.RegisterTagNames(QylLatencyNames.Tags.SpanCount);
 
         services.AddLatencyContext();
 

@@ -276,6 +276,73 @@ interface IVerify : IHazSourcePaths
                 "or Qyl.Telemetry generated constants.");
         });
 
+    Target VerifyCollectorMetricTagsAreBounded => d => d
+        .Unlisted()
+        .Description("Verify collector metric tag names stay bounded")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenMetricTagTokens =
+            [
+                "SemanticAttributeKeys.EnduserId",
+                "SemanticAttributeKeys.GenAiAgentId",
+                "SemanticAttributeKeys.GenAiAgentName",
+                "SemanticAttributeKeys.GenAiConversationId",
+                "SemanticAttributeKeys.GenAiRequestModel",
+                "SemanticAttributeKeys.GenAiResponseModel",
+                "SemanticAttributeKeys.GenAiToolCallId",
+                "SemanticAttributeKeys.GenAiToolName",
+                "SemanticAttributeKeys.McpSessionId",
+                "SemanticAttributeKeys.SessionId",
+                "SemanticAttributeKeys.UrlFull",
+                "SemanticAttributeKeys.UrlPath",
+                "SemanticAttributeKeys.UserId"
+            ];
+
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => FindRegisterTagNameBlocks(file.Text)
+                    .SelectMany(block => forbiddenMetricTagTokens
+                        .Where(token => block.Contains(token, StringComparison.Ordinal))
+                        .Select(token => (file.File, Token: token))))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector metric tag names are bounded");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Unbounded metric tag '{Token}' found in {File}", offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not register unbounded IDs, model names, tool names, URLs, or user identifiers as metric tag names.");
+
+            static IEnumerable<string> FindRegisterTagNameBlocks(string text)
+            {
+                const string marker = "RegisterTagNames(";
+                var searchIndex = 0;
+                while ((searchIndex = text.IndexOf(marker, searchIndex, StringComparison.Ordinal)) >= 0)
+                {
+                    var endIndex = text.IndexOf(");", searchIndex, StringComparison.Ordinal);
+                    if (endIndex < 0)
+                        yield break;
+
+                    yield return text[searchIndex..(endIndex + 2)];
+                    searchIndex = endIndex + 2;
+                }
+            }
+        });
+
     Target VerifyNoHandwrittenOtlpWireParser => d => d
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
@@ -397,8 +464,38 @@ interface IVerify : IHazSourcePaths
                 "otel-conventions-api"
             ];
 
+            string[] removedCollectorTokens =
+            [
+                "ITelemetrySseBroadcaster",
+                "TelemetrySseBroadcaster",
+                "TelemetryMessage",
+                "TelemetrySignal",
+                "PublishSpans",
+                "JsonSerializable(typeof(AgentDecisionRecord))",
+                "JsonSerializable(typeof(AgentRunRecord))",
+                "JsonSerializable(typeof(ErrorCategoryStat))",
+                "JsonSerializable(typeof(ErrorRow))",
+                "JsonSerializable(typeof(ErrorStats))",
+                "JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))",
+                "JsonSerializable(typeof(IReadOnlyList<ErrorRow>))",
+                "JsonSerializable(typeof(SpanBatch))",
+                "JsonSerializable(typeof(SpanStorageRow))",
+                "JsonSerializable(typeof(List<AgentDecisionRecord>))",
+                "JsonSerializable(typeof(List<AgentRunRecord>))",
+                "JsonSerializable(typeof(List<SpanStorageRow>))",
+                "JsonSerializable(typeof(List<ToolCallRecord>))",
+                "JsonSerializable(typeof(ToolCallRecord))"
+            ];
+
+            string[] removedCollectorRouteLiterals =
+            [
+                "\"/observe",
+                "\"/metrics"
+            ];
+
             AbsolutePath[] removedPaths =
             [
+                RootDirectory / "services" / "qyl.collector" / "Contracts",
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Metrics",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
@@ -415,12 +512,42 @@ interface IVerify : IHazSourcePaths
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
+            var collectorOffenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => removedCollectorTokens
+                    .Where(token => ContainsRemovedToken(file.Text, token))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            var collectorRouteOffenders = (CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs")
+                .FileExists()
+                ? removedCollectorRouteLiterals
+                    .Where(token => File.ReadAllText(CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs")
+                        .Contains(token, StringComparison.Ordinal))
+                    .Select(token => (
+                        File: RootDirectory.GetRelativePathTo(
+                            CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs").ToString(),
+                        Token: token))
+                    .ToList()
+                : [];
+
             var pathOffenders = removedPaths
                 .Where(static path => path.FileExists() || Directory.Exists(path.ToString()))
                 .Select(path => RootDirectory.GetRelativePathTo(path).ToString())
                 .ToList();
 
-            if (offenders.Count is 0 && pathOffenders.Count is 0)
+            if (offenders.Count is 0 &&
+                collectorOffenders.Count is 0 &&
+                collectorRouteOffenders.Count is 0 &&
+                pathOffenders.Count is 0)
             {
                 Log.Information("Removed local build surfaces stayed removed");
                 return;
@@ -429,11 +556,40 @@ interface IVerify : IHazSourcePaths
             foreach (var offender in offenders)
                 Log.Error("  Removed build surface '{Token}' found in {File}", offender.Token, offender.File);
 
+            foreach (var offender in collectorOffenders)
+                Log.Error("  Removed collector surface '{Token}' found in {File}", offender.Token, offender.File);
+
+            foreach (var offender in collectorRouteOffenders)
+                Log.Error("  Removed collector route '{Token}' found in {File}", offender.Token, offender.File);
+
             foreach (var path in pathOffenders)
                 Log.Error("  Removed collector surface found: {Path}", path);
 
             throw new InvalidOperationException(
                 "Do not reintroduce removed local build surfaces. qyl-api-schema is the API/schema source of truth.");
+
+            static bool ContainsRemovedToken(string text, string token)
+            {
+                if (!token.All(static c => char.IsLetterOrDigit(c) || c is '_'))
+                    return text.Contains(token, StringComparison.Ordinal);
+
+                var index = 0;
+                while ((index = text.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+                {
+                    var before = index is 0 ? '\0' : text[index - 1];
+                    var afterIndex = index + token.Length;
+                    var after = afterIndex >= text.Length ? '\0' : text[afterIndex];
+
+                    if (!IsIdentifierChar(before) && !IsIdentifierChar(after))
+                        return true;
+
+                    index += token.Length;
+                }
+
+                return false;
+            }
+
+            static bool IsIdentifierChar(char value) => char.IsLetterOrDigit(value) || value is '_';
         });
 
     Target Verify => d => d
@@ -444,6 +600,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyGeneratedFilesClean)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
@@ -457,6 +614,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");
             Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");

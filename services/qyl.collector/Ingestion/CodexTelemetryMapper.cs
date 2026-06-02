@@ -20,13 +20,10 @@ public static class CodexTelemetryMapper
     private const string CodexThreadId = "codex.thread_id";
     private const string CodexSuccess = "codex.success";
     private const string CodexErrorType = "codex.error_type";
-    private const string CodexErrorMessage = "codex.error_message";
     private const string CodexInputTokens = "codex.input_tokens";
     private const string CodexOutputTokens = "codex.output_tokens";
     private const string CodexToolName = "codex.tool_name";
-    private const string CodexToolOutput = "codex.tool_output";
     private const string CodexFinishReason = "codex.finish_reason";
-    private const string FunctionToolType = "function";
 
 
 
@@ -53,8 +50,6 @@ public static class CodexTelemetryMapper
         transformed |= MapOperationName(spanName, attributes);
 
         transformed |= MapModel(attributes);
-
-        transformed |= MapConversationId(attributes);
 
         transformed |= MapTokenUsage(attributes);
 
@@ -154,17 +149,6 @@ public static class CodexTelemetryMapper
         return addedRequest || addedResponse;
     }
 
-    private static bool MapConversationId(IDictionary<string, string> attributes)
-    {
-        if (!attributes.TryGetValue(CodexConversationId, out var conversationId))
-            attributes.TryGetValue(CodexThreadId, out conversationId);
-
-        if (conversationId is null || !attributes.TryAdd(GenAiAttributes.ConversationId, conversationId))
-            return false;
-
-        return true;
-    }
-
     private static bool MapTokenUsage(IDictionary<string, string> attributes)
     {
         var transformed = false;
@@ -201,11 +185,6 @@ public static class CodexTelemetryMapper
         transformed |= attributes.TryGetValue(CodexToolName, out var toolName) &&
                        attributes.TryAdd(GenAiAttributes.ToolName, toolName);
 
-        transformed |= toolName is not null && attributes.TryAdd(GenAiAttributes.ToolType, FunctionToolType);
-
-        transformed |= attributes.TryGetValue(CodexToolOutput, out var toolOutput) &&
-                       attributes.TryAdd(GenAiAttributes.ToolCallResult, toolOutput);
-
         return transformed;
     }
 
@@ -215,9 +194,6 @@ public static class CodexTelemetryMapper
 
         transformed |= attributes.TryGetValue(CodexErrorType, out var errorType) &&
                        attributes.TryAdd(ErrorAttributes.Type, errorType);
-
-        transformed |= attributes.TryGetValue(CodexErrorMessage, out var errorMessage) &&
-                       attributes.TryAdd(ExceptionAttributes.Message, errorMessage);
 
         return transformed;
     }

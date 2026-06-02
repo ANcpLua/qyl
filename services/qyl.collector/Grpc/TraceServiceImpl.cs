@@ -6,12 +6,10 @@ namespace Qyl.Collector.Grpc;
 
 public sealed class TraceServiceImpl(
     DuckDbStore store,
-    ITelemetrySseBroadcaster broadcaster,
     SpanRingBuffer ringBuffer,
     ModelPricingService pricingService)
     : TraceService.TraceServiceBase
 {
-    private readonly ITelemetrySseBroadcaster _broadcaster = Guard.NotNull(broadcaster);
     private readonly ModelPricingService _pricingService = Guard.NotNull(pricingService);
     private readonly SpanRingBuffer _ringBuffer = Guard.NotNull(ringBuffer);
     private readonly DuckDbStore _store = Guard.NotNull(store);
@@ -32,7 +30,6 @@ public sealed class TraceServiceImpl(
             _ringBuffer.PushRange(batch.Spans);
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
-            _broadcaster.PublishSpans(batch);
 
             return new ExportTraceServiceResponse();
         }
