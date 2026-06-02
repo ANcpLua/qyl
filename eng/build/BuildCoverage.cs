@@ -92,8 +92,8 @@ interface ICoverage : IQylTest
             .SetAssemblyFilters("-Microsoft.*", "-System.*", "-xunit.*", "-*.tests")
             .SetClassFilters("-*.Migrations.*", "-*.Generated.*", "-*+<*>d__*");
 
-        if (IsServerBuild && this is Build { Versioning: { } version })
-            settings = settings.SetTag(version.FullSemVer);
+        if (IsServerBuild)
+            settings = settings.SetTag(Build.VersionLabel);
 
         ReportGeneratorTasks.ReportGenerator(settings);
 

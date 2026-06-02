@@ -1,10 +1,11 @@
 
+using System.Linq;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Tools.GitVersion;
+using Nuke.Common.Tools.Git;
 using Nuke.Components;
 using Serilog;
 
@@ -27,8 +28,11 @@ sealed class Build : NukeBuild,
     IPricing,
     ISmoke
 {
-    [GitVersion(Framework = "net10.0", NoCache = true, NoFetch = true)]
-    internal readonly GitVersion? Versioning = null!;
+    internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
+
+    internal static string BranchLabel => GitScalar("branch --show-current", "local");
+
+    internal static string CommitLabel => GitScalar("rev-parse --short HEAD", "N/A");
 
 
     Target Clean => d => d
@@ -48,9 +52,9 @@ sealed class Build : NukeBuild,
             Log.Information("  qyl Build - AI Observability Platform");
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  Configuration : {Configuration}", From<IHazConfiguration>().Configuration);
-            Log.Information("  Version       : {Version}", Versioning?.FullSemVer ?? "N/A");
-            Log.Information("  Branch        : {Branch}", Versioning?.BranchName ?? "N/A");
-            Log.Information("  Commit        : {Sha}", Versioning?.Sha?[..8] ?? "N/A");
+            Log.Information("  Version       : {Version}", VersionLabel);
+            Log.Information("  Branch        : {Branch}", BranchLabel);
+            Log.Information("  Commit        : {Sha}", CommitLabel);
             Log.Information("  Solution      : {Solution}", From<IHazSolution>().Solution.FileName);
             Log.Information("  IsServerBuild : {IsServer}", IsServerBuild);
             Log.Information("═══════════════════════════════════════════════════════════════");
@@ -80,7 +84,10 @@ sealed class Build : NukeBuild,
         .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() =>
         {
-            Log.Information("Development environment ready ({Version})", Versioning?.FullSemVer ?? "local");
+            Log.Information(
+                "Development environment ready ({Configuration}, {Version})",
+                From<IHazConfiguration>().Configuration,
+                VersionLabel);
             Log.Information("  Dashboard:  http://localhost:5100");
             Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
             Log.Information("  OTLP gRPC:  http://localhost:4317");
@@ -95,6 +102,21 @@ sealed class Build : NukeBuild,
         .SetContinuousIntegrationBuild(IsServerBuild);
 
     T From<T>() where T : INukeBuild => (T)(object)this;
+
+    private static string GitScalar(string args, string fallback)
+    {
+        try
+        {
+            return GitTasks.Git(args, RootDirectory, logOutput: false, logInvocation: false)
+                       .Select(static output => output.Text.Trim())
+                       .FirstOrDefault(static text => text.Length > 0)
+                   ?? fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
 
     public static int Main() => Execute<Build>(static x => ((ICompile)x).Compile);
 }
