@@ -204,7 +204,7 @@ interface IQylTest : ITest, IHazSourcePaths
             .ReportTrx($"{project.Name}.trx")
             .IgnoreExitCode(8);
 
-        // Heavy/opt-in tests (Category=regen — shell out to Weaver; Category=E2E — full
+        // Heavy/opt-in tests (Category=regen — regenerate artifacts; Category=E2E — full
         // Docker topology via DockerImageBuild) are excluded from the default Test run;
         // pass --IQylTest.TestFilter to include them, or run the dedicated sub-target
         // (E2ETests). E2EBootstrap-traited tests (no Docker) intentionally stay in.

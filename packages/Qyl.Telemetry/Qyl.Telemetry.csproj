@@ -1,7 +1,7 @@
 <Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Compile-time telemetry attribute constants for the qyl observability platform. Generated from eng/semconv/model/qyl/ via Weaver.</Description>
+    <Description>Compile-time telemetry attribute constants for the qyl observability platform.</Description>
     <PackageId>Qyl.Telemetry</PackageId>
     <RootNamespace>QylAttr</RootNamespace>
     <Authors>ancplua</Authors>

@@ -135,18 +135,16 @@ interface IVerify : IHazSourcePaths
                 "diff --name-only",
                 RootDirectory, logOutput: false, logInvocation: false);
 
-            string[] activeGeneratedPrefixes =
+            string[] activeGeneratedFiles =
             [
-                "services/qyl.collector/Storage/"
+                "services/qyl.collector/Storage/DuckDbSchema.g.cs",
+                "services/qyl.collector/Storage/DuckDbSchema.g.sql"
             ];
 
             var dirtyFiles = diffOutput
                 .Select(static o => o.Text.Trim())
                 .Where(static f => f.Length > 0)
-                .Where(f =>
-                    activeGeneratedPrefixes.Any(p => f.StartsWith(p, StringComparison.OrdinalIgnoreCase)) &&
-                    (f.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
-                     f.EndsWith(".g.sql", StringComparison.OrdinalIgnoreCase)))
+                .Where(f => activeGeneratedFiles.Contains(f, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
             if (dirtyFiles.Count is 0)
@@ -379,7 +377,9 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / ".github" / "workflows" / "ci.yml",
                 RootDirectory / "eng" / "build.sh",
                 buildDirectory / "build.csproj",
-                buildDirectory / "Build.cs"
+                buildDirectory / "Build.cs",
+                RootDirectory / "packages" / "Qyl.Telemetry" / "Qyl.Telemetry.csproj",
+                RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs"
             ];
 
             string[] removedTokens =
@@ -400,7 +400,9 @@ interface IVerify : IHazSourcePaths
             AbsolutePath[] removedPaths =
             [
                 RootDirectory / "services" / "qyl.collector" / "Observe",
-                RootDirectory / "services" / "qyl.collector" / "Metrics"
+                RootDirectory / "services" / "qyl.collector" / "Metrics",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
+                RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];
 
             var offenders = files
