@@ -1,5 +1,3 @@
-using Qyl.Collector.Dashboards;
-
 namespace Qyl.Collector.Hosting;
 
 public static class CollectorFeatureExtensions
@@ -14,8 +12,6 @@ public static class CollectorFeatureExtensions
             client.DefaultRequestHeaders.Add("User-Agent", "qyl/1.0");
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
         }).AddStandardResilienceHandler();
-
-        services.AddDashboardServices();
 
         return services;
     }

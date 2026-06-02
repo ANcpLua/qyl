@@ -4,7 +4,6 @@ namespace Qyl.Collector.Provisioning;
 
 public static class ProvisioningEndpoints
 {
-    [QylMapEndpoints]
     public static void MapProvisioningEndpoints(this WebApplication app)
     {
         var configurator = app.MapGroup("/api/v1/configurator");

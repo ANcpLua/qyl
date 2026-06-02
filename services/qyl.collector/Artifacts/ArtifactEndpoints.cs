@@ -4,7 +4,6 @@ public static class ArtifactEndpoints
 {
     private static string NewArtifactId() => Base64Url.NewRandom(9);
 
-    [QylMapEndpoints]
     public static void MapArtifactEndpoints(this WebApplication app)
     {
 

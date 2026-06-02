@@ -2,7 +2,6 @@ namespace Qyl.Collector.Search;
 
 public static class SearchEndpoints
 {
-    [QylMapEndpoints]
     public static void MapSearchEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/search/query", static async Task<IResult> (

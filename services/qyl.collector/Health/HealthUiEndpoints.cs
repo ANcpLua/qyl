@@ -6,7 +6,6 @@ public static class HealthUiEndpoints
 
     public static readonly string AppVersion = ResolveVersion();
 
-    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapHealthUiEndpoint(this IEndpointRouteBuilder app)
     {
         app.MapGet("/health/ui", static async (HealthUiService healthUi, CancellationToken ct) =>

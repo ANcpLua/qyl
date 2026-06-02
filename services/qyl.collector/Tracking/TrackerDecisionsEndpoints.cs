@@ -20,7 +20,6 @@ public sealed record SiteTrackerDecisionRow(
 
 internal static class TrackerDecisionsEndpoints
 {
-    [QylMapEndpoints]
     public static void MapTrackerDecisionsEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/tracker-decisions/top", static async Task<IResult> (

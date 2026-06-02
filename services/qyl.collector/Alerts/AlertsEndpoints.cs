@@ -7,7 +7,6 @@ namespace Qyl.Collector.Alerts;
 
 public static class AlertsEndpoints
 {
-    [QylMapEndpoints]
     public static void MapAlertsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/alerts");

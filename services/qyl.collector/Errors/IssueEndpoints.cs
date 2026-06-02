@@ -4,7 +4,6 @@ namespace Qyl.Collector.Errors;
 
 public static class IssueEndpoints
 {
-    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapIssueEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/issues")

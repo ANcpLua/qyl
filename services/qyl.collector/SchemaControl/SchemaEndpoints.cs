@@ -2,7 +2,6 @@ namespace Qyl.Collector.SchemaControl;
 
 public static class SchemaEndpoints
 {
-    [QylMapEndpoints]
     public static void MapSchemaEndpoints(this WebApplication app)
     {
         app.MapPost("/api/v1/schema/promotions", static async Task<IResult> (

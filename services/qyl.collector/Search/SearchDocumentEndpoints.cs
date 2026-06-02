@@ -4,7 +4,6 @@ namespace Qyl.Collector.Search;
 
 public static class SearchDocumentEndpoints
 {
-    [QylMapEndpoints]
     public static IEndpointRouteBuilder MapSearchDocumentEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/search")

@@ -13,7 +13,6 @@ public sealed record InsightTierStatus(
 
 internal static class InsightsEndpoints
 {
-    [QylMapEndpoints]
     public static void MapInsightsEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/insights", async (DuckDbStore store, CancellationToken ct) =>

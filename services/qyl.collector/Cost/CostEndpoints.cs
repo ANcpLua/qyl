@@ -9,7 +9,6 @@ internal static class CostEndpoints
     private static readonly FrozenSet<string> s_validTruncInterval = FrozenSet.Create(
         StringComparer.Ordinal, "day", "hour");
 
-    [QylMapEndpoints]
     public static WebApplication MapCostEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/cost");

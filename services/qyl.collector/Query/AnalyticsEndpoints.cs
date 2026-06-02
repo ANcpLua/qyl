@@ -3,7 +3,6 @@ namespace Qyl.Collector.Query;
 
 internal static class AnalyticsEndpoints
 {
-    [QylMapEndpoints]
     public static WebApplication MapAnalyticsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/analytics");

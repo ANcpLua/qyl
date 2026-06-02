@@ -178,8 +178,13 @@ interface IVerify : IHazSourcePaths
                 });
 
             var offenders = files
-                .Where(static file => File.ReadAllText(file).Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal))
-                .Select(file => RootDirectory.GetRelativePathTo(file).ToString())
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .Where(static file =>
+                    file.Text.Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal) ||
+                    file.Text.Contains("[QylMapEndpoints", StringComparison.Ordinal))
+                .Select(static file => file.File)
                 .ToList();
 
             if (offenders.Count is 0)
@@ -192,7 +197,7 @@ interface IVerify : IHazSourcePaths
                 Log.Error("  Generated endpoint mapper call: {File}", offender);
 
             throw new InvalidOperationException(
-                "Do not publish collector-local endpoint modules through MapQylGeneratedEndpoints. " +
+                "Do not publish collector-local endpoint modules through QylMapEndpoints or MapQylGeneratedEndpoints. " +
                 "Expose contract-backed routes explicitly from CollectorEndpointExtensions.");
         });
 

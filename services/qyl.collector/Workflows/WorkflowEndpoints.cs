@@ -2,7 +2,6 @@ namespace Qyl.Collector.Workflows;
 
 public static class WorkflowEndpoints
 {
-    [QylMapEndpoints]
     public static WebApplication MapWorkflowEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/workflows/runs")

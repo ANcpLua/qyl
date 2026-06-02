@@ -8,8 +8,6 @@ public static class QylTelemetry
     public const string ServiceName = "Qyl.Collector";
     public const string ServiceVersion = "1.0.0";
     public const string StorageMeterName = "Qyl.Collector.storage";
-    public const string ConversationsMeterName = "qyl.observability.conversations";
-    public const string ConversationSpanCountMetricName = "qyl.observability.conversation.span.count";
 
 
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)

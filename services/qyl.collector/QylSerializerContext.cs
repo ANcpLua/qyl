@@ -1,6 +1,5 @@
 using Qyl.Collector.Artifacts;
 using Qyl.Collector.Cost;
-using Qyl.Collector.Dashboards;
 using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
@@ -64,24 +63,10 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(LogStorageRow))]
 [JsonSerializable(typeof(List<LogStorageRow>))]
 [JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(RecentSpansResponse))]
-[JsonSerializable(typeof(TraceFromMemoryResponse))]
-[JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
-[JsonSerializable(typeof(BufferStatsResponse))]
 [JsonSerializable(typeof(ClearTelemetryResponse))]
 [JsonSerializable(typeof(InsightsResponse))]
 [JsonSerializable(typeof(InsightTierStatus))]
 [JsonSerializable(typeof(IReadOnlyList<InsightTierStatus>))]
-[JsonSerializable(typeof(DashboardDefinition))]
-[JsonSerializable(typeof(DashboardData))]
-[JsonSerializable(typeof(DashboardWidget))]
-[JsonSerializable(typeof(StatCardData))]
-[JsonSerializable(typeof(TimeSeriesPoint))]
-[JsonSerializable(typeof(TopNRow))]
-[JsonSerializable(typeof(IReadOnlyList<DashboardDefinition>))]
-[JsonSerializable(typeof(IReadOnlyList<DashboardWidget>))]
-[JsonSerializable(typeof(IReadOnlyList<TopNRow>))]
-[JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
 [JsonSerializable(typeof(AgentRunRecord))]
 [JsonSerializable(typeof(ToolCallRecord))]
 [JsonSerializable(typeof(AgentDecisionRecord))]
