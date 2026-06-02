@@ -8,7 +8,7 @@ qyl is an OpenTelemetry-compatible observability platform. OpenTelemetry is the 
 typespec-otel-semconv
         |
         v
-qyl-api-schema -> OpenAPI / JSON Schema / Qyl.Api.Contracts / storage schema
+qyl-api-schema -> OpenAPI / JSON Schema / Qyl.Api.Contracts / TS contract types
         |
         v
 qyl.collector -> DuckDB storage, REST API, OTLP ingest, SSE
@@ -40,6 +40,12 @@ Schema -> OpenAPI -> DTO contracts -> clients
 ```
 
 Do not recreate a second contract source in this monorepo. Update TypeSpec in `qyl-api-schema`, regenerate there, publish or locally pack `Qyl.Api.Contracts`, then update qyl's package reference.
+
+Do not add new public API request, response, DTO, or schema models in `qyl.collector`.
+Public API shapes belong in `qyl-api-schema` and must flow into qyl through
+`Qyl.Api.Contracts` or generated OpenAPI-derived client types. Runtime storage rows,
+ingest wire types, and internal projections may exist only when they are not returned
+as the product API contract.
 
 ## Run Locally
 

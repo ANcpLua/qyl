@@ -43,20 +43,11 @@ interface ErrorStats {
     errorRate: number;
 }
 
-interface LatencyBaseline {
-    mean: number;
-    stddev: number;
-    p50: number;
-    p95: number;
-    p99: number;
-}
-
 export const performanceKeys = {
     all: ['performance'] as const,
     stats: () => [...performanceKeys.all, 'stats'] as const,
     services: () => [...performanceKeys.all, 'services'] as const,
     errors: () => [...performanceKeys.all, 'errors'] as const,
-    latency: () => [...performanceKeys.all, 'latency'] as const,
     traffic: (from: number, to: number) => [...performanceKeys.all, 'traffic', from, to] as const,
 };
 
@@ -81,14 +72,6 @@ export function useErrorStats() {
         queryKey: performanceKeys.errors(),
         queryFn: () => fetchJson<ErrorStats>('/api/v1/errors/stats'),
         staleTime: 30_000,
-    });
-}
-
-export function useLatencyBaseline() {
-    return useQuery({
-        queryKey: performanceKeys.latency(),
-        queryFn: () => fetchJson<LatencyBaseline>('/api/v1/analytics/anomaly/baseline?metric=latency&hours=24'),
-        staleTime: 60_000,
     });
 }
 

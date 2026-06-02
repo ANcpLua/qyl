@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
 import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts';
-import {Activity, AlertCircle, ArrowUpDown, Clock, Gauge, Loader2, Server, Zap,} from 'lucide-react';
+import {Activity, AlertCircle, ArrowUpDown, Gauge, Loader2, Server,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import type {ServiceSummary, TrafficBucket} from '@/hooks/usePerformance';
-import {useErrorStats, useLatencyBaseline, useServices, useStorageStats, useTraffic} from '@/hooks/usePerformance';
+import {useErrorStats, useServices, useStorageStats, useTraffic} from '@/hooks/usePerformance';
 
 type SortField = 'serviceName' | 'serviceType' | 'latestVersion' | 'firstSeen' | 'lastSeen' | 'lastErrorAt';
 type SortDir = 'asc' | 'desc';
@@ -19,12 +19,6 @@ function formatTimestamp(iso?: string | null): string {
         minute: '2-digit',
         hour12: false,
     });
-}
-
-function formatLatency(ms: number): string {
-    if (ms < 1) return `${(ms * 1000).toFixed(0)}\u00B5s`;
-    if (ms < 1000) return `${ms.toFixed(1)}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
 }
 
 function formatHour(iso: string): string {
@@ -64,7 +58,6 @@ export function PerformancePage() {
     const {data: stats, isLoading: statsLoading, error: statsError} = useStorageStats();
     const {data: servicesData, isLoading: servicesLoading, error: servicesError} = useServices();
     const {data: errorStats, isLoading: errorsLoading, error: errorsError} = useErrorStats();
-    const {data: latency, isLoading: latencyLoading, error: latencyError} = useLatencyBaseline();
     const {data: trafficData, isLoading: trafficLoading} = useTraffic();
 
     const chartData = useMemo(() =>
@@ -74,8 +67,8 @@ export function PerformancePage() {
             errors: b.errors,
         })), [trafficData]);
 
-    const isLoading = statsLoading || servicesLoading || errorsLoading || latencyLoading;
-    const error = statsError || servicesError || errorsError || latencyError;
+    const isLoading = statsLoading || servicesLoading || errorsLoading;
+    const error = statsError || servicesError || errorsError;
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -123,7 +116,7 @@ export function PerformancePage() {
     return (
         <div className="p-6 space-y-6">
             {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
@@ -175,21 +168,6 @@ export function PerformancePage() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-signal-orange"/>
-                            <span className="text-sm text-brutal-slate">Avg Latency</span>
-                        </div>
-                        {latencyLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                        ) : (
-                            <div className="text-2xl font-bold mt-1 font-mono">
-                                {latency ? formatLatency(latency.mean) : '\u2014'}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
             </div>
 
             {/* Throughput Chart */}
@@ -268,56 +246,6 @@ export function PerformancePage() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* Latency Overview */}
-            {latency && (
-                <div>
-                    <h2 className="text-lg font-semibold mb-3">Latency Percentiles</h2>
-                    <div className="grid grid-cols-3 gap-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-signal-green"/>
-                                    <span className="text-xs font-bold text-brutal-slate tracking-wider">P50</span>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold font-mono text-signal-green">
-                                    {formatLatency(latency.p50)}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-signal-orange"/>
-                                    <span className="text-xs font-bold text-brutal-slate tracking-wider">P95</span>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold font-mono text-signal-orange">
-                                    {formatLatency(latency.p95)}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-signal-red"/>
-                                    <span className="text-xs font-bold text-brutal-slate tracking-wider">P99</span>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold font-mono text-signal-red">
-                                    {formatLatency(latency.p99)}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
 
             {/* Services Table */}
             <div>
