@@ -1,9 +1,4 @@
-using Qyl.Collector.Artifacts;
-using Qyl.Collector.Cost;
-using Qyl.Collector.Health;
-using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
-using Qyl.Collector.Search;
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
@@ -39,9 +34,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(Resource))]
 [JsonSerializable(typeof(InstrumentationScope))]
 [JsonSerializable(typeof(ContractAttribute))]
-[JsonSerializable(typeof(HealthUiResponse))]
-[JsonSerializable(typeof(ComponentHealth))]
-[JsonSerializable(typeof(IReadOnlyList<ComponentHealth>))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SpanBatch))]
 [JsonSerializable(typeof(SpanStorageRow))]
@@ -64,9 +56,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(List<LogStorageRow>))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(ClearTelemetryResponse))]
-[JsonSerializable(typeof(InsightsResponse))]
-[JsonSerializable(typeof(InsightTierStatus))]
-[JsonSerializable(typeof(IReadOnlyList<InsightTierStatus>))]
 [JsonSerializable(typeof(AgentRunRecord))]
 [JsonSerializable(typeof(ToolCallRecord))]
 [JsonSerializable(typeof(AgentDecisionRecord))]
@@ -79,18 +68,9 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(MetaStatus))]
 [JsonSerializable(typeof(MetaLinks))]
 [JsonSerializable(typeof(MetaPorts))]
-[JsonSerializable(typeof(ErrorStatusUpdate))]
 [JsonSerializable(typeof(ErrorRow))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorRow>))]
 [JsonSerializable(typeof(ErrorStats))]
 [JsonSerializable(typeof(ErrorCategoryStat))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))]
-[JsonSerializable(typeof(SearchQuery))]
-[JsonSerializable(typeof(SearchResult))]
-[JsonSerializable(typeof(IReadOnlyList<SearchResult>))]
-[JsonSerializable(typeof(SearchSuggestion))]
-[JsonSerializable(typeof(IReadOnlyList<SearchSuggestion>))]
-[JsonSerializable(typeof(ArtifactCreateRequest))]
-[JsonSerializable(typeof(ArtifactResponse))]
-[JsonSerializable(typeof(PricingOverrideRequest))]
 public partial class QylSerializerContext : JsonSerializerContext;

@@ -91,7 +91,7 @@
     <!-- OpenAI -->
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>
-    <!-- Kiota/Scalar client generation runtime dep -->
+    <!-- Serialization runtime dep for the OpenAI / Microsoft.Extensions.AI stack -->
     <PackageVersion Include="System.ClientModel" Version="$(SystemClientModelVersion)"/>
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
@@ -116,10 +116,6 @@
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.0.0"/>
     <!-- C# API contract types emitted from @o-ancpplua/qyl-api-schema. -->
     <PackageVersion Include="Qyl.Api.Contracts" Version="0.1.3"/>
-    <!-- On-demand REST client SDK generation (TypeScript + C#) from the collector's OpenAPI
-         document; replaces committed TypeSpec client emitters.
-         Dev-only — gated to Development in services/qyl.collector/Program.cs. -->
-    <PackageVersion Include="Scalar.Kiota.Extension" Version="1.1.0"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>

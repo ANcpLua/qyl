@@ -181,9 +181,7 @@ interface IVerify : IHazSourcePaths
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
-                .Where(static file =>
-                    file.Text.Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal) ||
-                    file.Text.Contains("[QylMapEndpoints", StringComparison.Ordinal))
+                .Where(static file => IsForbiddenEndpointMapper(file.File, file.Text))
                 .Select(static file => file.File)
                 .ToList();
 
@@ -197,8 +195,26 @@ interface IVerify : IHazSourcePaths
                 Log.Error("  Generated endpoint mapper call: {File}", offender);
 
             throw new InvalidOperationException(
-                "Do not publish collector-local endpoint modules through QylMapEndpoints or MapQylGeneratedEndpoints. " +
-                "Expose contract-backed routes explicitly from CollectorEndpointExtensions.");
+                "Do not publish collector-local endpoint modules through QylMapEndpoints, MapQylGeneratedEndpoints, " +
+                "or standalone Map*Endpoint extension methods. Expose contract-backed routes explicitly from CollectorEndpointExtensions.");
+
+            static bool IsForbiddenEndpointMapper(string relativePath, string text)
+            {
+                var normalizedPath = relativePath.Replace('\\', '/');
+                if (normalizedPath.EndsWith("services/qyl.collector/Hosting/CollectorEndpointExtensions.cs", StringComparison.Ordinal))
+                    return false;
+
+                return text.Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal)
+                       || text.Contains("[QylMapEndpoints", StringComparison.Ordinal)
+                       || text
+                           .Split('\n')
+                           .Select(static line => line.Trim())
+                           .Any(static line =>
+                               line.StartsWith("public static ", StringComparison.Ordinal)
+                               && line.Contains(" Map", StringComparison.Ordinal)
+                               && line.Contains("Endpoint", StringComparison.Ordinal)
+                               && line.Contains('('));
+            }
         });
 
     Target Verify => d => d

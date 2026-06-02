@@ -70,13 +70,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
   </ItemGroup>
 
-  <!-- Dev-only: serves a Scalar UI that generates REST client SDKs (TypeScript + C#) on demand
-       from this collector's own OpenAPI document, via Kiota. Replaces the retired committed
-       TypeSpec client packages. Activated only in Development (see Program.cs). -->
-  <ItemGroup>
-    <PackageReference Include="Scalar.Kiota.Extension"/>
-  </ItemGroup>
-
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>

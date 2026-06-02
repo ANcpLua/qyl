@@ -2,7 +2,6 @@ using Qyl.Collector;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Telemetry;
 using Qyl.Instrumentation.Instrumentation;
-using Scalar.Kiota.Extension;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -10,8 +9,9 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddQylServiceDefaults(options =>
 {
-    // Expose OpenAPI only in Development — it backs the dev-only Scalar/Kiota client-SDK UI below.
-    options.EnableOpenApi = builder.Environment.IsDevelopment();
+    // OpenAPI is off: the product API contract lives in the external qyl-api-schema TypeSpec repo
+    // and flows in via Qyl.Api.Contracts. The collector is not a contract/client-generation source.
+    options.EnableOpenApi = false;
     options.EnableAutoDiscovery = false;
     options.AdditionalActivitySources.Add(QylTelemetry.ServiceName);
     options.ConfigureMetrics = static metrics =>
@@ -28,29 +28,12 @@ builder.Services.AddQylCollectorTelemetry(builder.Environment);
 builder.Services.AddQylCollectorFeatures(builder.Configuration);
 builder.WebHost.ConfigureQylCollectorKestrel(builder.Configuration);
 
-// Dev-only: generate REST client SDKs (TypeScript + C#) on demand from this collector's OpenAPI
-// document, served through a Scalar UI. Replaces the retired committed TypeSpec client packages.
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddScalarWithKiota(static options => options
-        .WithTitle("Qyl Collector API")
-        .WithSdkName("QylClient")
-        .WithLanguages("TypeScript", "CSharp"));
-}
-
 var app = builder.Build();
 
 await app.InitializeQylCollectorAsync().ConfigureAwait(false);
 app.UseQylCollectorMiddleware();
 
 app.MapQylCollectorEndpoints();
-
-// Dev-only: /openapi/v1.json (Kiota source) + Scalar UI with on-demand SDK download at /scalar.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarWithKiota("/scalar");
-}
 
 StartupBanner.Print(
     $"http://localhost:{ports.Http}", ports.Http, ports.Grpc, ports.OtlpHttp,
