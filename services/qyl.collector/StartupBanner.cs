@@ -93,7 +93,7 @@ public static class StartupBanner
             ? $"    POST /v1/traces         - OTLP HTTP (port {otlpHttpPort}, also on {port})"
             : $"    POST /v1/traces         - OTLP HTTP (port {port})");
         if (grpcPort > 0)
-            Console.WriteLine($"    gRPC TraceService       - OTLP gRPC (port {grpcPort})");
+            Console.WriteLine($"    gRPC TraceService/LogsService - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
         Console.WriteLine("    GET  /api/v1/logs/live  - SSE live log tail");
         Console.ResetColor();

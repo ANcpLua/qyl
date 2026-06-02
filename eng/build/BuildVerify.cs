@@ -278,6 +278,58 @@ interface IVerify : IHazSourcePaths
                 "or Qyl.Telemetry generated constants.");
         });
 
+    Target VerifyNoHandwrittenOtlpWireParser => d => d
+        .Unlisted()
+        .Description("Verify OTLP wire contracts use generated protobuf types")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] removedTokens =
+            [
+                "OtlpProtobufParser",
+                "OtlpLogProtobufParser",
+                "TraceServiceMethodProvider",
+                "class TraceServiceBase",
+                "ProtobufReader",
+                "IProtobufParseable",
+                "OtlpResourceSpansProto",
+                "OtlpScopeSpansProto",
+                "OtlpSpanProto",
+                "OtlpResourceLogsProto",
+                "OtlpScopeLogsProto",
+                "OtlpLogRecordProto",
+                "ExportLogsServiceRequestProto"
+            ];
+
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static f =>
+                {
+                    var path = f.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => removedTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector OTLP wire contracts use generated protobuf types");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Removed OTLP wire parser '{Token}' found in {File}", offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not reintroduce handwritten OTLP protobuf readers or service binders. " +
+                "Use the checked-in OpenTelemetry .proto inputs and Grpc.Tools-generated OpenTelemetry.Proto.* types.");
+        });
+
     Target VerifyNoRemovedBuildSurface => d => d
         .Unlisted()
         .Description("Verify removed local build surfaces stay removed")
@@ -341,6 +393,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyGeneratedFilesClean)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {
@@ -353,6 +406,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");
             Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });

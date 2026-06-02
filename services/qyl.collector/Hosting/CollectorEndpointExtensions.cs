@@ -11,6 +11,7 @@ public static class CollectorEndpointExtensions
     public static WebApplication MapQylCollectorEndpoints(this WebApplication app)
     {
         app.MapGrpcService<TraceServiceImpl>();
+        app.MapGrpcService<LogsServiceImpl>();
 
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
@@ -61,29 +62,12 @@ public static class CollectorEndpointExtensions
         try
         {
             List<SpanStorageRow> spans;
-            var contentType = context.Request.ContentType;
+            var otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, ct);
+            if (otlpData.ResourceSpans.Count is 0)
+                return Results.Accepted();
 
-            List<ServiceInstanceRecord> serviceInstances;
-            if (OtlpProtobufParser.IsProtobufContentType(contentType))
-            {
-                var protoRequest = await OtlpProtobufParser.ParseFromRequestAsync(context.Request, ct);
-                if (protoRequest.ResourceSpans.Count is 0)
-                    return Results.Accepted();
-
-                spans = OtlpConverter.ConvertProtoToStorageRows(protoRequest);
-                serviceInstances = OtlpConverter.ExtractServiceInstancesFromProto(protoRequest);
-            }
-            else
-            {
-                var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
-                    QylSerializerContext.Default.OtlpExportTraceServiceRequest, ct);
-
-                if (otlpData?.ResourceSpans is null)
-                    return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
-
-                spans = OtlpConverter.ConvertJsonToStorageRows(otlpData);
-                serviceInstances = OtlpConverter.ExtractServiceInstancesFromJson(otlpData);
-            }
+            spans = OtlpConverter.ConvertTraceRequestToStorageRows(otlpData);
+            var serviceInstances = OtlpConverter.ExtractServiceInstances(otlpData);
 
             if (spans.Count is 0) return Results.Accepted();
 
@@ -112,25 +96,11 @@ public static class CollectorEndpointExtensions
         try
         {
             List<LogStorageRow> logs;
-            var contentType = context.Request.ContentType;
+            var otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, ct);
+            if (otlpData.ResourceLogs.Count is 0)
+                return Results.Accepted();
 
-            if (OtlpProtobufParser.IsProtobufContentType(contentType))
-            {
-                var protoRequest = await OtlpLogProtobufParser.ParseFromRequestAsync(context.Request, ct);
-                if (protoRequest.ResourceLogs.Count is 0)
-                    return Results.Accepted();
-
-                logs = OtlpConverter.ConvertProtoLogsToStorageRows(protoRequest);
-            }
-            else
-            {
-                var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportLogsServiceRequest>(ct);
-
-                if (otlpData?.ResourceLogs is null)
-                    return Results.BadRequest(new ErrorResponse("Invalid OTLP logs format"));
-
-                logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
-            }
+            logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
 
             if (logs.Count is 0) return Results.Accepted();
 

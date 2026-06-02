@@ -41,7 +41,9 @@
 
   <!-- OTLP ingestion: gRPC hosting + OTel export for dynamic forwarding -->
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>
@@ -87,6 +89,16 @@
   <ItemGroup>
     <ProjectReference Include="..\..\internal\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\internal\qyl.collector.storage.generators\qyl.collector.storage.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Official OpenTelemetry OTLP proto inputs pinned from opentelemetry-proto v1.8.0. -->
+    <Protobuf Include="Protos/opentelemetry/proto/common/v1/common.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/resource/v1/resource.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/trace/v1/trace.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/logs/v1/logs.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/collector/trace/v1/trace_service.proto" ProtoRoot="Protos" GrpcServices="Server"/>
+    <Protobuf Include="Protos/opentelemetry/proto/collector/logs/v1/logs_service.proto" ProtoRoot="Protos" GrpcServices="Server"/>
   </ItemGroup>
 
   <ItemGroup>
