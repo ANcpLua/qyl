@@ -1,5 +1,4 @@
 
-using Microsoft.Extensions.Diagnostics.Buffering;
 using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
 using Microsoft.Extensions.Diagnostics.Latency;
 
@@ -24,18 +23,12 @@ public static class TelemetryExtensions
         {
             logging.EnableEnrichment(static options =>
             {
-                options.CaptureStackTraces = true;
-                options.IncludeExceptionMessage = true;
+                options.CaptureStackTraces = false;
+                options.IncludeExceptionMessage = false;
                 options.MaxStackTraceLength = 2048;
             });
 
             logging.EnableRedaction();
-
-            logging.AddGlobalBuffer(static options =>
-            {
-                options.Rules.Add(new LogBufferingFilterRule(logLevel: LogLevel.Debug));
-                options.Rules.Add(new LogBufferingFilterRule(logLevel: LogLevel.Trace));
-            });
         });
 
         services.AddLogEnricher<QylLogEnricher>();
@@ -62,8 +55,6 @@ public static class TelemetryExtensions
 
         services.RegisterTagNames(
             "session.id",
-            "gen_ai.provider.name",
-            "gen_ai.request.model",
             "span.count");
 
         services.AddLatencyContext();

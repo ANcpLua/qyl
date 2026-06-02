@@ -391,13 +391,9 @@ internal static class MetricsEndpoints
     {
         string? serviceName = null;
         string? tokenType = null;
-        string? providerName = null;
-        string? requestModel = null;
         var hasServiceNameFilter = false;
         var hasTokenTypeFilter = false;
-        var hasProviderNameFilter = false;
-        var hasRequestModelFilter = false;
-        selection = new MetricFilterSelection(null, null, null, null);
+        selection = new MetricFilterSelection(null, null);
         error = string.Empty;
 
         if (filters is null || filters.Count is 0)
@@ -451,57 +447,23 @@ internal static class MetricsEndpoints
 
             if (filter.Key.Equals(DerivedMetricCatalog.GenAiProviderNameLabel, StringComparison.Ordinal))
             {
-                if (hasProviderNameFilter)
-                {
-                    error = "Metric filters specify gen_ai.provider.name more than once.";
-                    return false;
-                }
-
-                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
-                {
-                    error = "Metric filters support gen_ai.provider.name only for GenAI-derived metrics.";
-                    return false;
-                }
-
-                if (!TryReadRequiredStringFilter(filter, DerivedMetricCatalog.GenAiProviderNameLabel, out providerName,
-                        out error))
-                    return false;
-
-                hasProviderNameFilter = true;
-                continue;
+                error = "Metric filters do not support gen_ai.provider.name; use the cost or analytics endpoints for provider/model slices.";
+                return false;
             }
 
             if (filter.Key.Equals(DerivedMetricCatalog.GenAiRequestModelLabel, StringComparison.Ordinal))
             {
-                if (hasRequestModelFilter)
-                {
-                    error = "Metric filters specify gen_ai.request.model more than once.";
-                    return false;
-                }
-
-                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
-                {
-                    error = "Metric filters support gen_ai.request.model only for GenAI-derived metrics.";
-                    return false;
-                }
-
-                if (!TryReadRequiredStringFilter(filter, DerivedMetricCatalog.GenAiRequestModelLabel, out requestModel,
-                        out error))
-                    return false;
-
-                hasRequestModelFilter = true;
-                continue;
+                error = "Metric filters do not support gen_ai.request.model; use the cost or analytics endpoints for provider/model slices.";
+                return false;
             }
 
             error = IsGenAiTokenUsageMetric(metric)
-                ? "Metric filters support service.name, gen_ai.provider.name, gen_ai.request.model, and gen_ai.token.type only."
-                : DerivedMetricQueries.SupportsGenAiDimensions(metric)
-                    ? "Metric filters support service.name, gen_ai.provider.name, and gen_ai.request.model only."
-                    : "Metric filters support service.name only.";
+                ? "Metric filters support service.name and gen_ai.token.type only."
+                : "Metric filters support service.name only.";
             return false;
         }
 
-        selection = new MetricFilterSelection(serviceName, tokenType, providerName, requestModel);
+        selection = new MetricFilterSelection(serviceName, tokenType);
         return true;
     }
 
@@ -511,7 +473,7 @@ internal static class MetricsEndpoints
         out MetricGroupingSelection selection,
         out string error)
     {
-        selection = new MetricGroupingSelection(false, false, false, false);
+        selection = new MetricGroupingSelection(false, false);
         error = string.Empty;
 
         if (groupBy is null || groupBy.Count is 0)
@@ -519,8 +481,6 @@ internal static class MetricsEndpoints
 
         var groupByServiceName = false;
         var groupByTokenType = false;
-        var groupByProviderName = false;
-        var groupByRequestModel = false;
 
         foreach (var label in groupBy)
         {
@@ -562,53 +522,25 @@ internal static class MetricsEndpoints
 
             if (label.Equals(DerivedMetricCatalog.GenAiProviderNameLabel, StringComparison.Ordinal))
             {
-                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
-                {
-                    error = "Grouping supports gen_ai.provider.name only for GenAI-derived metrics.";
-                    return false;
-                }
-
-                if (groupByProviderName)
-                {
-                    error = "Grouping specifies gen_ai.provider.name more than once.";
-                    return false;
-                }
-
-                groupByProviderName = true;
-                continue;
+                error = "Grouping does not support gen_ai.provider.name; use the cost or analytics endpoints for provider/model slices.";
+                return false;
             }
 
             if (label.Equals(DerivedMetricCatalog.GenAiRequestModelLabel, StringComparison.Ordinal))
             {
-                if (!DerivedMetricQueries.SupportsGenAiDimensions(metric))
-                {
-                    error = "Grouping supports gen_ai.request.model only for GenAI-derived metrics.";
-                    return false;
-                }
-
-                if (groupByRequestModel)
-                {
-                    error = "Grouping specifies gen_ai.request.model more than once.";
-                    return false;
-                }
-
-                groupByRequestModel = true;
-                continue;
+                error = "Grouping does not support gen_ai.request.model; use the cost or analytics endpoints for provider/model slices.";
+                return false;
             }
 
             error = IsGenAiTokenUsageMetric(metric)
-                ? "Grouping supports service.name, gen_ai.provider.name, gen_ai.request.model, and gen_ai.token.type only for gen_ai.client.token.usage."
-                : DerivedMetricQueries.SupportsGenAiDimensions(metric)
-                    ? "Grouping supports service.name, gen_ai.provider.name, and gen_ai.request.model only for GenAI-derived metrics."
-                    : "Grouping supports service.name only for derived span metrics.";
+                ? "Grouping supports service.name and gen_ai.token.type only for gen_ai.client.token.usage."
+                : "Grouping supports service.name only for derived span metrics.";
             return false;
         }
 
         selection = new MetricGroupingSelection(
             groupByServiceName,
-            groupByTokenType,
-            groupByProviderName,
-            groupByRequestModel);
+            groupByTokenType);
         return true;
     }
 
@@ -732,7 +664,7 @@ internal static class MetricsEndpoints
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var labels = CreateLabels(filters.ServiceName, tokenType, filters.ProviderName, filters.RequestModel);
+                var labels = CreateLabels(filters.ServiceName, tokenType);
                 for (var i = 0; i < groupedLabels.Count; i++)
                     labels[groupedLabels[i].Label] = reader.GetString(i + 1);
 
@@ -781,8 +713,6 @@ internal static class MetricsEndpoints
 
         var parameterIndex = 3;
         AppendFilterCondition(where, "service_name", filters.ServiceName, ref parameterIndex);
-        AppendFilterCondition(where, "gen_ai_provider_name", filters.ProviderName, ref parameterIndex);
-        AppendFilterCondition(where, "gen_ai_request_model", filters.RequestModel, ref parameterIndex);
         return where.ToString();
     }
 
@@ -841,8 +771,6 @@ internal static class MetricsEndpoints
     private static void AddFilterParameters(DuckDBCommand cmd, MetricFilterSelection filters)
     {
         AddFilterParameter(cmd, filters.ServiceName);
-        AddFilterParameter(cmd, filters.ProviderName);
-        AddFilterParameter(cmd, filters.RequestModel);
     }
 
     private static void AddFilterParameter(DuckDBCommand cmd, string? value)
@@ -856,26 +784,16 @@ internal static class MetricsEndpoints
         List<MetricLabelColumn> labels = [];
         if (grouping.GroupByServiceName)
             labels.Add(new MetricLabelColumn(DerivedMetricCatalog.ServiceNameLabel, "service_name"));
-        if (grouping.GroupByProviderName)
-            labels.Add(new MetricLabelColumn(DerivedMetricCatalog.GenAiProviderNameLabel, "gen_ai_provider_name"));
-        if (grouping.GroupByRequestModel)
-            labels.Add(new MetricLabelColumn(DerivedMetricCatalog.GenAiRequestModelLabel, "gen_ai_request_model"));
         return labels;
     }
 
     private static JsonObject CreateLabels(
         string? serviceName,
-        string? tokenType,
-        string? providerName,
-        string? requestModel)
+        string? tokenType)
     {
         var labels = new JsonObject();
         if (serviceName is not null)
             labels[DerivedMetricCatalog.ServiceNameLabel] = serviceName;
-        if (providerName is not null)
-            labels[DerivedMetricCatalog.GenAiProviderNameLabel] = providerName;
-        if (requestModel is not null)
-            labels[DerivedMetricCatalog.GenAiRequestModelLabel] = requestModel;
         if (tokenType is not null)
             labels[DerivedMetricCatalog.GenAiTokenTypeLabel] = tokenType;
         return labels;
@@ -1027,9 +945,7 @@ internal sealed record PublicMetricsError(
 
 internal sealed record MetricFilterSelection(
     string? ServiceName,
-    string? TokenType,
-    string? ProviderName,
-    string? RequestModel);
+    string? TokenType);
 
 internal sealed record MetricServiceList(
     IReadOnlyList<string> Services,
@@ -1037,9 +953,7 @@ internal sealed record MetricServiceList(
 
 internal sealed record MetricGroupingSelection(
     bool GroupByServiceName,
-    bool GroupByTokenType,
-    bool GroupByProviderName,
-    bool GroupByRequestModel);
+    bool GroupByTokenType);
 
 internal sealed record MetricLabelColumn(string Label, string Column);
 

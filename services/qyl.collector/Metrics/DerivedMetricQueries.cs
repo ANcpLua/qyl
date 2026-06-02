@@ -18,20 +18,8 @@ internal static class DerivedMetricQueries
             return
             [
                 DerivedMetricCatalog.ServiceNameLabel,
-                DerivedMetricCatalog.GenAiProviderNameLabel,
-                DerivedMetricCatalog.GenAiRequestModelLabel,
                 DerivedMetricCatalog.GenAiTokenTypeLabel
             ];
-
-        if (SupportsGenAiDimensions(metric))
-        {
-            return
-            [
-                DerivedMetricCatalog.ServiceNameLabel,
-                DerivedMetricCatalog.GenAiProviderNameLabel,
-                DerivedMetricCatalog.GenAiRequestModelLabel
-            ];
-        }
 
         return [DerivedMetricCatalog.ServiceNameLabel];
     }

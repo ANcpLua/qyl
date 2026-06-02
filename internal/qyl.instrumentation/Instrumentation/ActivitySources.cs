@@ -19,15 +19,25 @@ public static class ActivitySources
 
     internal static readonly string s_version = GetVersion(s_assembly);
 
-    public static ActivitySource GenAiSource => field ??= new ActivitySource(GenAi, s_version);
+    private static readonly ActivitySource s_genAiSource = new(GenAi, s_version);
 
-    public static ActivitySource DbSource => field ??= new ActivitySource(Db, s_version);
+    private static readonly ActivitySource s_dbSource = new(Db, s_version);
 
-    public static ActivitySource AgentSource => field ??= new ActivitySource(Agent, s_version);
+    private static readonly ActivitySource s_agentSource = new(Agent, s_version);
 
-    public static Meter GenAiMeter => field ??= new Meter(GenAi, s_version);
+    private static readonly Meter s_genAiMeter = new(GenAi, s_version);
 
-    public static Meter AgentMeter => field ??= new Meter(Agent, s_version);
+    private static readonly Meter s_agentMeter = new(Agent, s_version);
+
+    public static ActivitySource GenAiSource => s_genAiSource;
+
+    public static ActivitySource DbSource => s_dbSource;
+
+    public static ActivitySource AgentSource => s_agentSource;
+
+    public static Meter GenAiMeter => s_genAiMeter;
+
+    public static Meter AgentMeter => s_agentMeter;
 
     private static string GetVersion(Assembly assembly)
     {

@@ -125,9 +125,6 @@ public static class DbInstrumentation
         if (collectionName is not null)
             activity.SetTag(DbAttributes.CollectionName, collectionName);
 
-        if (command.CommandText is { Length: > 0 } sql)
-            activity.SetTag(DbAttributes.QueryText, sql);
-
         if (command.Connection?.Database is { Length: > 0 } dbName)
             activity.SetTag(DbAttributes.Namespace, dbName);
 

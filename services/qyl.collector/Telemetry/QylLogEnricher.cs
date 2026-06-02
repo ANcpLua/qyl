@@ -18,17 +18,8 @@ public sealed class QylLogEnricher : ILogEnricher
         collector.Add("trace.id", activity.TraceId.ToString());
         collector.Add("span.id", activity.SpanId.ToString());
 
-        foreach (var kv in activity.TagObjects)
-        {
-            switch (kv.Key)
-            {
-                case "session.id":
-                case "gen_ai.provider.name":
-                case "gen_ai.request.model":
-                    collector.Add(kv.Key, kv.Value?.ToString() ?? string.Empty);
-                    break;
-            }
-        }
+        if (activity.GetTagItem("session.id") is { } sessionId)
+            collector.Add("session.id", sessionId.ToString() ?? string.Empty);
     }
 }
 
@@ -45,8 +36,6 @@ public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
     public void Enrich(IEnrichmentTagCollector collector)
     {
         if (httpContextAccessor.HttpContext is not { } context) return;
-
-        collector.Add("http.request.id", context.TraceIdentifier);
 
         var endpoint = context.GetEndpoint();
         if (endpoint is not null)
