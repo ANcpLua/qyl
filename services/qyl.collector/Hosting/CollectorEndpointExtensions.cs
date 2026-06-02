@@ -333,34 +333,38 @@ public static class CollectorEndpointExtensions
         {
             var deleted = type.ToLowerInvariant() switch
             {
-                "spans" or "traces" => await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
-                "logs" => await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
-                "profiles" => await store.ClearAllProfilesAsync(ct).ConfigureAwait(false),
+                "spans" or "traces" => new TelemetryTableClearCounts
+                {
+                    SpansDeleted = await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
+                },
+                "logs" => new TelemetryTableClearCounts
+                {
+                    LogsDeleted = await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
+                },
+                "profiles" => new TelemetryTableClearCounts
+                {
+                    ProfilesDeleted = await store.ClearAllProfilesAsync(ct).ConfigureAwait(false),
+                },
                 _ => throw new ArgumentException($"Unknown telemetry type: {type}")
             };
-            return TypedResults.Ok(new ClearTelemetryResponse
-            {
-                SpansDeleted = deleted,
-                LogsDeleted = 0,
-                ProfilesDeleted = 0,
-                SessionsDeleted = 0,
-                ConsoleCleared = 0,
-                Type = type
-            });
+            return TypedResults.Ok(ToClearTelemetryResponse(deleted, type));
         }
 
         var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
         ringBuffer.Clear();
 
-        return TypedResults.Ok(new ClearTelemetryResponse
+        return TypedResults.Ok(ToClearTelemetryResponse(result, "all"));
+
+        static ClearTelemetryResponse ToClearTelemetryResponse(TelemetryTableClearCounts result, string type) =>
+            new()
         {
             SpansDeleted = result.SpansDeleted,
             LogsDeleted = result.LogsDeleted,
             ProfilesDeleted = result.ProfilesDeleted,
-            SessionsDeleted = 0,
-            ConsoleCleared = 0,
-            Type = "all"
-        });
+            SessionsDeleted = result.SessionsDeleted,
+            ConsoleCleared = result.ConsoleCleared,
+            Type = type
+        };
 
         static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
         {

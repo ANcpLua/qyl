@@ -381,13 +381,13 @@ internal static class ContractStatsMapper
         new()
         {
             SpansExported = stats.SpanCount,
-            SpansDropped = 0,
-            MetricsExported = 0,
-            MetricsDropped = 0,
+            SpansDropped = stats.DroppedSpanCount,
+            MetricsExported = stats.MetricCount,
+            MetricsDropped = stats.DroppedMetricCount,
             LogsExported = stats.LogCount,
-            LogsDropped = 0,
-            ExportErrors = 0,
-            QueueUtilization = 0
+            LogsDropped = stats.DroppedLogCount,
+            ExportErrors = stats.DroppedJobCount,
+            QueueUtilization = stats.WriteQueueUtilization
         };
 }
 

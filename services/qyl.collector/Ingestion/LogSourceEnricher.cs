@@ -1,5 +1,7 @@
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
+using CodeAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Code.CodeAttributes;
+using ExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -13,16 +15,16 @@ internal sealed class LogSourceEnricher
     {
         var attrs = ToAttributeMap(attributes);
 
-        var file = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFilePath);
-        var method = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFunctionName);
-        var line = ParseInt(attrs.GetValueOrDefault(SemanticAttributeKeys.CodeLineNumber));
-        var column = ParseInt(attrs.GetValueOrDefault(SemanticAttributeKeys.CodeColumnNumber));
+        var file = attrs.GetValueOrDefault(CodeAttributes.FilePath);
+        var method = attrs.GetValueOrDefault(CodeAttributes.FunctionName);
+        var line = ParseInt(attrs.GetValueOrDefault(CodeAttributes.LineNumber));
+        var column = ParseInt(attrs.GetValueOrDefault(CodeAttributes.ColumnNumber));
 
         if (!string.IsNullOrWhiteSpace(file) || line.HasValue || column.HasValue || !string.IsNullOrWhiteSpace(method))
             return new SourceLocation(file, line, column, method);
 
-        var stackTrace = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionStacktrace)
-                         ?? attrs.GetValueOrDefault(SemanticAttributeKeys.CodeStacktrace);
+        var stackTrace = attrs.GetValueOrDefault(ExceptionAttributes.Stacktrace)
+                         ?? attrs.GetValueOrDefault(CodeAttributes.Stacktrace);
 
         if (!string.IsNullOrWhiteSpace(stackTrace))
         {

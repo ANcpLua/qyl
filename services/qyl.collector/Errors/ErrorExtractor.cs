@@ -1,4 +1,9 @@
 using ANcpLua.Agents;
+using EnduserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Enduser.EnduserAttributes;
+using ErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
+using ExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+using UserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.User.UserAttributes;
 
 namespace Qyl.Collector.Errors;
 
@@ -10,18 +15,18 @@ internal static class ErrorExtractor
 
         var attrs = ParseAttributesJson(span.AttributesJson);
 
-        var exceptionType = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionType)
-                            ?? attrs.GetValueOrDefault(SemanticAttributeKeys.ErrorType)
+        var exceptionType = attrs.GetValueOrDefault(ExceptionAttributes.Type)
+                            ?? attrs.GetValueOrDefault(ErrorAttributes.Type)
                             ?? span.Name;
-        var exceptionMessage = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionMessage)
+        var exceptionMessage = attrs.GetValueOrDefault(ExceptionAttributes.Message)
                                ?? span.StatusMessage
                                ?? "Unknown error";
-        var stackTrace = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionStacktrace);
-        var genAiOperation = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiOperationName);
-        var genAiFinishReasons = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseFinishReasons);
-        var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiToolName);
-        var genAiAgentName = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentName);
-        var genAiAgentId = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentId);
+        var stackTrace = attrs.GetValueOrDefault(ExceptionAttributes.Stacktrace);
+        var genAiOperation = attrs.GetValueOrDefault(GenAiAttributes.OperationName);
+        var genAiFinishReasons = attrs.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons);
+        var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault(GenAiAttributes.ToolName);
+        var genAiAgentName = attrs.GetValueOrDefault(GenAiAttributes.AgentName);
+        var genAiAgentId = attrs.GetValueOrDefault(GenAiAttributes.AgentId);
 
         var category = ErrorCategorizer.Categorize(exceptionType, finishReason: genAiFinishReasons, message: exceptionMessage);
         var fingerprint = ErrorFingerprinter.Compute(
@@ -42,8 +47,8 @@ internal static class ErrorExtractor
             Fingerprint = fingerprint,
             ServiceName = span.ServiceName ?? "unknown",
             TraceId = span.TraceId,
-            UserId = attrs.GetValueOrDefault(SemanticAttributeKeys.EnduserId)
-                     ?? attrs.GetValueOrDefault(SemanticAttributeKeys.UserId),
+            UserId = attrs.GetValueOrDefault(EnduserAttributes.Id)
+                     ?? attrs.GetValueOrDefault(UserAttributes.Id),
             GenAiProvider = span.GenAiProviderName,
             GenAiModel = span.GenAiRequestModel,
             GenAiOperation = genAiOperation,

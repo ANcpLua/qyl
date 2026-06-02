@@ -20,8 +20,6 @@ global using Qyl.Collector.Query;
 global using Qyl.Collector.Realtime;
 global using Qyl.Collector.Storage;
 global using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;
-global using Qyl.OpenTelemetry.SemanticConventions.Attributes.Error;
-global using Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception;
 global using Qyl.Collector.Errors;
 global using Qyl.Collector.Mapping;
 global using Qyl.Instrumentation;

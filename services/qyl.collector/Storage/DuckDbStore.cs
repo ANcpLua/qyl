@@ -109,6 +109,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private readonly Counter<long> _droppedJobs;
     private readonly Counter<long> _droppedSpans;
     private readonly bool _isInMemory;
+    private readonly int _jobQueueCapacity;
     private readonly Channel<WriteJob> _jobs;
 
     private readonly Meter _meter = new(QylTelemetry.StorageMeterName, QylTelemetry.ServiceVersion);
@@ -117,7 +118,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private readonly Thread[] _readerThreads;
     private readonly Task _writerTask;
 
+    private long _droppedJobCount;
+    private long _droppedSpanCount;
     private int _disposed;
+    private long _queuedWriteJobs;
 
 
     public DuckDbStore(
@@ -128,6 +132,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     {
         DatabasePath = databasePath;
         _isInMemory = databasePath == ":memory:";
+        _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
         InitializeSchema(Connection);
@@ -135,7 +140,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         _droppedJobs = _meter.CreateCounter<long>(Duckdb.DroppedJobsTotal);
         _droppedSpans = _meter.CreateCounter<long>(Duckdb.DroppedSpansTotal);
 
-        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
+        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(_jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = false
         });
@@ -258,7 +263,17 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     {
         ThrowIfDisposed();
         var job = new WriteJob<T>(operation);
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        Interlocked.Increment(ref _queuedWriteJobs);
+        try
+        {
+            await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _queuedWriteJobs);
+            throw;
+        }
+
         return await job.Task.ConfigureAwait(false);
     }
 
@@ -271,7 +286,17 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             await operation(con, token).ConfigureAwait(false);
             return 0;
         });
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        Interlocked.Increment(ref _queuedWriteJobs);
+        try
+        {
+            await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _queuedWriteJobs);
+            throw;
+        }
+
         await job.Task.ConfigureAwait(false);
     }
 
@@ -287,14 +312,14 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         var job = new FireAndForgetJob(
             batch.Spans.Count,
             (con, token) => WriteBatchInternalAsync(con, batch, token),
-            spanCount =>
-            {
-                _droppedJobs.Add(1);
-                _droppedSpans.Add(spanCount);
-            });
+            RecordDroppedSpans);
 
+        Interlocked.Increment(ref _queuedWriteJobs);
         if (!_jobs.Writer.TryWrite(job))
+        {
+            Interlocked.Decrement(ref _queuedWriteJobs);
             job.OnAborted(new InvalidOperationException("The DuckDB write queue is full."));
+        }
 
         return ValueTask.CompletedTask;
     }
@@ -409,6 +434,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                     SpanCount = reader.Col(0).GetInt64(0),
                     SessionCount = reader.Col(1).GetInt64(0),
                     LogCount = reader.Col(2).GetInt64(0),
+                    DroppedSpanCount = Read(ref _droppedSpanCount),
+                    DroppedJobCount = Read(ref _droppedJobCount),
+                    WriteQueueUtilization = GetWriteQueueUtilization(),
                     OldestSpanTime = reader.Col(3).AsUInt64,
                     NewestSpanTime = reader.Col(4).AsUInt64
                 };
@@ -416,6 +444,20 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             return new StorageStats();
         }, ct);
+    }
+
+    private void RecordDroppedSpans(int spanCount)
+    {
+        Interlocked.Increment(ref _droppedJobCount);
+        Interlocked.Add(ref _droppedSpanCount, spanCount);
+        _droppedJobs.Add(1);
+        _droppedSpans.Add(spanCount);
+    }
+
+    private double GetWriteQueueUtilization()
+    {
+        var queued = Math.Max(0, Read(ref _queuedWriteJobs));
+        return Math.Clamp((double)queued / _jobQueueCapacity, 0, 1);
     }
 
     public long GetStorageSizeBytes()
@@ -538,7 +580,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<ClearTelemetryResult> ClearAllTelemetryAsync(CancellationToken ct = default) =>
+    public async Task<TelemetryTableClearCounts> ClearAllTelemetryAsync(CancellationToken ct = default) =>
         await ExecuteWriteAsync(static async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -575,7 +617,12 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             await tx.CommitAsync(token).ConfigureAwait(false);
 
-            return new ClearTelemetryResult(spansDeleted, logsDeleted, profilesDeleted);
+            return new TelemetryTableClearCounts
+            {
+                SpansDeleted = spansDeleted,
+                LogsDeleted = logsDeleted,
+                ProfilesDeleted = profilesDeleted
+            };
         }, ct).ConfigureAwait(false);
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
@@ -954,6 +1001,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         {
             await foreach (var job in _jobs.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
             {
+                Interlocked.Decrement(ref _queuedWriteJobs);
                 try
                 {
                     await job.ExecuteAsync(Connection, _cts.Token).ConfigureAwait(false);
@@ -971,7 +1019,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         finally
         {
             while (_jobs.Reader.TryRead(out var leftover))
+            {
+                Interlocked.Decrement(ref _queuedWriteJobs);
                 leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
+            }
         }
     }
 
@@ -1502,7 +1553,13 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 }
 
 
-internal sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int ProfilesDeleted)
+internal sealed record TelemetryTableClearCounts
 {
-    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted;
+    public int SpansDeleted { get; init; }
+    public int LogsDeleted { get; init; }
+    public int ProfilesDeleted { get; init; }
+    public int SessionsDeleted { get; init; }
+    public int ConsoleCleared { get; init; }
+
+    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted + SessionsDeleted + ConsoleCleared;
 }

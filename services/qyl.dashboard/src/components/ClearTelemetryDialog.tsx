@@ -15,8 +15,7 @@ import {toast} from 'sonner';
 interface ClearTelemetryResponse {
     spansDeleted: number;
     logsDeleted: number;
-    sessionsDeleted: number;
-    consoleCleared: number;
+    profilesDeleted: number;
     type: string;
 }
 
@@ -42,9 +41,9 @@ export function ClearTelemetryDialog({onCleared}: ClearTelemetryDialogProps) {
 
             const result: ClearTelemetryResponse = await response.json();
 
-            const totalDeleted = result.spansDeleted + result.logsDeleted + result.sessionsDeleted;
+            const totalDeleted = result.spansDeleted + result.logsDeleted + result.profilesDeleted;
             toast.success(`Cleared ${totalDeleted.toLocaleString()} records`, {
-                description: `Spans: ${result.spansDeleted.toLocaleString()}, Logs: ${result.logsDeleted.toLocaleString()}, Sessions: ${result.sessionsDeleted.toLocaleString()}`,
+                description: `Spans: ${result.spansDeleted.toLocaleString()}, Logs: ${result.logsDeleted.toLocaleString()}, Profiles: ${result.profilesDeleted.toLocaleString()}`,
             });
 
             setOpen(false);
@@ -77,7 +76,7 @@ export function ClearTelemetryDialog({onCleared}: ClearTelemetryDialogProps) {
                         CLEAR ALL TELEMETRY
                     </DialogTitle>
                     <DialogDescription>
-                        This action cannot be undone. This will permanently delete all:
+                        This action cannot be undone. This will permanently delete all stored telemetry:
                     </DialogDescription>
                 </DialogHeader>
 
@@ -92,11 +91,7 @@ export function ClearTelemetryDialog({onCleared}: ClearTelemetryDialogProps) {
                     </div>
                     <div className="flex items-center gap-2 text-brutal-white">
                         <div className="w-2 h-2 bg-signal-orange"/>
-                        <span className="text-sm font-mono">Sessions</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-brutal-white">
-                        <div className="w-2 h-2 bg-signal-yellow"/>
-                        <span className="text-sm font-mono">Console logs</span>
+                        <span className="text-sm font-mono">Profiles</span>
                     </div>
                 </div>
 

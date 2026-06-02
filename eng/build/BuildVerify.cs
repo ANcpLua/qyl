@@ -218,19 +218,19 @@ interface IVerify : IHazSourcePaths
         {
             string[] forbiddenMetricTagTokens =
             [
-                "SemanticAttributeKeys.EnduserId",
-                "SemanticAttributeKeys.GenAiAgentId",
-                "SemanticAttributeKeys.GenAiAgentName",
-                "SemanticAttributeKeys.GenAiConversationId",
-                "SemanticAttributeKeys.GenAiRequestModel",
-                "SemanticAttributeKeys.GenAiResponseModel",
-                "SemanticAttributeKeys.GenAiToolCallId",
-                "SemanticAttributeKeys.GenAiToolName",
-                "SemanticAttributeKeys.McpSessionId",
-                "SemanticAttributeKeys.SessionId",
-                "SemanticAttributeKeys.UrlFull",
-                "SemanticAttributeKeys.UrlPath",
-                "SemanticAttributeKeys.UserId"
+                "EnduserAttributes.Id",
+                "GenAiAttributes.AgentId",
+                "GenAiAttributes.AgentName",
+                "GenAiAttributes.ConversationId",
+                "GenAiAttributes.RequestModel",
+                "GenAiAttributes.ResponseModel",
+                "GenAiAttributes.ToolCallId",
+                "GenAiAttributes.ToolName",
+                "McpAttributes.SessionId",
+                "SessionAttributes.Id",
+                "UrlAttributes.Full",
+                "UrlAttributes.Path",
+                "UserAttributes.Id"
             ];
 
             var offenders = CollectorDirectory.GlobFiles("**/*.cs")
@@ -419,6 +419,7 @@ interface IVerify : IHazSourcePaths
                 "DerivedMetricCatalog",
                 "DerivedMetricQueries",
                 "MetricsEndpoints",
+                "SemanticAttributeKeys",
                 "EmbeddingClusterWorker",
                 "IEmbeddingGenerator",
                 "GeneratedEmbeddings",

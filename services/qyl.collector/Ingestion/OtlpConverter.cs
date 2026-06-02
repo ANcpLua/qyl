@@ -4,6 +4,9 @@ using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using QylGenAiCostProcessor = Qyl.Instrumentation.Instrumentation.GenAi.QylGenAiCostProcessor;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
+using ProfileAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Profile.ProfileAttributes;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
@@ -11,6 +14,7 @@ using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
+using ServiceAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Service.ServiceAttributes;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -59,7 +63,7 @@ internal static class OtlpConverter
         {
             if (attr is
                 {
-                    Key: SemanticAttributeKeys.ServiceName,
+                    Key: ServiceAttributes.Name,
                     Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
                 })
                 return attr.Value.StringValue;
@@ -87,7 +91,7 @@ internal static class OtlpConverter
         RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [SemanticAttributeKeys.ServiceName] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [ServiceAttributes.Name] = serviceName };
 
         foreach (var attr in protoAttributes)
         {
@@ -147,7 +151,7 @@ internal static class OtlpConverter
             SpanId = spanId ?? "",
             TraceId = traceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
-            SessionId = attributes.GetFirstValueOrDefault(SemanticAttributeKeys.SessionCorrelationKeys),
+            SessionId = attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation),
             Name = name ?? "unknown",
             Kind = ConvertSpanKindToByte(kind),
             StartTimeUnixNano = startNano,
@@ -211,22 +215,22 @@ internal static class OtlpConverter
 
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
-        var providerName = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiProviderName);
+        var providerName = attributes.GetValueOrDefault(GenAiAttributes.ProviderName);
 
-        var requestModel = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestModel);
-        var responseModel = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseModel);
+        var requestModel = attributes.GetValueOrDefault(GenAiAttributes.RequestModel);
+        var responseModel = attributes.GetValueOrDefault(GenAiAttributes.ResponseModel);
 
         var tokensIn = ParseNullableLong(
-            attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiUsageInputTokens));
+            attributes.GetValueOrDefault(GenAiAttributes.UsageInputTokens));
 
         var tokensOut = ParseNullableLong(
-            attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiUsageOutputTokens));
+            attributes.GetValueOrDefault(GenAiAttributes.UsageOutputTokens));
 
-        var temperature = ParseNullableDouble(attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestTemperature));
-        var stopReason = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseFinishReasons);
-        var toolName = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiToolName);
-        var toolCallId = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiToolCallId);
-        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiCostUsd));
+        var temperature = ParseNullableDouble(attributes.GetValueOrDefault(GenAiAttributes.RequestTemperature));
+        var stopReason = attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons);
+        var toolName = attributes.GetValueOrDefault(GenAiAttributes.ToolName);
+        var toolCallId = attributes.GetValueOrDefault(GenAiAttributes.ToolCallId);
+        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault(QylGenAiCostProcessor.CostAttribute));
 
         return new GenAiData(
             providerName, requestModel, responseModel,
@@ -292,7 +296,7 @@ internal static class OtlpConverter
         string? resourceJson)
     {
         var sessionId = log.Attributes
-            .FirstOrDefault(static a => a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
+            .FirstOrDefault(static a => a.Key.IsAny(AttributeKeySets.SessionCorrelation))
             is { Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } sessionAttr
             ? sessionAttr.Value.StringValue
             : null;
@@ -395,9 +399,9 @@ internal static class OtlpConverter
         var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
         var attributes = ExtractProfileAttributes(profile.AttributeIndices, dictionary);
 
-        var sessionId = attributes.GetFirstValueOrDefault(SemanticAttributeKeys.SessionCorrelationKeys);
+        var sessionId = attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
 
-        var profileFrameType = attributes.GetValueOrDefault(SemanticAttributeKeys.ProfileFrameType);
+        var profileFrameType = attributes.GetValueOrDefault(ProfileAttributes.FrameType);
 
         var (traceId, spanId) = ResolveProfileLink(profile, dictionary);
 

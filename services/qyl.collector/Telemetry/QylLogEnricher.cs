@@ -1,5 +1,6 @@
 
 using Microsoft.Extensions.Diagnostics.Enrichment;
+using HttpAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Http.HttpAttributes;
 
 namespace Qyl.Collector.Telemetry;
 
@@ -22,9 +23,9 @@ public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
         var endpoint = context.GetEndpoint();
         if (endpoint is not null)
         {
-            collector.Add(SemanticAttributeKeys.HttpRoute, endpoint.DisplayName ?? "unknown");
+            collector.Add(HttpAttributes.Route, endpoint.DisplayName ?? "unknown");
         }
 
-        collector.Add(SemanticAttributeKeys.HttpRequestMethod, context.Request.Method);
+        collector.Add(HttpAttributes.RequestMethod, context.Request.Method);
     }
 }

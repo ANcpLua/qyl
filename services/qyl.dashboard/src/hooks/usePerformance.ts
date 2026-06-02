@@ -4,12 +4,7 @@ import {fetchJson} from '@/lib/api';
 
 interface StorageStats {
     spansExported: number;
-    spansDropped: number;
-    metricsExported: number;
-    metricsDropped: number;
     logsExported: number;
-    logsDropped: number;
-    exportErrors: number;
     queueUtilization: number;
 }
 
