@@ -30,31 +30,35 @@ public sealed class SessionQueryService(DuckDbStore store)
         DateTime? after = null,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = SessionSelectColumns
-                          + " WHERE ($1::VARCHAR IS NULL OR session_id = $1)"
-                          + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
-                          + " GROUP BY COALESCE(session_id, trace_id)"
-                          + " ORDER BY MAX(end_time_unix_nano) DESC"
-                          + " LIMIT $3 OFFSET $4";
+        return await store.ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = SessionSelectColumns
+                              + " WHERE ($1::VARCHAR IS NULL OR session_id = $1)"
+                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
+                              + " GROUP BY COALESCE(session_id, trace_id)"
+                              + " ORDER BY MAX(end_time_unix_nano) DESC"
+                              + " LIMIT $3 OFFSET $4";
 
-        AddParams(cmd, sessionFilter, after, limit, offset);
-        return await ExecuteSessionQueryAsync(cmd, ct);
+            AddParams(cmd, sessionFilter, after, limit, offset);
+            return ExecuteSessionQuery(cmd);
+        }, ct);
     }
 
 
     public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = SessionSelectColumns
-                          + " WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)"
-                          + " GROUP BY COALESCE(session_id, trace_id)";
+        var results = await store.ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = SessionSelectColumns
+                              + " WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)"
+                              + " GROUP BY COALESCE(session_id, trace_id)";
 
-        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
-        var results = await ExecuteSessionQueryAsync(cmd, ct);
+            return ExecuteSessionQuery(cmd);
+        }, ct);
         return results.Count > 0 ? results[0] : null;
     }
 
@@ -77,27 +81,29 @@ public sealed class SessionQueryService(DuckDbStore store)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        AddParams(cmd, sessionId, after);
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-
-        if (await reader.ReadAsync(ct))
+        return await store.ExecuteReadAsync(con =>
         {
-            return new SessionGenAiStats
-            {
-                RequestCount = reader.Col(0).GetInt64(0),
-                InputTokens = reader.Col(1).GetInt64(0),
-                OutputTokens = reader.Col(2).GetInt64(0),
-                TotalCostUsd = reader.Col(3).GetDouble(0),
-                Providers = await ReadStringListAsync(reader, 4),
-                Models = await ReadStringListAsync(reader, 5)
-            };
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = sql;
+            AddParams(cmd, sessionId, after);
 
-        return new SessionGenAiStats();
+            using var reader = cmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                return new SessionGenAiStats
+                {
+                    RequestCount = reader.Col(0).GetInt64(0),
+                    InputTokens = reader.Col(1).GetInt64(0),
+                    OutputTokens = reader.Col(2).GetInt64(0),
+                    TotalCostUsd = reader.Col(3).GetDouble(0),
+                    Providers = ReadStringList(reader, 4),
+                    Models = ReadStringList(reader, 5)
+                };
+            }
+
+            return new SessionGenAiStats();
+        }, ct);
     }
 
 
@@ -111,18 +117,20 @@ public sealed class SessionQueryService(DuckDbStore store)
             .OrderBy(SpanColumn.StartTimeUnixNano)
             .Build();
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
+        return await store.ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
-        var spans = new List<SpanStorageRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var spans = new List<SpanStorageRow>();
+            using var reader = cmd.ExecuteReader();
 
-        while (await reader.ReadAsync(ct))
-            spans.Add(MapSpan(reader));
+            while (reader.Read())
+                spans.Add(MapSpan(reader));
 
-        return spans;
+            return spans;
+        }, ct);
     }
 
 
@@ -143,22 +151,24 @@ public sealed class SessionQueryService(DuckDbStore store)
             .Limit(limit)
             .Build();
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-
-        if (sessionId is not null)
+        return await store.ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
         {
-            cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = sql;
 
-        var spans = new List<SpanStorageRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (sessionId is not null)
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
+            }
 
-        while (await reader.ReadAsync(ct))
-            spans.Add(MapSpan(reader));
+            var spans = new List<SpanStorageRow>();
+            using var reader = cmd.ExecuteReader();
 
-        return spans;
+            while (reader.Read())
+                spans.Add(MapSpan(reader));
+
+            return spans;
+        }, ct);
     }
 
 
@@ -188,12 +198,12 @@ public sealed class SessionQueryService(DuckDbStore store)
         cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
 
-    private static async Task<List<SessionQueryRow>> ExecuteSessionQueryAsync(DbCommand cmd, CancellationToken ct)
+    private static List<SessionQueryRow> ExecuteSessionQuery(DbCommand cmd)
     {
         var sessions = new List<SessionQueryRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        using var reader = cmd.ExecuteReader();
 
-        while (await reader.ReadAsync(ct))
+        while (reader.Read())
         {
             var startTimeNano = reader.Col(1).GetUInt64(0);
             var lastActivityNano = reader.Col(2).GetUInt64(0);
@@ -220,17 +230,17 @@ public sealed class SessionQueryService(DuckDbStore store)
                 TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = reader.Col(8).GetInt64(0),
                 TotalCostUsd = reader.Col(9).GetDouble(0),
-                Models = await ReadStringListAsync(reader, 10),
-                Services = await ReadStringListAsync(reader, 11)
+                Models = ReadStringList(reader, 10),
+                Services = ReadStringList(reader, 11)
             });
         }
 
         return sessions;
     }
 
-    private static async Task<IReadOnlyList<string>> ReadStringListAsync(DbDataReader reader, int ordinal)
+    private static IReadOnlyList<string> ReadStringList(DbDataReader reader, int ordinal)
     {
-        if (await reader.IsDBNullAsync(ordinal))
+        if (reader.IsDBNull(ordinal))
             return [];
 
         var value = reader.GetValue(ordinal);

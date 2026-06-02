@@ -69,50 +69,86 @@ public sealed partial class DuckDbStore
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<string?> GetIssueOwnerAsync(string issueId, CancellationToken ct = default)
+    public Task<string?> GetIssueOwnerAsync(string issueId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<string?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT assigned_to FROM errors WHERE error_id = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT assigned_to FROM errors WHERE error_id = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-
-        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return result is DBNull or null ? null : (string)result;
+            var result = cmd.ExecuteScalar();
+            return result is DBNull or null ? null : (string)result;
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<IssueSummary>> GetIssuesAsync(
+    public Task<IReadOnlyList<IssueSummary>> GetIssuesAsync(
         string? status = null,
         string? owner = null,
         int limit = 50,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        var qb = new QueryBuilder();
-        if (!string.IsNullOrEmpty(status))
-            qb.Add("status = $N", status);
-        if (!string.IsNullOrEmpty(owner))
-            qb.Add("assigned_to = $N", owner);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT error_id, fingerprint, error_type, message, status,"
-                          + " assigned_to, occurrence_count, first_seen, last_seen"
-                          + " FROM errors "
-                          + qb.WhereClause
-                          + " ORDER BY last_seen DESC LIMIT "
-                          + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-        qb.ApplyTo(cmd);
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<IssueSummary>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<IReadOnlyList<IssueSummary>>(con =>
         {
-            results.Add(new IssueSummary
+            var qb = new QueryBuilder();
+            if (!string.IsNullOrEmpty(status))
+                qb.Add("status = $N", status);
+            if (!string.IsNullOrEmpty(owner))
+                qb.Add("assigned_to = $N", owner);
+
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT error_id, fingerprint, error_type, message, status,"
+                              + " assigned_to, occurrence_count, first_seen, last_seen"
+                              + " FROM errors "
+                              + qb.WhereClause
+                              + " ORDER BY last_seen DESC LIMIT "
+                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+
+            qb.ApplyTo(cmd);
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+            var results = new List<IssueSummary>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new IssueSummary
+                {
+                    IssueId = reader.GetString(0),
+                    Fingerprint = reader.GetString(1),
+                    ErrorType = reader.GetString(2),
+                    ErrorMessage = reader.Col(3).AsString,
+                    Status = ParseIssueStatus(reader.GetString(4)),
+                    Owner = reader.Col(5).AsString,
+                    EventCount = (int)reader.GetInt64(6),
+                    FirstSeen = reader.GetDateTime(7),
+                    LastSeen = reader.GetDateTime(8)
+                });
+            }
+
+            return results;
+        }, ct);
+    }
+
+    public Task<IssueSummary?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return ExecuteReadAsync<IssueSummary?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT error_id, fingerprint, error_type, message, status,
+                                     assigned_to, occurrence_count, first_seen, last_seen
+                              FROM errors WHERE error_id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+                return null;
+
+            return new IssueSummary
             {
                 IssueId = reader.GetString(0),
                 Fingerprint = reader.GetString(1),
@@ -123,75 +159,43 @@ public sealed partial class DuckDbStore
                 EventCount = (int)reader.GetInt64(6),
                 FirstSeen = reader.GetDateTime(7),
                 LastSeen = reader.GetDateTime(8)
-            });
-        }
-
-        return results;
+            };
+        }, ct);
     }
 
-    public async Task<IssueSummary?> GetIssueByIdAsync(string issueId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT error_id, fingerprint, error_type, message, status,
-                                 assigned_to, occurrence_count, first_seen, last_seen
-                          FROM errors WHERE error_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return null;
-
-        return new IssueSummary
-        {
-            IssueId = reader.GetString(0),
-            Fingerprint = reader.GetString(1),
-            ErrorType = reader.GetString(2),
-            ErrorMessage = reader.Col(3).AsString,
-            Status = ParseIssueStatus(reader.GetString(4)),
-            Owner = reader.Col(5).AsString,
-            EventCount = (int)reader.GetInt64(6),
-            FirstSeen = reader.GetDateTime(7),
-            LastSeen = reader.GetDateTime(8)
-        };
-    }
-
-    public async Task<IReadOnlyList<IssueEvent>> GetIssueEventsAsync(string issueId, int limit = 100,
+    public Task<IReadOnlyList<IssueEvent>> GetIssueEventsAsync(string issueId, int limit = 100,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT event_id, issue_id, event_type, old_value, new_value, reason, created_at
-                          FROM issue_events
-                          WHERE issue_id = $1
-                          ORDER BY created_at DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<IssueEvent>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<IReadOnlyList<IssueEvent>>(con =>
         {
-            results.Add(new IssueEvent(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.Col(3).AsString,
-                reader.Col(4).AsString,
-                reader.Col(5).AsString,
-                reader.GetDateTime(6)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT event_id, issue_id, event_type, old_value, new_value, reason, created_at
+                              FROM issue_events
+                              WHERE issue_id = $1
+                              ORDER BY created_at DESC
+                              LIMIT $2
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
-        return results;
+            var results = new List<IssueEvent>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(new IssueEvent(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.Col(3).AsString,
+                    reader.Col(4).AsString,
+                    reader.Col(5).AsString,
+                    reader.GetDateTime(6)));
+            }
+
+            return results;
+        }, ct);
     }
 
     public async Task<IReadOnlyList<string>> DetectRegressionsAsync(string serviceName, string? deployVersion = null,

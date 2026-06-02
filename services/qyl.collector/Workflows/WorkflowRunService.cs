@@ -28,44 +28,48 @@ public sealed class WorkflowRunService(DuckDbStore store)
         var offset = DecodeOffset(cursor);
         var (whereClause, parameters) = BuildRunFilters(projectId, workflowId, status, startTime, endTime);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Concat(
-            RunSelectSql, "\n",
-            whereClause, "\n",
-            "ORDER BY created_at DESC\n",
-            "LIMIT $", (parameters.Count + 1).ToString(CultureInfo.InvariantCulture),
-            " OFFSET $", (parameters.Count + 2).ToString(CultureInfo.InvariantCulture));
+        return await store.ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Concat(
+                RunSelectSql, "\n",
+                whereClause, "\n",
+                "ORDER BY created_at DESC\n",
+                "LIMIT $", (parameters.Count + 1).ToString(CultureInfo.InvariantCulture),
+                " OFFSET $", (parameters.Count + 2).ToString(CultureInfo.InvariantCulture));
 
-        cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter { Value = pageSize + 1 });
-        cmd.Parameters.Add(new DuckDBParameter { Value = offset });
+            cmd.Parameters.AddRange(parameters);
+            cmd.Parameters.Add(new DuckDBParameter { Value = pageSize + 1 });
+            cmd.Parameters.Add(new DuckDBParameter { Value = offset });
 
-        var rows = new List<WorkflowRunEntity>(pageSize + 1);
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            rows.Add(MapRun(reader));
+            var rows = new List<WorkflowRunEntity>(pageSize + 1);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                rows.Add(MapRun(reader));
 
-        var hasMore = rows.Count > pageSize;
-        if (hasMore)
-            rows.RemoveAt(rows.Count - 1);
+            var hasMore = rows.Count > pageSize;
+            if (hasMore)
+                rows.RemoveAt(rows.Count - 1);
 
-        return new CursorPage<WorkflowRunEntity>(
-            [.. rows],
-            hasMore ? EncodeOffset(offset + pageSize) : null,
-            offset > 0 ? EncodeOffset(Math.Max(0, offset - pageSize)) : null,
-            hasMore);
+            return new CursorPage<WorkflowRunEntity>(
+                [.. rows],
+                hasMore ? EncodeOffset(offset + pageSize) : null,
+                offset > 0 ? EncodeOffset(Math.Max(0, offset - pageSize)) : null,
+                hasMore);
+        }, ct);
     }
 
     public async Task<WorkflowRunEntity?> GetRunAsync(string runId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = RunSelectSql + " WHERE id = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+        return await store.ExecuteReadAsync<WorkflowRunEntity?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = RunSelectSql + " WHERE id = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapRun(reader) : null;
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? MapRun(reader) : null;
+        }, ct);
     }
 
     public async Task<CursorPage<WorkflowNodeEntity>> GetRunNodesAsync(
@@ -77,36 +81,38 @@ public sealed class WorkflowRunService(DuckDbStore store)
         var pageSize = ClampLimit(limit);
         var offset = DecodeOffset(cursor);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, run_id, node_id, node_type, node_name, attempt,
-                                 input_json, output_json, status, error_message,
-                                 retry_count, max_retries, timeout_ms,
-                                 started_at, completed_at, duration_ms, created_at
-                          FROM workflow_nodes
-                          WHERE run_id = $1
-                          ORDER BY created_at ASC
-                          LIMIT $2 OFFSET $3
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = pageSize + 1 });
-        cmd.Parameters.Add(new DuckDBParameter { Value = offset });
+        return await store.ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, run_id, node_id, node_type, node_name, attempt,
+                                     input_json, output_json, status, error_message,
+                                     retry_count, max_retries, timeout_ms,
+                                     started_at, completed_at, duration_ms, created_at
+                              FROM workflow_nodes
+                              WHERE run_id = $1
+                              ORDER BY created_at ASC
+                              LIMIT $2 OFFSET $3
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = pageSize + 1 });
+            cmd.Parameters.Add(new DuckDBParameter { Value = offset });
 
-        var rows = new List<WorkflowNodeEntity>(pageSize + 1);
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            rows.Add(MapNode(reader));
+            var rows = new List<WorkflowNodeEntity>(pageSize + 1);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                rows.Add(MapNode(reader));
 
-        var hasMore = rows.Count > pageSize;
-        if (hasMore)
-            rows.RemoveAt(rows.Count - 1);
+            var hasMore = rows.Count > pageSize;
+            if (hasMore)
+                rows.RemoveAt(rows.Count - 1);
 
-        return new CursorPage<WorkflowNodeEntity>(
-            [.. rows],
-            hasMore ? EncodeOffset(offset + pageSize) : null,
-            offset > 0 ? EncodeOffset(Math.Max(0, offset - pageSize)) : null,
-            hasMore);
+            return new CursorPage<WorkflowNodeEntity>(
+                [.. rows],
+                hasMore ? EncodeOffset(offset + pageSize) : null,
+                offset > 0 ? EncodeOffset(Math.Max(0, offset - pageSize)) : null,
+                hasMore);
+        }, ct);
     }
 
     public async Task<IReadOnlyList<WorkflowEventEntity>> GetRunEventsAsync(
@@ -117,84 +123,90 @@ public sealed class WorkflowRunService(DuckDbStore store)
     {
         var pageSize = ClampLimit(limit, 200, 5000);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = afterSequence.HasValue
-            ? """
-              SELECT id, run_id, node_id, event_type, event_name,
-                     payload_json, sequence_number, source, correlation_id, timestamp
-              FROM workflow_events
-              WHERE run_id = $1
-                AND sequence_number > $2
-              ORDER BY sequence_number ASC
-              LIMIT $3
-              """
-            : """
-              SELECT id, run_id, node_id, event_type, event_name,
-                     payload_json, sequence_number, source, correlation_id, timestamp
-              FROM workflow_events
-              WHERE run_id = $1
-              ORDER BY sequence_number ASC
-              LIMIT $2
-              """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        if (afterSequence.HasValue)
-            cmd.Parameters.Add(new DuckDBParameter { Value = afterSequence.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
+        return await store.ExecuteReadAsync<IReadOnlyList<WorkflowEventEntity>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = afterSequence.HasValue
+                ? """
+                  SELECT id, run_id, node_id, event_type, event_name,
+                         payload_json, sequence_number, source, correlation_id, timestamp
+                  FROM workflow_events
+                  WHERE run_id = $1
+                    AND sequence_number > $2
+                  ORDER BY sequence_number ASC
+                  LIMIT $3
+                  """
+                : """
+                  SELECT id, run_id, node_id, event_type, event_name,
+                         payload_json, sequence_number, source, correlation_id, timestamp
+                  FROM workflow_events
+                  WHERE run_id = $1
+                  ORDER BY sequence_number ASC
+                  LIMIT $2
+                  """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            if (afterSequence.HasValue)
+                cmd.Parameters.Add(new DuckDBParameter { Value = afterSequence.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
 
-        var rows = new List<WorkflowEventEntity>(pageSize);
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            rows.Add(MapEvent(reader));
+            var rows = new List<WorkflowEventEntity>(pageSize);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                rows.Add(MapEvent(reader));
 
-        return rows;
+            return rows;
+        }, ct);
     }
 
     public async Task<IReadOnlyList<WorkflowCheckpointEntity>> GetRunCheckpointsAsync(
         string runId,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, run_id, node_id, checkpoint_type, state_json,
-                                 sequence_number, created_at
-                          FROM workflow_checkpoints
-                          WHERE run_id = $1
-                          ORDER BY sequence_number DESC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        var rows = new List<WorkflowCheckpointEntity>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync<IReadOnlyList<WorkflowCheckpointEntity>>(con =>
         {
-            rows.Add(new WorkflowCheckpointEntity(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.GetString(3),
-                reader.Col(4).AsString ?? string.Empty,
-                reader.GetInt64(5),
-                ReadDateTimeOffset(reader, 6) ?? DateTimeOffset.MinValue));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, run_id, node_id, checkpoint_type, state_json,
+                                     sequence_number, created_at
+                              FROM workflow_checkpoints
+                              WHERE run_id = $1
+                              ORDER BY sequence_number DESC
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
-        return rows;
+            var rows = new List<WorkflowCheckpointEntity>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                rows.Add(new WorkflowCheckpointEntity(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetString(3),
+                    reader.Col(4).AsString ?? string.Empty,
+                    reader.GetInt64(5),
+                    ReadDateTimeOffset(reader, 6) ?? DateTimeOffset.MinValue));
+            }
+
+            return rows;
+        }, ct);
     }
 
     public async Task<WorkflowRunEntity?> ResumeRunAsync(string runId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_runs
-                          SET status = 'running',
-                              started_at = COALESCE(started_at, $1)
-                          WHERE id = $2 AND status IN ('paused', 'pending')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              UPDATE workflow_runs
+                              SET status = 'running',
+                                  started_at = COALESCE(started_at, $1)
+                              WHERE id = $2 AND status IN ('paused', 'pending')
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return await GetRunAsync(runId, ct).ConfigureAwait(false);
     }
@@ -204,37 +216,41 @@ public sealed class WorkflowRunService(DuckDbStore store)
         string nodeId,
         CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_nodes
-                          SET status = 'running',
-                              started_at = COALESCE(started_at, $1)
-                          WHERE run_id = $2
-                            AND node_id = $3
-                            AND status IN ('pending', 'paused', 'awaiting_approval')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              UPDATE workflow_nodes
+                              SET status = 'running',
+                                  started_at = COALESCE(started_at, $1)
+                              WHERE run_id = $2
+                                AND node_id = $3
+                                AND status IN ('pending', 'paused', 'awaiting_approval')
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return await GetNodeAsync(runId, nodeId, ct).ConfigureAwait(false);
     }
 
     public async Task<WorkflowRunEntity?> CancelRunAsync(string runId, CancellationToken ct = default)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          UPDATE workflow_runs
-                          SET status = 'cancelled',
-                              completed_at = COALESCE(completed_at, $1)
-                          WHERE id = $2 AND status IN ('pending', 'running', 'paused')
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await store.ExecuteWriteAsync(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              UPDATE workflow_runs
+                              SET status = 'cancelled',
+                                  completed_at = COALESCE(completed_at, $1)
+                              WHERE id = $2 AND status IN ('pending', 'running', 'paused')
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return await GetRunAsync(runId, ct).ConfigureAwait(false);
     }
@@ -244,23 +260,25 @@ public sealed class WorkflowRunService(DuckDbStore store)
         string nodeId,
         CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, run_id, node_id, node_type, node_name, attempt,
-                                 input_json, output_json, status, error_message,
-                                 retry_count, max_retries, timeout_ms,
-                                 started_at, completed_at, duration_ms, created_at
-                          FROM workflow_nodes
-                          WHERE run_id = $1 AND node_id = $2
-                          ORDER BY attempt DESC, created_at DESC
-                          LIMIT 1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
+        return await store.ExecuteReadAsync<WorkflowNodeEntity?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, run_id, node_id, node_type, node_name, attempt,
+                                     input_json, output_json, status, error_message,
+                                     retry_count, max_retries, timeout_ms,
+                                     started_at, completed_at, duration_ms, created_at
+                              FROM workflow_nodes
+                              WHERE run_id = $1 AND node_id = $2
+                              ORDER BY attempt DESC, created_at DESC
+                              LIMIT 1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapNode(reader) : null;
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? MapNode(reader) : null;
+        }, ct);
     }
 
     private static (string WhereClause, List<DuckDBParameter> Parameters) BuildRunFilters(

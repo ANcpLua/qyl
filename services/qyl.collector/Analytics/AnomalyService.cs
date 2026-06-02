@@ -16,49 +16,53 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         var metricSelection = ValidateAndGetMetric(metric);
         var cutoffNano = ComputeCutoffNano(hours);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
-        var serviceFilter = service is not null ? "AND service_name = $3" : "";
-
-        cmd.CommandText = "WITH hourly AS ("
-                          + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricSelection.Expression + " AS metric_value"
-                          + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
-                          + " GROUP BY bucket"
-                          + "), stats AS (SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev FROM hourly)"
-                          + " SELECT h.bucket, h.metric_value,"
-                          + " (h.metric_value - s.mean) / NULLIF(s.stddev, 0) AS z_score, s.mean, s.stddev"
-                          + " FROM hourly h, stats s"
-                          + " WHERE ABS((h.metric_value - s.mean) / NULLIF(s.stddev, 0)) > $2"
-                          + " ORDER BY h.bucket DESC";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = cutoffNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = sensitivity });
-        if (service is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = service });
-
-        List<AnomalyPoint> anomalies = [];
-        double mean = 0;
-        double stddev = 0;
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        var result = await store.ExecuteReadAsync(con =>
         {
-            var bucket = reader.GetDateTime(0);
-            var value = reader.GetDouble(1);
-            var zScore = reader.Col(2).AsDouble ?? 0;
-            mean = reader.Col(3).AsDouble ?? 0;
-            stddev = reader.Col(4).AsDouble ?? 0;
+            using var cmd = con.CreateCommand();
 
-            var direction = zScore > 0 ? "spike" : "drop";
-            anomalies.Add(new AnomalyPoint(bucket, value, zScore, direction));
-        }
+            var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
+            var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
-        LogAnomalyDetection(metric, hours, anomalies.Count);
+            cmd.CommandText = "WITH hourly AS ("
+                              + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
+                              + " " + metricSelection.Expression + " AS metric_value"
+                              + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
+                              + " GROUP BY bucket"
+                              + "), stats AS (SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev FROM hourly)"
+                              + " SELECT h.bucket, h.metric_value,"
+                              + " (h.metric_value - s.mean) / NULLIF(s.stddev, 0) AS z_score, s.mean, s.stddev"
+                              + " FROM hourly h, stats s"
+                              + " WHERE ABS((h.metric_value - s.mean) / NULLIF(s.stddev, 0)) > $2"
+                              + " ORDER BY h.bucket DESC";
 
-        return new AnomalyDetectionResult(metric, hours, sensitivity, mean, stddev, anomalies);
+            cmd.Parameters.Add(new DuckDBParameter { Value = cutoffNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = sensitivity });
+            if (service is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = service });
+
+            List<AnomalyPoint> anomalies = [];
+            double mean = 0;
+            double stddev = 0;
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var bucket = reader.GetDateTime(0);
+                var value = reader.GetDouble(1);
+                var zScore = reader.Col(2).AsDouble ?? 0;
+                mean = reader.Col(3).AsDouble ?? 0;
+                stddev = reader.Col(4).AsDouble ?? 0;
+
+                var direction = zScore > 0 ? "spike" : "drop";
+                anomalies.Add(new AnomalyPoint(bucket, value, zScore, direction));
+            }
+
+            return new AnomalyDetectionResult(metric, hours, sensitivity, mean, stddev, anomalies);
+        }, ct);
+
+        LogAnomalyDetection(metric, hours, result.Anomalies.Count);
+
+        return result;
     }
 
 
@@ -71,43 +75,48 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         var metricSelection = ValidateAndGetMetric(metric);
         var cutoffNano = ComputeCutoffNano(hours);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
-        var serviceFilter = service is not null ? "AND service_name = $2" : "";
-
-        cmd.CommandText = "WITH hourly AS ("
-                          + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricSelection.Expression + " AS metric_value"
-                          + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
-                          + " GROUP BY bucket)"
-                          + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
-                          + " PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) AS p50,"
-                          + " PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) AS p95,"
-                          + " PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY metric_value) AS p99,"
-                          + " COUNT(*) AS sample_count FROM hourly";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = cutoffNano });
-        if (service is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = service });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        var (result, hadRow) = await store.ExecuteReadAsync(con =>
         {
-            return new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0);
-        }
+            using var cmd = con.CreateCommand();
 
-        var mean = reader.Col(0).AsDouble ?? 0;
-        var stddev = reader.Col(1).AsDouble ?? 0;
-        var p50 = reader.Col(2).AsDouble ?? 0;
-        var p95 = reader.Col(3).AsDouble ?? 0;
-        var p99 = reader.Col(4).AsDouble ?? 0;
-        var sampleCount = reader.GetInt64(5);
+            var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
+            var serviceFilter = service is not null ? "AND service_name = $2" : "";
 
-        LogBaselineComputed(metric, hours, sampleCount);
+            cmd.CommandText = "WITH hourly AS ("
+                              + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
+                              + " " + metricSelection.Expression + " AS metric_value"
+                              + " FROM spans WHERE start_time_unix_nano >= $1 " + metricFilter + " " + serviceFilter
+                              + " GROUP BY bucket)"
+                              + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
+                              + " PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) AS p50,"
+                              + " PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) AS p95,"
+                              + " PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY metric_value) AS p99,"
+                              + " COUNT(*) AS sample_count FROM hourly";
 
-        return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
+            cmd.Parameters.Add(new DuckDBParameter { Value = cutoffNano });
+            if (service is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = service });
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+            {
+                return (new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0), false);
+            }
+
+            var mean = reader.Col(0).AsDouble ?? 0;
+            var stddev = reader.Col(1).AsDouble ?? 0;
+            var p50 = reader.Col(2).AsDouble ?? 0;
+            var p95 = reader.Col(3).AsDouble ?? 0;
+            var p99 = reader.Col(4).AsDouble ?? 0;
+            var sampleCount = reader.GetInt64(5);
+
+            return (new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount), true);
+        }, ct);
+
+        if (hadRow)
+            LogBaselineComputed(metric, hours, result.SampleCount);
+
+        return result;
     }
 
 
@@ -150,44 +159,46 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         var endNano = DateTimeToUnixNano(periodEnd);
         var hours = (int)(periodEnd - periodStart).TotalHours;
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
-        var serviceFilter = service is not null ? "AND service_name = $3" : "";
-
-        cmd.CommandText = "WITH hourly AS ("
-                          + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
-                          + " " + metricSelection.Expression + " AS metric_value"
-                          + " FROM spans WHERE start_time_unix_nano >= $1 AND start_time_unix_nano <= $2 " +
-                          metricFilter + " " +
-                          serviceFilter
-                          + " GROUP BY bucket)"
-                          + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
-                          + " PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) AS p50,"
-                          + " PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) AS p95,"
-                          + " PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY metric_value) AS p99,"
-                          + " COUNT(*) AS sample_count FROM hourly";
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        if (service is not null)
-            cmd.Parameters.Add(new DuckDBParameter { Value = service });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync(con =>
         {
-            return new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0);
-        }
+            using var cmd = con.CreateCommand();
 
-        var mean = reader.Col(0).AsDouble ?? 0;
-        var stddev = reader.Col(1).AsDouble ?? 0;
-        var p50 = reader.Col(2).AsDouble ?? 0;
-        var p95 = reader.Col(3).AsDouble ?? 0;
-        var p99 = reader.Col(4).AsDouble ?? 0;
-        var sampleCount = reader.GetInt64(5);
+            var metricFilter = BuildMetricPredicate(metricSelection.Predicate);
+            var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
-        return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
+            cmd.CommandText = "WITH hourly AS ("
+                              + " SELECT time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1000000000.0)) AS bucket,"
+                              + " " + metricSelection.Expression + " AS metric_value"
+                              + " FROM spans WHERE start_time_unix_nano >= $1 AND start_time_unix_nano <= $2 " +
+                              metricFilter + " " +
+                              serviceFilter
+                              + " GROUP BY bucket)"
+                              + " SELECT AVG(metric_value) AS mean, STDDEV(metric_value) AS stddev,"
+                              + " PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) AS p50,"
+                              + " PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) AS p95,"
+                              + " PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY metric_value) AS p99,"
+                              + " COUNT(*) AS sample_count FROM hourly";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            if (service is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = service });
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+            {
+                return new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0);
+            }
+
+            var mean = reader.Col(0).AsDouble ?? 0;
+            var stddev = reader.Col(1).AsDouble ?? 0;
+            var p50 = reader.Col(2).AsDouble ?? 0;
+            var p95 = reader.Col(3).AsDouble ?? 0;
+            var p99 = reader.Col(4).AsDouble ?? 0;
+            var sampleCount = reader.GetInt64(5);
+
+            return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
+        }, ct);
     }
 
     private static AnomalyMetricSelection ValidateAndGetMetric(string metric)

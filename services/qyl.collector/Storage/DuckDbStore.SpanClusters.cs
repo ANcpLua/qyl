@@ -14,39 +14,40 @@ public sealed record SpanClusterRow(
 public sealed partial class DuckDbStore
 {
 
-    public async Task<IReadOnlyList<UnclusteredSpan>> GetUnclusteredChatSpansAsync(
+    public Task<IReadOnlyList<UnclusteredSpan>> GetUnclusteredChatSpansAsync(
         int limit = 200,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT s.span_id,
-                                 s.name,
-                                 json_extract_string(s.attributes_json, '$."gen_ai.input.messages"')
-                          FROM spans s
-                          LEFT JOIN span_clusters sc ON s.span_id = sc.span_id
-                          WHERE json_extract_string(s.attributes_json, '$."gen_ai.operation.name"') IS NOT NULL
-                            AND json_extract_string(s.attributes_json, '$."gen_ai.input.messages"') IS NOT NULL
-                            AND sc.span_id IS NULL
-                          ORDER BY s.start_time_unix_nano DESC
-                          LIMIT $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var result = new List<UnclusteredSpan>(limit);
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<IReadOnlyList<UnclusteredSpan>>(con =>
         {
-            result.Add(new UnclusteredSpan(
-                reader.GetString(0),
-                reader.GetString(1),
-                await reader.IsDBNullAsync(2, ct).ConfigureAwait(false) ? null : reader.GetString(2)));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT s.span_id,
+                                     s.name,
+                                     json_extract_string(s.attributes_json, '$."gen_ai.input.messages"')
+                              FROM spans s
+                              LEFT JOIN span_clusters sc ON s.span_id = sc.span_id
+                              WHERE json_extract_string(s.attributes_json, '$."gen_ai.operation.name"') IS NOT NULL
+                                AND json_extract_string(s.attributes_json, '$."gen_ai.input.messages"') IS NOT NULL
+                                AND sc.span_id IS NULL
+                              ORDER BY s.start_time_unix_nano DESC
+                              LIMIT $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
-        return result;
+            var result = new List<UnclusteredSpan>(limit);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new UnclusteredSpan(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
+            }
+
+            return result;
+        }, ct);
     }
 
 

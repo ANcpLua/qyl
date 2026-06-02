@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Nodes;
 using ANcpLua.Roslyn.Utilities.Time;
 
@@ -163,57 +162,61 @@ internal static class MetricsEndpoints
         return metadata;
     }
 
-    private static async Task<bool> MetricHasServiceAsync(
+    private static Task<bool> MetricHasServiceAsync(
         DuckDbStore store,
         DerivedMetricDefinition metric,
         string serviceName,
         CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Concat(
-            "SELECT 1 FROM spans WHERE service_name = $1",
-            metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
-            " LIMIT 1");
-        cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
-        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
-        return result is not null;
+        return store.ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Concat(
+                "SELECT 1 FROM spans WHERE service_name = $1",
+                metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
+                " LIMIT 1");
+            cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
+            var result = cmd.ExecuteScalar();
+            return result is not null;
+        }, ct);
     }
 
-    private static async Task<MetricServiceList> ListServicesForMetricAsync(
+    private static Task<MetricServiceList> ListServicesForMetricAsync(
         DuckDbStore store,
         DerivedMetricDefinition metric,
         int serviceLimit,
         string? preferredServiceName,
         CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = string.Concat(
-            "SELECT DISTINCT service_name FROM spans WHERE service_name IS NOT NULL AND service_name <> ''",
-            metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
-            " ORDER BY service_name ASC LIMIT ",
-            (serviceLimit + 1).ToString(CultureInfo.InvariantCulture));
-
-        List<string> services = [];
-        var servicesTruncated = false;
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return store.ExecuteReadAsync(con =>
         {
-            if (services.Count < serviceLimit)
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = string.Concat(
+                "SELECT DISTINCT service_name FROM spans WHERE service_name IS NOT NULL AND service_name <> ''",
+                metric.Predicate is null ? string.Empty : $" AND ({metric.Predicate})",
+                " ORDER BY service_name ASC LIMIT ",
+                (serviceLimit + 1).ToString(CultureInfo.InvariantCulture));
+
+            List<string> services = [];
+            var servicesTruncated = false;
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                services.Add(reader.GetString(0));
-                continue;
+                if (services.Count < serviceLimit)
+                {
+                    services.Add(reader.GetString(0));
+                    continue;
+                }
+
+                servicesTruncated = true;
+                break;
             }
 
-            servicesTruncated = true;
-            break;
-        }
+            if (preferredServiceName is not null)
+                return PrioritizePreferredService(services, servicesTruncated, preferredServiceName, serviceLimit);
 
-        if (preferredServiceName is not null)
-            return PrioritizePreferredService(services, servicesTruncated, preferredServiceName, serviceLimit);
-
-        return new MetricServiceList(services, servicesTruncated);
+            return new MetricServiceList(services, servicesTruncated);
+        }, ct);
     }
 
     private static MetricServiceList PrioritizePreferredService(
@@ -716,49 +719,51 @@ internal static class MetricsEndpoints
         var where = BuildMetricWhereClause(predicate, filters, groupedLabels);
         var sql = BuildMetricQuerySql(expression, intervalSql, where, groupedLabels, limits.SqlRowLimit);
 
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
-        AddFilterParameters(cmd, filters);
-
-        var seriesByKey = new Dictionary<string, PublicMetricSeriesBuilder>(StringComparer.Ordinal);
-        var valueOrdinal = groupedLabels.Count + 1;
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return await store.ExecuteReadAsync<IReadOnlyList<PublicMetricTimeSeries>>(con =>
         {
-            var labels = CreateLabels(filters.ServiceName, tokenType, filters.ProviderName, filters.RequestModel);
-            for (var i = 0; i < groupedLabels.Count; i++)
-                labels[groupedLabels[i].Label] = reader.GetString(i + 1);
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new DuckDBParameter { Value = startNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = endNano });
+            AddFilterParameters(cmd, filters);
 
-            var key = CreateSeriesKey(labels);
-            if (!seriesByKey.TryGetValue(key, out var series))
+            var seriesByKey = new Dictionary<string, PublicMetricSeriesBuilder>(StringComparer.Ordinal);
+            var valueOrdinal = groupedLabels.Count + 1;
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                if (!limits.TryAcceptSeries())
+                var labels = CreateLabels(filters.ServiceName, tokenType, filters.ProviderName, filters.RequestModel);
+                for (var i = 0; i < groupedLabels.Count; i++)
+                    labels[groupedLabels[i].Label] = reader.GetString(i + 1);
+
+                var key = CreateSeriesKey(labels);
+                if (!seriesByKey.TryGetValue(key, out var series))
+                {
+                    if (!limits.TryAcceptSeries())
+                        break;
+
+                    if (!limits.TryAcceptPoint())
+                        break;
+
+                    series = new PublicMetricSeriesBuilder(labels);
+                    seriesByKey.Add(key, series);
+                }
+                else if (!limits.TryAcceptPoint())
+                {
                     break;
+                }
 
-                if (!limits.TryAcceptPoint())
-                    break;
-
-                series = new PublicMetricSeriesBuilder(labels);
-                seriesByKey.Add(key, series);
-            }
-            else if (!limits.TryAcceptPoint())
-            {
-                break;
+                series.Points.Add(new PublicMetricDataPoint(
+                    reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
+                    reader.GetDouble(valueOrdinal)));
             }
 
-            series.Points.Add(new PublicMetricDataPoint(
-                reader.GetDateTime(0).ToString("O", CultureInfo.InvariantCulture),
-                reader.GetDouble(valueOrdinal)));
-        }
+            List<PublicMetricTimeSeries> result = [];
+            foreach (var series in seriesByKey.Values)
+                result.Add(new PublicMetricTimeSeries(series.Labels, series.Points));
 
-        List<PublicMetricTimeSeries> result = [];
-        foreach (var series in seriesByKey.Values)
-            result.Add(new PublicMetricTimeSeries(series.Labels, series.Points));
-
-        return result;
+            return result;
+        }, ct).ConfigureAwait(false);
     }
 
     private static string BuildMetricWhereClause(

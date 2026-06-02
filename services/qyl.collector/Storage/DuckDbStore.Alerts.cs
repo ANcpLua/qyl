@@ -183,36 +183,36 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0;
     }
 
-    public async Task<AlertRuleEntity?> GetAlertRuleAsync(string ruleId, CancellationToken ct = default)
-    {
-        await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = AlertRuleSelectByIdSql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapAlertRule(reader) : null;
-    }
-
-    public async Task<IReadOnlyList<AlertRuleEntity>> ListAlertRulesAsync(
-        string? projectId, bool? enabled, int limit, CancellationToken ct = default)
-    {
-        await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = AlertRuleListSql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = (object?)projectId ?? DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = enabled is { } e ? e : DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 100) });
-
-        var results = new List<AlertRuleEntity>(limit);
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+    public Task<AlertRuleEntity?> GetAlertRuleAsync(string ruleId, CancellationToken ct = default) =>
+        ExecuteReadAsync<AlertRuleEntity?>(con =>
         {
-            results.Add(MapAlertRule(reader));
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = AlertRuleSelectByIdSql;
+            cmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
 
-        return results;
-    }
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() ? MapAlertRule(reader) : null;
+        }, ct);
+
+    public Task<IReadOnlyList<AlertRuleEntity>> ListAlertRulesAsync(
+        string? projectId, bool? enabled, int limit, CancellationToken ct = default) =>
+        ExecuteReadAsync<IReadOnlyList<AlertRuleEntity>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = AlertRuleListSql;
+            cmd.Parameters.Add(new DuckDBParameter { Value = (object?)projectId ?? DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = enabled is { } e ? e : DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 100) });
+
+            var results = new List<AlertRuleEntity>(limit);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                results.Add(MapAlertRule(reader));
+            }
+
+            return results;
+        }, ct);
 
     private static AlertRuleEntity MapAlertRule(DbDataReader r) => new()
     {
@@ -272,35 +272,35 @@ public sealed partial class DuckDbStore
         return rowsAffected > 0 ? await GetAlertFiringAsync(firingId, ct).ConfigureAwait(false) : null;
     }
 
-    public async Task<AlertFiringEntity?> GetAlertFiringAsync(string firingId, CancellationToken ct = default)
-    {
-        await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = AlertFiringSelectByIdSql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = firingId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false)) return null;
-
-        return new AlertFiringEntity
+    public Task<AlertFiringEntity?> GetAlertFiringAsync(string firingId, CancellationToken ct = default) =>
+        ExecuteReadAsync<AlertFiringEntity?>(con =>
         {
-            Id = reader.GetString(0),
-            RuleId = reader.GetString(1),
-            Fingerprint = reader.GetString(2),
-            Severity = ParseEnum<AlertSeverity>(reader.GetString(3)),
-            Title = reader.GetString(4),
-            Message = reader.IsDBNull(5) ? null : reader.GetString(5),
-            TriggerValue = reader.IsDBNull(6) ? null : reader.GetDouble(6),
-            ThresholdValue = reader.IsDBNull(7) ? null : reader.GetDouble(7),
-            ContextJson = reader.IsDBNull(8) ? null : reader.GetString(8),
-            Status = ParseEnum<AlertFiringStatus>(reader.GetString(9)),
-            AcknowledgedAt =
-                reader.IsDBNull(10) ? null : DateTime.SpecifyKind(reader.GetDateTime(10), DateTimeKind.Utc),
-            AcknowledgedBy = reader.IsDBNull(11) ? null : reader.GetString(11),
-            ResolvedAt =
-                reader.IsDBNull(12) ? null : DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
-            FiredAt = DateTime.SpecifyKind(reader.GetDateTime(13), DateTimeKind.Utc),
-            DedupKey = reader.IsDBNull(14) ? null : reader.GetString(14)
-        };
-    }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = AlertFiringSelectByIdSql;
+            cmd.Parameters.Add(new DuckDBParameter { Value = firingId });
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read()) return null;
+
+            return new AlertFiringEntity
+            {
+                Id = reader.GetString(0),
+                RuleId = reader.GetString(1),
+                Fingerprint = reader.GetString(2),
+                Severity = ParseEnum<AlertSeverity>(reader.GetString(3)),
+                Title = reader.GetString(4),
+                Message = reader.IsDBNull(5) ? null : reader.GetString(5),
+                TriggerValue = reader.IsDBNull(6) ? null : reader.GetDouble(6),
+                ThresholdValue = reader.IsDBNull(7) ? null : reader.GetDouble(7),
+                ContextJson = reader.IsDBNull(8) ? null : reader.GetString(8),
+                Status = ParseEnum<AlertFiringStatus>(reader.GetString(9)),
+                AcknowledgedAt =
+                    reader.IsDBNull(10) ? null : DateTime.SpecifyKind(reader.GetDateTime(10), DateTimeKind.Utc),
+                AcknowledgedBy = reader.IsDBNull(11) ? null : reader.GetString(11),
+                ResolvedAt =
+                    reader.IsDBNull(12) ? null : DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc),
+                FiredAt = DateTime.SpecifyKind(reader.GetDateTime(13), DateTimeKind.Utc),
+                DedupKey = reader.IsDBNull(14) ? null : reader.GetString(14)
+            };
+        }, ct);
 }

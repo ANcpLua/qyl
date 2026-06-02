@@ -7,84 +7,86 @@ namespace Qyl.Collector.Storage;
 public sealed partial class DuckDbStore
 {
 
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
+    public Task<IReadOnlyList<SearchResult>> SearchAsync(
         SearchQuery query,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<SearchResult>>(con =>
+        {
+            var (sql, parameters) = UnifiedQueryEngine.BuildQuery(query);
 
-        var (sql, parameters) = UnifiedQueryEngine.BuildQuery(query);
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddRange(parameters);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.Parameters.AddRange(parameters);
+            var results = new List<SearchResult>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapSearchResult(reader));
 
-        var results = new List<SearchResult>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapSearchResult(reader));
-
-        return results;
+            return results;
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<SearchSuggestion>> GetSuggestionsAsync(
+    public Task<IReadOnlyList<SearchSuggestion>> GetSuggestionsAsync(
         string prefix,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
         if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2)
-            return [];
+            return Task.FromResult<IReadOnlyList<SearchSuggestion>>([]);
 
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        var likePattern = $"{SqlLikeEscape.Escape(prefix)}%";
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT text, entity_type, cnt FROM (
-                              SELECT name AS text, 'spans' AS entity_type, COUNT(*) AS cnt
-                              FROM spans WHERE name ILIKE $1 ESCAPE '\'
-                              GROUP BY name
-                              UNION ALL
-                              SELECT COALESCE(service_name, '') AS text, 'spans' AS entity_type, COUNT(*) AS cnt
-                              FROM spans WHERE service_name ILIKE $1 ESCAPE '\'
-                              GROUP BY service_name
-                              UNION ALL
-                              SELECT COALESCE(agent_name, '') AS text, 'agent_runs' AS entity_type, COUNT(*) AS cnt
-                              FROM agent_runs WHERE agent_name ILIKE $1 ESCAPE '\'
-                              GROUP BY agent_name
-                              UNION ALL
-                              SELECT COALESCE(workflow_name, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
-                              FROM workflow_executions WHERE workflow_name ILIKE $1 ESCAPE '\'
-                              GROUP BY workflow_name
-                              UNION ALL
-                              SELECT COALESCE(workflow_id, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
-                              FROM workflow_runs WHERE workflow_id ILIKE $1 ESCAPE '\'
-                              GROUP BY workflow_id
-                              UNION ALL
-                              SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
-                              FROM error_issues WHERE error_type ILIKE $1 ESCAPE '\'
-                              GROUP BY error_type
-                          ) AS suggestions
-                          WHERE text != ''
-                          ORDER BY cnt DESC
-                          LIMIT 20
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
-
-        var suggestions = new List<SearchSuggestion>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync<IReadOnlyList<SearchSuggestion>>(con =>
         {
-            suggestions.Add(new SearchSuggestion(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetInt32(2)));
-        }
+            var likePattern = $"{SqlLikeEscape.Escape(prefix)}%";
 
-        return suggestions;
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT text, entity_type, cnt FROM (
+                                  SELECT name AS text, 'spans' AS entity_type, COUNT(*) AS cnt
+                                  FROM spans WHERE name ILIKE $1 ESCAPE '\'
+                                  GROUP BY name
+                                  UNION ALL
+                                  SELECT COALESCE(service_name, '') AS text, 'spans' AS entity_type, COUNT(*) AS cnt
+                                  FROM spans WHERE service_name ILIKE $1 ESCAPE '\'
+                                  GROUP BY service_name
+                                  UNION ALL
+                                  SELECT COALESCE(agent_name, '') AS text, 'agent_runs' AS entity_type, COUNT(*) AS cnt
+                                  FROM agent_runs WHERE agent_name ILIKE $1 ESCAPE '\'
+                                  GROUP BY agent_name
+                                  UNION ALL
+                                  SELECT COALESCE(workflow_name, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
+                                  FROM workflow_executions WHERE workflow_name ILIKE $1 ESCAPE '\'
+                                  GROUP BY workflow_name
+                                  UNION ALL
+                                  SELECT COALESCE(workflow_id, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
+                                  FROM workflow_runs WHERE workflow_id ILIKE $1 ESCAPE '\'
+                                  GROUP BY workflow_id
+                                  UNION ALL
+                                  SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
+                                  FROM error_issues WHERE error_type ILIKE $1 ESCAPE '\'
+                                  GROUP BY error_type
+                              ) AS suggestions
+                              WHERE text != ''
+                              ORDER BY cnt DESC
+                              LIMIT 20
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
+
+            var suggestions = new List<SearchSuggestion>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                suggestions.Add(new SearchSuggestion(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetInt32(2)));
+            }
+
+            return suggestions;
+        }, ct);
     }
 
 

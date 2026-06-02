@@ -44,50 +44,52 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-    public async Task<CodingAgentRunRecord?> GetCodingAgentRunAsync(string id, CancellationToken ct = default)
+    public Task<CodingAgentRunRecord?> GetCodingAgentRunAsync(string id, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<CodingAgentRunRecord?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, fix_run_id, provider, status, agent_url, pr_url,
+                                     repo_full_name, created_at, completed_at
+                              FROM coding_agent_runs WHERE id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = id });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, fix_run_id, provider, status, agent_url, pr_url,
-                                 repo_full_name, created_at, completed_at
-                          FROM coding_agent_runs WHERE id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = id });
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+                return null;
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return null;
-
-        return MapCodingAgentRun(reader);
+            return MapCodingAgentRun(reader);
+        }, ct);
     }
 
-    public async Task<IReadOnlyList<CodingAgentRunRecord>> GetCodingAgentRunsForFixRunAsync(
+    public Task<IReadOnlyList<CodingAgentRunRecord>> GetCodingAgentRunsForFixRunAsync(
         string fixRunId, int limit = 50, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        return ExecuteReadAsync<IReadOnlyList<CodingAgentRunRecord>>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, fix_run_id, provider, status, agent_url, pr_url,
+                                     repo_full_name, created_at, completed_at
+                              FROM coding_agent_runs
+                              WHERE fix_run_id = $1
+                              ORDER BY created_at DESC
+                              LIMIT $2
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = fixRunId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, fix_run_id, provider, status, agent_url, pr_url,
-                                 repo_full_name, created_at, completed_at
-                          FROM coding_agent_runs
-                          WHERE fix_run_id = $1
-                          ORDER BY created_at DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = fixRunId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            var results = new List<CodingAgentRunRecord>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                results.Add(MapCodingAgentRun(reader));
 
-        var results = new List<CodingAgentRunRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapCodingAgentRun(reader));
-
-        return results;
+            return results;
+        }, ct);
     }
 
     private static CodingAgentRunRecord MapCodingAgentRun(DbDataReader reader) =>
@@ -105,39 +107,40 @@ public sealed partial class DuckDbStore
         };
 
 
-    public async Task<LoomSettingsRecord> GetLoomSettingsAsync(string orgId, CancellationToken ct = default)
+    public Task<LoomSettingsRecord> GetLoomSettingsAsync(string orgId, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, default_coding_agent, default_coding_agent_integration_id,
-                                 automation_tuning, updated_at
-                          FROM Loom_settings WHERE id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = orgId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+        return ExecuteReadAsync(con =>
         {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, default_coding_agent, default_coding_agent_integration_id,
+                                     automation_tuning, updated_at
+                              FROM Loom_settings WHERE id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = orgId });
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+            {
+                return new LoomSettingsRecord
+                {
+                    Id = orgId,
+                    DefaultCodingAgent = CodingAgentProviderNames.ToSlug(CodingAgentProvider.Loom),
+                    AutomationTuning = "medium",
+                    UpdatedAt = DateTime.UnixEpoch
+                };
+            }
+
             return new LoomSettingsRecord
             {
-                Id = orgId,
-                DefaultCodingAgent = CodingAgentProviderNames.ToSlug(CodingAgentProvider.Loom),
-                AutomationTuning = "medium",
-                UpdatedAt = DateTime.UnixEpoch
+                Id = reader.GetString(0),
+                DefaultCodingAgent = CodingAgentProviderNames.NormalizeSlug(reader.Col(1).AsString),
+                DefaultCodingAgentIntegrationId = reader.Col(2).AsString,
+                AutomationTuning = reader.Col(3).AsString ?? "medium",
+                UpdatedAt = reader.Col(4).AsDateTime ?? DateTime.MinValue
             };
-        }
-
-        return new LoomSettingsRecord
-        {
-            Id = reader.GetString(0),
-            DefaultCodingAgent = CodingAgentProviderNames.NormalizeSlug(reader.Col(1).AsString),
-            DefaultCodingAgentIntegrationId = reader.Col(2).AsString,
-            AutomationTuning = reader.Col(3).AsString ?? "medium",
-            UpdatedAt = reader.Col(4).AsDateTime ?? DateTime.MinValue
-        };
+        }, ct);
     }
 
     public async Task UpsertLoomSettingsAsync(LoomSettingsRecord settings, CancellationToken ct = default) =>

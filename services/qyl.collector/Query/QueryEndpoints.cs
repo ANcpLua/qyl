@@ -47,34 +47,36 @@ internal static class QueryEndpoints
 
         try
         {
-            await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-            await using var cmd = lease.Connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-
-            List<string> columns = new(reader.FieldCount);
-            for (var i = 0; i < reader.FieldCount; i++)
+            return await store.ExecuteReadAsync(con =>
             {
-                columns.Add(reader.GetName(i));
-            }
+                using var cmd = con.CreateCommand();
+                cmd.CommandText = sql;
 
-            List<Dictionary<string, object?>> rows = [];
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            {
-                Dictionary<string, object?> row = new(reader.FieldCount, StringComparer.Ordinal);
+                using var reader = cmd.ExecuteReader();
+
+                List<string> columns = new(reader.FieldCount);
                 for (var i = 0; i < reader.FieldCount; i++)
                 {
-                    var value = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
-                        ? null
-                        : NormalizeValue(reader.GetValue(i));
-                    row[columns[i]] = value;
+                    columns.Add(reader.GetName(i));
                 }
 
-                rows.Add(row);
-            }
+                List<Dictionary<string, object?>> rows = [];
+                while (reader.Read())
+                {
+                    Dictionary<string, object?> row = new(reader.FieldCount, StringComparer.Ordinal);
+                    for (var i = 0; i < reader.FieldCount; i++)
+                    {
+                        var value = reader.IsDBNull(i)
+                            ? null
+                            : NormalizeValue(reader.GetValue(i));
+                        row[columns[i]] = value;
+                    }
 
-            return TypedResults.Ok(new { columns, rows, rowCount = rows.Count });
+                    rows.Add(row);
+                }
+
+                return TypedResults.Ok(new { columns, rows, rowCount = rows.Count });
+            }, ct);
         }
         catch (DuckDBException)
         {

@@ -31,21 +31,23 @@ public sealed partial class DuckDbStore
             return artifact;
         }, ct).ConfigureAwait(false);
 
-    public async Task<ArtifactRow?> GetArtifactAsync(string id, CancellationToken ct = default)
+    public Task<ArtifactRow?> GetArtifactAsync(string id, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        await using var lease = await GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT id, content_type, content, title, source, metadata_json, created_at, expires_at
-                          FROM artifacts
-                          WHERE id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = id });
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        return await reader.ReadAsync(ct).ConfigureAwait(false)
-            ? ReadArtifactRow(reader)
-            : null;
+        return ExecuteReadAsync<ArtifactRow?>(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT id, content_type, content, title, source, metadata_json, created_at, expires_at
+                              FROM artifacts
+                              WHERE id = $1
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = id });
+            using var reader = cmd.ExecuteReader();
+            return reader.Read()
+                ? ReadArtifactRow(reader)
+                : null;
+        }, ct);
     }
 
     private static ArtifactRow ReadArtifactRow(DbDataReader reader) =>

@@ -41,39 +41,43 @@ internal static class ServiceEndpoints
         DuckDbStore store,
         CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = """
-                          SELECT
-                              COALESCE(parent.service_name, 'unknown') as source,
-                              COALESCE(child.service_name, 'unknown') as target,
-                              COUNT(*) as call_count,
-                              AVG(child.duration_ns) as avg_duration_ns,
-                              COUNT(*) FILTER (WHERE TRY_CAST(child.status_code AS INTEGER) = 2) as error_count
-                          FROM spans child
-                          JOIN spans parent ON child.parent_span_id = parent.span_id
-                          WHERE child.service_name IS NOT NULL
-                            AND parent.service_name IS NOT NULL
-                            AND child.service_name != parent.service_name
-                          GROUP BY source, target
-                          ORDER BY call_count DESC
-                          LIMIT 500
-                          """;
-
-        var edges = new List<McpServiceEdgeDto>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        var edges = await store.ExecuteReadAsync(static con =>
         {
-            edges.Add(new McpServiceEdgeDto
+            using var cmd = con.CreateCommand();
+
+            cmd.CommandText = """
+                              SELECT
+                                  COALESCE(parent.service_name, 'unknown') as source,
+                                  COALESCE(child.service_name, 'unknown') as target,
+                                  COUNT(*) as call_count,
+                                  AVG(child.duration_ns) as avg_duration_ns,
+                                  COUNT(*) FILTER (WHERE TRY_CAST(child.status_code AS INTEGER) = 2) as error_count
+                              FROM spans child
+                              JOIN spans parent ON child.parent_span_id = parent.span_id
+                              WHERE child.service_name IS NOT NULL
+                                AND parent.service_name IS NOT NULL
+                                AND child.service_name != parent.service_name
+                              GROUP BY source, target
+                              ORDER BY call_count DESC
+                              LIMIT 500
+                              """;
+
+            var rows = new List<McpServiceEdgeDto>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                Source = reader.GetString(0),
-                Target = reader.GetString(1),
-                CallCount = reader.Col(2).GetInt64(0),
-                AvgDurationNs = reader.Col(3).AsDouble,
-                ErrorCount = reader.Col(4).GetInt64(0)
-            });
-        }
+                rows.Add(new McpServiceEdgeDto
+                {
+                    Source = reader.GetString(0),
+                    Target = reader.GetString(1),
+                    CallCount = reader.Col(2).GetInt64(0),
+                    AvgDurationNs = reader.Col(3).AsDouble,
+                    ErrorCount = reader.Col(4).GetInt64(0)
+                });
+            }
+
+            return rows;
+        }, ct).ConfigureAwait(false);
 
         var nodeSet = new HashSet<string>();
         foreach (var edge in edges)

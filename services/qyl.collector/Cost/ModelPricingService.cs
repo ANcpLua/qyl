@@ -74,33 +74,37 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
 
     public async Task RefreshCacheAsync(CancellationToken ct = default)
     {
-        var entries = new Dictionary<string, PricingEntry>(StringComparer.OrdinalIgnoreCase);
-
-        await using var lease = await store.GetReadConnectionAsync(ct);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT provider, model, input_cost, output_cost, reasoning_cost,
-                                 cache_read_cost, cache_write_cost
-                          FROM model_pricing
-                          WHERE valid_to IS NULL
-                          ORDER BY valid_from DESC
-                          """;
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        var entries = await store.ExecuteReadAsync(con =>
         {
-            var provider = reader.GetString(0);
-            var model = reader.GetString(1);
-            var entry = new PricingEntry(
-                reader.GetDecimal(2),
-                reader.GetDecimal(3),
-                await reader.IsDBNullAsync(4, ct) ? null : reader.GetDecimal(4),
-                await reader.IsDBNullAsync(5, ct) ? null : reader.GetDecimal(5),
-                await reader.IsDBNullAsync(6, ct) ? null : reader.GetDecimal(6));
+            var result = new Dictionary<string, PricingEntry>(StringComparer.OrdinalIgnoreCase);
 
-            var key = MakeCacheKey(provider, model);
-            entries.TryAdd(key, entry);
-        }
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT provider, model, input_cost, output_cost, reasoning_cost,
+                                     cache_read_cost, cache_write_cost
+                              FROM model_pricing
+                              WHERE valid_to IS NULL
+                              ORDER BY valid_from DESC
+                              """;
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var provider = reader.GetString(0);
+                var model = reader.GetString(1);
+                var entry = new PricingEntry(
+                    reader.GetDecimal(2),
+                    reader.GetDecimal(3),
+                    reader.IsDBNull(4) ? null : reader.GetDecimal(4),
+                    reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+                    reader.IsDBNull(6) ? null : reader.GetDecimal(6));
+
+                var key = MakeCacheKey(provider, model);
+                result.TryAdd(key, entry);
+            }
+
+            return result;
+        }, ct);
 
         lock (_lock)
         {
@@ -112,16 +116,18 @@ public sealed partial class ModelPricingService(DuckDbStore store, ILogger<Model
 
     private async Task<long> GetPricingCountAsync(CancellationToken ct)
     {
-        await using var lease = await store.GetReadConnectionAsync(ct);
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
-        var result = await cmd.ExecuteScalarAsync(ct);
-        return result switch
+        return await store.ExecuteReadAsync(con =>
         {
-            long v => v,
-            int v => v,
-            _ => 0
-        };
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
+            var result = cmd.ExecuteScalar();
+            return result switch
+            {
+                long v => v,
+                int v => v,
+                _ => 0
+            };
+        }, ct);
     }
 
     private async Task SeedPricingDataAsync(CancellationToken ct)
