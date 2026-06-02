@@ -1,7 +1,7 @@
 using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
-using Qyl.Collector.Meta;
+using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 
 namespace Qyl.Collector.Hosting;
@@ -85,7 +85,7 @@ public static class CollectorEndpointExtensions
         }
         catch (Exception)
         {
-            return Results.BadRequest(new ErrorResponse("OTLP parse error"));
+            return Results.BadRequest(new ErrorResponse { Error = "OTLP parse error" });
         }
     }
 
@@ -113,7 +113,7 @@ public static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpLogsEndpoint");
             OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest(new ErrorResponse("OTLP logs parse error"));
+            return Results.BadRequest(new ErrorResponse { Error = "OTLP logs parse error" });
         }
     }
 
@@ -259,7 +259,7 @@ public static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpProfilesEndpoint");
             OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest(new ErrorResponse("OTLP profiles parse error"));
+            return Results.BadRequest(new ErrorResponse { Error = "OTLP profiles parse error" });
         }
     }
 
@@ -346,14 +346,29 @@ public static class CollectorEndpointExtensions
                 "sessions" => await store.ClearAllSessionsAsync(ct).ConfigureAwait(false),
                 _ => throw new ArgumentException($"Unknown telemetry type: {type}")
             };
-            return TypedResults.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, 0, type));
+            return TypedResults.Ok(new ClearTelemetryResponse
+            {
+                SpansDeleted = deleted,
+                LogsDeleted = 0,
+                ProfilesDeleted = 0,
+                SessionsDeleted = 0,
+                ConsoleCleared = 0,
+                Type = type
+            });
         }
 
         var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
         ringBuffer.Clear();
 
-        return TypedResults.Ok(new ClearTelemetryResponse(
-            result.SpansDeleted, result.LogsDeleted, result.ProfilesDeleted, result.SessionsDeleted, 0, "all"));
+        return TypedResults.Ok(new ClearTelemetryResponse
+        {
+            SpansDeleted = result.SpansDeleted,
+            LogsDeleted = result.LogsDeleted,
+            ProfilesDeleted = result.ProfilesDeleted,
+            SessionsDeleted = result.SessionsDeleted,
+            ConsoleCleared = 0,
+            Type = "all"
+        });
 
         static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
         {

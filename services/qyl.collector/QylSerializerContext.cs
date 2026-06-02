@@ -1,4 +1,4 @@
-using Qyl.Collector.Meta;
+using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Otel;
