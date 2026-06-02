@@ -427,49 +427,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         }, ct);
     }
 
-    public Task<GenAiStats> GetGenAiStatsAsync(
-        string? sessionId = null,
-        ulong? startAfter = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync(con =>
-        {
-            var qb = new QueryBuilder();
-            qb.AddCondition("gen_ai_provider_name IS NOT NULL");
-
-            if (!string.IsNullOrEmpty(sessionId))
-                qb.Add("session_id = $N", sessionId);
-            if (startAfter.HasValue)
-                qb.Add("start_time_unix_nano >= $N", (decimal)startAfter.Value);
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) as request_count,"
-                              + " COALESCE(SUM(gen_ai_input_tokens), 0) as total_input_tokens,"
-                              + " COALESCE(SUM(gen_ai_output_tokens), 0) as total_output_tokens,"
-                              + " COALESCE(SUM(gen_ai_cost_usd), 0) as total_cost_usd,"
-                              + " AVG(gen_ai_cost_usd) as avg_cost"
-                              + " FROM spans " + qb.WhereClause;
-
-            qb.ApplyTo(cmd);
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return new GenAiStats
-                {
-                    RequestCount = reader.Col(0).GetInt64(0),
-                    TotalInputTokens = reader.Col(1).GetInt64(0),
-                    TotalOutputTokens = reader.Col(2).GetInt64(0),
-                    TotalCostUsd = reader.Col(3).GetDouble(0),
-                    AverageEvalScore = reader.Col(4).AsDouble
-                };
-            }
-
-            return new GenAiStats();
-        }, ct);
-    }
-
     public long GetStorageSizeBytes()
     {
         if (Read(ref _disposed) is not 0)

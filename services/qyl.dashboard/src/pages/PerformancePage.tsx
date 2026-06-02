@@ -81,7 +81,7 @@ export function PerformancePage() {
 
     const services = servicesData?.services ?? [];
     const sorted = sortServices(services, sortField, sortDir);
-    const hasData = (stats?.spanCount ?? 0) > 0 || services.length > 0;
+    const hasData = (stats?.spansExported ?? 0) > 0 || services.length > 0;
 
     if (error) {
         return (
@@ -127,7 +127,7 @@ export function PerformancePage() {
                             <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 font-mono">
-                                {(stats?.spanCount ?? 0).toLocaleString()}
+                                {(stats?.spansExported ?? 0).toLocaleString()}
                             </div>
                         )}
                     </CardContent>

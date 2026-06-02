@@ -1,15 +1,5 @@
 namespace Qyl.Collector.Storage;
 
-
-public sealed record GenAiStats
-{
-    public long RequestCount { get; init; }
-    public long TotalInputTokens { get; init; }
-    public long TotalOutputTokens { get; init; }
-    public double TotalCostUsd { get; init; }
-    public double? AverageEvalScore { get; init; }
-}
-
 public sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
 [DuckDbTable("spans")]

@@ -288,6 +288,9 @@ interface IVerify : IHazSourcePaths
             AbsolutePath[] files =
             [
                 RootDirectory / "Directory.Packages.props",
+                RootDirectory / ".gitignore",
+                RootDirectory / ".github" / "workflows" / "ci.yml",
+                RootDirectory / "eng" / "build.sh",
                 buildDirectory / "build.csproj",
                 buildDirectory / "Build.cs"
             ];
@@ -296,8 +299,14 @@ interface IVerify : IHazSourcePaths
             [
                 "Qyl.OpenTelemetry.SemanticConventions.SourceGeneration",
                 "Scalar.Kiota",
+                "core/specs",
                 "core/openapi",
                 "eng/semconv",
+                "packages/Qyl.Contracts",
+                "./eng/build.sh Generate",
+                "./eng/build.sh OtelConventions",
+                "nuke Generate",
+                "nuke OtelConventions",
                 "otel-conventions-api"
             ];
 

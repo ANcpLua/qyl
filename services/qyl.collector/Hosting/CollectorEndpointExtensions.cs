@@ -198,13 +198,14 @@ public static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
+        var boundedLimit = Math.Clamp(limit ?? 500, 1, 1_000);
         var logs = await store.GetLogsAsync(
             session, trace, level, minSeverity, search,
             serviceName: serviceName,
-            limit: limit ?? 500,
+            limit: boundedLimit,
             ct: ct);
 
-        return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
+        return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
     private static ServerSentEventsResult<SseItem<object?>> StreamLogsLiveAsync(
@@ -255,7 +256,7 @@ public static class CollectorEndpointExtensions
 
             if (dedupedPayload.Count > 0)
             {
-                var payload = dedupedPayload.Select(LiveLogProjection.ToDto).ToArray();
+                var payload = dedupedPayload.Select(LogMapper.ToContract).ToArray();
                 yield return new SseItem<object?>(new { logs = payload }, "logs");
             }
 
@@ -309,7 +310,7 @@ public static class CollectorEndpointExtensions
             limit: limit ?? 100,
             ct: ct);
 
-        return Results.Ok(new { profiles, total = profiles.Count });
+        return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
     private static async Task<IResult> GetProfileByIdAsync(
@@ -318,7 +319,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var detail = await store.GetProfileDetailAsync(profileId, ct);
-        return detail is not null ? Results.Ok(detail) : Results.NotFound();
+        return detail is not null ? Results.Ok(ProfileMapper.ToContract(detail)) : Results.NotFound();
     }
 
     private static async Task<IResult> GetTraceProfilesAsync(
@@ -327,7 +328,7 @@ public static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
-        return Results.Ok(new { profiles, total = profiles.Count });
+        return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
 
@@ -342,14 +343,7 @@ public static class CollectorEndpointExtensions
             after = TimeProvider.System.GetUtcNow().UtcDateTime.AddHours(-hours.Value);
 
         var stats = await queryService.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
-        return Results.Ok(new
-        {
-            requestCount = stats.RequestCount,
-            totalInputTokens = stats.InputTokens,
-            totalOutputTokens = stats.OutputTokens,
-            totalCostUsd = stats.TotalCostUsd,
-            averageEvalScore = (double?)null
-        });
+        return Results.Ok(ContractStatsMapper.ToContract(stats));
     }
 
     private static async Task<IResult> GetGenAiSpansAsync(
@@ -402,7 +396,7 @@ public static class CollectorEndpointExtensions
     private static async Task<IResult> GetTelemetryStatsAsync(DuckDbStore store, CancellationToken ct)
     {
         var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
-        return Results.Ok(stats);
+        return Results.Ok(ContractStatsMapper.ToContract(stats));
     }
 
 

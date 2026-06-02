@@ -1,8 +1,12 @@
 using Qyl.Collector.Meta;
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.Domains.Observe.Otel;
 using Qyl.Api.Contracts.Domains.Observe.Session;
+using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
+using ContractGenAiStats = Qyl.Api.Contracts.Domains.AI.GenAi.GenAiStats;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
 
@@ -13,8 +17,8 @@ namespace Qyl.Collector;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     WriteIndented = false)]
-[JsonSerializable(typeof(StorageStats))]
-[JsonSerializable(typeof(GenAiStats))]
+[JsonSerializable(typeof(TelemetryStats))]
+[JsonSerializable(typeof(ContractGenAiStats))]
 [JsonSerializable(typeof(TelemetryEventDto))]
 [JsonSerializable(typeof(TelemetryMessage))]
 [JsonSerializable(typeof(Span))]
@@ -26,6 +30,12 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(Qyl.Api.Contracts.OTel.Traces.Trace), TypeInfoPropertyName = "OtelTrace")]
 [JsonSerializable(typeof(CursorPageSpan))]
 [JsonSerializable(typeof(CursorPageTrace))]
+[JsonSerializable(typeof(LogRecord))]
+[JsonSerializable(typeof(LogRecord[]))]
+[JsonSerializable(typeof(CursorPageLogRecord))]
+[JsonSerializable(typeof(Profile))]
+[JsonSerializable(typeof(Profile[]))]
+[JsonSerializable(typeof(List<Profile>))]
 [JsonSerializable(typeof(SessionEntity))]
 [JsonSerializable(typeof(SessionEntity[]))]
 [JsonSerializable(typeof(List<SessionEntity>))]
@@ -52,8 +62,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(OtlpResourceLogs))]
 [JsonSerializable(typeof(OtlpScopeLogs))]
 [JsonSerializable(typeof(OtlpLogRecord))]
-[JsonSerializable(typeof(LogStorageRow))]
-[JsonSerializable(typeof(List<LogStorageRow>))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(ClearTelemetryResponse))]
 [JsonSerializable(typeof(AgentRunRecord))]
