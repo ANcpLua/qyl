@@ -4,8 +4,8 @@ import type {SessionEntity, Span} from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
 
-// Alias for backward compatibility
-type SpanRecord = Span;
+// Dashboard span type.
+type TelemetrySpan = Span;
 
 // Query keys
 export const telemetryKeys = {
@@ -18,7 +18,7 @@ export const telemetryKeys = {
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
-// Raw storage row shape returned by snake_case API endpoints
+// Raw snake_case span row shape returned by collector endpoints.
 interface RawSpanRow {
     span_id: string;
     trace_id: string;
@@ -43,8 +43,8 @@ interface RawSpanListResponse {
     total: number;
 }
 
-function rawToSpan(raw: RawSpanRow): SpanRecord {
-    type Attr = NonNullable<SpanRecord['attributes']>[number];
+function rawToSpan(raw: RawSpanRow): TelemetrySpan {
+    type Attr = NonNullable<TelemetrySpan['attributes']>[number];
     const parseAttrs = (json?: string | null): Attr[] => {
         if (!json) return [];
         try {
@@ -54,23 +54,23 @@ function rawToSpan(raw: RawSpanRow): SpanRecord {
         }
     };
 
-    const span: SpanRecord = {
+    const span: TelemetrySpan = {
         span_id: raw.span_id,
         trace_id: raw.trace_id,
         parent_span_id: raw.parent_span_id ?? undefined,
         name: raw.name,
-        kind: (raw.kind & 0x7) as SpanRecord['kind'],
+        kind: (raw.kind & 0x7) as TelemetrySpan['kind'],
         start_time_unix_nano: raw.start_time_unix_nano,
         end_time_unix_nano: raw.end_time_unix_nano,
         status: {
-            code: (raw.status_code & 0x3) as SpanRecord['status']['code'],
+            code: (raw.status_code & 0x3) as TelemetrySpan['status']['code'],
             message: raw.status_message ?? undefined
         },
         attributes: parseAttrs(raw.attributes_json),
-        // Storage returns resource as JSON key-value pairs; TypeSpec type is flat typed object
+        // Collector endpoints return resource JSON as key-value pairs; TypeSpec keeps it typed.
         resource: Object.fromEntries(
             parseAttrs(raw.resource_json).map(a => [a.key, a.value]),
-        ) as unknown as SpanRecord['resource'],
+        ) as unknown as TelemetrySpan['resource'],
     };
     return span;
 }
@@ -95,7 +95,7 @@ export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
         queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/sessions/${sessionId}/spans`),
-        select: (data): SpanRecord[] => data.items.map(rawToSpan),
+        select: (data): TelemetrySpan[] => data.items.map(rawToSpan),
         enabled: !!sessionId,
     });
 }
@@ -104,7 +104,7 @@ export function useTraceSpans(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.traceSpans(traceId),
         queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/traces/${traceId}/spans`),
-        select: (data): SpanRecord[] => data.items.map(rawToSpan),
+        select: (data): TelemetrySpan[] => data.items.map(rawToSpan),
         enabled: !!traceId,
     });
 }
@@ -112,7 +112,7 @@ export function useTraceSpans(traceId: string) {
 // Live SSE Stream
 interface UseLiveStreamOptions {
     sessionFilter?: string;
-    onSpans?: (spans: SpanRecord[]) => void;
+    onSpans?: (spans: TelemetrySpan[]) => void;
     onConnect?: () => void;
     onDisconnect?: () => void;
     enabled?: boolean;
@@ -126,7 +126,7 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
     const reconnectTimeoutRef = useRef<number | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [connectionId, setConnectionId] = useState<string | null>(null);
-    const [recentSpans, setRecentSpans] = useState<SpanRecord[]>([]);
+    const [recentSpans, setRecentSpans] = useState<TelemetrySpan[]>([]);
 
     const connect = useCallback(() => {
         if (!enabled) return;
@@ -188,8 +188,8 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
         const handleSpansPayload = (payload: unknown) => {
             const data = payload as
-                | SpanRecord[]
-                | { spans?: SpanRecord[]; items?: SpanRecord[] }
+                | TelemetrySpan[]
+                | { spans?: TelemetrySpan[]; items?: TelemetrySpan[] }
                 | null
                 | undefined;
             const records = Array.isArray(data)
@@ -294,8 +294,8 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
     };
 }
 
-// Span utilities - work with SpanRecord directly
-export function getSpanColor(span: SpanRecord): string {
+// Span utilities.
+export function getSpanColor(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
     // GenAI spans
     if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
@@ -317,7 +317,7 @@ export function getSpanColor(span: SpanRecord): string {
     return 'hsl(var(--span-internal))';
 }
 
-export function getSpanTypeLabel(span: SpanRecord): string {
+export function getSpanTypeLabel(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
     if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
         return 'GenAI';

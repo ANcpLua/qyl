@@ -27,7 +27,6 @@ global using Qyl.Api.Contracts.OTel.Enums;
 global using Qyl.OpenTelemetry.SemanticConventions.Attributes.Error;
 global using Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception;
 global using Qyl.Api.Contracts;
-global using Qyl.Api.Contracts.Storage;
 global using Qyl.Collector.Errors;
 global using Qyl.Collector.Mapping;
 global using Qyl.Instrumentation;

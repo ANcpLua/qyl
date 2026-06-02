@@ -28,7 +28,7 @@ public sealed class TraceServiceImpl(
             var batch = _pricingService.EnrichBatchWithCost(
                 new SpanBatch(spans).WithCodexTransformations());
 
-            _ringBuffer.PushRange([.. batch.Spans.Select(SpanMapper.ToRecord)]);
+            _ringBuffer.PushRange(batch.Spans);
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
             _broadcaster.PublishSpans(batch);

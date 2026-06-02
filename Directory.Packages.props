@@ -115,7 +115,7 @@
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.0.0"/>
     <!-- C# API contract types emitted from @o-ancpplua/qyl-api-schema. -->
-    <PackageVersion Include="Qyl.Api.Contracts" Version="0.1.0"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="0.1.2"/>
     <!-- On-demand REST client SDK generation (TypeScript + C#) from the collector's OpenAPI
          document; replaces committed TypeSpec client emitters.
          Dev-only — gated to Development in services/qyl.collector/Program.cs. -->

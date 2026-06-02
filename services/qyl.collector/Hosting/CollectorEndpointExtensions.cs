@@ -93,7 +93,7 @@ public static class CollectorEndpointExtensions
 
             var batch = pricingService.EnrichBatchWithCost(
                 new SpanBatch(spans).WithCodexTransformations());
-            ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
+            ringBuffer.PushRange(batch.Spans);
             await store.EnqueueAsync(batch, ct);
 
             foreach (var si in serviceInstances)
@@ -203,7 +203,7 @@ public static class CollectorEndpointExtensions
             return Results.BadRequest(new ErrorResponse("Invalid JSON"));
         }
 
-        ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
+        ringBuffer.PushRange(batch.Spans);
         await store.EnqueueAsync(batch, ct);
         broadcaster.PublishSpans(batch);
         return Results.Accepted();

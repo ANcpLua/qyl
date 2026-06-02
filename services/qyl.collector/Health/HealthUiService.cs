@@ -196,7 +196,7 @@ public sealed class HealthUiService(
         }
     }
 
-    private ComponentHealth GetIngestionHealth(SpanRecord[] latest)
+    private ComponentHealth GetIngestionHealth(SpanStorageRow[] latest)
     {
         var bufferCount = ringBuffer.Count;
         var bufferCapacity = ringBuffer.Capacity;

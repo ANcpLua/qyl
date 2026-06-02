@@ -2,7 +2,7 @@ namespace Qyl.Collector.Realtime;
 
 public sealed class SpanRingBuffer
 {
-    private readonly SpanRecord?[] _buffer;
+    private readonly SpanStorageRow?[] _buffer;
     private readonly Lock _lock = new();
     private int _count;
     private ulong _generation;
@@ -13,7 +13,7 @@ public sealed class SpanRingBuffer
     {
         Guard.NotLessThan(capacity, 1);
         Capacity = capacity;
-        _buffer = new SpanRecord?[capacity];
+        _buffer = new SpanStorageRow?[capacity];
     }
 
     public int Capacity { get; }
@@ -28,10 +28,10 @@ public sealed class SpanRingBuffer
 
     public ulong Generation => Volatile.Read(ref _generation);
 
-    public void PushRange(IEnumerable<SpanRecord> spans)
+    public void PushRange(IEnumerable<SpanStorageRow> spans)
     {
         Guard.NotNull(spans);
-        IReadOnlyList<SpanRecord> materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
+        IReadOnlyList<SpanStorageRow> materialized = spans as IReadOnlyList<SpanStorageRow> ?? [.. spans];
         lock (_lock)
         {
             foreach (var span in materialized)
@@ -45,14 +45,14 @@ public sealed class SpanRingBuffer
         }
     }
 
-    public SpanRecord[] GetLatest(int count, out ulong generation)
+    public SpanStorageRow[] GetLatest(int count, out ulong generation)
     {
         lock (_lock)
         {
             generation = _generation;
             var take = Math.Min(count, _count);
             if (take is 0) return [];
-            var result = new SpanRecord[take];
+            var result = new SpanStorageRow[take];
             var idx = (_head - 1 + Capacity) % Capacity;
             for (var i = 0; i < take; i++)
             {
@@ -65,13 +65,13 @@ public sealed class SpanRingBuffer
         }
     }
 
-    private SpanRecord[] Query(Func<SpanRecord, bool> predicate, int maxCount, out ulong generation)
+    private SpanStorageRow[] Query(Func<SpanStorageRow, bool> predicate, int maxCount, out ulong generation)
     {
         lock (_lock)
         {
             generation = _generation;
             if (_count is 0) return [];
-            var results = new List<SpanRecord>(Math.Min(maxCount, _count));
+            var results = new List<SpanStorageRow>(Math.Min(maxCount, _count));
             var idx = (_head - 1 + Capacity) % Capacity;
             var scanned = 0;
             while (scanned < _count && results.Count < maxCount)
@@ -86,7 +86,7 @@ public sealed class SpanRingBuffer
         }
     }
 
-    public SpanRecord[] GetByTraceId(string traceId, out ulong generation)
+    public SpanStorageRow[] GetByTraceId(string traceId, out ulong generation)
     {
         if (string.IsNullOrWhiteSpace(traceId))
         {
@@ -97,7 +97,7 @@ public sealed class SpanRingBuffer
         return Query(s => string.Equals(s.TraceId, traceId, StringComparison.Ordinal), Capacity, out generation);
     }
 
-    public SpanRecord[] GetBySessionId(string sessionId, int maxCount, out ulong generation)
+    public SpanStorageRow[] GetBySessionId(string sessionId, int maxCount, out ulong generation)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
         {

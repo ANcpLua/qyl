@@ -1,5 +1,5 @@
 /**
- * qyl API Types (aligned to OTel schema 1.40.0)
+ * qyl API Types
  * DO NOT edit api.ts directly - it's auto-generated from openapi.yaml
  *
  * Type Pipeline: TypeSpec -> OpenAPI -> openapi-typescript -> api.ts -> index.ts
@@ -9,17 +9,17 @@
 import type {components} from './api';
 
 // =============================================================================
-// Schemas (Canonical Names from God Schema)
+// Contract schema aliases.
 // =============================================================================
 
 // Enums
-export type SpanStatusCode = components['schemas']['Qyl.OTel.Enums.SpanStatusCode'];
+export type SpanStatusCode = components['schemas']['OTel.Enums.SpanStatusCode'];
 
 // Models
-export type Span = components['schemas']['Qyl.OTel.Traces.Span'];
+export type Span = components['schemas']['OTel.Traces.Span'];
 
 // Session types
-export type SessionEntity = components['schemas']['Qyl.Domains.Observe.Session.SessionEntity'];
+export type SessionEntity = components['schemas']['Domains.Observe.Session.SessionEntity'];
 
 // =============================================================================
 // Utility Functions for Working with Span

@@ -25,8 +25,8 @@ import {
 import type {Span} from '@/types';
 import {getStatusLabel} from '@/types';
 
-// Alias for backward compatibility
-type SpanRecord = Span;
+// Dashboard span type.
+type TelemetrySpan = Span;
 
 // Helper to get service name from resource
 function getServiceName(span: Span): string {
@@ -59,14 +59,14 @@ function getTotalTokens(span: Span): number | null {
 }
 
 interface FlattenedSpan {
-    span: SpanRecord;
+    span: TelemetrySpan;
     depth: number;
     hasChildren: boolean;
     isExpanded: boolean;
 }
 
 interface SpanRowProps {
-    span: SpanRecord;
+    span: TelemetrySpan;
     depth: number;
     isExpanded: boolean;
     onToggle: () => void;
@@ -179,7 +179,7 @@ function SpanRow({
     );
 }
 
-function SpanDetails({span}: { span: SpanRecord }) {
+function SpanDetails({span}: { span: TelemetrySpan }) {
     const attributes = getAttributesRecord(span);
     const totalTokens = getTotalTokens(span);
     const genai = getGenAiAttrs(span);
@@ -368,7 +368,7 @@ export function TracesPage() {
     const sessionId = searchParams.get('session') || '';
     const traceId = searchParams.get('traceId') || '';
 
-    const [selectedSpan, setSelectedSpan] = useState<SpanRecord | null>(null);
+    const [selectedSpan, setSelectedSpan] = useState<TelemetrySpan | null>(null);
     const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
     const [filterText, setFilterText] = useState('');
 
@@ -387,7 +387,7 @@ export function TracesPage() {
 
     // Build span tree and compute timeline bounds
     const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {
-        const childrenMap = new Map<string, SpanRecord[]>();
+        const childrenMap = new Map<string, TelemetrySpan[]>();
         let minTime = Infinity;
         let maxTime = -Infinity;
 
@@ -426,7 +426,7 @@ export function TracesPage() {
             .filter((s) => !s.parent_span_id)
             .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
 
-        const matchesFilter = (span: SpanRecord): boolean => {
+        const matchesFilter = (span: TelemetrySpan): boolean => {
             if (!filterText) return true;
             const attributes = getAttributesRecord(span);
             return (
@@ -436,7 +436,7 @@ export function TracesPage() {
             );
         };
 
-        const flatten = (span: SpanRecord, depth: number) => {
+        const flatten = (span: TelemetrySpan, depth: number) => {
             const children = childrenMap.get(span.span_id) || [];
             const hasChildren = children.length > 0;
             const isExpanded = expandedSpans.has(span.span_id);

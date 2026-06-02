@@ -10,38 +10,6 @@ public static class SpanMapper
     private static readonly string[] s_spanKindNames =
         ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
-    public static SpanRecord ToRecord(SpanStorageRow row) =>
-        new()
-        {
-            SpanId = row.SpanId,
-            TraceId = row.TraceId,
-            ParentSpanId = row.ParentSpanId,
-            SessionId = row.SessionId,
-            Name = row.Name,
-            Kind = (SpanKind)row.Kind,
-            StartTimeUnixNano = (long)row.StartTimeUnixNano,
-            EndTimeUnixNano = (long)row.EndTimeUnixNano,
-            DurationNs = (long)row.DurationNs,
-            StatusCode = (SpanStatusCode)row.StatusCode,
-            StatusMessage = row.StatusMessage,
-            ServiceName = row.ServiceName,
-            GenAiProviderName = row.GenAiProviderName,
-            GenAiRequestModel = row.GenAiRequestModel,
-            GenAiResponseModel = row.GenAiResponseModel,
-            GenAiInputTokens = (int?)row.GenAiInputTokens,
-            GenAiOutputTokens = (int?)row.GenAiOutputTokens,
-            GenAiTemperature = row.GenAiTemperature,
-            GenAiStopReason = row.GenAiStopReason,
-            GenAiToolName = row.GenAiToolName,
-            GenAiToolCallId = row.GenAiToolCallId,
-            GenAiCostUsd = row.GenAiCostUsd,
-            AttributesJson = row.AttributesJson,
-            ResourceJson = row.ResourceJson,
-            BaggageJson = row.BaggageJson,
-            SchemaUrl = row.SchemaUrl,
-            CreatedAt = row.CreatedAt ?? TimeProvider.System.GetUtcNow()
-        };
-
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null) =>
@@ -60,33 +28,6 @@ public static class SpanMapper
     public static List<SpanDto> ToDtos(
         IEnumerable<SpanStorageRow> records,
         Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
-    [
-        .. records.Select(r =>
-        {
-            var (serviceName, serviceVersion) = serviceResolver(r);
-            return ToDto(r, serviceName, serviceVersion);
-        })
-    ];
-
-    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
-    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    private static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null) =>
-        ToDtoCore(
-            record.TraceId, record.SpanId, record.ParentSpanId, record.SessionId,
-            record.Name, record.Kind.ToString().ToLowerInvariant(), record.StatusCode.ToString().ToLowerInvariant(),
-            record.StatusMessage,
-            (ulong)record.StartTimeUnixNano, (ulong)record.EndTimeUnixNano, (ulong)record.DurationNs,
-            serviceName, serviceVersion,
-            record.AttributesJson, record.BaggageJson, record.SchemaUrl,
-            record.GenAiInputTokens, record.GenAiOutputTokens, record.GenAiProviderName,
-            record.GenAiRequestModel, record.GenAiResponseModel, record.GenAiCostUsd,
-            record.GenAiTemperature, record.GenAiStopReason, record.GenAiToolName, record.GenAiToolCallId);
-
-    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
-    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static List<SpanDto> ToDtos(
-        IEnumerable<SpanRecord> records,
-        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
     [
         .. records.Select(r =>
         {
