@@ -76,9 +76,7 @@ public static class CodexTelemetryMapper
 
         var genAi = ExtractGenAiFields(attributes);
 
-        var newAttributesJson = JsonSerializer.Serialize(
-            attributes,
-            QylSerializerContext.Default.DictionaryStringString);
+        var newAttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes);
 
         return span with
         {

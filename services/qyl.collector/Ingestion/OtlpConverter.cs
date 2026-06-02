@@ -31,9 +31,7 @@ public static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
-            var resourceJson = resourceAttrs.Count > 0
-                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
-                : null;
+            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
             var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
@@ -45,10 +43,8 @@ public static class OtlpConverter
                 foreach (var span in scopeSpan.Spans)
                 {
                     var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
-                    var baggageJson = ExtractBaggageJson(attributes);
                     var spanRecord =
-                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl,
-                            resourceJson);
+                        CreateStorageRowFromProto(span, serviceName, attributes, effectiveSchemaUrl, resourceJson);
                     spans.Add(spanRecord);
                 }
             }
@@ -127,14 +123,13 @@ public static class OtlpConverter
         ProtoSpan span,
         string serviceName,
         Dictionary<string, string> attributes,
-        string? baggageJson,
         string? schemaUrl,
         string? resourceJson) =>
         CreateStorageRow(
             ToHex(span.SpanId), ToHex(span.TraceId), ToHex(span.ParentSpanId), span.Name,
             (int)span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
             span.Status is not null ? (int)span.Status.Code : null, span.Status?.Message,
-            serviceName, attributes, baggageJson, schemaUrl, resourceJson);
+            serviceName, attributes, schemaUrl, resourceJson);
 
     #endregion
 
@@ -145,10 +140,13 @@ public static class OtlpConverter
         int? kind, ulong startNano, ulong endNano,
         int? statusCode, string? statusMessage,
         string serviceName, Dictionary<string, string> attributes,
-        string? baggageJson, string? schemaUrl, string? resourceJson)
+        string? schemaUrl, string? resourceJson)
     {
         var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
         var genAi = ExtractGenAiAttributes(attributes);
+        var keepCodexForPendingTransform =
+            CodexTelemetryMapper.IsCodexSpan(name) ||
+            PersistedAttributePolicy.HasCodexAttributes(attributes);
 
         return new SpanStorageRow
         {
@@ -174,10 +172,11 @@ public static class OtlpConverter
             GenAiToolName = genAi.ToolName,
             GenAiToolCallId = genAi.ToolCallId,
             GenAiCostUsd = genAi.CostUsd,
-            AttributesJson =
-                JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+            AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(
+                attributes,
+                keepCodexForPendingTransform),
             ResourceJson = resourceJson,
-            BaggageJson = baggageJson,
+            BaggageJson = null,
             SchemaUrl = schemaUrl
         };
     }
@@ -211,7 +210,7 @@ public static class OtlpConverter
             ServiceNamespace = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceNamespace) ?? "",
             ServiceName = serviceName,
             ServiceInstanceId = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceInstanceId)
-                                ?? Environment.MachineName,
+                                ?? serviceName,
             ServiceType = serviceType,
             ServiceVersion = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceVersion),
             DeploymentEnvironment = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.DeploymentEnvironmentName),
@@ -286,29 +285,6 @@ public static class OtlpConverter
     {
         if (value.Length is 0) return null;
         return Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();
-    }
-
-    private static string? ExtractBaggageJson(IReadOnlyDictionary<string, string> attributes)
-    {
-        Dictionary<string, string>? baggage = null;
-
-        foreach (var kvp in attributes)
-        {
-            if (!kvp.Key.StartsWithOrdinal("baggage."))
-                continue;
-
-            var baggageKey = kvp.Key[8..];
-            if (string.IsNullOrEmpty(baggageKey))
-                continue;
-
-            baggage ??= new Dictionary<string, string>(StringComparer.Ordinal);
-            baggage[baggageKey] = kvp.Value;
-        }
-
-        if (baggage is null || baggage.Count is 0)
-            return null;
-
-        return JsonSerializer.Serialize(baggage, QylSerializerContext.Default.DictionaryStringString);
     }
 
     private readonly record struct GenAiData(
@@ -388,9 +364,7 @@ public static class OtlpConverter
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
 
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceLogs.Resource);
-            var resourceJson = resourceAttrs.Count > 0
-                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
-                : null;
+            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
 
             foreach (var scopeLogs in resourceLogs.ScopeLogs)
             foreach (var log in scopeLogs.LogRecords)
@@ -453,7 +427,7 @@ public static class OtlpConverter
             dict[attr.Key] = ConvertProtoAnyValueToString(attr.Value) ?? "";
         }
 
-        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+        return PersistedAttributePolicy.SerializeLogAttributes(dict);
     }
 
     private static string SeverityNumberToText(int severityNumber) => severityNumber switch
@@ -481,9 +455,7 @@ public static class OtlpConverter
             var serviceName = ExtractServiceNameFromProto(resourceProfiles.Resource);
 
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceProfiles.Resource);
-            var resourceJson = resourceAttrs.Count > 0
-                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
-                : null;
+            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
             var schemaUrl = resourceProfiles.SchemaUrl;
 
             foreach (var scopeProfiles in resourceProfiles.ScopeProfiles)
@@ -536,11 +508,9 @@ public static class OtlpConverter
             OriginalPayloadFormat = NullIfEmpty(profile.OriginalPayloadFormat),
             ServiceName = serviceName,
             ProfileFrameType = profileFrameType,
-            AttributesJson = attributes.Count > 0
-                ? JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString)
-                : null,
+            AttributesJson = PersistedAttributePolicy.SerializeProfileAttributes(attributes),
             ResourceJson = resourceJson,
-            ProfileDataJson = JsonFormatter.Default.Format(profile),
+            ProfileDataJson = null,
             SchemaUrl = schemaUrl
         };
 

@@ -9,23 +9,9 @@ internal static class SpanEndpoints
     {
         var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
 
-        var serviceName = "unknown";
-        if (spans.Count > 0 && spans[0].AttributesJson is { } attrJson)
-        {
-            try
-            {
-                var attrs = JsonSerializer.Deserialize(attrJson,
-                    QylSerializerContext.Default.DictionaryStringString);
-                if (attrs?.TryGetValue(SemanticAttributeKeys.ServiceName, out var svc) == true)
-                    serviceName = svc;
-            }
-            catch (JsonException ex)
-            {
-                Debug.WriteLine(ex);
-            }
-        }
-
-        var spanContracts = spans.Select(s => SpanMapper.ToContract(s, serviceName)).ToList();
+        var spanContracts = SpanMapper.ToContracts(
+            spans,
+            static s => (s.ServiceName ?? "unknown", null));
         return TypedResults.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
     }
 

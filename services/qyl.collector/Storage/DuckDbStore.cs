@@ -1606,10 +1606,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.AgentDecisionsDdl);
         agentRunsCmd.ExecuteNonQuery();
 
-        using var spanClustersCmd = con.CreateCommand();
-        spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
-        spanClustersCmd.ExecuteNonQuery();
-
         using var schemaPromotionsCmd = con.CreateCommand();
         schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;
         schemaPromotionsCmd.ExecuteNonQuery();

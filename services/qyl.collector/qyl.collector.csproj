@@ -33,12 +33,6 @@
     <PackageReference Include="DuckDB.NET.Data.Full"/>
   </ItemGroup>
 
-  <!-- M.E.AI for IChatClient/IEmbeddingGenerator-backed insights -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.AI"/>
-  </ItemGroup>
-
-
   <!-- OTLP ingestion: gRPC hosting + OTel export for dynamic forwarding -->
   <ItemGroup>
     <PackageReference Include="Google.Protobuf"/>
