@@ -4,14 +4,10 @@ namespace Qyl.Collector.Auth;
 /// Options for validating Keycloak-issued JWT bearer tokens.
 /// </summary>
 /// <remarks>
-/// Configuration sources (in precedence order — later wins):
-///   1. appsettings.json / appsettings.{Environment}.json under section "Keycloak".
-///   2. Environment variables listed in the *EnvVar consts below.
+/// Populated from the environment variables named by the <c>*EnvVar</c> constants below.
 /// </remarks>
 public sealed class KeycloakOptions
 {
-    public const string SectionName = "Keycloak";
-
     /// <summary>Base URL of the Keycloak realm — e.g. <c>https://kc.example/realms/qyl</c>.</summary>
     /// <remarks>Discovery doc is fetched from <c>{Authority}/.well-known/openid-configuration</c>.</remarks>
     public const string AuthorityEnvVar = "QYL_KEYCLOAK_AUTHORITY";
@@ -26,7 +22,7 @@ public sealed class KeycloakOptions
     public const string TenantClaimEnvVar = "QYL_KEYCLOAK_TENANT_CLAIM";
 
     public string? Authority { get; set; }
-    public string? BaseUrl { get; set; }
+    public Uri? BaseUrl { get; set; }
     public string? Audience { get; set; }
     public string TenantClaim { get; set; } = "qyl.tenant_id";
 

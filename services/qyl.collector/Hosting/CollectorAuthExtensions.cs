@@ -42,7 +42,9 @@ public static class CollectorAuthExtensions
         services.Configure<KeycloakOptions>(opts =>
         {
             opts.Authority = config[KeycloakOptions.AuthorityEnvVar];
-            opts.BaseUrl = config[KeycloakOptions.BaseUrlEnvVar];
+            opts.BaseUrl = Uri.TryCreate(config[KeycloakOptions.BaseUrlEnvVar], UriKind.Absolute, out var baseUrl)
+                ? baseUrl
+                : null;
             opts.Audience = config[KeycloakOptions.AudienceEnvVar];
 
             var tenantClaim = config[KeycloakOptions.TenantClaimEnvVar];
@@ -57,6 +59,13 @@ public static class CollectorAuthExtensions
         return services;
     }
 
+    /// <summary>
+    /// Wires Keycloak-issued JWT bearer validation and the <see cref="QylAgentInventoryEndpoint.AdminPolicy"/>
+    /// authorization policy — but only when an Authority and Audience are configured. Without them (e.g. local
+    /// dev), authentication stays off entirely and admin-gated endpoints fall back to their dev-open /
+    /// prod-locked-down behaviour (see <see cref="QylAgentInventoryEndpoint"/>). This keeps an unconfigured
+    /// collector from failing at startup while ensuring a deployed collector validates real tokens.
+    /// </summary>
     private static void AddKeycloakJwtBearer(
         IServiceCollection services,
         IConfiguration config,
@@ -91,6 +100,8 @@ public static class CollectorAuthExtensions
                 };
             });
 
+        // QylAdmin gates the agent-inventory endpoint behind a validated Keycloak identity. Tightening this
+        // to a Keycloak realm/client role is the intended next step once an admin role taxonomy is defined.
         services.AddAuthorization(options =>
             options.AddPolicy(
                 QylAgentInventoryEndpoint.AdminPolicy,
