@@ -2,41 +2,6 @@
 namespace Qyl.Collector.Ingestion;
 
 
-public static class SchemaNormalizer
-{
-    private static readonly FrozenDictionary<string, string> s_deprecatedMappings =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["gen_ai.system"] = "gen_ai.provider.name",
-            ["gen_ai.prompt"] = "gen_ai.input.messages",
-            ["gen_ai.completion"] = "gen_ai.output.messages",
-            ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-            ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
-            ["gen_ai.openai.request.seed"] = "gen_ai.request.seed",
-
-            ["gen_ai.openai.request.service_tier"] = "openai.request.service_tier",
-            ["gen_ai.openai.response.service_tier"] = "openai.response.service_tier",
-            ["gen_ai.openai.response.system_fingerprint"] = "openai.response.system_fingerprint",
-
-            ["agents.agent.id"] = "gen_ai.agent.id",
-            ["agents.agent.name"] = "gen_ai.agent.name",
-            ["agents.agent.description"] = "gen_ai.agent.description",
-            ["agents.tool.name"] = "gen_ai.tool.name",
-            ["agents.tool.call_id"] = "gen_ai.tool.call.id",
-
-            ["code.function"] = "code.function.name",
-            ["code.filepath"] = "code.file.path",
-            ["code.lineno"] = "code.line.number",
-
-            ["db.system"] = "db.system.name"
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string Normalize(string attributeName) =>
-        s_deprecatedMappings.GetValueOrDefault(attributeName, attributeName);
-}
-
-
 public sealed record OtlpExportTraceServiceRequest
 {
     public List<OtlpResourceSpans>? ResourceSpans { get; init; }

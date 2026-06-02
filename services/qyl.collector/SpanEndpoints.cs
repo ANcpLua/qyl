@@ -16,7 +16,7 @@ internal static class SpanEndpoints
             {
                 var attrs = JsonSerializer.Deserialize(attrJson,
                     QylSerializerContext.Default.DictionaryStringString);
-                if (attrs?.TryGetValue("service.name", out var svc) == true)
+                if (attrs?.TryGetValue(SemanticAttributeKeys.ServiceName, out var svc) == true)
                     serviceName = svc;
             }
             catch (JsonException ex)

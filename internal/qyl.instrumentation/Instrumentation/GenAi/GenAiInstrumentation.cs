@@ -134,11 +134,11 @@ public static class GenAiInstrumentation
 
     private static readonly Histogram<long> s_tokenUsageHistogram =
         ActivitySources.GenAiMeter.CreateHistogram<long>(
-            "gen_ai.client.token.usage", "{token}", "Token usage");
+            GenAiConstants.TokenUsageMetricName, "{token}", "Token usage");
 
     private static readonly Histogram<double> s_operationDurationHistogram =
         ActivitySources.GenAiMeter.CreateHistogram<double>(
-            "gen_ai.client.operation.duration", "s", "Operation duration");
+            GenAiConstants.OperationDurationMetricName, "s", "Operation duration");
 
     public static async Task<T> ExecuteAsync<T>(
         string provider,

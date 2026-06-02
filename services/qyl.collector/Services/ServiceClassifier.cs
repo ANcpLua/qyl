@@ -14,14 +14,19 @@ public static class ServiceClassifier
         if (IsClaudeCode(resourceAttributes, spanAttributes))
             return TypeAiAgent;
 
-        if (HasPrefixKey(spanAttributes, "gen_ai.agent."))
+        if (HasAnyKey(
+                spanAttributes,
+                SemanticAttributeKeys.GenAiAgentName,
+                SemanticAttributeKeys.GenAiAgentId,
+                SemanticAttributeKeys.GenAiAgentDescription,
+                SemanticAttributeKeys.GenAiAgentVersion))
             return TypeAiAgent;
 
-        if (HasPrefixKey(spanAttributes, "mcp."))
+        if (HasPrefixKey(spanAttributes, SemanticAttributeKeys.McpPrefix))
             return TypeMcpServer;
 
-        if (HasKey(resourceAttributes, "gen_ai.provider.name") ||
-            HasKey(spanAttributes, "gen_ai.provider.name"))
+        if (HasKey(resourceAttributes, SemanticAttributeKeys.GenAiProviderName) ||
+            HasKey(spanAttributes, SemanticAttributeKeys.GenAiProviderName))
             return TypeLlmProvider;
 
         return TypeTraditional;
@@ -32,11 +37,11 @@ public static class ServiceClassifier
         IReadOnlyDictionary<string, string>? span)
     {
         if (resource is not null &&
-            resource.TryGetValue("meter.name", out var meterName) &&
+            resource.TryGetValue(SemanticAttributeKeys.MeterName, out var meterName) &&
             meterName == "com.anthropic.claude_code")
             return true;
 
-        return span is not null && span.Any(static kvp => kvp.Key.StartsWithOrdinal("claude_code."));
+        return span is not null && span.Any(static kvp => kvp.Key.StartsWithOrdinal(SemanticAttributeKeys.ClaudeCodePrefix));
     }
 
     private static bool HasPrefixKey(
@@ -48,4 +53,18 @@ public static class ServiceClassifier
         IReadOnlyDictionary<string, string>? attrs,
         string key) =>
         attrs is not null && attrs.ContainsKey(key);
+
+    private static bool HasAnyKey(
+        IReadOnlyDictionary<string, string>? attrs,
+        params ReadOnlySpan<string> keys)
+    {
+        if (attrs is null) return false;
+        foreach (var key in keys)
+        {
+            if (attrs.ContainsKey(key))
+                return true;
+        }
+
+        return false;
+    }
 }

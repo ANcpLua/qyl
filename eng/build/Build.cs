@@ -28,7 +28,7 @@ sealed class Build : NukeBuild,
     ISmoke
 {
     [GitVersion(Framework = "net10.0", NoCache = true, NoFetch = true)]
-    internal readonly GitVersion? Versioning;
+    internal readonly GitVersion? Versioning = null!;
 
 
     Target Clean => d => d

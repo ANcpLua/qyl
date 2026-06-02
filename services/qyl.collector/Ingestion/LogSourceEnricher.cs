@@ -15,16 +15,16 @@ public sealed class LogSourceEnricher
     {
         var attrs = ToAttributeMap(log.Attributes);
 
-        var file = attrs.GetValueOrDefault("code.file.path");
-        var method = attrs.GetValueOrDefault("code.function.name");
-        var line = ParseInt(attrs.GetValueOrDefault("code.line.number"));
-        var column = ParseInt(attrs.GetValueOrDefault("code.column.number"));
+        var file = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFilePath);
+        var method = attrs.GetValueOrDefault(SemanticAttributeKeys.CodeFunctionName);
+        var line = ParseInt(attrs.GetValueOrDefault(SemanticAttributeKeys.CodeLineNumber));
+        var column = ParseInt(attrs.GetValueOrDefault(SemanticAttributeKeys.CodeColumnNumber));
 
         if (!string.IsNullOrWhiteSpace(file) || line.HasValue || column.HasValue || !string.IsNullOrWhiteSpace(method))
             return new SourceLocation(file, line, column, method);
 
-        var stackTrace = attrs.GetValueOrDefault("exception.stacktrace")
-                         ?? attrs.GetValueOrDefault("code.stacktrace");
+        var stackTrace = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionStacktrace)
+                         ?? attrs.GetValueOrDefault(SemanticAttributeKeys.CodeStacktrace);
 
         if (!string.IsNullOrWhiteSpace(stackTrace))
         {
@@ -50,8 +50,7 @@ public sealed class LogSourceEnricher
             if (string.IsNullOrWhiteSpace(kv.Key))
                 continue;
 
-            var key = SchemaNormalizer.Normalize(kv.Key);
-            map[key] = kv.Value?.StringValue
+            map[kv.Key] = kv.Value?.StringValue
                        ?? kv.Value?.IntValue?.ToString(CultureInfo.InvariantCulture)
                        ?? kv.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
                        ?? kv.Value?.BoolValue?.ToString();

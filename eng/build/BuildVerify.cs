@@ -137,7 +137,6 @@ interface IVerify : IHazSourcePaths
 
             string[] activeGeneratedPrefixes =
             [
-                "services/qyl.collector/Observe/Generated/",
                 "services/qyl.collector/Storage/"
             ];
 

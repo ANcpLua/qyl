@@ -6,17 +6,17 @@ namespace Qyl.Collector.Query;
 public sealed class AnalyticsQueryService(DuckDbStore store)
 {
 
-    private const string ConversationIdExpr =
-        "COALESCE(attributes_json->>'gen_ai.conversation.id', session_id, trace_id)";
+    private static readonly string ConversationIdExpr =
+        "COALESCE(" + DuckDbJson.ArrowString("attributes_json", SemanticAttributeKeys.GenAiConversationId) + ", session_id, trace_id)";
 
-    private const string OperationNameExpr =
-        "attributes_json->>'gen_ai.operation.name'";
+    private static readonly string OperationNameExpr =
+        DuckDbJson.ArrowString("attributes_json", SemanticAttributeKeys.GenAiOperationName);
 
-    private const string EnduserIdExpr =
-        "attributes_json->>'enduser.id'";
+    private static readonly string EnduserIdExpr =
+        DuckDbJson.ArrowString("attributes_json", SemanticAttributeKeys.EnduserId);
 
-    private const string DataSourceIdExpr =
-        "attributes_json->>'gen_ai.data_source.id'";
+    private static readonly string DataSourceIdExpr =
+        DuckDbJson.ArrowString("attributes_json", SemanticAttributeKeys.GenAiDataSourceId);
 
     private const string DurationMsExpr = "duration_ns / 1000000.0";
 

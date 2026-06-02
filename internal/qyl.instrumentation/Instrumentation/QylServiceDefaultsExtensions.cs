@@ -20,6 +20,7 @@ using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
 using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
+using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -151,7 +152,7 @@ public static class QylServiceDefaultsExtensions
                     .AddService(serviceName, serviceVersion: serviceVersion)
                     .AddAttributes([
                         new KeyValuePair<string, object>("telemetry.schema_url",
-                            "https://opentelemetry.io/schemas/1.40.0")
+                            OtelSchemaUrl.Current)
                     ]);
 
                 if (options.CapabilityAttributes.Count > 0)

@@ -78,7 +78,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await LogQueryAuditAsync(queryText, entityType, projectId, results.Count, ct).ConfigureAwait(false);
 
-        LogSearchExecuted(queryText, results.Count);
+        LogSearchExecuted(results.Count);
         return results;
     }
 
@@ -190,8 +190,8 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
 
     [LoggerMessage(Level = LogLevel.Debug,
-        Message = "Search executed: '{QueryText}' returned {ResultCount} results")]
-    private partial void LogSearchExecuted(string queryText, int resultCount);
+        Message = "Search executed with {ResultCount} results")]
+    private partial void LogSearchExecuted(int resultCount);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Audit logging failed")]

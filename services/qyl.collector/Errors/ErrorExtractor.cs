@@ -10,19 +10,19 @@ public static class ErrorExtractor
 
         var attrs = ParseAttributesJson(span.AttributesJson);
 
-        var exceptionType = attrs.GetValueOrDefault("exception.type")
-                            ?? attrs.GetValueOrDefault("error.type")
+        var exceptionType = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionType)
+                            ?? attrs.GetValueOrDefault(SemanticAttributeKeys.ErrorType)
                             ?? span.Name;
-        var exceptionMessage = attrs.GetValueOrDefault("exception.message")
+        var exceptionMessage = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionMessage)
                                ?? span.StatusMessage
                                ?? "Unknown error";
-        var stackTrace = attrs.GetValueOrDefault("exception.stacktrace");
-        var genAiErrorType = attrs.GetValueOrDefault("gen_ai.error.type");
-        var genAiOperation = attrs.GetValueOrDefault("gen_ai.operation.name");
-        var genAiFinishReasons = attrs.GetValueOrDefault("gen_ai.response.finish_reasons");
-        var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault("gen_ai.tool.name");
-        var genAiAgentName = attrs.GetValueOrDefault("gen_ai.agent.name");
-        var genAiAgentId = attrs.GetValueOrDefault("gen_ai.agent.id");
+        var stackTrace = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionStacktrace);
+        var genAiErrorType = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiErrorType);
+        var genAiOperation = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiOperationName);
+        var genAiFinishReasons = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseFinishReasons);
+        var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiToolName);
+        var genAiAgentName = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentName);
+        var genAiAgentId = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentId);
 
         var category = ErrorCategorizer.Categorize(exceptionType, genAiErrorType, genAiFinishReasons, exceptionMessage);
         var fingerprint = ErrorFingerprinter.Compute(
@@ -43,7 +43,8 @@ public static class ErrorExtractor
             Fingerprint = fingerprint,
             ServiceName = span.ServiceName ?? "unknown",
             TraceId = span.TraceId,
-            UserId = attrs.GetValueOrDefault("enduser.id") ?? attrs.GetValueOrDefault("user.id"),
+            UserId = attrs.GetValueOrDefault(SemanticAttributeKeys.EnduserId)
+                     ?? attrs.GetValueOrDefault(SemanticAttributeKeys.UserId),
             GenAiProvider = span.GenAiProviderName,
             GenAiModel = span.GenAiRequestModel,
             GenAiOperation = genAiOperation,

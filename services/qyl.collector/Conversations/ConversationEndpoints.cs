@@ -87,11 +87,12 @@ internal static class ConversationEndpoints
         return await store.ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
+            var agentNameExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.GenAiAgentName);
 
             var agentFilter = string.IsNullOrWhiteSpace(agent)
                 ? string.Empty
                 : " AND session_id IN (SELECT session_id FROM qyl_conversations"
-                  + " WHERE json_extract_string(attributes_json, '$.\"gen_ai.agent.name\"') = $"
+                  + " WHERE " + agentNameExpr + " = $"
                   + cmd.AddParam(agent) + ")";
 
             // Keep CommandText free of interpolated strings so the SQL analyzer can validate it.
@@ -163,18 +164,18 @@ internal static class ConversationEndpoints
         var (spans, firstSeen, lastSeen, totalCost, firstAgentName) = await store.ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT span_id, trace_id, parent_span_id, name, service_name,
-                                     start_time_unix_nano, duration_ns,
-                                     gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
-                                     gen_ai_input_tokens, gen_ai_output_tokens,
-                                     gen_ai_tool_name, gen_ai_tool_call_id, gen_ai_cost_usd,
-                                     status_code, status_message, attributes_json,
-                                     json_extract_string(attributes_json, '$."gen_ai.agent.name"') AS agent_name
-                              FROM qyl_conversations
-                              WHERE session_id = $1
-                              ORDER BY start_time_unix_nano ASC;
-                              """;
+            var agentNameExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.GenAiAgentName);
+            cmd.CommandText =
+                "SELECT span_id, trace_id, parent_span_id, name, service_name, "
+                + "start_time_unix_nano, duration_ns, "
+                + "gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model, "
+                + "gen_ai_input_tokens, gen_ai_output_tokens, "
+                + "gen_ai_tool_name, gen_ai_tool_call_id, gen_ai_cost_usd, "
+                + "status_code, status_message, attributes_json, "
+                + agentNameExpr + " AS agent_name "
+                + "FROM qyl_conversations "
+                + "WHERE session_id = $1 "
+                + "ORDER BY start_time_unix_nano ASC;";
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             var rows = new List<ConversationSpan>();
@@ -226,9 +227,7 @@ internal static class ConversationEndpoints
         if (spans.Count == 0)
             return TypedResults.NotFound(new { error = "No conversation found for sessionId", sessionId });
 
-        s_spanCountHistogram.Record(
-            spans.Count,
-            new KeyValuePair<string, object?>("agent_name", firstAgentName ?? "unknown"));
+        s_spanCountHistogram.Record(spans.Count);
 
         return TypedResults.Ok(new ConversationDetail(
             sessionId,

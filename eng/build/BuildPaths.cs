@@ -26,7 +26,6 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
 sealed record CodegenPaths(AbsolutePath Root)
 {
     AbsolutePath Collector => Root / "services" / "qyl.collector";
-    public AbsolutePath CollectorObserve => Collector / "Observe";
     public AbsolutePath CollectorStorage => Collector / "Storage";
 
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);

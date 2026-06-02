@@ -52,7 +52,7 @@ public static class OtlpConverter
 
         foreach (var attr in resource.Attributes)
         {
-            if (attr is { Key: "service.name", Value.StringValue: not null })
+            if (attr is { Key: SemanticAttributeKeys.ServiceName, Value.StringValue: not null })
                 return attr.Value.StringValue;
         }
 
@@ -78,7 +78,7 @@ public static class OtlpConverter
         List<OtlpKeyValueProto>? protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [SemanticAttributeKeys.ServiceName] = serviceName };
 
         if (protoAttributes is null) return attributes;
 
@@ -140,7 +140,7 @@ public static class OtlpConverter
         foreach (var resourceSpan in otlp.ResourceSpans ?? [])
         {
             var serviceName = resourceSpan.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
+                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
                               ?? "unknown";
             var resourceJson = SerializeAttributes(resourceSpan.Resource?.Attributes);
             var schemaUrl = resourceSpan.SchemaUrl;
@@ -168,7 +168,7 @@ public static class OtlpConverter
         List<OtlpKeyValue>? jsonAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [SemanticAttributeKeys.ServiceName] = serviceName };
 
         if (jsonAttributes is null) return attributes;
 
@@ -215,9 +215,7 @@ public static class OtlpConverter
             SpanId = spanId ?? "",
             TraceId = traceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
-            SessionId = attributes.GetValueOrDefault("gen_ai.conversation.id")
-                        ?? attributes.GetValueOrDefault("mcp.session.id")
-                        ?? attributes.GetValueOrDefault("session.id"),
+            SessionId = attributes.GetFirstValueOrDefault(SemanticAttributeKeys.SessionCorrelationKeys),
             Name = name ?? "unknown",
             Kind = ConvertSpanKindToByte(kind),
             StartTimeUnixNano = startNano,
@@ -249,7 +247,7 @@ public static class OtlpConverter
         IReadOnlyDictionary<string, string>? spanAttributes,
         ulong timestampNano)
     {
-        if (!resourceAttributes.TryGetValue("service.name", out var serviceName) ||
+        if (!resourceAttributes.TryGetValue(SemanticAttributeKeys.ServiceName, out var serviceName) ||
             serviceName is "unknown" or "")
             return null;
 
@@ -259,7 +257,7 @@ public static class OtlpConverter
         Dictionary<string, string>? capabilities = null;
         foreach (var (key, value) in resourceAttributes)
         {
-            if (!key.StartsWithOrdinal("qyl.capability.") || string.IsNullOrEmpty(value))
+            if (!key.StartsWithOrdinal(SemanticAttributeKeys.QylCapabilityPrefix) || string.IsNullOrEmpty(value))
                 continue;
             capabilities ??= new Dictionary<string, string>(StringComparer.Ordinal);
             capabilities[key] = value;
@@ -270,19 +268,18 @@ public static class OtlpConverter
 
         return new ServiceInstanceRecord
         {
-            ServiceNamespace = resourceAttributes.GetValueOrDefault("service.namespace") ?? "",
+            ServiceNamespace = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceNamespace) ?? "",
             ServiceName = serviceName,
-            ServiceInstanceId = resourceAttributes.GetValueOrDefault("service.instance.id")
+            ServiceInstanceId = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceInstanceId)
                                 ?? Environment.MachineName,
             ServiceType = serviceType,
-            ServiceVersion = resourceAttributes.GetValueOrDefault("service.version"),
-            DeploymentEnvironment = resourceAttributes.GetValueOrDefault("deployment.environment.name")
-                                    ?? resourceAttributes.GetValueOrDefault("deployment.environment"),
-            OsType = resourceAttributes.GetValueOrDefault("os.type"),
-            HostArch = resourceAttributes.GetValueOrDefault("host.arch"),
-            AgentName = resourceAttributes.GetValueOrDefault("gen_ai.agent.name"),
-            ProviderName = resourceAttributes.GetValueOrDefault("gen_ai.provider.name"),
-            DefaultModel = resourceAttributes.GetValueOrDefault("gen_ai.request.model"),
+            ServiceVersion = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.ServiceVersion),
+            DeploymentEnvironment = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.DeploymentEnvironmentName),
+            OsType = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.OsType),
+            HostArch = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.HostArch),
+            AgentName = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentName),
+            ProviderName = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiProviderName),
+            DefaultModel = resourceAttributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestModel),
             TimestampNano = timestampNano,
             MetadataJson = metadataJson
         };
@@ -312,7 +309,7 @@ public static class OtlpConverter
             if (firstSpan is not null)
             {
                 spanAttrs = ExtractAttributesFromJson(firstSpan.Attributes,
-                    resourceAttrs.GetValueOrDefault("service.name") ?? "unknown");
+                    resourceAttrs.GetValueOrDefault(SemanticAttributeKeys.ServiceName) ?? "unknown");
                 timestamp = firstSpan.StartTimeUnixNano;
             }
 
@@ -351,7 +348,7 @@ public static class OtlpConverter
             if (firstSpan is not null)
             {
                 spanAttrs = ExtractAttributesFromProto(firstSpan.Attributes,
-                    resourceAttrs.GetValueOrDefault("service.name") ?? "unknown");
+                    resourceAttrs.GetValueOrDefault(SemanticAttributeKeys.ServiceName) ?? "unknown");
                 timestamp = firstSpan.StartTimeUnixNano;
             }
 
@@ -441,26 +438,22 @@ public static class OtlpConverter
 
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
-        var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
-                           ?? attributes.GetValueOrDefault("gen_ai.system");
+        var providerName = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiProviderName);
 
-        var requestModel = attributes.GetValueOrDefault("gen_ai.request.model");
-        var responseModel = attributes.GetValueOrDefault("gen_ai.response.model");
+        var requestModel = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestModel);
+        var responseModel = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseModel);
 
         var tokensIn = ParseNullableLong(
-            attributes.GetValueOrDefault("gen_ai.usage.input_tokens")
-            ?? attributes.GetValueOrDefault("gen_ai.usage.prompt_tokens"));
+            attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiUsageInputTokens));
 
         var tokensOut = ParseNullableLong(
-            attributes.GetValueOrDefault("gen_ai.usage.output_tokens")
-            ?? attributes.GetValueOrDefault("gen_ai.usage.completion_tokens"));
+            attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiUsageOutputTokens));
 
-        var temperature = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.request.temperature"));
-        var stopReason = attributes.GetValueOrDefault("gen_ai.response.finish_reasons")
-                         ?? attributes.GetValueOrDefault("gen_ai.response.finish_reason");
-        var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
-        var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
-        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));
+        var temperature = ParseNullableDouble(attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiRequestTemperature));
+        var stopReason = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseFinishReasons);
+        var toolName = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiToolName);
+        var toolCallId = attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiToolCallId);
+        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault(SemanticAttributeKeys.GenAiCostUsd));
 
         return new GenAiData(
             providerName, requestModel, responseModel,
@@ -506,7 +499,7 @@ public static class OtlpConverter
         foreach (var resourceLogs in otlp.ResourceLogs ?? [])
         {
             var serviceName = resourceLogs.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
+                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
                               ?? "unknown";
 
             var resourceJson = SerializeAttributes(resourceLogs.Resource?.Attributes);
@@ -528,7 +521,7 @@ public static class OtlpConverter
     {
         var sessionId = log.Attributes?
             .FirstOrDefault(static a =>
-                a.Key.EqualsAnyOrdinal("gen_ai.conversation.id", "mcp.session.id", "session.id"))
+                a.Key is not null && a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
             ?.Value?.StringValue;
 
         var body = log.Body?.StringValue
@@ -597,7 +590,7 @@ public static class OtlpConverter
         foreach (var resourceProfiles in otlp.ResourceProfiles ?? [])
         {
             var serviceName = resourceProfiles.Resource?.Attributes?
-                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
+                                  .FirstOrDefault(static a => a.Key == SemanticAttributeKeys.ServiceName)?.Value?.StringValue
                               ?? "unknown";
 
             var resourceJson = SerializeAttributes(resourceProfiles.Resource?.Attributes);
@@ -630,7 +623,7 @@ public static class OtlpConverter
 
         var sessionId = profile.Attributes?
             .FirstOrDefault(static a =>
-                a.Key.EqualsAnyOrdinal("gen_ai.conversation.id", "mcp.session.id", "session.id"))
+                a.Key is not null && a.Key.IsAny(SemanticAttributeKeys.SessionCorrelationKeys))
             ?.Value?.StringValue;
 
         var profileFrameType = profile.Attributes?

@@ -20,15 +20,15 @@ public static class DashboardQueries
         DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
+        var requestMethodFilter = DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.HttpRequestMethod);
 
-        var stats = QueryStats(con, """
-                                               SELECT
-                                                   COUNT(*) AS total_requests,
-                                                   ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
-                                               FROM spans
-                                               WHERE attributes_json LIKE '%http.request.method%'
-                                               """);
+        var stats = QueryStats(con,
+            "SELECT "
+            + "COUNT(*) AS total_requests, "
+            + "ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate "
+            + "FROM spans "
+            + "WHERE " + requestMethodFilter);
 
         if (stats.Count > 0)
         {
@@ -40,36 +40,36 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topRoutes = QueryTopN(con, """
-                                                  SELECT
-                                                      COALESCE(
-                                                          json_extract_string(attributes_json, '$.http.route'),
-                                                          json_extract_string(attributes_json, '$.url.path'),
-                                                          name
-                                                      ) AS route_name,
-                                                      ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
-                                                      COUNT(*) AS call_count,
-                                                      ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
-                                                  FROM spans
-                                                  WHERE attributes_json LIKE '%http.request.method%'
-                                                  GROUP BY route_name
-                                                  ORDER BY p95_ms DESC
-                                                  LIMIT 10
-                                                  """, "route_name", "p95_ms", "ms", "call_count", "err_rate");
+        var routeExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.HttpRoute);
+        var urlPathExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.UrlPath);
+        var topRoutes = QueryTopN(con,
+            "SELECT "
+            + "COALESCE("
+            + routeExpr + ", "
+            + urlPathExpr + ", "
+            + "name"
+            + ") AS route_name, "
+            + "ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms, "
+            + "COUNT(*) AS call_count, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate "
+            + "FROM spans "
+            + "WHERE " + requestMethodFilter + " "
+            + "GROUP BY route_name "
+            + "ORDER BY p95_ms DESC "
+            + "LIMIT 10", "route_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topRoutes.Count > 0)
             widgets.Add(new DashboardWidget("api-top-routes", "Top Routes by P95 Latency", "table", topRoutes));
 
-        var throughput = QueryTimeSeries(con, """
-                                                         SELECT
-                                                             strftime(time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1e9)), '%H:%M') AS bucket,
-                                                             COUNT(*) AS req_count
-                                                         FROM spans
-                                                         WHERE attributes_json LIKE '%http.request.method%'
-                                                           AND start_time_unix_nano >= (epoch_ns(now()) - 86400000000000)
-                                                         GROUP BY bucket
-                                                         ORDER BY bucket
-                                                         """, "bucket", "req_count");
+        var throughput = QueryTimeSeries(con,
+            "SELECT "
+            + "strftime(time_bucket(INTERVAL '1 hour', to_timestamp(start_time_unix_nano / 1e9)), '%H:%M') AS bucket, "
+            + "COUNT(*) AS req_count "
+            + "FROM spans "
+            + "WHERE " + requestMethodFilter + " "
+            + "AND start_time_unix_nano >= (epoch_ns(now()) - 86400000000000) "
+            + "GROUP BY bucket "
+            + "ORDER BY bucket", "bucket", "req_count");
 
         if (throughput.Count > 0)
             widgets.Add(new DashboardWidget("api-throughput", "Request Throughput (24h)", "chart", throughput));
@@ -82,16 +82,21 @@ public static class DashboardQueries
         DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
+        var outboundFilter = "kind = 3 AND ("
+                             + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.HttpRequestMethod)
+                             + " OR "
+                             + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.ServerAddress)
+                             + " OR "
+                             + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.UrlFull)
+                             + ")";
 
-        var stats = QueryStats(con, """
-                                               SELECT
-                                                   COUNT(*) AS total_calls,
-                                                   ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
-                                               FROM spans
-                                               WHERE (attributes_json LIKE '%http.client%' OR kind = 3)
-                                                 AND attributes_json LIKE '%http.%'
-                                               """);
+        var stats = QueryStats(con,
+            "SELECT "
+            + "COUNT(*) AS total_calls, "
+            + "ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate "
+            + "FROM spans "
+            + "WHERE " + outboundFilter);
 
         if (stats.Count > 0)
         {
@@ -103,24 +108,23 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topHosts = QueryTopN(con, """
-                                                 SELECT
-                                                     COALESCE(
-                                                         json_extract_string(attributes_json, '$.server.address'),
-                                                         json_extract_string(attributes_json, '$.http.host'),
-                                                         json_extract_string(attributes_json, '$.url.full'),
-                                                         name
-                                                     ) AS host_name,
-                                                     ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
-                                                     COUNT(*) AS call_count,
-                                                     ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
-                                                 FROM spans
-                                                 WHERE (attributes_json LIKE '%http.client%' OR kind = 3)
-                                                   AND attributes_json LIKE '%http.%'
-                                                 GROUP BY host_name
-                                                 ORDER BY call_count DESC
-                                                 LIMIT 10
-                                                 """, "host_name", "p95_ms", "ms", "call_count", "err_rate");
+        var serverAddressExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.ServerAddress);
+        var urlFullExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.UrlFull);
+        var topHosts = QueryTopN(con,
+            "SELECT "
+            + "COALESCE("
+            + serverAddressExpr + ", "
+            + urlFullExpr + ", "
+            + "name"
+            + ") AS host_name, "
+            + "ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms, "
+            + "COUNT(*) AS call_count, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate "
+            + "FROM spans "
+            + "WHERE " + outboundFilter + " "
+            + "GROUP BY host_name "
+            + "ORDER BY call_count DESC "
+            + "LIMIT 10", "host_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topHosts.Count > 0)
             widgets.Add(new DashboardWidget("ext-top-hosts", "Top External Hosts", "table", topHosts));
@@ -202,16 +206,16 @@ public static class DashboardQueries
         DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
+        var dbSystemFilter = DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.DbSystemName);
 
-        var stats = QueryStats(con, """
-                                               SELECT
-                                                   COUNT(*) AS total_queries,
-                                                   ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_latency_ms,
-                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
-                                               FROM spans
-                                               WHERE attributes_json LIKE '%db.system%'
-                                               """);
+        var stats = QueryStats(con,
+            "SELECT "
+            + "COUNT(*) AS total_queries, "
+            + "ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms, "
+            + "ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_latency_ms, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate "
+            + "FROM spans "
+            + "WHERE " + dbSystemFilter);
 
         if (stats.Count > 0)
         {
@@ -225,22 +229,21 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topOps = QueryTopN(con, """
-                                               SELECT
-                                                   COALESCE(
-                                                       json_extract_string(attributes_json, '$.db.operation.name'),
-                                                       json_extract_string(attributes_json, '$.db.operation'),
-                                                       name
-                                                   ) AS op_name,
-                                                   ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms,
-                                                   COUNT(*) AS call_count,
-                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
-                                               FROM spans
-                                               WHERE attributes_json LIKE '%db.system%'
-                                               GROUP BY op_name
-                                               ORDER BY p95_ms DESC
-                                               LIMIT 10
-                                               """, "op_name", "p95_ms", "ms", "call_count", "err_rate");
+        var dbOperationNameExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.DbOperationName);
+        var topOps = QueryTopN(con,
+            "SELECT "
+            + "COALESCE("
+            + dbOperationNameExpr + ", "
+            + "name"
+            + ") AS op_name, "
+            + "ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns / 1e6), 1) AS p95_ms, "
+            + "COUNT(*) AS call_count, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate "
+            + "FROM spans "
+            + "WHERE " + dbSystemFilter + " "
+            + "GROUP BY op_name "
+            + "ORDER BY p95_ms DESC "
+            + "LIMIT 10", "op_name", "p95_ms", "ms", "call_count", "err_rate");
 
         if (topOps.Count > 0)
             widgets.Add(new DashboardWidget("db-top-ops", "Slowest Operations", "table", topOps));
@@ -308,15 +311,15 @@ public static class DashboardQueries
         DuckDBConnection con)
     {
         var widgets = new List<DashboardWidget>();
+        var messagingSystemFilter = DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.MessagingSystem);
 
-        var stats = QueryStats(con, """
-                                               SELECT
-                                                   COUNT(*) AS total_messages,
-                                                   ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms,
-                                                   ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate
-                                               FROM spans
-                                               WHERE attributes_json LIKE '%messaging.system%'
-                                               """);
+        var stats = QueryStats(con,
+            "SELECT "
+            + "COUNT(*) AS total_messages, "
+            + "ROUND(AVG(duration_ns / 1e6), 1) AS avg_latency_ms, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS error_rate "
+            + "FROM spans "
+            + "WHERE " + messagingSystemFilter);
 
         if (stats.Count > 0)
         {
@@ -328,18 +331,18 @@ public static class DashboardQueries
                 new StatCardData("Errors", stats.GetValueOrDefault("error_rate", "0"), "%")));
         }
 
-        var topSystems = QueryTopN(con, """
-                                                   SELECT
-                                                       COALESCE(json_extract_string(attributes_json, '$.messaging.system'), name) AS system_name,
-                                                       ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms,
-                                                       COUNT(*) AS msg_count,
-                                                       ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate
-                                                   FROM spans
-                                                   WHERE attributes_json LIKE '%messaging.system%'
-                                                   GROUP BY system_name
-                                                   ORDER BY msg_count DESC
-                                                   LIMIT 10
-                                                   """, "system_name", "avg_ms", "ms", "msg_count", "err_rate");
+        var messagingSystemExpr = DuckDbJson.ExtractString("attributes_json", SemanticAttributeKeys.MessagingSystem);
+        var topSystems = QueryTopN(con,
+            "SELECT "
+            + "COALESCE(" + messagingSystemExpr + ", name) AS system_name, "
+            + "ROUND(AVG(duration_ns / 1e6), 1) AS avg_ms, "
+            + "COUNT(*) AS msg_count, "
+            + "ROUND(SUM(CASE WHEN TRY_CAST(status_code AS INTEGER) = 2 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 1) AS err_rate "
+            + "FROM spans "
+            + "WHERE " + messagingSystemFilter + " "
+            + "GROUP BY system_name "
+            + "ORDER BY msg_count DESC "
+            + "LIMIT 10", "system_name", "avg_ms", "ms", "msg_count", "err_rate");
 
         if (topSystems.Count > 0)
             widgets.Add(new DashboardWidget("msg-systems", "Messaging Systems", "table", topSystems));

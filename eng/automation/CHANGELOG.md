@@ -34,7 +34,7 @@ dotnet-contrib contribution.
 **Run order:**
 
 1. Read `AGENTS.md`, this file, and the semconv generator files under `eng/semconv/`.
-2. Confirm the target upstream migration scope is v1.40.0 to v1.41.0 unless Alexander explicitly changes it.
+2. Confirm the target upstream migration scope from repository pins and explicit user input; never infer it from stale notes.
 3. Confirm the generator uses pinned Weaver and pinned upstream semconv source; never fetch `latest`.
 4. Confirm release pins and declarative version-selection config are not mixed:
    - upstream release pin: tag-style source such as `v1.41.0`;
@@ -66,7 +66,7 @@ dotnet-contrib contribution.
 - GenAI execute-tool span naming has `gen_ai.tool.name` available as required by upstream YAML.
 - GraphQL `graphql.document` is not treated as recommended if upstream YAML marks it opt-in.
 - `process.executable` entity metadata and process identifying attributes are preserved.
-- RPC server spans do not retain `client.address` or `client.port` when upstream YAML removed them.
+- RPC server spans do not retain attributes removed by the pinned upstream YAML.
 - New domain-specific exception events across FaaS, GenAI, and Messaging use exception attributes from YAML, not invented
   `error.*` requirements.
 

@@ -22,18 +22,19 @@ public sealed partial class DuckDbStore
         return ExecuteReadAsync<IReadOnlyList<UnclusteredSpan>>(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT s.span_id,
-                                     s.name,
-                                     json_extract_string(s.attributes_json, '$."gen_ai.input.messages"')
-                              FROM spans s
-                              LEFT JOIN span_clusters sc ON s.span_id = sc.span_id
-                              WHERE json_extract_string(s.attributes_json, '$."gen_ai.operation.name"') IS NOT NULL
-                                AND json_extract_string(s.attributes_json, '$."gen_ai.input.messages"') IS NOT NULL
-                                AND sc.span_id IS NULL
-                              ORDER BY s.start_time_unix_nano DESC
-                              LIMIT $1
-                              """;
+            var inputMessagesExpr = DuckDbJson.ExtractString("s.attributes_json", SemanticAttributeKeys.GenAiInputMessages);
+            var operationNameExpr = DuckDbJson.ExtractString("s.attributes_json", SemanticAttributeKeys.GenAiOperationName);
+            cmd.CommandText =
+                "SELECT s.span_id, "
+                + "s.name, "
+                + inputMessagesExpr + " "
+                + "FROM spans s "
+                + "LEFT JOIN span_clusters sc ON s.span_id = sc.span_id "
+                + "WHERE " + operationNameExpr + " IS NOT NULL "
+                + "AND " + inputMessagesExpr + " IS NOT NULL "
+                + "AND sc.span_id IS NULL "
+                + "ORDER BY s.start_time_unix_nano DESC "
+                + "LIMIT $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
             var result = new List<UnclusteredSpan>(limit);

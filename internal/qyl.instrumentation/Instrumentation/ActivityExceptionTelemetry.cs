@@ -11,19 +11,18 @@ public static class ActivityExceptionTelemetry
 
     private const string ExceptionStacktrace = ExceptionAttributes.Stacktrace;
 
-    private const string ExceptionEscaped = "exception.escaped";
+    public const string ExceptionSource = "exception.source";
 
     public static void Record(
         Activity? activity,
         Exception exception,
-        string? errorType = null,
-        bool escaped = true)
+        string? errorType = null)
     {
         if (activity is null)
             return;
 
         ApplyError(activity, exception, errorType);
-        activity.AddEvent(new ActivityEvent("exception", tags: CreateTags(exception, escaped)));
+        activity.AddEvent(new ActivityEvent("exception", tags: CreateTags(exception)));
     }
 
     public static void ApplyError(
@@ -38,13 +37,12 @@ public static class ActivityExceptionTelemetry
         activity.SetTag(ErrorType, ResolveErrorType(exception, errorType));
     }
 
-    public static ActivityTagsCollection CreateTags(Exception exception, bool escaped = true) =>
+    public static ActivityTagsCollection CreateTags(Exception exception) =>
         new()
         {
             { ExceptionType, exception.GetType().FullName },
             { ExceptionMessage, exception.Message },
-            { ExceptionStacktrace, exception.ToString() },
-            { ExceptionEscaped, escaped }
+            { ExceptionStacktrace, exception.ToString() }
         };
 
     public static string ResolveErrorType(Exception exception, string? errorType = null) =>

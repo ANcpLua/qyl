@@ -1,4 +1,5 @@
 using OpenTelemetry;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
@@ -10,18 +11,17 @@ public sealed class QylGenAiCostProcessor : BaseProcessor<Activity>
     {
         if (data is null) return;
 
-        var model = TagAsString(data, "gen_ai.request.model")
-                    ?? TagAsString(data, "gen_ai.response.model");
+        var model = TagAsString(data, GenAiAttributes.RequestModel)
+                    ?? TagAsString(data, GenAiAttributes.ResponseModel);
         if (string.IsNullOrEmpty(model)) return;
 
-        var provider = TagAsString(data, "gen_ai.provider.name")
-                       ?? TagAsString(data, "gen_ai.system");
+        var provider = TagAsString(data, GenAiAttributes.ProviderName);
 
         if (!QylPricingTable.TryGet(provider, model, out var entry))
             return;
 
-        var inputTokens = TagAsInt64(data, "gen_ai.usage.input_tokens", "gen_ai.usage.prompt_tokens");
-        var outputTokens = TagAsInt64(data, "gen_ai.usage.output_tokens", "gen_ai.usage.completion_tokens");
+        var inputTokens = TagAsInt64(data, GenAiAttributes.UsageInputTokens);
+        var outputTokens = TagAsInt64(data, GenAiAttributes.UsageOutputTokens);
 
         if (inputTokens is null && outputTokens is null)
             return;
@@ -39,9 +39,9 @@ public sealed class QylGenAiCostProcessor : BaseProcessor<Activity>
             _ => null
         };
 
-    private static long? TagAsInt64(Activity activity, string primary, string fallback)
+    private static long? TagAsInt64(Activity activity, string key)
     {
-        var raw = activity.GetTagItem(primary) ?? activity.GetTagItem(fallback);
+        var raw = activity.GetTagItem(key);
         return raw switch
         {
             long l => l,

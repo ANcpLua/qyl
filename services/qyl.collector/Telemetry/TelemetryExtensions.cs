@@ -54,7 +54,7 @@ public static class TelemetryExtensions
             "storage.duration");
 
         services.RegisterTagNames(
-            "session.id",
+            SemanticAttributeKeys.SessionId,
             "span.count");
 
         services.AddLatencyContext();

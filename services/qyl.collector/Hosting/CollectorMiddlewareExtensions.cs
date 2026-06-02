@@ -31,8 +31,7 @@ public static class CollectorMiddlewareExtensions
                 var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
                 if (exceptionFeature?.Error is { } error)
                 {
-                    ExceptionHandlerLog.UnhandledException(logger, context.Request.Method,
-                        context.Request.Path, context.Request.QueryString.ToString(), error);
+                    ExceptionHandlerLog.UnhandledException(logger, context.Request.Method, error);
                 }
 
                 await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId });
@@ -66,7 +65,6 @@ public static class CollectorMiddlewareExtensions
 
 internal static partial class ExceptionHandlerLog
 {
-    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method} {Path}{Query}")]
-    public static partial void UnhandledException(ILogger logger, string method, string path, string query,
-        Exception error);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method}")]
+    public static partial void UnhandledException(ILogger logger, string method, Exception error);
 }

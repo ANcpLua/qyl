@@ -77,7 +77,7 @@ public static class GlobalExceptionHooks
         ActivityExceptionTelemetry.ApplyError(activity, ex);
 
         var tags = ActivityExceptionTelemetry.CreateTags(ex);
-        tags.Add("exception.source", source);
+        tags.Add(ActivityExceptionTelemetry.ExceptionSource, source);
         activity.AddEvent(new ActivityEvent("exception", tags: tags));
     }
 }

@@ -7,12 +7,18 @@ public sealed class DashboardDetector(DuckDbStore store)
         new("api-performance", "API Performance",
             "Routes ranked by p75/p95 latency, error rates, and throughput",
             "activity",
-            "SELECT 1 FROM spans WHERE attributes_json LIKE '%http.request.method%' LIMIT 1"),
+            "SELECT 1 FROM spans WHERE " + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.HttpRequestMethod) + " LIMIT 1"),
 
         new("external-apis", "External APIs",
             "Outbound HTTP calls, latency, and failure rates",
             "globe",
-            "SELECT 1 FROM spans WHERE (attributes_json LIKE '%http.client%' OR kind = 3) AND attributes_json LIKE '%http.%' LIMIT 1"),
+            "SELECT 1 FROM spans WHERE kind = 3 AND ("
+            + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.HttpRequestMethod)
+            + " OR "
+            + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.ServerAddress)
+            + " OR "
+            + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.UrlFull)
+            + ") LIMIT 1"),
 
         new("genai", "AI / GenAI",
             "Token usage by model, cost tracking, and latency",
@@ -22,7 +28,7 @@ public sealed class DashboardDetector(DuckDbStore store)
         new("database", "Database",
             "Slow queries, call frequency, and error rates by system",
             "database",
-            "SELECT 1 FROM spans WHERE attributes_json LIKE '%db.system%' LIMIT 1"),
+            "SELECT 1 FROM spans WHERE " + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.DbSystemName) + " LIMIT 1"),
 
         new("error-tracker", "Error Tracker",
             "Errors grouped by type, frequency, and recent occurrences",
@@ -32,7 +38,7 @@ public sealed class DashboardDetector(DuckDbStore store)
         new("messaging", "Message Queues",
             "Messaging throughput, latency, and consumer lag",
             "message-square",
-            "SELECT 1 FROM spans WHERE attributes_json LIKE '%messaging.system%' LIMIT 1")
+            "SELECT 1 FROM spans WHERE " + DuckDbJson.ContainsAttribute("attributes_json", SemanticAttributeKeys.MessagingSystem) + " LIMIT 1")
     ];
 
     public async Task<IReadOnlyList<DashboardDefinition>> DetectAsync(CancellationToken ct = default)
