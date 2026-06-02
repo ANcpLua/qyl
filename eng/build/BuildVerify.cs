@@ -205,6 +205,110 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorHasNoLocalHttpDtos => d => d
+        .Unlisted()
+        .Description("Verify collector HTTP DTOs come from Qyl.Api.Contracts")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .SelectMany(file => File.ReadAllLines(file)
+                    .Select((line, index) => (
+                        File: RootDirectory.GetRelativePathTo(file).ToString(),
+                        Line: index + 1,
+                        TypeName: TryGetDeclaredTypeName(line.TrimStart())))
+                    .Where(static declaration => IsLocalHttpDtoName(declaration.TypeName)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector HTTP DTOs come from Qyl.Api.Contracts");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Collector-local HTTP DTO at {File}:{Line}: {Type}",
+                    offender.File, offender.Line, offender.TypeName);
+
+            throw new InvalidOperationException(
+                "Do not create collector-local Request/Response/Dto/Contract types for HTTP routes. " +
+                "Add or regenerate the model in qyl-api-schema, publish Qyl.Api.Contracts, then consume it here.");
+
+            static bool IsLocalHttpDtoName(string? typeName) =>
+                typeName is not null &&
+                (typeName.EndsWith("Request", StringComparison.Ordinal) ||
+                 typeName.EndsWith("Response", StringComparison.Ordinal) ||
+                 typeName.EndsWith("Dto", StringComparison.Ordinal) ||
+                 typeName.EndsWith("Contract", StringComparison.Ordinal));
+        });
+
+    Target VerifyCollectorEndpointResponsesUseContracts => d => d
+        .Unlisted()
+        .Description("Verify collector endpoints do not return storage DTOs directly")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] directStorageResponseTokens =
+            [
+                "Results.Ok(spans",
+                "TypedResults.Ok(spans",
+                "Results.Ok(logs",
+                "TypedResults.Ok(logs",
+                "Results.Ok(profiles",
+                "TypedResults.Ok(profiles",
+                "Results.Ok(stats",
+                "TypedResults.Ok(stats",
+                "Results.Ok(session",
+                "TypedResults.Ok(session",
+                "Results.Ok(detail",
+                "TypedResults.Ok(detail",
+                "Results.Ok(rows",
+                "TypedResults.Ok(rows",
+                "JsonSerializable(typeof(SpanStorageRow))",
+                "JsonSerializable(typeof(LogStorageRow))",
+                "JsonSerializable(typeof(ProfileStorageRow))",
+                "JsonSerializable(typeof(SessionQueryRow))",
+                "JsonSerializable(typeof(StorageStats))",
+                "JsonSerializable(typeof(SessionGenAiStats))"
+            ];
+
+            AbsolutePath[] endpointFiles =
+            [
+                CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs",
+                CollectorDirectory / "SpanEndpoints.cs",
+                CollectorDirectory / "QylSerializerContext.cs"
+            ];
+
+            var offenders = endpointFiles
+                .Where(static file => file.FileExists())
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => directStorageResponseTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector endpoint responses are contract-backed");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Direct storage response token '{Token}' found in {File}", offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not return storage rows, storage stats, or local DTOs directly from HTTP endpoints. " +
+                "Map storage internals to Qyl.Api.Contracts in Mapping/Mappers.cs before returning.");
+        });
+
     Target VerifyCollectorUsesSemanticConstants => d => d
         .Unlisted()
         .Description("Verify collector semantic attribute keys flow through generated constants")
@@ -806,6 +910,8 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorHasNoUnexpectedPublicTypes)
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
+        .DependsOn(VerifyCollectorHasNoLocalHttpDtos)
+        .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
@@ -821,6 +927,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector public API is explicitly mapped");
             Log.Information("  Collector exposes no public type surface outside Program");
             Log.Information("  Collector-local DTO models are internal");
+            Log.Information("  Collector HTTP DTOs come from Qyl.Api.Contracts");
+            Log.Information("  Collector endpoint responses are contract-backed");
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
@@ -828,4 +936,51 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
+
+    private static string? TryGetDeclaredTypeName(string line)
+    {
+        string[] prefixes =
+        [
+            "public sealed partial record ",
+            "public sealed record ",
+            "public readonly record ",
+            "public partial record ",
+            "public record ",
+            "public sealed partial class ",
+            "public sealed class ",
+            "public static partial class ",
+            "public static class ",
+            "public partial class ",
+            "public class ",
+            "public readonly struct ",
+            "public struct ",
+            "public enum ",
+            "internal sealed partial record ",
+            "internal sealed record ",
+            "internal readonly record ",
+            "internal partial record ",
+            "internal record ",
+            "internal sealed partial class ",
+            "internal sealed class ",
+            "internal static partial class ",
+            "internal static class ",
+            "internal partial class ",
+            "internal class ",
+            "internal readonly struct ",
+            "internal struct ",
+            "internal enum "
+        ];
+
+        foreach (var prefix in prefixes)
+        {
+            if (!line.StartsWith(prefix, StringComparison.Ordinal))
+                continue;
+
+            var nameStart = prefix.Length;
+            var nameEnd = line.IndexOfAny([' ', '(', ':', '<', ';'], nameStart);
+            return nameEnd < 0 ? line[nameStart..] : line[nameStart..nameEnd];
+        }
+
+        return null;
+    }
 }
