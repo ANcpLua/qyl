@@ -53,3 +53,27 @@ public static class QylMetrics
         }
     }
 }
+
+public static class QylLatencyNames
+{
+    public static class Checkpoints
+    {
+        public const string DbQuery = "collector.db_query";
+        public const string SpanIngest = "collector.span_ingest";
+        public const string SpanStore = "collector.span_store";
+        public const string SessionQuery = "collector.session_query";
+        public const string GenAiExtract = "collector.genai_extract";
+    }
+
+    public static class Measures
+    {
+        public const string IngestionDuration = "collector.ingestion_duration";
+        public const string QueryDuration = "collector.query_duration";
+        public const string StorageDuration = "collector.storage_duration";
+    }
+
+    public static class Tags
+    {
+        public const string SpanCount = "collector.span_count";
+    }
+}

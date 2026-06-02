@@ -42,20 +42,20 @@ public static class TelemetryExtensions
         });
 
         services.RegisterCheckpointNames(
-            "db.query",
-            "span.ingest",
-            "span.store",
-            "session.query",
-            "genai.extract");
+            QylLatencyNames.Checkpoints.DbQuery,
+            QylLatencyNames.Checkpoints.SpanIngest,
+            QylLatencyNames.Checkpoints.SpanStore,
+            QylLatencyNames.Checkpoints.SessionQuery,
+            QylLatencyNames.Checkpoints.GenAiExtract);
 
         services.RegisterMeasureNames(
-            "ingestion.duration",
-            "query.duration",
-            "storage.duration");
+            QylLatencyNames.Measures.IngestionDuration,
+            QylLatencyNames.Measures.QueryDuration,
+            QylLatencyNames.Measures.StorageDuration);
 
         services.RegisterTagNames(
             SemanticAttributeKeys.SessionId,
-            "span.count");
+            QylLatencyNames.Tags.SpanCount);
 
         services.AddLatencyContext();
 

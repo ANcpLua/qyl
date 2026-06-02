@@ -254,8 +254,7 @@ interface IVerify : IHazSourcePaths
                 {
                     var path = f.ToString();
                     return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.EndsWith($"{Path.DirectorySeparatorChar}Telemetry{Path.DirectorySeparatorChar}TelemetryExtensions.cs", StringComparison.Ordinal);
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                 })
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
