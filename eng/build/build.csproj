@@ -28,22 +28,10 @@
     <!-- Core NUKE (versions via CPM) -->
     <PackageReference Include="Nuke.Common"/>
     <PackageReference Include="Nuke.Components"/>
-    <!-- Code verification via isolated MSBuild compilation -->
-    <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
-    <!-- DuckDB DDL validation -->
-    <PackageReference Include="DuckDB.NET.Data.Full"/>
     <!-- Transitive security overrides (pulled in by Nuke.Common but with vulnerable
          versions; see Directory.Packages.props for the advisories). -->
     <PackageReference Include="NuGet.Packaging"/>
     <PackageReference Include="System.Security.Cryptography.Xml"/>
   </ItemGroup>
-
-  <!-- TUnit analyzers come transitively via ANcpLua.Roslyn.Utilities.Testing but
-       don't apply to the NUKE build project (which requires a Main method) -->
-  <Target Name="RemoveTUnitAnalyzers" BeforeTargets="CoreCompile">
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::new('%(Filename)').StartsWith('TUnit'))"/>
-    </ItemGroup>
-  </Target>
 
 </Project>

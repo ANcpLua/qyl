@@ -14,7 +14,7 @@
     <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
     <MicrosoftCodeAnalysisAnalyzersVersion>5.3.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.3.0</MicrosoftCodeAnalysisCSharpVersion>
-    <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills + Testing).
+    <!-- Single version for all ANcpLua.Roslyn.Utilities.* packages (Utilities + Sources + Polyfills).
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
     <ANcpLuaRoslynUtilitiesVersion>2.2.26</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAnalyzersVersion>2.0.1</ANcpLuaAnalyzersVersion>

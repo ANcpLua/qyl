@@ -22,16 +22,6 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 }
 
-
-sealed record CodegenPaths(AbsolutePath Root)
-{
-    AbsolutePath Collector => Root / "services" / "qyl.collector";
-    public AbsolutePath CollectorStorage => Collector / "Storage";
-
-    public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
-}
-
-
 interface IVersionize : IHazSourcePaths
 {
     [PathVariable]

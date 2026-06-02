@@ -5,12 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ANcpLua.Roslyn.Utilities.Testing.MSBuild;
-using DuckDB.NET.Data;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
-using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
@@ -19,93 +16,8 @@ namespace Qyl.Build;
 [ParameterPrefix(nameof(IVerify))]
 interface IVerify : IHazSourcePaths
 {
-    [Parameter("Skip verification after generation")]
+    [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
-
-
-    Target VerifyGeneratedCode => d => d
-        .Unlisted()
-        .Description("Verify generated C# code compiles")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(async () =>
-        {
-            var paths = CodegenPaths.From(this);
-            var generatedFiles = paths.CollectorStorage.GlobFiles("*.g.cs")
-                .Where(f => !f.ToString().Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
-                .ToList();
-
-            if (generatedFiles.Count is 0)
-            {
-                Log.Information("No committed generated C# files found to verify");
-                return;
-            }
-
-            Log.Information("Compiling {Count} generated files in isolation...", generatedFiles.Count);
-
-            await using var builder = new ProjectBuilder();
-            builder
-                .WithTargetFramework(Tfm.Net100)
-                .WithOutputType(Val.Library)
-                .WithProperty(Prop.Nullable, Val.Enable)
-                .WithProperty(Prop.ImplicitUsings, Val.Enable);
-
-            foreach (var file in generatedFiles)
-            {
-                var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
-                builder.AddSource(relativePath, await File.ReadAllTextAsync(file));
-            }
-
-            var result = await builder.BuildAsync();
-
-            if (result.Failed)
-            {
-                foreach (var error in result.GetErrors())
-                    Log.Error("  {Error}", error);
-                throw new InvalidOperationException(
-                    $"Generated code compilation failed with {result.GetErrors().Count()} error(s)");
-            }
-
-            Log.Information("Generated code compilation: PASSED ({Count} files)", generatedFiles.Count);
-        });
-
-    Target VerifyDuckDbSchema => d => d
-        .Unlisted()
-        .Description("Verify committed DuckDB schema artifact policy")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(async () =>
-        {
-            var paths = CodegenPaths.From(this);
-            var schemaFile = paths.CollectorStorage / "DuckDbSchema.g.sql";
-
-            if (!schemaFile.FileExists())
-            {
-                Log.Information("No committed TypeSpec DuckDB schema artifact found; collector storage schema is runtime-owned.");
-                return;
-            }
-
-            var sql = await File.ReadAllTextAsync(schemaFile);
-
-            await using var connection = new DuckDBConnection("DataSource=:memory:");
-            connection.Open();
-
-            await using (var command = connection.CreateCommand())
-            {
-                command.CommandText = sql;
-                command.ExecuteNonQuery();
-            }
-
-            var tables = new List<string>();
-            await using (var cmd = connection.CreateCommand())
-            {
-                cmd.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'";
-                await using var reader = cmd.ExecuteReader();
-                while (reader.Read())
-                    tables.Add(reader.GetString(0));
-            }
-
-            Log.Information("DuckDB schema validation: PASSED ({Count} tables: {Tables})",
-                tables.Count, string.Join(", ", tables));
-        });
 
     Target VerifyFrontendTypes => d => d
         .Unlisted()
@@ -121,40 +33,6 @@ interface IVerify : IHazSourcePaths
                 .SetCommand("typecheck"));
 
             Log.Information("Frontend TypeScript types: VALID");
-        });
-
-    Target VerifyGeneratedFilesClean => d => d
-        .Unlisted()
-        .Description("CI gate: verify committed generated files match HEAD")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            Log.Information("Checking for uncommitted generated file changes...");
-
-            var diffOutput = GitTasks.Git(
-                "diff --name-only",
-                RootDirectory, logOutput: false, logInvocation: false);
-
-            string[] activeGeneratedFiles = [];
-
-            var dirtyFiles = diffOutput
-                .Select(static o => o.Text.Trim())
-                .Where(static f => f.Length > 0)
-                .Where(f => activeGeneratedFiles.Contains(f, StringComparer.OrdinalIgnoreCase))
-                .ToList();
-
-            if (dirtyFiles.Count is 0)
-            {
-                Log.Information("All generated files match HEAD");
-                return;
-            }
-
-            foreach (var file in dirtyFiles)
-                Log.Error("  Generated file changed: {File}", file);
-
-            throw new InvalidOperationException(
-                $"{dirtyFiles.Count} committed generated file(s) have uncommitted changes. " +
-                "Run the owning generator and commit the output.");
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
@@ -754,11 +632,8 @@ interface IVerify : IHazSourcePaths
         });
 
     Target Verify => d => d
-        .Description("Run all generated code verification checks")
-        .DependsOn(VerifyGeneratedCode)
-        .DependsOn(VerifyDuckDbSchema)
+        .Description("Run collector and frontend verification checks")
         .DependsOn(VerifyFrontendTypes)
-        .DependsOn(VerifyGeneratedFilesClean)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
@@ -770,10 +645,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  Verification Complete");
             Log.Information("═══════════════════════════════════════════════════════════════");
-            Log.Information("  Generated C# files are absent or compile");
             Log.Information("  Committed TypeSpec DuckDB schema artifact stays absent");
             Log.Information("  Frontend TypeScript types compile");
-            Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");
             Log.Information("  Collector-local DTO models are internal");
             Log.Information("  Collector semantic keys use generated constants");
