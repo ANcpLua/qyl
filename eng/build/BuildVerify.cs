@@ -398,6 +398,12 @@ interface IVerify : IHazSourcePaths
                 "otel-conventions-api"
             ];
 
+            AbsolutePath[] removedPaths =
+            [
+                RootDirectory / "services" / "qyl.collector" / "Observe",
+                RootDirectory / "services" / "qyl.collector" / "Metrics"
+            ];
+
             var offenders = files
                 .Where(static file => file.FileExists())
                 .Select(file => (
@@ -408,7 +414,12 @@ interface IVerify : IHazSourcePaths
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            if (offenders.Count is 0)
+            var pathOffenders = removedPaths
+                .Where(static path => path.FileExists() || Directory.Exists(path.ToString()))
+                .Select(path => RootDirectory.GetRelativePathTo(path).ToString())
+                .ToList();
+
+            if (offenders.Count is 0 && pathOffenders.Count is 0)
             {
                 Log.Information("Removed local build surfaces stayed removed");
                 return;
@@ -416,6 +427,9 @@ interface IVerify : IHazSourcePaths
 
             foreach (var offender in offenders)
                 Log.Error("  Removed build surface '{Token}' found in {File}", offender.Token, offender.File);
+
+            foreach (var path in pathOffenders)
+                Log.Error("  Removed collector surface found: {Path}", path);
 
             throw new InvalidOperationException(
                 "Do not reintroduce removed local build surfaces. qyl-api-schema is the API/schema source of truth.");
