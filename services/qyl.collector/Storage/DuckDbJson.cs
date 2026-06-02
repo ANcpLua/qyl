@@ -8,9 +8,6 @@ internal static class DuckDbJson
     internal static string ArrowString(string column, string attributeKey) =>
         column + "->>" + SqlLiteral(attributeKey);
 
-    internal static string ContainsAttribute(string column, string attributeKey) =>
-        column + " LIKE " + SqlLiteral("%" + attributeKey + "%");
-
     private static string JsonPathLiteral(string attributeKey) =>
         SqlLiteral("$.\"" + attributeKey.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"");
 

@@ -43,7 +43,8 @@ target that actually accepts OTLP metrics. The qyl collector in this repository
 does not currently map OTLP `/v1/metrics`, so this package does not add a qyl
 metric exporter automatically.
 
-Pair with [`Qyl.Client`](https://www.nuget.org/packages/Qyl.Client) for the REST surface.
+Use the OpenAPI contract emitted by `qyl-api-schema` for REST clients. Shared C# DTOs live in
+[`Qyl.Api.Contracts`](https://www.nuget.org/packages/Qyl.Api.Contracts).
 
 ## License
 

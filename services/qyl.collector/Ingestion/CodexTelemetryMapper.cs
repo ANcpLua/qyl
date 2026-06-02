@@ -38,6 +38,10 @@ public static class CodexTelemetryMapper
         attributes.ContainsKey(CodexConversationId) ||
         attributes.ContainsKey(CodexThreadId);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ShouldTransform(SpanStorageRow span) =>
+        IsCodexSpan(span.Name) || HasCodexAttributesFromJson(span.AttributesJson);
+
     public static bool TransformAttributes(string? spanName, IDictionary<string, string> attributes)
     {
         if (!IsCodexSpan(spanName) && !HasCodexAttributes(attributes))
@@ -96,7 +100,7 @@ public static class CodexTelemetryMapper
 
         foreach (var span in spans)
         {
-            if (IsCodexSpan(span.Name) || HasCodexAttributesFromJson(span.AttributesJson))
+            if (ShouldTransform(span))
             {
                 result.Add(TransformSpan(span));
             }
@@ -242,7 +246,7 @@ public static class CodexTelemetryExtensions
 {
     public static SpanBatch WithCodexTransformations(this SpanBatch batch)
     {
-        var needsTransform = batch.Spans.Any(static span => CodexTelemetryMapper.IsCodexSpan(span.Name));
+        var needsTransform = batch.Spans.Any(CodexTelemetryMapper.ShouldTransform);
 
         if (!needsTransform)
             return batch;

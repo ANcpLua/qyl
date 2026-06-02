@@ -440,22 +440,27 @@ interface IVerify : IHazSourcePaths
             AbsolutePath[] files =
             [
                 RootDirectory / "Directory.Packages.props",
+                RootDirectory / "nuget.config",
                 RootDirectory / ".gitignore",
                 RootDirectory / ".github" / "workflows" / "ci.yml",
                 RootDirectory / "eng" / "build.sh",
                 buildDirectory / "build.csproj",
                 buildDirectory / "Build.cs",
+                RootDirectory / "packages" / "Qyl.OpenTelemetry.Extensions" / "README.md",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Qyl.Telemetry.csproj",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs"
             ];
 
             string[] removedTokens =
             [
+                "Nuke.OpenTelemetry.Conventions",
+                "Qyl.Client",
                 "Qyl.OpenTelemetry.SemanticConventions.SourceGeneration",
                 "Scalar.Kiota",
                 "core/specs",
                 "core/openapi",
                 "eng/semconv",
+                "nuget.pkg.github.com",
                 "packages/Qyl.Contracts",
                 "./eng/build.sh Generate",
                 "./eng/build.sh OtelConventions",
@@ -471,6 +476,15 @@ interface IVerify : IHazSourcePaths
                 "TelemetryMessage",
                 "TelemetrySignal",
                 "PublishSpans",
+                "ObservationSubscription",
+                "ObserveCatalog",
+                "ObserveEndpoints",
+                "SchemaVersionNegotiator",
+                "SubscriptionManager",
+                "DomainContracts",
+                "DerivedMetricCatalog",
+                "DerivedMetricQueries",
+                "MetricsEndpoints",
                 "JsonSerializable(typeof(AgentDecisionRecord))",
                 "JsonSerializable(typeof(AgentRunRecord))",
                 "JsonSerializable(typeof(ErrorCategoryStat))",
@@ -499,6 +513,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Metrics",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
+                RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];
 
