@@ -9,8 +9,6 @@ public static class CollectorStorageExtensions
         services.AddSingleton(CreateStore);
         services.ActivateSingleton<DuckDbStore>();
 
-        services.AddSingleton(static sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
-
         return services;
     }
 

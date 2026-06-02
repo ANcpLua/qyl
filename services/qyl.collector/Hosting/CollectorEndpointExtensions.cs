@@ -112,21 +112,21 @@ public static class CollectorEndpointExtensions
 
 
     private static async Task<IResult> GetSessionsAsync(
-        SessionQueryService queryService,
+        DuckDbStore store,
         int? limit,
         string? serviceName,
         CancellationToken ct)
     {
-        var sessions = await queryService.GetSessionsAsync(limit ?? 100, 0, serviceName, ct: ct).ConfigureAwait(false);
+        var sessions = await store.GetSessionsAsync(limit ?? 100, 0, serviceName, ct: ct).ConfigureAwait(false);
         var response = SessionMapper.ToPage(sessions, sessions.Count, false);
         return Results.Ok(response);
     }
 
     private static async Task<IResult> GetSessionByIdAsync(
         string sessionId,
-        SessionQueryService queryService,
+        DuckDbStore store,
         CancellationToken ct) =>
-        await queryService.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
+        await store.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound()
             : Results.Ok(SessionMapper.ToContract(session));
 
@@ -296,7 +296,7 @@ public static class CollectorEndpointExtensions
 
 
     private static async Task<IResult> GetGenAiStatsAsync(
-        SessionQueryService queryService,
+        DuckDbStore store,
         int? hours,
         string? session_id,
         CancellationToken ct)
@@ -305,18 +305,18 @@ public static class CollectorEndpointExtensions
         if (hours is > 0)
             after = TimeProvider.System.GetUtcNow().UtcDateTime.AddHours(-hours.Value);
 
-        var stats = await queryService.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
+        var stats = await store.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
         return Results.Ok(ContractStatsMapper.ToContract(stats));
     }
 
     private static async Task<IResult> GetGenAiSpansAsync(
-        SessionQueryService queryService,
+        DuckDbStore store,
         string? session_id,
         int? limit,
         CancellationToken ct)
     {
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
-        var spans = await queryService.GetGenAiSpansAsync(session_id, boundedLimit, ct).ConfigureAwait(false);
+        var spans = await store.GetGenAiSpansAsync(session_id, boundedLimit, ct).ConfigureAwait(false);
         var spanContracts = SpanMapper.ToContracts(spans, static span => (span.ServiceName ?? "unknown", null));
 
         return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });

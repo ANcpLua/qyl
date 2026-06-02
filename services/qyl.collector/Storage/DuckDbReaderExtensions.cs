@@ -57,6 +57,32 @@ internal sealed record StorageStats
     public ulong? NewestSpanTime { get; init; }
 }
 
+internal sealed record ModelPricingEntry(
+    string Provider,
+    string Model,
+    decimal InputCostPerMillion,
+    decimal OutputCostPerMillion,
+    decimal? ReasoningCostPerMillion,
+    decimal? CacheReadCostPerMillion,
+    decimal? CacheWriteCostPerMillion);
+
+internal sealed class ModelPricingSeed
+{
+    [JsonPropertyName("provider")] public required string Provider { get; init; }
+
+    [JsonPropertyName("model")] public required string Model { get; init; }
+
+    [JsonPropertyName("input_cost")] public required decimal InputCost { get; init; }
+
+    [JsonPropertyName("output_cost")] public required decimal OutputCost { get; init; }
+
+    [JsonPropertyName("reasoning_cost")] public decimal? ReasoningCost { get; init; }
+
+    [JsonPropertyName("cache_read_cost")] public decimal? CacheReadCost { get; init; }
+
+    [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
+}
+
 internal sealed record LogStorageRow
 {
     public required string LogId { get; init; }

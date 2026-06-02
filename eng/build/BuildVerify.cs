@@ -277,6 +277,62 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
+        .Unlisted()
+        .Description("Verify collector DuckDB access stays behind storage intent methods")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenDuckDbTokens =
+            [
+                "DuckDB.NET.Data",
+                "DuckDBConnection",
+                "DuckDBCommand",
+                "DuckDBParameter",
+                "DuckDBException",
+                "DbCommand",
+                "DbDataReader",
+                "CreateCommand(",
+                "ExecuteReadAsync",
+                "ExecuteWriteAsync"
+            ];
+
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .Where(static file => !IsStorageFile(file.File))
+                .SelectMany(file => forbiddenDuckDbTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector DuckDB access stays behind storage intent methods");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  DuckDB storage detail '{Token}' found outside Storage in {File}", offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not pass DuckDB connections, commands, readers, or raw ExecuteRead/ExecuteWrite hooks outside Storage. " +
+                "Expose intent methods on DuckDbStore instead.");
+
+            static bool IsStorageFile(string relativePath)
+            {
+                var normalizedPath = relativePath.Replace('\\', '/');
+                return normalizedPath.Contains("services/qyl.collector/Storage/", StringComparison.Ordinal);
+            }
+        });
+
     Target VerifyNoHandwrittenOtlpWireParser => d => d
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
@@ -509,6 +565,17 @@ interface IVerify : IHazSourcePaths
                 "JsonSerializable(typeof(ToolCallRecord))"
             ];
 
+            string[] removedCollectorQueryTokens =
+            [
+                "SessionQueryService",
+                "SpanQueryBuilder",
+                "SpanColumn",
+                "CompareOp",
+                "LogCursor",
+                "DuckDbJson",
+                "namespace Qyl.Collector.Query"
+            ];
+
             string[] removedCollectorRouteLiterals =
             [
                 "\"/observe",
@@ -518,6 +585,7 @@ interface IVerify : IHazSourcePaths
             AbsolutePath[] removedPaths =
             [
                 RootDirectory / "services" / "qyl.collector" / "Contracts",
+                RootDirectory / "services" / "qyl.collector" / "Query",
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Metrics",
                 RootDirectory / "services" / "qyl.collector" / "Alerts",
@@ -567,6 +635,21 @@ interface IVerify : IHazSourcePaths
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
+            var collectorQueryOffenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => removedCollectorQueryTokens
+                    .Where(token => ContainsRemovedToken(file.Text, token))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
             var collectorRouteOffenders = (CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs")
                 .FileExists()
                 ? removedCollectorRouteLiterals
@@ -586,6 +669,7 @@ interface IVerify : IHazSourcePaths
 
             if (offenders.Count is 0 &&
                 collectorOffenders.Count is 0 &&
+                collectorQueryOffenders.Count is 0 &&
                 collectorRouteOffenders.Count is 0 &&
                 pathOffenders.Count is 0)
             {
@@ -598,6 +682,9 @@ interface IVerify : IHazSourcePaths
 
             foreach (var offender in collectorOffenders)
                 Log.Error("  Removed collector surface '{Token}' found in {File}", offender.Token, offender.File);
+
+            foreach (var offender in collectorQueryOffenders)
+                Log.Error("  Removed collector query surface '{Token}' found in {File}", offender.Token, offender.File);
 
             foreach (var offender in collectorRouteOffenders)
                 Log.Error("  Removed collector route '{Token}' found in {File}", offender.Token, offender.File);
@@ -639,6 +726,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
+        .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
@@ -652,6 +740,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector-local DTO models are internal");
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");
+            Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");

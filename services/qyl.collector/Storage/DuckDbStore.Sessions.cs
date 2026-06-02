@@ -1,9 +1,8 @@
+using DuckDB.NET.Data;
 
-using Qyl.Collector.Primitives;
+namespace Qyl.Collector.Storage;
 
-namespace Qyl.Collector.Query;
-
-internal sealed class SessionQueryService(DuckDbStore store)
+internal sealed partial class DuckDbStore
 {
     private const string SessionSelectColumns = """
                                                 SELECT
@@ -22,15 +21,13 @@ internal sealed class SessionQueryService(DuckDbStore store)
                                                 FROM spans
                                                 """;
 
-
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         int limit = 100,
         int offset = 0,
         string? sessionFilter = null,
         DateTime? after = null,
-        CancellationToken ct = default)
-    {
-        return await store.ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
+        CancellationToken ct = default) =>
+        await ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = SessionSelectColumns
@@ -40,15 +37,13 @@ internal sealed class SessionQueryService(DuckDbStore store)
                               + " ORDER BY MAX(end_time_unix_nano) DESC"
                               + " LIMIT $3 OFFSET $4";
 
-            AddParams(cmd, sessionFilter, after, limit, offset);
+            AddSessionQueryParams(cmd, sessionFilter, after, limit, offset);
             return ExecuteSessionQuery(cmd);
-        }, ct);
-    }
-
+        }, ct).ConfigureAwait(false);
 
     public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        var results = await store.ExecuteReadAsync(con =>
+        var results = await ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = SessionSelectColumns
@@ -58,108 +53,67 @@ internal sealed class SessionQueryService(DuckDbStore store)
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             return ExecuteSessionQuery(cmd);
-        }, ct);
+        }, ct).ConfigureAwait(false);
+
         return results.Count > 0 ? results[0] : null;
     }
-
-
 
     public async Task<SessionGenAiStats> GetGenAiStatsAsync(
         string? sessionId = null,
         DateTime? after = null,
-        CancellationToken ct = default)
-    {
-        var sql = SpanQueryBuilder.Create()
-            .SelectCount("request_count")
-            .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
-            .SelectSum(SpanColumn.GenAiOutputTokens, "output_tokens")
-            .Select("COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost")
-            .SelectDistinctList(SpanColumn.GenAiProviderName, "providers")
-            .SelectDistinctList(SpanColumn.GenAiRequestModel, "models")
-            .WhereNotNull(SpanColumn.GenAiProviderName)
-            .WhereOptional(SpanColumn.SessionId, 1)
-            .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
-            .Build();
-
-        return await store.ExecuteReadAsync(con =>
+        CancellationToken ct = default) =>
+        await ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = sql;
-            AddParams(cmd, sessionId, after);
+            cmd.CommandText = """
+                              SELECT
+                                  COUNT(*) AS request_count,
+                                  COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+                                  COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+                                  COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost,
+                                  LIST(DISTINCT gen_ai_provider_name) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
+                                  LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
+                              FROM spans
+                              WHERE gen_ai_provider_name IS NOT NULL
+                                AND ($1::VARCHAR IS NULL OR session_id IS NOT DISTINCT FROM $1)
+                                AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
+                              """;
+            AddSessionQueryParams(cmd, sessionId, after);
 
             using var reader = cmd.ExecuteReader();
 
-            if (reader.Read())
+            if (!reader.Read())
+                return new SessionGenAiStats();
+
+            return new SessionGenAiStats
             {
-                return new SessionGenAiStats
-                {
-                    RequestCount = reader.Col(0).GetInt64(0),
-                    InputTokens = reader.Col(1).GetInt64(0),
-                    OutputTokens = reader.Col(2).GetInt64(0),
-                    TotalCostUsd = reader.Col(3).GetDouble(0),
-                    Providers = ReadStringList(reader, 4),
-                    Models = ReadStringList(reader, 5)
-                };
-            }
-
-            return new SessionGenAiStats();
-        }, ct);
-    }
-
-
-    public async Task<IReadOnlyList<SpanStorageRow>> GetSpansByTraceAsync(
-        string traceId,
-        CancellationToken ct = default)
-    {
-        var sql = SpanQueryBuilder.Create()
-            .SelectAll()
-            .WhereEq(SpanColumn.TraceId, 1)
-            .OrderBy(SpanColumn.StartTimeUnixNano)
-            .Build();
-
-        return await store.ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
-
-            var spans = new List<SpanStorageRow>();
-            using var reader = cmd.ExecuteReader();
-
-            while (reader.Read())
-                spans.Add(MapSpan(reader));
-
-            return spans;
-        }, ct);
-    }
-
+                RequestCount = reader.Col(0).GetInt64(0),
+                InputTokens = reader.Col(1).GetInt64(0),
+                OutputTokens = reader.Col(2).GetInt64(0),
+                TotalCostUsd = reader.Col(3).GetDouble(0),
+                Providers = ReadStringList(reader, 4),
+                Models = ReadStringList(reader, 5)
+            };
+        }, ct).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<SpanStorageRow>> GetGenAiSpansAsync(
         string? sessionId = null,
         int limit = 100,
-        CancellationToken ct = default)
-    {
-        var builder = SpanQueryBuilder.Create()
-            .SelectAll()
-            .WhereNotNull(SpanColumn.GenAiProviderName);
-
-        if (sessionId is not null)
-            builder = builder.WhereEq(SpanColumn.SessionId, 1);
-
-        var sql = builder
-            .OrderByDesc(SpanColumn.StartTimeUnixNano)
-            .Limit(limit)
-            .Build();
-
-        return await store.ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
+        CancellationToken ct = default) =>
+        await ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = sql;
+            cmd.CommandText = "SELECT " + SelectSpanColumns
+                                        + " FROM spans"
+                                        + " WHERE gen_ai_provider_name IS NOT NULL"
+                                        + (sessionId is null ? "" : " AND session_id = $1")
+                                        + " ORDER BY start_time_unix_nano DESC"
+                                        + (sessionId is null ? " LIMIT $1" : " LIMIT $2");
 
             if (sessionId is not null)
-            {
                 cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-            }
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
             var spans = new List<SpanStorageRow>();
             using var reader = cmd.ExecuteReader();
@@ -168,11 +122,9 @@ internal sealed class SessionQueryService(DuckDbStore store)
                 spans.Add(MapSpan(reader));
 
             return spans;
-        }, ct);
-    }
+        }, ct).ConfigureAwait(false);
 
-
-    private static void AddAfterParam(DuckDBCommand cmd, DateTime? after)
+    private static void AddSessionAfterParam(DuckDBCommand cmd, DateTime? after)
     {
         if (after.HasValue)
         {
@@ -185,15 +137,20 @@ internal sealed class SessionQueryService(DuckDbStore store)
         }
     }
 
-    private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
+    private static void AddSessionQueryParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
     {
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
-        AddAfterParam(cmd, after);
+        AddSessionAfterParam(cmd, after);
     }
 
-    private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after, int limit, int offset)
+    private static void AddSessionQueryParams(
+        DuckDBCommand cmd,
+        string? sessionId,
+        DateTime? after,
+        int limit,
+        int offset)
     {
-        AddParams(cmd, sessionId, after);
+        AddSessionQueryParams(cmd, sessionId, after);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
         cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
@@ -247,14 +204,11 @@ internal sealed class SessionQueryService(DuckDbStore store)
         return value switch
         {
             IReadOnlyList<string> list => list,
-            object[] arr => Array.ConvertAll(arr, static x => x.ToString() ?? ""),
+            object[] array => Array.ConvertAll(array, static item => item.ToString() ?? ""),
             _ => []
         };
     }
-
-    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByName(reader);
 }
-
 
 internal sealed record SessionQueryRow
 {

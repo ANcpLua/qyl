@@ -4,11 +4,11 @@ namespace Qyl.Collector.Cost;
 internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
 {
     private readonly Lock _lock = new();
-    private FrozenDictionary<string, PricingEntry> _cache = FrozenDictionary<string, PricingEntry>.Empty;
+    private FrozenDictionary<string, ModelPricingEntry> _cache = FrozenDictionary<string, ModelPricingEntry>.Empty;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
-        var count = await GetPricingCountAsync(ct);
+        var count = await store.GetModelPricingCountAsync(ct).ConfigureAwait(false);
         if (count is 0)
         {
             await SeedPricingDataAsync(ct);
@@ -74,60 +74,17 @@ internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<Mod
 
     public async Task RefreshCacheAsync(CancellationToken ct = default)
     {
-        var entries = await store.ExecuteReadAsync(con =>
-        {
-            var result = new Dictionary<string, PricingEntry>(StringComparer.OrdinalIgnoreCase);
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT provider, model, input_cost, output_cost, reasoning_cost,
-                                     cache_read_cost, cache_write_cost
-                              FROM model_pricing
-                              WHERE valid_to IS NULL
-                              ORDER BY valid_from DESC
-                              """;
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var provider = reader.GetString(0);
-                var model = reader.GetString(1);
-                var entry = new PricingEntry(
-                    reader.GetDecimal(2),
-                    reader.GetDecimal(3),
-                    reader.IsDBNull(4) ? null : reader.GetDecimal(4),
-                    reader.IsDBNull(5) ? null : reader.GetDecimal(5),
-                    reader.IsDBNull(6) ? null : reader.GetDecimal(6));
-
-                var key = MakeCacheKey(provider, model);
-                result.TryAdd(key, entry);
-            }
-
-            return result;
-        }, ct);
+        var entries = await store.GetActiveModelPricingAsync(ct).ConfigureAwait(false);
+        var cache = new Dictionary<string, ModelPricingEntry>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in entries)
+            cache.TryAdd(MakeCacheKey(entry.Provider, entry.Model), entry);
 
         lock (_lock)
         {
-            _cache = entries.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            _cache = cache.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
         }
 
-        LogPricingCacheRefreshed(entries.Count);
-    }
-
-    private async Task<long> GetPricingCountAsync(CancellationToken ct)
-    {
-        return await store.ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
-            var result = cmd.ExecuteScalar();
-            return result switch
-            {
-                long v => v,
-                int v => v,
-                _ => 0
-            };
-        }, ct);
+        LogPricingCacheRefreshed(cache.Count);
     }
 
     private async Task SeedPricingDataAsync(CancellationToken ct)
@@ -144,38 +101,15 @@ internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<Mod
         }
 
         var json = await File.ReadAllTextAsync(seedPath, ct);
-        var entries = JsonSerializer.Deserialize(json, CostSerializerContext.Default.ListSeedPricingEntry);
+        var entries = JsonSerializer.Deserialize(json, CostSerializerContext.Default.ListModelPricingSeed);
         if (entries is null or { Count: 0 })
         {
             LogSeedFileEmpty(seedPath);
             return;
         }
 
-        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-
-        await store.ExecuteWriteAsync(async (con, wct) =>
-        {
-            foreach (var entry in entries)
-            {
-                await using var cmd = con.CreateCommand();
-                cmd.CommandText = """
-                                  INSERT INTO model_pricing
-                                      (provider, model, input_cost, output_cost, reasoning_cost,
-                                       cache_read_cost, cache_write_cost, valid_from)
-                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                                  ON CONFLICT DO NOTHING
-                                  """;
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Provider });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Model });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.InputCost });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.OutputCost });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.ReasoningCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheReadCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheWriteCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = now });
-                await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
-            }
-        }, ct);
+        await store.InsertModelPricingSeedsAsync(entries, TimeProvider.System.GetUtcNow().UtcDateTime, ct)
+            .ConfigureAwait(false);
 
         LogSeedDataLoaded(entries.Count, seedPath);
     }
@@ -199,30 +133,6 @@ internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<Mod
     private partial void LogSeedDataLoaded(int count, string path);
 }
 
-internal sealed record PricingEntry(
-    decimal InputCostPerMillion,
-    decimal OutputCostPerMillion,
-    decimal? ReasoningCostPerMillion,
-    decimal? CacheReadCostPerMillion,
-    decimal? CacheWriteCostPerMillion);
-
-internal sealed class SeedPricingEntry
-{
-    [JsonPropertyName("provider")] public required string Provider { get; init; }
-
-    [JsonPropertyName("model")] public required string Model { get; init; }
-
-    [JsonPropertyName("input_cost")] public required decimal InputCost { get; init; }
-
-    [JsonPropertyName("output_cost")] public required decimal OutputCost { get; init; }
-
-    [JsonPropertyName("reasoning_cost")] public decimal? ReasoningCost { get; init; }
-
-    [JsonPropertyName("cache_read_cost")] public decimal? CacheReadCost { get; init; }
-
-    [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
-}
-
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-[JsonSerializable(typeof(List<SeedPricingEntry>))]
+[JsonSerializable(typeof(List<ModelPricingSeed>))]
 internal partial class CostSerializerContext : JsonSerializerContext;

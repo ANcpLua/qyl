@@ -1,3 +1,4 @@
+using DuckDB.NET.Data;
 using Qyl.Collector.Telemetry;
 
 using static System.Threading.Volatile;
@@ -242,7 +243,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
 
-    public async Task<T> ExecuteReadAsync<T>(Func<DuckDBConnection, T> read, CancellationToken ct = default)
+    private async Task<T> ExecuteReadAsync<T>(Func<DuckDBConnection, T> read, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
@@ -258,7 +259,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
 
-    public async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
+    private async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -277,7 +278,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         return await job.Task.ConfigureAwait(false);
     }
 
-    public async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation,
+    private async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -524,6 +525,78 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var result = cmd.ExecuteScalar();
             return result is long count ? count : 0;
         }, ct);
+
+    public Task<long> GetModelPricingCountAsync(CancellationToken ct = default) =>
+        ExecuteReadAsync(static con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
+            var result = cmd.ExecuteScalar();
+            return result switch
+            {
+                long value => value,
+                int value => value,
+                _ => 0
+            };
+        }, ct);
+
+    public Task<IReadOnlyList<ModelPricingEntry>> GetActiveModelPricingAsync(CancellationToken ct = default) =>
+        ExecuteReadAsync<IReadOnlyList<ModelPricingEntry>>(static con =>
+        {
+            var result = new List<ModelPricingEntry>();
+
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT provider, model, input_cost, output_cost, reasoning_cost,
+                                     cache_read_cost, cache_write_cost
+                              FROM model_pricing
+                              WHERE valid_to IS NULL
+                              ORDER BY valid_from DESC
+                              """;
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                result.Add(new ModelPricingEntry(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetDecimal(2),
+                    reader.GetDecimal(3),
+                    reader.IsDBNull(4) ? null : reader.GetDecimal(4),
+                    reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+                    reader.IsDBNull(6) ? null : reader.GetDecimal(6)));
+            }
+
+            return result;
+        }, ct);
+
+    public async Task InsertModelPricingSeedsAsync(
+        IReadOnlyList<ModelPricingSeed> entries,
+        DateTime validFrom,
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, wct) =>
+        {
+            foreach (var entry in entries)
+            {
+                await using var cmd = con.CreateCommand();
+                cmd.CommandText = """
+                                  INSERT INTO model_pricing
+                                      (provider, model, input_cost, output_cost, reasoning_cost,
+                                       cache_read_cost, cache_write_cost, valid_from)
+                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                  ON CONFLICT DO NOTHING
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Provider });
+                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Model });
+                cmd.Parameters.Add(new DuckDBParameter { Value = entry.InputCost });
+                cmd.Parameters.Add(new DuckDBParameter { Value = entry.OutputCost });
+                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.ReasoningCost ?? DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheReadCost ?? DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheWriteCost ?? DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = validFrom });
+                await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
+            }
+        }, ct).ConfigureAwait(false);
 
     public async Task<int> DeleteSpansBeforeAsync(ulong timestampNanos, CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, token) =>
