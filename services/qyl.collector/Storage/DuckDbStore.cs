@@ -1662,10 +1662,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.ModelPricingTiersDdl, "\n",
             DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
-
-        using var conversationsCmd = con.CreateCommand();
-        conversationsCmd.CommandText = DuckDbSchema.ConversationsViewDdl;
-        conversationsCmd.ExecuteNonQuery();
     }
 
     private static string NormalizeGeneratedSchemaDdl(string ddl)

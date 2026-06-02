@@ -5,6 +5,7 @@ using StableDeploymentAttributes = Qyl.OpenTelemetry.SemanticConventions.Attribu
 using StableErrorAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Error.ErrorAttributes;
 using StableExceptionAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Exception.ExceptionAttributes;
 using StableHttpAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Http.HttpAttributes;
+using StableOtelAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Otel.OtelAttributes;
 using StableServerAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Server.ServerAttributes;
 using StableServiceAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Service.ServiceAttributes;
 using StableUrlAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Url.UrlAttributes;
@@ -17,6 +18,7 @@ using OsAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes
 using SessionAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Session.SessionAttributes;
 using UserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.User.UserAttributes;
 using EnduserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Enduser.EnduserAttributes;
+using QylGenAiCostProcessor = Qyl.Instrumentation.Instrumentation.GenAi.QylGenAiCostProcessor;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -58,6 +60,7 @@ internal static class SemanticAttributeKeys
     internal const string HttpRoute = StableHttpAttributes.Route;
     internal const string MessagingSystem = MessagingAttributes.System;
     internal const string McpSessionId = McpAttributes.SessionId;
+    internal const string OtelScopeName = StableOtelAttributes.ScopeName;
     internal const string OsType = OsAttributes.Type;
     internal const string ServiceInstanceId = StableServiceAttributes.InstanceId;
     internal const string ServiceName = StableServiceAttributes.Name;
@@ -69,14 +72,11 @@ internal static class SemanticAttributeKeys
     internal const string UrlPath = StableUrlAttributes.Path;
     internal const string UserId = UserAttributes.Id;
 
-    // Collector-local keys without an upstream semconv constant in the current package.
-    internal const string GenAiCostUsd = "gen_ai.usage.cost";
-    internal const string GenAiErrorType = "gen_ai.error.type";
-    internal const string MeterName = "meter.name";
+    internal const string GenAiCostUsd = QylGenAiCostProcessor.CostAttribute;
 
     internal const string ClaudeCodePrefix = "claude_code.";
-    internal const string McpPrefix = "mcp.";
-    internal const string QylCapabilityPrefix = "qyl.capability.";
+    internal static readonly string McpPrefix = PrefixOf(McpSessionId);
+    internal static readonly string QylCapabilityPrefix = PrefixOf(QylAttr.Capability.Id);
 
     internal static readonly string[] SessionCorrelationKeys =
     [
@@ -109,5 +109,11 @@ internal static class SemanticAttributeKeys
         }
 
         return false;
+    }
+
+    private static string PrefixOf(string key)
+    {
+        var lastDot = key.LastIndexOf('.');
+        return lastDot < 0 ? key : key[..(lastDot + 1)];
     }
 }

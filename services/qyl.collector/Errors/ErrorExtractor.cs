@@ -17,14 +17,13 @@ public static class ErrorExtractor
                                ?? span.StatusMessage
                                ?? "Unknown error";
         var stackTrace = attrs.GetValueOrDefault(SemanticAttributeKeys.ExceptionStacktrace);
-        var genAiErrorType = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiErrorType);
         var genAiOperation = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiOperationName);
         var genAiFinishReasons = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiResponseFinishReasons);
         var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiToolName);
         var genAiAgentName = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentName);
         var genAiAgentId = attrs.GetValueOrDefault(SemanticAttributeKeys.GenAiAgentId);
 
-        var category = ErrorCategorizer.Categorize(exceptionType, genAiErrorType, genAiFinishReasons, exceptionMessage);
+        var category = ErrorCategorizer.Categorize(exceptionType, finishReason: genAiFinishReasons, message: exceptionMessage);
         var fingerprint = ErrorFingerprinter.Compute(
             exceptionType, exceptionMessage, stackTrace,
             genAiOperation,

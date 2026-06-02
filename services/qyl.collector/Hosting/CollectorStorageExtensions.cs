@@ -12,7 +12,6 @@ public static class CollectorStorageExtensions
         services.ActivateSingleton<DuckDbStore>();
 
         services.AddSingleton(static sp => new SessionQueryService(sp.GetRequiredService<DuckDbStore>()));
-        services.AddSingleton(static sp => new AnalyticsQueryService(sp.GetRequiredService<DuckDbStore>()));
 
         services.AddSingleton<IPatternEngine>(
             new PatternEngine(DiagnosticPatternCatalog.Patterns, DiagnosticPatternCatalog.CausalRules,

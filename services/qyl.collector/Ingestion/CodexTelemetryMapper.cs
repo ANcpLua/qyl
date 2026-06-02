@@ -26,6 +26,7 @@ public static class CodexTelemetryMapper
     private const string CodexToolName = "codex.tool_name";
     private const string CodexToolOutput = "codex.tool_output";
     private const string CodexFinishReason = "codex.finish_reason";
+    private const string FunctionToolType = "function";
 
 
 
@@ -200,7 +201,7 @@ public static class CodexTelemetryMapper
         transformed |= attributes.TryGetValue(CodexToolName, out var toolName) &&
                        attributes.TryAdd(GenAiAttributes.ToolName, toolName);
 
-        transformed |= toolName is not null && attributes.TryAdd(GenAiAttributes.ToolType, "function");
+        transformed |= toolName is not null && attributes.TryAdd(GenAiAttributes.ToolType, FunctionToolType);
 
         transformed |= attributes.TryGetValue(CodexToolOutput, out var toolOutput) &&
                        attributes.TryAdd(GenAiAttributes.ToolCallResult, toolOutput);

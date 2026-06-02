@@ -37,8 +37,8 @@ public static class ServiceClassifier
         IReadOnlyDictionary<string, string>? span)
     {
         if (resource is not null &&
-            resource.TryGetValue(SemanticAttributeKeys.MeterName, out var meterName) &&
-            meterName == "com.anthropic.claude_code")
+            resource.TryGetValue(SemanticAttributeKeys.OtelScopeName, out var scopeName) &&
+            scopeName == "com.anthropic.claude_code")
             return true;
 
         return span is not null && span.Any(static kvp => kvp.Key.StartsWithOrdinal(SemanticAttributeKeys.ClaudeCodePrefix));

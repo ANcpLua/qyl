@@ -217,6 +217,113 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorUsesSemanticConstants => d => d
+        .Unlisted()
+        .Description("Verify collector semantic attribute keys flow through generated constants")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenSemanticLiterals =
+            [
+                "\"client.",
+                "\"code.",
+                "\"db.",
+                "\"deployment.",
+                "\"enduser.",
+                "\"error.type\"",
+                "\"exception.",
+                "\"gen_ai.",
+                "\"host.",
+                "\"http.",
+                "\"mcp.",
+                "\"messaging.",
+                "\"meter.name\"",
+                "\"os.",
+                "\"otel.scope.",
+                "\"qyl.capability.",
+                "\"server.",
+                "\"service.",
+                "\"session.id\"",
+                "\"url.",
+                "\"user.id\""
+            ];
+
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Where(static f =>
+                {
+                    var path = f.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.EndsWith($"{Path.DirectorySeparatorChar}Telemetry{Path.DirectorySeparatorChar}TelemetryExtensions.cs", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .Where(file => forbiddenSemanticLiterals.Any(token =>
+                    file.Text.Contains(token, StringComparison.Ordinal)))
+                .Select(static file => file.File)
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector semantic attribute keys use generated constants");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Raw semantic attribute literal: {File}", offender);
+
+            throw new InvalidOperationException(
+                "Do not hardcode semantic attribute keys in the collector. Use Qyl.OpenTelemetry.SemanticConventions* " +
+                "or Qyl.Telemetry generated constants.");
+        });
+
+    Target VerifyNoRemovedBuildSurface => d => d
+        .Unlisted()
+        .Description("Verify removed local build surfaces stay removed")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var buildDirectory = RootDirectory / "eng" / "build";
+            AbsolutePath[] files =
+            [
+                RootDirectory / "Directory.Packages.props",
+                buildDirectory / "build.csproj",
+                buildDirectory / "Build.cs"
+            ];
+
+            string[] removedTokens =
+            [
+                "Qyl.OpenTelemetry.SemanticConventions.SourceGeneration",
+                "Scalar.Kiota",
+                "core/openapi",
+                "eng/semconv",
+                "otel-conventions-api"
+            ];
+
+            var offenders = files
+                .Where(static file => file.FileExists())
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => removedTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Removed local build surfaces stayed removed");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Removed build surface '{Token}' found in {File}", offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not reintroduce removed local build surfaces. qyl-api-schema is the API/schema source of truth.");
+        });
+
     Target Verify => d => d
         .Description("Run all generated code verification checks")
         .DependsOn(VerifyGeneratedCode)
@@ -224,6 +331,8 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyFrontendTypes)
         .DependsOn(VerifyGeneratedFilesClean)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
+        .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");
@@ -234,6 +343,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Frontend TypeScript types compile");
             Log.Information("  Generated files match HEAD");
             Log.Information("  Collector public API is explicitly mapped");
+            Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 }
