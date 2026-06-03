@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Xml.Linq;
+using System.Text.Json;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Serilog;
@@ -136,7 +136,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
 
     string GenerateCollectorSemanticAttributeCatalogText()
     {
-        var resolver = new SemConvAttributeResolver(ReadCentralPackageVersions());
+        var resolver = new SemConvAttributeResolver(ReadResolvedPackageAssemblies());
         var allAttributeValues = resolver.AllAttributeValues();
         var stableAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.StablePackageId);
         var incubatingAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.IncubatingPackageId);
@@ -312,18 +312,32 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         return builder.ToString();
     }
 
-    private Dictionary<string, string> ReadCentralPackageVersions()
+    private IReadOnlyDictionary<string, string> ReadResolvedPackageAssemblies() =>
+        ProjectAssetsPackageResolver.ResolvePackageAssemblies(
+            LocateBuildProjectAssetsFile(),
+            ICollectorSemanticCatalog.StablePackageId,
+            ICollectorSemanticCatalog.IncubatingPackageId);
+
+    private AbsolutePath LocateBuildProjectAssetsFile()
     {
-        var document = XDocument.Load(RootDirectory / "Directory.Packages.props");
-        return document
-            .Descendants("PackageVersion")
-            .Select(static element => new
-            {
-                Id = element.Attribute("Include")?.Value,
-                Version = element.Attribute("Version")?.Value
-            })
-            .Where(static package => package.Id is not null && package.Version is not null)
-            .ToDictionary(static package => package.Id!, static package => package.Version!, StringComparer.Ordinal);
+        var expected = RootDirectory / "eng" / "build" / "artifacts" / "obj" / "build" / "project.assets.json";
+        if (expected.FileExists())
+            return expected;
+
+        var candidates = (RootDirectory / "eng" / "build")
+            .GlobFiles("**/project.assets.json")
+            .OrderBy(static path => path.ToString(), StringComparer.Ordinal)
+            .ToList();
+
+        return candidates.Count switch
+        {
+            1 => candidates[0],
+            0 => throw new FileNotFoundException(
+                "MSBuild restore graph for eng/build/build.csproj was not found. Run `dotnet restore eng/build/build.csproj`."),
+            _ => throw new InvalidOperationException(
+                "Multiple eng/build project.assets.json files were found; refusing to guess the semantic convention package graph: " +
+                string.Join(", ", candidates.Select(path => RootDirectory.GetRelativePathTo(path))))
+        };
     }
 
     private static string[] ValuesWithPrefixes(IEnumerable<string> values, params string[] prefixes) =>
@@ -370,7 +384,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 }
 
-internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageVersions)
+internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageAssemblyPaths)
 {
     private readonly Dictionary<string, Assembly> _assemblies = new(StringComparer.Ordinal);
     private string[]? _allAttributeValues;
@@ -447,36 +461,100 @@ internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, strin
         {
         }
 
-        if (!packageVersions.TryGetValue(packageId, out var version))
-            throw new InvalidOperationException($"Central package version '{packageId}' is missing.");
-
-        var packageRoot = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
-        if (string.IsNullOrWhiteSpace(packageRoot))
-        {
-            packageRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".nuget",
-                "packages");
-        }
-
-        var packageDirectory = Path.Combine(packageRoot, packageId.ToLowerInvariant(), version);
-        var libDirectory = Path.Combine(packageDirectory, "lib");
-        var assemblyPath = new[]
-            {
-                Path.Combine(libDirectory, "net10.0", packageId + ".dll"),
-                Path.Combine(libDirectory, "netstandard2.0", packageId + ".dll")
-            }
-            .FirstOrDefault(File.Exists);
-
-        if (assemblyPath is null)
+        if (!packageAssemblyPaths.TryGetValue(packageId, out var assemblyPath))
         {
             throw new FileNotFoundException(
-                $"Package assembly for '{packageId}' {version} was not found under '{packageDirectory}'. " +
-                "Run `dotnet restore services/qyl.collector/qyl.collector.csproj --configfile nuget.config`.");
+                $"Resolved package assembly for '{packageId}' was not found in eng/build/build.csproj restore assets. " +
+                "Run `dotnet restore eng/build/build.csproj`.");
         }
 
         assembly = Assembly.LoadFrom(assemblyPath);
         _assemblies.Add(packageId, assembly);
         return assembly;
+    }
+}
+
+internal static class ProjectAssetsPackageResolver
+{
+    public static IReadOnlyDictionary<string, string> ResolvePackageAssemblies(
+        string assetsFile,
+        params string[] packageIds)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(assetsFile));
+        var root = document.RootElement;
+        var packageFolders = root.GetProperty("packageFolders")
+            .EnumerateObject()
+            .Select(static folder => folder.Name)
+            .ToArray();
+
+        if (packageFolders.Length is 0)
+            throw new InvalidOperationException($"Restore assets file '{assetsFile}' contains no packageFolders.");
+
+        var requested = packageIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var resolved = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var target in root.GetProperty("targets").EnumerateObject())
+        {
+            foreach (var library in target.Value.EnumerateObject())
+            {
+                var slashIndex = library.Name.IndexOf('/', StringComparison.Ordinal);
+                if (slashIndex <= 0 || slashIndex == library.Name.Length - 1)
+                    continue;
+
+                var packageId = library.Name[..slashIndex];
+                if (!requested.Contains(packageId) || resolved.ContainsKey(packageId))
+                    continue;
+
+                var version = library.Name[(slashIndex + 1)..];
+                var assemblyPath = ResolveCompileAssembly(
+                    packageFolders,
+                    packageId,
+                    version,
+                    library.Value);
+
+                resolved.Add(packageId, assemblyPath);
+            }
+        }
+
+        var missing = packageIds
+            .Where(packageId => !resolved.ContainsKey(packageId))
+            .ToArray();
+
+        if (missing.Length is not 0)
+            throw new InvalidOperationException(
+                $"Restore assets file '{assetsFile}' does not resolve required package(s): {string.Join(", ", missing)}.");
+
+        return resolved;
+    }
+
+    private static string ResolveCompileAssembly(
+        IReadOnlyList<string> packageFolders,
+        string packageId,
+        string version,
+        JsonElement library)
+    {
+        if (!library.TryGetProperty("compile", out var compileAssets))
+            throw new InvalidOperationException($"Package '{packageId}/{version}' has no compile assets in restore graph.");
+
+        var dllFileName = packageId + ".dll";
+        var relativeAssetPath = compileAssets
+            .EnumerateObject()
+            .Select(static asset => asset.Name)
+            .Where(static asset => !asset.EndsWith("/_._", StringComparison.Ordinal))
+            .FirstOrDefault(asset => string.Equals(Path.GetFileName(asset), dllFileName, StringComparison.Ordinal));
+
+        if (relativeAssetPath is null)
+            throw new FileNotFoundException($"Package '{packageId}/{version}' has no compile asset named '{dllFileName}'.");
+
+        var packageDirectoryName = packageId.ToLowerInvariant();
+        var assemblyPath = packageFolders
+            .Select(packageFolder => Path.Combine(packageFolder, packageDirectoryName, version, relativeAssetPath))
+            .FirstOrDefault(File.Exists);
+
+        if (assemblyPath is null)
+            throw new FileNotFoundException(
+                $"Resolved compile asset '{relativeAssetPath}' for package '{packageId}/{version}' was not found under packageFolders from restore assets.");
+
+        return assemblyPath;
     }
 }
