@@ -580,6 +580,68 @@ interface IVerify : IHazSourcePaths
                 "Use the checked-in OpenTelemetry .proto inputs and Grpc.Tools-generated OpenTelemetry.Proto.* types.");
         });
 
+    Target VerifyCollectorSpanIdentityIsComposite => d => d
+        .Unlisted()
+        .Description("Verify span storage identity is trace-scoped")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var schemaFile = CollectorDirectory / "Storage" / "DuckDbSchema.Core.cs";
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+
+            string[] forbidden =
+            [
+                "PRIMARY KEY (span_id)",
+                "ON CONFLICT (span_id)"
+            ];
+
+            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+                .Concat(CollectorDirectory.GlobFiles("**/*.sql"))
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => forbidden
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            var missingRequired = new List<string>();
+            if (!schemaFile.FileExists() ||
+                !File.ReadAllText(schemaFile).Contains("PRIMARY KEY (trace_id, span_id)", StringComparison.Ordinal))
+            {
+                missingRequired.Add(RootDirectory.GetRelativePathTo(schemaFile).ToString()
+                                    + " must declare PRIMARY KEY (trace_id, span_id)");
+            }
+
+            if (!storeFile.FileExists() ||
+                !File.ReadAllText(storeFile).Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
+            {
+                missingRequired.Add(RootDirectory.GetRelativePathTo(storeFile).ToString()
+                                    + " must upsert ON CONFLICT (trace_id, span_id)");
+            }
+
+            if (offenders.Count is 0 && missingRequired.Count is 0)
+            {
+                Log.Information("Collector span storage identity is trace-scoped");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Span identity regression token '{Token}' found in {File}", offender.Token, offender.File);
+
+            foreach (var missing in missingRequired)
+                Log.Error("  Missing span identity invariant: {Invariant}", missing);
+
+            throw new InvalidOperationException(
+                "Span ids are unique only within traces. Store and upsert spans by (trace_id, span_id), never span_id alone.");
+        });
+
     Target VerifyNoRemovedBuildSurface => d => d
         .Unlisted()
         .Description("Verify removed local build surfaces stay removed")
@@ -735,6 +797,8 @@ interface IVerify : IHazSourcePaths
                 "SourceLocationCache",
                 "LogSourceEnricher",
                 "PdbSourceResolver",
+                "PRIMARY KEY (span_id)",
+                "ON CONFLICT (span_id)",
                 "source_file",
                 "source_line",
                 "source_column",
@@ -956,6 +1020,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
+        .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {
@@ -973,6 +1038,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
+            Log.Information("  Collector span storage identity is trace-scoped");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });

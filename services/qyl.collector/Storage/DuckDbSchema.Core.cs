@@ -5,8 +5,8 @@ internal static partial class DuckDbSchema
     public const string SpansDdl = """
                                    CREATE TABLE IF NOT EXISTS spans (
                                        span_id VARCHAR NOT NULL,
-                                       PRIMARY KEY (span_id),
                                        trace_id VARCHAR NOT NULL,
+                                       PRIMARY KEY (trace_id, span_id),
                                        parent_span_id VARCHAR,
                                        session_id VARCHAR,
                                        name VARCHAR NOT NULL,

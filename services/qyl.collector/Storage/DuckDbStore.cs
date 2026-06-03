@@ -27,7 +27,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                           """;
 
     private const string SpanOnConflictClause = """
-                                                ON CONFLICT (span_id) DO UPDATE SET
+                                                ON CONFLICT (trace_id, span_id) DO UPDATE SET
                                                     end_time_unix_nano = EXCLUDED.end_time_unix_nano,
                                                     duration_ns = EXCLUDED.duration_ns,
                                                     status_code = EXCLUDED.status_code,
@@ -80,6 +80,28 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         "profiles"
     ];
 
+    private static readonly FrozenSet<string> s_legacyTelemetryTables = FrozenSet.Create(
+        StringComparer.Ordinal,
+        "profile_functions",
+        "profile_locations",
+        "profile_mappings",
+        "profile_samples",
+        "profile_stacks",
+        "profiles",
+        "logs",
+        "spans");
+
+    private static readonly string[] s_legacyTelemetryTableDropOrder =
+    [
+        "profile_functions",
+        "profile_locations",
+        "profile_mappings",
+        "profile_samples",
+        "profile_stacks",
+        "profiles",
+        "logs",
+        "spans"
+    ];
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Counter<long> _droppedJobs;
@@ -111,6 +133,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
+        DropTelemetryTablesWhenSpanIdentityIsLegacy(Connection);
         InitializeSchema(Connection);
 
         _droppedJobs = _meter.CreateCounter<long>(Duckdb.DroppedJobsTotal);
@@ -879,6 +902,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
+        if (!string.IsNullOrEmpty(spanId) && string.IsNullOrEmpty(traceId))
+            throw new ArgumentException("A trace id is required when querying profiles by span id.", nameof(traceId));
+
         return ExecuteReadAsync<IReadOnlyList<ProfileStorageRow>>(con =>
         {
             var profiles = new List<ProfileStorageRow>();
@@ -1292,6 +1318,75 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             DuckDbSchema.CostByModelHourlyViewDdl);
         costCmd.ExecuteNonQuery();
     }
+
+    private static void DropTelemetryTablesWhenSpanIdentityIsLegacy(DuckDBConnection con)
+    {
+        if (!ShouldDropTelemetryTablesForSpanIdentity(con))
+            return;
+
+        using var tx = con.BeginTransaction();
+
+        using (var viewCmd = con.CreateCommand())
+        {
+            viewCmd.Transaction = tx;
+            viewCmd.CommandText = "DROP VIEW IF EXISTS cost_by_model_hourly";
+            viewCmd.ExecuteNonQuery();
+        }
+
+        foreach (var table in s_legacyTelemetryTableDropOrder)
+        {
+            using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DROP TABLE IF EXISTS " + SqlBuilder.Whitelisted(table, s_legacyTelemetryTables);
+            cmd.ExecuteNonQuery();
+        }
+
+        tx.Commit();
+    }
+
+    private static bool ShouldDropTelemetryTablesForSpanIdentity(DuckDBConnection con)
+    {
+        if (!TableExists(con, "spans"))
+            return false;
+
+        var pkColumns = new List<string>(2);
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "PRAGMA table_info('spans')";
+        using var reader = cmd.ExecuteReader();
+
+        while (reader.Read())
+        {
+            if (reader.FieldCount <= 5 || GetPrimaryKeyOrdinal(reader.GetValue(5)) <= 0)
+                continue;
+
+            pkColumns.Add(reader.GetString(1));
+        }
+
+        return pkColumns.Count is not 2 ||
+               !pkColumns.Contains("trace_id", StringComparer.Ordinal) ||
+               !pkColumns.Contains("span_id", StringComparer.Ordinal);
+    }
+
+    private static bool TableExists(DuckDBConnection con, string tableName)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = $1";
+        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
+        var count = cmd.ExecuteScalar();
+        return count is not null && Convert.ToInt64(count, CultureInfo.InvariantCulture) > 0;
+    }
+
+    private static int GetPrimaryKeyOrdinal(object value) =>
+        value switch
+        {
+            bool truthy => truthy ? 1 : 0,
+            byte number => number,
+            short number => number,
+            int number => number,
+            long number => checked((int)number),
+            string text when int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) => number,
+            _ => 0
+        };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
