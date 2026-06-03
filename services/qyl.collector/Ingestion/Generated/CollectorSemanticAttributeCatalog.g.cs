@@ -481,5 +481,7 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiStopReason = "gen_ai.response.finish_reasons";
     internal const string GenAiTemperature = "gen_ai.request.temperature";
     internal const string GenAiToolName = "gen_ai.tool.name";
+    internal const string HttpRequestMethod = "http.request.method";
+    internal const string HttpRoute = "http.route";
     internal const string ServiceName = "service.name";
 }

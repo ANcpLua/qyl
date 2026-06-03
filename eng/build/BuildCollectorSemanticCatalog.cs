@@ -264,6 +264,8 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ["GenAiStopReason"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ResponseFinishReasons")),
             ["GenAiToolName"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ToolName")),
             ["GenAiCostUsd"] = "gen_ai.usage.cost",
+            ["HttpRequestMethod"] = resolver.ValueFromMember(Member(StableAttributes("Http"), "RequestMethod")),
+            ["HttpRoute"] = resolver.ValueFromMember(Member(StableAttributes("Http"), "Route")),
             ["ServiceName"] = resolver.ValueFromMember(Member(StableAttributes("Service"), "Name"))
         };
 

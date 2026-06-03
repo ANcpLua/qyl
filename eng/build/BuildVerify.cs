@@ -513,7 +513,13 @@ interface IVerify : IHazSourcePaths
                 "\"user.id\""
             ];
 
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
+            string[] forbiddenSemanticAttributeImports =
+            [
+                "Qyl.OpenTelemetry.SemanticConventions.Attributes.",
+                "Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes."
+            ];
+
+            var collectorFiles = CollectorDirectory.GlobFiles("**/*.cs")
                 .Where(static f =>
                 {
                     var path = f.ToString();
@@ -524,23 +530,35 @@ interface IVerify : IHazSourcePaths
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
+                .ToList();
+
+            var literalOffenders = collectorFiles
                 .Where(file => forbiddenSemanticLiterals.Any(token =>
                     file.Text.Contains(token, StringComparison.Ordinal)))
                 .Select(static file => file.File)
                 .ToList();
 
-            if (offenders.Count is 0)
+            var importOffenders = collectorFiles
+                .Where(file => forbiddenSemanticAttributeImports.Any(token =>
+                    file.Text.Contains(token, StringComparison.Ordinal)))
+                .Select(static file => file.File)
+                .ToList();
+
+            if (literalOffenders.Count is 0 && importOffenders.Count is 0)
             {
                 Log.Information("Collector semantic attribute keys use generated constants");
                 return;
             }
 
-            foreach (var offender in offenders)
+            foreach (var offender in literalOffenders)
                 Log.Error("  Raw semantic attribute literal: {File}", offender);
 
+            foreach (var offender in importOffenders)
+                Log.Error("  Direct semantic attribute import: {File}", offender);
+
             throw new InvalidOperationException(
-                "Do not hardcode semantic attribute keys in the collector. Use Qyl.OpenTelemetry.SemanticConventions* " +
-                "or Qyl.Telemetry generated constants.");
+                "Do not hardcode semantic attribute keys or consume SemConv attribute types directly in the collector. " +
+                "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.OpenTelemetry.SemanticConventions and consume it there.");
         });
 
     Target VerifyCollectorMetricTagsAreBounded => d => d
