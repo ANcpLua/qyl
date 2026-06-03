@@ -502,6 +502,98 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.OpenTelemetry.SemanticConventions and consume it there.");
         });
 
+    Target VerifyCollectorTelemetryUsesBuildVersion => d => d
+        .Unlisted()
+        .Description("Verify collector telemetry source versions use the generated build version")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var telemetryFile = CollectorDirectory / "Telemetry" / "QylTelemetry.cs";
+            if (!telemetryFile.FileExists())
+                throw new FileNotFoundException("Missing collector telemetry source", telemetryFile.ToString());
+
+            var text = File.ReadAllText(telemetryFile);
+            var hasBuildVersion = text.Contains("Version = BuildVersion.InformationalVersion", StringComparison.Ordinal);
+            var hasHardcodedVersion =
+                text.Contains("ServiceVersion = \"", StringComparison.Ordinal) ||
+                text.Contains("Version = \"", StringComparison.Ordinal);
+
+            if (hasBuildVersion && !hasHardcodedVersion)
+            {
+                Log.Information("Collector telemetry source versions use generated build version");
+                return;
+            }
+
+            if (!hasBuildVersion)
+                Log.Error("  QylTelemetry.cs must set ActivitySource and Meter versions from BuildVersion.InformationalVersion");
+
+            if (hasHardcodedVersion)
+                Log.Error("  QylTelemetry.cs must not hardcode telemetry source or meter versions");
+
+            throw new InvalidOperationException(
+                "Collector telemetry version has one source of truth: the generated BuildVersion.InformationalVersion constant.");
+        });
+
+    Target VerifyCollectorHasNoRuntimeRoslynUtilityReference => d => d
+        .Unlisted()
+        .Description("Verify collector runtime code does not depend on ANcpLua.Roslyn.Utilities")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var collectorProjectFile = CollectorDirectory / "qyl.collector.csproj";
+            if (!collectorProjectFile.FileExists())
+                throw new FileNotFoundException("Missing collector project file", collectorProjectFile.ToString());
+
+            var offenders = new List<(string File, string Token)>();
+            var projectText = File.ReadAllText(collectorProjectFile);
+            if (projectText.Contains("ANcpLua.Roslyn.Utilities", StringComparison.Ordinal))
+            {
+                offenders.Add((
+                    RootDirectory.GetRelativePathTo(collectorProjectFile).ToString(),
+                    "ANcpLua.Roslyn.Utilities"));
+            }
+
+            ReadOnlySpan<string> forbiddenSourceTokens =
+            [
+                "using ANcpLua.Roslyn.Utilities",
+                "ContainsOrdinal(",
+                "ContainsIgnoreCase(",
+                "StartsWithOrdinal(",
+                "StartsWithIgnoreCase(",
+                "EndsWithOrdinal(",
+                "EqualsOrdinal(",
+                "EqualsIgnoreCase(",
+                "TryParseInt64(",
+                "Guard.NotNull(",
+                ".Col("
+            ];
+
+            foreach (var file in CollectorSourceFiles())
+            {
+                var relative = RootDirectory.GetRelativePathTo(file).ToString();
+                var text = File.ReadAllText(file);
+                foreach (var token in forbiddenSourceTokens)
+                {
+                    if (text.Contains(token, StringComparison.Ordinal))
+                        offenders.Add((relative, token));
+                }
+            }
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector runtime code avoids ANcpLua.Roslyn.Utilities dependency");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Collector runtime Roslyn utility token '{Token}' found in {File}",
+                    offender.Token,
+                    offender.File);
+
+            throw new InvalidOperationException(
+                "Do not carry ANcpLua.Roslyn.Utilities in the collector runtime for basic string operations. Use BCL string APIs with explicit StringComparison.");
+        });
+
     Target VerifyCollectorMetricTagsAreBounded => d => d
         .Unlisted()
         .Description("Verify collector metric tag names stay bounded")
@@ -2385,6 +2477,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
         .DependsOn(VerifyCollectorEndpointLimitsMatchOpenApi)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn(VerifyCollectorTelemetryUsesBuildVersion)
+        .DependsOn(VerifyCollectorHasNoRuntimeRoslynUtilityReference)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
@@ -2424,6 +2518,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector HTTP JSON context serializes contract models only");
             Log.Information("  Collector endpoint responses are contract-backed");
             Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Collector telemetry source versions use generated build version");
+            Log.Information("  Collector runtime code avoids ANcpLua.Roslyn.Utilities dependency");
             Log.Information("  Collector semantic attribute catalog matches package references");
             Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");

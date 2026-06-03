@@ -379,7 +379,10 @@ internal static class AttributeParsing
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long? ParseNullableLong(string? value) =>
-        string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
+        !string.IsNullOrEmpty(value) &&
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
 }
 
 internal static class SessionMapper

@@ -4,19 +4,18 @@ namespace Qyl.Collector.Telemetry;
 internal static class QylTelemetry
 {
     public const string ServiceName = "Qyl.Collector";
-    public const string ServiceVersion = "1.0.0";
-
 
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
-        Version = ServiceVersion,
+        Version = BuildVersion.InformationalVersion,
         TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
 
 
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
-        Version = ServiceVersion, TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
+        Version = BuildVersion.InformationalVersion,
+        TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
 }
 

@@ -123,15 +123,15 @@ internal sealed partial class DuckDbStore
             if (!reader.Read())
                 return new SessionStatsRow();
 
-            var totalSessions = reader.Col(0).GetInt64(0);
-            var bouncedSessions = reader.Col(5).GetInt64(0);
+            var totalSessions = DuckDbValueReader.ReadInt64(reader, 0, 0);
+            var bouncedSessions = DuckDbValueReader.ReadInt64(reader, 5, 0);
             return new SessionStatsRow
             {
                 TotalSessions = totalSessions,
-                ActiveSessions = reader.Col(1).GetInt64(0),
-                AvgDurationMs = reader.Col(2).GetDouble(0) / 1_000_000d,
-                SessionsWithErrors = reader.Col(3).GetInt64(0),
-                SessionsWithGenAi = reader.Col(4).GetInt64(0),
+                ActiveSessions = DuckDbValueReader.ReadInt64(reader, 1, 0),
+                AvgDurationMs = DuckDbValueReader.ReadDouble(reader, 2, 0) / 1_000_000d,
+                SessionsWithErrors = DuckDbValueReader.ReadInt64(reader, 3, 0),
+                SessionsWithGenAi = DuckDbValueReader.ReadInt64(reader, 4, 0),
                 BounceRate = totalSessions > 0 ? (double)bouncedSessions / totalSessions : 0
             };
         }, ct);
@@ -154,15 +154,15 @@ internal sealed partial class DuckDbStore
 
         while (reader.Read())
         {
-            var startTimeNano = reader.Col(1).GetUInt64(0);
-            var lastActivityNano = reader.Col(2).GetUInt64(0);
+            var startTimeNano = DuckDbValueReader.ReadUInt64(reader, 1, 0);
+            var lastActivityNano = DuckDbValueReader.ReadUInt64(reader, 2, 0);
             var startTime = QylTimeConversions.UnixNanoToDateTime(startTimeNano);
             var lastActivity = QylTimeConversions.UnixNanoToDateTime(lastActivityNano);
 
-            var spanCount = reader.Col(3).GetInt64(0);
-            var errorCount = reader.Col(5).GetInt64(0);
-            var inputTokens = reader.Col(6).GetInt64(0);
-            var outputTokens = reader.Col(7).GetInt64(0);
+            var spanCount = DuckDbValueReader.ReadInt64(reader, 3, 0);
+            var errorCount = DuckDbValueReader.ReadInt64(reader, 5, 0);
+            var inputTokens = DuckDbValueReader.ReadInt64(reader, 6, 0);
+            var outputTokens = DuckDbValueReader.ReadInt64(reader, 7, 0);
 
             sessions.Add(new SessionQueryRow
             {
@@ -171,14 +171,14 @@ internal sealed partial class DuckDbStore
                 LastActivity = lastActivity,
                 DurationMs = QylTimeConversions.NanosToMs(lastActivityNano - startTimeNano),
                 SpanCount = spanCount,
-                TraceCount = reader.Col(4).GetInt64(0),
+                TraceCount = DuckDbValueReader.ReadInt64(reader, 4, 0),
                 ErrorCount = errorCount,
                 ErrorRate = spanCount > 0 ? (double)errorCount / spanCount : 0,
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
                 TotalTokens = inputTokens + outputTokens,
-                GenAiRequestCount = reader.Col(8).GetInt64(0),
-                TotalCostUsd = reader.Col(9).GetDouble(0),
+                GenAiRequestCount = DuckDbValueReader.ReadInt64(reader, 8, 0),
+                TotalCostUsd = DuckDbValueReader.ReadDouble(reader, 9, 0),
                 Providers = ReadStringList(reader, 10),
                 Models = ReadStringList(reader, 11),
                 Services = ReadStringList(reader, 12)

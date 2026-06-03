@@ -6,7 +6,7 @@ namespace Qyl.Collector.Grpc;
 internal sealed class ProfilesServiceImpl(IQylStore store)
     : ProfilesService.ProfilesServiceBase
 {
-    private readonly IQylStore _store = Guard.NotNull(store);
+    private readonly IQylStore _store = store ?? throw new ArgumentNullException(nameof(store));
 
     public override async Task<ExportProfilesServiceResponse> Export(
         ExportProfilesServiceRequest request,

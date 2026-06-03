@@ -12,7 +12,8 @@ internal static class OtlpPayloadParser
     private const string ProtobufContentType = "application/x-protobuf";
 
     public static bool IsProtobufContentType(string? contentType) =>
-        !string.IsNullOrEmpty(contentType) && contentType.StartsWithIgnoreCase(ProtobufContentType);
+        !string.IsNullOrEmpty(contentType) &&
+        contentType.StartsWith(ProtobufContentType, StringComparison.OrdinalIgnoreCase);
 
     public static Task<ExportTraceServiceRequest> ParseTraceRequestAsync(
         HttpRequest request,

@@ -295,19 +295,19 @@ internal static class DuckDbEmitter
             switch (baseType)
             {
                 case "string":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsString");
+                    sb.Append("DuckDbValueReader.ReadString(reader, ").Append(ordinal).Append(')');
                     break;
                 case "ulong":
                 case "System.UInt64":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsUInt64");
+                    sb.Append("DuckDbValueReader.ReadUInt64(reader, ").Append(ordinal).Append(')');
                     break;
                 case "long":
                 case "System.Int64":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsInt64");
+                    sb.Append("DuckDbValueReader.ReadInt64(reader, ").Append(ordinal).Append(')');
                     break;
                 case "double":
                 case "System.Double":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsDouble");
+                    sb.Append("DuckDbValueReader.ReadDouble(reader, ").Append(ordinal).Append(')');
                     break;
                 case "decimal":
                 case "System.Decimal":
@@ -316,15 +316,15 @@ internal static class DuckDbEmitter
                     break;
                 case "int":
                 case "System.Int32":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsInt32");
+                    sb.Append("DuckDbValueReader.ReadInt32(reader, ").Append(ordinal).Append(')');
                     break;
                 case "byte":
                 case "System.Byte":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsByte");
+                    sb.Append("DuckDbValueReader.ReadByte(reader, ").Append(ordinal).Append(')');
                     break;
                 case "System.DateTimeOffset":
                 case "DateTimeOffset":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").AsDateTimeOffset");
+                    sb.Append("DuckDbValueReader.ReadDateTimeOffset(reader, ").Append(ordinal).Append(')');
                     break;
                 default:
                     sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(")
@@ -337,19 +337,19 @@ internal static class DuckDbEmitter
             switch (baseType)
             {
                 case "string":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetString(\"\")");
+                    sb.Append("DuckDbValueReader.ReadString(reader, ").Append(ordinal).Append(", \"\")");
                     break;
                 case "ulong":
                 case "System.UInt64":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetUInt64(0UL)");
+                    sb.Append("DuckDbValueReader.ReadUInt64(reader, ").Append(ordinal).Append(", 0UL)");
                     break;
                 case "long":
                 case "System.Int64":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetInt64(0L)");
+                    sb.Append("DuckDbValueReader.ReadInt64(reader, ").Append(ordinal).Append(", 0L)");
                     break;
                 case "double":
                 case "System.Double":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetDouble(0d)");
+                    sb.Append("DuckDbValueReader.ReadDouble(reader, ").Append(ordinal).Append(", 0d)");
                     break;
                 case "decimal":
                 case "System.Decimal":
@@ -357,16 +357,16 @@ internal static class DuckDbEmitter
                     break;
                 case "int":
                 case "System.Int32":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetInt32(0)");
+                    sb.Append("DuckDbValueReader.ReadInt32(reader, ").Append(ordinal).Append(", 0)");
                     break;
                 case "byte":
                 case "System.Byte":
-                    sb.Append("reader.Col(").Append(ordinal).Append(").GetByte(0)");
+                    sb.Append("DuckDbValueReader.ReadByte(reader, ").Append(ordinal).Append(", 0)");
                     break;
                 case "System.DateTimeOffset":
                 case "DateTimeOffset":
-                    sb.Append("reader.Col(").Append(ordinal)
-                        .Append(").AsDateTimeOffset ?? default");
+                    sb.Append("DuckDbValueReader.ReadDateTimeOffset(reader, ").Append(ordinal)
+                        .Append(") ?? default");
                     break;
                 default:
                     sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(")

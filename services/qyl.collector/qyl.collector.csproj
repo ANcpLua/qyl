@@ -1,5 +1,4 @@
 <Project Sdk="ANcpLua.NET.Sdk.Web">
-  <!-- Build: 2026-01-28T17:10:00Z -->
   <PropertyGroup>
     <RootNamespace>Qyl.Collector</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -20,20 +19,12 @@
     <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
   </ItemGroup>
 
-  <!-- Expose internals to test project -->
-
-
-  <ItemGroup>
-    <Using Include="ANcpLua.Roslyn.Utilities"/>
-  </ItemGroup>
-
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
   </ItemGroup>
 
-  <!-- OTLP ingestion: gRPC hosting + OTel export for dynamic forwarding -->
+  <!-- OTLP ingestion: gRPC hosting and generated protobuf contracts -->
   <ItemGroup>
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>

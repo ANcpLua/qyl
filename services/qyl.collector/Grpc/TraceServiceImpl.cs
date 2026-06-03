@@ -9,8 +9,9 @@ internal sealed class TraceServiceImpl(
     ModelPricingService pricingService)
     : TraceService.TraceServiceBase
 {
-    private readonly ModelPricingService _pricingService = Guard.NotNull(pricingService);
-    private readonly IQylStore _store = Guard.NotNull(store);
+    private readonly ModelPricingService _pricingService =
+        pricingService ?? throw new ArgumentNullException(nameof(pricingService));
+    private readonly IQylStore _store = store ?? throw new ArgumentNullException(nameof(store));
 
     public override async Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,

@@ -483,9 +483,9 @@ internal static class CollectorEndpointExtensions
     {
         var path = context.Request.Path.Value ?? "/";
 
-        if (path.StartsWithIgnoreCase("/api/") ||
-            path.StartsWithIgnoreCase("/v1/") ||
-            path.StartsWithIgnoreCase("/assets/"))
+        if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.StatusCode = 404;
             return Task.CompletedTask;

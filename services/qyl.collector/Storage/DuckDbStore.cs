@@ -342,14 +342,14 @@ internal sealed partial class DuckDbStore : IQylStore
             {
                 return new StorageStats
                 {
-                    SpanCount = reader.Col(0).GetInt64(0),
-                    SessionCount = reader.Col(1).GetInt64(0),
-                    LogCount = reader.Col(2).GetInt64(0),
+                    SpanCount = DuckDbValueReader.ReadInt64(reader, 0, 0),
+                    SessionCount = DuckDbValueReader.ReadInt64(reader, 1, 0),
+                    LogCount = DuckDbValueReader.ReadInt64(reader, 2, 0),
                     DroppedSpanCount = Read(ref _droppedSpanCount),
                     DroppedJobCount = Read(ref _droppedJobCount),
                     WriteQueueUtilization = GetWriteQueueUtilization(),
-                    OldestSpanTime = reader.Col(3).AsUInt64,
-                    NewestSpanTime = reader.Col(4).AsUInt64
+                    OldestSpanTime = DuckDbValueReader.ReadUInt64(reader, 3),
+                    NewestSpanTime = DuckDbValueReader.ReadUInt64(reader, 4)
                 };
             }
 
