@@ -1039,7 +1039,7 @@ interface IVerify : IHazSourcePaths
 
     Target VerifyOtlpConverterUsesCentralizedSemanticProjection => d => d
         .Unlisted()
-        .Description("Verify OTLP span semantic storage projection stays centralized")
+        .Description("Verify OTLP decoding stays storage-independent and storage projection stays centralized")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -1048,6 +1048,11 @@ interface IVerify : IHazSourcePaths
                 throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
 
             var converterText = File.ReadAllText(converterFile);
+            var storageMapperFile = CollectorDirectory / "Storage" / "IngestionStorageMapper.cs";
+            if (!storageMapperFile.FileExists())
+                throw new FileNotFoundException("Missing ingestion storage mapper", storageMapperFile.ToString());
+
+            var storageMapperText = File.ReadAllText(storageMapperFile);
 
             string[] forbidden =
             [
@@ -1058,43 +1063,71 @@ interface IVerify : IHazSourcePaths
                 "IsGenAiStorageAttribute",
                 "ExtractGenAiAttributes",
                 "private static bool ShouldConvertSpanAttribute",
-                "readonly record struct GenAiData"
+                "readonly record struct GenAiData",
+                "ProjectScope",
+                "SpanStorageRow",
+                "LogStorageRow",
+                "ProfileStorageRow",
+                "ProfileConversionResult",
+                "SpanBatch",
+                "PersistedAttributePolicy",
+                "SHA256",
+                "Encoding.UTF8"
             ];
 
             var offenders = forbidden
                 .Where(token => converterText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            string[] required =
+            string[] converterRequired =
             [
                 "CollectorSemanticAttributeCatalog.ServiceName",
-                "AttributeKeySets.ShouldConvertSpanAttribute",
-                "AttributeKeySets.ExtractSpanStorageProjection"
+                "AttributeKeySets.ShouldConvertSpanAttribute"
             ];
 
-            var missing = required
+            var missing = converterRequired
                 .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            if (offenders.Count is 0 && missing.Count is 0)
+            string[] storageMapperRequired =
+            [
+                "ProjectScope.Normalize",
+                "AttributeKeySets.ExtractSpanStorageProjection",
+                "PersistedAttributePolicy.SerializeSpanAttributes",
+                "PersistedAttributePolicy.SerializeLogAttributes",
+                "PersistedAttributePolicy.SerializeProfileAttributes",
+                "PersistedAttributePolicy.SerializeResourceAttributes",
+                "SHA256.HashData"
+            ];
+
+            var storageMapperMissing = storageMapperRequired
+                .Where(token => !storageMapperText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (offenders.Count is 0 && missing.Count is 0 && storageMapperMissing.Count is 0)
             {
-                Log.Information("OTLP span semantic storage projection is centralized");
+                Log.Information("OTLP decoding is storage-independent and storage projection is centralized");
                 return;
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Converter-local semantic projection token '{Token}' found in {File}",
+                Log.Error("  Converter-local storage/projection token '{Token}' found in {File}",
                     offender,
                     RootDirectory.GetRelativePathTo(converterFile));
 
             foreach (var requirement in missing)
-                Log.Error("  Missing centralized projection token '{Token}' in {File}",
+                Log.Error("  Missing OTLP conversion token '{Token}' in {File}",
                     requirement,
                     RootDirectory.GetRelativePathTo(converterFile));
 
+            foreach (var requirement in storageMapperMissing)
+                Log.Error("  Missing storage projection token '{Token}' in {File}",
+                    requirement,
+                    RootDirectory.GetRelativePathTo(storageMapperFile));
+
             throw new InvalidOperationException(
-                "Do not handwire GenAI or session span-storage projection in OtlpConverter. " +
-                "Centralize semantic key policy in AttributeKeySets and consume it from the converter.");
+                "Do not handwire storage rows, tenant/project stamping, or persisted payload formats in OtlpConverter. " +
+                "Decode OTLP into ingestion records, then materialize storage rows in Storage/IngestionStorageMapper.cs.");
         });
 
     Target VerifyCollectorSpanIdentityIsComposite => d => d
@@ -1682,7 +1715,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector storage row writes use generated DuckDB insert helpers");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
-            Log.Information("  OTLP span semantic storage projection is centralized");
+            Log.Information("  OTLP decoding is storage-independent and storage projection is centralized");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");

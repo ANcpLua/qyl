@@ -59,12 +59,12 @@ internal static class CollectorEndpointExtensions
     {
         try
         {
-            List<SpanStorageRow> spans;
             var otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, ct);
             if (otlpData.ResourceSpans.Count is 0)
                 return Results.Accepted();
 
-            spans = OtlpConverter.ConvertTraceRequestToStorageRows(otlpData);
+            var traceBatch = OtlpConverter.ConvertTraceRequest(otlpData);
+            var spans = IngestionStorageMapper.ToSpanStorageRows(traceBatch);
 
             if (spans.Count is 0) return Results.Accepted();
 
@@ -86,12 +86,12 @@ internal static class CollectorEndpointExtensions
     {
         try
         {
-            List<LogStorageRow> logs;
             var otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, ct);
             if (otlpData.ResourceLogs.Count is 0)
                 return Results.Accepted();
 
-            logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
+            var logBatch = OtlpConverter.ConvertLogs(otlpData);
+            var logs = IngestionStorageMapper.ToLogStorageRows(logBatch);
 
             if (logs.Count is 0) return Results.Accepted();
 
@@ -332,7 +332,8 @@ internal static class CollectorEndpointExtensions
             if (otlpData.ResourceProfiles.Count is 0)
                 return Results.Accepted();
 
-            var results = OtlpConverter.ConvertProfilesToNormalizedRows(otlpData);
+            var profileBatch = OtlpConverter.ConvertProfiles(otlpData);
+            var results = IngestionStorageMapper.ToProfileStorageRows(profileBatch);
 
             if (results.Count is 0) return Results.Accepted();
 

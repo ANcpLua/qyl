@@ -14,7 +14,8 @@ internal sealed class ProfilesServiceImpl(DuckDbStore store)
     {
         try
         {
-            var profiles = OtlpConverter.ConvertProfilesToNormalizedRows(request);
+            var profileBatch = OtlpConverter.ConvertProfiles(request);
+            var profiles = IngestionStorageMapper.ToProfileStorageRows(profileBatch);
 
             if (profiles.Count <= 0) return new ExportProfilesServiceResponse();
 

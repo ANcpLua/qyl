@@ -1,5 +1,4 @@
 
-using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -19,16 +18,15 @@ internal static class OtlpConverter
 {
     #region OTLP Trace Conversion
 
-    public static List<SpanStorageRow> ConvertTraceRequestToStorageRows(ExportTraceServiceRequest request)
+    public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request)
     {
-        var spans = new List<SpanStorageRow>();
+        var spans = new List<SpanIngestionRecord>();
 
         foreach (var resourceSpan in request.ResourceSpans)
         {
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
-            var projectId = ExtractProjectIdFromProto(resourceSpan.Resource);
+            var projectIdHint = ExtractProjectIdHintFromProto(resourceSpan.Resource);
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
-            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
             var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
@@ -41,13 +39,19 @@ internal static class OtlpConverter
                 {
                     var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
                     var spanRecord =
-                        CreateStorageRowFromProto(span, projectId, serviceName, attributes, effectiveSchemaUrl, resourceJson);
+                        CreateSpanRecordFromProto(
+                            span,
+                            projectIdHint,
+                            serviceName,
+                            attributes,
+                            resourceAttrs,
+                            effectiveSchemaUrl);
                     spans.Add(spanRecord);
                 }
             }
         }
 
-        return spans;
+        return new TraceIngestionBatch(spans);
     }
 
     private static string ExtractServiceNameFromProto(ProtoResource? resource)
@@ -67,10 +71,10 @@ internal static class OtlpConverter
         return "unknown";
     }
 
-    private static string ExtractProjectIdFromProto(ProtoResource? resource)
+    private static string? ExtractProjectIdHintFromProto(ProtoResource? resource)
     {
         if (resource is null)
-            return ProjectScope.DefaultProjectId;
+            return null;
 
         foreach (var attr in resource.Attributes)
         {
@@ -81,10 +85,10 @@ internal static class OtlpConverter
                 continue;
             }
 
-            return ProjectScope.Normalize(attr.Value.StringValue);
+            return attr.Value.StringValue;
         }
 
-        return ProjectScope.DefaultProjectId;
+        return null;
     }
 
     private static Dictionary<string, string> ExtractResourceAttributesFromProto(ProtoResource? resource)
@@ -148,60 +152,33 @@ internal static class OtlpConverter
         };
     }
 
-    private static SpanStorageRow CreateStorageRowFromProto(
+    private static SpanIngestionRecord CreateSpanRecordFromProto(
         ProtoSpan span,
-        string projectId,
+        string? projectIdHint,
         string serviceName,
         Dictionary<string, string> attributes,
-        string? schemaUrl,
-        string? resourceJson) =>
-        CreateStorageRow(
-            ToHex(span.SpanId), ToHex(span.TraceId), ToHex(span.ParentSpanId), span.Name,
-            (int)span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
-            span.Status is not null ? (int)span.Status.Code : null,
-            projectId, serviceName, attributes, schemaUrl, resourceJson);
+        Dictionary<string, string> resourceAttributes,
+        string? schemaUrl) =>
+        new()
+        {
+            ProjectIdHint = projectIdHint,
+            SpanId = ToHex(span.SpanId) ?? "",
+            TraceId = ToHex(span.TraceId) ?? "",
+            ParentSpanId = ToHex(span.ParentSpanId),
+            Name = span.Name ?? "unknown",
+            Kind = (int)span.Kind,
+            StartTimeUnixNano = span.StartTimeUnixNano,
+            EndTimeUnixNano = span.EndTimeUnixNano,
+            StatusCode = span.Status is not null ? (int)span.Status.Code : null,
+            ServiceName = serviceName,
+            Attributes = attributes,
+            ResourceAttributes = resourceAttributes,
+            SchemaUrl = schemaUrl
+        };
 
     #endregion
 
     #region Shared Helpers
-
-    private static SpanStorageRow CreateStorageRow(
-        string? spanId, string? traceId, string? parentSpanId, string? name,
-        int? kind, ulong startNano, ulong endNano,
-        int? statusCode,
-        string projectId, string serviceName, Dictionary<string, string> attributes,
-        string? schemaUrl, string? resourceJson)
-    {
-        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
-        var projection = AttributeKeySets.ExtractSpanStorageProjection(attributes);
-        return new SpanStorageRow
-        {
-            ProjectId = projectId,
-            SpanId = spanId ?? "",
-            TraceId = traceId ?? "",
-            ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
-            SessionId = projection.SessionId,
-            Name = name ?? "unknown",
-            Kind = ConvertSpanKindToByte(kind),
-            StartTimeUnixNano = startNano,
-            EndTimeUnixNano = endNano,
-            DurationNs = durationNs,
-            StatusCode = ConvertStatusCodeToByte(statusCode),
-            ServiceName = serviceName,
-            GenAiProviderName = projection.GenAiProviderName,
-            GenAiRequestModel = projection.GenAiRequestModel,
-            GenAiResponseModel = projection.GenAiResponseModel,
-            GenAiInputTokens = projection.GenAiInputTokens,
-            GenAiOutputTokens = projection.GenAiOutputTokens,
-            GenAiTemperature = projection.GenAiTemperature,
-            GenAiStopReason = projection.GenAiStopReason,
-            GenAiToolName = projection.GenAiToolName,
-            GenAiCostUsd = projection.GenAiCostUsd,
-            AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes),
-            ResourceJson = resourceJson,
-            SchemaUrl = schemaUrl
-        };
-    }
 
     private static string? ToHex(ByteString value)
     {
@@ -209,155 +186,92 @@ internal static class OtlpConverter
         return Convert.ToHexString(value.Span).ToLowerInvariant();
     }
 
-    private static byte ConvertSpanKindToByte(int? kind) => kind switch
-    {
-        1 => 1,
-        2 => 2,
-        3 => 3,
-        4 => 4,
-        5 => 5,
-        _ => 0
-    };
-
-    private static byte ConvertStatusCodeToByte(int? code) => code switch
-    {
-        1 => 1,
-        2 => 2,
-        _ => 0
-    };
-
     #endregion
 
     #region Logs Conversion
 
-    public static List<LogStorageRow> ConvertLogsToStorageRows(ExportLogsServiceRequest otlp)
+    public static LogIngestionBatch ConvertLogs(ExportLogsServiceRequest otlp)
     {
-        var logs = new List<LogStorageRow>();
+        var logs = new List<LogIngestionRecord>();
 
         foreach (var resourceLogs in otlp.ResourceLogs)
         {
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
-            var projectId = ExtractProjectIdFromProto(resourceLogs.Resource);
+            var projectIdHint = ExtractProjectIdHintFromProto(resourceLogs.Resource);
 
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceLogs.Resource);
-            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
 
             foreach (var scopeLogs in resourceLogs.ScopeLogs)
             foreach (var log in scopeLogs.LogRecords)
             {
-                logs.Add(CreateLogStorageRow(log, projectId, serviceName, resourceJson));
+                logs.Add(CreateLogRecord(log, projectIdHint, serviceName, resourceAttrs));
             }
         }
 
-        return logs;
+        return new LogIngestionBatch(logs);
     }
 
-    private static LogStorageRow CreateLogStorageRow(
+    private static LogIngestionRecord CreateLogRecord(
         ProtoLogRecord log,
-        string projectId,
+        string? projectIdHint,
         string serviceName,
-        string? resourceJson)
+        Dictionary<string, string> resourceAttributes)
     {
-        var sessionId = ExtractSessionId(log.Attributes);
-
-        var body = ConvertProtoAnyValueToSafeLogBody(log.Body);
+        var attributes = ExtractLogAttributes(log.Attributes);
 
         var severityNumber = (int)log.SeverityNumber;
-        var severityText = string.IsNullOrEmpty(log.SeverityText)
-            ? SeverityNumberToText(severityNumber)
-            : log.SeverityText;
 
-        return new LogStorageRow
+        return new LogIngestionRecord
         {
-            ProjectId = projectId,
-            LogId = Guid.NewGuid().ToString("N"),
+            ProjectIdHint = projectIdHint,
             TraceId = ToHex(log.TraceId),
             SpanId = ToHex(log.SpanId),
-            SessionId = sessionId,
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
-            SeverityNumber = (byte)Math.Clamp(severityNumber, 0, 24),
-            SeverityText = severityText,
-            Body = body,
+            SeverityNumber = severityNumber,
+            SeverityText = log.SeverityText,
+            BodyText = ConvertProtoAnyValueToString(log.Body),
             ServiceName = serviceName,
-            AttributesJson = SerializeProtoAttributes(log.Attributes),
-            ResourceJson = resourceJson
+            Attributes = attributes,
+            ResourceAttributes = resourceAttributes
         };
     }
 
-    private static string? SerializeProtoAttributes(RepeatedField<ProtoKeyValue> attributes)
+    private static Dictionary<string, string> ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
     {
-        if (attributes.Count is 0) return null;
-
-        Dictionary<string, string>? dict = null;
+        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
-                !AttributeKeySets.ShouldPersistLogAttribute(attr.Key))
+                (!AttributeKeySets.ShouldPersistLogAttribute(attr.Key) &&
+                 !attr.Key.IsAny(AttributeKeySets.SessionCorrelation)))
             {
                 continue;
             }
 
-            dict ??= new Dictionary<string, string>(StringComparer.Ordinal);
-            dict[attr.Key] = ConvertProtoAnyValueToString(attr.Value) ?? "";
+            var value = ConvertProtoAnyValueToString(attr.Value);
+            if (value is not null)
+                dict[attr.Key] = value;
         }
 
-        return dict is null ? null : PersistedAttributePolicy.SerializeLogAttributes(dict);
+        return dict;
     }
-
-    private static string? ExtractSessionId(RepeatedField<ProtoKeyValue> attributes)
-    {
-        foreach (var attr in attributes)
-        {
-            if (attr.Key.IsAny(AttributeKeySets.SessionCorrelation) &&
-                attr.Value.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue)
-            {
-                return attr.Value.StringValue;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? ConvertProtoAnyValueToSafeLogBody(ProtoAnyValue? value)
-    {
-        var raw = ConvertProtoAnyValueToString(value);
-        if (string.IsNullOrEmpty(raw))
-            return raw;
-
-        var bytes = Encoding.UTF8.GetBytes(raw);
-        var hash = SHA256.HashData(bytes);
-        var fingerprint = Convert.ToHexString(hash.AsSpan(0, 8)).ToLowerInvariant();
-        return $"sha256:{fingerprint};chars:{raw.Length};bytes:{bytes.Length}";
-    }
-
-    private static string SeverityNumberToText(int severityNumber) => severityNumber switch
-    {
-        >= 1 and <= 4 => "TRACE",
-        >= 5 and <= 8 => "DEBUG",
-        >= 9 and <= 12 => "INFO",
-        >= 13 and <= 16 => "WARN",
-        >= 17 and <= 20 => "ERROR",
-        >= 21 => "FATAL",
-        _ => "UNSPECIFIED"
-    };
 
     #endregion
 
     #region Profiles Conversion
 
-    public static List<ProfileConversionResult> ConvertProfilesToNormalizedRows(ExportProfilesServiceRequest otlp)
+    public static ProfileIngestionBatch ConvertProfiles(ExportProfilesServiceRequest otlp)
     {
-        var results = new List<ProfileConversionResult>();
+        var results = new List<ProfileIngestionRecord>();
         var dictionary = otlp.Dictionary ?? new ProtoProfilesDictionary();
 
         foreach (var resourceProfiles in otlp.ResourceProfiles)
         {
             var serviceName = ExtractServiceNameFromProto(resourceProfiles.Resource);
-            var projectId = ExtractProjectIdFromProto(resourceProfiles.Resource);
+            var projectIdHint = ExtractProjectIdHintFromProto(resourceProfiles.Resource);
 
             var resourceAttrs = ExtractResourceAttributesFromProto(resourceProfiles.Resource);
-            var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(resourceAttrs);
             var schemaUrl = resourceProfiles.SchemaUrl;
 
             foreach (var scopeProfiles in resourceProfiles.ScopeProfiles)
@@ -368,21 +282,21 @@ internal static class OtlpConverter
 
                 foreach (var profile in scopeProfiles.Profiles)
                 {
-                    results.Add(CreateNormalizedProfile(profile, dictionary, projectId, serviceName, resourceJson,
+                    results.Add(CreateProfileRecord(profile, dictionary, projectIdHint, serviceName, resourceAttrs,
                         effectiveSchemaUrl));
                 }
             }
         }
 
-        return results;
+        return new ProfileIngestionBatch(results);
     }
 
-    private static ProfileConversionResult CreateNormalizedProfile(
+    private static ProfileIngestionRecord CreateProfileRecord(
         ProtoProfile profile,
         ProtoProfilesDictionary dictionary,
-        string projectId,
+        string? projectIdHint,
         string serviceName,
-        string? resourceJson,
+        Dictionary<string, string> resourceAttributes,
         string? schemaUrl)
     {
         var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
@@ -394,33 +308,12 @@ internal static class OtlpConverter
         var sampleType = Resolve(profile.SampleType?.TypeStrindex ?? 0, dictionary);
         var sampleUnit = Resolve(profile.SampleType?.UnitStrindex ?? 0, dictionary);
 
-        var header = new ProfileStorageRow
-        {
-            ProjectId = projectId,
-            ProfileId = profileId,
-            TraceId = traceId,
-            SpanId = spanId,
-            SessionId = sessionId,
-            TimeUnixNano = profile.TimeUnixNano,
-            DurationNano = profile.DurationNano,
-            SampleCount = profile.Sample.Count,
-            SampleType = sampleType,
-            SampleUnit = sampleUnit,
-            OriginalPayloadFormat = NullIfEmpty(profile.OriginalPayloadFormat),
-            ServiceName = serviceName,
-            AttributesJson = PersistedAttributePolicy.SerializeProfileAttributes(attributes),
-            ResourceJson = resourceJson,
-            SchemaUrl = schemaUrl
-        };
-
-        var functions = new List<ProfileFunctionRow>(dictionary.FunctionTable.Count);
+        var functions = new List<ProfileFunctionIngestionRecord>(dictionary.FunctionTable.Count);
         for (var i = 0; i < dictionary.FunctionTable.Count; i++)
         {
             var f = dictionary.FunctionTable[i];
-            functions.Add(new ProfileFunctionRow
+            functions.Add(new ProfileFunctionIngestionRecord
             {
-                ProjectId = projectId,
-                ProfileId = profileId,
                 Ordinal = i,
                 Name = null,
                 SystemName = null,
@@ -429,41 +322,35 @@ internal static class OtlpConverter
             });
         }
 
-        var locations = new List<ProfileLocationRow>(dictionary.LocationTable.Count);
+        var locations = new List<ProfileLocationIngestionRecord>(dictionary.LocationTable.Count);
         for (var i = 0; i < dictionary.LocationTable.Count; i++)
         {
             var loc = dictionary.LocationTable[i];
-            string? linesJson = null;
+            List<ProfileLocationLineJson>? lines = null;
             if (loc.Line.Count > 0)
             {
-                var lines = new List<ProfileLocationLineJson>(loc.Line.Count);
+                lines = new List<ProfileLocationLineJson>(loc.Line.Count);
                 foreach (var line in loc.Line)
                 {
                     lines.Add(new ProfileLocationLineJson(line.FunctionIndex, line.Line_, line.Column));
                 }
-
-                linesJson = JsonSerializer.Serialize(lines, IngestionJsonSerializerContext.Default.ProfileLocationLineJsonList);
             }
 
-            locations.Add(new ProfileLocationRow
+            locations.Add(new ProfileLocationIngestionRecord
             {
-                ProjectId = projectId,
-                ProfileId = profileId,
                 Ordinal = i,
                 MappingOrdinal = loc.MappingIndex,
                 Address = loc.Address,
-                LinesJson = linesJson
+                Lines = lines
             });
         }
 
-        var mappings = new List<ProfileMappingRow>(dictionary.MappingTable.Count);
+        var mappings = new List<ProfileMappingIngestionRecord>(dictionary.MappingTable.Count);
         for (var i = 0; i < dictionary.MappingTable.Count; i++)
         {
             var m = dictionary.MappingTable[i];
-            mappings.Add(new ProfileMappingRow
+            mappings.Add(new ProfileMappingIngestionRecord
             {
-                ProjectId = projectId,
-                ProfileId = profileId,
                 Ordinal = i,
                 Filename = null,
                 MemoryStart = m.MemoryStart,
@@ -472,7 +359,7 @@ internal static class OtlpConverter
             });
         }
 
-        var samples = new List<ProfileSampleRow>(profile.Sample.Count);
+        var samples = new List<ProfileSampleIngestionRecord>(profile.Sample.Count);
         for (var i = 0; i < profile.Sample.Count; i++)
         {
             var s = profile.Sample[i];
@@ -485,39 +372,45 @@ internal static class OtlpConverter
                 linkSpanId = ToHex(link.SpanId);
             }
 
-            samples.Add(new ProfileSampleRow
+            samples.Add(new ProfileSampleIngestionRecord
             {
-                ProjectId = projectId,
-                ProfileId = profileId,
                 Ordinal = i,
                 StackOrdinal = s.StackIndex,
                 LinkTraceId = linkTraceId,
                 LinkSpanId = linkSpanId,
-                ValuesJson = s.Values.Count > 0 ? JsonSerializer.Serialize(s.Values) : null,
-                TimestampsJson = s.TimestampsUnixNano.Count > 0
-                    ? JsonSerializer.Serialize(s.TimestampsUnixNano)
-                    : null
+                Values = s.Values.Count > 0 ? s.Values.ToArray() : null,
+                TimestampsUnixNano = s.TimestampsUnixNano.Count > 0 ? s.TimestampsUnixNano.ToArray() : null
             });
         }
 
-        var stacks = new List<ProfileStackRow>(dictionary.StackTable.Count);
+        var stacks = new List<ProfileStackIngestionRecord>(dictionary.StackTable.Count);
         for (var i = 0; i < dictionary.StackTable.Count; i++)
         {
             var st = dictionary.StackTable[i];
-            stacks.Add(new ProfileStackRow
+            stacks.Add(new ProfileStackIngestionRecord
             {
-                ProjectId = projectId,
-                ProfileId = profileId,
                 Ordinal = i,
-                LocationOrdinalsJson = st.LocationIndices.Count > 0
-                    ? JsonSerializer.Serialize(st.LocationIndices)
-                    : null
+                LocationOrdinals = st.LocationIndices.Count > 0 ? st.LocationIndices.ToArray() : null
             });
         }
 
-        return new ProfileConversionResult
+        return new ProfileIngestionRecord
         {
-            Profile = header,
+            ProjectIdHint = projectIdHint,
+            ProfileId = profileId,
+            TraceId = traceId,
+            SpanId = spanId,
+            SessionId = sessionId,
+            TimeUnixNano = profile.TimeUnixNano,
+            DurationNano = profile.DurationNano,
+            SampleCount = profile.Sample.Count,
+            SampleType = sampleType,
+            SampleUnit = sampleUnit,
+            OriginalPayloadFormat = NullIfEmpty(profile.OriginalPayloadFormat),
+            ServiceName = serviceName,
+            Attributes = attributes,
+            ResourceAttributes = resourceAttributes,
+            SchemaUrl = schemaUrl,
             Functions = functions,
             Locations = locations,
             Mappings = mappings,

@@ -14,7 +14,8 @@ internal sealed class LogsServiceImpl(DuckDbStore store)
     {
         try
         {
-            var logs = OtlpConverter.ConvertLogsToStorageRows(request);
+            var logBatch = OtlpConverter.ConvertLogs(request);
+            var logs = IngestionStorageMapper.ToLogStorageRows(logBatch);
 
             if (logs.Count <= 0) return new ExportLogsServiceResponse();
 

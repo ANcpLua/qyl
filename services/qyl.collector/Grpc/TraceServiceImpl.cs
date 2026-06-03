@@ -18,7 +18,8 @@ internal sealed class TraceServiceImpl(
     {
         try
         {
-            var spans = OtlpConverter.ConvertTraceRequestToStorageRows(request);
+            var traceBatch = OtlpConverter.ConvertTraceRequest(request);
+            var spans = IngestionStorageMapper.ToSpanStorageRows(traceBatch);
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 
