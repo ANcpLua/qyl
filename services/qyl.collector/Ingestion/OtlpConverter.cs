@@ -5,7 +5,9 @@ using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
+using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
+using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
@@ -91,9 +93,9 @@ internal static class OtlpConverter
         return null;
     }
 
-    private static Dictionary<string, string> ExtractResourceAttributesFromProto(ProtoResource? resource)
+    private static Dictionary<string, OtlpAttributeValue> ExtractResourceAttributesFromProto(ProtoResource? resource)
     {
-        var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
+        var attrs = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         if (resource is null) return attrs;
 
         foreach (var attr in resource.Attributes)
@@ -104,20 +106,20 @@ internal static class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValueToString(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
             if (value is not null) attrs[attr.Key] = value;
         }
 
         return attrs;
     }
 
-    private static Dictionary<string, string> ExtractAttributesFromProto(
+    private static Dictionary<string, OtlpAttributeValue> ExtractAttributesFromProto(
         RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
         {
-            [CollectorSemanticAttributeCatalog.ServiceName] = serviceName
+            [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
         };
 
         foreach (var attr in protoAttributes)
@@ -128,36 +130,63 @@ internal static class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValueToString(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
             if (value is not null) attributes[attr.Key] = value;
         }
 
         return attributes;
     }
 
-    private static string? ConvertProtoAnyValueToString(ProtoAnyValue? value)
+    private static OtlpAttributeValue? ConvertProtoAnyValue(ProtoAnyValue? value)
     {
         if (value is null) return null;
 
         return value.ValueCase switch
         {
-            ProtoAnyValue.ValueOneofCase.StringValue => value.StringValue,
-            ProtoAnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
-            ProtoAnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString(CultureInfo.InvariantCulture),
-            ProtoAnyValue.ValueOneofCase.BoolValue => value.BoolValue.ToString().ToLowerInvariant(),
-            ProtoAnyValue.ValueOneofCase.BytesValue => null,
-            ProtoAnyValue.ValueOneofCase.ArrayValue => null,
-            ProtoAnyValue.ValueOneofCase.KvlistValue => null,
+            ProtoAnyValue.ValueOneofCase.StringValue => OtlpAttributeValue.FromString(value.StringValue),
+            ProtoAnyValue.ValueOneofCase.IntValue => OtlpAttributeValue.FromInt(value.IntValue),
+            ProtoAnyValue.ValueOneofCase.DoubleValue => OtlpAttributeValue.FromDouble(value.DoubleValue),
+            ProtoAnyValue.ValueOneofCase.BoolValue => OtlpAttributeValue.FromBool(value.BoolValue),
+            ProtoAnyValue.ValueOneofCase.BytesValue => OtlpAttributeValue.FromBytes(CopyBytes(value.BytesValue)),
+            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue),
+            ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue),
             _ => null
         };
+    }
+
+    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value)
+    {
+        var items = new List<OtlpAttributeValue>(value.Values.Count);
+        foreach (var item in value.Values)
+        {
+            if (ConvertProtoAnyValue(item) is { } converted)
+                items.Add(converted);
+        }
+
+        return OtlpAttributeValue.FromArray(items);
+    }
+
+    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value)
+    {
+        var items = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        foreach (var item in value.Values)
+        {
+            if (string.IsNullOrEmpty(item.Key))
+                continue;
+
+            if (ConvertProtoAnyValue(item.Value) is { } converted)
+                items[item.Key] = converted;
+        }
+
+        return OtlpAttributeValue.FromKeyValueList(items);
     }
 
     private static SpanIngestionRecord CreateSpanRecordFromProto(
         ProtoSpan span,
         string? projectIdHint,
         string serviceName,
-        Dictionary<string, string> attributes,
-        Dictionary<string, string> resourceAttributes,
+        Dictionary<string, OtlpAttributeValue> attributes,
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
         string? schemaUrl) =>
         new()
         {
@@ -184,6 +213,13 @@ internal static class OtlpConverter
     {
         if (value.Length is 0) return null;
         return Convert.ToHexString(value.Span).ToLowerInvariant();
+    }
+
+    private static byte[] CopyBytes(ByteString value)
+    {
+        var bytes = new byte[value.Length];
+        value.CopyTo(bytes, 0);
+        return bytes;
     }
 
     #endregion
@@ -215,7 +251,7 @@ internal static class OtlpConverter
         ProtoLogRecord log,
         string? projectIdHint,
         string serviceName,
-        Dictionary<string, string> resourceAttributes)
+        Dictionary<string, OtlpAttributeValue> resourceAttributes)
     {
         var attributes = ExtractLogAttributes(log.Attributes);
 
@@ -230,16 +266,16 @@ internal static class OtlpConverter
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
-            BodyText = ConvertProtoAnyValueToString(log.Body),
+            BodyText = ConvertProtoAnyValue(log.Body)?.ToStableString(),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes
         };
     }
 
-    private static Dictionary<string, string> ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
+    private static Dictionary<string, OtlpAttributeValue> ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
     {
-        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+        var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
@@ -249,7 +285,7 @@ internal static class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValueToString(attr.Value);
+            var value = ConvertProtoAnyValue(attr.Value);
             if (value is not null)
                 dict[attr.Key] = value;
         }
@@ -296,7 +332,7 @@ internal static class OtlpConverter
         ProtoProfilesDictionary dictionary,
         string? projectIdHint,
         string serviceName,
-        Dictionary<string, string> resourceAttributes,
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
         string? schemaUrl)
     {
         var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
@@ -419,11 +455,11 @@ internal static class OtlpConverter
         };
     }
 
-    private static Dictionary<string, string> ExtractProfileAttributes(
+    private static Dictionary<string, OtlpAttributeValue> ExtractProfileAttributes(
         RepeatedField<int> indices,
         ProtoProfilesDictionary dictionary)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
 
         foreach (var index in indices)
         {
@@ -438,7 +474,7 @@ internal static class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValueToString(attribute.Value);
+            var value = ConvertProtoAnyValue(attribute.Value);
             if (value is not null)
                 attributes[key] = value;
         }

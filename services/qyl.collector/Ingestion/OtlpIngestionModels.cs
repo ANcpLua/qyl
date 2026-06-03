@@ -18,8 +18,8 @@ internal sealed record SpanIngestionRecord
     public required ulong EndTimeUnixNano { get; init; }
     public int? StatusCode { get; init; }
     public required string ServiceName { get; init; }
-    public required IReadOnlyDictionary<string, string> Attributes { get; init; }
-    public required IReadOnlyDictionary<string, string> ResourceAttributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
     public string? SchemaUrl { get; init; }
 }
 
@@ -34,8 +34,8 @@ internal sealed record LogIngestionRecord
     public string? SeverityText { get; init; }
     public string? BodyText { get; init; }
     public required string ServiceName { get; init; }
-    public required IReadOnlyDictionary<string, string> Attributes { get; init; }
-    public required IReadOnlyDictionary<string, string> ResourceAttributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
 }
 
 internal sealed record ProfileIngestionRecord
@@ -52,8 +52,8 @@ internal sealed record ProfileIngestionRecord
     public string? SampleUnit { get; init; }
     public string? OriginalPayloadFormat { get; init; }
     public required string ServiceName { get; init; }
-    public required IReadOnlyDictionary<string, string> Attributes { get; init; }
-    public required IReadOnlyDictionary<string, string> ResourceAttributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
+    public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
     public string? SchemaUrl { get; init; }
     public required IReadOnlyList<ProfileFunctionIngestionRecord> Functions { get; init; }
     public required IReadOnlyList<ProfileLocationIngestionRecord> Locations { get; init; }

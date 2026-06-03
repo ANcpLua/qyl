@@ -51,4 +51,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(HeartbeatEvent))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
 [JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(object[]))]
+[JsonSerializable(typeof(Dictionary<string, object?>))]
 internal partial class QylSerializerContext : JsonSerializerContext;

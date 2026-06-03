@@ -1257,6 +1257,107 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Do not drop OTLP profile function or mapping symbols. Resolve *_strindex fields through ProfilesDictionary.string_table.");
         });
 
+    Target VerifyOtlpAttributesPreserveAnyValueTypes => d => d
+        .Unlisted()
+        .Description("Verify OTLP attributes are not collapsed to string-only dictionaries")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var ingestionFiles = (CollectorDirectory / "Ingestion").GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .ToList();
+
+            var storageFiles = (CollectorDirectory / "Storage").GlobFiles("*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .ToList();
+
+            string[] forbidden =
+            [
+                "ConvertProtoAnyValueToString",
+                "Dictionary<string, string>",
+                "IReadOnlyDictionary<string, string>",
+                "DictionaryStringString"
+            ];
+
+            var offenders = ingestionFiles.Concat(storageFiles)
+                .SelectMany(file => forbidden
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            var converterText = ingestionFiles.Single(static file => file.File.EndsWith("Ingestion/OtlpConverter.cs", StringComparison.Ordinal)).Text;
+            string[] converterRequired =
+            [
+                "ProtoAnyValue.ValueOneofCase.BytesValue",
+                "ProtoAnyValue.ValueOneofCase.ArrayValue",
+                "ProtoAnyValue.ValueOneofCase.KvlistValue",
+                "ConvertProtoArrayValue",
+                "ConvertProtoKeyValueList"
+            ];
+
+            var missingConverterTokens = converterRequired
+                .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            var attributeValueText = ingestionFiles.Single(static file => file.File.EndsWith("Ingestion/OtlpAttributeValue.cs", StringComparison.Ordinal)).Text;
+            string[] attributeValueRequired =
+            [
+                "OtlpAttributeValueKind.Bytes",
+                "OtlpAttributeValueKind.Array",
+                "OtlpAttributeValueKind.KeyValueList",
+                "WriteJsonValue"
+            ];
+
+            var missingAttributeValueTokens = attributeValueRequired
+                .Where(token => !attributeValueText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            var persistedPolicyText = storageFiles.Single(static file => file.File.EndsWith("Storage/PersistedAttributePolicy.cs", StringComparison.Ordinal)).Text;
+            var missingJsonWriter = !persistedPolicyText.Contains("value.WriteJsonValue(writer)", StringComparison.Ordinal);
+
+            if (offenders.Count is 0 &&
+                missingConverterTokens.Count is 0 &&
+                missingAttributeValueTokens.Count is 0 &&
+                !missingJsonWriter)
+            {
+                Log.Information("OTLP attributes preserve AnyValue shape through ingestion and storage JSON");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  String-only OTLP attribute token '{Token}' found in {File}",
+                    offender.Token,
+                    offender.File);
+
+            foreach (var token in missingConverterTokens)
+                Log.Error("  Missing OTLP AnyValue conversion token '{Token}'", token);
+
+            foreach (var token in missingAttributeValueTokens)
+                Log.Error("  Missing persisted OTLP attribute value token '{Token}'", token);
+
+            if (missingJsonWriter)
+                Log.Error("  PersistedAttributePolicy must write values through OtlpAttributeValue.WriteJsonValue");
+
+            throw new InvalidOperationException(
+                "Do not collapse OTLP attributes to string-only dictionaries. Preserve AnyValue string, bool, int, double, bytes, array, and kvlist values through storage JSON.");
+        });
+
     Target VerifyOtlpConverterUsesCentralizedSemanticProjection => d => d
         .Unlisted()
         .Description("Verify OTLP decoding stays storage-independent and storage projection stays centralized")
@@ -2003,6 +2104,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyOtlpProfileSymbolsAreResolved)
+        .DependsOn(VerifyOtlpAttributesPreserveAnyValueTypes)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)

@@ -51,12 +51,12 @@ internal static class AttributeKeySets
 internal static class AttributeLookupExtensions
 {
     internal static string? GetFirstValueOrDefault(
-        this IReadOnlyDictionary<string, string> attributes,
+        this IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         IEnumerable<string> keys)
     {
         foreach (var key in keys)
         {
-            if (attributes.GetValueOrDefault(key) is { } value)
+            if (attributes.GetValueOrDefault(key)?.AsString() is { } value)
                 return value;
         }
 
@@ -69,7 +69,7 @@ internal static class AttributeLookupExtensions
         candidates.Contains(key);
 
     internal static string? GetOptionalValueOrDefault(
-        this IReadOnlyDictionary<string, string> attributes,
+        this IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         string? key) =>
-        key is null ? null : attributes.GetValueOrDefault(key);
+        key is null ? null : attributes.GetValueOrDefault(key)?.AsString();
 }

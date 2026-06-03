@@ -27,7 +27,7 @@ internal static class ContractJson
 
             var attributes = new List<ContractAttribute>();
             foreach (var property in document.RootElement.EnumerateObject())
-                attributes.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value) });
+                attributes.Add(new ContractAttribute { Key = property.Name, Value = ReadValue(property.Value) ?? "" });
 
             return attributes;
         }
@@ -37,7 +37,7 @@ internal static class ContractJson
         }
     }
 
-    private static object ReadValue(JsonElement value) =>
+    private static object? ReadValue(JsonElement value) =>
         value.ValueKind switch
         {
             JsonValueKind.String => value.GetString() ?? "",
@@ -46,10 +46,19 @@ internal static class ContractJson
             JsonValueKind.True => true,
             JsonValueKind.False => false,
             JsonValueKind.Array => value.EnumerateArray().Select(ReadValue).ToArray(),
-            JsonValueKind.Object => value.GetRawText(),
-            JsonValueKind.Null => "",
+            JsonValueKind.Object => ReadObject(value),
+            JsonValueKind.Null => null,
             _ => value.GetRawText()
         };
+
+    private static Dictionary<string, object?> ReadObject(JsonElement value)
+    {
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var property in value.EnumerateObject())
+            result[property.Name] = ReadValue(property.Value);
+
+        return result;
+    }
 }
 
 internal static class SpanMapper

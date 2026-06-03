@@ -5,7 +5,6 @@ namespace Qyl.Collector.Ingestion;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     WriteIndented = false)]
-[JsonSerializable(typeof(Dictionary<string, string>), TypeInfoPropertyName = "DictionaryStringString")]
 [JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
 internal partial class IngestionJsonSerializerContext : JsonSerializerContext;
 
