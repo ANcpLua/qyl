@@ -26,7 +26,7 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
 
         ActivityExceptionTelemetry.Record(activity, ex);
 
-        logger.LogExceptionCaptured(ex.GetType().Name, ex.Message);
+        logger.LogExceptionCaptured(ex);
     }
 }
 
@@ -95,8 +95,8 @@ internal sealed class ExceptionHookRegistrar(ILoggerFactory loggerFactory) : IHo
 
 internal static partial class ExceptionCaptureLogMessages
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "[qyl] Captured {ExceptionType}: {Message}")]
-    public static partial void LogExceptionCaptured(this ILogger logger, string exceptionType, string message);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[qyl] Captured exception")]
+    public static partial void LogExceptionCaptured(this ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "[qyl] Unhandled exception (IsTerminating={IsTerminating})")]
     public static partial void LogUnhandledException(this ILogger logger, Exception exception, bool isTerminating);

@@ -697,6 +697,62 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Stamp project_id only at the collector receiver/ingestion-to-storage boundary.");
         });
 
+    Target VerifyInstrumentationTelemetryIsBoundedAndRedacted => d => d
+        .Unlisted()
+        .Description("Verify instrumentation telemetry avoids raw exception content and unbounded span names")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenTokens =
+            [
+                "ExceptionAttributes.Message",
+                "ExceptionAttributes.Stacktrace",
+                "exception.Message",
+                "exception.ToString()",
+                "ex.Message",
+                "{Message}",
+                "SetStatus(ActivityStatusCode.Error, error)",
+                "$\"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}\"",
+                "StartActivity(operation,"
+            ];
+
+            var offenders = (RootDirectory / "internal" / "qyl.instrumentation").GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => forbiddenTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            var genAiFile = RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "GenAi" /
+                            "GenAiInstrumentation.cs";
+            var genAiText = genAiFile.FileExists() ? File.ReadAllText(genAiFile) : "";
+            if (!genAiText.Contains("GenAiConstants.NormalizeOperationName", StringComparison.Ordinal))
+                offenders.Add((RootDirectory.GetRelativePathTo(genAiFile).ToString(), "GenAiConstants.NormalizeOperationName"));
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Instrumentation telemetry is bounded and redacted by default");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Unsafe instrumentation telemetry token '{Token}' found in {File}",
+                    offender.Token,
+                    offender.File);
+
+            throw new InvalidOperationException(
+                "Do not record exception messages, stack traces, raw tool names in span names, or caller-provided " +
+                "operation names as span/metric names by default. Normalize operation names and keep sensitive content gated.");
+        });
+
     Target VerifyCollectorStorageReadsAreProjectScoped => d => d
         .Unlisted()
         .Description("Verify collector storage reads stay scoped by project_id")
@@ -1685,6 +1741,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocation.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
                 RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
+                RootDirectory / "internal" / "qyl.instrumentation" / "DevLogs",
                 RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];
@@ -1810,6 +1867,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorLogStreamingUsesStorageOrdering)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
+        .DependsOn(VerifyInstrumentationTelemetryIsBoundedAndRedacted)
         .DependsOn(VerifyCollectorStorageReadsAreProjectScoped)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
@@ -1843,6 +1901,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector log streaming uses storage ordering");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
+            Log.Information("  Instrumentation telemetry is bounded and redacted by default");
             Log.Information("  Collector storage reads require explicit project scope");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");

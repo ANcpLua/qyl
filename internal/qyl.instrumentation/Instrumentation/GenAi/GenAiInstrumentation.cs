@@ -93,12 +93,12 @@ public static class GenAiInstrumentation
         string? callId = null,
         string? toolType = "function")
     {
-        var activity = ActivitySources.GenAiSource.StartActivity(
-            $"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}");
+        var normalizedOperation = GenAiConstants.NormalizeOperationName(GenAiAttributes.OperationNameValues.ExecuteTool);
+        var activity = ActivitySources.GenAiSource.StartActivity(normalizedOperation, ActivityKind.Internal);
 
         if (activity is not null)
         {
-            activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.OperationNameValues.ExecuteTool);
+            activity.SetTag(GenAiAttributes.OperationName, normalizedOperation);
             activity.SetTag(GenAiAttributes.ToolName, toolName);
 
             if (callId is not null)
@@ -115,13 +115,13 @@ public static class GenAiInstrumentation
         return activity;
     }
 
-    public static void RecordToolResult(Activity? activity, bool success, string? error = null)
+    public static void RecordToolResult(Activity? activity, bool success)
     {
         if (activity is null) return;
 
-        if (!success && error is not null)
+        if (!success)
         {
-            activity.SetStatus(ActivityStatusCode.Error, error);
+            activity.SetStatus(ActivityStatusCode.Error);
             activity.SetTag(ErrorAttributes.Type, "tool_execution_error");
         }
     }
@@ -147,17 +147,18 @@ public static class GenAiInstrumentation
         Func<Task<T>> execute,
         Func<T, TokenUsage>? extractUsage = null)
     {
-        using var activity = ActivitySources.GenAiSource.StartActivity(operation, ActivityKind.Client);
+        var normalizedOperation = GenAiConstants.NormalizeOperationName(operation);
+        using var activity = ActivitySources.GenAiSource.StartActivity(normalizedOperation, ActivityKind.Client);
 
         var sw = Stopwatch.StartNew();
 
         if (activity is not null)
         {
-            activity.SetTag(GenAiAttributes.OperationName, operation);
+            activity.SetTag(GenAiAttributes.OperationName, normalizedOperation);
             activity.SetTag(GenAiAttributes.ProviderName, provider);
             if (model is not null)
                 activity.SetTag(GenAiAttributes.RequestModel, model);
-            ApplyDefaultOutputType(activity, operation);
+            ApplyDefaultOutputType(activity, normalizedOperation);
         }
 
         try
@@ -172,17 +173,17 @@ public static class GenAiInstrumentation
                 try
                 {
                     var usage = extractUsage(result);
-                    RecordUsageAndDuration(activity, operation, usage.InputTokens, usage.OutputTokens,
+                    RecordUsageAndDuration(activity, normalizedOperation, usage.InputTokens, usage.OutputTokens,
                         duration);
                 }
                 catch
                 {
-                    RecordDuration(operation, duration);
+                    RecordDuration(normalizedOperation, duration);
                 }
             }
             else
             {
-                RecordDuration(operation, duration);
+                RecordDuration(normalizedOperation, duration);
             }
 
             return result;
@@ -190,7 +191,7 @@ public static class GenAiInstrumentation
         catch (Exception ex)
         {
             sw.Stop();
-            RecordError(activity, ex, operation, sw.Elapsed.TotalSeconds);
+            RecordError(activity, ex, normalizedOperation, sw.Elapsed.TotalSeconds);
             throw;
         }
     }
@@ -202,18 +203,19 @@ public static class GenAiInstrumentation
         Func<IAsyncEnumerable<T>> streamFactory,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.GenAiSource.StartActivity(operation, ActivityKind.Client);
+        var normalizedOperation = GenAiConstants.NormalizeOperationName(operation);
+        using var activity = ActivitySources.GenAiSource.StartActivity(normalizedOperation, ActivityKind.Client);
 
         var sw = Stopwatch.StartNew();
         var outputTokens = 0;
 
         if (activity is not null)
         {
-            activity.SetTag(GenAiAttributes.OperationName, operation);
+            activity.SetTag(GenAiAttributes.OperationName, normalizedOperation);
             activity.SetTag(GenAiAttributes.ProviderName, provider);
             if (model is not null)
                 activity.SetTag(GenAiAttributes.RequestModel, model);
-            ApplyDefaultOutputType(activity, operation);
+            ApplyDefaultOutputType(activity, normalizedOperation);
         }
 
         IAsyncEnumerable<T> stream;
@@ -224,7 +226,7 @@ public static class GenAiInstrumentation
         catch (Exception ex)
         {
             sw.Stop();
-            RecordError(activity, ex, operation, sw.Elapsed.TotalSeconds);
+            RecordError(activity, ex, normalizedOperation, sw.Elapsed.TotalSeconds);
             throw;
         }
 
@@ -255,7 +257,7 @@ public static class GenAiInstrumentation
 
         if (caughtException is not null)
         {
-            RecordError(activity, caughtException, operation, duration);
+            RecordError(activity, caughtException, normalizedOperation, duration);
             throw caughtException;
         }
 
@@ -266,11 +268,11 @@ public static class GenAiInstrumentation
 
             RecordTokenUsage(
                 outputTokens,
-                operation,
+                normalizedOperation,
                 GenAiAttributes.TokenTypeValues.Output);
         }
 
-        RecordDuration(operation, duration);
+        RecordDuration(normalizedOperation, duration);
     }
 
     private static void RecordUsageAndDuration(
