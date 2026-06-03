@@ -17,7 +17,6 @@ builder.AddQylServiceDefaults(options =>
     options.ConfigureMetrics = static metrics =>
     {
         metrics.AddMeter(QylTelemetry.ServiceName);
-        metrics.AddMeter(QylTelemetry.StorageMeterName);
     };
 });
 

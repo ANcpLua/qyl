@@ -5,7 +5,6 @@ internal static class QylTelemetry
 {
     public const string ServiceName = "Qyl.Collector";
     public const string ServiceVersion = "1.0.0";
-    public const string StorageMeterName = "Qyl.Collector.storage";
 
 
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
@@ -19,69 +18,6 @@ internal static class QylTelemetry
     {
         Version = ServiceVersion, TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
-
-    public static readonly Meter StorageMeter = new(new MeterOptions(StorageMeterName)
-    {
-        Version = ServiceVersion, TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
-    });
-}
-
-internal static class QylMetrics
-{
-    private static Func<long>? s_storageSizeCallback;
-
-    private static readonly Counter<long> s_droppedJobs =
-        QylTelemetry.StorageMeter.CreateCounter<long>(Duckdb.DroppedJobsTotal);
-
-    private static readonly Counter<long> s_droppedSpans =
-        QylTelemetry.StorageMeter.CreateCounter<long>(Duckdb.DroppedSpansTotal);
-
-    public static readonly ObservableGauge<long> StorageSize =
-        QylTelemetry.StorageMeter.CreateObservableGauge(
-            QylAttr.Storage.Size,
-            GetStorageSizeBytes,
-            "By",
-            "Approximate storage size in bytes");
-
-    public static void RegisterStorageSizeCallback(Func<long> callback) =>
-        System.Threading.Volatile.Write(ref s_storageSizeCallback, Guard.NotNull(callback));
-
-    public static void UnregisterStorageSizeCallback(Func<long> callback)
-    {
-        Guard.NotNull(callback);
-
-        while (true)
-        {
-            var current = System.Threading.Volatile.Read(ref s_storageSizeCallback);
-            if (current is null || !current.Equals(callback))
-                return;
-
-            if (Interlocked.CompareExchange(ref s_storageSizeCallback, null, current) == current)
-                return;
-        }
-    }
-
-    public static void RecordDroppedSpans(int spanCount)
-    {
-        s_droppedJobs.Add(1);
-        s_droppedSpans.Add(spanCount);
-    }
-
-    private static long GetStorageSizeBytes()
-    {
-        var callback = System.Threading.Volatile.Read(ref s_storageSizeCallback);
-        if (callback is null)
-            return 0;
-
-        try
-        {
-            return Math.Max(0, callback());
-        }
-        catch
-        {
-            return 0;
-        }
-    }
 }
 
 internal static class QylLatencyNames

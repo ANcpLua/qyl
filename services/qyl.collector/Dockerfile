@@ -32,7 +32,6 @@ COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Vers
 COPY eng/ eng/
 
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
-COPY packages/Qyl.Telemetry/*.csproj packages/Qyl.Telemetry/
 COPY services/qyl.collector/*.csproj services/qyl.collector/
 COPY internal/qyl.instrumentation/*.csproj internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentation.generators/
@@ -44,7 +43,6 @@ RUN dotnet restore
 
 # Copy source files
 WORKDIR /src
-COPY packages/Qyl.Telemetry/ packages/Qyl.Telemetry/
 COPY services/qyl.collector/ services/qyl.collector/
 COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/

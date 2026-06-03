@@ -7,8 +7,6 @@ namespace Qyl.Instrumentation.Generators;
 internal static class GeneratorPipelineHelpers
 {
     public const string QylServiceDefaultsTypeName = "Qyl.Instrumentation.QylServiceDefaults";
-    public const string GeneratedActivitySourceAttributeName = "Qyl.Instrumentation.GeneratedActivitySourceAttribute";
-    public const string GeneratedMeterAttributeName = "Qyl.Instrumentation.GeneratedMeterAttribute";
     public const string WebApplicationBuilderTypeName = "Microsoft.AspNetCore.Builder.WebApplicationBuilder";
     public const string WebApplicationTypeName = "Microsoft.AspNetCore.Builder.WebApplication";
 

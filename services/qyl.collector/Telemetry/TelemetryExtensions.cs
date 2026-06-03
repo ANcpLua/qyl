@@ -29,7 +29,6 @@ internal static class TelemetryExtensions
             logging.EnableRedaction();
         });
 
-        services.AddLogEnricher<QylLogEnricher>();
         services.AddLogEnricher<QylRequestEnricher>();
 
         services.AddApplicationLogEnricher(static options =>

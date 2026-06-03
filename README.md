@@ -24,9 +24,8 @@ qyl.dashboard -> operator UI
 | `services/qyl.collector` | OTLP ingest, REST API, SSE streaming, DuckDB storage |
 | `services/qyl.dashboard` | React dashboard for traces, logs, metrics, services, alerts, and issues |
 | `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
-| `internal/qyl.instrumentation.generators` | Roslyn source generator for instrumentation attributes |
+| `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
-| `packages/Qyl.Telemetry` | qyl telemetry conventions and helper constants |
 | `packages/Qyl.Run` | local distributed-app runner for collector/dashboard workflows |
 
 ## Contracts

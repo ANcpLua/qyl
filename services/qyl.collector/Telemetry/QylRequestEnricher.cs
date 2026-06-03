@@ -5,16 +5,6 @@ using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Telemetry;
 
-internal sealed class QylLogEnricher : ILogEnricher
-{
-    private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
-
-    public void Enrich(IEnrichmentTagCollector collector)
-    {
-        collector.Add(QylAttr.Auth.InstanceId, _instanceId);
-    }
-}
-
 internal sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor) : ILogEnricher
 {
     public void Enrich(IEnrichmentTagCollector collector)

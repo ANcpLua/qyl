@@ -30,7 +30,6 @@ public static class QylServiceDefaultsExtensions
     [
         "qyl.genai",
         "qyl.db",
-        "qyl.traced",
         "qyl.agent",
         "Qyl.Instrumentation.ErrorCapture"
     ];

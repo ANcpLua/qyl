@@ -1,5 +1,4 @@
 using DuckDB.NET.Data;
-using Qyl.Collector.Telemetry;
 
 using static System.Threading.Volatile;
 
@@ -36,7 +35,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         int maxConcurrentReads = 8,
         int readQueueCapacity = 1000)
     {
-        DatabasePath = databasePath;
         _isInMemory = databasePath == ":memory:";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         Connection = new DuckDBConnection($"DataSource={databasePath}");
@@ -91,16 +89,12 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private DuckDBConnection Connection { get; }
 
-    private string DatabasePath { get; }
-
-
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         List<Exception>? shutdownErrors = null;
-        QylMetrics.UnregisterStorageSizeCallback(GetStorageSizeBytes);
 
         _jobs.Writer.TryComplete();
         _reads?.Writer.TryComplete();
@@ -367,7 +361,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     {
         Interlocked.Increment(ref _droppedJobCount);
         Interlocked.Add(ref _droppedSpanCount, spanCount);
-        QylMetrics.RecordDroppedSpans(spanCount);
     }
 
     private double GetWriteQueueUtilization()
@@ -375,53 +368,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         var queued = Math.Max(0, Read(ref _queuedWriteJobs));
         return Math.Clamp((double)queued / _jobQueueCapacity, 0, 1);
     }
-
-    public long GetStorageSizeBytes()
-    {
-        if (Read(ref _disposed) is not 0)
-            return 0;
-
-        if (!_isInMemory)
-        {
-            try
-            {
-                var fileInfo = new FileInfo(DatabasePath);
-                if (fileInfo.Exists)
-                    return fileInfo.Length;
-            }
-            catch (IOException ex)
-            {
-                Debug.WriteLine(ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Debug.WriteLine(ex);
-            }
-
-            return 0;
-        }
-
-        try
-        {
-            using var cmd = Connection.CreateCommand();
-            cmd.CommandText = "SELECT database_size FROM pragma_database_size()";
-            var result = cmd.ExecuteScalar();
-            switch (result)
-            {
-                case long size:
-                    return size;
-                case string sizeStr when long.TryParse(sizeStr, out var parsed):
-                    return parsed;
-            }
-        }
-        catch (DuckDBException ex)
-        {
-            Debug.WriteLine(ex);
-        }
-
-        return 0;
-    }
-
 
     public Task<long> GetSpanCountAsync(
         string projectId,

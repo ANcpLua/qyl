@@ -1397,6 +1397,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             AbsolutePath[] files =
             [
                 RootDirectory / "Directory.Packages.props",
+                RootDirectory / "README.md",
+                RootDirectory / "qyl.slnx",
                 RootDirectory / "nuget.config",
                 RootDirectory / ".gitignore",
                 RootDirectory / ".github" / "workflows" / "ci.yml",
@@ -1404,10 +1406,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 buildDirectory / "build.csproj",
                 buildDirectory / "Build.cs",
                 buildDirectory / "BuildTest.cs",
+                RootDirectory / "services" / "qyl.collector" / "Dockerfile",
                 RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj",
-                RootDirectory / "packages" / "Qyl.OpenTelemetry.Extensions" / "README.md",
-                RootDirectory / "packages" / "Qyl.Telemetry" / "Qyl.Telemetry.csproj",
-                RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs"
+                RootDirectory / "internal" / "qyl.instrumentation" / "qyl.instrumentation.csproj",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs"
             ];
 
             string[] removedTokens =
@@ -1424,6 +1426,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "RunFilteredE2ETests",
                 "Target E2ETests",
                 "qyl.e2e.tests",
+                "Qyl.OpenTelemetry.Extensions",
+                "Qyl.Telemetry",
+                "QylTraced",
+                "QylMeter",
                 "./eng/build.sh Generate",
                 "./eng/build.sh OtelConventions",
                 "nuke Generate",
@@ -1746,7 +1752,29 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
                 RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
                 RootDirectory / "internal" / "qyl.instrumentation" / "DevLogs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "GeneratedTelemetryRegistrationAttributes.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "CounterAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "GaugeAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "HistogramAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "MeterAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "NoTraceAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableCounterAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableGaugeAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "ObservableUpDownCounterAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "OTelAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TagAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedReturnAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "TracedTagAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "UpDownCounterAttribute.cs",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "MeterAnalyzer.cs",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "TelemetryTagNameResolver.cs",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "CallSites" / "TracedCallSiteAnalyzer.cs",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "Emitters" / "MeterEmitter.cs",
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "Emitters" / "TracedInterceptorEmitter.cs",
                 RootDirectory / "packages" / "Qyl.Client",
+                RootDirectory / "packages" / "Qyl.OpenTelemetry.Extensions",
+                RootDirectory / "packages" / "Qyl.Telemetry",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];
 
@@ -1978,8 +2006,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         string Route);
 
     private readonly record struct CollectorAttributeLiteralValues(
-        IReadOnlySet<string> SemanticConventionValues,
-        IReadOnlySet<string> QylValues);
+        IReadOnlySet<string> SemanticConventionValues);
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
         CollectorDirectory.GlobFiles("**/*.cs")
@@ -2561,37 +2588,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
     private CollectorAttributeLiteralValues ResolveCollectorAttributeLiteralValues()
     {
-        return new CollectorAttributeLiteralValues(
-            ResolveCollectorSemanticAttributeValues(),
-            new HashSet<string>(ResolveQylAttributeLiteralValues(), StringComparer.Ordinal));
-    }
-
-    private IEnumerable<string> ResolveQylAttributeLiteralValues()
-    {
-        var attributesFile = RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs";
-        if (!attributesFile.FileExists())
-            yield break;
-
-        var root = ParseCompilationUnit(attributesFile);
-        foreach (var field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
-        {
-            if (!field.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.ConstKeyword)) ||
-                field.Declaration.Type is not PredefinedTypeSyntax type ||
-                !type.Keyword.IsKind(SyntaxKind.StringKeyword))
-            {
-                continue;
-            }
-
-            foreach (var variable in field.Declaration.Variables)
-            {
-                if (variable.Initializer?.Value is LiteralExpressionSyntax literal &&
-                    literal.IsKind(SyntaxKind.StringLiteralExpression) &&
-                    literal.Token.ValueText is { Length: > 0 } value)
-                {
-                    yield return value;
-                }
-            }
-        }
+        return new CollectorAttributeLiteralValues(ResolveCollectorSemanticAttributeValues());
     }
 
     private IEnumerable<RemovedRouteLiteral> RemovedRouteLiterals(
@@ -2661,8 +2658,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
     private static bool IsKnownAttributeLiteral(string value, CollectorAttributeLiteralValues attributeLiteralValues)
     {
-        if (attributeLiteralValues.SemanticConventionValues.Contains(value) ||
-            attributeLiteralValues.QylValues.Contains(value))
+        if (attributeLiteralValues.SemanticConventionValues.Contains(value))
         {
             return true;
         }
@@ -2670,7 +2666,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         if (value.Length is 0 || value[^1] is not '.')
             return false;
 
-        return attributeLiteralValues.SemanticConventionValues.Any(known => known.StartsWith(value, StringComparison.Ordinal)) ||
-               attributeLiteralValues.QylValues.Any(known => known.StartsWith(value, StringComparison.Ordinal));
+        return attributeLiteralValues.SemanticConventionValues.Any(known => known.StartsWith(value, StringComparison.Ordinal));
     }
 }

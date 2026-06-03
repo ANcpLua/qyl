@@ -9,8 +9,6 @@ public static class ActivitySources
 
     public const string Db = "qyl.db";
 
-    public const string Traced = "qyl.traced";
-
     public const string Agent = "qyl.agent";
 
     public const string ErrorCapture = "Qyl.Instrumentation.ErrorCapture";

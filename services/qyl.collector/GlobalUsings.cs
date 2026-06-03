@@ -18,4 +18,3 @@ global using QylSessionActivity = Qyl.Collector.Primitives.SessionActivity;
 global using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;
 global using Qyl.Collector.Mapping;
 global using Qyl.Instrumentation;
-global using QylAttr;
