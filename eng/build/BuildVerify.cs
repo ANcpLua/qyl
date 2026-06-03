@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
@@ -246,6 +249,175 @@ interface IVerify : IHazSourcePaths
                  typeName.EndsWith("Response", StringComparison.Ordinal) ||
                  typeName.EndsWith("Dto", StringComparison.Ordinal) ||
                  typeName.EndsWith("Contract", StringComparison.Ordinal));
+        });
+
+    Target VerifyCollectorHasNoLocalApiModels => d => d
+        .Unlisted()
+        .Description("Verify collector does not define API-facing local models")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var offenders = CollectorSourceFiles()
+                .SelectMany(file => DeclaredTypes(file)
+                    .Where(static declaration => IsLocalApiModel(declaration))
+                    .Select(declaration => (
+                        File: declaration.File,
+                        declaration.Line,
+                        declaration.Name,
+                        declaration.Namespace)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector declares no local API-facing models");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Local API model at {File}:{Line}: {Namespace}.{Name}",
+                    offender.File, offender.Line, offender.Namespace, offender.Name);
+
+            throw new InvalidOperationException(
+                "Do not create collector-local API models. Public API models must be generated in qyl-api-schema " +
+                "and consumed through Qyl.Api.Contracts; collector-local records/classes may only represent storage, " +
+                "ingestion, or infrastructure internals.");
+
+            static bool IsLocalApiModel(DeclaredType declaration)
+            {
+                if (declaration.IsStatic)
+                    return false;
+
+                if (declaration.Namespace.StartsWith("Qyl.Collector.Observe", StringComparison.Ordinal) ||
+                    declaration.Namespace.StartsWith("Qyl.Collector.Metrics", StringComparison.Ordinal) ||
+                    declaration.Path.Contains("/Observe/", StringComparison.Ordinal) ||
+                    declaration.Path.Contains("/Metrics/", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (IsInfrastructureType(declaration.Name))
+                    return false;
+
+                if (IsStorageOrIngestionInternal(declaration.Path))
+                    return false;
+
+                return IsApiShapedName(declaration.Name);
+            }
+
+            static bool IsStorageOrIngestionInternal(string path) =>
+                path.Contains("/Storage/", StringComparison.Ordinal) ||
+                path.Contains("/Ingestion/", StringComparison.Ordinal) ||
+                path.Contains("/Cost/", StringComparison.Ordinal);
+
+            static bool IsInfrastructureType(string name) =>
+                name.EndsWith("Middleware", StringComparison.Ordinal) ||
+                name.EndsWith("HealthCheck", StringComparison.Ordinal) ||
+                name.EndsWith("Options", StringComparison.Ordinal) ||
+                name.EndsWith("Service", StringComparison.Ordinal) ||
+                name.EndsWith("ServiceImpl", StringComparison.Ordinal) ||
+                name.EndsWith("Context", StringComparison.Ordinal) ||
+                name.EndsWith("Redactor", StringComparison.Ordinal);
+
+            static bool IsApiShapedName(string name) =>
+                name.EndsWith("Request", StringComparison.Ordinal) ||
+                name.EndsWith("Response", StringComparison.Ordinal) ||
+                name.EndsWith("Dto", StringComparison.Ordinal) ||
+                name.EndsWith("Contract", StringComparison.Ordinal) ||
+                name.EndsWith("Entity", StringComparison.Ordinal) ||
+                name.EndsWith("Stats", StringComparison.Ordinal) ||
+                name.EndsWith("Summary", StringComparison.Ordinal) ||
+                name.EndsWith("Page", StringComparison.Ordinal) ||
+                name.EndsWith("Query", StringComparison.Ordinal) ||
+                name.EndsWith("Filter", StringComparison.Ordinal) ||
+                name.EndsWith("Result", StringComparison.Ordinal) ||
+                name.EndsWith("Item", StringComparison.Ordinal) ||
+                name.EndsWith("Message", StringComparison.Ordinal) ||
+                name.EndsWith("Event", StringComparison.Ordinal) ||
+                name.EndsWith("Subscription", StringComparison.Ordinal) ||
+                name.EndsWith("Catalog", StringComparison.Ordinal);
+        });
+
+    Target VerifyCollectorHttpJsonContextUsesOnlyContracts => d => d
+        .Unlisted()
+        .Description("Verify collector HTTP JSON context does not expose local models")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var contextFile = CollectorDirectory / "QylSerializerContext.cs";
+            if (!contextFile.FileExists())
+            {
+                Log.Information("Collector HTTP JSON context is absent");
+                return;
+            }
+
+            var localTypeNames = CollectorSourceFiles()
+                .SelectMany(file => DeclaredTypes(file).Select(static declaration => declaration.Name))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(contextFile), path: contextFile.ToString());
+            var root = tree.GetCompilationUnitRoot();
+            var offenders = root.DescendantNodes()
+                .OfType<AttributeSyntax>()
+                .Where(static attribute => attribute.Name.ToString().Contains("JsonSerializable", StringComparison.Ordinal))
+                .Select(attribute => (
+                    Attribute: attribute,
+                    TypeName: ExtractJsonSerializableTypeName(attribute)))
+                .Where(static item => item.TypeName is not null)
+                .Where(item => IsLocalSerializerType(item.TypeName!, localTypeNames))
+                .Select(item => (
+                    File: RootDirectory.GetRelativePathTo(contextFile).ToString(),
+                    Line: item.Attribute.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+                    TypeName: item.TypeName!))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector HTTP JSON context serializes contract models only");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Local type in HTTP JSON context at {File}:{Line}: {Type}",
+                    offender.File, offender.Line, offender.TypeName);
+
+            throw new InvalidOperationException(
+                "Do not register collector-local models in QylSerializerContext. HTTP JSON output must use " +
+                "Qyl.Api.Contracts models; internal ingestion/storage serializers need their own private context.");
+
+            static string? ExtractJsonSerializableTypeName(AttributeSyntax attribute)
+            {
+                var firstArgument = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression;
+                if (firstArgument is not TypeOfExpressionSyntax typeOf)
+                    return null;
+
+                return UnwrapCollectionType(typeOf.Type.ToString());
+            }
+
+            static string UnwrapCollectionType(string typeName)
+            {
+                while (typeName.EndsWith("[]", StringComparison.Ordinal))
+                    typeName = typeName[..^2];
+
+                if (typeName.StartsWith("List<", StringComparison.Ordinal) ||
+                    typeName.StartsWith("IReadOnlyList<", StringComparison.Ordinal))
+                {
+                    var start = typeName.IndexOf('<', StringComparison.Ordinal) + 1;
+                    var end = typeName.LastIndexOf('>');
+                    if (end > start)
+                        return typeName[start..end].Trim();
+                }
+
+                return typeName.Trim();
+            }
+
+            static bool IsLocalSerializerType(string typeName, ISet<string> localTypeNames)
+            {
+                if (typeName.StartsWith("Qyl.Collector.", StringComparison.Ordinal))
+                    return true;
+
+                var simpleName = typeName.Split('.').Last();
+                return localTypeNames.Contains(simpleName);
+            }
         });
 
     Target VerifyCollectorEndpointResponsesUseContracts => d => d
@@ -1146,6 +1318,8 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorHasNoUnexpectedPublicTypes)
         .DependsOn(VerifyCollectorHasNoPublicLocalModels)
         .DependsOn(VerifyCollectorHasNoLocalHttpDtos)
+        .DependsOn(VerifyCollectorHasNoLocalApiModels)
+        .DependsOn(VerifyCollectorHttpJsonContextUsesOnlyContracts)
         .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
@@ -1165,6 +1339,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector exposes no public type surface outside Program");
             Log.Information("  Collector-local DTO models are internal");
             Log.Information("  Collector HTTP DTOs come from Qyl.Api.Contracts");
+            Log.Information("  Collector declares no local API-facing models");
+            Log.Information("  Collector HTTP JSON context serializes contract models only");
             Log.Information("  Collector endpoint responses are contract-backed");
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");
@@ -1175,6 +1351,53 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
+
+    private readonly record struct DeclaredType(
+        string File,
+        string Path,
+        int Line,
+        string Namespace,
+        string Name,
+        bool IsStatic);
+
+    private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
+        CollectorDirectory.GlobFiles("**/*.cs")
+            .Where(static file =>
+            {
+                var path = file.ToString();
+                return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                       && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+            });
+
+    private IEnumerable<DeclaredType> DeclaredTypes(AbsolutePath file)
+    {
+        var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
+        var root = tree.GetCompilationUnitRoot();
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+
+        foreach (var declaration in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
+        {
+            var line = declaration.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+            yield return new DeclaredType(
+                RootDirectory.GetRelativePathTo(file).ToString(),
+                relativePath,
+                line,
+                ResolveNamespace(declaration),
+                declaration.Identifier.ValueText,
+                declaration.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.StaticKeyword)));
+        }
+
+        static string ResolveNamespace(SyntaxNode node)
+        {
+            for (var current = node.Parent; current is not null; current = current.Parent)
+            {
+                if (current is BaseNamespaceDeclarationSyntax namespaceDeclaration)
+                    return namespaceDeclaration.Name.ToString();
+            }
+
+            return "";
+        }
+    }
 
     private static string? TryGetDeclaredTypeName(string line)
     {

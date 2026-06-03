@@ -65,6 +65,7 @@
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAiVersion)"/>
     <!-- Build Tooling (Nuke) -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0"/>
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
     <!-- Transitive security overrides (via Nuke.Common): force patched versions that

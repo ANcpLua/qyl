@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <!-- Core NUKE (versions via CPM) -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="Nuke.Common"/>
     <PackageReference Include="Nuke.Components"/>
     <!-- Transitive security overrides (pulled in by Nuke.Common but with vulnerable
