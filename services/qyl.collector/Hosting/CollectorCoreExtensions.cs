@@ -22,9 +22,6 @@ internal static class CollectorCoreExtensions
             options.ResponseCompressionAlgorithm = "gzip";
         });
 
-        var ringBufferCapacity = config.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);
-        services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));
-
         return ports;
     }
 }

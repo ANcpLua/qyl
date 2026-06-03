@@ -6,12 +6,10 @@ namespace Qyl.Collector.Grpc;
 
 internal sealed class TraceServiceImpl(
     DuckDbStore store,
-    SpanRingBuffer ringBuffer,
     ModelPricingService pricingService)
     : TraceService.TraceServiceBase
 {
     private readonly ModelPricingService _pricingService = Guard.NotNull(pricingService);
-    private readonly SpanRingBuffer _ringBuffer = Guard.NotNull(ringBuffer);
     private readonly DuckDbStore _store = Guard.NotNull(store);
 
     public override async Task<ExportTraceServiceResponse> Export(
@@ -25,8 +23,6 @@ internal sealed class TraceServiceImpl(
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 
             var batch = _pricingService.EnrichBatchWithCost(new SpanBatch(spans));
-
-            _ringBuffer.PushRange(batch.Spans);
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
 

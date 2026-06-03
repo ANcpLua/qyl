@@ -55,7 +55,6 @@ internal static class CollectorEndpointExtensions
     private static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         DuckDbStore store,
-        SpanRingBuffer ringBuffer,
         ModelPricingService pricingService,
         CancellationToken ct)
     {
@@ -71,7 +70,6 @@ internal static class CollectorEndpointExtensions
             if (spans.Count is 0) return Results.Accepted();
 
             var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
-            ringBuffer.PushRange(batch.Spans);
             await store.EnqueueAsync(batch, ct);
 
             return Results.Accepted();
@@ -335,7 +333,6 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> ClearTelemetryAsync(
         DuckDbStore store,
-        SpanRingBuffer ringBuffer,
         string? type,
         CancellationToken ct)
     {
@@ -345,7 +342,7 @@ internal static class CollectorEndpointExtensions
             {
                 "spans" or "traces" => new TelemetryTableClearCounts
                 {
-                    SpansDeleted = await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
+                    SpansDeleted = await store.ClearAllSpansAsync(ct).ConfigureAwait(false),
                 },
                 "logs" => new TelemetryTableClearCounts
                 {
@@ -361,7 +358,6 @@ internal static class CollectorEndpointExtensions
         }
 
         var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
-        ringBuffer.Clear();
 
         return TypedResults.Ok(ToClearTelemetryResponse(result, "all"));
 
@@ -376,12 +372,6 @@ internal static class CollectorEndpointExtensions
             Type = type
         };
 
-        static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
-        {
-            var deleted = await store.ClearAllSpansAsync(ct).ConfigureAwait(false);
-            ringBuffer.Clear();
-            return deleted;
-        }
     }
 
     private static async Task<IResult> GetTelemetryStatsAsync(DuckDbStore store, CancellationToken ct)
