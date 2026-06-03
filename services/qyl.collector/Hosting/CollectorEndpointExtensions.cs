@@ -275,27 +275,27 @@ internal static class CollectorEndpointExtensions
                 after: afterTimeUnixNano,
                 afterLogId: afterLogId,
                 ascending: hasCursor,
+                latestPageAscending: !hasCursor,
                 limit: 250,
                 ct: ct).ConfigureAwait(false);
 
             if (rows.Count > 0)
             {
-                var ordered = rows
-                    .OrderBy(static l => l.TimeUnixNano)
-                    .ThenBy(static l => l.LogId, StringComparer.Ordinal)
-                    .ToArray();
-                var last = ordered[^1];
-                hasCursor = true;
-                afterTimeUnixNano = last.TimeUnixNano;
-                afterLogId = last.LogId;
-
-                foreach (var log in ordered)
+                LogStorageRow? last = null;
+                foreach (var log in rows)
+                {
+                    last = log;
                     yield return new LogStreamEvent
                     {
                         Type = "log",
                         Data = LogMapper.ToContract(log),
                         Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
                     };
+                }
+
+                hasCursor = true;
+                afterTimeUnixNano = last!.TimeUnixNano;
+                afterLogId = last.LogId;
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);

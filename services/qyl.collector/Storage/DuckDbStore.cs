@@ -529,6 +529,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         ulong? before = null,
         string? serviceName = null,
         bool ascending = false,
+        bool latestPageAscending = false,
         int limit = 500,
         string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
@@ -572,10 +573,27 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var cmd = con.CreateCommand();
             var sortDirection = ascending ? "ASC" : "DESC";
-            cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
-                              + " FROM logs " + qb.WhereClause
-                              + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
-                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+            if (latestPageAscending)
+            {
+                if (after.HasValue)
+                    throw new ArgumentException(
+                        "Latest-page ascending log queries cannot be combined with an after cursor.",
+                        nameof(after));
+
+                cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
+                                  + " FROM (SELECT " + LogStorageRow.SelectColumnList
+                                  + " FROM logs " + qb.WhereClause
+                                  + " ORDER BY time_unix_nano DESC, log_id DESC LIMIT "
+                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture)
+                                  + ") AS latest_logs ORDER BY time_unix_nano ASC, log_id ASC";
+            }
+            else
+            {
+                cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
+                                  + " FROM logs " + qb.WhereClause
+                                  + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
+                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+            }
 
             qb.ApplyTo(cmd);
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });

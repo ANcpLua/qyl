@@ -538,6 +538,48 @@ interface IVerify : IHazSourcePaths
                 "and use fixed error categories when a dimension is needed.");
         });
 
+    Target VerifyCollectorLogStreamingUsesStorageOrdering => d => d
+        .Unlisted()
+        .Description("Verify log streaming does not allocate local sort buffers per poll")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
+            if (!endpointFile.FileExists())
+                throw new FileNotFoundException("Missing collector endpoint mapping", endpointFile.ToString());
+
+            var text = File.ReadAllText(endpointFile);
+            string[] forbiddenTokens =
+            [
+                ".OrderBy(static l => l.TimeUnixNano)",
+                ".ThenBy(static l => l.LogId"
+            ];
+
+            var offenders = forbiddenTokens
+                .Where(token => text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            var hasStorageOrdering = text.Contains("latestPageAscending: !hasCursor", StringComparison.Ordinal);
+
+            if (offenders.Count is 0 && hasStorageOrdering)
+            {
+                Log.Information("Collector log streaming uses storage ordering");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Log streaming local sort/allocation token found in {File}: {Token}",
+                    RootDirectory.GetRelativePathTo(endpointFile),
+                    offender);
+
+            if (!hasStorageOrdering)
+                Log.Error("  Log streaming does not request storage-backed latest-page ordering in {File}",
+                    RootDirectory.GetRelativePathTo(endpointFile));
+
+            throw new InvalidOperationException(
+                "Do not sort and materialize every log stream poll in the endpoint. Keep ordering in DuckDbStore.GetLogsAsync.");
+        });
+
     Target VerifyCollectorSessionFacetsAreBounded => d => d
         .Unlisted()
         .Description("Verify collector session summaries do not aggregate unbounded distinct facets")
@@ -1729,6 +1771,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorExceptionTelemetryIsBounded)
+        .DependsOn(VerifyCollectorLogStreamingUsesStorageOrdering)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
         .DependsOn(VerifyCollectorStorageReadsAreProjectScoped)
@@ -1760,6 +1803,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector exception telemetry uses bounded categories");
+            Log.Information("  Collector log streaming uses storage ordering");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
             Log.Information("  Collector storage reads are project-scoped");
