@@ -16,7 +16,6 @@ internal sealed partial record SpanStorageRow
     [DuckDbColumn(IsUBigInt = true)] public required ulong EndTimeUnixNano { get; init; }
     [DuckDbColumn(IsUBigInt = true)] public required ulong DurationNs { get; init; }
     public required byte StatusCode { get; init; }
-    public string? StatusMessage { get; init; }
 
     public string? ServiceName { get; init; }
 

@@ -128,7 +128,7 @@ internal static class OtlpConverter
         CreateStorageRow(
             ToHex(span.SpanId), ToHex(span.TraceId), ToHex(span.ParentSpanId), span.Name,
             (int)span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
-            span.Status is not null ? (int)span.Status.Code : null, span.Status?.Message,
+            span.Status is not null ? (int)span.Status.Code : null,
             serviceName, attributes, schemaUrl, resourceJson);
 
     #endregion
@@ -138,7 +138,7 @@ internal static class OtlpConverter
     private static SpanStorageRow CreateStorageRow(
         string? spanId, string? traceId, string? parentSpanId, string? name,
         int? kind, ulong startNano, ulong endNano,
-        int? statusCode, string? statusMessage,
+        int? statusCode,
         string serviceName, Dictionary<string, string> attributes,
         string? schemaUrl, string? resourceJson)
     {
@@ -156,7 +156,6 @@ internal static class OtlpConverter
             EndTimeUnixNano = endNano,
             DurationNs = durationNs,
             StatusCode = ConvertStatusCodeToByte(statusCode),
-            StatusMessage = string.IsNullOrEmpty(statusMessage) ? null : statusMessage,
             ServiceName = serviceName,
             GenAiProviderName = genAi.ProviderName,
             GenAiRequestModel = genAi.RequestModel,

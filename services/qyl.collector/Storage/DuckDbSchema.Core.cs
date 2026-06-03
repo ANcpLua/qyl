@@ -15,7 +15,6 @@ internal static partial class DuckDbSchema
                                        end_time_unix_nano UBIGINT NOT NULL,
                                        duration_ns UBIGINT NOT NULL,
                                        status_code VARCHAR NOT NULL,
-                                       status_message VARCHAR,
                                        service_name VARCHAR,
                                        gen_ai_provider_name VARCHAR,
                                        gen_ai_request_model VARCHAR,

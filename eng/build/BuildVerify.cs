@@ -759,6 +759,8 @@ interface IVerify : IHazSourcePaths
                 "GenAiToolCallId",
                 "gen_ai_tool_call_id",
                 "GetValueOrDefault(GenAiAttributes.ToolCallId)",
+                "status_message",
+                "span.Status?.Message",
                 "ExtractBaggageJson",
                 "JsonFormatter.Default.Format(profile)",
                 ".Select(ConvertProtoAnyValueToString)",

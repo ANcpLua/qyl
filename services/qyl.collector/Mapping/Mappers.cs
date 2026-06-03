@@ -58,7 +58,7 @@ internal static class SpanMapper
     public static Span ToContract(SpanStorageRow record, string serviceName, string? serviceVersion = null) =>
         ToContractCore(
             record.TraceId, record.SpanId, record.ParentSpanId, record.SessionId,
-            record.Name, record.Kind, record.StatusCode, record.StatusMessage,
+            record.Name, record.Kind, record.StatusCode,
             record.StartTimeUnixNano, record.EndTimeUnixNano, record.DurationNs,
             serviceName, serviceVersion,
             record.AttributesJson, record.ResourceJson, record.SchemaUrl);
@@ -116,7 +116,7 @@ internal static class SpanMapper
 
     private static Span ToContractCore(
         string traceId, string spanId, string? parentSpanId, string? sessionId,
-        string name, byte kind, byte statusCode, string? statusMessage,
+        string name, byte kind, byte statusCode,
         ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs,
         string serviceName, string? serviceVersion,
         string? attributesJson, string? resourceJson, string? schemaUrl)
@@ -140,8 +140,7 @@ internal static class SpanMapper
             Links = [],
             Status = new SpanStatus
             {
-                Code = MapStatus(statusCode),
-                Message = statusMessage
+                Code = MapStatus(statusCode)
             },
             Resource = new Resource
             {
