@@ -48,6 +48,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ValidationErrorDetail))]
 [JsonSerializable(typeof(UnauthorizedError))]
 [JsonSerializable(typeof(LogStreamEvent))]
+[JsonSerializable(typeof(HeartbeatEvent))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
 [JsonSerializable(typeof(string[]))]
 internal partial class QylSerializerContext : JsonSerializerContext;

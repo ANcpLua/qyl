@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -422,6 +423,56 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             throw new InvalidOperationException(
                 "Do not return storage rows, storage stats, or local DTOs directly from HTTP endpoints. " +
                 "Map storage internals to Qyl.Api.Contracts in Mapping/Mappers.cs before returning.");
+        });
+
+    Target VerifyCollectorEndpointLimitsMatchOpenApi => d => d
+        .Unlisted()
+        .Description("Verify collector endpoint pagination limits match qyl-api-schema OpenAPI")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
+            var openApiFile = RootDirectory.Parent / "qyl-api-schema" / "generated" / "openapi" / "qyl.openapi.json";
+            if (!openApiFile.FileExists())
+                throw new FileNotFoundException("Missing qyl-api-schema OpenAPI contract", openApiFile.ToString());
+
+            var constants = ReadContractLimitConstants(endpointFile);
+            using var document = JsonDocument.Parse(File.ReadAllText(openApiFile));
+
+            var expectedDefault = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "default");
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/traces", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/logs", expectedDefault);
+            EnsureOpenApiLimitDefaultMatches(document, "/api/v1/profiles", expectedDefault);
+
+            var expected = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["DefaultPageLimit"] = expectedDefault,
+                ["SessionMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/sessions", "limit", "maximum"),
+                ["TraceMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/traces", "limit", "maximum"),
+                ["LogMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/logs", "limit", "maximum"),
+                ["ProfileMaxLimit"] = ReadOpenApiIntegerSchemaValue(document, "/api/v1/profiles", "limit", "maximum")
+            };
+
+            var mismatches = expected
+                .Where(pair => !constants.TryGetValue(pair.Key, out var actual) || actual != pair.Value)
+                .Select(pair =>
+                {
+                    constants.TryGetValue(pair.Key, out var actual);
+                    return $"{pair.Key}: collector={actual}, openapi={pair.Value}";
+                })
+                .ToArray();
+
+            if (mismatches.Length is 0)
+            {
+                Log.Information("Collector endpoint pagination limits match qyl-api-schema OpenAPI");
+                return;
+            }
+
+            foreach (var mismatch in mismatches)
+                Log.Error("  Contract limit mismatch: {Mismatch}", mismatch);
+
+            throw new InvalidOperationException(
+                "Collector endpoint limits must match qyl-api-schema OpenAPI. Update qyl-api-schema first, regenerate/publish contracts, then update ContractLimits.");
         });
 
     Target VerifyCollectorUsesSemanticConstants => d => d
@@ -1709,6 +1760,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             string[] removedCollectorRoutePrefixes =
             [
                 "/observe",
+                "/qyl.js",
                 "/metrics",
                 "/logs/live",
                 "/sessions/{sessionId}/spans",
@@ -1891,6 +1943,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorHasNoLocalApiModels)
         .DependsOn(VerifyCollectorHttpJsonContextUsesOnlyContracts)
         .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
+        .DependsOn(VerifyCollectorEndpointLimitsMatchOpenApi)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
@@ -2528,6 +2581,65 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         }
 
         return false;
+    }
+
+    private static IReadOnlyDictionary<string, int> ReadContractLimitConstants(AbsolutePath endpointFile)
+    {
+        var root = ParseCompilationUnit(endpointFile);
+        var contractLimits = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .FirstOrDefault(static type => type.Identifier.ValueText == "ContractLimits")
+            ?? throw new InvalidOperationException("CollectorEndpointExtensions.cs must define ContractLimits.");
+
+        var constants = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var field in contractLimits.Members.OfType<FieldDeclarationSyntax>())
+        {
+            if (!field.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.ConstKeyword)))
+                continue;
+
+            foreach (var variable in field.Declaration.Variables)
+            {
+                if (variable.Initializer?.Value is LiteralExpressionSyntax literal &&
+                    literal.IsKind(SyntaxKind.NumericLiteralExpression) &&
+                    literal.Token.Value is int value)
+                {
+                    constants[variable.Identifier.ValueText] = value;
+                }
+            }
+        }
+
+        return constants;
+    }
+
+    private static int ReadOpenApiIntegerSchemaValue(
+        JsonDocument document,
+        string path,
+        string parameterName,
+        string schemaProperty)
+    {
+        var parameters = document.RootElement
+            .GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty("get")
+            .GetProperty("parameters");
+
+        foreach (var parameter in parameters.EnumerateArray())
+        {
+            if (parameter.GetProperty("name").GetString() != parameterName)
+                continue;
+
+            return parameter.GetProperty("schema").GetProperty(schemaProperty).GetInt32();
+        }
+
+        throw new InvalidOperationException($"OpenAPI path '{path}' does not define parameter '{parameterName}'.");
+    }
+
+    private static void EnsureOpenApiLimitDefaultMatches(JsonDocument document, string path, int expectedDefault)
+    {
+        var actualDefault = ReadOpenApiIntegerSchemaValue(document, path, "limit", "default");
+        if (actualDefault != expectedDefault)
+            throw new InvalidOperationException(
+                $"{path} limit default is {actualDefault}; collector currently expects one shared default {expectedDefault}.");
     }
 
     private static string ReadNamedStringAttributeArgument(AttributeSyntax attribute, string name)

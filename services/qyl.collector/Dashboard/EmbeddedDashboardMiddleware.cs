@@ -1,4 +1,6 @@
 
+using Qyl.Instrumentation;
+
 namespace Qyl.Collector.Dashboard;
 
 internal sealed partial class EmbeddedDashboardMiddleware
@@ -46,8 +48,8 @@ internal sealed partial class EmbeddedDashboardMiddleware
 
         if (path.StartsWithIgnoreCase("api/") ||
             path.StartsWithIgnoreCase("v1/") ||
-            path.StartsWithIgnoreCase("health") ||
-            path.StartsWithIgnoreCase("ready"))
+            IsEndpointPath(path, QylEndpoints.Health) ||
+            IsEndpointPath(path, QylEndpoints.Alive))
         {
             await _next(context).ConfigureAwait(false);
             return;
@@ -94,6 +96,13 @@ internal sealed partial class EmbeddedDashboardMiddleware
             context.Response.ContentLength = resource.Content.Length;
             await context.Response.Body.WriteAsync(resource.Content, context.RequestAborted).ConfigureAwait(false);
         }
+    }
+
+    private static bool IsEndpointPath(string path, string endpoint)
+    {
+        var normalized = endpoint.TrimStart('/');
+        return string.Equals(path, normalized, StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWithIgnoreCase(normalized + "/");
     }
 
     private FrozenDictionary<string, CachedResource> LoadEmbeddedResources()

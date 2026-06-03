@@ -42,9 +42,6 @@ internal static class CollectorEndpointExtensions
         api.MapGet("/profiles/by-trace/{traceId}", GetTraceProfilesAsync);
         api.MapGet("/profiles/by-span/{spanId}", GetSpanProfilesAsync);
 
-        app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
-            Results.File(Path.Combine(env.WebRootPath, "qyl.js"), "application/javascript"));
-
         app.MapFallback(FallbackHandler);
 
         return app;
@@ -126,7 +123,7 @@ internal static class CollectorEndpointExtensions
                 cursor));
         }
 
-        var boundedLimit = Math.Clamp(limit ?? 100, 1, 1_000);
+        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit);
         var sessions = await store.GetSessionsAsync(
             ProjectScope.DefaultProjectId,
             boundedLimit + 1,
@@ -185,6 +182,9 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         CancellationToken ct)
     {
+        if (await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is null)
+            return Results.NotFound(ContractErrorFactory.NotFound("session", sessionId));
+
         var spans = await store.GetSpansBySessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct)
             .ConfigureAwait(false);
         var traces = spans
@@ -206,7 +206,7 @@ internal static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
+        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit);
         var spans = await store.GetSpansAsync(ProjectScope.DefaultProjectId, limit: boundedLimit, ct: ct)
             .ConfigureAwait(false);
         var traces = spans
@@ -263,7 +263,7 @@ internal static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = Math.Clamp(limit ?? 500, 1, 1_000);
+        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.LogMaxLimit);
         var logs = await store.GetLogsAsync(
             ProjectScope.DefaultProjectId,
             sessionId: sessionId,
@@ -296,11 +296,29 @@ internal static class CollectorEndpointExtensions
         await foreach (var streamEvent in StreamLogEventsAsync(store, serviceName, minSeverity, query, ct)
                            .ConfigureAwait(false))
         {
-            await WriteSseEventAsync(context.Response, "log", streamEvent, ct).ConfigureAwait(false);
+            if (streamEvent.Log is { } log)
+            {
+                await WriteSseEventAsync(
+                    context.Response,
+                    streamEvent.EventType,
+                    log,
+                    QylSerializerContext.Default.LogStreamEvent,
+                    ct).ConfigureAwait(false);
+            }
+            else if (streamEvent.Heartbeat is { } heartbeat)
+            {
+                await WriteSseEventAsync(
+                    context.Response,
+                    streamEvent.EventType,
+                    heartbeat,
+                    QylSerializerContext.Default.HeartbeatEvent,
+                    ct).ConfigureAwait(false);
+            }
         }
     }
 
-    private static async IAsyncEnumerable<LogStreamEvent> StreamLogEventsAsync(
+    private static async IAsyncEnumerable<(string EventType, LogStreamEvent? Log, HeartbeatEvent? Heartbeat)>
+        StreamLogEventsAsync(
         DuckDbStore store,
         string? serviceName,
         int? minSeverity,
@@ -333,27 +351,37 @@ internal static class CollectorEndpointExtensions
                 foreach (var log in rows)
                 {
                     last = log;
-                    yield return new LogStreamEvent
-                    {
-                        Type = "log",
-                        Data = LogMapper.ToContract(log),
-                        Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
-                    };
+                    yield return ("log", new LogStreamEvent
+                        {
+                            Type = "log",
+                            Data = LogMapper.ToContract(log),
+                            Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
+                        },
+                        null);
                 }
 
                 hasCursor = true;
                 afterTimeUnixNano = last!.TimeUnixNano;
                 afterLogId = last.LogId;
             }
+            else
+            {
+                yield return ("heartbeat", null, new HeartbeatEvent
+                {
+                    Type = "heartbeat",
+                    Timestamp = TimeProvider.System.GetUtcNow()
+                });
+            }
 
             await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);
         }
     }
 
-    private static async Task WriteSseEventAsync(
+    private static async Task WriteSseEventAsync<T>(
         HttpResponse response,
         string eventType,
-        LogStreamEvent streamEvent,
+        T streamEvent,
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken ct)
     {
         await response.WriteAsync("event: ", ct).ConfigureAwait(false);
@@ -362,7 +390,7 @@ internal static class CollectorEndpointExtensions
         await JsonSerializer.SerializeAsync(
             response.Body,
             streamEvent,
-            QylSerializerContext.Default.LogStreamEvent,
+            jsonTypeInfo,
             ct).ConfigureAwait(false);
         await response.WriteAsync("\n\n", ct).ConfigureAwait(false);
         await response.Body.FlushAsync(ct).ConfigureAwait(false);
@@ -399,20 +427,21 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetProfilesAsync(
         DuckDbStore store,
-        string? session,
-        string? trace,
+        string? sessionId,
+        string? traceId,
         string? serviceName,
         string? sampleType,
         int? limit,
         CancellationToken ct)
     {
+        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
         var profiles = await store.GetProfilesAsync(
             ProjectScope.DefaultProjectId,
-            session,
-            trace,
+            sessionId,
+            traceId,
             serviceName: serviceName,
             sampleType: sampleType,
-            limit: limit ?? 100,
+            limit: boundedLimit,
             ct: ct);
 
         return Results.Ok(ProfileMapper.ToContracts(profiles));
@@ -444,7 +473,8 @@ internal static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
-        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, spanId: spanId, limit: limit ?? 100, ct: ct);
+        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
+        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, spanId: spanId, limit: boundedLimit, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
@@ -486,6 +516,18 @@ internal static class CollectorEndpointExtensions
         context.Response.StatusCode = 404;
         return context.Response.WriteAsync(
             "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
+    }
+
+    private static class ContractLimits
+    {
+        public const int DefaultPageLimit = 100;
+        public const int SessionMaxLimit = 1_000;
+        public const int TraceMaxLimit = 1_000;
+        public const int LogMaxLimit = 10_000;
+        public const int ProfileMaxLimit = 1_000;
+
+        public static int Clamp(int? requested, int defaultValue, int maxValue) =>
+            Math.Clamp(requested ?? defaultValue, 1, maxValue);
     }
 }
 
