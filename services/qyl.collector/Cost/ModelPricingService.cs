@@ -47,14 +47,9 @@ internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<Mod
         for (var i = 0; i < spans.Count; i++)
         {
             var span = spans[i];
-            double? cost = null;
-
-            if (span.GenAiCostUsd is null)
-            {
-                cost = ComputeCost(
-                    span.GenAiProviderName, span.GenAiRequestModel,
-                    span.GenAiInputTokens, span.GenAiOutputTokens);
-            }
+            var cost = ComputeCost(
+                span.GenAiProviderName, span.GenAiRequestModel,
+                span.GenAiInputTokens, span.GenAiOutputTokens);
 
             if (cost is not null && enriched is null)
             {

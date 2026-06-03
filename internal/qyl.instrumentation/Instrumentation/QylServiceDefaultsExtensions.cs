@@ -208,7 +208,6 @@ public static class QylServiceDefaultsExtensions
                 foreach (var source in options.AdditionalActivitySources)
                     tracing.AddSource(source);
 
-                tracing.AddProcessor(new QylGenAiCostProcessor());
                 tracing.AddProcessor<QylAgentActivityProcessor>();
 
                 options.ConfigureTracing?.Invoke(tracing);

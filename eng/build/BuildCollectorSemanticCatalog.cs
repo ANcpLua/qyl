@@ -235,7 +235,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             "token"
         };
 
-        var genAiCostUsd = resolver.OptionalAttributeValue("gen_ai.usage.cost");
         var spanHotAttributeKeys = resolver.RequiredAttributeValues(
                 "gen_ai.provider.name",
                 "gen_ai.request.model",
@@ -245,7 +244,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
                 "gen_ai.request.temperature",
                 "gen_ai.response.finish_reasons",
                 "gen_ai.tool.name")
-            .Concat(OptionalValues(genAiCostUsd))
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
@@ -259,7 +257,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ["GenAiTemperature"] = resolver.RequiredAttributeValue("gen_ai.request.temperature"),
             ["GenAiStopReason"] = resolver.RequiredAttributeValue("gen_ai.response.finish_reasons"),
             ["GenAiToolName"] = resolver.RequiredAttributeValue("gen_ai.tool.name"),
-            ["GenAiCostUsd"] = genAiCostUsd,
             ["HttpRequestMethod"] = resolver.RequiredAttributeValue("http.request.method"),
             ["HttpRoute"] = resolver.RequiredAttributeValue("http.route"),
             ["SchemaUrlCurrent"] = resolver.SchemaUrlCurrent(),

@@ -764,7 +764,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "{Message}",
                 "SetStatus(ActivityStatusCode.Error, error)",
                 "$\"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}\"",
-                "StartActivity(operation,"
+                "StartActivity(operation,",
+                "QylGenAiCostProcessor",
+                "gen_ai.usage.cost"
             ];
 
             var offenders = (RootDirectory / "internal" / "qyl.instrumentation").GlobFiles("**/*.cs")

@@ -481,7 +481,6 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.input_tokens",
         "gen_ai.usage.output_tokens");
 
-    internal static readonly string? GenAiCostUsd = null;
     internal const string GenAiInputTokens = "gen_ai.usage.input_tokens";
     internal const string GenAiOutputTokens = "gen_ai.usage.output_tokens";
     internal const string GenAiProviderName = "gen_ai.provider.name";

@@ -63,7 +63,6 @@ internal static class IngestionStorageMapper
             GenAiTemperature = projection.GenAiTemperature,
             GenAiStopReason = projection.GenAiStopReason,
             GenAiToolName = projection.GenAiToolName,
-            GenAiCostUsd = projection.GenAiCostUsd,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes),
             ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(span.ResourceAttributes),
             SchemaUrl = span.SchemaUrl
