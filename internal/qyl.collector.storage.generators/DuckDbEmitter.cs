@@ -273,6 +273,11 @@ internal static class DuckDbEmitter
                 case "System.Double":
                     sb.Append("reader.Col(").Append(ordinal).Append(").AsDouble");
                     break;
+                case "decimal":
+                case "System.Decimal":
+                    sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? null : reader.GetDecimal(")
+                        .Append(ordinal).Append(')');
+                    break;
                 case "int":
                 case "System.Int32":
                     sb.Append("reader.Col(").Append(ordinal).Append(").AsInt32");
@@ -310,6 +315,10 @@ internal static class DuckDbEmitter
                 case "System.Double":
                     sb.Append("reader.Col(").Append(ordinal).Append(").GetDouble(0d)");
                     break;
+                case "decimal":
+                case "System.Decimal":
+                    sb.Append("reader.GetDecimal(").Append(ordinal).Append(')');
+                    break;
                 case "int":
                 case "System.Int32":
                     sb.Append("reader.Col(").Append(ordinal).Append(").GetInt32(0)");
@@ -317,6 +326,11 @@ internal static class DuckDbEmitter
                 case "byte":
                 case "System.Byte":
                     sb.Append("reader.Col(").Append(ordinal).Append(").GetByte(0)");
+                    break;
+                case "System.DateTimeOffset":
+                case "DateTimeOffset":
+                    sb.Append("reader.Col(").Append(ordinal)
+                        .Append(").AsDateTimeOffset ?? default");
                     break;
                 default:
                     sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(")

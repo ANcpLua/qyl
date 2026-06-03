@@ -75,20 +75,16 @@ internal sealed record SessionStatsRow
     public double BounceRate { get; init; }
 }
 
-internal sealed record ModelPricingEntry(
-    string Provider,
-    string Model,
-    decimal InputCostPerMillion,
-    decimal OutputCostPerMillion,
-    decimal? ReasoningCostPerMillion,
-    decimal? CacheReadCostPerMillion,
-    decimal? CacheWriteCostPerMillion);
-
-internal sealed class ModelPricingSeed
+[DuckDbTable("model_pricing", OnConflict = "ON CONFLICT DO NOTHING")]
+internal sealed partial record ModelPricingRow
 {
-    [JsonPropertyName("provider")] public required string Provider { get; init; }
+    [JsonPropertyName("provider")]
+    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    public required string Provider { get; init; }
 
-    [JsonPropertyName("model")] public required string Model { get; init; }
+    [JsonPropertyName("model")]
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string Model { get; init; }
 
     [JsonPropertyName("input_cost")] public required decimal InputCost { get; init; }
 
@@ -99,6 +95,13 @@ internal sealed class ModelPricingSeed
     [JsonPropertyName("cache_read_cost")] public decimal? CacheReadCost { get; init; }
 
     [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
+
+    [JsonIgnore]
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
+    public DateTimeOffset ValidFrom { get; init; }
+
+    [JsonIgnore]
+    public DateTimeOffset? ValidTo { get; init; }
 }
 
 [DuckDbTable("logs")]

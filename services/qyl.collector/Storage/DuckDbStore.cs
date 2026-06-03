@@ -452,62 +452,46 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             };
         }, ct);
 
-    public Task<IReadOnlyList<ModelPricingEntry>> GetActiveModelPricingAsync(CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<ModelPricingEntry>>(static con =>
+    public Task<IReadOnlyList<ModelPricingRow>> GetActiveModelPricingAsync(CancellationToken ct = default) =>
+        ExecuteReadAsync<IReadOnlyList<ModelPricingRow>>(static con =>
         {
-            var result = new List<ModelPricingEntry>();
+            var result = new List<ModelPricingRow>();
 
             using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT provider, model, input_cost, output_cost, reasoning_cost,
-                                     cache_read_cost, cache_write_cost
-                              FROM model_pricing
-                              WHERE valid_to IS NULL
-                              ORDER BY valid_from DESC
-                              """;
+            cmd.CommandText = $"""
+                               SELECT {ModelPricingRow.SelectColumnList}
+                               FROM model_pricing
+                               WHERE valid_to IS NULL
+                               ORDER BY valid_from DESC
+                               """;
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                result.Add(new ModelPricingEntry(
-                    reader.GetString(0),
-                    reader.GetString(1),
-                    reader.GetDecimal(2),
-                    reader.GetDecimal(3),
-                    reader.IsDBNull(4) ? null : reader.GetDecimal(4),
-                    reader.IsDBNull(5) ? null : reader.GetDecimal(5),
-                    reader.IsDBNull(6) ? null : reader.GetDecimal(6)));
+                result.Add(ModelPricingRow.MapFromReader(reader));
             }
 
             return result;
         }, ct);
 
     public async Task InsertModelPricingSeedsAsync(
-        IReadOnlyList<ModelPricingSeed> entries,
-        DateTime validFrom,
+        IReadOnlyList<ModelPricingRow> entries,
+        DateTimeOffset validFrom,
         CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, wct) =>
         {
+            if (entries.Count is 0)
+                return;
+
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = ModelPricingRow.BuildMultiRowInsertSql(entries.Count);
+
             foreach (var entry in entries)
             {
-                await using var cmd = con.CreateCommand();
-                cmd.CommandText = """
-                                  INSERT INTO model_pricing
-                                      (provider, model, input_cost, output_cost, reasoning_cost,
-                                       cache_read_cost, cache_write_cost, valid_from)
-                                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                                  ON CONFLICT DO NOTHING
-                                  """;
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Provider });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.Model });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.InputCost });
-                cmd.Parameters.Add(new DuckDBParameter { Value = entry.OutputCost });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.ReasoningCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheReadCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = (object?)entry.CacheWriteCost ?? DBNull.Value });
-                cmd.Parameters.Add(new DuckDBParameter { Value = validFrom });
-                await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
+                ModelPricingRow.AddParameters(cmd, entry with { ValidFrom = validFrom, ValidTo = null });
             }
+
+            await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
     private static void AddShutdownError(ref List<Exception>? errors, Exception error)
@@ -915,10 +899,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         cmd.ExecuteNonQuery();
 
         using var costCmd = con.CreateCommand();
-        costCmd.CommandText = string.Concat(
-            DuckDbSchema.ModelPricingDdl, "\n",
-            DuckDbSchema.ModelPricingTiersDdl, "\n",
-            DuckDbSchema.CostByModelHourlyViewDdl);
+        costCmd.CommandText = ModelPricingRow.CreateTableDdl;
         costCmd.ExecuteNonQuery();
     }
 

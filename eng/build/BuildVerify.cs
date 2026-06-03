@@ -687,7 +687,9 @@ interface IVerify : IHazSourcePaths
                 "ProfileLocationRow.SelectColumnList",
                 "ProfileMappingRow.SelectColumnList",
                 "ProfileSampleRow.SelectColumnList",
-                "ProfileStackRow.SelectColumnList"
+                "ProfileStackRow.SelectColumnList",
+                "ModelPricingRow.SelectColumnList",
+                "ModelPricingRow.MapFromReader"
             ];
 
             string[] forbiddenManualSelectTokens =
@@ -695,7 +697,8 @@ interface IVerify : IHazSourcePaths
                 "SelectSpanColumns",
                 "SELECT log_id, trace_id",
                 "SELECT profile_id, trace_id",
-                "SELECT profile_id, ordinal"
+                "SELECT profile_id, ordinal",
+                "SELECT provider, model, input_cost"
             ];
 
             var missing = requiredGeneratedColumnLists
@@ -743,7 +746,8 @@ interface IVerify : IHazSourcePaths
                 "ProfileLocationRow.CreateTableDdl",
                 "ProfileMappingRow.CreateTableDdl",
                 "ProfileSampleRow.CreateTableDdl",
-                "ProfileStackRow.CreateTableDdl"
+                "ProfileStackRow.CreateTableDdl",
+                "ModelPricingRow.CreateTableDdl"
             ];
 
             var schemaText = string.Concat(
@@ -768,7 +772,8 @@ interface IVerify : IHazSourcePaths
                 "CREATE TABLE IF NOT EXISTS profile_locations",
                 "CREATE TABLE IF NOT EXISTS profile_mappings",
                 "CREATE TABLE IF NOT EXISTS profile_samples",
-                "CREATE TABLE IF NOT EXISTS profile_stacks"
+                "CREATE TABLE IF NOT EXISTS profile_stacks",
+                "CREATE TABLE IF NOT EXISTS model_pricing"
             ];
 
             var missing = requiredGeneratedDdl
@@ -1155,6 +1160,11 @@ interface IVerify : IHazSourcePaths
                 "s_legacyTelemetry",
                 "PRAGMA table_info",
                 "DROP TABLE IF EXISTS",
+                "ModelPricingDdl",
+                "ModelPricingTiersDdl",
+                "CostByModelHourlyViewDdl",
+                "model_pricing_tiers",
+                "cost_by_model_hourly",
                 "InferProvider",
                 "ExtractProviders",
                 "StartsWithIgnoreCase(\"gpt\")",
