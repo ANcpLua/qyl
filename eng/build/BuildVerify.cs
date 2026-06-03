@@ -494,6 +494,42 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorSessionFacetsAreBounded => d => d
+        .Unlisted()
+        .Description("Verify collector session summaries do not aggregate unbounded distinct facets")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenSessionFacetTokens =
+            [
+                "LIST(DISTINCT",
+                "ARRAY_AGG(DISTINCT",
+                "STRING_AGG(DISTINCT",
+                "GROUP_CONCAT(DISTINCT"
+            ];
+
+            var sessionsFile = CollectorDirectory / "Storage" / "DuckDbStore.Sessions.cs";
+            var text = sessionsFile.FileExists() ? File.ReadAllText(sessionsFile) : "";
+            var offenders = forbiddenSessionFacetTokens
+                .Where(token => text.Contains(token, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector session facets are bounded");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Unbounded session facet aggregate '{Token}' found in {File}",
+                    offender,
+                    RootDirectory.GetRelativePathTo(sessionsFile));
+
+            throw new InvalidOperationException(
+                "Do not aggregate unbounded distinct provider, model, or service arrays into session summaries. " +
+                "Use a named bounded aggregate limit before materializing Qyl.Api.Contracts session models.");
+        });
+
     Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
         .Unlisted()
         .Description("Verify collector DuckDB access stays behind storage intent methods")
@@ -1480,6 +1516,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
+        .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
@@ -1507,6 +1544,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector semantic attribute catalog matches package references");
             Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");
+            Log.Information("  Collector session facets are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector storage row tables use generated DuckDB DDL");

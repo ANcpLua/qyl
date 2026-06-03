@@ -4,23 +4,25 @@ namespace Qyl.Collector.Storage;
 
 internal sealed partial class DuckDbStore
 {
-    private const string SessionSelectColumns = """
-                                                SELECT
-                                                    COALESCE(session_id, trace_id) AS session_id,
-                                                    MIN(start_time_unix_nano) AS start_time,
-                                                    MAX(end_time_unix_nano) AS last_activity,
-                                                    COUNT(*) AS span_count,
-                                                    COUNT(DISTINCT trace_id) AS trace_count,
-                                                    SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                                                    COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                                                    COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                                                    COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
-                                                    COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
-                                                    LIST(DISTINCT gen_ai_provider_name) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
-                                                    LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
-                                                    LIST(DISTINCT service_name) FILTER (WHERE service_name IS NOT NULL) AS services
-                                                FROM spans
-                                                """;
+    private const int SessionFacetValueLimit = 16;
+
+    private static string SessionSelectColumns => $$"""
+                                                    SELECT
+                                                        COALESCE(session_id, trace_id) AS session_id,
+                                                        MIN(start_time_unix_nano) AS start_time,
+                                                        MAX(end_time_unix_nano) AS last_activity,
+                                                        COUNT(*) AS span_count,
+                                                        COUNT(DISTINCT trace_id) AS trace_count,
+                                                        SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                                        COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+                                                        COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+                                                        COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
+                                                        COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
+                                                        MIN(DISTINCT gen_ai_provider_name, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
+                                                        MIN(DISTINCT gen_ai_request_model, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
+                                                        MIN(DISTINCT service_name, {{SessionFacetValueLimit}}) FILTER (WHERE service_name IS NOT NULL) AS services
+                                                    FROM spans
+                                                    """;
 
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         int limit = 100,
