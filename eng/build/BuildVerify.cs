@@ -767,6 +767,7 @@ interface IVerify : IHazSourcePaths
                 "QylCapabilityPrefix",
                 "AttributeKeyPrefix",
                 "StartsWithOrdinal(QylCapabilityPrefix)",
+                "Paths.Any(path.StartsWithIgnoreCase)",
                 "status_message",
                 "span.Status?.Message",
                 "ProfileDataJson",
