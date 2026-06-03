@@ -39,7 +39,7 @@ internal static class IngestionStorageMapper
         var durationNs = span.EndTimeUnixNano >= span.StartTimeUnixNano
             ? span.EndTimeUnixNano - span.StartTimeUnixNano
             : 0UL;
-        var projection = AttributeKeySets.ExtractSpanStorageProjection(span.Attributes);
+        var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span.Attributes);
 
         return new SpanStorageRow
         {

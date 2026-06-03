@@ -470,7 +470,7 @@ internal static class CollectorSemanticAttributeCatalog
         "token",
     ];
 
-    internal static readonly FrozenSet<string> SpanStorageProjectionKeys = FrozenSet.Create(
+    internal static readonly FrozenSet<string> SpanHotAttributeKeys = FrozenSet.Create(
         StringComparer.Ordinal,
         "gen_ai.provider.name",
         "gen_ai.request.model",

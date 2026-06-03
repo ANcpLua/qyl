@@ -236,7 +236,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         };
 
         var genAiCostUsd = resolver.OptionalAttributeValue("gen_ai.usage.cost");
-        var spanStorageProjectionKeys = resolver.RequiredAttributeValues(
+        var spanHotAttributeKeys = resolver.RequiredAttributeValues(
                 "gen_ai.provider.name",
                 "gen_ai.request.model",
                 "gen_ai.response.model",
@@ -290,7 +290,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase");
         WriteStringArray(builder, "DeniedKeyTokens", deniedKeyTokens);
-        WriteFrozenSet(builder, "SpanStorageProjectionKeys", spanStorageProjectionKeys, "StringComparer.Ordinal");
+        WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal");
 
         foreach (var projection in genAiProjection.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {

@@ -1,18 +1,18 @@
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.Storage;
 
 internal static class PersistedAttributePolicy
 {
     internal static string? SerializeSpanAttributes(IReadOnlyDictionary<string, string> attributes) =>
-        Serialize(attributes, AttributeKeySets.ShouldPersistSpanAttribute);
+        Serialize(attributes, AttributeKeySets.IsSafeSpanAttribute);
 
     internal static string? SerializeLogAttributes(IReadOnlyDictionary<string, string> attributes) =>
-        Serialize(attributes, AttributeKeySets.ShouldPersistLogAttribute);
+        Serialize(attributes, AttributeKeySets.IsSafeLogAttribute);
 
     internal static string? SerializeProfileAttributes(IReadOnlyDictionary<string, string> attributes) =>
-        Serialize(attributes, AttributeKeySets.ShouldPersistProfileAttribute);
+        Serialize(attributes, AttributeKeySets.IsSafeProfileAttribute);
 
     internal static string? SerializeResourceAttributes(IReadOnlyDictionary<string, string> attributes) =>
-        Serialize(attributes, AttributeKeySets.ShouldPersistResourceAttribute);
+        Serialize(attributes, AttributeKeySets.IsSafeResourceAttribute);
 
     private static string? Serialize(
         IReadOnlyDictionary<string, string> attributes,

@@ -1149,6 +1149,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ProfileConversionResult",
                 "SpanBatch",
                 "PersistedAttributePolicy",
+                "ShouldPersist",
                 "SHA256",
                 "Encoding.UTF8"
             ];
@@ -1160,7 +1161,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             string[] converterRequired =
             [
                 "CollectorSemanticAttributeCatalog.ServiceName",
-                "AttributeKeySets.ShouldConvertSpanAttribute"
+                "AttributeKeySets.ShouldCaptureSpanAttribute"
             ];
 
             var missing = converterRequired
@@ -1170,7 +1171,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             string[] storageMapperRequired =
             [
                 "ProjectScope.Normalize",
-                "AttributeKeySets.ExtractSpanStorageProjection",
+                "StorageAttributeProjection.ExtractSpanHotAttributes",
                 "PersistedAttributePolicy.SerializeSpanAttributes",
                 "PersistedAttributePolicy.SerializeLogAttributes",
                 "PersistedAttributePolicy.SerializeProfileAttributes",
@@ -1206,6 +1207,60 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             throw new InvalidOperationException(
                 "Do not handwire storage rows, tenant/project stamping, or persisted payload formats in OtlpConverter. " +
                 "Decode OTLP into ingestion records, then materialize storage rows in Storage/IngestionStorageMapper.cs.");
+        });
+
+    Target VerifyCollectorIngestionHasNoStorageSchemaKnowledge => d => d
+        .Unlisted()
+        .Description("Verify collector OTLP ingestion stays storage-schema blind")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenTokens =
+            [
+                "DuckDB",
+                "DuckDb",
+                "StorageRow",
+                "SpanStorage",
+                "LogStorage",
+                "ProfileStorage",
+                "ProjectScope",
+                "PersistedAttributePolicy",
+                "ShouldPersist",
+                "project_id",
+                "CREATE TABLE",
+                "INSERT INTO",
+                "SELECT "
+            ];
+
+            var offenders = (CollectorDirectory / "Ingestion").GlobFiles("**/*.cs")
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => forbiddenTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector OTLP ingestion is storage-schema blind");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Storage schema token '{Token}' found in ingestion file {File}",
+                    offender.Token,
+                    offender.File);
+
+            throw new InvalidOperationException(
+                "Do not put storage rows, DuckDB schema details, project_id columns, or persisted JSON policy into OTLP ingestion. " +
+                "Decode OTLP in Ingestion, then stamp project_id and materialize storage rows in Storage/IngestionStorageMapper.cs.");
         });
 
     Target VerifyCollectorSpanIdentityIsComposite => d => d
@@ -1763,6 +1818,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
+        .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
@@ -1795,6 +1851,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  OTLP decoding is storage-independent and storage projection is centralized");
+            Log.Information("  Collector OTLP ingestion is storage-schema blind");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");

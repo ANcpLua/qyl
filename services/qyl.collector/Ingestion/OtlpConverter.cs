@@ -99,7 +99,7 @@ internal static class OtlpConverter
         foreach (var attr in resource.Attributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
-                !AttributeKeySets.ShouldPersistResourceAttribute(attr.Key))
+                !AttributeKeySets.IsSafeResourceAttribute(attr.Key))
             {
                 continue;
             }
@@ -123,7 +123,7 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
-                !AttributeKeySets.ShouldConvertSpanAttribute(attr.Key))
+                !AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key))
             {
                 continue;
             }
@@ -243,7 +243,7 @@ internal static class OtlpConverter
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
-                (!AttributeKeySets.ShouldPersistLogAttribute(attr.Key) &&
+                (!AttributeKeySets.IsSafeLogAttribute(attr.Key) &&
                  !attr.Key.IsAny(AttributeKeySets.SessionCorrelation)))
             {
                 continue;
@@ -433,7 +433,7 @@ internal static class OtlpConverter
             var attribute = dictionary.AttributeTable[index];
             var key = Resolve(attribute.KeyStrindex, dictionary);
             if (string.IsNullOrEmpty(key) ||
-                !AttributeKeySets.ShouldPersistProfileAttribute(key))
+                !AttributeKeySets.IsSafeProfileAttribute(key))
             {
                 continue;
             }
