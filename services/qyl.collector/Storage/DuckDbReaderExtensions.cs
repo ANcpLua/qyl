@@ -34,8 +34,6 @@ internal sealed partial record SpanStorageRow
     public string? AttributesJson { get; init; }
     public string? ResourceJson { get; init; }
 
-    public string? BaggageJson { get; init; }
-
     public string? SchemaUrl { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true)]

@@ -170,7 +170,6 @@ internal static class OtlpConverter
             GenAiCostUsd = genAi.CostUsd,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes),
             ResourceJson = resourceJson,
-            BaggageJson = null,
             SchemaUrl = schemaUrl
         };
     }

@@ -12,7 +12,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private const int MaxLogsPerBatch = 150;
 
-    private const int SpanColumnCount = 26;
+    private const int SpanColumnCount = 25;
     private const int LogColumnCount = 12;
 
     private const string SpanColumnList = """
@@ -23,7 +23,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                           gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                           gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
                                           gen_ai_cost_usd, attributes_json, resource_json,
-                                          baggage_json, schema_url
+                                          schema_url
                                           """;
 
     private const string SpanOnConflictClause = """
@@ -38,7 +38,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                                     gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
                                                     attributes_json = EXCLUDED.attributes_json,
                                                     resource_json = EXCLUDED.resource_json,
-                                                    baggage_json = EXCLUDED.baggage_json,
                                                     schema_url = EXCLUDED.schema_url
                                                 """;
 
@@ -57,7 +56,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                              gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                              gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
                                              gen_ai_cost_usd, attributes_json, resource_json,
-                                             baggage_json, schema_url, created_at
+                                             schema_url, created_at
                                              """;
 
     private const int MaxProfilesPerBatch = 50;
@@ -1264,7 +1263,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
 
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.BaggageJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.SchemaUrl ?? (object)DBNull.Value });
     }
 

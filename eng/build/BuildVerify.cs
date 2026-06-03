@@ -751,6 +751,8 @@ interface IVerify : IHazSourcePaths
                 "UpsertSpanClustersAsync",
                 "UnclusteredSpan",
                 "SpanClusterRow",
+                "BaggageJson",
+                "baggage_json",
                 "ExtractBaggageJson",
                 "JsonFormatter.Default.Format(profile)",
                 ".Select(ConvertProtoAnyValueToString)",
