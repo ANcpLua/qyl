@@ -10,6 +10,6 @@ internal static class OtlpConstants
     private static bool IsExactPathOrTrailingSlash(string path, string candidate) =>
         path.Equals(candidate, StringComparison.OrdinalIgnoreCase) ||
         (path.Length == candidate.Length + 1 &&
-         path.EndsWith('/', StringComparison.Ordinal) &&
+         path[^1] is '/' &&
          path.AsSpan(0, candidate.Length).Equals(candidate, StringComparison.OrdinalIgnoreCase));
 }

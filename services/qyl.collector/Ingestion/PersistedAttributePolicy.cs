@@ -31,6 +31,6 @@ internal static class PersistedAttributePolicy
 
         return persisted is null
             ? null
-            : JsonSerializer.Serialize(persisted, QylSerializerContext.Default.DictionaryStringString);
+            : JsonSerializer.Serialize(persisted, IngestionJsonSerializerContext.Default.DictionaryStringString);
     }
 }

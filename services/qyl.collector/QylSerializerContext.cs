@@ -45,8 +45,5 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(NotFoundError))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
-[JsonSerializable(typeof(Dictionary<string, string>), TypeInfoPropertyName = "DictionaryStringString")]
 [JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(List<string>), TypeInfoPropertyName = "StringList")]
-[JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
 internal partial class QylSerializerContext : JsonSerializerContext;

@@ -77,7 +77,12 @@ internal static class OtlpConverter
 
         foreach (var attr in resource.Attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
+            if (string.IsNullOrEmpty(attr.Key) ||
+                !AttributeKeySets.ShouldPersistResourceAttribute(attr.Key))
+            {
+                continue;
+            }
+
             var value = ConvertProtoAnyValueToString(attr.Value);
             if (value is not null) attrs[attr.Key] = value;
         }
@@ -93,7 +98,11 @@ internal static class OtlpConverter
 
         foreach (var attr in protoAttributes)
         {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
+            if (string.IsNullOrEmpty(attr.Key) ||
+                !ShouldConvertSpanAttribute(attr.Key))
+            {
+                continue;
+            }
 
             var value = ConvertProtoAnyValueToString(attr.Value);
             if (value is not null) attributes[attr.Key] = value;
@@ -101,6 +110,22 @@ internal static class OtlpConverter
 
         return attributes;
     }
+
+    private static bool ShouldConvertSpanAttribute(string key) =>
+        AttributeKeySets.ShouldPersistSpanAttribute(key) ||
+        key.IsAny(AttributeKeySets.SessionCorrelation) ||
+        IsGenAiStorageAttribute(key) ||
+        string.Equals(key, QylGenAiCostProcessor.CostAttribute, StringComparison.Ordinal);
+
+    private static bool IsGenAiStorageAttribute(string key) =>
+        key is GenAiAttributes.ProviderName
+            or GenAiAttributes.RequestModel
+            or GenAiAttributes.ResponseModel
+            or GenAiAttributes.UsageInputTokens
+            or GenAiAttributes.UsageOutputTokens
+            or GenAiAttributes.RequestTemperature
+            or GenAiAttributes.ResponseFinishReasons
+            or GenAiAttributes.ToolName;
 
     private static string? ConvertProtoAnyValueToString(ProtoAnyValue? value)
     {
@@ -181,7 +206,7 @@ internal static class OtlpConverter
                 items.Add(converted);
         }
 
-        return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringList);
+        return JsonSerializer.Serialize(items, IngestionJsonSerializerContext.Default.StringList);
     }
 
     private static string SerializeProtoKeyValueList(RepeatedField<ProtoKeyValue> values)
@@ -196,7 +221,7 @@ internal static class OtlpConverter
                 dict[kv.Key] = converted;
         }
 
-        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+        return JsonSerializer.Serialize(dict, IngestionJsonSerializerContext.Default.DictionaryStringString);
     }
 
     private static string? ToHex(ByteString value)
@@ -327,14 +352,20 @@ internal static class OtlpConverter
     {
         if (attributes.Count is 0) return null;
 
-        var dict = new Dictionary<string, string>(attributes.Count, StringComparer.Ordinal);
+        Dictionary<string, string>? dict = null;
         foreach (var attr in attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
+            if (string.IsNullOrEmpty(attr.Key) ||
+                !AttributeKeySets.ShouldPersistLogAttribute(attr.Key))
+            {
+                continue;
+            }
+
+            dict ??= new Dictionary<string, string>(StringComparer.Ordinal);
             dict[attr.Key] = ConvertProtoAnyValueToString(attr.Value) ?? "";
         }
 
-        return PersistedAttributePolicy.SerializeLogAttributes(dict);
+        return dict is null ? null : PersistedAttributePolicy.SerializeLogAttributes(dict);
     }
 
     private static string? ExtractSessionId(RepeatedField<ProtoKeyValue> attributes)
@@ -416,9 +447,8 @@ internal static class OtlpConverter
         string? schemaUrl)
     {
         var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
+        var sessionId = ExtractProfileSessionId(profile.AttributeIndices, dictionary);
         var attributes = ExtractProfileAttributes(profile.AttributeIndices, dictionary);
-
-        var sessionId = attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
 
         var (traceId, spanId) = ResolveProfileLink(profile, dictionary);
 
@@ -471,7 +501,7 @@ internal static class OtlpConverter
                     lines.Add(new ProfileLocationLineJson(line.FunctionIndex, line.Line_, line.Column));
                 }
 
-                linesJson = JsonSerializer.Serialize(lines, QylSerializerContext.Default.ProfileLocationLineJsonList);
+                linesJson = JsonSerializer.Serialize(lines, IngestionJsonSerializerContext.Default.ProfileLocationLineJsonList);
             }
 
             locations.Add(new ProfileLocationRow
@@ -564,8 +594,11 @@ internal static class OtlpConverter
 
             var attribute = dictionary.AttributeTable[index];
             var key = Resolve(attribute.KeyStrindex, dictionary);
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrEmpty(key) ||
+                !AttributeKeySets.ShouldPersistProfileAttribute(key))
+            {
                 continue;
+            }
 
             var value = ConvertProtoAnyValueToString(attribute.Value);
             if (value is not null)
@@ -573,6 +606,30 @@ internal static class OtlpConverter
         }
 
         return attributes;
+    }
+
+    private static string? ExtractProfileSessionId(
+        RepeatedField<int> indices,
+        ProtoProfilesDictionary dictionary)
+    {
+        foreach (var index in indices)
+        {
+            if (index < 0 || index >= dictionary.AttributeTable.Count)
+                continue;
+
+            var attribute = dictionary.AttributeTable[index];
+            var key = Resolve(attribute.KeyStrindex, dictionary);
+            if (string.IsNullOrEmpty(key) ||
+                !key.IsAny(AttributeKeySets.SessionCorrelation) ||
+                attribute.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue)
+            {
+                continue;
+            }
+
+            return attribute.Value.StringValue;
+        }
+
+        return null;
     }
 
     private static (string? TraceId, string? SpanId) ResolveProfileLink(
@@ -608,8 +665,3 @@ internal static class OtlpConverter
 
     #endregion
 }
-
-internal readonly record struct ProfileLocationLineJson(
-    [property: JsonPropertyName("functionOrdinal")] int FunctionOrdinal,
-    [property: JsonPropertyName("line")] long Line,
-    [property: JsonPropertyName("column")] long Column);
