@@ -22,6 +22,9 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
     AbsolutePath CollectorSemanticCatalogFile =>
         CollectorDirectory / "Ingestion" / "Generated" / "CollectorSemanticAttributeCatalog.g.cs";
 
+    AbsolutePath CollectorSemanticPolicyFile =>
+        RootDirectory / "eng" / "config" / "collector-semantic-policy.json";
+
     Target GenerateCollectorSemanticAttributeCatalog => d => d
         .Description("Generate collector semantic attribute catalog from Qyl.OpenTelemetry.SemanticConventions")
         .Executes(() =>
@@ -126,146 +129,48 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
     string GenerateCollectorSemanticAttributeCatalogText()
     {
         var resolver = new SemConvAttributeResolver(ReadResolvedPackageAssemblies());
+        var policy = ReadCollectorSemanticPolicyConfig();
         var allAttributeValues = resolver.AllAttributeValues();
         var stableAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.StablePackageId);
         var incubatingAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.IncubatingPackageId);
 
         var spanAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, "db.", "error.", "exception.", "http.", "otel.", "server."),
-            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "messaging.", "profile."));
+            ValuesWithPrefixes(stableAttributeValues, policy.SpanAttributeAllowList.StablePrefixes, "spanAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.SpanAttributeAllowList.IncubatingPrefixes, "spanAttributeAllowList.incubatingPrefixes"));
 
         var logAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, "error.", "exception.", "http.", "otel.", "server."),
-            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "messaging."));
+            ValuesWithPrefixes(stableAttributeValues, policy.LogAttributeAllowList.StablePrefixes, "logAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.LogAttributeAllowList.IncubatingPrefixes, "logAttributeAllowList.incubatingPrefixes"));
 
         var profileAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, "error.", "otel."),
-            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "profile."));
+            ValuesWithPrefixes(stableAttributeValues, policy.ProfileAttributeAllowList.StablePrefixes, "profileAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.ProfileAttributeAllowList.IncubatingPrefixes, "profileAttributeAllowList.incubatingPrefixes"));
 
         var resourceAttributeAllowList = NormalizedValues(
-            ValuesWithPrefixes(stableAttributeValues, "deployment.", "service."),
-            ValuesWithPrefixes(incubatingAttributeValues, "host.", "os."));
+            ValuesWithPrefixes(stableAttributeValues, policy.ResourceAttributeAllowList.StablePrefixes, "resourceAttributeAllowList.stablePrefixes"),
+            ValuesWithPrefixes(incubatingAttributeValues, policy.ResourceAttributeAllowList.IncubatingPrefixes, "resourceAttributeAllowList.incubatingPrefixes"));
 
-        var qylResourceAttributeAllowList = new[]
-        {
-            "qyl.capability.id",
-            "qyl.capability.kind"
-        };
+        var sessionCorrelation = resolver.RequiredAttributeValues(policy.SessionCorrelation);
 
-        var projectIdResourceKeys = new[]
-        {
-            "qyl.project.id",
-            "qyl.workspace.id"
-        };
-
-        var sessionCorrelation = resolver.RequiredAttributeValues(
-            "gen_ai.conversation.id",
-            "mcp.session.id",
-            "session.id");
-
-        var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, "enduser.", "user.")
-            .Concat(resolver.RequiredAttributeValues(
-                "code.file.path",
-                "code.stacktrace",
-                "db.query.text",
-                "exception.message",
-                "exception.stacktrace",
-                "gen_ai.agent.description",
-                "gen_ai.agent.id",
-                "gen_ai.agent.name",
-                "gen_ai.conversation.id",
-                "gen_ai.data_source.id",
-                "gen_ai.evaluation.explanation",
-                "gen_ai.evaluation.name",
-                "gen_ai.input.messages",
-                "gen_ai.output.messages",
-                "gen_ai.prompt.name",
-                "gen_ai.response.id",
-                "gen_ai.retrieval.documents",
-                "gen_ai.retrieval.query.text",
-                "gen_ai.system_instructions",
-                "gen_ai.tool.call.arguments",
-                "http.request.header",
-                "http.response.header",
-                "gen_ai.tool.call.id",
-                "gen_ai.tool.call.result",
-                "gen_ai.tool.definitions",
-                "gen_ai.tool.description",
-                "gen_ai.workflow.name",
-                "host.id",
-                "host.ip",
-                "host.mac",
-                "host.name",
-                "mcp.session.id",
-                "service.instance.id",
-                "session.id",
-                "session.previous_id",
-                "url.full",
-                "url.query"))
+        var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, policy.DeniedExactPrefixes, "deniedExactPrefixes")
+            .Concat(resolver.RequiredAttributeValues(policy.DeniedExactKeys))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
-        var deniedKeyTokens = new[]
-        {
-            "access_token",
-            "api-key",
-            "api_key",
-            "apikey",
-            "authorization",
-            "body",
-            "completion",
-            "cookie",
-            "credential",
-            "definition",
-            "document",
-            "fingerprint",
-            "id_token",
-            "instruction",
-            "jwt",
-            "message",
-            "password",
-            "private_key",
-            "prompt",
-            "query",
-            "refresh_token",
-            "result",
-            "secret",
-            "set-cookie",
-            "token"
-        };
-
-        var spanHotAttributeKeys = resolver.RequiredAttributeValues(
-                "gen_ai.provider.name",
-                "gen_ai.request.model",
-                "gen_ai.response.model",
-                "gen_ai.usage.input_tokens",
-                "gen_ai.usage.output_tokens",
-                "gen_ai.request.temperature",
-                "gen_ai.response.finish_reasons",
-                "gen_ai.tool.name")
+        var spanHotAttributeKeys = resolver.RequiredAttributeValues(policy.SpanHotAttributeKeys)
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
-        var genAiProjection = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["GenAiProviderName"] = resolver.RequiredAttributeValue("gen_ai.provider.name"),
-            ["GenAiRequestModel"] = resolver.RequiredAttributeValue("gen_ai.request.model"),
-            ["GenAiResponseModel"] = resolver.RequiredAttributeValue("gen_ai.response.model"),
-            ["GenAiInputTokens"] = resolver.RequiredAttributeValue("gen_ai.usage.input_tokens"),
-            ["GenAiOutputTokens"] = resolver.RequiredAttributeValue("gen_ai.usage.output_tokens"),
-            ["GenAiTemperature"] = resolver.RequiredAttributeValue("gen_ai.request.temperature"),
-            ["GenAiStopReason"] = resolver.RequiredAttributeValue("gen_ai.response.finish_reasons"),
-            ["GenAiToolName"] = resolver.RequiredAttributeValue("gen_ai.tool.name"),
-            ["HttpRequestMethod"] = resolver.RequiredAttributeValue("http.request.method"),
-            ["HttpRoute"] = resolver.RequiredAttributeValue("http.route"),
-            ["SchemaUrlCurrent"] = resolver.SchemaUrlCurrent(),
-            ["ServiceName"] = resolver.RequiredAttributeValue("service.name")
-        };
+        var projectionConstants = policy.ProjectionConstants.ToDictionary(
+            static item => item.Key,
+            item => (string?)resolver.RequiredAttributeValue(item.Value),
+            StringComparer.Ordinal);
+        projectionConstants.Add("SchemaUrlCurrent", resolver.SchemaUrlCurrent());
 
         var builder = new StringBuilder();
         builder.AppendLine("// <auto-generated>");
-        builder.AppendLine("// Generated by eng/build GenerateCollectorSemanticAttributeCatalog from Qyl.OpenTelemetry.SemanticConventions package references.");
+        builder.AppendLine("// Generated by eng/build GenerateCollectorSemanticAttributeCatalog from Qyl.OpenTelemetry.SemanticConventions package references and eng/config/collector-semantic-policy.json.");
         builder.AppendLine("// </auto-generated>");
         builder.AppendLine("#nullable enable");
         builder.AppendLine();
@@ -279,17 +184,17 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         builder.AppendLine();
 
         WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation, "StringComparer.Ordinal");
-        WriteFrozenSet(builder, "ProjectIdResourceKeys", projectIdResourceKeys, "StringComparer.Ordinal");
-        WriteFrozenSet(builder, "QylResourceAttributeAllowList", qylResourceAttributeAllowList, "StringComparer.Ordinal");
+        WriteFrozenSet(builder, "ProjectIdResourceKeys", policy.ProjectIdResourceKeys, "StringComparer.Ordinal");
+        WriteFrozenSet(builder, "QylResourceAttributeAllowList", policy.QylResourceAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "ProfileAttributeAllowList", profileAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "ResourceAttributeAllowList", resourceAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "DeniedExactKeys", deniedExactKeys, "StringComparer.OrdinalIgnoreCase");
-        WriteStringArray(builder, "DeniedKeyTokens", deniedKeyTokens);
+        WriteStringArray(builder, "DeniedKeyTokens", policy.DeniedKeyTokens);
         WriteFrozenSet(builder, "SpanHotAttributeKeys", spanHotAttributeKeys, "StringComparer.Ordinal");
 
-        foreach (var projection in genAiProjection.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        foreach (var projection in projectionConstants.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {
             if (projection.Value is null)
             {
@@ -316,6 +221,26 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             ICollectorSemanticCatalog.StablePackageId,
             ICollectorSemanticCatalog.IncubatingPackageId);
 
+    private CollectorSemanticPolicyConfig ReadCollectorSemanticPolicyConfig()
+    {
+        if (!CollectorSemanticPolicyFile.FileExists())
+        {
+            throw new FileNotFoundException(
+                "Missing collector semantic policy config.",
+                CollectorSemanticPolicyFile.ToString());
+        }
+
+        var config = JsonSerializer.Deserialize<CollectorSemanticPolicyConfig>(
+            File.ReadAllText(CollectorSemanticPolicyFile),
+            CollectorSemanticPolicyJson.Options);
+
+        if (config is null)
+            throw new InvalidOperationException($"Collector semantic policy config '{CollectorSemanticPolicyFile}' is empty.");
+
+        config.Validate(RootDirectory.GetRelativePathTo(CollectorSemanticPolicyFile).ToString());
+        return config;
+    }
+
     private AbsolutePath LocateBuildProjectAssetsFile()
     {
         var expected = RootDirectory / "eng" / "build" / "artifacts" / "obj" / "build" / "project.assets.json";
@@ -338,10 +263,37 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         };
     }
 
-    private static string[] ValuesWithPrefixes(IEnumerable<string> values, params string[] prefixes) =>
-        values
-            .Where(value => prefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal)))
-            .ToArray();
+    private static string[] ValuesWithPrefixes(
+        IEnumerable<string> values,
+        IReadOnlyCollection<string> prefixes,
+        string section)
+    {
+        if (prefixes.Count is 0)
+            throw new InvalidOperationException($"Collector semantic policy section '{section}' must not be empty.");
+
+        var source = values.ToArray();
+        var resolved = new List<string>();
+
+        foreach (var prefix in prefixes)
+        {
+            if (string.IsNullOrWhiteSpace(prefix))
+                throw new InvalidOperationException($"Collector semantic policy section '{section}' contains an empty prefix.");
+
+            var matches = source
+                .Where(value => value.StartsWith(prefix, StringComparison.Ordinal))
+                .ToArray();
+
+            if (matches.Length is 0)
+            {
+                throw new InvalidOperationException(
+                    $"Collector semantic policy section '{section}' prefix '{prefix}' matched no attributes in the configured semantic convention packages.");
+            }
+
+            resolved.AddRange(matches);
+        }
+
+        return resolved.ToArray();
+    }
 
     private static string[] NormalizedValues(params IEnumerable<string>[] values) =>
         values
@@ -501,6 +453,95 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
 
     private static string StringLiteral(string value) =>
         "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+}
+
+internal sealed class CollectorSemanticPolicyConfig
+{
+    public CollectorSemanticPrefixPolicy SpanAttributeAllowList { get; init; } = new();
+    public CollectorSemanticPrefixPolicy LogAttributeAllowList { get; init; } = new();
+    public CollectorSemanticPrefixPolicy ProfileAttributeAllowList { get; init; } = new();
+    public CollectorSemanticPrefixPolicy ResourceAttributeAllowList { get; init; } = new();
+    public string[] QylResourceAttributeAllowList { get; init; } = [];
+    public string[] ProjectIdResourceKeys { get; init; } = [];
+    public string[] SessionCorrelation { get; init; } = [];
+    public string[] DeniedExactPrefixes { get; init; } = [];
+    public string[] DeniedExactKeys { get; init; } = [];
+    public string[] DeniedKeyTokens { get; init; } = [];
+    public string[] SpanHotAttributeKeys { get; init; } = [];
+    public Dictionary<string, string> ProjectionConstants { get; init; } = [];
+
+    public void Validate(string relativePath)
+    {
+        SpanAttributeAllowList.Validate(relativePath, "spanAttributeAllowList");
+        LogAttributeAllowList.Validate(relativePath, "logAttributeAllowList");
+        ProfileAttributeAllowList.Validate(relativePath, "profileAttributeAllowList");
+        ResourceAttributeAllowList.Validate(relativePath, "resourceAttributeAllowList");
+
+        RequireNonEmpty(QylResourceAttributeAllowList, relativePath, "qylResourceAttributeAllowList");
+        RequireNonEmpty(ProjectIdResourceKeys, relativePath, "projectIdResourceKeys");
+        RequireNonEmpty(SessionCorrelation, relativePath, "sessionCorrelation");
+        RequireNonEmpty(DeniedExactPrefixes, relativePath, "deniedExactPrefixes");
+        RequireNonEmpty(DeniedExactKeys, relativePath, "deniedExactKeys");
+        RequireNonEmpty(DeniedKeyTokens, relativePath, "deniedKeyTokens");
+        RequireNonEmpty(SpanHotAttributeKeys, relativePath, "spanHotAttributeKeys");
+
+        if (ProjectionConstants.Count is 0)
+            throw new InvalidOperationException($"{relativePath}: projectionConstants must not be empty.");
+
+        RequireNoEmptyValues(ProjectionConstants.Keys, relativePath, "projectionConstants keys");
+        RequireNoEmptyValues(ProjectionConstants.Values, relativePath, "projectionConstants values");
+    }
+
+    private static void RequireNonEmpty(IReadOnlyCollection<string> values, string relativePath, string section)
+    {
+        if (values.Count is 0)
+            throw new InvalidOperationException($"{relativePath}: {section} must not be empty.");
+
+        RequireNoEmptyValues(values, relativePath, section);
+        RequireNoDuplicates(values, relativePath, section);
+    }
+
+    public static void ValidatePrefixSet(IReadOnlyCollection<string> values, string relativePath, string section) =>
+        RequireNonEmpty(values, relativePath, section);
+
+    private static void RequireNoEmptyValues(IEnumerable<string> values, string relativePath, string section)
+    {
+        if (values.Any(static value => string.IsNullOrWhiteSpace(value)))
+            throw new InvalidOperationException($"{relativePath}: {section} contains an empty value.");
+    }
+
+    private static void RequireNoDuplicates(IEnumerable<string> values, string relativePath, string section)
+    {
+        var duplicates = values
+            .GroupBy(static value => value, StringComparer.Ordinal)
+            .Where(static group => group.Count() > 1)
+            .Select(static group => group.Key)
+            .ToArray();
+
+        if (duplicates.Length is not 0)
+            throw new InvalidOperationException($"{relativePath}: {section} contains duplicate values: {string.Join(", ", duplicates)}.");
+    }
+}
+
+internal sealed class CollectorSemanticPrefixPolicy
+{
+    public string[] StablePrefixes { get; init; } = [];
+    public string[] IncubatingPrefixes { get; init; } = [];
+
+    public void Validate(string relativePath, string section)
+    {
+        CollectorSemanticPolicyConfig.ValidatePrefixSet(StablePrefixes, relativePath, $"{section}.stablePrefixes");
+        CollectorSemanticPolicyConfig.ValidatePrefixSet(IncubatingPrefixes, relativePath, $"{section}.incubatingPrefixes");
+    }
+}
+
+internal static class CollectorSemanticPolicyJson
+{
+    public static readonly JsonSerializerOptions Options = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
 }
 
 internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageAssemblyPaths)

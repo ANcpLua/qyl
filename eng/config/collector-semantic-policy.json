@@ -1,0 +1,156 @@
+{
+  "spanAttributeAllowList": {
+    "stablePrefixes": [
+      "db.",
+      "error.",
+      "exception.",
+      "http.",
+      "otel.",
+      "server."
+    ],
+    "incubatingPrefixes": [
+      "gen_ai.",
+      "messaging.",
+      "profile."
+    ]
+  },
+  "logAttributeAllowList": {
+    "stablePrefixes": [
+      "error.",
+      "exception.",
+      "http.",
+      "otel.",
+      "server."
+    ],
+    "incubatingPrefixes": [
+      "gen_ai.",
+      "messaging."
+    ]
+  },
+  "profileAttributeAllowList": {
+    "stablePrefixes": [
+      "error.",
+      "otel."
+    ],
+    "incubatingPrefixes": [
+      "gen_ai.",
+      "profile."
+    ]
+  },
+  "resourceAttributeAllowList": {
+    "stablePrefixes": [
+      "deployment.",
+      "service."
+    ],
+    "incubatingPrefixes": [
+      "host.",
+      "os."
+    ]
+  },
+  "qylResourceAttributeAllowList": [
+    "qyl.capability.id",
+    "qyl.capability.kind"
+  ],
+  "projectIdResourceKeys": [
+    "qyl.project.id",
+    "qyl.workspace.id"
+  ],
+  "sessionCorrelation": [
+    "gen_ai.conversation.id",
+    "mcp.session.id",
+    "session.id"
+  ],
+  "deniedExactPrefixes": [
+    "enduser.",
+    "user."
+  ],
+  "deniedExactKeys": [
+    "code.file.path",
+    "code.stacktrace",
+    "db.query.text",
+    "exception.message",
+    "exception.stacktrace",
+    "gen_ai.agent.description",
+    "gen_ai.agent.id",
+    "gen_ai.agent.name",
+    "gen_ai.conversation.id",
+    "gen_ai.data_source.id",
+    "gen_ai.evaluation.explanation",
+    "gen_ai.evaluation.name",
+    "gen_ai.input.messages",
+    "gen_ai.output.messages",
+    "gen_ai.prompt.name",
+    "gen_ai.response.id",
+    "gen_ai.retrieval.documents",
+    "gen_ai.retrieval.query.text",
+    "gen_ai.system_instructions",
+    "gen_ai.tool.call.arguments",
+    "http.request.header",
+    "http.response.header",
+    "gen_ai.tool.call.id",
+    "gen_ai.tool.call.result",
+    "gen_ai.tool.definitions",
+    "gen_ai.tool.description",
+    "gen_ai.workflow.name",
+    "host.id",
+    "host.ip",
+    "host.mac",
+    "host.name",
+    "mcp.session.id",
+    "service.instance.id",
+    "session.id",
+    "session.previous_id",
+    "url.full",
+    "url.query"
+  ],
+  "deniedKeyTokens": [
+    "access_token",
+    "api-key",
+    "api_key",
+    "apikey",
+    "authorization",
+    "body",
+    "completion",
+    "cookie",
+    "credential",
+    "definition",
+    "document",
+    "fingerprint",
+    "id_token",
+    "instruction",
+    "jwt",
+    "message",
+    "password",
+    "private_key",
+    "prompt",
+    "query",
+    "refresh_token",
+    "result",
+    "secret",
+    "set-cookie",
+    "token"
+  ],
+  "spanHotAttributeKeys": [
+    "gen_ai.provider.name",
+    "gen_ai.request.model",
+    "gen_ai.response.model",
+    "gen_ai.usage.input_tokens",
+    "gen_ai.usage.output_tokens",
+    "gen_ai.request.temperature",
+    "gen_ai.response.finish_reasons",
+    "gen_ai.tool.name"
+  ],
+  "projectionConstants": {
+    "GenAiProviderName": "gen_ai.provider.name",
+    "GenAiRequestModel": "gen_ai.request.model",
+    "GenAiResponseModel": "gen_ai.response.model",
+    "GenAiInputTokens": "gen_ai.usage.input_tokens",
+    "GenAiOutputTokens": "gen_ai.usage.output_tokens",
+    "GenAiTemperature": "gen_ai.request.temperature",
+    "GenAiStopReason": "gen_ai.response.finish_reasons",
+    "GenAiToolName": "gen_ai.tool.name",
+    "HttpRequestMethod": "http.request.method",
+    "HttpRoute": "http.route",
+    "ServiceName": "service.name"
+  }
+}
