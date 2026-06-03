@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Telemetry;
@@ -38,14 +37,6 @@ internal static class CollectorMiddlewareExtensions
                 await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId });
             });
         });
-
-        // Keycloak JWT auth is registered only when configured (see AddQylCollectorAuth). Gate the
-        // middleware on the scheme provider so an unconfigured (dev) collector doesn't fail at startup.
-        if (app.Services.GetService<IAuthenticationSchemeProvider>() is not null)
-        {
-            app.UseAuthentication();
-            app.UseAuthorization();
-        }
 
         app.UseQylTelemetry();
 

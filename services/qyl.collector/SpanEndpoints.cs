@@ -22,7 +22,7 @@ internal static class SpanEndpoints
 
         var spanContracts = SpanMapper.ToContracts(
             spans,
-            static r => (r.ServiceName ?? r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
+            static r => (r.ServiceName ?? "unknown", null));
 
         return TypedResults.Ok(SpanMapper.ToTrace(traceId, spanContracts));
     }

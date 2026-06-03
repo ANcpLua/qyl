@@ -88,10 +88,15 @@ internal static class StartupBanner
 
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("  Endpoints:");
-        Console.WriteLine("    POST /api/v1/ingest     - qyl native protocol (primary)");
         Console.WriteLine(otlpHttpPort > 0
             ? $"    POST /v1/traces         - OTLP HTTP (port {otlpHttpPort}, also on {port})"
             : $"    POST /v1/traces         - OTLP HTTP (port {port})");
+        Console.WriteLine(otlpHttpPort > 0
+            ? $"    POST /v1/logs           - OTLP HTTP (port {otlpHttpPort}, also on {port})"
+            : $"    POST /v1/logs           - OTLP HTTP (port {port})");
+        Console.WriteLine(otlpHttpPort > 0
+            ? $"    POST /v1/profiles       - OTLP HTTP (port {otlpHttpPort}, also on {port})"
+            : $"    POST /v1/profiles       - OTLP HTTP (port {port})");
         if (grpcPort > 0)
             Console.WriteLine($"    gRPC TraceService/LogsService/ProfilesService - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");

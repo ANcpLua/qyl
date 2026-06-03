@@ -46,7 +46,6 @@ internal sealed partial class EmbeddedDashboardMiddleware
 
         if (path.StartsWithIgnoreCase("api/") ||
             path.StartsWithIgnoreCase("v1/") ||
-            path.StartsWithIgnoreCase("mcp/") ||
             path.StartsWithIgnoreCase("health") ||
             path.StartsWithIgnoreCase("ready"))
         {

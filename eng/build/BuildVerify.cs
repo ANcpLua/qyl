@@ -596,6 +596,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "eng" / "build.sh",
                 buildDirectory / "build.csproj",
                 buildDirectory / "Build.cs",
+                RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj",
                 RootDirectory / "packages" / "Qyl.OpenTelemetry.Extensions" / "README.md",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Qyl.Telemetry.csproj",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs"
@@ -616,6 +617,7 @@ interface IVerify : IHazSourcePaths
                 "./eng/build.sh OtelConventions",
                 "nuke Generate",
                 "nuke OtelConventions",
+                "Microsoft.AspNetCore.Authentication.JwtBearer",
                 "otel-conventions-api"
             ];
 
@@ -721,7 +723,19 @@ interface IVerify : IHazSourcePaths
                 "CREATE TABLE IF NOT EXISTS errors",
                 "AddHttpLogging(",
                 "UseHttpLogging(",
+                "AddAuthentication(",
+                "UseAuthentication(",
+                "UseAuthorization(",
+                "JwtBearerDefaults",
+                "KeycloakOptions",
+                "QylAgentInventoryEndpoint.AdminPolicy",
+                "QYL_KEYCLOAK",
                 "UrlAttributes.Path",
+                "endpoint.DisplayName",
+                "Name.Split(' ')",
+                "/api/v1/ingest",
+                "StartsWithIgnoreCase(\"mcp/\")",
+                "qyl native protocol",
                 "body LIKE",
                 "CopyToAsync(payload",
                 "Encoding.UTF8.GetBytes(options.",
@@ -773,6 +787,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Observe",
                 RootDirectory / "services" / "qyl.collector" / "Metrics",
                 RootDirectory / "services" / "qyl.collector" / "Alerts",
+                RootDirectory / "services" / "qyl.collector" / "Auth",
                 RootDirectory / "services" / "qyl.collector" / "Analytics",
                 RootDirectory / "services" / "qyl.collector" / "Artifacts",
                 RootDirectory / "services" / "qyl.collector" / "Conversations",

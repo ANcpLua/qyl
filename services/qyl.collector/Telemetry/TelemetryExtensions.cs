@@ -53,6 +53,7 @@ internal static class TelemetryExtensions
 
         services.RegisterTagNames(QylLatencyNames.Tags.SpanCount);
 
+        services.AddRequestLatencyTelemetry();
         services.AddLatencyContext();
 
         services.AddAsyncState();
