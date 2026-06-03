@@ -5,6 +5,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Serilog;
@@ -69,70 +72,51 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             if (!policyFile.FileExists())
                 throw new FileNotFoundException("Missing collector semantic policy", policyFile.ToString());
 
-            var text = File.ReadAllText(policyFile);
-            string[] forbidden =
-            [
-                "Qyl.OpenTelemetry.SemanticConventions",
-                "QylGenAiCostProcessor",
-                "BuildAttributeSet",
-                "AttributesFrom",
-                "BindingFlags",
-                "DynamicallyAccessedMembers",
-                "typeof(",
-                "GenAiAttributes.",
-                "DbAttributes",
-                "ErrorAttributes",
-                "ExceptionAttributes",
-                "HttpAttributes",
-                "MessagingAttributes",
-                "ProfileAttributes",
-                "ServiceAttributes",
-                "SessionAttributes"
-            ];
+            if (!CollectorSemanticCatalogFile.FileExists())
+                throw new FileNotFoundException(
+                    "Missing generated collector semantic attribute catalog. Run `./eng/build.sh GenerateCollectorSemanticAttributeCatalog`.",
+                    CollectorSemanticCatalogFile.ToString());
 
-            var offenders = forbidden
-                .Where(token => text.Contains(token, StringComparison.Ordinal))
+            var policyRoot = ParseCSharp(policyFile);
+            var catalogMembers = ReadCollectorSemanticCatalogMemberNames();
+            var catalogReferences = CollectorSemanticCatalogMemberReferences(policyRoot);
+            var invalidCatalogReferences = catalogReferences
+                .Where(reference => !catalogMembers.Contains(reference.Member))
+                .ToList();
+            var structuralOffenders = SemanticPolicyStructuralOffenders(policyRoot, policyFile)
                 .ToList();
 
-            string[] required =
-            [
-                "CollectorSemanticAttributeCatalog.SpanAttributeAllowList",
-                "CollectorSemanticAttributeCatalog.LogAttributeAllowList",
-                "CollectorSemanticAttributeCatalog.ProfileAttributeAllowList",
-                "CollectorSemanticAttributeCatalog.ResourceAttributeAllowList",
-                "CollectorSemanticAttributeCatalog.ProjectIdResourceKeys",
-                "CollectorSemanticAttributeCatalog.SessionCorrelation",
-                "CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList",
-                "CollectorSemanticAttributeCatalog.DeniedExactKeys",
-                "CollectorSemanticAttributeCatalog.DeniedKeyTokens",
-                "CollectorSemanticAttributeCatalog.SpanStorageProjectionKeys",
-                "CollectorSemanticAttributeCatalog.GenAiProviderName"
-            ];
-
-            var missing = required
-                .Where(token => !text.Contains(token, StringComparison.Ordinal))
-                .ToList();
-
-            if (offenders.Count is 0 && missing.Count is 0)
+            if (catalogReferences.Count > 0 && invalidCatalogReferences.Count is 0 && structuralOffenders.Count is 0)
             {
                 Log.Information("Collector semantic policy is backed by the generated catalog");
                 return;
             }
 
-            foreach (var offender in offenders)
-                Log.Error("  Runtime semantic policy handwiring token '{Token}' found in {File}",
-                    offender,
+            if (catalogReferences.Count is 0)
+                Log.Error("  Runtime semantic policy references no generated CollectorSemanticAttributeCatalog members in {File}",
                     RootDirectory.GetRelativePathTo(policyFile));
 
-            foreach (var requirement in missing)
-                Log.Error("  Runtime semantic policy missing catalog token '{Token}' in {File}",
-                    requirement,
-                    RootDirectory.GetRelativePathTo(policyFile));
+            foreach (var reference in invalidCatalogReferences)
+                Log.Error("  Unknown generated catalog member at {File}:{Line}: {Member}",
+                    RootDirectory.GetRelativePathTo(policyFile),
+                    reference.Line,
+                    reference.Member);
+
+            foreach (var offender in structuralOffenders)
+                Log.Error("  Runtime semantic policy handwiring at {File}:{Line}: {Kind}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Kind,
+                    offender.Text);
 
             throw new InvalidOperationException(
                 "Do not handwire OpenTelemetry semantic convention type lists in AttributeKeySets. " +
                 "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.OpenTelemetry.SemanticConventions and consume it there.");
         });
+
+    private readonly record struct CatalogMemberReference(string Member, int Line);
+
+    private readonly record struct SemanticPolicyOffender(string File, int Line, string Kind, string Text);
 
     IReadOnlySet<string> ResolveCollectorSemanticAttributeValues() =>
         new HashSet<string>(
@@ -368,6 +352,127 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static value => value, StringComparer.Ordinal)
             .ToArray();
+
+    private IReadOnlySet<string> ReadCollectorSemanticCatalogMemberNames()
+    {
+        var root = ParseCSharp(CollectorSemanticCatalogFile);
+        var catalogClass = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .SingleOrDefault(static declaration => declaration.Identifier.ValueText is "CollectorSemanticAttributeCatalog");
+
+        if (catalogClass is null)
+        {
+            throw new InvalidOperationException(
+                "Generated collector semantic attribute catalog does not declare CollectorSemanticAttributeCatalog.");
+        }
+
+        var members = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var field in catalogClass.Members.OfType<FieldDeclarationSyntax>())
+        {
+            foreach (var variable in field.Declaration.Variables)
+                members.Add(variable.Identifier.ValueText);
+        }
+
+        foreach (var property in catalogClass.Members.OfType<PropertyDeclarationSyntax>())
+            members.Add(property.Identifier.ValueText);
+
+        return members;
+    }
+
+    private static IReadOnlyList<CatalogMemberReference> CollectorSemanticCatalogMemberReferences(CompilationUnitSyntax root) =>
+        root.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Where(static memberAccess => memberAccess.Expression is IdentifierNameSyntax identifier &&
+                                          identifier.Identifier.ValueText is "CollectorSemanticAttributeCatalog")
+            .Select(static memberAccess => new CatalogMemberReference(
+                memberAccess.Name.Identifier.ValueText,
+                NodeLine(memberAccess)))
+            .Distinct()
+            .OrderBy(static reference => reference.Member, StringComparer.Ordinal)
+            .ThenBy(static reference => reference.Line)
+            .ToArray();
+
+    private IEnumerable<SemanticPolicyOffender> SemanticPolicyStructuralOffenders(
+        CompilationUnitSyntax root,
+        AbsolutePath policyFile)
+    {
+        var relativePath = RootDirectory.GetRelativePathTo(policyFile).ToString();
+
+        foreach (var usingDirective in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
+        {
+            if (IsForbiddenSemanticConventionReference(usingDirective.Name?.ToString()))
+                yield return CreateOffender(usingDirective, "Direct semantic convention import");
+        }
+
+        foreach (var name in root.DescendantNodes().OfType<NameSyntax>())
+        {
+            var text = name.ToString();
+            if (IsForbiddenSemanticConventionReference(text))
+                yield return CreateOffender(name, "Direct semantic convention reference");
+
+            if (IsReflectionReference(text))
+                yield return CreateOffender(name, "Reflection-based semantic policy");
+        }
+
+        foreach (var typeOf in root.DescendantNodes().OfType<TypeOfExpressionSyntax>())
+            yield return CreateOffender(typeOf, "Type-based semantic policy");
+
+        foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+        {
+            if (literal.IsKind(SyntaxKind.StringLiteralExpression) &&
+                literal.Token.ValueText is { Length: > 0 } value &&
+                LooksLikeAttributePolicyLiteral(value))
+            {
+                yield return CreateOffender(literal, "Raw attribute policy literal");
+            }
+        }
+
+        SemanticPolicyOffender CreateOffender(SyntaxNode node, string kind) =>
+            new(relativePath, NodeLine(node), kind, NodePreview(node));
+    }
+
+    private static CompilationUnitSyntax ParseCSharp(AbsolutePath file)
+    {
+        var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
+        return tree.GetCompilationUnitRoot();
+    }
+
+    private static bool IsForbiddenSemanticConventionReference(string? text) =>
+        text is not null &&
+        text.Contains("Qyl.OpenTelemetry.SemanticConventions", StringComparison.Ordinal);
+
+    private static bool IsReflectionReference(string text)
+    {
+        var simpleName = text.Split('.').Last();
+        return simpleName is
+            "Assembly" or
+            "BindingFlags" or
+            "DynamicallyAccessedMembersAttribute" or
+            "GetField" or
+            "GetFields" or
+            "GetRawConstantValue" or
+            "GetType" or
+            "GetTypes";
+    }
+
+    private static bool LooksLikeAttributePolicyLiteral(string value) =>
+        value.Contains('.', StringComparison.Ordinal) ||
+        value.StartsWith("qyl_", StringComparison.OrdinalIgnoreCase) ||
+        value.StartsWith("gen_ai", StringComparison.OrdinalIgnoreCase) ||
+        value.StartsWith("otel_", StringComparison.OrdinalIgnoreCase);
+
+    private static int NodeLine(SyntaxNode node) =>
+        node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+
+    private static string NodePreview(SyntaxNode node)
+    {
+        var line = node.ToString()
+            .Split('\n', 2)[0]
+            .Replace('\r', ' ')
+            .Trim();
+
+        return line.Length <= 160 ? line : line[..160];
+    }
 
     private static IEnumerable<string> OptionalValues(params string?[] values) =>
         values
