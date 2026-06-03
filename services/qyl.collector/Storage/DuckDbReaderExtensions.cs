@@ -28,7 +28,6 @@ internal sealed partial record SpanStorageRow
     public double? GenAiTemperature { get; init; }
     public string? GenAiStopReason { get; init; }
     public string? GenAiToolName { get; init; }
-    public string? GenAiToolCallId { get; init; }
     public double? GenAiCostUsd { get; init; }
 
     public string? AttributesJson { get; init; }

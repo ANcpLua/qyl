@@ -12,7 +12,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private const int MaxLogsPerBatch = 150;
 
-    private const int SpanColumnCount = 25;
+    private const int SpanColumnCount = 24;
     private const int LogColumnCount = 12;
 
     private const string SpanColumnList = """
@@ -21,7 +21,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                           status_code, status_message, service_name,
                                           gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                           gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
-                                          gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
+                                          gen_ai_stop_reason, gen_ai_tool_name,
                                           gen_ai_cost_usd, attributes_json, resource_json,
                                           schema_url
                                           """;
@@ -54,7 +54,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                              status_code, status_message, service_name,
                                              gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                              gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
-                                             gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
+                                             gen_ai_stop_reason, gen_ai_tool_name,
                                              gen_ai_cost_usd, attributes_json, resource_json,
                                              schema_url, created_at
                                              """;
@@ -1257,7 +1257,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiTemperature ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiStopReason ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolName ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
 
         cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });

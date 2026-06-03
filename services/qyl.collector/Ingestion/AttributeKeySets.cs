@@ -98,6 +98,7 @@ internal static class AttributeKeySets
         GenAiAttributes.ConversationId,
         GenAiAttributes.DataSourceId,
         GenAiAttributes.InputMessages,
+        GenAiAttributes.ToolCallId,
         McpAttributes.SessionId,
         ServiceAttributes.InstanceId,
         SessionAttributes.Id,

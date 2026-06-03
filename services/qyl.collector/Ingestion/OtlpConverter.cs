@@ -166,7 +166,6 @@ internal static class OtlpConverter
             GenAiTemperature = genAi.Temperature,
             GenAiStopReason = genAi.StopReason,
             GenAiToolName = genAi.ToolName,
-            GenAiToolCallId = genAi.ToolCallId,
             GenAiCostUsd = genAi.CostUsd,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes),
             ResourceJson = resourceJson,
@@ -216,7 +215,6 @@ internal static class OtlpConverter
         double? Temperature,
         string? StopReason,
         string? ToolName,
-        string? ToolCallId,
         double? CostUsd);
 
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
@@ -235,13 +233,12 @@ internal static class OtlpConverter
         var temperature = ParseNullableDouble(attributes.GetValueOrDefault(GenAiAttributes.RequestTemperature));
         var stopReason = attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons);
         var toolName = attributes.GetValueOrDefault(GenAiAttributes.ToolName);
-        var toolCallId = attributes.GetValueOrDefault(GenAiAttributes.ToolCallId);
         var costUsd = ParseNullableDouble(attributes.GetValueOrDefault(QylGenAiCostProcessor.CostAttribute));
 
         return new GenAiData(
             providerName, requestModel, responseModel,
             tokensIn, tokensOut, temperature, stopReason,
-            toolName, toolCallId, costUsd);
+            toolName, costUsd);
     }
 
     private static byte ConvertSpanKindToByte(int? kind) => kind switch

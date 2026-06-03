@@ -25,7 +25,6 @@ internal static partial class DuckDbSchema
                                        gen_ai_temperature DOUBLE,
                                        gen_ai_stop_reason VARCHAR,
                                        gen_ai_tool_name VARCHAR,
-                                       gen_ai_tool_call_id VARCHAR,
                                        gen_ai_cost_usd DOUBLE,
                                        attributes_json VARCHAR,
                                        resource_json VARCHAR,
