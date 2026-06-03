@@ -12,15 +12,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private const int MaxLogsPerBatch = 150;
 
-    private const int LogColumnCount = 12;
-
-    private const string LogColumnList = """
-                                         log_id, trace_id, span_id, session_id,
-                                         time_unix_nano, observed_time_unix_nano,
-                                         severity_number, severity_text, body,
-                                         service_name, attributes_json, resource_json
-                                         """;
-
     private const string SelectSpanColumns = """
                                              span_id, trace_id, parent_span_id, session_id,
                                              name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
@@ -34,8 +25,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private const int MaxProfilesPerBatch = 50;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
-
-    private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Counter<long> _droppedJobs;
@@ -555,7 +544,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             while (offset < totalLogs)
             {
                 var chunkSize = Math.Min(MaxLogsPerBatch, totalLogs - offset);
-                var sql = BuildMultiRowLogInsertSql(chunkSize);
+                var sql = LogStorageRow.BuildMultiRowInsertSql(chunkSize);
 
                 await using var cmd = con.CreateCommand();
                 cmd.Transaction = tx;
@@ -563,7 +552,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
                 for (var i = 0; i < chunkSize; i++)
                 {
-                    AddLogParameters(cmd, logs[offset + i]);
+                    LogStorageRow.AddParameters(cmd, logs[offset + i]);
                 }
 
                 await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -640,7 +629,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-                logs.Add(MapLog(reader));
+                logs.Add(LogStorageRow.MapFromReader(reader));
 
             return logs;
         }, ct);
@@ -1011,36 +1000,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
-    private static string BuildMultiRowLogInsertSql(int logCount)
-    {
-        Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
-
-        return s_logInsertSqlCache.GetOrAdd(logCount, static count =>
-        {
-            var sb = new StringBuilder(1024);
-            sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
-
-            for (var i = 0; i < count; i++)
-            {
-                if (i > 0)
-                    sb.Append(", ");
-
-                var baseParam = i * LogColumnCount;
-                sb.Append('(');
-                for (var col = 0; col < LogColumnCount; col++)
-                {
-                    if (col > 0)
-                        sb.Append(", ");
-                    sb.Append('$').Append(baseParam + col + 1);
-                }
-
-                sb.Append(')');
-            }
-
-            return sb.ToString();
-        });
-    }
-
     private static string BuildMultiRowInsertSql(string table, string columns, int colCount, int rowCount)
     {
         var sb = new StringBuilder(256);
@@ -1061,31 +1020,11 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         return sb.ToString();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AddLogParameters(DuckDBCommand cmd, LogStorageRow log)
-    {
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.LogId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)log.TimeUnixNano });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.ObservedTimeUnixNano.HasValue ? (decimal)log.ObservedTimeUnixNano.Value : DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
-    }
-
     private static void InitializeSchema(DuckDBConnection con)
     {
-        using var manualLogsCmd = con.CreateCommand();
-        manualLogsCmd.CommandText = DuckDbSchema.ManualLogsDdl;
-        manualLogsCmd.ExecuteNonQuery();
+        using var logsCmd = con.CreateCommand();
+        logsCmd.CommandText = DuckDbSchema.LogsDdl;
+        logsCmd.ExecuteNonQuery();
 
         using var profilesCmd = con.CreateCommand();
         profilesCmd.CommandText = string.Concat(
@@ -1114,25 +1053,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static LogStorageRow MapLog(DbDataReader reader) =>
-        new()
-        {
-            LogId = reader.GetString(0),
-            TraceId = reader.Col(1).AsString,
-            SpanId = reader.Col(2).AsString,
-            SessionId = reader.Col(3).AsString,
-            TimeUnixNano = reader.Col(4).GetUInt64(0),
-            ObservedTimeUnixNano = reader.Col(5).AsUInt64,
-            SeverityNumber = reader.Col(6).GetByte(0),
-            SeverityText = reader.Col(7).AsString,
-            Body = reader.Col(8).AsString,
-            ServiceName = reader.Col(9).AsString,
-            AttributesJson = reader.Col(10).AsString,
-            ResourceJson = reader.Col(11).AsString,
-            CreatedAt = reader.Col(12).AsDateTimeOffset
-        };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ProfileStorageRow MapProfile(DbDataReader reader) =>

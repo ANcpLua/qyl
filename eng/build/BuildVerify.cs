@@ -947,6 +947,13 @@ interface IVerify : IHazSourcePaths
                 "SpanOnConflictClause",
                 "BuildMultiRowSpanInsertSql",
                 "AddSpanParameters",
+                "ManualLogsDdl",
+                "LogColumnCount",
+                "LogColumnList",
+                "s_logInsertSqlCache",
+                "BuildMultiRowLogInsertSql",
+                "AddLogParameters",
+                "MapLog(",
                 "TRY_CAST(status_code",
                 "kind VARCHAR NOT NULL",
                 "status_code VARCHAR NOT NULL"

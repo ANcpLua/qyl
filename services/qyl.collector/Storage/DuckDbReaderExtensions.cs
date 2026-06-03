@@ -88,14 +88,17 @@ internal sealed class ModelPricingSeed
     [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
 }
 
-internal sealed record LogStorageRow
+[DuckDbTable("logs")]
+internal sealed partial record LogStorageRow
 {
     public required string LogId { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
     public string? SessionId { get; init; }
 
+    [DuckDbColumn(IsUBigInt = true)]
     public required ulong TimeUnixNano { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
     public ulong? ObservedTimeUnixNano { get; init; }
 
     public required byte SeverityNumber { get; init; }
@@ -105,6 +108,8 @@ internal sealed record LogStorageRow
     public string? ServiceName { get; init; }
     public string? AttributesJson { get; init; }
     public string? ResourceJson { get; init; }
+
+    [DuckDbColumn(ExcludeFromInsert = true)]
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
