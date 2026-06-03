@@ -2211,26 +2211,6 @@ export interface components {
             /** @description Browser version */
             browser_version?: string;
         };
-        /** @description Session stats by country */
-        "Domains.Observe.Session.SessionCountryStats": {
-            /** @description Country code */
-            country_code: string;
-            /** @description Country name */
-            country_name: string;
-            /** @description Session count */
-            count: components["schemas"]["Common.Count"];
-            /** @description Percentage of total */
-            percentage: components["schemas"]["Common.Percentage"];
-        };
-        /** @description Session stats by device type */
-        "Domains.Observe.Session.SessionDeviceStats": {
-            /** @description Device type */
-            device_type: components["schemas"]["Domains.Observe.Session.DeviceType"];
-            /** @description Session count */
-            count: components["schemas"]["Common.Count"];
-            /** @description Percentage of total */
-            percentage: components["schemas"]["Common.Percentage"];
-        };
         /** @description Complete session entity with aggregated data */
         "Domains.Observe.Session.SessionEntity": {
             /** @description Session ID */
@@ -2322,8 +2302,6 @@ export interface components {
             active_sessions: components["schemas"]["Common.Count"];
             /** @description Total sessions in time range */
             total_sessions: components["schemas"]["Common.Count"];
-            /** @description Unique users in time range */
-            unique_users: components["schemas"]["Common.Count"];
             /**
              * Format: double
              * @description Average session duration in milliseconds
@@ -2335,10 +2313,6 @@ export interface components {
             sessions_with_genai: components["schemas"]["Common.Count"];
             /** @description Bounce rate (single-page sessions) */
             bounce_rate: components["schemas"]["Common.Ratio"];
-            /** @description Sessions by device type */
-            by_device_type?: components["schemas"]["Domains.Observe.Session.SessionDeviceStats"][];
-            /** @description Sessions by country */
-            by_country?: components["schemas"]["Domains.Observe.Session.SessionCountryStats"][];
         };
         /** @description Complete deployment record */
         "Domains.Ops.Deployment.CreateDeploymentEntity": {
@@ -6783,8 +6757,6 @@ export interface operations {
     SessionsApi_list: {
         parameters: {
             query?: {
-                /** @description User ID filter */
-                userId?: components["schemas"]["Common.UserId"];
                 /** @description Is active filter */
                 isActive?: boolean;
                 /** @description Start time */

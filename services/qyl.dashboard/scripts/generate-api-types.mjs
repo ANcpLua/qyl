@@ -1,11 +1,11 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 
 const defaultOpenApiPath = "../../../qyl-api-schema/generated/openapi/qyl.openapi.json";
 const source = resolve(process.cwd(), process.env.QYL_API_SCHEMA_OPENAPI ?? defaultOpenApiPath);
-const output = resolve(process.cwd(), "src/types/api.ts");
+const output = resolve(process.cwd(), process.env.QYL_API_TYPES_OUTPUT ?? "src/types/api.ts");
 const workDir = await mkdtemp(join(tmpdir(), "qyl-openapi-"));
 
 try {
@@ -15,6 +15,7 @@ try {
     spec.openapi = "3.1.0";
   }
   await writeFile(normalized, `${JSON.stringify(spec, null, 2)}\n`, "utf8");
+  await mkdir(dirname(output), { recursive: true });
   await run("openapi-typescript", [normalized, "-o", output]);
 } finally {
   await rm(workDir, { recursive: true, force: true });

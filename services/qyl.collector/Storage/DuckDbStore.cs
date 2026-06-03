@@ -1030,8 +1030,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             return condition[..index] + $"${_paramIndex++}" + condition[(index + 2)..];
         }
 
-        public readonly void AddCondition(string condition) => _conditions.Add(condition);
-
         public readonly string WhereClause =>
             _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";
 

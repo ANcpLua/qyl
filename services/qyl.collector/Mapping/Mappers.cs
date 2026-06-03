@@ -363,7 +363,7 @@ internal static class SessionMapper
     {
         var startTime = AsUtcOffset(summary.StartTime);
         var lastActivity = AsUtcOffset(summary.LastActivity);
-        var isActive = (TimeProvider.System.GetUtcNow() - lastActivity).TotalMinutes < 5;
+        var isActive = TimeProvider.System.GetUtcNow() - lastActivity < QylSessionActivity.ActiveWindow;
 
         return new SessionEntity
         {

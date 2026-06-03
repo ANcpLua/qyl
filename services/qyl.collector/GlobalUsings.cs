@@ -14,6 +14,7 @@ global using Grpc.Core;
 global using Microsoft.AspNetCore.Http.HttpResults;
 global using Qyl.Collector.Ingestion;
 global using Qyl.Collector.Storage;
+global using QylSessionActivity = Qyl.Collector.Primitives.SessionActivity;
 global using QylTimeConversions = Qyl.Collector.Primitives.TimeConversions;
 global using Qyl.Collector.Mapping;
 global using Qyl.Instrumentation;

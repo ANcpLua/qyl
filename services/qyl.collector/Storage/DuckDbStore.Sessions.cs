@@ -48,7 +48,7 @@ internal sealed partial class DuckDbStore
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
-            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));
+            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow() - QylSessionActivity.ActiveWindow);
             cmd.Parameters.Add(new DuckDBParameter { Value = limit });
             cmd.Parameters.Add(new DuckDBParameter { Value = offset });
             return ExecuteSessionQuery(cmd);
@@ -117,7 +117,7 @@ internal sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
-            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));
+            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow() - QylSessionActivity.ActiveWindow);
 
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())

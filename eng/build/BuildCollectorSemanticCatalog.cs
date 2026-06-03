@@ -134,6 +134,11 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
                 "Generate CollectorSemanticAttributeCatalog.g.cs from Qyl.OpenTelemetry.SemanticConventions and consume it there.");
         });
 
+    IReadOnlySet<string> ResolveCollectorSemanticAttributeValues() =>
+        new HashSet<string>(
+            new SemConvAttributeResolver(ReadResolvedPackageAssemblies()).AllAttributeValues(),
+            StringComparer.Ordinal);
+
     string GenerateCollectorSemanticAttributeCatalogText()
     {
         var resolver = new SemConvAttributeResolver(ReadResolvedPackageAssemblies());

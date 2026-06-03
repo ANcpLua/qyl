@@ -17,7 +17,7 @@ using Serilog;
 namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IVerify))]
-interface IVerify : IHazSourcePaths
+interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 {
     [Parameter("Skip verification")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -36,6 +36,50 @@ interface IVerify : IHazSourcePaths
                 .SetCommand("typecheck"));
 
             Log.Information("Frontend TypeScript types: VALID");
+        });
+
+    Target VerifyFrontendApiTypes => d => d
+        .Unlisted()
+        .Description("Verify generated dashboard API types match qyl-api-schema OpenAPI")
+        .DependsOn<IPipeline>(static x => x.FrontendInstall)
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var committed = DashboardDirectory / "src" / "types" / "api.ts";
+            if (!committed.FileExists())
+                throw new FileNotFoundException("Missing generated dashboard API types", committed.ToString());
+
+            var tempDir = Path.Combine(Path.GetTempPath(), $"qyl-api-types-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+            var generated = Path.Combine(tempDir, "api.ts");
+
+            try
+            {
+                ProcessTasks.StartProcess(
+                        "npm",
+                        "run generate:ts",
+                        DashboardDirectory,
+                        environmentVariables: new Dictionary<string, string>
+                        {
+                            ["PATH"] = Environment.GetEnvironmentVariable("PATH") ?? "",
+                            ["QYL_API_TYPES_OUTPUT"] = generated
+                        },
+                        logOutput: true)
+                    .AssertZeroExitCode();
+
+                if (string.Equals(File.ReadAllText(committed), File.ReadAllText(generated), StringComparison.Ordinal))
+                {
+                    Log.Information("Generated dashboard API types match qyl-api-schema OpenAPI");
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    "services/qyl.dashboard/src/types/api.ts is stale. Run `npm run generate:ts` in services/qyl.dashboard and commit the regenerated file.");
+            }
+            finally
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
@@ -407,9 +451,10 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
+            var attributeLiteralValues = ResolveCollectorAttributeLiteralValues();
             var offenders = CollectorSourceFiles()
                 .Where(static file => !file.ToString().EndsWith(".g.cs", StringComparison.Ordinal))
-                .SelectMany(SemanticUsageOffenders)
+                .SelectMany(file => SemanticUsageOffenders(file, attributeLiteralValues))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -1775,6 +1820,7 @@ interface IVerify : IHazSourcePaths
 
     Target Verify => d => d
         .Description("Run collector and frontend verification checks")
+        .DependsOn(VerifyFrontendApiTypes)
         .DependsOn(VerifyFrontendTypes)
         .DependsOn(VerifyCollectorPublicApiIsExplicit)
         .DependsOn(VerifyCollectorHasNoUnexpectedPublicTypes)
@@ -1863,6 +1909,10 @@ interface IVerify : IHazSourcePaths
         string File,
         int Line,
         string Route);
+
+    private readonly record struct CollectorAttributeLiteralValues(
+        IReadOnlySet<string> SemanticConventionValues,
+        IReadOnlySet<string> QylValues);
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
         CollectorDirectory.GlobFiles("**/*.cs")
@@ -1955,7 +2005,9 @@ interface IVerify : IHazSourcePaths
         }
     }
 
-    private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(AbsolutePath file)
+    private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(
+        AbsolutePath file,
+        CollectorAttributeLiteralValues attributeLiteralValues)
     {
         var root = ParseCompilationUnit(file);
         var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
@@ -1978,7 +2030,7 @@ interface IVerify : IHazSourcePaths
         {
             if (literal.IsKind(SyntaxKind.StringLiteralExpression) &&
                 literal.Token.ValueText is { } value &&
-                IsSemanticAttributeLiteral(value))
+                IsKnownAttributeLiteral(value, attributeLiteralValues))
             {
                 yield return CreateOffender(literal, "Raw semantic attribute literal");
             }
@@ -1987,12 +2039,47 @@ interface IVerify : IHazSourcePaths
         foreach (var interpolatedText in root.DescendantNodes().OfType<InterpolatedStringTextSyntax>())
         {
             var value = interpolatedText.TextToken.ValueText;
-            if (IsSemanticAttributeLiteral(value))
+            if (IsKnownAttributeLiteral(value, attributeLiteralValues))
                 yield return CreateOffender(interpolatedText, "Raw semantic attribute literal");
         }
 
         SemanticUsageOffender CreateOffender(SyntaxNode node, string kind) =>
             new(relativePath, NodeLine(node), kind, NodePreview(node));
+    }
+
+    private CollectorAttributeLiteralValues ResolveCollectorAttributeLiteralValues()
+    {
+        return new CollectorAttributeLiteralValues(
+            ResolveCollectorSemanticAttributeValues(),
+            new HashSet<string>(ResolveQylAttributeLiteralValues(), StringComparer.Ordinal));
+    }
+
+    private IEnumerable<string> ResolveQylAttributeLiteralValues()
+    {
+        var attributesFile = RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "QylAttributes.cs";
+        if (!attributesFile.FileExists())
+            yield break;
+
+        var root = ParseCompilationUnit(attributesFile);
+        foreach (var field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        {
+            if (!field.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.ConstKeyword)) ||
+                field.Declaration.Type is not PredefinedTypeSyntax type ||
+                !type.Keyword.IsKind(SyntaxKind.StringKeyword))
+            {
+                continue;
+            }
+
+            foreach (var variable in field.Declaration.Variables)
+            {
+                if (variable.Initializer?.Value is LiteralExpressionSyntax literal &&
+                    literal.IsKind(SyntaxKind.StringLiteralExpression) &&
+                    literal.Token.ValueText is { Length: > 0 } value)
+                {
+                    yield return value;
+                }
+            }
+        }
     }
 
     private IEnumerable<RemovedRouteLiteral> RemovedRouteLiterals(
@@ -2060,41 +2147,18 @@ interface IVerify : IHazSourcePaths
         (name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
          name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
 
-    private static bool IsSemanticAttributeLiteral(string value)
+    private static bool IsKnownAttributeLiteral(string value, CollectorAttributeLiteralValues attributeLiteralValues)
     {
-        string[] exact =
-        [
-            "error.type",
-            "meter.name",
-            "session.id",
-            "user.id"
-        ];
-
-        if (exact.Contains(value, StringComparer.Ordinal))
+        if (attributeLiteralValues.SemanticConventionValues.Contains(value) ||
+            attributeLiteralValues.QylValues.Contains(value))
+        {
             return true;
+        }
 
-        string[] prefixes =
-        [
-            "client.",
-            "code.",
-            "db.",
-            "deployment.",
-            "enduser.",
-            "exception.",
-            "gen_ai.",
-            "host.",
-            "http.",
-            "mcp.",
-            "messaging.",
-            "os.",
-            "profile.",
-            "otel.scope.",
-            "qyl.capability.",
-            "server.",
-            "service.",
-            "url."
-        ];
+        if (value.Length is 0 || value[^1] is not '.')
+            return false;
 
-        return prefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal));
+        return attributeLiteralValues.SemanticConventionValues.Any(known => known.StartsWith(value, StringComparison.Ordinal)) ||
+               attributeLiteralValues.QylValues.Any(known => known.StartsWith(value, StringComparison.Ordinal));
     }
 }
