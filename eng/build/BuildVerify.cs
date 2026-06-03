@@ -894,7 +894,12 @@ interface IVerify : IHazSourcePaths
                 "JsonSerializable(typeof(List<AgentRunRecord>))",
                 "JsonSerializable(typeof(List<SpanStorageRow>))",
                 "JsonSerializable(typeof(List<ToolCallRecord>))",
-                "JsonSerializable(typeof(ToolCallRecord))"
+                "JsonSerializable(typeof(ToolCallRecord))",
+                "public int SessionsDeleted",
+                "public int ConsoleCleared",
+                "SessionsDeleted = result.SessionsDeleted",
+                "ConsoleCleared = result.ConsoleCleared",
+                "TotalDeleted =>"
             ];
 
             string[] removedCollectorQueryTokens =

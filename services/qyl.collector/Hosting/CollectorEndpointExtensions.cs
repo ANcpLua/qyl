@@ -371,8 +371,8 @@ internal static class CollectorEndpointExtensions
             SpansDeleted = result.SpansDeleted,
             LogsDeleted = result.LogsDeleted,
             ProfilesDeleted = result.ProfilesDeleted,
-            SessionsDeleted = result.SessionsDeleted,
-            ConsoleCleared = result.ConsoleCleared,
+            SessionsDeleted = 0,
+            ConsoleCleared = 0,
             Type = type
         };
 

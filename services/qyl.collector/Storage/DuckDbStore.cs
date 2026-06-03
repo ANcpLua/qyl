@@ -1583,8 +1583,4 @@ internal sealed record TelemetryTableClearCounts
     public int SpansDeleted { get; init; }
     public int LogsDeleted { get; init; }
     public int ProfilesDeleted { get; init; }
-    public int SessionsDeleted { get; init; }
-    public int ConsoleCleared { get; init; }
-
-    public int TotalDeleted => SpansDeleted + LogsDeleted + ProfilesDeleted + SessionsDeleted + ConsoleCleared;
 }
