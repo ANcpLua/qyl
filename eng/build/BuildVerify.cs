@@ -447,7 +447,9 @@ interface IVerify : IHazSourcePaths
                 "JsonSerializable(typeof(ProfileStorageRow))",
                 "JsonSerializable(typeof(SessionQueryRow))",
                 "JsonSerializable(typeof(StorageStats))",
-                "JsonSerializable(typeof(SessionGenAiStats))"
+                "JsonSerializable(typeof(SessionGenAiStats))",
+                "SseItem<LogRecord>",
+                "ServerSentEventsResult<"
             ];
 
             AbsolutePath[] endpointFiles =
@@ -1432,7 +1434,11 @@ interface IVerify : IHazSourcePaths
                 "MapProfile(",
                 "TRY_CAST(status_code",
                 "kind VARCHAR NOT NULL",
-                "status_code VARCHAR NOT NULL"
+                "status_code VARCHAR NOT NULL",
+                "\"\"\"{\"error\":\"Unauthorized\"",
+                "Valid x-otlp-api-key header required",
+                "SseItem<",
+                "ServerSentEventsResult<"
             ];
 
             string[] removedCollectorQueryTokens =

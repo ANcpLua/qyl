@@ -7,6 +7,7 @@ using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
+using Qyl.Api.Contracts.Streaming;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
@@ -46,6 +47,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(NotFoundError))]
 [JsonSerializable(typeof(ValidationError))]
 [JsonSerializable(typeof(ValidationErrorDetail))]
+[JsonSerializable(typeof(UnauthorizedError))]
+[JsonSerializable(typeof(LogStreamEvent))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
 [JsonSerializable(typeof(string[]))]
 internal partial class QylSerializerContext : JsonSerializerContext;

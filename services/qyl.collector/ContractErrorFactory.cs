@@ -31,6 +31,14 @@ internal static class ContractErrorFactory
             ]
         };
 
+    internal static UnauthorizedError Unauthorized(string authenticationScheme) =>
+        new()
+        {
+            _ = 401,
+            Title = "Unauthorized",
+            WwwAuthenticate = authenticationScheme
+        };
+
     internal static ContractInternalServerError InternalServerError(string errorCode) =>
         new()
         {

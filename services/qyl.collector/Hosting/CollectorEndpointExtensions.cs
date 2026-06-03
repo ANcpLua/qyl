@@ -6,6 +6,7 @@ using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
+using Qyl.Api.Contracts.Streaming;
 
 namespace Qyl.Collector.Hosting;
 
@@ -232,16 +233,27 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
-    private static ServerSentEventsResult<SseItem<LogRecord>> StreamLogsAsync(
+    private static async Task StreamLogsAsync(
+        HttpContext context,
         DuckDbStore store,
         string? serviceName,
         int? minSeverity,
         string? query,
-        CancellationToken ct) =>
-        TypedResults.ServerSentEvents(
-            StreamLogEventsAsync(store, serviceName, minSeverity, query, ct), null);
+        CancellationToken ct)
+    {
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = "text/event-stream";
+        context.Response.Headers.CacheControl = "no-cache,no-store";
+        context.Response.Headers.Pragma = "no-cache";
 
-    private static async IAsyncEnumerable<SseItem<LogRecord>> StreamLogEventsAsync(
+        await foreach (var streamEvent in StreamLogEventsAsync(store, serviceName, minSeverity, query, ct)
+                           .ConfigureAwait(false))
+        {
+            await WriteSseEventAsync(context.Response, "log", streamEvent, ct).ConfigureAwait(false);
+        }
+    }
+
+    private static async IAsyncEnumerable<LogStreamEvent> StreamLogEventsAsync(
         DuckDbStore store,
         string? serviceName,
         int? minSeverity,
@@ -278,11 +290,34 @@ internal static class CollectorEndpointExtensions
                 afterLogId = last.LogId;
 
                 foreach (var log in ordered)
-                    yield return new SseItem<LogRecord>(LogMapper.ToContract(log), "log");
+                    yield return new LogStreamEvent
+                    {
+                        Type = "log",
+                        Data = LogMapper.ToContract(log),
+                        Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
+                    };
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);
         }
+    }
+
+    private static async Task WriteSseEventAsync(
+        HttpResponse response,
+        string eventType,
+        LogStreamEvent streamEvent,
+        CancellationToken ct)
+    {
+        await response.WriteAsync("event: ", ct).ConfigureAwait(false);
+        await response.WriteAsync(eventType, ct).ConfigureAwait(false);
+        await response.WriteAsync("\ndata: ", ct).ConfigureAwait(false);
+        await JsonSerializer.SerializeAsync(
+            response.Body,
+            streamEvent,
+            QylSerializerContext.Default.LogStreamEvent,
+            ct).ConfigureAwait(false);
+        await response.WriteAsync("\n\n", ct).ConfigureAwait(false);
+        await response.Body.FlushAsync(ct).ConfigureAwait(false);
     }
 
 

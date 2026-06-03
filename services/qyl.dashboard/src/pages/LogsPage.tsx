@@ -65,6 +65,12 @@ interface ContractLogRecord {
     serviceName?: string;
 }
 
+interface ContractLogStreamEvent {
+    type?: 'log';
+    data?: ContractLogRecord;
+    timestamp?: string;
+}
+
 function normalizeLogRecord(log: ContractLogRecord): LogRecord {
     const timeUnixNano = log.timeUnixNano ?? 0;
     const observedUnixNano = log.observedTimeUnixNano ?? timeUnixNano;
@@ -327,8 +333,8 @@ function useLiveLogs(
 
             eventSource.addEventListener('log', (e) => {
                 try {
-                    const data = JSON.parse(e.data);
-                    queueLogs([normalizeLogRecord(data)]);
+                    const event = JSON.parse(e.data) as ContractLogStreamEvent;
+                    if (event.data) queueLogs([normalizeLogRecord(event.data)]);
                 } catch (err) {
                     console.error('Failed to parse log event:', err);
                 }

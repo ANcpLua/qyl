@@ -22,11 +22,12 @@ internal sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptio
 
         if (!ValidateApiKey(apiKey))
         {
+            var challenge = $"{options.HeaderName} realm=\"qyl-otlp\"";
             context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(
-                """{"error":"Unauthorized","message":"Valid x-otlp-api-key header required"}"""
-            ).ConfigureAwait(false);
+            context.Response.Headers.WWWAuthenticate = challenge;
+            await context.Response.WriteAsJsonAsync(
+                ContractErrorFactory.Unauthorized(challenge),
+                QylSerializerContext.Default.UnauthorizedError).ConfigureAwait(false);
             return;
         }
 
