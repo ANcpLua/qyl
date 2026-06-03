@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using CodeAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Code.CodeAttributes;
 using DbAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Db.DbAttributes;
 using DeploymentAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Deployment.DeploymentAttributes;
@@ -30,80 +32,80 @@ internal static class AttributeKeySets
         McpAttributes.SessionId,
         SessionAttributes.Id);
 
-    internal static readonly string QylCapabilityPrefix = AttributeKeyPrefix.Of(QylAttr.Capability.Id);
-
-    private static readonly FrozenSet<string> s_spanAttributeAllowList = FrozenSet.Create(
+    private static readonly FrozenSet<string> s_qylResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
-        DbAttributes.OperationName,
-        DbAttributes.SystemName,
-        ErrorAttributes.Type,
-        ExceptionAttributes.Type,
-        GenAiAttributes.OperationName,
-        GenAiAttributes.ProviderName,
-        GenAiAttributes.RequestModel,
-        GenAiAttributes.ResponseFinishReasons,
-        GenAiAttributes.ResponseModel,
-        GenAiAttributes.ToolName,
-        HttpAttributes.RequestMethod,
-        HttpAttributes.Route,
-        MessagingAttributes.System,
-        OtelAttributes.ScopeName,
-        ProfileAttributes.FrameType,
-        ServerAttributes.Address);
+        QylAttr.Capability.Id,
+        QylAttr.Capability.Kind);
 
-    private static readonly FrozenSet<string> s_logAttributeAllowList = FrozenSet.Create(
-        StringComparer.Ordinal,
-        ErrorAttributes.Type,
-        ExceptionAttributes.Type,
-        GenAiAttributes.OperationName,
-        GenAiAttributes.ProviderName,
-        GenAiAttributes.RequestModel,
-        GenAiAttributes.ResponseFinishReasons,
-        GenAiAttributes.ResponseModel,
-        GenAiAttributes.ToolName,
-        HttpAttributes.RequestMethod,
-        HttpAttributes.Route,
-        MessagingAttributes.System,
-        OtelAttributes.ScopeName,
-        ServerAttributes.Address);
+    private static readonly FrozenSet<string> s_spanAttributeAllowList = BuildAttributeSet(
+        typeof(DbAttributes),
+        typeof(ErrorAttributes),
+        typeof(ExceptionAttributes),
+        typeof(GenAiAttributes),
+        typeof(HttpAttributes),
+        typeof(MessagingAttributes),
+        typeof(OtelAttributes),
+        typeof(ProfileAttributes),
+        typeof(ServerAttributes));
 
-    private static readonly FrozenSet<string> s_profileAttributeAllowList = FrozenSet.Create(
-        StringComparer.Ordinal,
-        ErrorAttributes.Type,
-        GenAiAttributes.OperationName,
-        GenAiAttributes.ProviderName,
-        GenAiAttributes.RequestModel,
-        GenAiAttributes.ResponseModel,
-        OtelAttributes.ScopeName,
-        ProfileAttributes.FrameType);
+    private static readonly FrozenSet<string> s_logAttributeAllowList = BuildAttributeSet(
+        typeof(ErrorAttributes),
+        typeof(ExceptionAttributes),
+        typeof(GenAiAttributes),
+        typeof(HttpAttributes),
+        typeof(MessagingAttributes),
+        typeof(OtelAttributes),
+        typeof(ServerAttributes));
 
-    private static readonly FrozenSet<string> s_resourceAttributeAllowList = FrozenSet.Create(
-        StringComparer.Ordinal,
-        DeploymentAttributes.EnvironmentName,
-        HostAttributes.Arch,
-        OsAttributes.Type,
-        ServiceAttributes.Name,
-        ServiceAttributes.Namespace,
-        ServiceAttributes.Version);
+    private static readonly FrozenSet<string> s_profileAttributeAllowList = BuildAttributeSet(
+        typeof(ErrorAttributes),
+        typeof(GenAiAttributes),
+        typeof(OtelAttributes),
+        typeof(ProfileAttributes));
 
-    private static readonly FrozenSet<string> s_deniedExactKeys = FrozenSet.Create(
-        StringComparer.OrdinalIgnoreCase,
+    private static readonly FrozenSet<string> s_resourceAttributeAllowList = BuildAttributeSet(
+        typeof(DeploymentAttributes),
+        typeof(HostAttributes),
+        typeof(OsAttributes),
+        typeof(ServiceAttributes));
+
+    private static readonly FrozenSet<string> s_deniedExactKeys = BuildDeniedSet(
+        AttributesFrom(typeof(EnduserAttributes)).Concat(AttributesFrom(typeof(UserAttributes))),
         CodeAttributes.FilePath,
         CodeAttributes.Stacktrace,
-        EnduserAttributes.Id,
+        DbAttributes.QueryText,
         ExceptionAttributes.Message,
         ExceptionAttributes.Stacktrace,
         GenAiAttributes.AgentDescription,
         GenAiAttributes.AgentId,
+        GenAiAttributes.AgentName,
+        GenAiAttributes.Completion,
         GenAiAttributes.ConversationId,
         GenAiAttributes.DataSourceId,
+        GenAiAttributes.EvaluationExplanation,
+        GenAiAttributes.EvaluationName,
         GenAiAttributes.InputMessages,
+        GenAiAttributes.OutputMessages,
+        GenAiAttributes.Prompt,
+        GenAiAttributes.PromptName,
+        GenAiAttributes.ResponseId,
+        GenAiAttributes.RetrievalDocuments,
+        GenAiAttributes.RetrievalQueryText,
+        GenAiAttributes.SystemInstructions,
+        GenAiAttributes.ToolCallArguments,
+        HttpAttributes.RequestHeader,
+        HttpAttributes.ResponseHeader,
         GenAiAttributes.ToolCallId,
+        GenAiAttributes.ToolCallResult,
+        GenAiAttributes.ToolDefinitions,
+        GenAiAttributes.ToolDescription,
+        GenAiAttributes.WorkflowName,
         McpAttributes.SessionId,
         ServiceAttributes.InstanceId,
         SessionAttributes.Id,
+        SessionAttributes.PreviousId,
         UrlAttributes.Full,
-        UserAttributes.Id);
+        UrlAttributes.Query);
 
     private static readonly string[] s_deniedKeyTokens =
     [
@@ -112,13 +114,22 @@ internal static class AttributeKeySets
         "api_key",
         "apikey",
         "authorization",
+        "body",
         "cookie",
         "credential",
+        "definition",
+        "document",
+        "fingerprint",
         "id_token",
+        "instruction",
         "jwt",
+        "message",
         "password",
         "private_key",
+        "prompt",
+        "query",
         "refresh_token",
+        "result",
         "secret",
         "set-cookie",
         "token"
@@ -135,7 +146,7 @@ internal static class AttributeKeySets
 
     internal static bool ShouldPersistResourceAttribute(string key) =>
         !IsDenied(key) &&
-        (s_resourceAttributeAllowList.Contains(key) || key.StartsWithOrdinal(QylCapabilityPrefix));
+        (s_resourceAttributeAllowList.Contains(key) || s_qylResourceAttributeAllowList.Contains(key));
 
     private static bool IsDenied(string key)
     {
@@ -153,6 +164,26 @@ internal static class AttributeKeySets
 
         return false;
     }
+
+    private static FrozenSet<string> BuildAttributeSet(params Type[] attributeTypes) =>
+        attributeTypes
+            .SelectMany(AttributesFrom)
+            .ToFrozenSet(StringComparer.Ordinal);
+
+    private static IEnumerable<string> AttributesFrom(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] Type attributeType) =>
+        attributeType
+            .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+            .Where(static field => field is { IsLiteral: true, IsInitOnly: false } &&
+                                   field.FieldType == typeof(string))
+            .Select(static field => (string)field.GetRawConstantValue()!);
+
+    private static FrozenSet<string> BuildDeniedSet(
+        IEnumerable<string> dynamicKeys,
+        params string[] exactKeys) =>
+        dynamicKeys
+            .Concat(exactKeys)
+            .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 }
 
 internal static class AttributeLookupExtensions
@@ -174,13 +205,4 @@ internal static class AttributeLookupExtensions
         this string key,
         FrozenSet<string> candidates) =>
         candidates.Contains(key);
-}
-
-internal static class AttributeKeyPrefix
-{
-    internal static string Of(string key)
-    {
-        var lastDot = key.LastIndexOf('.');
-        return lastDot < 0 ? key : key[..(lastDot + 1)];
-    }
 }
