@@ -54,12 +54,23 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         string? tableName = null;
         string? onConflict = null;
+        var indexes = "";
 
         if (tableAttr.ConstructorArguments.Length > 0)
             tableName = tableAttr.ConstructorArguments[0].Value as string;
 
-        foreach (var named in tableAttr.NamedArguments.Where(static named => named.Key == "OnConflict"))
-            onConflict = named.Value.Value as string;
+        foreach (var named in tableAttr.NamedArguments)
+        {
+            switch (named.Key)
+            {
+                case "OnConflict":
+                    onConflict = named.Value.Value as string;
+                    break;
+                case "Indexes":
+                    indexes = named.Value.Value as string ?? "";
+                    break;
+            }
+        }
 
         if (tableName is not { Length: > 0 })
             return null;
@@ -89,7 +100,73 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             typeDecl is RecordDeclarationSyntax ? "record" : "class",
             tableName,
             onConflict,
-            columns.ToArray().ToEquatableArray());
+            columns.ToArray().ToEquatableArray(),
+            ParseIndexSpecs(tableName, indexes, columns).ToArray().ToEquatableArray());
+    }
+
+    private static IEnumerable<DuckDbIndexInfo> ParseIndexSpecs(
+        string tableName,
+        string indexes,
+        IReadOnlyCollection<DuckDbColumnInfo> columns)
+    {
+        if (string.IsNullOrWhiteSpace(indexes))
+            yield break;
+
+        var columnsByProperty = columns.ToDictionary(static column => column.PropertyName, StringComparer.Ordinal);
+        var columnsByColumn = columns.ToDictionary(static column => column.ColumnName, StringComparer.Ordinal);
+
+        foreach (var indexSpec in indexes.Split(';'))
+        {
+            var columnNames = indexSpec
+                .Split(',')
+                .Select(static column => column.Trim())
+                .Where(static column => column.Length > 0)
+                .Select(column => ResolveIndexColumn(tableName, column, columnsByProperty, columnsByColumn))
+                .ToArray();
+
+            if (columnNames.Length is 0)
+                continue;
+
+            yield return new DuckDbIndexInfo(
+                BuildIndexName(tableName, columnNames),
+                columnNames.ToEquatableArray());
+        }
+    }
+
+    private static string ResolveIndexColumn(
+        string tableName,
+        string configuredColumn,
+        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty,
+        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByColumn)
+    {
+        if (columnsByProperty.TryGetValue(configuredColumn, out var propertyColumn))
+            return propertyColumn.ColumnName;
+
+        if (columnsByColumn.TryGetValue(configuredColumn, out var physicalColumn))
+            return physicalColumn.ColumnName;
+
+        throw new InvalidOperationException(
+            $"DuckDB index on '{tableName}' references unknown column or property '{configuredColumn}'.");
+    }
+
+    private static string BuildIndexName(string tableName, IReadOnlyList<string> columnNames)
+    {
+        var sb = new StringBuilder("idx_");
+        AppendIdentifierToken(sb, tableName);
+
+        foreach (var columnName in columnNames)
+        {
+            sb.Append('_');
+            AppendIdentifierToken(sb, columnName);
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendIdentifierToken(StringBuilder sb, string value)
+    {
+        foreach (var c in value)
+            sb.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '_');
     }
 
     private static List<IPropertySymbol> GetPublicMappedProperties(
@@ -248,7 +325,12 @@ internal readonly record struct DuckDbTableInfo(
     string TypeKind,
     string TableName,
     string? OnConflict,
-    EquatableArray<DuckDbColumnInfo> Columns);
+    EquatableArray<DuckDbColumnInfo> Columns,
+    EquatableArray<DuckDbIndexInfo> Indexes);
+
+internal readonly record struct DuckDbIndexInfo(
+    string Name,
+    EquatableArray<string> ColumnNames);
 
 internal readonly record struct DuckDbColumnInfo(
     string PropertyName,

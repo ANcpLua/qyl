@@ -2,7 +2,9 @@ namespace Qyl.Collector.Storage;
 
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
-[DuckDbTable("spans", OnConflict = """
+[DuckDbTable("spans",
+    Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;TraceId;SessionId;StartTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel",
+    OnConflict = """
     ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET
         end_time_unix_nano = EXCLUDED.end_time_unix_nano,
         duration_ns = EXCLUDED.duration_ns,
@@ -106,7 +108,7 @@ internal sealed partial record ModelPricingRow
     public DateTimeOffset? ValidTo { get; init; }
 }
 
-[DuckDbTable("logs")]
+[DuckDbTable("logs", Indexes = "ProjectId,TimeUnixNano;ProjectId,TraceId;ProjectId,SessionId")]
 internal sealed partial record LogStorageRow
 {
     [DuckDbColumn(SqlType = "VARCHAR(128)")]
@@ -133,7 +135,8 @@ internal sealed partial record LogStorageRow
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
-[DuckDbTable("profiles")]
+[DuckDbTable("profiles",
+    Indexes = "ProjectId;ProjectId,ProfileId;ProjectId,TraceId;ProjectId,SpanId;ProjectId,SessionId;ProjectId,TimeUnixNano;ProjectId,ServiceName;ProjectId,SampleType;TraceId;SessionId;TimeUnixNano;ServiceName;SampleType")]
 internal sealed partial record ProfileStorageRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -211,7 +214,7 @@ internal sealed partial record ProfileMappingRow
     public ulong? FileOffset { get; init; }
 }
 
-[DuckDbTable("profile_samples")]
+[DuckDbTable("profile_samples", Indexes = "LinkTraceId")]
 internal sealed partial record ProfileSampleRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]

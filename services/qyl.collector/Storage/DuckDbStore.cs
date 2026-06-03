@@ -849,7 +849,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var logsCmd = con.CreateCommand();
-        logsCmd.CommandText = LogStorageRow.CreateTableDdl;
+        logsCmd.CommandText = string.Concat(
+            LogStorageRow.CreateTableDdl, "\n",
+            LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
         using var profilesCmd = con.CreateCommand();
@@ -860,13 +862,14 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             ProfileMappingRow.CreateTableDdl, "\n",
             ProfileSampleRow.CreateTableDdl, "\n",
             ProfileStackRow.CreateTableDdl, "\n",
-            DuckDbSchema.ProfilesIndexesDdl);
+            ProfileStorageRow.IndexesDdl, "\n",
+            ProfileSampleRow.IndexesDdl);
         profilesCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             SpanStorageRow.CreateTableDdl, "\n",
-            DuckDbSchema.CoreIndexesDdl);
+            SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
         using var costCmd = con.CreateCommand();

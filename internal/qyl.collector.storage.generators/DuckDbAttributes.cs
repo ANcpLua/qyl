@@ -24,6 +24,11 @@ internal static class DuckDbAttributeSource
                                      /// <summary>Optional ON CONFLICT clause for upsert behavior.</summary>
                                      public string? OnConflict { get; set; }
 
+                                     /// <summary>
+                                     /// Semicolon-separated index column groups. Use CLR property names, e.g. "ProjectId;ProjectId,TraceId".
+                                     /// </summary>
+                                     public string Indexes { get; set; } = "";
+
                                      public DuckDbTableAttribute(string tableName) => TableName = tableName;
                                  }
 

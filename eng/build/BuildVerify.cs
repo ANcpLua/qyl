@@ -771,7 +771,7 @@ interface IVerify : IHazSourcePaths
 
     Target VerifyCollectorStorageTablesUseGeneratedDdl => d => d
         .Unlisted()
-        .Description("Verify storage row tables use generated DuckDB DDL")
+        .Description("Verify storage row tables and indexes use generated DuckDB DDL")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -791,16 +791,24 @@ interface IVerify : IHazSourcePaths
                 "ProfileMappingRow.CreateTableDdl",
                 "ProfileSampleRow.CreateTableDdl",
                 "ProfileStackRow.CreateTableDdl",
-                "ModelPricingRow.CreateTableDdl"
+                "ModelPricingRow.CreateTableDdl",
+                "SpanStorageRow.IndexesDdl",
+                "LogStorageRow.IndexesDdl",
+                "ProfileStorageRow.IndexesDdl",
+                "ProfileSampleRow.IndexesDdl"
             ];
 
-            var schemaText = string.Concat(
-                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Core.cs"),
-                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Logs.cs"),
-                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Profiles.cs"));
+            var storageSourceTexts = (CollectorDirectory / "Storage")
+                .GlobFiles("*.cs")
+                .Where(static file => !file.ToString().EndsWith("DuckDbReaderExtensions.cs", StringComparison.Ordinal))
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .ToList();
 
             string[] forbiddenManualDdl =
             [
+                "DuckDbSchema.",
                 "SpansDdl",
                 "LogsDdl",
                 "ProfilesDdl",
@@ -817,34 +825,34 @@ interface IVerify : IHazSourcePaths
                 "CREATE TABLE IF NOT EXISTS profile_mappings",
                 "CREATE TABLE IF NOT EXISTS profile_samples",
                 "CREATE TABLE IF NOT EXISTS profile_stacks",
-                "CREATE TABLE IF NOT EXISTS model_pricing"
+                "CREATE TABLE IF NOT EXISTS model_pricing",
+                "CREATE INDEX IF NOT EXISTS"
             ];
 
             var missing = requiredGeneratedDdl
                 .Where(token => !storeText.Contains(token, StringComparison.Ordinal))
                 .ToList();
-            var forbidden = forbiddenManualDdl
-                .Where(token => schemaText.Contains(token, StringComparison.Ordinal))
+            var forbidden = storageSourceTexts
+                .SelectMany(file => forbiddenManualDdl
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
                 .ToList();
 
             if (missing.Count is 0 && forbidden.Count is 0)
             {
-                Log.Information("Collector storage row tables use generated DuckDB DDL");
+                Log.Information("Collector storage row tables and indexes use generated DuckDB DDL");
                 return;
             }
 
             foreach (var token in missing)
                 Log.Error("  Missing generated CREATE TABLE DDL usage in DuckDbStore.cs: {Token}", token);
 
-            foreach (var token in forbidden)
-                Log.Error("  Manual storage row table DDL token found in DuckDbSchema files: {Token}", token);
+            foreach (var offender in forbidden)
+                Log.Error("  Manual storage DDL token found in {File}: {Token}", offender.File, offender.Token);
 
             throw new InvalidOperationException(
-                "Do not handwrite CREATE TABLE DDL for generated storage rows. Put schema metadata on " +
-                "DuckDbTable/DuckDbColumn attributes and initialize row tables through generated CreateTableDdl.");
-
-            static string ReadIfExists(AbsolutePath path) =>
-                path.FileExists() ? File.ReadAllText(path) : "";
+                "Do not handwrite CREATE TABLE or CREATE INDEX DDL for generated storage rows. Put schema metadata on " +
+                "DuckDbTable/DuckDbColumn attributes and initialize row tables/indexes through generated DDL constants.");
         });
 
     Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
@@ -1711,7 +1719,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector storage reads are project-scoped");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
-            Log.Information("  Collector storage row tables use generated DuckDB DDL");
+            Log.Information("  Collector storage row tables and indexes use generated DuckDB DDL");
             Log.Information("  Collector storage row writes use generated DuckDB insert helpers");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");

@@ -39,6 +39,8 @@ internal static class DuckDbEmitter
 
         EmitCreateTableDdl(sb, table);
 
+        EmitIndexesDdl(sb, table);
+
         EmitAddParameters(sb, table.TypeName, insertColumns);
 
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -140,6 +142,40 @@ internal static class DuckDbEmitter
         }
 
         sb.AppendLine("        );");
+        sb.AppendLine("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    private static void EmitIndexesDdl(StringBuilder sb, DuckDbTableInfo table)
+    {
+        if (table.Indexes.Length is 0)
+        {
+            sb.AppendLine("    public const string IndexesDdl = \"\";");
+            sb.AppendLine();
+            return;
+        }
+
+        sb.AppendLine("    public const string IndexesDdl = \"\"\"");
+
+        foreach (var index in table.Indexes)
+        {
+            sb.Append("        CREATE INDEX IF NOT EXISTS ")
+                .Append(SqlIdentifier.Quote(index.Name))
+                .Append(" ON ")
+                .Append(SqlIdentifier.Quote(table.TableName))
+                .Append('(');
+
+            for (var i = 0; i < index.ColumnNames.Length; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                sb.Append(SqlIdentifier.Quote(index.ColumnNames[i]));
+            }
+
+            sb.AppendLine(");");
+        }
+
         sb.AppendLine("        \"\"\";");
         sb.AppendLine();
     }
