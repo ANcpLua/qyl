@@ -75,7 +75,7 @@ internal static class CollectorEndpointExtensions
         }
         catch (Exception)
         {
-            return Results.BadRequest(new ErrorResponse { Error = "OTLP parse error" });
+            return Results.BadRequest();
         }
     }
 
@@ -103,7 +103,7 @@ internal static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpLogsEndpoint");
             OtlpLogsLog.FailedToProcessPayload(logger, ex.GetType().FullName ?? ex.GetType().Name);
-            return Results.BadRequest(new ErrorResponse { Error = "OTLP logs parse error" });
+            return Results.BadRequest();
         }
     }
 
@@ -344,7 +344,7 @@ internal static class CollectorEndpointExtensions
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpProfilesEndpoint");
             OtlpProfilesLog.FailedToProcessPayload(logger, ex.GetType().FullName ?? ex.GetType().Name);
-            return Results.BadRequest(new ErrorResponse { Error = "OTLP profiles parse error" });
+            return Results.BadRequest();
         }
     }
 

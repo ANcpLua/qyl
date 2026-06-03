@@ -43,7 +43,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(Resource))]
 [JsonSerializable(typeof(InstrumentationScope))]
 [JsonSerializable(typeof(ContractAttribute))]
-[JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(NotFoundError))]
 [JsonSerializable(typeof(ValidationError))]
 [JsonSerializable(typeof(ValidationErrorDetail))]
