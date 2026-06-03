@@ -388,47 +388,26 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            string[] directStorageResponseTokens =
-            [
-                "Results.Ok(spans",
-                "TypedResults.Ok(spans",
-                "Results.Ok(logs",
-                "TypedResults.Ok(logs",
-                "Results.Ok(profiles",
-                "TypedResults.Ok(profiles",
-                "Results.Ok(stats",
-                "TypedResults.Ok(stats",
-                "Results.Ok(session",
-                "TypedResults.Ok(session",
-                "Results.Ok(detail",
-                "TypedResults.Ok(detail",
-                "Results.Ok(rows",
-                "TypedResults.Ok(rows",
-                "JsonSerializable(typeof(SpanStorageRow))",
-                "JsonSerializable(typeof(LogStorageRow))",
-                "JsonSerializable(typeof(ProfileStorageRow))",
-                "JsonSerializable(typeof(SessionQueryRow))",
-                "JsonSerializable(typeof(StorageStats))",
-                "JsonSerializable(typeof(SessionGenAiStats))",
-                "SseItem<LogRecord>",
-                "ServerSentEventsResult<"
-            ];
-
             AbsolutePath[] endpointFiles =
             [
                 CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs",
-                CollectorDirectory / "SpanEndpoints.cs",
-                CollectorDirectory / "QylSerializerContext.cs"
+                CollectorDirectory / "SpanEndpoints.cs"
             ];
+
+            var storageTypeNames = CollectorSourceFiles()
+                .Where(static file =>
+                {
+                    var path = file.ToString().Replace('\\', '/');
+                    return path.Contains("/Storage/", StringComparison.Ordinal) ||
+                           path.Contains("/Ingestion/", StringComparison.Ordinal);
+                })
+                .SelectMany(DeclaredTypes)
+                .Select(static declaration => declaration.Name)
+                .ToHashSet(StringComparer.Ordinal);
 
             var offenders = endpointFiles
                 .Where(static file => file.FileExists())
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
-                .SelectMany(file => directStorageResponseTokens
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
-                    .Select(token => (file.File, Token: token)))
+                .SelectMany(file => DirectStorageEndpointResponses(file, storageTypeNames))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -438,7 +417,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Direct storage response token '{Token}' found in {File}", offender.Token, offender.File);
+                Log.Error("  Direct storage response at {File}:{Line}: {Text}",
+                    offender.File, offender.Line, offender.Text);
 
             throw new InvalidOperationException(
                 "Do not return storage rows, storage stats, or local DTOs directly from HTTP endpoints. " +
@@ -1905,6 +1885,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         string Kind,
         string Text);
 
+    private readonly record struct DirectStorageResponseOffender(
+        string File,
+        int Line,
+        string Text);
+
     private readonly record struct RemovedRouteLiteral(
         string File,
         int Line,
@@ -2046,6 +2031,146 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         SemanticUsageOffender CreateOffender(SyntaxNode node, string kind) =>
             new(relativePath, NodeLine(node), kind, NodePreview(node));
     }
+
+    private IEnumerable<DirectStorageResponseOffender> DirectStorageEndpointResponses(
+        AbsolutePath file,
+        IReadOnlySet<string> storageTypeNames)
+    {
+        var root = ParseCompilationUnit(file);
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+
+        foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+        {
+            var storageVariables = DiscoverStorageVariables(method, storageTypeNames);
+            foreach (var invocation in method.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (!IsResultsOkInvocation(invocation, out var response))
+                    continue;
+
+                if (IsDirectStorageResponseExpression(response, storageVariables, storageTypeNames))
+                    yield return new DirectStorageResponseOffender(
+                        relativePath,
+                        NodeLine(invocation),
+                        NodePreview(invocation));
+            }
+        }
+    }
+
+    private static HashSet<string> DiscoverStorageVariables(
+        MethodDeclarationSyntax method,
+        IReadOnlySet<string> storageTypeNames)
+    {
+        var variables = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var declaration in method.DescendantNodes().OfType<VariableDeclarationSyntax>())
+        {
+            var hasStorageType = ContainsStorageTypeName(declaration.Type, storageTypeNames);
+            foreach (var variable in declaration.Variables)
+            {
+                if (hasStorageType ||
+                    variable.Initializer?.Value is { } initializer &&
+                    IsStorageSourceExpression(initializer, storageTypeNames))
+                {
+                    variables.Add(variable.Identifier.ValueText);
+                }
+            }
+        }
+
+        foreach (var pattern in method.DescendantNodes().OfType<IsPatternExpressionSyntax>())
+        {
+            if (!IsStorageSourceExpression(pattern.Expression, storageTypeNames))
+                continue;
+
+            foreach (var designation in pattern.Pattern.DescendantNodesAndSelf().OfType<SingleVariableDesignationSyntax>())
+                variables.Add(designation.Identifier.ValueText);
+        }
+
+        return variables;
+    }
+
+    private static bool IsResultsOkInvocation(
+        InvocationExpressionSyntax invocation,
+        out ExpressionSyntax response)
+    {
+        response = invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression ?? invocation;
+        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess ||
+            memberAccess.Name.Identifier.ValueText is not "Ok" ||
+            memberAccess.Expression is not IdentifierNameSyntax receiver ||
+            receiver.Identifier.ValueText is not ("Results" or "TypedResults"))
+        {
+            return false;
+        }
+
+        return invocation.ArgumentList.Arguments.Count > 0;
+    }
+
+    private static bool IsDirectStorageResponseExpression(
+        ExpressionSyntax expression,
+        IReadOnlySet<string> storageVariables,
+        IReadOnlySet<string> storageTypeNames)
+    {
+        expression = UnwrapExpression(expression);
+
+        return expression switch
+        {
+            IdentifierNameSyntax identifier => storageVariables.Contains(identifier.Identifier.ValueText),
+            ObjectCreationExpressionSyntax creation => ContainsStorageTypeName(creation.Type, storageTypeNames),
+            ImplicitObjectCreationExpressionSyntax => false,
+            ConditionalExpressionSyntax conditional =>
+                IsDirectStorageResponseExpression(conditional.WhenTrue, storageVariables, storageTypeNames) ||
+                IsDirectStorageResponseExpression(conditional.WhenFalse, storageVariables, storageTypeNames),
+            InvocationExpressionSyntax invocation => IsStorageSourceExpression(invocation, storageTypeNames),
+            _ => ContainsStorageTypeName(expression, storageTypeNames)
+        };
+    }
+
+    private static bool IsStorageSourceExpression(
+        ExpressionSyntax expression,
+        IReadOnlySet<string> storageTypeNames)
+    {
+        expression = UnwrapExpression(expression);
+
+        if (expression is InvocationExpressionSyntax invocation)
+        {
+            if (invocation.Expression is MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax { Identifier.ValueText: "store" }
+                })
+            {
+                return true;
+            }
+
+            return ContainsStorageTypeName(invocation, storageTypeNames);
+        }
+
+        return ContainsStorageTypeName(expression, storageTypeNames);
+    }
+
+    private static ExpressionSyntax UnwrapExpression(ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case AwaitExpressionSyntax awaitExpression:
+                    expression = awaitExpression.Expression;
+                    continue;
+                case ParenthesizedExpressionSyntax parenthesized:
+                    expression = parenthesized.Expression;
+                    continue;
+                case CastExpressionSyntax cast:
+                    expression = cast.Expression;
+                    continue;
+                default:
+                    return expression;
+            }
+        }
+    }
+
+    private static bool ContainsStorageTypeName(SyntaxNode node, IReadOnlySet<string> storageTypeNames) =>
+        node.DescendantNodesAndSelf()
+            .OfType<IdentifierNameSyntax>()
+            .Any(identifier => storageTypeNames.Contains(identifier.Identifier.ValueText));
 
     private CollectorAttributeLiteralValues ResolveCollectorAttributeLiteralValues()
     {
