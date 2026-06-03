@@ -108,11 +108,27 @@ internal sealed partial record ModelPricingRow
     public DateTimeOffset? ValidTo { get; init; }
 }
 
-[DuckDbTable("logs", Indexes = "ProjectId,TimeUnixNano;ProjectId,TraceId;ProjectId,SessionId")]
+[DuckDbTable("logs",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,TraceId;ProjectId,SessionId",
+    OnConflict = """
+    ON CONFLICT (project_id, log_id) DO UPDATE SET
+        trace_id = EXCLUDED.trace_id,
+        span_id = EXCLUDED.span_id,
+        session_id = EXCLUDED.session_id,
+        time_unix_nano = EXCLUDED.time_unix_nano,
+        observed_time_unix_nano = EXCLUDED.observed_time_unix_nano,
+        severity_number = EXCLUDED.severity_number,
+        severity_text = EXCLUDED.severity_text,
+        body = EXCLUDED.body,
+        service_name = EXCLUDED.service_name,
+        attributes_json = EXCLUDED.attributes_json,
+        resource_json = EXCLUDED.resource_json
+    """)]
 internal sealed partial record LogStorageRow
 {
-    [DuckDbColumn(SqlType = "VARCHAR(128)")]
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string LogId { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
@@ -136,7 +152,23 @@ internal sealed partial record LogStorageRow
 }
 
 [DuckDbTable("profiles",
-    Indexes = "ProjectId;ProjectId,ProfileId;ProjectId,TraceId;ProjectId,SpanId;ProjectId,SessionId;ProjectId,TimeUnixNano;ProjectId,ServiceName;ProjectId,SampleType;TraceId;SessionId;TimeUnixNano;ServiceName;SampleType")]
+    Indexes = "ProjectId;ProjectId,ProfileId;ProjectId,TraceId;ProjectId,SpanId;ProjectId,SessionId;ProjectId,TimeUnixNano;ProjectId,ServiceName;ProjectId,SampleType;TraceId;SessionId;TimeUnixNano;ServiceName;SampleType",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id) DO UPDATE SET
+        trace_id = EXCLUDED.trace_id,
+        span_id = EXCLUDED.span_id,
+        session_id = EXCLUDED.session_id,
+        time_unix_nano = EXCLUDED.time_unix_nano,
+        duration_nano = EXCLUDED.duration_nano,
+        sample_count = EXCLUDED.sample_count,
+        sample_type = EXCLUDED.sample_type,
+        sample_unit = EXCLUDED.sample_unit,
+        original_payload_format = EXCLUDED.original_payload_format,
+        service_name = EXCLUDED.service_name,
+        attributes_json = EXCLUDED.attributes_json,
+        resource_json = EXCLUDED.resource_json,
+        schema_url = EXCLUDED.schema_url
+    """)]
 internal sealed partial record ProfileStorageRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -166,7 +198,14 @@ internal sealed partial record ProfileStorageRow
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
-[DuckDbTable("profile_functions")]
+[DuckDbTable("profile_functions",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id, ordinal) DO UPDATE SET
+        name = EXCLUDED.name,
+        system_name = EXCLUDED.system_name,
+        filename = EXCLUDED.filename,
+        start_line = EXCLUDED.start_line
+    """)]
 internal sealed partial record ProfileFunctionRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -181,7 +220,13 @@ internal sealed partial record ProfileFunctionRow
     public long? StartLine { get; init; }
 }
 
-[DuckDbTable("profile_locations")]
+[DuckDbTable("profile_locations",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id, ordinal) DO UPDATE SET
+        mapping_ordinal = EXCLUDED.mapping_ordinal,
+        address = EXCLUDED.address,
+        lines_json = EXCLUDED.lines_json
+    """)]
 internal sealed partial record ProfileLocationRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -196,7 +241,14 @@ internal sealed partial record ProfileLocationRow
     public string? LinesJson { get; init; }
 }
 
-[DuckDbTable("profile_mappings")]
+[DuckDbTable("profile_mappings",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id, ordinal) DO UPDATE SET
+        filename = EXCLUDED.filename,
+        memory_start = EXCLUDED.memory_start,
+        memory_limit = EXCLUDED.memory_limit,
+        file_offset = EXCLUDED.file_offset
+    """)]
 internal sealed partial record ProfileMappingRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -214,7 +266,16 @@ internal sealed partial record ProfileMappingRow
     public ulong? FileOffset { get; init; }
 }
 
-[DuckDbTable("profile_samples", Indexes = "LinkTraceId")]
+[DuckDbTable("profile_samples",
+    Indexes = "LinkTraceId",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id, ordinal) DO UPDATE SET
+        stack_ordinal = EXCLUDED.stack_ordinal,
+        link_trace_id = EXCLUDED.link_trace_id,
+        link_span_id = EXCLUDED.link_span_id,
+        values_json = EXCLUDED.values_json,
+        timestamps_json = EXCLUDED.timestamps_json
+    """)]
 internal sealed partial record ProfileSampleRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -230,7 +291,11 @@ internal sealed partial record ProfileSampleRow
     public string? TimestampsJson { get; init; }
 }
 
-[DuckDbTable("profile_stacks")]
+[DuckDbTable("profile_stacks",
+    OnConflict = """
+    ON CONFLICT (project_id, profile_id, ordinal) DO UPDATE SET
+        location_ordinals_json = EXCLUDED.location_ordinals_json
+    """)]
 internal sealed partial record ProfileStackRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]

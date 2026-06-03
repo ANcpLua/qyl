@@ -1720,6 +1720,158 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "(project_id, trace_id, span_id), never span_id alone.");
         });
 
+    Target VerifyCollectorStorageWritesAreReplayIdempotent => d => d
+        .Unlisted()
+        .Description("Verify collector log/profile storage writes are replay-idempotent")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var storageRowsFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
+            var storageMapperFile = CollectorDirectory / "Storage" / "IngestionStorageMapper.cs";
+            var persistedPolicyFile = CollectorDirectory / "Storage" / "PersistedAttributePolicy.cs";
+            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
+            var attributeValueFile = CollectorDirectory / "Ingestion" / "OtlpAttributeValue.cs";
+
+            foreach (var file in new[] { storageRowsFile, storageMapperFile, persistedPolicyFile, converterFile, attributeValueFile })
+            {
+                if (!file.FileExists())
+                    throw new FileNotFoundException("Missing replay-idempotency verification input", file.ToString());
+            }
+
+            var missingRequired = new List<string>();
+            EnsureStorageIdentity(
+                "LogStorageRow",
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    ["ProjectId"] = 0,
+                    ["LogId"] = 1
+                },
+                "on conflict (project_id, log_id)");
+            EnsureStorageIdentity(
+                "ProfileStorageRow",
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    ["ProjectId"] = 0,
+                    ["ProfileId"] = 1
+                },
+                "on conflict (project_id, profile_id)");
+
+            ReadOnlySpan<string> profileChildRecordNames =
+            [
+                "ProfileFunctionRow",
+                "ProfileLocationRow",
+                "ProfileMappingRow",
+                "ProfileSampleRow",
+                "ProfileStackRow"
+            ];
+
+            foreach (var recordName in profileChildRecordNames)
+            {
+                EnsureStorageIdentity(
+                    recordName,
+                    new Dictionary<string, int>(StringComparer.Ordinal)
+                    {
+                        ["ProjectId"] = 0,
+                        ["ProfileId"] = 1,
+                        ["Ordinal"] = 2
+                    },
+                    "on conflict (project_id, profile_id, ordinal)");
+            }
+
+            var storageMapperText = File.ReadAllText(storageMapperFile);
+            var converterText = File.ReadAllText(converterFile);
+            var persistedPolicyText = File.ReadAllText(persistedPolicyFile);
+            var attributeValueText = File.ReadAllText(attributeValueFile);
+
+            var forbiddenRandomIdTokens = new List<(AbsolutePath File, string Token)>
+            {
+                (storageMapperFile, "Guid.NewGuid"),
+                (converterFile, "Guid.NewGuid")
+            }
+            .Where(item => File.ReadAllText(item.File).Contains(item.Token, StringComparison.Ordinal))
+            .ToList();
+
+            string[] storageMapperRequired =
+            [
+                "StableStorageId(\"log\"",
+                "StableStorageId(\"profile\"",
+                "ResolveProfileId("
+            ];
+
+            foreach (var token in storageMapperRequired)
+            {
+                if (!storageMapperText.Contains(token, StringComparison.Ordinal))
+                    missingRequired.Add(RootDirectory.GetRelativePathTo(storageMapperFile) + $" must contain deterministic storage identity token '{token}'");
+            }
+
+            if (!converterText.Contains("var profileId = ToHex(profile.ProfileId) ?? \"\";", StringComparison.Ordinal))
+            {
+                missingRequired.Add(
+                    RootDirectory.GetRelativePathTo(converterFile)
+                    + " must leave missing OTLP profile ids empty so storage materialization derives the deterministic fallback id");
+            }
+
+            if (!persistedPolicyText.Contains("OrderBy(static item => item.Key, StringComparer.Ordinal)", StringComparison.Ordinal))
+            {
+                missingRequired.Add(
+                    RootDirectory.GetRelativePathTo(persistedPolicyFile)
+                    + " must sort persisted top-level OTLP attributes by key before writing JSON");
+            }
+
+            if (!attributeValueText.Contains("OrderBy(static item => item.Key, StringComparer.Ordinal)", StringComparison.Ordinal))
+            {
+                missingRequired.Add(
+                    RootDirectory.GetRelativePathTo(attributeValueFile)
+                    + " must sort nested OTLP kvlist attributes by key before writing JSON");
+            }
+
+            if (missingRequired.Count is 0 && forbiddenRandomIdTokens.Count is 0)
+            {
+                Log.Information("Collector log/profile storage writes are replay-idempotent");
+                return;
+            }
+
+            foreach (var missing in missingRequired)
+                Log.Error("  Missing replay-idempotency invariant: {Invariant}", missing);
+
+            foreach (var offender in forbiddenRandomIdTokens)
+                Log.Error("  Random storage identity token '{Token}' found in {File}",
+                    offender.Token,
+                    RootDirectory.GetRelativePathTo(offender.File));
+
+            throw new InvalidOperationException(
+                "Collector storage writes must be deterministic under OTLP replay. Logs and profiles require " +
+                "project-scoped primary keys, ON CONFLICT upserts, deterministic fallback ids, and canonical persisted JSON.");
+
+            void EnsureStorageIdentity(
+                string recordName,
+                IReadOnlyDictionary<string, int> expectedPrimaryKeyOrdinals,
+                string expectedOnConflictPrefix)
+            {
+                var identity = ReadStorageRowIdentity(storageRowsFile, recordName);
+                foreach (var expected in expectedPrimaryKeyOrdinals)
+                {
+                    if (!identity.PrimaryKeyOrdinals.TryGetValue(expected.Key, out var ordinal) || ordinal != expected.Value)
+                    {
+                        missingRequired.Add(RootDirectory.GetRelativePathTo(storageRowsFile)
+                                            + $" must declare {recordName}.{expected.Key} with PrimaryKeyOrdinal = {expected.Value}");
+                    }
+                }
+
+                foreach (var unexpected in identity.PrimaryKeyOrdinals.Keys.Except(expectedPrimaryKeyOrdinals.Keys, StringComparer.Ordinal))
+                {
+                    missingRequired.Add(RootDirectory.GetRelativePathTo(storageRowsFile)
+                                        + $" declares unexpected {recordName} primary key column: {unexpected}");
+                }
+
+                if (!NormalizeSqlFragment(identity.OnConflict).StartsWith(expectedOnConflictPrefix, StringComparison.Ordinal))
+                {
+                    missingRequired.Add(RootDirectory.GetRelativePathTo(storageRowsFile)
+                                        + $" must upsert {recordName} with {expectedOnConflictPrefix}");
+                }
+            }
+        });
+
     Target VerifyNoRemovedBuildSurface => d => d
         .Unlisted()
         .Description("Verify removed local build surfaces stay removed")
@@ -2255,6 +2407,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
+        .DependsOn(VerifyCollectorStorageWritesAreReplayIdempotent)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
         {
@@ -2291,6 +2444,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  OTLP decoding is storage-independent and storage projection is centralized");
             Log.Information("  Collector OTLP ingestion is storage-schema blind");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
+            Log.Information("  Collector log/profile storage writes are replay-idempotent");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
@@ -2324,6 +2478,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         string Text);
 
     private readonly record struct SpanStorageIdentity(
+        IReadOnlyDictionary<string, int> PrimaryKeyOrdinals,
+        string OnConflict);
+
+    private readonly record struct StorageRowIdentity(
         IReadOnlyDictionary<string, int> PrimaryKeyOrdinals,
         string OnConflict);
 
@@ -2794,6 +2952,46 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             throw new InvalidOperationException("SpanStorageRow DuckDbTable metadata must declare OnConflict.");
 
         return new SpanStorageIdentity(primaryKeyOrdinals, onConflict);
+    }
+
+    private static StorageRowIdentity ReadStorageRowIdentity(AbsolutePath storageRowsFile, string recordName)
+    {
+        if (!storageRowsFile.FileExists())
+            throw new FileNotFoundException("Missing storage row source", storageRowsFile.ToString());
+
+        var root = ParseCompilationUnit(storageRowsFile);
+        var record = root.DescendantNodes()
+            .OfType<RecordDeclarationSyntax>()
+            .SingleOrDefault(record => record.Identifier.ValueText == recordName);
+
+        if (record is null)
+            throw new InvalidOperationException($"Missing {recordName} declaration.");
+
+        var primaryKeyOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var property in record.Members.OfType<PropertyDeclarationSyntax>())
+        {
+            foreach (var attribute in property.AttributeLists.SelectMany(static list => list.Attributes))
+            {
+                if (!IsAttributeNamed(attribute, "DuckDbColumn"))
+                    continue;
+
+                if (TryReadNamedIntAttributeArgument(attribute, "PrimaryKeyOrdinal", out var ordinal))
+                    primaryKeyOrdinals[property.Identifier.ValueText] = ordinal;
+            }
+        }
+
+        var tableAttribute = record.AttributeLists
+            .SelectMany(static list => list.Attributes)
+            .SingleOrDefault(static attribute => IsAttributeNamed(attribute, "DuckDbTable"));
+
+        if (tableAttribute is null)
+            throw new InvalidOperationException($"{recordName} must declare DuckDbTable metadata.");
+
+        var onConflict = ReadNamedStringAttributeArgument(tableAttribute, "OnConflict");
+        if (string.IsNullOrWhiteSpace(onConflict))
+            throw new InvalidOperationException($"{recordName} DuckDbTable metadata must declare OnConflict.");
+
+        return new StorageRowIdentity(primaryKeyOrdinals, onConflict);
     }
 
     private static bool StoreInitializesGeneratedSpanDdl(AbsolutePath storeFile)

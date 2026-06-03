@@ -20,18 +20,12 @@ internal static class PersistedAttributePolicy
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         Func<string, bool> shouldPersist)
     {
-        Dictionary<string, OtlpAttributeValue>? persisted = null;
+        var persisted = attributes
+            .Where(item => shouldPersist(item.Key))
+            .OrderBy(static item => item.Key, StringComparer.Ordinal)
+            .ToArray();
 
-        foreach (var (key, value) in attributes)
-        {
-            if (!shouldPersist(key))
-                continue;
-
-            persisted ??= new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
-            persisted[key] = value;
-        }
-
-        if (persisted is null)
+        if (persisted.Length is 0)
             return null;
 
         var buffer = new ArrayBufferWriter<byte>();

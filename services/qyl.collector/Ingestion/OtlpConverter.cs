@@ -335,7 +335,7 @@ internal static class OtlpConverter
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
         string? schemaUrl)
     {
-        var profileId = ToHex(profile.ProfileId) ?? Guid.NewGuid().ToString("N")[..16];
+        var profileId = ToHex(profile.ProfileId) ?? "";
         var sessionId = ExtractProfileSessionId(profile.AttributeIndices, dictionary);
         var attributes = ExtractProfileAttributes(profile.AttributeIndices, dictionary);
 

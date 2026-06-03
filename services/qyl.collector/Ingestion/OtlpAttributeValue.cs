@@ -110,7 +110,8 @@ internal sealed class OtlpAttributeValue
                 break;
             case OtlpAttributeValueKind.KeyValueList:
                 writer.WriteStartObject();
-                foreach (var (key, nestedValue) in (IReadOnlyDictionary<string, OtlpAttributeValue>)value)
+                foreach (var (key, nestedValue) in ((IReadOnlyDictionary<string, OtlpAttributeValue>)value)
+                         .OrderBy(static item => item.Key, StringComparer.Ordinal))
                 {
                     writer.WritePropertyName(key);
                     nestedValue.WriteJsonValue(writer);
