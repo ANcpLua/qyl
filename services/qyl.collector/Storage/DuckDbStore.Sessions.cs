@@ -59,17 +59,91 @@ internal sealed partial class DuckDbStore
         return results.Count > 0 ? results[0] : null;
     }
 
+    public Task<SessionStatsRow> GetSessionStatsAsync(
+        DateTimeOffset? startTime = null,
+        DateTimeOffset? endTime = null,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              WITH sessions AS (
+                                  SELECT
+                                      COALESCE(session_id, trace_id) AS session_id,
+                                      MIN(start_time_unix_nano) AS start_time_unix_nano,
+                                      MAX(end_time_unix_nano) AS end_time_unix_nano,
+                                      COUNT(*) AS span_count,
+                                      SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                      COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count
+                                  FROM spans
+                                  WHERE ($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)
+                                    AND ($2::UBIGINT IS NULL OR start_time_unix_nano <= $2)
+                                  GROUP BY COALESCE(session_id, trace_id)
+                              )
+                              SELECT
+                                  COUNT(*) AS total_sessions,
+                                  COUNT(CASE WHEN end_time_unix_nano >= $3 THEN 1 END) AS active_sessions,
+                                  COALESCE(AVG(CASE
+                                      WHEN end_time_unix_nano >= start_time_unix_nano
+                                          THEN CAST(end_time_unix_nano - start_time_unix_nano AS DOUBLE)
+                                      ELSE 0
+                                  END), 0) AS avg_duration_ns,
+                                  COALESCE(SUM(CASE WHEN error_count > 0 THEN 1 ELSE 0 END), 0) AS sessions_with_errors,
+                                  COALESCE(SUM(CASE WHEN genai_request_count > 0 THEN 1 ELSE 0 END), 0) AS sessions_with_genai,
+                                  COALESCE(SUM(CASE WHEN span_count <= 1 THEN 1 ELSE 0 END), 0) AS bounced_sessions
+                              FROM sessions
+                              """;
+
+            AddUnixNanoParam(cmd, startTime);
+            AddUnixNanoParam(cmd, endTime);
+            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+                return new SessionStatsRow();
+
+            var totalSessions = reader.Col(0).GetInt64(0);
+            var bouncedSessions = reader.Col(5).GetInt64(0);
+            return new SessionStatsRow
+            {
+                TotalSessions = totalSessions,
+                ActiveSessions = reader.Col(1).GetInt64(0),
+                AvgDurationMs = reader.Col(2).GetDouble(0) / 1_000_000d,
+                SessionsWithErrors = reader.Col(3).GetInt64(0),
+                SessionsWithGenAi = reader.Col(4).GetInt64(0),
+                BounceRate = totalSessions > 0 ? (double)bouncedSessions / totalSessions : 0
+            };
+        }, ct);
+    }
+
     private static void AddSessionAfterParam(DuckDBCommand cmd, DateTime? after)
     {
         if (after.HasValue)
         {
-            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
-            cmd.Parameters.Add(new DuckDBParameter { Value = (ulong)ticks * 100UL });
+            var utc = after.Value.Kind is DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(after.Value, DateTimeKind.Utc)
+                : after.Value.ToUniversalTime();
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = (decimal)QylTimeConversions.ToUnixNanoUnsigned(new DateTimeOffset(utc, TimeSpan.Zero))
+            });
         }
         else
         {
             cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
         }
+    }
+
+    private static void AddUnixNanoParam(DuckDBCommand cmd, DateTimeOffset? value)
+    {
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = value.HasValue
+                ? (decimal)QylTimeConversions.ToUnixNanoUnsigned(value.Value.ToUniversalTime())
+                : DBNull.Value
+        });
     }
 
     private static void AddSessionQueryParams(DuckDBCommand cmd, string? sessionId, DateTime? after)

@@ -1,8 +1,10 @@
+using Qyl.Collector;
 using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 
 namespace Qyl.Collector.Hosting;
@@ -23,6 +25,7 @@ internal static class CollectorEndpointExtensions
         var api = app.MapGroup("/api/v1");
 
         api.MapGet("/sessions", GetSessionsAsync);
+        api.MapGet("/sessions/stats", GetSessionStatsAsync);
         api.MapGet("/sessions/{sessionId}", GetSessionByIdAsync);
         api.MapGet("/sessions/{sessionId}/traces", SpanEndpoints.GetSessionTracesAsync);
 
@@ -36,6 +39,7 @@ internal static class CollectorEndpointExtensions
         api.MapGet("/profiles", GetProfilesAsync);
         api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
         api.MapGet("/profiles/by-trace/{traceId}", GetTraceProfilesAsync);
+        api.MapGet("/profiles/by-span/{spanId}", GetSpanProfilesAsync);
 
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
             Results.File(Path.Combine(env.WebRootPath, "qyl.js"), "application/javascript"));
@@ -119,8 +123,29 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         CancellationToken ct) =>
         await store.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
-            ? Results.NotFound()
+            ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
             : Results.Ok(SessionMapper.ToContract(session));
+
+    private static async Task<IResult> GetSessionStatsAsync(
+        DuckDbStore store,
+        DateTimeOffset? startTime,
+        DateTimeOffset? endTime,
+        CancellationToken ct)
+    {
+        var stats = await store.GetSessionStatsAsync(startTime, endTime, ct).ConfigureAwait(false);
+        return Results.Ok(new SessionStats
+        {
+            ActiveSessions = stats.ActiveSessions,
+            TotalSessions = stats.TotalSessions,
+            UniqueUsers = 0,
+            AvgDurationMs = stats.AvgDurationMs,
+            SessionsWithErrors = stats.SessionsWithErrors,
+            SessionsWithGenAi = stats.SessionsWithGenAi,
+            BounceRate = stats.BounceRate,
+            ByDeviceType = [],
+            ByCountry = []
+        });
+    }
 
 
     private static async Task<IResult> GetTracesAsync(
@@ -249,7 +274,7 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         string? session,
         string? trace,
-        string? service,
+        string? serviceName,
         string? sampleType,
         int? limit,
         CancellationToken ct)
@@ -257,7 +282,7 @@ internal static class CollectorEndpointExtensions
         var profiles = await store.GetProfilesAsync(
             session,
             trace,
-            serviceName: service,
+            serviceName: serviceName,
             sampleType: sampleType,
             limit: limit ?? 100,
             ct: ct);
@@ -271,7 +296,9 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var detail = await store.GetProfileDetailAsync(profileId, ct);
-        return detail is not null ? Results.Ok(ProfileMapper.ToContract(detail)) : Results.NotFound();
+        return detail is not null
+            ? Results.Ok(ProfileMapper.ToContract(detail))
+            : Results.NotFound(ContractErrorFactory.NotFound("profile", profileId));
     }
 
     private static async Task<IResult> GetTraceProfilesAsync(
@@ -280,6 +307,16 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
+        return Results.Ok(ProfileMapper.ToContracts(profiles));
+    }
+
+    private static async Task<IResult> GetSpanProfilesAsync(
+        string spanId,
+        DuckDbStore store,
+        int? limit,
+        CancellationToken ct)
+    {
+        var profiles = await store.GetProfilesAsync(spanId: spanId, limit: limit ?? 100, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 

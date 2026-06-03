@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Qyl.Collector;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Telemetry;
 
@@ -34,7 +35,10 @@ internal static class CollectorMiddlewareExtensions
                     ExceptionHandlerLog.UnhandledException(logger, context.Request.Method, error);
                 }
 
-                await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId });
+                context.Response.Headers["X-Trace-Id"] = traceId;
+                await context.Response.WriteAsJsonAsync(
+                    ContractErrorFactory.InternalServerError("collector.unhandled_exception"),
+                    QylSerializerContext.Default.ContractInternalServerError);
             });
         });
 

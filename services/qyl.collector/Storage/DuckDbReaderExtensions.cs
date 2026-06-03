@@ -62,6 +62,16 @@ internal sealed record StorageStats
     public ulong? NewestSpanTime { get; init; }
 }
 
+internal sealed record SessionStatsRow
+{
+    public long ActiveSessions { get; init; }
+    public long TotalSessions { get; init; }
+    public double AvgDurationMs { get; init; }
+    public long SessionsWithErrors { get; init; }
+    public long SessionsWithGenAi { get; init; }
+    public double BounceRate { get; init; }
+}
+
 internal sealed record ModelPricingEntry(
     string Provider,
     string Model,

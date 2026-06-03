@@ -30,7 +30,7 @@ internal static class SpanEndpoints
         CancellationToken ct)
     {
         var spans = await store.GetTraceAsync(traceId, ct).ConfigureAwait(false);
-        if (spans.Count is 0) return TypedResults.NotFound();
+        if (spans.Count is 0) return TypedResults.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
         var spanContracts = SpanMapper.ToContracts(
             spans,
@@ -41,7 +41,7 @@ internal static class SpanEndpoints
     public static async Task<IResult> GetTraceAsync(string traceId, DuckDbStore store)
     {
         var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
-        if (spans.Count is 0) return TypedResults.NotFound();
+        if (spans.Count is 0) return TypedResults.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
         var spanContracts = SpanMapper.ToContracts(
             spans,

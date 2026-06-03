@@ -698,8 +698,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        if (!string.IsNullOrEmpty(spanId) && string.IsNullOrEmpty(traceId))
-            throw new ArgumentException("A trace id is required when querying profiles by span id.", nameof(traceId));
 
         return ExecuteReadAsync<IReadOnlyList<ProfileStorageRow>>(con =>
         {
