@@ -46,6 +46,15 @@ internal static class DuckDbAttributeSource
                                      /// <summary>Column ordinal for SELECT mapping (auto-assigned if not specified).</summary>
                                      public int Ordinal { get; set; } = -1;
 
+                                     /// <summary>Optional DuckDB SQL type override for generated CREATE TABLE DDL.</summary>
+                                     public string? SqlType { get; set; }
+
+                                     /// <summary>Optional SQL default expression for generated CREATE TABLE DDL.</summary>
+                                     public string? DefaultSql { get; set; }
+
+                                     /// <summary>Primary-key order for generated CREATE TABLE DDL. Leave -1 for non-key columns.</summary>
+                                     public int PrimaryKeyOrdinal { get; set; } = -1;
+
                                      public DuckDbColumnAttribute() { }
                                      public DuckDbColumnAttribute(string columnName) => ColumnName = columnName;
                                  }

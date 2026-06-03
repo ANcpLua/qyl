@@ -65,11 +65,7 @@ internal static class TelemetryExtensions
 
         if (!env.IsEnvironment("Testing"))
         {
-            var latencyContext = app.ApplicationServices.GetService<ILatencyContext>();
-            if (latencyContext is not null)
-            {
-                app.UseRequestLatencyTelemetry();
-            }
+            app.UseRequestLatencyTelemetry();
         }
     }
 }

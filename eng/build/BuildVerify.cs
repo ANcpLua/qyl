@@ -721,6 +721,82 @@ interface IVerify : IHazSourcePaths
                 "generated SelectColumnList so MapFromReader ordinals and SQL columns share one source of truth.");
         });
 
+    Target VerifyCollectorStorageTablesUseGeneratedDdl => d => d
+        .Unlisted()
+        .Description("Verify storage row tables use generated DuckDB DDL")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            if (!storeFile.FileExists())
+                throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
+
+            var storeText = File.ReadAllText(storeFile);
+
+            string[] requiredGeneratedDdl =
+            [
+                "SpanStorageRow.CreateTableDdl",
+                "LogStorageRow.CreateTableDdl",
+                "ProfileStorageRow.CreateTableDdl",
+                "ProfileFunctionRow.CreateTableDdl",
+                "ProfileLocationRow.CreateTableDdl",
+                "ProfileMappingRow.CreateTableDdl",
+                "ProfileSampleRow.CreateTableDdl",
+                "ProfileStackRow.CreateTableDdl"
+            ];
+
+            var schemaText = string.Concat(
+                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Core.cs"),
+                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Logs.cs"),
+                ReadIfExists(CollectorDirectory / "Storage" / "DuckDbSchema.Profiles.cs"));
+
+            string[] forbiddenManualDdl =
+            [
+                "SpansDdl",
+                "LogsDdl",
+                "ProfilesDdl",
+                "ProfileFunctionsDdl",
+                "ProfileLocationsDdl",
+                "ProfileMappingsDdl",
+                "ProfileSamplesDdl",
+                "ProfileStacksDdl",
+                "CREATE TABLE IF NOT EXISTS spans",
+                "CREATE TABLE IF NOT EXISTS logs",
+                "CREATE TABLE IF NOT EXISTS profiles",
+                "CREATE TABLE IF NOT EXISTS profile_functions",
+                "CREATE TABLE IF NOT EXISTS profile_locations",
+                "CREATE TABLE IF NOT EXISTS profile_mappings",
+                "CREATE TABLE IF NOT EXISTS profile_samples",
+                "CREATE TABLE IF NOT EXISTS profile_stacks"
+            ];
+
+            var missing = requiredGeneratedDdl
+                .Where(token => !storeText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+            var forbidden = forbiddenManualDdl
+                .Where(token => schemaText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (missing.Count is 0 && forbidden.Count is 0)
+            {
+                Log.Information("Collector storage row tables use generated DuckDB DDL");
+                return;
+            }
+
+            foreach (var token in missing)
+                Log.Error("  Missing generated CREATE TABLE DDL usage in DuckDbStore.cs: {Token}", token);
+
+            foreach (var token in forbidden)
+                Log.Error("  Manual storage row table DDL token found in DuckDbSchema files: {Token}", token);
+
+            throw new InvalidOperationException(
+                "Do not handwrite CREATE TABLE DDL for generated storage rows. Put schema metadata on " +
+                "DuckDbTable/DuckDbColumn attributes and initialize row tables through generated CreateTableDdl.");
+
+            static string ReadIfExists(AbsolutePath path) =>
+                path.FileExists() ? File.ReadAllText(path) : "";
+        });
+
     Target VerifyNoHandwrittenOtlpWireParser => d => d
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
@@ -858,12 +934,13 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var schemaFile = CollectorDirectory / "Storage" / "DuckDbSchema.Core.cs";
             var spanStorageRowFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
 
             string[] forbidden =
             [
                 "PRIMARY KEY (span_id)",
+                "PRIMARY KEY (\"span_id\")",
                 "ON CONFLICT (span_id)"
             ];
 
@@ -884,18 +961,25 @@ interface IVerify : IHazSourcePaths
                 .ToList();
 
             var missingRequired = new List<string>();
-            if (!schemaFile.FileExists() ||
-                !File.ReadAllText(schemaFile).Contains("PRIMARY KEY (trace_id, span_id)", StringComparison.Ordinal))
+            var spanStorageRowText = spanStorageRowFile.FileExists() ? File.ReadAllText(spanStorageRowFile) : "";
+            if (!spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 0)]\n    public required string TraceId", StringComparison.Ordinal) ||
+                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 1)]\n    public required string SpanId", StringComparison.Ordinal))
             {
-                missingRequired.Add(RootDirectory.GetRelativePathTo(schemaFile).ToString()
-                                    + " must declare PRIMARY KEY (trace_id, span_id)");
+                missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
+                                    + " must declare generated PRIMARY KEY order TraceId=0, SpanId=1");
             }
 
-            if (!spanStorageRowFile.FileExists() ||
-                !File.ReadAllText(spanStorageRowFile).Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
+            if (!spanStorageRowText.Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
                                     + " must upsert ON CONFLICT (trace_id, span_id)");
+            }
+
+            if (!storeFile.FileExists() ||
+                !File.ReadAllText(storeFile).Contains("SpanStorageRow.CreateTableDdl", StringComparison.Ordinal))
+            {
+                missingRequired.Add(RootDirectory.GetRelativePathTo(storeFile).ToString()
+                                    + " must initialize spans through SpanStorageRow.CreateTableDdl");
             }
 
             if (offenders.Count is 0 && missingRequired.Count is 0)
@@ -1381,6 +1465,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
+        .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
@@ -1403,6 +1488,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
+            Log.Information("  Collector storage row tables use generated DuckDB DDL");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  Collector span storage identity is trace-scoped");

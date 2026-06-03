@@ -114,19 +114,27 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             properties.Add(prop);
         }
 
-        properties.Sort(static (left, right) =>
-            StringComparer.Ordinal.Compare(GetPropertySortKey(left), GetPropertySortKey(right)));
+        properties.Sort(ComparePropertyDeclarationOrder);
         return properties;
     }
 
-    private static string GetPropertySortKey(IPropertySymbol property)
+    private static int ComparePropertyDeclarationOrder(IPropertySymbol left, IPropertySymbol right)
     {
-        if (property.DeclaringSyntaxReferences.FirstOrDefault() is not { } syntaxReference)
-            return property.MetadataName;
+        var leftReference = left.DeclaringSyntaxReferences.FirstOrDefault();
+        var rightReference = right.DeclaringSyntaxReferences.FirstOrDefault();
+        if (leftReference is null || rightReference is null)
+            return StringComparer.Ordinal.Compare(left.MetadataName, right.MetadataName);
 
-        var filePath = syntaxReference.SyntaxTree.FilePath;
-        var position = syntaxReference.Span.Start.ToString(CultureInfo.InvariantCulture);
-        return string.Concat(filePath, ":", position, ":", property.MetadataName);
+        var fileComparison = StringComparer.Ordinal.Compare(
+            leftReference.SyntaxTree.FilePath,
+            rightReference.SyntaxTree.FilePath);
+        if (fileComparison is not 0)
+            return fileComparison;
+
+        var positionComparison = leftReference.Span.Start.CompareTo(rightReference.Span.Start);
+        return positionComparison is not 0
+            ? positionComparison
+            : StringComparer.Ordinal.Compare(left.MetadataName, right.MetadataName);
     }
 
     private static DuckDbColumnInfo? ExtractColumnInfo(
@@ -138,6 +146,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var isUBigInt = false;
         var excludeFromInsert = false;
         var ordinal = defaultOrdinal;
+        string? sqlType = null;
+        string? defaultSql = null;
+        var primaryKeyOrdinal = -1;
 
         var colAttr = FindAttribute(prop, columnAttributeType);
         if (colAttr is not null)
@@ -159,6 +170,16 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                         if (named.Value.Value is int o)
                             ordinal = o;
                         break;
+                    case "SqlType":
+                        sqlType = named.Value.Value as string;
+                        break;
+                    case "DefaultSql":
+                        defaultSql = named.Value.Value as string;
+                        break;
+                    case "PrimaryKeyOrdinal":
+                        if (named.Value.Value is int p)
+                            primaryKeyOrdinal = p;
+                        break;
                 }
             }
         }
@@ -179,7 +200,10 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             isNullable,
             isUBigInt,
             excludeFromInsert,
-            ordinal);
+            ordinal,
+            sqlType,
+            defaultSql,
+            primaryKeyOrdinal);
     }
 
     private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol? attributeType)
@@ -233,4 +257,7 @@ internal readonly record struct DuckDbColumnInfo(
     bool IsNullable,
     bool IsUBigInt,
     bool ExcludeFromInsert,
-    int Ordinal);
+    int Ordinal,
+    string? SqlType,
+    string? DefaultSql,
+    int PrimaryKeyOrdinal);

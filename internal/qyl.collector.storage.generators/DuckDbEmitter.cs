@@ -37,6 +37,8 @@ internal static class DuckDbEmitter
         sb.Append("    public const int ColumnCount = ").Append(insertColumns.Length).AppendLine(";");
         sb.AppendLine();
 
+        EmitCreateTableDdl(sb, table);
+
         EmitAddParameters(sb, table.TypeName, insertColumns);
 
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -55,6 +57,9 @@ internal static class DuckDbEmitter
         DuckDbColumnInfo[] selectColumns)
     {
         sb.Append("    public const string TableName = \"").Append(tableName).AppendLine("\";");
+        sb.Append("    private const string QuotedTableName = \"")
+            .Append(EscapeCSharpString(SqlIdentifier.Quote(tableName)))
+            .AppendLine("\";");
         sb.AppendLine();
 
         EmitColumnListConstant(sb, "ColumnList", insertColumns);
@@ -89,6 +94,83 @@ internal static class DuckDbEmitter
 
         sb.AppendLine();
     }
+
+    private static void EmitCreateTableDdl(StringBuilder sb, DuckDbTableInfo table)
+    {
+        sb.AppendLine("    public const string CreateTableDdl = \"\"\"");
+        sb.Append("        CREATE TABLE IF NOT EXISTS ").Append(SqlIdentifier.Quote(table.TableName)).AppendLine(" (");
+
+        var primaryKeyColumns = table.Columns
+            .Where(static c => c.PrimaryKeyOrdinal >= 0)
+            .OrderBy(static c => c.PrimaryKeyOrdinal)
+            .ToArray();
+
+        for (var i = 0; i < table.Columns.Length; i++)
+        {
+            var column = table.Columns[i];
+            sb.Append("            ")
+                .Append(SqlIdentifier.Quote(column.ColumnName))
+                .Append(' ')
+                .Append(ResolveSqlType(column));
+
+            if (!column.IsNullable)
+                sb.Append(" NOT NULL");
+
+            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
+                sb.Append(" DEFAULT ").Append(column.DefaultSql);
+
+            if (i < table.Columns.Length - 1 || primaryKeyColumns.Length > 0)
+                sb.Append(',');
+
+            sb.AppendLine();
+        }
+
+        if (primaryKeyColumns.Length > 0)
+        {
+            sb.Append("            PRIMARY KEY (");
+            for (var i = 0; i < primaryKeyColumns.Length; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                sb.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
+            }
+
+            sb.AppendLine(")");
+        }
+
+        sb.AppendLine("        );");
+        sb.AppendLine("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    private static string ResolveSqlType(DuckDbColumnInfo column)
+    {
+        if (!string.IsNullOrWhiteSpace(column.SqlType))
+            return column.SqlType!;
+
+        var type = column.PropertyType.TrimEnd('?');
+        if (column.IsUBigInt)
+            return "UBIGINT";
+
+        return type switch
+        {
+            "string" or "System.String" => "VARCHAR",
+            "byte" or "System.Byte" => "TINYINT",
+            "int" or "System.Int32" => "INTEGER",
+            "long" or "System.Int64" => "BIGINT",
+            "ulong" or "System.UInt64" => "UBIGINT",
+            "double" or "System.Double" => "DOUBLE",
+            "decimal" or "System.Decimal" => "DECIMAL",
+            "bool" or "System.Boolean" => "BOOLEAN",
+            "System.DateTimeOffset" or "DateTimeOffset" => "TIMESTAMP",
+            _ => throw new InvalidOperationException(
+                $"No DuckDB SQL type mapping for {column.PropertyType} on {column.PropertyName}. Set SqlType explicitly.")
+        };
+    }
+
+    private static string EscapeCSharpString(string value) =>
+        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private static void EmitAddParameters(StringBuilder sb, string typeName, IEnumerable<DuckDbColumnInfo> columns)
     {
@@ -256,7 +338,7 @@ internal static class DuckDbEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            var sb = new StringBuilder(1024);");
         sb.Append(
-            "            sb.Append(\"INSERT INTO \").Append(TableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
+            "            sb.Append(\"INSERT INTO \").Append(QuotedTableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
         sb.AppendLine();
         sb.AppendLine();
         sb.AppendLine("            for (var i = 0; i < count; i++)");

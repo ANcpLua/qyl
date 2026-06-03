@@ -894,23 +894,23 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var logsCmd = con.CreateCommand();
-        logsCmd.CommandText = DuckDbSchema.LogsDdl;
+        logsCmd.CommandText = LogStorageRow.CreateTableDdl;
         logsCmd.ExecuteNonQuery();
 
         using var profilesCmd = con.CreateCommand();
         profilesCmd.CommandText = string.Concat(
-            DuckDbSchema.ProfilesDdl, "\n",
-            DuckDbSchema.ProfileFunctionsDdl, "\n",
-            DuckDbSchema.ProfileLocationsDdl, "\n",
-            DuckDbSchema.ProfileMappingsDdl, "\n",
-            DuckDbSchema.ProfileSamplesDdl, "\n",
-            DuckDbSchema.ProfileStacksDdl, "\n",
+            ProfileStorageRow.CreateTableDdl, "\n",
+            ProfileFunctionRow.CreateTableDdl, "\n",
+            ProfileLocationRow.CreateTableDdl, "\n",
+            ProfileMappingRow.CreateTableDdl, "\n",
+            ProfileSampleRow.CreateTableDdl, "\n",
+            ProfileStackRow.CreateTableDdl, "\n",
             DuckDbSchema.ProfilesIndexesDdl);
         profilesCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
-            DuckDbSchema.SpansDdl, "\n",
+            SpanStorageRow.CreateTableDdl, "\n",
             DuckDbSchema.CoreIndexesDdl);
         cmd.ExecuteNonQuery();
 
