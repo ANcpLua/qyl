@@ -22,7 +22,6 @@
     <OpenAIVersion>2.10.0</OpenAIVersion>
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.55.2</SpectreConsoleVersion>
-    <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
   </PropertyGroup>
 </Project>

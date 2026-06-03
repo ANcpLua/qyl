@@ -20,7 +20,7 @@ namespace Qyl.Build;
     InvokedTargets = ["Ci"],
     FetchDepth = 0)]
 sealed class Build : NukeBuild,
-    ICoverage,
+    ICompile,
     IVersionize,
     IDocker,
     IPipeline,
@@ -70,13 +70,12 @@ sealed class Build : NukeBuild,
         .DependsOn<IPipeline>(static x => x.FrontendLint);
 
     Target Full => d => d
-        .Description("Full local gate: CI plus existing test and smoke targets")
+        .Description("Full local gate: CI plus smoke targets")
         .DependsOn(Clean)
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendLint)
-        .DependsOn<IQylTest>(static x => x.Test)
         .DependsOn<ISmoke>(static x => x.Smoke);
 
     Target Dev => d => d

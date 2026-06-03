@@ -82,7 +82,6 @@
     <PackageVersion Include="Qyl.Api.Contracts" Version="0.1.9"/>
   </ItemGroup>
   <ItemGroup>
-    <PackageDownload Include="ReportGenerator" Version="[$(ReportGeneratorVersion)]"/>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>
   </ItemGroup>
 </Project>

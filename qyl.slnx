@@ -29,8 +29,6 @@
     <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
   </Folder>
 
-  <Folder Name="/tests/" />
-
   <Folder Name="/eng/">
     <Project Path="eng/build/build.csproj" />
     <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />

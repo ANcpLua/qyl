@@ -68,17 +68,6 @@ jobs:
       - name: Verify
         run: ./eng/build.sh Verify --Configuration Release
 
-      - name: Test
-        run: ./eng/build.sh Test --Configuration Release
-
-      - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: always() && hashFiles('Artifacts/TestResults/**') != ''
-        with:
-          name: test-results
-          path: Artifacts/TestResults
-          retention-days: 14
-
   frontend:
     name: Frontend (React)
     runs-on: ubuntu-latest

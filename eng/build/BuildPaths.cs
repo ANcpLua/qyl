@@ -16,10 +16,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath InternalDirectory => RootDirectory / "internal";
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
-    AbsolutePath TestsDirectory => RootDirectory / "tests";
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
-    AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
-    AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 }
 
 interface IVersionize : IHazSourcePaths
