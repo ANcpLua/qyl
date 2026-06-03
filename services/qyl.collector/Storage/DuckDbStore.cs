@@ -12,17 +12,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     private const int MaxLogsPerBatch = 150;
 
-    private const string SelectSpanColumns = """
-                                             span_id, trace_id, parent_span_id, session_id,
-                                             name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
-                                             status_code, service_name,
-                                             gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
-                                             gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
-                                             gen_ai_stop_reason, gen_ai_tool_name,
-                                             gen_ai_cost_usd, attributes_json, resource_json,
-                                             schema_url, created_at
-                                             """;
-
     private const int MaxProfilesPerBatch = 50;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
@@ -257,7 +246,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         {
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + SelectSpanColumns
+            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans WHERE session_id = $1 ORDER BY start_time_unix_nano ASC";
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
@@ -276,7 +265,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         {
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + SelectSpanColumns
+            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans WHERE trace_id = $1 ORDER BY start_time_unix_nano ASC";
             cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
@@ -318,7 +307,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 qb.Add("(name ILIKE $N OR attributes_json ILIKE $N)", $"%{searchText}%");
 
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + SelectSpanColumns
+            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans " + qb.WhereClause
                                         + " ORDER BY start_time_unix_nano DESC LIMIT "
                                         + qb.NextParam.ToString(CultureInfo.InvariantCulture);
@@ -615,11 +604,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var cmd = con.CreateCommand();
             var sortDirection = ascending ? "ASC" : "DESC";
-            cmd.CommandText = "SELECT log_id, trace_id, span_id, session_id,"
-                              + " time_unix_nano, observed_time_unix_nano,"
-                              + " severity_number, severity_text, body,"
-                              + " service_name, attributes_json, resource_json,"
-                              + " created_at"
+            cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
                               + " FROM logs " + qb.WhereClause
                               + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
                               + qb.NextParam.ToString(CultureInfo.InvariantCulture);
@@ -716,12 +701,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 qb.Add("sample_type = $N", sampleType);
 
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT profile_id, trace_id, span_id, session_id,"
-                              + " time_unix_nano, duration_nano, sample_count,"
-                              + " sample_type, sample_unit, original_payload_format,"
-                              + " service_name,"
-                              + " attributes_json, resource_json,"
-                              + " schema_url, created_at"
+            cmd.CommandText = "SELECT " + ProfileStorageRow.SelectColumnList
                               + " FROM profiles " + qb.WhereClause
                               + " ORDER BY time_unix_nano DESC LIMIT "
                               + qb.NextParam.ToString(CultureInfo.InvariantCulture);
@@ -748,7 +728,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using (var cmd = con.CreateCommand())
             {
                 cmd.CommandText =
-                    "SELECT profile_id, trace_id, span_id, session_id, time_unix_nano, duration_nano, sample_count, sample_type, sample_unit, original_payload_format, service_name, attributes_json, resource_json, schema_url, created_at FROM profiles WHERE profile_id = $1 LIMIT 1";
+                    "SELECT " + ProfileStorageRow.SelectColumnList + " FROM profiles WHERE profile_id = $1 LIMIT 1";
                 cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
                 using var r = cmd.ExecuteReader();
                 if (r.Read()) header = ProfileStorageRow.MapFromReader(r);
@@ -757,23 +737,23 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             if (header is null) return null;
 
             var functions = ReadChildRows(con, profileId,
-                "SELECT profile_id, ordinal, name, system_name, filename, start_line FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
+                "SELECT " + ProfileFunctionRow.SelectColumnList + " FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
                 static r => ProfileFunctionRow.MapFromReader(r));
 
             var locations = ReadChildRows(con, profileId,
-                "SELECT profile_id, ordinal, mapping_ordinal, address, lines_json FROM profile_locations WHERE profile_id = $1 ORDER BY ordinal",
+                "SELECT " + ProfileLocationRow.SelectColumnList + " FROM profile_locations WHERE profile_id = $1 ORDER BY ordinal",
                 static r => ProfileLocationRow.MapFromReader(r));
 
             var mappings = ReadChildRows(con, profileId,
-                "SELECT profile_id, ordinal, filename, memory_start, memory_limit, file_offset FROM profile_mappings WHERE profile_id = $1 ORDER BY ordinal",
+                "SELECT " + ProfileMappingRow.SelectColumnList + " FROM profile_mappings WHERE profile_id = $1 ORDER BY ordinal",
                 static r => ProfileMappingRow.MapFromReader(r));
 
             var samples = ReadChildRows(con, profileId,
-                "SELECT profile_id, ordinal, stack_ordinal, link_trace_id, link_span_id, values_json, timestamps_json FROM profile_samples WHERE profile_id = $1 ORDER BY ordinal",
+                "SELECT " + ProfileSampleRow.SelectColumnList + " FROM profile_samples WHERE profile_id = $1 ORDER BY ordinal",
                 static r => ProfileSampleRow.MapFromReader(r));
 
             var stacks = ReadChildRows(con, profileId,
-                "SELECT profile_id, ordinal, location_ordinals_json FROM profile_stacks WHERE profile_id = $1 ORDER BY ordinal",
+                "SELECT " + ProfileStackRow.SelectColumnList + " FROM profile_stacks WHERE profile_id = $1 ORDER BY ordinal",
                 static r => ProfileStackRow.MapFromReader(r));
 
             return new ProfileDetail

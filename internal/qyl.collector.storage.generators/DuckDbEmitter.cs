@@ -32,7 +32,7 @@ internal static class DuckDbEmitter
         sb.AppendLine("    private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
         sb.AppendLine();
 
-        EmitColumnList(sb, table.TableName, insertColumns);
+        EmitColumnLists(sb, table.TableName, insertColumns, [.. table.Columns]);
 
         sb.Append("    public const int ColumnCount = ").Append(insertColumns.Length).AppendLine(";");
         sb.AppendLine();
@@ -48,12 +48,29 @@ internal static class DuckDbEmitter
         return sb.ToString();
     }
 
-    private static void EmitColumnList(StringBuilder sb, string tableName, DuckDbColumnInfo[] columns)
+    private static void EmitColumnLists(
+        StringBuilder sb,
+        string tableName,
+        DuckDbColumnInfo[] insertColumns,
+        DuckDbColumnInfo[] selectColumns)
     {
         sb.Append("    public const string TableName = \"").Append(tableName).AppendLine("\";");
         sb.AppendLine();
 
-        sb.AppendLine("    public const string ColumnList = \"\"\"");
+        EmitColumnListConstant(sb, "ColumnList", insertColumns);
+        EmitColumnListConstant(sb, "SelectColumnList", selectColumns);
+    }
+
+    private static void EmitColumnListConstant(StringBuilder sb, string name, DuckDbColumnInfo[] columns)
+    {
+        sb.Append("    public const string ").Append(name).AppendLine(" = \"\"\"");
+        EmitQuotedColumnList(sb, columns);
+        sb.AppendLine("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    private static void EmitQuotedColumnList(StringBuilder sb, DuckDbColumnInfo[] columns)
+    {
         sb.Append("        ");
         for (var i = 0; i < columns.Length; i++)
         {
@@ -70,8 +87,6 @@ internal static class DuckDbEmitter
             sb.Append(SqlIdentifier.Quote(columns[i].ColumnName));
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        \"\"\";");
         sb.AppendLine();
     }
 

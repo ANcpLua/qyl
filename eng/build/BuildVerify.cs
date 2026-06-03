@@ -665,6 +665,62 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorStorageReadsUseGeneratedColumnLists => d => d
+        .Unlisted()
+        .Description("Verify storage row reads use generated DuckDB column lists")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            if (!storeFile.FileExists())
+                throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
+
+            var text = File.ReadAllText(storeFile);
+
+            string[] requiredGeneratedColumnLists =
+            [
+                "SpanStorageRow.SelectColumnList",
+                "LogStorageRow.SelectColumnList",
+                "ProfileStorageRow.SelectColumnList",
+                "ProfileFunctionRow.SelectColumnList",
+                "ProfileLocationRow.SelectColumnList",
+                "ProfileMappingRow.SelectColumnList",
+                "ProfileSampleRow.SelectColumnList",
+                "ProfileStackRow.SelectColumnList"
+            ];
+
+            string[] forbiddenManualSelectTokens =
+            [
+                "SelectSpanColumns",
+                "SELECT log_id, trace_id",
+                "SELECT profile_id, trace_id",
+                "SELECT profile_id, ordinal"
+            ];
+
+            var missing = requiredGeneratedColumnLists
+                .Where(token => !text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+            var forbidden = forbiddenManualSelectTokens
+                .Where(token => text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (missing.Count is 0 && forbidden.Count is 0)
+            {
+                Log.Information("Collector storage row reads use generated DuckDB column lists");
+                return;
+            }
+
+            foreach (var token in missing)
+                Log.Error("  Missing generated column list usage in DuckDbStore.cs: {Token}", token);
+
+            foreach (var token in forbidden)
+                Log.Error("  Manual storage row SELECT token in DuckDbStore.cs: {Token}", token);
+
+            throw new InvalidOperationException(
+                "Do not handwrite SELECT column lists for generated storage rows. Use each row type's " +
+                "generated SelectColumnList so MapFromReader ordinals and SQL columns share one source of truth.");
+        });
+
     Target VerifyNoHandwrittenOtlpWireParser => d => d
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
@@ -1324,6 +1380,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorUsesSemanticConstants)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
+        .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
@@ -1345,6 +1402,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector semantic keys use generated constants");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
+            Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  Collector span storage identity is trace-scoped");
