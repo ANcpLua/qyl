@@ -245,6 +245,20 @@ internal static class ProfileMapper
             return stringTable.Count - 1;
         }
 
+        ProfileValueType? AddValueType(string? type, string? unit)
+        {
+            var typeStrindex = AddString(type);
+            var unitStrindex = AddString(unit);
+
+            return typeStrindex is null && unitStrindex is null
+                ? null
+                : new ProfileValueType
+                {
+                    TypeStrindex = typeStrindex,
+                    UnitStrindex = unitStrindex
+                };
+        }
+
         var linkIndexes = new Dictionary<int, int>();
         var links = new List<ProfileLink>();
         foreach (var row in detail.Samples)
@@ -269,11 +283,12 @@ internal static class ProfileMapper
             Address = row.Address,
             Lines = ParseProfileLines(row.LinesJson)
         }).ToArray();
-        var mappings = detail.Mappings.Select(static row => new ProfileMapping
+        var mappings = detail.Mappings.Select(row => new ProfileMapping
         {
             MemoryStart = row.MemoryStart,
             MemoryLimit = row.MemoryLimit,
-            FileOffset = row.FileOffset
+            FileOffset = row.FileOffset,
+            FilenameStrindex = AddString(row.Filename)
         }).ToArray();
         var samples = detail.Samples.Select(row => new ProfileSample
         {
@@ -290,6 +305,7 @@ internal static class ProfileMapper
         return new Profile
         {
             ProfileId = detail.Profile.ProfileId,
+            SampleType = AddValueType(detail.Profile.SampleType, detail.Profile.SampleUnit),
             TimeUnixNano = detail.Profile.TimeUnixNano,
             DurationNano = detail.Profile.DurationNano,
             OriginalPayloadFormat = MapPayloadFormat(detail.Profile.OriginalPayloadFormat),

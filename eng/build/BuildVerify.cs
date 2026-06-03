@@ -1234,6 +1234,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
 
             var converterText = File.ReadAllText(converterFile);
+            var mapperFile = CollectorDirectory / "Mapping" / "Mappers.cs";
+            if (!mapperFile.FileExists())
+                throw new FileNotFoundException("Missing collector mapper", mapperFile.ToString());
+
+            var mapperText = File.ReadAllText(mapperFile);
             string[] required =
             [
                 "Name = Resolve(f.NameStrindex, dictionary)",
@@ -1246,17 +1251,30 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            if (missing.Count is 0)
+            string[] mapperRequired =
+            [
+                "FilenameStrindex = AddString(row.Filename)",
+                "SampleType = AddValueType(detail.Profile.SampleType, detail.Profile.SampleUnit)"
+            ];
+
+            var mapperMissing = mapperRequired
+                .Where(token => !mapperText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (missing.Count is 0 && mapperMissing.Count is 0)
             {
-                Log.Information("OTLP profile symbols resolve from the profile string table");
+                Log.Information("OTLP profile symbols round-trip through storage and contract mapping");
                 return;
             }
 
             foreach (var token in missing)
                 Log.Error("  Missing profile symbol resolver: {Token}", token);
 
+            foreach (var token in mapperMissing)
+                Log.Error("  Missing profile contract symbol mapper: {Token}", token);
+
             throw new InvalidOperationException(
-                "Do not drop OTLP profile function or mapping symbols. Resolve *_strindex fields through ProfilesDictionary.string_table.");
+                "Do not drop OTLP profile function, mapping, or sample type symbols. Resolve *_strindex fields through ProfilesDictionary.string_table and map stored symbols back into contract string_table entries.");
         });
 
     Target VerifyOtlpAttributesPreserveAnyValueTypes => d => d
