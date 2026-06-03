@@ -9,10 +9,6 @@ internal static class SqlOperationParser
     public static string? TryParse(string? sql) =>
         string.IsNullOrWhiteSpace(sql) ? null : TryParseCore(sql.AsSpan());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? TryParseCollectionName(string? sql) =>
-        string.IsNullOrWhiteSpace(sql) ? null : TryParseCollectionNameCore(sql.AsSpan());
-
     private static string? TryParseCore(ReadOnlySpan<char> sql)
     {
         sql = SkipWhitespaceAndComments(sql);
@@ -219,124 +215,6 @@ internal static class SqlOperationParser
         }
 
         return true;
-    }
-
-    private static string? TryParseCollectionNameCore(ReadOnlySpan<char> sql)
-    {
-        sql = SkipWhitespaceAndComments(sql);
-
-        if (sql.IsEmpty)
-            return null;
-
-        if (StartsWithKeyword(sql, "WITH"))
-        {
-            var afterCte = SkipCte(sql);
-            if (!afterCte.IsEmpty)
-                sql = afterCte;
-        }
-
-        if (StartsWithKeyword(sql, "SELECT"))
-        {
-            var fromIdx = FindKeyword(sql, "FROM");
-            if (fromIdx < 0)
-                return null;
-
-            var afterFrom = SkipWhitespaceAndComments(sql[(fromIdx + 4)..]);
-            return ExtractIdentifier(afterFrom);
-        }
-
-        if (StartsWithKeyword(sql, "INSERT"))
-        {
-            sql = sql[6..];
-            sql = SkipWhitespaceAndComments(sql);
-            if (StartsWithKeyword(sql, "INTO"))
-            {
-                sql = sql[4..];
-                sql = SkipWhitespaceAndComments(sql);
-            }
-
-            return ExtractIdentifier(sql);
-        }
-
-        if (StartsWithKeyword(sql, "UPDATE"))
-        {
-            sql = sql[6..];
-            sql = SkipWhitespaceAndComments(sql);
-            return ExtractIdentifier(sql);
-        }
-
-        if (StartsWithKeyword(sql, "DELETE"))
-        {
-            sql = sql[6..];
-            sql = SkipWhitespaceAndComments(sql);
-            if (StartsWithKeyword(sql, "FROM"))
-            {
-                sql = sql[4..];
-                sql = SkipWhitespaceAndComments(sql);
-            }
-
-            return ExtractIdentifier(sql);
-        }
-
-        return null;
-    }
-
-    private static int FindKeyword(ReadOnlySpan<char> sql, ReadOnlySpan<char> keyword)
-    {
-        var depth = 0;
-        for (var i = 0; i <= sql.Length - keyword.Length; i++)
-        {
-            switch (sql[i])
-            {
-                case '(':
-                    depth++;
-                    continue;
-                case ')':
-                    depth--;
-                    continue;
-                case '\'':
-                    i = SkipStringLiteral(sql, i);
-                    continue;
-            }
-
-            if (depth > 0)
-                continue;
-
-            if (StartsWithKeyword(sql[i..], keyword))
-            {
-                if (i > 0 && (char.IsLetterOrDigit(sql[i - 1]) || sql[i - 1] == '_'))
-                    continue;
-
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private static string? ExtractIdentifier(ReadOnlySpan<char> sql)
-    {
-        if (sql.IsEmpty)
-            return null;
-
-        if (sql[0] is '"' or '[' or '`')
-        {
-            var closeChar = sql[0] switch
-            {
-                '"' => '"',
-                '[' => ']',
-                _ => '`'
-            };
-
-            var endIndex = sql[1..].IndexOf(closeChar);
-            return endIndex > 0 ? sql[1..(endIndex + 1)].ToString() : null;
-        }
-
-        var i = 0;
-        while (i < sql.Length && (char.IsLetterOrDigit(sql[i]) || sql[i] is '_' or '.'))
-            i++;
-
-        return i > 0 ? sql[..i].ToString() : null;
     }
 
     private static string? MatchOperation(ReadOnlySpan<char> sql)

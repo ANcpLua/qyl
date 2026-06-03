@@ -90,7 +90,6 @@ public static class GenAiInstrumentation
 
     public static Activity? StartToolExecutionSpan(
         string toolName,
-        string? callId = null,
         string? toolType = "function")
     {
         var normalizedOperation = GenAiConstants.NormalizeOperationName(GenAiAttributes.OperationNameValues.ExecuteTool);
@@ -100,11 +99,6 @@ public static class GenAiInstrumentation
         {
             activity.SetTag(GenAiAttributes.OperationName, normalizedOperation);
             activity.SetTag(GenAiAttributes.ToolName, toolName);
-
-            if (callId is not null)
-            {
-                activity.SetTag(GenAiAttributes.ToolCallId, callId);
-            }
 
             if (toolType is not null)
             {

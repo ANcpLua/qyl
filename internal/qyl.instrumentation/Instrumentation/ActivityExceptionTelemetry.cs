@@ -8,7 +8,7 @@ public static class ActivityExceptionTelemetry
     private const string ErrorType = ErrorAttributes.Type;
     private const string ExceptionType = ExceptionAttributes.Type;
 
-    public const string ExceptionSource = "exception.source";
+    public const string ExceptionSource = "qyl.exception.source";
 
     public static void Record(
         Activity? activity,

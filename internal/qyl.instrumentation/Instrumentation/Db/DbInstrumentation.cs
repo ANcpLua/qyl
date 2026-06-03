@@ -107,13 +107,8 @@ public static class DbInstrumentation
     private static Activity? StartDbActivity(DbCommand command, string fallbackOperationName)
     {
         var operationName = SqlOperationParser.TryParse(command.CommandText) ?? fallbackOperationName;
-        var collectionName = SqlOperationParser.TryParseCollectionName(command.CommandText);
 
-        var spanName = collectionName is not null
-            ? $"{operationName} {collectionName}"
-            : operationName;
-
-        if (ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext)) is not
+        if (ActivitySources.DbSource.StartActivity(operationName, ActivityKind.Client, default(ActivityContext)) is not
             { } activity)
             return null;
 
@@ -121,9 +116,6 @@ public static class DbInstrumentation
 
         activity.SetTag(DbAttributes.SystemName, dbSystem);
         activity.SetTag(DbAttributes.OperationName, operationName);
-
-        if (collectionName is not null)
-            activity.SetTag(DbAttributes.CollectionName, collectionName);
 
         if (command.Connection?.Database is { Length: > 0 } dbName)
             activity.SetTag(DbAttributes.Namespace, dbName);

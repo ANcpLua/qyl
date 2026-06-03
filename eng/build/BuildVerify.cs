@@ -508,23 +508,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            string[] forbiddenMetricTagTokens =
-            [
-                "EnduserAttributes.Id",
-                "GenAiAttributes.AgentId",
-                "GenAiAttributes.AgentName",
-                "GenAiAttributes.ConversationId",
-                "GenAiAttributes.RequestModel",
-                "GenAiAttributes.ResponseModel",
-                "GenAiAttributes.ToolCallId",
-                "GenAiAttributes.ToolName",
-                "McpAttributes.SessionId",
-                "SessionAttributes.Id",
-                "UrlAttributes.Full",
-                "UrlAttributes.Path",
-                "UserAttributes.Id"
-            ];
-
             var offenders = CollectorDirectory.GlobFiles("**/*.cs")
                 .Where(static file =>
                 {
@@ -532,13 +515,20 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                            && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                 })
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
-                .SelectMany(file => FindRegisterTagNameBlocks(file.Text)
-                    .SelectMany(block => forbiddenMetricTagTokens
-                        .Where(token => block.Contains(token, StringComparison.Ordinal))
-                        .Select(token => (file.File, Token: token))))
+                .SelectMany(file =>
+                {
+                    var relativePath = RootDirectory.GetRelativePathTo(file).ToString();
+                    var root = ParseCompilationUnit(file);
+                    return root.DescendantNodes()
+                        .OfType<InvocationExpressionSyntax>()
+                        .Where(static invocation => InvocationName(invocation.Expression) is "RegisterTagNames")
+                        .SelectMany(invocation => invocation.ArgumentList.Arguments
+                            .Where(static argument => !IsAllowedMetricTagArgument(argument.Expression))
+                            .Select(argument => (
+                                File: relativePath,
+                                Line: NodeLine(argument),
+                                Text: NodePreview(argument))));
+                })
                 .ToList();
 
             if (offenders.Count is 0)
@@ -548,25 +538,17 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Unbounded metric tag '{Token}' found in {File}", offender.Token, offender.File);
+                Log.Error("  Non-canonical metric tag registration at {File}:{Line}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
 
             throw new InvalidOperationException(
-                "Do not register unbounded IDs, model names, tool names, URLs, or user identifiers as metric tag names.");
+                "Do not register metric tag names from semantic attributes, locals, or request-derived variables. " +
+                "Declare bounded collector tag names in QylLatencyNames.Tags and register only those constants.");
 
-            static IEnumerable<string> FindRegisterTagNameBlocks(string text)
-            {
-                const string marker = "RegisterTagNames(";
-                var searchIndex = 0;
-                while ((searchIndex = text.IndexOf(marker, searchIndex, StringComparison.Ordinal)) >= 0)
-                {
-                    var endIndex = text.IndexOf(");", searchIndex, StringComparison.Ordinal);
-                    if (endIndex < 0)
-                        yield break;
-
-                    yield return text[searchIndex..(endIndex + 2)];
-                    searchIndex = endIndex + 2;
-                }
-            }
+            static bool IsAllowedMetricTagArgument(ExpressionSyntax expression) =>
+                expression.ToString().StartsWith("QylLatencyNames.Tags.", StringComparison.Ordinal);
         });
 
     Target VerifyCollectorExceptionTelemetryIsBounded => d => d
@@ -807,6 +789,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "SetStatus(ActivityStatusCode.Error, error)",
                 "$\"{GenAiAttributes.OperationNameValues.ExecuteTool} {toolName}\"",
                 "StartActivity(operation,",
+                "TryParseCollectionName",
+                "DbAttributes.CollectionName",
+                "$\"{operationName} {collectionName}\"",
+                "GenAiAttributes.ToolCallId",
+                "\"exception.source\"",
                 "QylGenAiCostProcessor",
                 "gen_ai.usage.cost"
             ];
@@ -3071,9 +3058,17 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
     }
 
     private static bool IsForbiddenSemConvAttributeNamespace(string? name) =>
-        name is not null &&
-        (name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
-         name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
+        NormalizeQualifiedName(name) is { } normalized &&
+        (normalized.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
+         normalized.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
+
+    private static string? NormalizeQualifiedName(string? name)
+    {
+        while (name is not null && name.StartsWith("global::", StringComparison.Ordinal))
+            name = name["global::".Length..];
+
+        return name;
+    }
 
     private static bool IsKnownAttributeLiteral(string value, CollectorAttributeLiteralValues attributeLiteralValues)
     {
