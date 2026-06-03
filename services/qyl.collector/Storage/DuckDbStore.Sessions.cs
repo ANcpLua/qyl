@@ -30,18 +30,21 @@ internal sealed partial class DuckDbStore
         bool? isActive = null,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default) =>
         await ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = SessionSelectColumns
-                              + " WHERE ($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)"
-                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano <= $2)"
+                              + " WHERE project_id = $1"
+                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
+                              + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3)"
                               + " GROUP BY COALESCE(session_id, trace_id)"
-                              + " HAVING ($3::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $4) = $3)"
+                              + " HAVING ($4::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $5) = $4)"
                               + " ORDER BY MAX(end_time_unix_nano) DESC"
-                              + " LIMIT $5 OFFSET $6";
+                              + " LIMIT $6 OFFSET $7";
 
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
@@ -51,15 +54,19 @@ internal sealed partial class DuckDbStore
             return ExecuteSessionQuery(cmd);
         }, ct).ConfigureAwait(false);
 
-    public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
+    public async Task<SessionQueryRow?> GetSessionAsync(
+        string sessionId,
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default)
     {
         var results = await ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = SessionSelectColumns
-                              + " WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)"
+                              + " WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
                               + " GROUP BY COALESCE(session_id, trace_id)";
 
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             return ExecuteSessionQuery(cmd);
@@ -71,6 +78,7 @@ internal sealed partial class DuckDbStore
     public Task<SessionStatsRow> GetSessionStatsAsync(
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -87,13 +95,14 @@ internal sealed partial class DuckDbStore
                                       SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
                                       COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count
                                   FROM spans
-                                  WHERE ($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)
-                                    AND ($2::UBIGINT IS NULL OR start_time_unix_nano <= $2)
+                                  WHERE project_id = $1
+                                    AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
+                                    AND ($3::UBIGINT IS NULL OR start_time_unix_nano <= $3)
                                   GROUP BY COALESCE(session_id, trace_id)
                               )
                               SELECT
                                   COUNT(*) AS total_sessions,
-                                  COUNT(CASE WHEN end_time_unix_nano >= $3 THEN 1 END) AS active_sessions,
+                                  COUNT(CASE WHEN end_time_unix_nano >= $4 THEN 1 END) AS active_sessions,
                                   COALESCE(AVG(CASE
                                       WHEN end_time_unix_nano >= start_time_unix_nano
                                           THEN CAST(end_time_unix_nano - start_time_unix_nano AS DOUBLE)
@@ -105,6 +114,7 @@ internal sealed partial class DuckDbStore
                               FROM sessions
                               """;
 
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));

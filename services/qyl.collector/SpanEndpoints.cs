@@ -9,7 +9,7 @@ internal static class SpanEndpoints
         DuckDbStore store,
         CancellationToken ct)
     {
-        var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
+        var spans = await store.GetSpansBySessionAsync(sessionId, ct: ct).ConfigureAwait(false);
         var traces = spans
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
             .Select(static group =>
@@ -29,7 +29,7 @@ internal static class SpanEndpoints
         DuckDbStore store,
         CancellationToken ct)
     {
-        var spans = await store.GetTraceAsync(traceId, ct).ConfigureAwait(false);
+        var spans = await store.GetTraceAsync(traceId, ct: ct).ConfigureAwait(false);
         if (spans.Count is 0) return TypedResults.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
         var spanContracts = SpanMapper.ToContracts(

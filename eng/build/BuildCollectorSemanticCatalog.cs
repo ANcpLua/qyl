@@ -100,6 +100,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
                 "CollectorSemanticAttributeCatalog.LogAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.ProfileAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.ResourceAttributeAllowList",
+                "CollectorSemanticAttributeCatalog.ProjectIdResourceKeys",
                 "CollectorSemanticAttributeCatalog.SessionCorrelation",
                 "CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.DeniedExactKeys",
@@ -160,6 +161,12 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         {
             "qyl.capability.id",
             "qyl.capability.kind"
+        };
+
+        var projectIdResourceKeys = new[]
+        {
+            "qyl.project.id",
+            "qyl.workspace.id"
         };
 
         var sessionCorrelation = resolver.RequiredAttributeValues(
@@ -284,6 +291,7 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         builder.AppendLine();
 
         WriteFrozenSet(builder, "SessionCorrelation", sessionCorrelation, "StringComparer.Ordinal");
+        WriteFrozenSet(builder, "ProjectIdResourceKeys", projectIdResourceKeys, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "QylResourceAttributeAllowList", qylResourceAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "SpanAttributeAllowList", spanAttributeAllowList, "StringComparer.Ordinal");
         WriteFrozenSet(builder, "LogAttributeAllowList", logAttributeAllowList, "StringComparer.Ordinal");

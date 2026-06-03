@@ -143,7 +143,7 @@ internal static class CollectorEndpointExtensions
             isActive,
             startTime,
             endTime,
-            ct).ConfigureAwait(false);
+            ct: ct).ConfigureAwait(false);
 
         var hasMore = sessions.Count > boundedLimit;
         var pageItems = hasMore ? sessions.Take(boundedLimit).ToArray() : sessions;
@@ -166,7 +166,7 @@ internal static class CollectorEndpointExtensions
         string sessionId,
         DuckDbStore store,
         CancellationToken ct) =>
-        await store.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
+        await store.GetSessionAsync(sessionId, ct: ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
             : Results.Ok(SessionMapper.ToContract(session));
 
@@ -176,7 +176,7 @@ internal static class CollectorEndpointExtensions
         DateTimeOffset? endTime,
         CancellationToken ct)
     {
-        var stats = await store.GetSessionStatsAsync(startTime, endTime, ct).ConfigureAwait(false);
+        var stats = await store.GetSessionStatsAsync(startTime, endTime, ct: ct).ConfigureAwait(false);
         return Results.Ok(new SessionStats
         {
             ActiveSessions = stats.ActiveSessions,
@@ -373,7 +373,7 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         CancellationToken ct)
     {
-        var detail = await store.GetProfileDetailAsync(profileId, ct);
+        var detail = await store.GetProfileDetailAsync(profileId, ct: ct);
         return detail is not null
             ? Results.Ok(ProfileMapper.ToContract(detail))
             : Results.NotFound(ContractErrorFactory.NotFound("profile", profileId));

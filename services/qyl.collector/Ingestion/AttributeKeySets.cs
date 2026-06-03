@@ -8,6 +8,8 @@ internal static class AttributeKeySets
 
     internal static FrozenSet<string> SessionCorrelation => CollectorSemanticAttributeCatalog.SessionCorrelation;
 
+    internal static FrozenSet<string> ProjectIdResourceKeys => CollectorSemanticAttributeCatalog.ProjectIdResourceKeys;
+
     internal static bool ShouldPersistSpanAttribute(string key) =>
         !IsDenied(key) && CollectorSemanticAttributeCatalog.SpanAttributeAllowList.Contains(key);
 

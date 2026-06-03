@@ -17,15 +17,6 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class OtlpConverter
 {
-    private const string DefaultProjectId = "default";
-
-    private static readonly string[] ProjectIdResourceKeys =
-    [
-        "qyl.project.id",
-        "qyl.workspace.id",
-        "tenant.id"
-    ];
-
     #region OTLP Trace Conversion
 
     public static List<SpanStorageRow> ConvertTraceRequestToStorageRows(ExportTraceServiceRequest request)
@@ -79,21 +70,21 @@ internal static class OtlpConverter
     private static string ExtractProjectIdFromProto(ProtoResource? resource)
     {
         if (resource is null)
-            return DefaultProjectId;
+            return ProjectScope.DefaultProjectId;
 
         foreach (var attr in resource.Attributes)
         {
-            if (!ProjectIdResourceKeys.Contains(attr.Key, StringComparer.Ordinal) ||
+            if (!attr.Key.IsAny(AttributeKeySets.ProjectIdResourceKeys) ||
                 attr.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue ||
                 string.IsNullOrWhiteSpace(attr.Value.StringValue))
             {
                 continue;
             }
 
-            return attr.Value.StringValue.Trim();
+            return ProjectScope.Normalize(attr.Value.StringValue);
         }
 
-        return DefaultProjectId;
+        return ProjectScope.DefaultProjectId;
     }
 
     private static Dictionary<string, string> ExtractResourceAttributesFromProto(ProtoResource? resource)

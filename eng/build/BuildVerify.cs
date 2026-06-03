@@ -587,6 +587,73 @@ interface IVerify : IHazSourcePaths
                 "Stamp project_id only at the collector receiver/ingestion-to-storage boundary.");
         });
 
+    Target VerifyCollectorStorageReadsAreProjectScoped => d => d
+        .Unlisted()
+        .Description("Verify collector storage reads stay scoped by project_id")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var projectScopeFile = CollectorDirectory / "Storage" / "ProjectScope.cs";
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var sessionsFile = CollectorDirectory / "Storage" / "DuckDbStore.Sessions.cs";
+
+            var projectScopeText = projectScopeFile.FileExists() ? File.ReadAllText(projectScopeFile) : "";
+            var storeText = storeFile.FileExists() ? File.ReadAllText(storeFile) : "";
+            var sessionsText = sessionsFile.FileExists() ? File.ReadAllText(sessionsFile) : "";
+
+            string[] requiredProjectScopeTokens =
+            [
+                "public const string DefaultProjectId = \"default\";",
+                "public static string Normalize(string? projectId)"
+            ];
+
+            string[] requiredStoreTokens =
+            [
+                "FROM spans WHERE project_id = $1 AND session_id = $2",
+                "FROM spans WHERE project_id = $1 AND trace_id = $2",
+                "qb.Add(\"project_id = $N\", ProjectScope.Normalize(projectId));",
+                "(SELECT COUNT(*) FROM spans WHERE project_id = $1)",
+                "(SELECT COUNT(*) FROM logs WHERE project_id = $1)",
+                "SELECT COUNT(*) FROM spans WHERE project_id = $1",
+                "SELECT COUNT(*) FROM logs WHERE project_id = $1",
+                "FROM profiles WHERE project_id = $1 AND profile_id = $2",
+                "ReadChildRows(con, header.ProjectId, profileId"
+            ];
+
+            string[] requiredSessionTokens =
+            [
+                "WHERE project_id = $1",
+                "WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
+            ];
+
+            var missing = new List<string>();
+
+            foreach (var token in requiredProjectScopeTokens)
+                if (!projectScopeText.Contains(token, StringComparison.Ordinal))
+                    missing.Add($"{RootDirectory.GetRelativePathTo(projectScopeFile)} missing token: {token}");
+
+            foreach (var token in requiredStoreTokens)
+                if (!storeText.Contains(token, StringComparison.Ordinal))
+                    missing.Add($"{RootDirectory.GetRelativePathTo(storeFile)} missing token: {token}");
+
+            foreach (var token in requiredSessionTokens)
+                if (!sessionsText.Contains(token, StringComparison.Ordinal))
+                    missing.Add($"{RootDirectory.GetRelativePathTo(sessionsFile)} missing token: {token}");
+
+            if (missing.Count is 0)
+            {
+                Log.Information("Collector storage reads are project-scoped");
+                return;
+            }
+
+            foreach (var item in missing)
+                Log.Error("  {Missing}", item);
+
+            throw new InvalidOperationException(
+                "Storage reads over spans, logs, profiles, and session summaries must include project_id scope. " +
+                "project_id is stamped at ingestion and must remain a storage boundary.");
+        });
+
     Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
         .Unlisted()
         .Description("Verify collector DuckDB access stays behind storage intent methods")
@@ -1578,6 +1645,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
+        .DependsOn(VerifyCollectorStorageReadsAreProjectScoped)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
@@ -1607,6 +1675,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
+            Log.Information("  Collector storage reads are project-scoped");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector storage row tables use generated DuckDB DDL");

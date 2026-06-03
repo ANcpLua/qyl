@@ -232,6 +232,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
         string sessionId,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -240,7 +241,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE session_id = $1 ORDER BY start_time_unix_nano ASC";
+                                        + " FROM spans WHERE project_id = $1 AND session_id = $2 ORDER BY start_time_unix_nano ASC";
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             using var reader = cmd.ExecuteReader();
@@ -251,7 +253,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         }, ct);
     }
 
-    public Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(string traceId, CancellationToken ct = default)
+    public Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
+        string traceId,
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
@@ -259,7 +264,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE trace_id = $1 ORDER BY start_time_unix_nano ASC";
+                                        + " FROM spans WHERE project_id = $1 AND trace_id = $2 ORDER BY start_time_unix_nano ASC";
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
             using var reader = cmd.ExecuteReader();
@@ -278,6 +284,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         byte? statusCode = null,
         string? searchText = null,
         int limit = 100,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -286,6 +293,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var spans = new List<SpanStorageRow>();
             var qb = new QueryBuilder();
 
+            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(providerName))
@@ -317,7 +325,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
 
-    public Task<StorageStats> GetStorageStatsAsync(CancellationToken ct = default)
+    public Task<StorageStats> GetStorageStatsAsync(
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         return ExecuteReadAsync(con =>
@@ -325,12 +335,13 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using var cmd = con.CreateCommand();
             cmd.CommandText = """
                               SELECT
-                                  (SELECT COUNT(*) FROM spans) as span_count,
-                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans) as session_count,
-                                  (SELECT COUNT(*) FROM logs) as log_count,
-                                  (SELECT MIN(start_time_unix_nano) FROM spans) as oldest_span,
-                                  (SELECT MAX(start_time_unix_nano) FROM spans) as newest_span
+                                  (SELECT COUNT(*) FROM spans WHERE project_id = $1) as span_count,
+                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count,
+                                  (SELECT COUNT(*) FROM logs WHERE project_id = $1) as log_count,
+                                  (SELECT MIN(start_time_unix_nano) FROM spans WHERE project_id = $1) as oldest_span,
+                                  (SELECT MAX(start_time_unix_nano) FROM spans WHERE project_id = $1) as newest_span
                               """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
 
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
@@ -412,20 +423,26 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
 
-    public Task<long> GetSpanCountAsync(CancellationToken ct = default) =>
-        ExecuteReadAsync(static con =>
+    public Task<long> GetSpanCountAsync(
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default) =>
+        ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM spans";
+            cmd.CommandText = "SELECT COUNT(*) FROM spans WHERE project_id = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             var result = cmd.ExecuteScalar();
             return result is long count ? count : 0;
         }, ct);
 
-    public Task<long> GetLogCountAsync(CancellationToken ct = default) =>
-        ExecuteReadAsync(static con =>
+    public Task<long> GetLogCountAsync(
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default) =>
+        ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM logs";
+            cmd.CommandText = "SELECT COUNT(*) FROM logs WHERE project_id = $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
             var result = cmd.ExecuteScalar();
             return result is long count ? count : 0;
         }, ct);
@@ -513,6 +530,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         string? serviceName = null,
         bool ascending = false,
         int limit = 500,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -521,6 +539,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var logs = new List<LogStorageRow>();
             var qb = new QueryBuilder();
 
+            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(traceId))
@@ -629,6 +648,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         string? serviceName = null,
         string? sampleType = null,
         int limit = 100,
+        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -638,6 +658,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var profiles = new List<ProfileStorageRow>();
             var qb = new QueryBuilder();
 
+            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(traceId))
@@ -668,7 +689,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         }, ct);
     }
 
-    public Task<ProfileDetail?> GetProfileDetailAsync(string profileId, CancellationToken ct = default)
+    public Task<ProfileDetail?> GetProfileDetailAsync(
+        string profileId,
+        string projectId = ProjectScope.DefaultProjectId,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         return ExecuteReadAsync<ProfileDetail?>(con =>
@@ -677,7 +701,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using (var cmd = con.CreateCommand())
             {
                 cmd.CommandText =
-                    "SELECT " + ProfileStorageRow.SelectColumnList + " FROM profiles WHERE profile_id = $1 LIMIT 1";
+                    "SELECT " + ProfileStorageRow.SelectColumnList + " FROM profiles WHERE project_id = $1 AND profile_id = $2 LIMIT 1";
+                cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
                 cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
                 using var r = cmd.ExecuteReader();
                 if (r.Read()) header = ProfileStorageRow.MapFromReader(r);

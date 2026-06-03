@@ -16,6 +16,11 @@ internal static class CollectorSemanticAttributeCatalog
         "mcp.session.id",
         "session.id");
 
+    internal static readonly FrozenSet<string> ProjectIdResourceKeys = FrozenSet.Create(
+        StringComparer.Ordinal,
+        "qyl.project.id",
+        "qyl.workspace.id");
+
     internal static readonly FrozenSet<string> QylResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
         "qyl.capability.id",
