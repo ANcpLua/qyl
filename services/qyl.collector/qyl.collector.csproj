@@ -38,8 +38,6 @@
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
     <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
-    <PackageReference Include="OpenTelemetry.Api"/>
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 

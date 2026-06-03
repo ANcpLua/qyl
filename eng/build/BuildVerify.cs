@@ -44,20 +44,8 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var files = CollectorDirectory.GlobFiles("**/*.cs")
-                .Where(static f =>
-                {
-                    var path = f.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                });
-
-            var offenders = files
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
-                .Where(static file => IsForbiddenEndpointMapper(file.File, file.Text))
-                .Select(static file => file.File)
+            var offenders = CollectorSourceFiles()
+                .SelectMany(ForbiddenEndpointMappers)
                 .ToList();
 
             if (offenders.Count is 0)
@@ -67,29 +55,12 @@ interface IVerify : IHazSourcePaths
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Generated endpoint mapper call: {File}", offender);
+                Log.Error("  Generated endpoint mapper at {File}:{Line}: {Text}",
+                    offender.File, offender.Line, offender.Text);
 
             throw new InvalidOperationException(
                 "Do not publish collector-local endpoint modules through QylMapEndpoints, MapQylGeneratedEndpoints, " +
                 "or standalone Map*Endpoint extension methods. Expose contract-backed routes explicitly from CollectorEndpointExtensions.");
-
-            static bool IsForbiddenEndpointMapper(string relativePath, string text)
-            {
-                var normalizedPath = relativePath.Replace('\\', '/');
-                if (normalizedPath.EndsWith("services/qyl.collector/Hosting/CollectorEndpointExtensions.cs", StringComparison.Ordinal))
-                    return false;
-
-                return text.Contains("MapQylGeneratedEndpoints(", StringComparison.Ordinal)
-                       || text.Contains("[QylMapEndpoints", StringComparison.Ordinal)
-                       || text
-                           .Split('\n')
-                           .Select(static line => line.Trim())
-                           .Any(static line =>
-                               line.StartsWith("public static ", StringComparison.Ordinal)
-                               && line.Contains(" Map", StringComparison.Ordinal)
-                               && line.Contains("Endpoint", StringComparison.Ordinal)
-                               && line.Contains('('));
-            }
         });
 
     Target VerifyCollectorHasNoUnexpectedPublicTypes => d => d
@@ -98,19 +69,9 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
-                .SelectMany(file => File.ReadAllLines(file)
-                    .Select((line, index) => (
-                        File: RootDirectory.GetRelativePathTo(file).ToString(),
-                        Line: index + 1,
-                        Text: line.TrimStart()))
-                    .Where(static line => IsUnexpectedPublicType(line.Text)))
+            var offenders = CollectorSourceFiles()
+                .SelectMany(DeclaredTypes)
+                .Where(static declaration => declaration.IsPublic && !IsAllowedPublicCollectorType(declaration))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -120,32 +81,12 @@ interface IVerify : IHazSourcePaths
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Public collector type at {File}:{Line}: {Text}",
-                    offender.File, offender.Line, offender.Text);
+                Log.Error("  Public collector type at {File}:{Line}: {Namespace}.{Name}",
+                    offender.File, offender.Line, offender.Namespace, offender.Name);
 
             throw new InvalidOperationException(
                 "The collector is an application, not a contract assembly. Keep collector types internal; " +
                 "public API contracts must come from Qyl.Api.Contracts.");
-
-            static bool IsUnexpectedPublicType(string line)
-            {
-                if (line is "public partial class Program;")
-                    return false;
-
-                return line.StartsWith("public class ", StringComparison.Ordinal)
-                       || line.StartsWith("public static class ", StringComparison.Ordinal)
-                       || line.StartsWith("public static partial class ", StringComparison.Ordinal)
-                       || line.StartsWith("public sealed class ", StringComparison.Ordinal)
-                       || line.StartsWith("public partial class ", StringComparison.Ordinal)
-                       || line.StartsWith("public sealed partial class ", StringComparison.Ordinal)
-                       || line.StartsWith("public record ", StringComparison.Ordinal)
-                       || line.StartsWith("public sealed record ", StringComparison.Ordinal)
-                       || line.StartsWith("public readonly record ", StringComparison.Ordinal)
-                       || line.StartsWith("public partial record ", StringComparison.Ordinal)
-                       || line.StartsWith("public struct ", StringComparison.Ordinal)
-                       || line.StartsWith("public readonly struct ", StringComparison.Ordinal)
-                       || line.StartsWith("public enum ", StringComparison.Ordinal);
-            }
         });
 
     Target VerifyCollectorHasNoPublicLocalModels => d => d
@@ -154,19 +95,12 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
-                .SelectMany(file => File.ReadAllLines(file)
-                    .Select((line, index) => (
-                        File: RootDirectory.GetRelativePathTo(file).ToString(),
-                        Line: index + 1,
-                        Text: line.TrimStart()))
-                    .Where(static line => IsPublicLocalModelDeclaration(line.Text)))
+            var offenders = CollectorSourceFiles()
+                .SelectMany(DeclaredTypes)
+                .Where(static declaration =>
+                    declaration.IsPublic &&
+                    !IsAllowedPublicCollectorType(declaration) &&
+                    IsPublicLocalModelDeclaration(declaration))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -176,35 +110,30 @@ interface IVerify : IHazSourcePaths
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Public collector-local model at {File}:{Line}: {Text}",
-                    offender.File, offender.Line, offender.Text);
+                Log.Error("  Public collector-local model at {File}:{Line}: {Namespace}.{Name}",
+                    offender.File, offender.Line, offender.Namespace, offender.Name);
 
             throw new InvalidOperationException(
                 "Do not create public collector-local DTO/model surfaces. Public API models must come from Qyl.Api.Contracts.");
 
-            static bool IsPublicLocalModelDeclaration(string line)
+            static bool IsPublicLocalModelDeclaration(DeclaredType declaration)
             {
-                if (line.StartsWith("public sealed record ", StringComparison.Ordinal) ||
-                    line.StartsWith("public sealed partial record ", StringComparison.Ordinal) ||
-                    line.StartsWith("public readonly record ", StringComparison.Ordinal) ||
-                    line.StartsWith("public readonly struct SpanColumn", StringComparison.Ordinal) ||
-                    line.StartsWith("public enum CompareOp", StringComparison.Ordinal))
+                if (declaration.Kind is "record" or "record struct")
+                    return true;
+
+                if ((declaration.Kind is "struct" && declaration.Name is "SpanColumn") ||
+                    (declaration.Kind is "enum" && declaration.Name is "CompareOp"))
                 {
                     return true;
                 }
 
-                if (!line.StartsWith("public sealed class ", StringComparison.Ordinal))
-                    return false;
-
-                var nameStart = "public sealed class ".Length;
-                var nameEnd = line.IndexOfAny([' ', '(', ':', '<'], nameStart);
-                var className = nameEnd < 0 ? line[nameStart..] : line[nameStart..nameEnd];
-
-                return className.EndsWith("Options", StringComparison.Ordinal) ||
-                       className.EndsWith("Entry", StringComparison.Ordinal) ||
-                       className.EndsWith("Row", StringComparison.Ordinal) ||
-                       className.EndsWith("Stats", StringComparison.Ordinal) ||
-                       className.EndsWith("Result", StringComparison.Ordinal);
+                return declaration.Kind is "class" &&
+                       declaration.IsSealed &&
+                       (declaration.Name.EndsWith("Options", StringComparison.Ordinal) ||
+                        declaration.Name.EndsWith("Entry", StringComparison.Ordinal) ||
+                        declaration.Name.EndsWith("Row", StringComparison.Ordinal) ||
+                        declaration.Name.EndsWith("Stats", StringComparison.Ordinal) ||
+                        declaration.Name.EndsWith("Result", StringComparison.Ordinal));
             }
         });
 
@@ -214,19 +143,9 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
-                .SelectMany(file => File.ReadAllLines(file)
-                    .Select((line, index) => (
-                        File: RootDirectory.GetRelativePathTo(file).ToString(),
-                        Line: index + 1,
-                        TypeName: TryGetDeclaredTypeName(line.TrimStart())))
-                    .Where(static declaration => IsLocalHttpDtoName(declaration.TypeName)))
+            var offenders = CollectorSourceFiles()
+                .SelectMany(DeclaredTypes)
+                .Where(static declaration => IsLocalHttpDtoName(declaration.Name))
                 .ToList();
 
             if (offenders.Count is 0)
@@ -236,19 +155,18 @@ interface IVerify : IHazSourcePaths
             }
 
             foreach (var offender in offenders)
-                Log.Error("  Collector-local HTTP DTO at {File}:{Line}: {Type}",
-                    offender.File, offender.Line, offender.TypeName);
+                Log.Error("  Collector-local HTTP DTO at {File}:{Line}: {Namespace}.{Name}",
+                    offender.File, offender.Line, offender.Namespace, offender.Name);
 
             throw new InvalidOperationException(
                 "Do not create collector-local Request/Response/Dto/Contract types for HTTP routes. " +
                 "Add or regenerate the model in qyl-api-schema, publish Qyl.Api.Contracts, then consume it here.");
 
-            static bool IsLocalHttpDtoName(string? typeName) =>
-                typeName is not null &&
-                (typeName.EndsWith("Request", StringComparison.Ordinal) ||
-                 typeName.EndsWith("Response", StringComparison.Ordinal) ||
-                 typeName.EndsWith("Dto", StringComparison.Ordinal) ||
-                 typeName.EndsWith("Contract", StringComparison.Ordinal));
+            static bool IsLocalHttpDtoName(string typeName) =>
+                typeName.EndsWith("Request", StringComparison.Ordinal) ||
+                typeName.EndsWith("Response", StringComparison.Ordinal) ||
+                typeName.EndsWith("Dto", StringComparison.Ordinal) ||
+                typeName.EndsWith("Contract", StringComparison.Ordinal);
         });
 
     Target VerifyCollectorHasNoLocalApiModels => d => d
@@ -489,74 +407,20 @@ interface IVerify : IHazSourcePaths
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            string[] forbiddenSemanticLiterals =
-            [
-                "\"client.",
-                "\"code.",
-                "\"db.",
-                "\"deployment.",
-                "\"enduser.",
-                "\"error.type\"",
-                "\"exception.",
-                "\"gen_ai.",
-                "\"host.",
-                "\"http.",
-                "\"mcp.",
-                "\"messaging.",
-                "\"meter.name\"",
-                "\"os.",
-                "\"profile.",
-                "\"otel.scope.",
-                "\"qyl.capability.",
-                "\"server.",
-                "\"service.",
-                "\"session.id\"",
-                "\"url.",
-                "\"user.id\""
-            ];
-
-            string[] forbiddenSemanticAttributeImports =
-            [
-                "Qyl.OpenTelemetry.SemanticConventions.Attributes.",
-                "Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes."
-            ];
-
-            var collectorFiles = CollectorDirectory.GlobFiles("**/*.cs")
-                .Where(static f =>
-                {
-                    var path = f.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.EndsWith(".g.cs", StringComparison.Ordinal);
-                })
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
+            var offenders = CollectorSourceFiles()
+                .Where(static file => !file.ToString().EndsWith(".g.cs", StringComparison.Ordinal))
+                .SelectMany(SemanticUsageOffenders)
                 .ToList();
 
-            var literalOffenders = collectorFiles
-                .Where(file => forbiddenSemanticLiterals.Any(token =>
-                    file.Text.Contains(token, StringComparison.Ordinal)))
-                .Select(static file => file.File)
-                .ToList();
-
-            var importOffenders = collectorFiles
-                .Where(file => forbiddenSemanticAttributeImports.Any(token =>
-                    file.Text.Contains(token, StringComparison.Ordinal)))
-                .Select(static file => file.File)
-                .ToList();
-
-            if (literalOffenders.Count is 0 && importOffenders.Count is 0)
+            if (offenders.Count is 0)
             {
                 Log.Information("Collector semantic attribute keys use generated constants");
                 return;
             }
 
-            foreach (var offender in literalOffenders)
-                Log.Error("  Raw semantic attribute literal: {File}", offender);
-
-            foreach (var offender in importOffenders)
-                Log.Error("  Direct semantic attribute import: {File}", offender);
+            foreach (var offender in offenders)
+                Log.Error("  {Kind} at {File}:{Line}: {Text}",
+                    offender.Kind, offender.File, offender.Line, offender.Text);
 
             throw new InvalidOperationException(
                 "Do not hardcode semantic attribute keys or consume SemConv attribute types directly in the collector. " +
@@ -1668,7 +1532,22 @@ interface IVerify : IHazSourcePaths
         int Line,
         string Namespace,
         string Name,
-        bool IsStatic);
+        string Kind,
+        bool IsPublic,
+        bool IsStatic,
+        bool IsSealed,
+        bool IsPartial);
+
+    private readonly record struct ForbiddenEndpointMapper(
+        string File,
+        int Line,
+        string Text);
+
+    private readonly record struct SemanticUsageOffender(
+        string File,
+        int Line,
+        string Kind,
+        string Text);
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
         CollectorDirectory.GlobFiles("**/*.cs")
@@ -1681,20 +1560,24 @@ interface IVerify : IHazSourcePaths
 
     private IEnumerable<DeclaredType> DeclaredTypes(AbsolutePath file)
     {
-        var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
-        var root = tree.GetCompilationUnitRoot();
+        var root = ParseCompilationUnit(file);
         var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
 
         foreach (var declaration in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
         {
             var line = declaration.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+            var modifiers = declaration.Modifiers;
             yield return new DeclaredType(
                 RootDirectory.GetRelativePathTo(file).ToString(),
                 relativePath,
                 line,
                 ResolveNamespace(declaration),
                 declaration.Identifier.ValueText,
-                declaration.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.StaticKeyword)));
+                GetTypeKind(declaration),
+                modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.PublicKeyword)),
+                modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.StaticKeyword)),
+                modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.SealedKeyword)),
+                modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.PartialKeyword)));
         }
 
         static string ResolveNamespace(SyntaxNode node)
@@ -1707,52 +1590,169 @@ interface IVerify : IHazSourcePaths
 
             return "";
         }
+
+        static string GetTypeKind(BaseTypeDeclarationSyntax declaration) =>
+            declaration switch
+            {
+                ClassDeclarationSyntax => "class",
+                RecordDeclarationSyntax record when record.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword) => "record struct",
+                RecordDeclarationSyntax => "record",
+                StructDeclarationSyntax => "struct",
+                EnumDeclarationSyntax => "enum",
+                _ => declaration.Kind().ToString()
+            };
     }
 
-    private static string? TryGetDeclaredTypeName(string line)
+    private IEnumerable<ForbiddenEndpointMapper> ForbiddenEndpointMappers(AbsolutePath file)
     {
-        string[] prefixes =
-        [
-            "public sealed partial record ",
-            "public sealed record ",
-            "public readonly record ",
-            "public partial record ",
-            "public record ",
-            "public sealed partial class ",
-            "public sealed class ",
-            "public static partial class ",
-            "public static class ",
-            "public partial class ",
-            "public class ",
-            "public readonly struct ",
-            "public struct ",
-            "public enum ",
-            "internal sealed partial record ",
-            "internal sealed record ",
-            "internal readonly record ",
-            "internal partial record ",
-            "internal record ",
-            "internal sealed partial class ",
-            "internal sealed class ",
-            "internal static partial class ",
-            "internal static class ",
-            "internal partial class ",
-            "internal class ",
-            "internal readonly struct ",
-            "internal struct ",
-            "internal enum "
-        ];
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+        if (relativePath.EndsWith("services/qyl.collector/Hosting/CollectorEndpointExtensions.cs", StringComparison.Ordinal))
+            yield break;
 
-        foreach (var prefix in prefixes)
+        var root = ParseCompilationUnit(file);
+
+        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
-            if (!line.StartsWith(prefix, StringComparison.Ordinal))
-                continue;
-
-            var nameStart = prefix.Length;
-            var nameEnd = line.IndexOfAny([' ', '(', ':', '<', ';'], nameStart);
-            return nameEnd < 0 ? line[nameStart..] : line[nameStart..nameEnd];
+            if (InvocationName(invocation.Expression) is "MapQylGeneratedEndpoints")
+                yield return new ForbiddenEndpointMapper(relativePath, NodeLine(invocation), NodePreview(invocation));
         }
 
-        return null;
+        foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>())
+        {
+            if (attribute.Name.ToString().Contains("QylMapEndpoints", StringComparison.Ordinal))
+                yield return new ForbiddenEndpointMapper(relativePath, NodeLine(attribute), NodePreview(attribute));
+        }
+
+        foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+        {
+            if (!method.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.PublicKeyword)) ||
+                !method.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.StaticKeyword)))
+            {
+                continue;
+            }
+
+            var name = method.Identifier.ValueText;
+            if (name.StartsWith("Map", StringComparison.Ordinal) &&
+                name.Contains("Endpoint", StringComparison.Ordinal))
+            {
+                yield return new ForbiddenEndpointMapper(relativePath, NodeLine(method), NodePreview(method));
+            }
+        }
+    }
+
+    private IEnumerable<SemanticUsageOffender> SemanticUsageOffenders(AbsolutePath file)
+    {
+        var root = ParseCompilationUnit(file);
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+
+        foreach (var usingDirective in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
+        {
+            var name = usingDirective.Name?.ToString();
+            if (IsForbiddenSemConvAttributeNamespace(name))
+                yield return CreateOffender(usingDirective, "Direct semantic attribute import");
+        }
+
+        foreach (var name in root.DescendantNodes().OfType<NameSyntax>())
+        {
+            var text = name.ToString();
+            if (IsForbiddenSemConvAttributeNamespace(text))
+                yield return CreateOffender(name, "Direct semantic attribute reference");
+        }
+
+        foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+        {
+            if (literal.IsKind(SyntaxKind.StringLiteralExpression) &&
+                literal.Token.ValueText is { } value &&
+                IsSemanticAttributeLiteral(value))
+            {
+                yield return CreateOffender(literal, "Raw semantic attribute literal");
+            }
+        }
+
+        foreach (var interpolatedText in root.DescendantNodes().OfType<InterpolatedStringTextSyntax>())
+        {
+            var value = interpolatedText.TextToken.ValueText;
+            if (IsSemanticAttributeLiteral(value))
+                yield return CreateOffender(interpolatedText, "Raw semantic attribute literal");
+        }
+
+        SemanticUsageOffender CreateOffender(SyntaxNode node, string kind) =>
+            new(relativePath, NodeLine(node), kind, NodePreview(node));
+    }
+
+    private static CompilationUnitSyntax ParseCompilationUnit(AbsolutePath file)
+    {
+        var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file.ToString());
+        return tree.GetCompilationUnitRoot();
+    }
+
+    private static bool IsAllowedPublicCollectorType(DeclaredType declaration) =>
+        declaration.Name is "Program" &&
+        declaration.Kind is "class" &&
+        declaration.IsPartial &&
+        declaration.Path.EndsWith("services/qyl.collector/Program.cs", StringComparison.Ordinal);
+
+    private static string? InvocationName(ExpressionSyntax expression) =>
+        expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.ValueText,
+            _ => null
+        };
+
+    private static int NodeLine(SyntaxNode node) =>
+        node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+
+    private static string NodePreview(SyntaxNode node)
+    {
+        var line = node.ToString()
+            .Split('\n', 2)[0]
+            .Replace('\r', ' ')
+            .Trim();
+
+        return line.Length <= 160 ? line : line[..160];
+    }
+
+    private static bool IsForbiddenSemConvAttributeNamespace(string? name) =>
+        name is not null &&
+        (name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Attributes", StringComparison.Ordinal) ||
+         name.StartsWith("Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes", StringComparison.Ordinal));
+
+    private static bool IsSemanticAttributeLiteral(string value)
+    {
+        string[] exact =
+        [
+            "error.type",
+            "meter.name",
+            "session.id",
+            "user.id"
+        ];
+
+        if (exact.Contains(value, StringComparer.Ordinal))
+            return true;
+
+        string[] prefixes =
+        [
+            "client.",
+            "code.",
+            "db.",
+            "deployment.",
+            "enduser.",
+            "exception.",
+            "gen_ai.",
+            "host.",
+            "http.",
+            "mcp.",
+            "messaging.",
+            "os.",
+            "profile.",
+            "otel.scope.",
+            "qyl.capability.",
+            "server.",
+            "service.",
+            "url."
+        ];
+
+        return prefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal));
     }
 }
