@@ -38,7 +38,6 @@
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
     <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
-    <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 
   <!-- .NET 10 Telemetry: Source generators, enrichment, redaction, buffering (in Telemetry pkg) -->

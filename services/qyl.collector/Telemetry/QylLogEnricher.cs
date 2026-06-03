@@ -26,6 +26,7 @@ internal sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccesso
             collector.Add(CollectorSemanticAttributeCatalog.HttpRoute, routeEndpoint.RoutePattern.RawText);
         }
 
-        collector.Add(CollectorSemanticAttributeCatalog.HttpRequestMethod, context.Request.Method);
+        collector.Add(CollectorSemanticAttributeCatalog.HttpRequestMethod,
+            HttpTelemetryNames.NormalizeMethod(context.Request.Method));
     }
 }

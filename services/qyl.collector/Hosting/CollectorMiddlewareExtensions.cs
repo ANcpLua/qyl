@@ -32,7 +32,10 @@ internal static class CollectorMiddlewareExtensions
                 var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
                 if (exceptionFeature?.Error is { } error)
                 {
-                    ExceptionHandlerLog.UnhandledException(logger, context.Request.Method, error);
+                    ExceptionHandlerLog.UnhandledException(
+                        logger,
+                        HttpTelemetryNames.NormalizeMethod(context.Request.Method),
+                        error.GetType().FullName ?? error.GetType().Name);
                 }
 
                 context.Response.Headers["X-Trace-Id"] = traceId;
@@ -69,6 +72,6 @@ internal static class CollectorMiddlewareExtensions
 
 internal static partial class ExceptionHandlerLog
 {
-    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method}")]
-    public static partial void UnhandledException(ILogger logger, string method, Exception error);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method}: {ExceptionType}")]
+    public static partial void UnhandledException(ILogger logger, string method, string exceptionType);
 }

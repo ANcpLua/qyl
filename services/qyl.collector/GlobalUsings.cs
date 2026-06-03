@@ -4,7 +4,6 @@ global using System.Collections.Frozen;
 global using System.Data.Common;
 global using System.Globalization;
 global using System.IO.Compression;
-global using System.IO.Hashing;
 global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 global using System.Security.Cryptography;

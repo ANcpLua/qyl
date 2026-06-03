@@ -46,8 +46,6 @@
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
-    <!-- System -->
-    <PackageVersion Include="System.IO.Hashing" Version="$(DotNetRuntimeVersion)"/>
     <!-- DuckDB -->
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
     <!-- gRPC & Protobuf -->
