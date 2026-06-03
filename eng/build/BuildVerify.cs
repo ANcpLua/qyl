@@ -1221,6 +1221,42 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "in OtlpConverter hot paths.");
         });
 
+    Target VerifyOtlpProfileSymbolsAreResolved => d => d
+        .Unlisted()
+        .Description("Verify OTLP profile function and mapping symbols are resolved from the profile string table")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
+            if (!converterFile.FileExists())
+                throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
+
+            var converterText = File.ReadAllText(converterFile);
+            string[] required =
+            [
+                "Name = Resolve(f.NameStrindex, dictionary)",
+                "SystemName = Resolve(f.SystemNameStrindex, dictionary)",
+                "Filename = Resolve(f.FilenameStrindex, dictionary)",
+                "Filename = Resolve(m.FilenameStrindex, dictionary)"
+            ];
+
+            var missing = required
+                .Where(token => !converterText.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (missing.Count is 0)
+            {
+                Log.Information("OTLP profile symbols resolve from the profile string table");
+                return;
+            }
+
+            foreach (var token in missing)
+                Log.Error("  Missing profile symbol resolver: {Token}", token);
+
+            throw new InvalidOperationException(
+                "Do not drop OTLP profile function or mapping symbols. Resolve *_strindex fields through ProfilesDictionary.string_table.");
+        });
+
     Target VerifyOtlpConverterUsesCentralizedSemanticProjection => d => d
         .Unlisted()
         .Description("Verify OTLP decoding stays storage-independent and storage projection stays centralized")
@@ -1966,6 +2002,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorStorageWritesUseGeneratedBatchHelper)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
+        .DependsOn(VerifyOtlpProfileSymbolsAreResolved)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)

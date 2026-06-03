@@ -315,9 +315,9 @@ internal static class OtlpConverter
             functions.Add(new ProfileFunctionIngestionRecord
             {
                 Ordinal = i,
-                Name = null,
-                SystemName = null,
-                Filename = null,
+                Name = Resolve(f.NameStrindex, dictionary),
+                SystemName = Resolve(f.SystemNameStrindex, dictionary),
+                Filename = Resolve(f.FilenameStrindex, dictionary),
                 StartLine = f.StartLine
             });
         }
@@ -352,7 +352,7 @@ internal static class OtlpConverter
             mappings.Add(new ProfileMappingIngestionRecord
             {
                 Ordinal = i,
-                Filename = null,
+                Filename = Resolve(m.FilenameStrindex, dictionary),
                 MemoryStart = m.MemoryStart,
                 MemoryLimit = m.MemoryLimit,
                 FileOffset = m.FileOffset
