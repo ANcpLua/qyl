@@ -10,7 +10,6 @@ import {
     GitBranch,
     type LucideIcon,
     Radio,
-    Search,
     Server,
     ShieldCheck,
     Sparkles,
@@ -48,9 +47,9 @@ type LaunchStep = {
 const scopeGroups: ScopeGroup[] = [
     {
         title: 'Inspect traces and issues',
-        description: 'Search traces, grouped errors, spans, sessions, and live telemetry facts.',
+        description: 'Inspect traces, grouped errors, sessions, and live telemetry facts.',
         level: 'inspect',
-        icon: Search,
+        icon: GitBranch,
     },
     {
         title: 'Analyze telemetry changes',

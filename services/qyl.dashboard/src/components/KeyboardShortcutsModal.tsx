@@ -11,14 +11,10 @@ const shortcuts: ShortcutItem[] = [
     {key: 'R', description: 'Go to Resources', category: 'navigation'},
     {key: 'T', description: 'Go to Traces', category: 'navigation'},
     {key: 'C', description: 'Go to Console / Logs', category: 'navigation'},
-    {key: 'M', description: 'Go to Metrics / GenAI', category: 'navigation'},
-    {key: '/', description: 'Go to Search', category: 'navigation'},
     {key: 'A', description: 'Go to Agents', category: 'navigation'},
-    {key: 'B', description: 'Go to Bot', category: 'navigation'},
     {key: ',', description: 'Open Settings', category: 'navigation'},
     // Actions
     {key: '?', description: 'Show keyboard shortcuts', category: 'actions'},
-    {key: 'Ctrl + /', description: 'Focus search', category: 'actions'},
     {key: 'Esc', description: 'Close panel / Clear selection', category: 'actions'},
 ];
 

@@ -18,7 +18,6 @@ const LogsPage = lazy(() => import('@/pages/LogsPage').then(m => ({default: m.Lo
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({default: m.DashboardPage})));
 const CostPage = lazy(() => import('@/pages/CostPage').then(m => ({default: m.CostPage})));
 const ServicesPage = lazy(() => import('@/pages/ServicesPage').then(m => ({default: m.ServicesPage})));
-const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({default: m.SearchPage})));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({default: m.SettingsPage})));
 const IssuesPage = lazy(() => import('@/pages/IssuesPage').then(m => ({default: m.IssuesPage})));
 const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then(m => ({default: m.IssueDetailPage})));
@@ -26,7 +25,6 @@ const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({d
 const AlertsPage = lazy(() => import('@/pages/AlertsPage').then(m => ({default: m.AlertsPage})));
 const PerformancePage = lazy(() => import('@/pages/PerformancePage').then(m => ({default: m.PerformancePage})));
 const ErrorsOutagesPage = lazy(() => import('@/pages/ErrorsOutagesPage').then(m => ({default: m.ErrorsOutagesPage})));
-const SpanExplorerPage = lazy(() => import('@/pages/SpanExplorerPage').then(m => ({default: m.SpanExplorerPage})));
 const ConversationsPage = lazy(() => import('@/pages/ConversationsPage').then(m => ({default: m.ConversationsPage})));
 const AgentsPage = lazy(() => import('@/pages/AgentsPage').then(m => ({default: m.AgentsPage})));
 
@@ -174,14 +172,12 @@ export default function App() {
                                 <Route path="/services" element={<ServicesPage/>}/>
                                 <Route path="/dashboards" element={<DashboardPage/>}/>
                                 <Route path="/dashboards/:id" element={<DashboardPage/>}/>
-                                <Route path="/search" element={<SearchPage/>}/>
                                 <Route path="/settings" element={<SettingsPage/>}/>
                                 <Route path="/issues" element={<IssuesPage/>}/>
                                 <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
                                 <Route path="/alerts" element={<AlertsPage/>}/>
                                 <Route path="/performance" element={<PerformancePage/>}/>
                                 <Route path="/errors" element={<ErrorsOutagesPage/>}/>
-                                <Route path="/spans" element={<SpanExplorerPage/>}/>
                                 <Route path="/conversations" element={<ConversationsPage/>}/>
                                 <Route path="/agents" element={<AgentsPage/>}/>
                             </Route>

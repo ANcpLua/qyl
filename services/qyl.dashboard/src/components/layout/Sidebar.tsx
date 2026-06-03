@@ -13,12 +13,10 @@ import {
     Gauge,
     GitBranch,
     Globe,
-    Layers,
     LayoutGrid,
     MessageSquare,
     MessagesSquare,
     Radio,
-    Search,
     Settings,
     Terminal,
     TriangleAlert,
@@ -41,7 +39,6 @@ const navItems: NavItem[] = [
     {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
     {to: '/errors', icon: AlertCircle, label: 'ERRORS', shortcut: 'E'},
     {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
-    {to: '/spans', icon: Layers, label: 'SPANS', shortcut: 'X'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/conversations', icon: MessagesSquare, label: 'CONVERSATIONS', shortcut: 'N'},
     {to: '/agents', icon: Bot, label: 'AGENTS', shortcut: 'A'},
@@ -49,7 +46,6 @@ const navItems: NavItem[] = [
     {to: '/services', icon: Globe, label: 'SERVICES', shortcut: 'V'},
     {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
     {to: '/dashboards', icon: LayoutGrid, label: 'DASHBOARDS', shortcut: 'D'},
-    {to: '/search', icon: Search, label: 'SEARCH', shortcut: '/'},
     {to: '/alerts', icon: TriangleAlert, label: 'ALERTS', shortcut: 'L'},
 ];
 

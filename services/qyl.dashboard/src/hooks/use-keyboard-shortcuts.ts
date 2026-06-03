@@ -105,8 +105,6 @@ export function useKeyboardShortcuts() {
     };
 }
 
-// Navigation shortcuts aligned with the sidebar key hints.
-// R = Resources, T = Traces, C = Logs, M = GenAI
 export function useNavigationShortcuts(
     navigate: (path: string) => void,
     registerShortcut: (shortcut: ShortcutHandler) => () => void
@@ -132,41 +130,17 @@ export function useNavigationShortcuts(
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // / = Search page
-            registerShortcut({
-                key: '/',
-                description: 'Go to Search',
-                handler: () => navigate('/search'),
-            }),
             // A = Agents
             registerShortcut({
                 key: 'a',
                 description: 'Go to Agents',
                 handler: () => navigate('/agents'),
             }),
-            // B = Bot
-            registerShortcut({
-                key: 'b',
-                description: 'Go to Bot',
-                handler: () => navigate('/bot'),
-            }),
             // , = Settings (common convention)
             registerShortcut({
                 key: ',',
                 description: 'Open Settings',
                 handler: () => navigate('/settings'),
-            }),
-            // Ctrl+/ = Focus search
-            registerShortcut({
-                key: '/',
-                ctrl: true,
-                description: 'Focus Search',
-                handler: () => {
-                    const searchInput = document.querySelector<HTMLInputElement>(
-                        '[data-search-input]'
-                    );
-                    searchInput?.focus();
-                },
             }),
             // Escape = Close panel / Clear selection
             registerShortcut({

@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {Clock, Pause, Play, RefreshCw, Search, Zap} from 'lucide-react';
+import {Clock, Pause, Play, RefreshCw, Zap} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {ThemeToggle} from '@/components/ui/theme-toggle';
 import {HealthIndicator} from '@/components/health';
@@ -15,17 +14,13 @@ interface TopBarProps {
     onRefresh: () => void;
     timeRange: string;
     onTimeRangeChange: (range: string) => void;
-    onSearch?: (query: string) => void;
 }
 
 const pageTitle: Record<string, string> = {
     '/': 'RESOURCES',
     '/traces': 'TRACES',
     '/logs': 'STRUCTURED LOGS',
-    '/metrics': 'METRICS',
-    '/search': 'SEARCH',
     '/settings': 'SETTINGS',
-    '/bot': 'BOT ANALYTICS',
 };
 
 const timeRanges = [
@@ -47,10 +42,8 @@ export function TopBar({
                            onRefresh,
                            timeRange,
                            onTimeRangeChange,
-                           onSearch,
                        }: TopBarProps) {
     const location = useLocation();
-    const [searchValue, setSearchValue] = useState('');
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // Update time every second
@@ -63,17 +56,6 @@ export function TopBar({
         ?? (location.pathname.startsWith('/dashboards/')
             ? (location.pathname.split('/').pop() ?? 'dashboard').replace(/-/g, ' ').toUpperCase()
             : 'QYL.');
-
-    const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (onSearch) {
-            onSearch(searchValue);
-        } else {
-            window.dispatchEvent(
-                new CustomEvent('qyl:search', {detail: {query: searchValue}})
-            );
-        }
-    };
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString('en-US', {
@@ -96,24 +78,8 @@ export function TopBar({
             {/* Separator */}
             <div className="hidden md:block w-px h-5 bg-brutal-zinc/70"/>
 
-            {/* Search - BRUTALIST input */}
-            <form onSubmit={handleSearch} className="flex-1 min-w-[12rem] md:min-w-[16rem] max-w-xl">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
-                    <Input
-                        data-search-input
-                        type="text"
-                        placeholder="SEARCH... (CTRL+/)"
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
-                        className="h-8 md:h-9 pl-9 bg-brutal-dark/85 border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-[0.08em] focus:border-signal-orange"
-                        aria-label="Search"
-                    />
-                </div>
-            </form>
-
             {/* Spacer */}
-            <div className="hidden xl:block flex-1"/>
+            <div className="flex-1"/>
 
             {/* Current time display */}
             <div

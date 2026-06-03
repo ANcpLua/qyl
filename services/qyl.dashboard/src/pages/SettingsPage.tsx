@@ -40,13 +40,9 @@ const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
     {key: 'T', description: 'Go to Traces'},
     {key: 'C', description: 'Go to Console / Logs'},
-    {key: 'M', description: 'Go to Metrics / GenAI'},
-    {key: '/', description: 'Go to Search'},
     {key: 'A', description: 'Go to Agents'},
-    {key: 'B', description: 'Go to Bot'},
     {key: ',', description: 'Open Settings'},
     {key: '?', description: 'Show keyboard shortcuts'},
-    {key: 'Ctrl + /', description: 'Focus search'},
     {key: 'Escape', description: 'Close panel / Clear selection'},
 ];
 
