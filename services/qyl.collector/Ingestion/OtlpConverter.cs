@@ -5,7 +5,6 @@ using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
-using ProfileAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Profile.ProfileAttributes;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
@@ -13,7 +12,6 @@ using ProtoProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using ProtoProfilesDictionary = OpenTelemetry.Proto.Profiles.V1Development.ProfilesDictionary;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using ProtoSpan = OpenTelemetry.Proto.Trace.V1.Span;
-using ServiceAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Service.ServiceAttributes;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -59,7 +57,7 @@ internal static class OtlpConverter
         {
             if (attr is
                 {
-                    Key: ServiceAttributes.Name,
+                    Key: CollectorSemanticAttributeCatalog.ServiceName,
                     Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
                 })
                 return attr.Value.StringValue;
@@ -92,7 +90,10 @@ internal static class OtlpConverter
         RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { [ServiceAttributes.Name] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CollectorSemanticAttributeCatalog.ServiceName] = serviceName
+        };
 
         foreach (var attr in protoAttributes)
         {

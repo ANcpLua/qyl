@@ -518,7 +518,8 @@ interface IVerify : IHazSourcePaths
                 {
                     var path = f.ToString();
                     return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.EndsWith(".g.cs", StringComparison.Ordinal);
                 })
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
@@ -942,6 +943,7 @@ interface IVerify : IHazSourcePaths
 
             string[] forbidden =
             [
+                "Qyl.OpenTelemetry.SemanticConventions",
                 "using GenAiAttributes",
                 "QylGenAiCostProcessor",
                 "GenAiAttributes.",
@@ -957,6 +959,7 @@ interface IVerify : IHazSourcePaths
 
             string[] required =
             [
+                "CollectorSemanticAttributeCatalog.ServiceName",
                 "AttributeKeySets.ShouldConvertSpanAttribute",
                 "AttributeKeySets.ExtractSpanStorageProjection"
             ];
@@ -1520,6 +1523,8 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorHttpJsonContextUsesOnlyContracts)
         .DependsOn(VerifyCollectorEndpointResponsesUseContracts)
         .DependsOn(VerifyCollectorUsesSemanticConstants)
+        .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
+        .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
@@ -1544,6 +1549,8 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector HTTP JSON context serializes contract models only");
             Log.Information("  Collector endpoint responses are contract-backed");
             Log.Information("  Collector semantic keys use generated constants");
+            Log.Information("  Collector semantic attribute catalog matches package references");
+            Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");

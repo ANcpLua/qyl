@@ -25,6 +25,7 @@ sealed class Build : NukeBuild,
     IDocker,
     IPipeline,
     IVerify,
+    ICollectorSemanticCatalog,
     IPricing,
     ISmoke
 {
