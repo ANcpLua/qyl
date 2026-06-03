@@ -14,6 +14,7 @@ internal static class DuckDbEmitter
                       #nullable enable
 
                       using System;
+                      using System.Collections.Concurrent;
                       using System.Data.Common;
                       using System.Runtime.CompilerServices;
                       using System.Text;
@@ -27,6 +28,9 @@ internal static class DuckDbEmitter
         sb.AppendLine("{");
 
         var insertColumns = table.Columns.Where(static c => !c.ExcludeFromInsert).ToArray();
+
+        sb.AppendLine("    private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
+        sb.AppendLine();
 
         EmitColumnList(sb, table.TableName, insertColumns);
 
@@ -233,37 +237,47 @@ internal static class DuckDbEmitter
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    public static string BuildMultiRowInsertSql(int rowCount)");
         sb.AppendLine("    {");
-        sb.AppendLine("        var sb = new StringBuilder(1024);");
-        sb.Append(
-            "        sb.Append(\"INSERT INTO \").Append(TableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
-        sb.AppendLine();
-        sb.AppendLine();
-        sb.AppendLine("        for (var i = 0; i < rowCount; i++)");
+        sb.AppendLine("        return s_insertSqlCache.GetOrAdd(rowCount, static count =>");
         sb.AppendLine("        {");
-        sb.AppendLine("            if (i > 0) sb.Append(\", \");");
+        sb.AppendLine("            var sb = new StringBuilder(1024);");
+        sb.Append(
+            "            sb.Append(\"INSERT INTO \").Append(TableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
         sb.AppendLine();
-        sb.AppendLine("            var baseParam = i * ColumnCount;");
-        sb.AppendLine("            sb.Append('(');");
-        sb.AppendLine("            for (var col = 0; col < ColumnCount; col++)");
+        sb.AppendLine();
+        sb.AppendLine("            for (var i = 0; i < count; i++)");
         sb.AppendLine("            {");
-        sb.AppendLine("                if (col > 0) sb.Append(\", \");");
-        sb.AppendLine("                sb.Append('$').Append(baseParam + col + 1);");
+        sb.AppendLine("                if (i > 0) sb.Append(\", \");");
+        sb.AppendLine();
+        sb.AppendLine("                var baseParam = i * ColumnCount;");
+        sb.AppendLine("                sb.Append('(');");
+        sb.AppendLine("                for (var col = 0; col < ColumnCount; col++)");
+        sb.AppendLine("                {");
+        sb.AppendLine("                    if (col > 0) sb.Append(\", \");");
+        sb.AppendLine("                    sb.Append('$').Append(baseParam + col + 1);");
+        sb.AppendLine("                }");
+        sb.AppendLine("                sb.Append(')');");
         sb.AppendLine("            }");
-        sb.AppendLine("            sb.Append(')');");
-        sb.AppendLine("        }");
         sb.AppendLine();
 
         if (!string.IsNullOrEmpty(table.OnConflict))
         {
-            sb.AppendLine("        // ON CONFLICT clause for upsert behavior");
-            sb.Append("        sb.Append(\" \").Append(\"\"\"");
+            var onConflict = table.OnConflict!;
+            sb.AppendLine("            // ON CONFLICT clause for upsert behavior");
+            sb.Append("            sb.Append(\" \").Append(\"\"\"");
             sb.AppendLine();
-            sb.Append("            ").AppendLine(table.OnConflict);
-            sb.AppendLine("            \"\"\");");
+            foreach (var line in onConflict.Replace("\r\n", "\n").Split('\n'))
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                sb.Append("                ").AppendLine(line.Trim());
+            }
+            sb.AppendLine("                \"\"\");");
         }
 
         sb.AppendLine();
-        sb.AppendLine("        return sb.ToString();");
+        sb.AppendLine("            return sb.ToString();");
+        sb.AppendLine("        });");
         sb.AppendLine("    }");
     }
 }

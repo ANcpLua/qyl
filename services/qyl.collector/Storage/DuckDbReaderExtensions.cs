@@ -2,7 +2,19 @@ namespace Qyl.Collector.Storage;
 
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
-[DuckDbTable("spans")]
+[DuckDbTable("spans", OnConflict = """
+    ON CONFLICT (trace_id, span_id) DO UPDATE SET
+        end_time_unix_nano = EXCLUDED.end_time_unix_nano,
+        duration_ns = EXCLUDED.duration_ns,
+        status_code = EXCLUDED.status_code,
+        service_name = COALESCE(EXCLUDED.service_name, service_name),
+        gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
+        gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
+        gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
+        attributes_json = EXCLUDED.attributes_json,
+        resource_json = EXCLUDED.resource_json,
+        schema_url = EXCLUDED.schema_url
+    """)]
 internal sealed partial record SpanStorageRow
 {
     public required string SpanId { get; init; }

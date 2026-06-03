@@ -631,7 +631,7 @@ interface IVerify : IHazSourcePaths
         .Executes(() =>
         {
             var schemaFile = CollectorDirectory / "Storage" / "DuckDbSchema.Core.cs";
-            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            var spanStorageRowFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
 
             string[] forbidden =
             [
@@ -663,10 +663,10 @@ interface IVerify : IHazSourcePaths
                                     + " must declare PRIMARY KEY (trace_id, span_id)");
             }
 
-            if (!storeFile.FileExists() ||
-                !File.ReadAllText(storeFile).Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
+            if (!spanStorageRowFile.FileExists() ||
+                !File.ReadAllText(spanStorageRowFile).Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
             {
-                missingRequired.Add(RootDirectory.GetRelativePathTo(storeFile).ToString()
+                missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
                                     + " must upsert ON CONFLICT (trace_id, span_id)");
             }
 
@@ -941,7 +941,15 @@ interface IVerify : IHazSourcePaths
                 "ClearAllProfilesAsync",
                 "MetricCount",
                 "DroppedLogCount",
-                "DroppedMetricCount"
+                "DroppedMetricCount",
+                "SpanColumnCount",
+                "SpanColumnList",
+                "SpanOnConflictClause",
+                "BuildMultiRowSpanInsertSql",
+                "AddSpanParameters",
+                "TRY_CAST(status_code",
+                "kind VARCHAR NOT NULL",
+                "status_code VARCHAR NOT NULL"
             ];
 
             string[] removedCollectorQueryTokens =
