@@ -196,18 +196,28 @@ internal static class CollectorEndpointExtensions
 
         yield return new SseItem<object?>(new { status = "ok" }, "connected");
 
-        ulong? after = null;
+        (ulong TimeUnixNano, string LogId)? after = null;
         while (!ct.IsCancellationRequested)
         {
             var rows = await store.GetLogsAsync(
-                session, trace, after: after, limit: 250, ct: ct).ConfigureAwait(false);
+                session,
+                trace,
+                after: after?.TimeUnixNano,
+                afterLogId: after?.LogId,
+                ascending: after is not null,
+                limit: 250,
+                ct: ct).ConfigureAwait(false);
 
             var dedupedPayload = new List<DeduplicatedLiveLog>(rows.Count + 4);
 
             if (rows.Count > 0)
             {
-                var ordered = rows.OrderBy(static l => l.TimeUnixNano).ToArray();
-                after = ordered[^1].TimeUnixNano;
+                var ordered = rows
+                    .OrderBy(static l => l.TimeUnixNano)
+                    .ThenBy(static l => l.LogId, StringComparer.Ordinal)
+                    .ToArray();
+                var last = ordered[^1];
+                after = (last.TimeUnixNano, last.LogId);
 
                 if (deduplicator is null)
                     dedupedPayload.AddRange(ordered.Select(static log => new DeduplicatedLiveLog(log)));

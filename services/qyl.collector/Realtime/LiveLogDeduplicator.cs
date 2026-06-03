@@ -1,10 +1,13 @@
+using System.Text;
 using Qyl.Collector.Primitives;
 
 namespace Qyl.Collector.Realtime;
 
 internal sealed class LiveLogDeduplicator
 {
-    private readonly Dictionary<string, DedupBucket> _buckets = new(StringComparer.Ordinal);
+    private const int StackHashBufferBytes = 512;
+    private readonly Dictionary<DedupKey, LinkedListNode<DedupBucket>> _buckets = [];
+    private readonly LinkedList<DedupBucket> _lru = [];
     private readonly int _maxBuckets;
     private readonly int _maxSuppressed;
     private readonly TimeSpan _window;
@@ -26,7 +29,9 @@ internal sealed class LiveLogDeduplicator
 
     public IReadOnlyList<DeduplicatedLiveLog> ProcessBatch(IEnumerable<LogStorageRow> orderedLogs)
     {
-        var output = new List<DeduplicatedLiveLog>();
+        var output = orderedLogs is IReadOnlyCollection<LogStorageRow> collection
+            ? new List<DeduplicatedLiveLog>(collection.Count)
+            : new List<DeduplicatedLiveLog>();
 
         foreach (var log in orderedLogs)
         {
@@ -34,16 +39,19 @@ internal sealed class LiveLogDeduplicator
             FlushExpired(timestamp, output);
 
             var key = BuildKey(log);
-            if (_buckets.TryGetValue(key, out var bucket))
+            if (_buckets.TryGetValue(key, out var node))
             {
+                var bucket = node.Value;
                 bucket.Count++;
                 bucket.LastSeenUtc = timestamp;
                 bucket.LastLog = log;
+                _lru.Remove(node);
+                _lru.AddLast(node);
 
                 if (bucket.Count - 1 >= _maxSuppressed)
                 {
                     EmitSummary(bucket, output);
-                    _buckets.Remove(key);
+                    RemoveBucket(node);
                 }
 
                 continue;
@@ -52,7 +60,9 @@ internal sealed class LiveLogDeduplicator
             if (_buckets.Count >= _maxBuckets)
                 EvictOldestBucket(output);
 
-            _buckets[key] = new DedupBucket(log, timestamp);
+            var newNode = new LinkedListNode<DedupBucket>(new DedupBucket(key, log, timestamp));
+            _lru.AddLast(newNode);
+            _buckets[key] = newNode;
             output.Add(new DeduplicatedLiveLog(log));
         }
 
@@ -66,19 +76,27 @@ internal sealed class LiveLogDeduplicator
         return output;
     }
 
-    private static string BuildKey(LogStorageRow log)
-    {
-        var service = log.ServiceName ?? "unknown";
-        var severity = log.SeverityText ?? string.Empty;
-        var body = log.Body ?? string.Empty;
-        return $"{service}\u001f{severity}\u001f{body}";
-    }
+    private static DedupKey BuildKey(LogStorageRow log) =>
+        new(
+            HashText(log.SessionId),
+            log.SessionId?.Length ?? 0,
+            HashText(log.TraceId),
+            log.TraceId?.Length ?? 0,
+            HashText(log.SpanId),
+            log.SpanId?.Length ?? 0,
+            HashText(log.ServiceName ?? "unknown"),
+            log.ServiceName?.Length ?? "unknown".Length,
+            log.SeverityNumber,
+            HashText(log.Body),
+            log.Body?.Length ?? 0);
 
     private void EvictOldestBucket(ICollection<DeduplicatedLiveLog> output)
     {
-        var oldest = _buckets.MinBy(static pair => pair.Value.LastSeenUtc);
+        if (_lru.First is not { } oldest)
+            return;
+
         EmitSummary(oldest.Value, output);
-        _buckets.Remove(oldest.Key);
+        RemoveBucket(oldest);
     }
 
     private static void EmitSummary(DedupBucket bucket, ICollection<DeduplicatedLiveLog> output)
@@ -95,24 +113,62 @@ internal sealed class LiveLogDeduplicator
         if (_buckets.Count is 0)
             return;
 
-        var expiredKeys = new List<string>();
-        foreach (var pair in _buckets)
+        while (_lru.First is { } oldest)
         {
-            var elapsed = utcNow - pair.Value.LastSeenUtc;
-            if (elapsed >= _window)
-                expiredKeys.Add(pair.Key);
-        }
+            var bucket = oldest.Value;
+            if (utcNow - bucket.LastSeenUtc < _window)
+                return;
 
-        foreach (var key in expiredKeys)
-        {
-            var bucket = _buckets[key];
             EmitSummary(bucket, output);
-            _buckets.Remove(key);
+            RemoveBucket(oldest);
         }
     }
 
-    private sealed class DedupBucket(LogStorageRow firstLog, DateTime firstSeenUtc)
+    private void RemoveBucket(LinkedListNode<DedupBucket> node)
     {
+        _buckets.Remove(node.Value.Key);
+        _lru.Remove(node);
+    }
+
+    private static ulong HashText(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        var maxByteCount = Encoding.UTF8.GetMaxByteCount(value.Length);
+        byte[]? rented = null;
+        Span<byte> buffer = maxByteCount <= StackHashBufferBytes
+            ? stackalloc byte[StackHashBufferBytes]
+            : rented = ArrayPool<byte>.Shared.Rent(maxByteCount);
+
+        try
+        {
+            var byteCount = Encoding.UTF8.GetBytes(value.AsSpan(), buffer);
+            return XxHash64.HashToUInt64(buffer[..byteCount]);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<byte>.Shared.Return(rented);
+        }
+    }
+
+    private readonly record struct DedupKey(
+        ulong SessionHash,
+        int SessionLength,
+        ulong TraceHash,
+        int TraceLength,
+        ulong SpanHash,
+        int SpanLength,
+        ulong ServiceHash,
+        int ServiceLength,
+        byte SeverityNumber,
+        ulong BodyHash,
+        int BodyLength);
+
+    private sealed class DedupBucket(DedupKey key, LogStorageRow firstLog, DateTime firstSeenUtc)
+    {
+        public DedupKey Key { get; } = key;
         public int Count { get; set; } = 1;
         public DateTime LastSeenUtc { get; set; } = firstSeenUtc;
         public LogStorageRow LastLog { get; set; } = firstLog;

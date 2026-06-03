@@ -664,8 +664,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         int? minSeverity = null,
         string? search = null,
         ulong? after = null,
+        string? afterLogId = null,
         ulong? before = null,
         string? serviceName = null,
+        bool ascending = false,
         int limit = 500,
         CancellationToken ct = default)
     {
@@ -689,11 +691,24 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
             if (after.HasValue)
-                qb.Add("time_unix_nano > $N", (decimal)after.Value);
+            {
+                if (string.IsNullOrEmpty(afterLogId))
+                    throw new ArgumentException(
+                        "A log id tie-breaker is required when querying after a timestamp.",
+                        nameof(afterLogId));
+
+                qb.Add(
+                    "(time_unix_nano > $N OR (time_unix_nano = $N AND log_id > $N))",
+                    (decimal)after.Value,
+                    (decimal)after.Value,
+                    afterLogId);
+            }
+
             if (before.HasValue)
                 qb.Add("time_unix_nano <= $N", (decimal)before.Value);
 
             using var cmd = con.CreateCommand();
+            var sortDirection = ascending ? "ASC" : "DESC";
             cmd.CommandText = "SELECT log_id, trace_id, span_id, session_id,"
                               + " time_unix_nano, observed_time_unix_nano,"
                               + " severity_number, severity_text, body,"
@@ -701,7 +716,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                               + " source_file, source_line, source_column, source_method,"
                               + " created_at"
                               + " FROM logs " + qb.WhereClause
-                              + " ORDER BY time_unix_nano DESC LIMIT "
+                              + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
                               + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
             qb.ApplyTo(cmd);
@@ -1390,6 +1405,23 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         {
             _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
             _parameters.Add(new DuckDBParameter { Value = value });
+        }
+
+        public void Add(string condition, object first, object second, object third)
+        {
+            _conditions.Add(ReplaceNextParam(ReplaceNextParam(ReplaceNextParam(condition))));
+            _parameters.Add(new DuckDBParameter { Value = first });
+            _parameters.Add(new DuckDBParameter { Value = second });
+            _parameters.Add(new DuckDBParameter { Value = third });
+        }
+
+        private string ReplaceNextParam(string condition)
+        {
+            var index = condition.IndexOf("$N", StringComparison.Ordinal);
+            if (index < 0)
+                throw new ArgumentException("Condition does not contain a $N parameter placeholder.", nameof(condition));
+
+            return condition[..index] + $"${_paramIndex++}" + condition[(index + 2)..];
         }
 
         public readonly void AddCondition(string condition) => _conditions.Add(condition);
