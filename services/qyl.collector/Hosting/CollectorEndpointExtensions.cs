@@ -110,7 +110,6 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionsAsync(
         DuckDbStore store,
-        string? userId,
         bool? isActive,
         DateTimeOffset? startTime,
         DateTimeOffset? endTime,
@@ -118,15 +117,6 @@ internal static class CollectorEndpointExtensions
         string? cursor,
         CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(userId))
-        {
-            return Results.BadRequest(ContractErrorFactory.Validation(
-                "userId",
-                "Session userId filtering requires a generated user identity storage projection.",
-                "session.user_filter_not_projected",
-                userId));
-        }
-
         if (!TryReadOffsetCursor(cursor, out var offset))
         {
             return Results.BadRequest(ContractErrorFactory.Validation(
@@ -183,13 +173,10 @@ internal static class CollectorEndpointExtensions
         {
             ActiveSessions = stats.ActiveSessions,
             TotalSessions = stats.TotalSessions,
-            UniqueUsers = 0,
             AvgDurationMs = stats.AvgDurationMs,
             SessionsWithErrors = stats.SessionsWithErrors,
             SessionsWithGenAi = stats.SessionsWithGenAi,
-            BounceRate = stats.BounceRate,
-            ByDeviceType = [],
-            ByCountry = []
+            BounceRate = stats.BounceRate
         });
     }
 
