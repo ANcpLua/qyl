@@ -16,10 +16,8 @@ internal static partial class DuckDbSchema
                                           sample_unit VARCHAR,
                                           original_payload_format VARCHAR,
                                           service_name VARCHAR,
-                                          profile_frame_type VARCHAR,
                                           attributes_json VARCHAR,
                                           resource_json VARCHAR,
-                                          profile_data_json VARCHAR,
                                           schema_url VARCHAR(256),
                                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                                       );

@@ -420,8 +420,6 @@ internal static class OtlpConverter
 
         var sessionId = attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation);
 
-        var profileFrameType = attributes.GetValueOrDefault(ProfileAttributes.FrameType);
-
         var (traceId, spanId) = ResolveProfileLink(profile, dictionary);
 
         var sampleType = Resolve(profile.SampleType?.TypeStrindex ?? 0, dictionary);
@@ -440,10 +438,8 @@ internal static class OtlpConverter
             SampleUnit = sampleUnit,
             OriginalPayloadFormat = NullIfEmpty(profile.OriginalPayloadFormat),
             ServiceName = serviceName,
-            ProfileFrameType = profileFrameType,
             AttributesJson = PersistedAttributePolicy.SerializeProfileAttributes(attributes),
             ResourceJson = resourceJson,
-            ProfileDataJson = null,
             SchemaUrl = schemaUrl
         };
 

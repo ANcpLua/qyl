@@ -116,11 +116,9 @@ internal sealed partial record ProfileStorageRow
     public string? OriginalPayloadFormat { get; init; }
 
     public string? ServiceName { get; init; }
-    public string? ProfileFrameType { get; init; }
 
     public string? AttributesJson { get; init; }
     public string? ResourceJson { get; init; }
-    public string? ProfileDataJson { get; init; }
     public string? SchemaUrl { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true)]

@@ -923,7 +923,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             cmd.CommandText = "SELECT profile_id, trace_id, span_id, session_id,"
                               + " time_unix_nano, duration_nano, sample_count,"
                               + " sample_type, sample_unit, original_payload_format,"
-                              + " service_name, profile_frame_type,"
+                              + " service_name,"
                               + " attributes_json, resource_json,"
                               + " schema_url, created_at"
                               + " FROM profiles " + qb.WhereClause
@@ -952,7 +952,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using (var cmd = con.CreateCommand())
             {
                 cmd.CommandText =
-                    "SELECT profile_id, trace_id, span_id, session_id, time_unix_nano, duration_nano, sample_count, sample_type, sample_unit, original_payload_format, service_name, profile_frame_type, attributes_json, resource_json, schema_url, created_at FROM profiles WHERE profile_id = $1 LIMIT 1";
+                    "SELECT profile_id, trace_id, span_id, session_id, time_unix_nano, duration_nano, sample_count, sample_type, sample_unit, original_payload_format, service_name, attributes_json, resource_json, schema_url, created_at FROM profiles WHERE profile_id = $1 LIMIT 1";
                 cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
                 using var r = cmd.ExecuteReader();
                 if (r.Read()) header = MapProfile(r);
@@ -1420,11 +1420,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             SampleUnit = reader.Col(8).AsString,
             OriginalPayloadFormat = reader.Col(9).AsString,
             ServiceName = reader.Col(10).AsString,
-            ProfileFrameType = reader.Col(11).AsString,
-            AttributesJson = reader.Col(12).AsString,
-            ResourceJson = reader.Col(13).AsString,
-            SchemaUrl = reader.Col(14).AsString,
-            CreatedAt = reader.Col(15).AsDateTimeOffset
+            AttributesJson = reader.Col(11).AsString,
+            ResourceJson = reader.Col(12).AsString,
+            SchemaUrl = reader.Col(13).AsString,
+            CreatedAt = reader.Col(14).AsDateTimeOffset
         };
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
