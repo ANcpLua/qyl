@@ -136,7 +136,7 @@ internal static class IngestionStorageMapper
                 MappingOrdinal = location.MappingOrdinal,
                 Address = location.Address,
                 LinesJson = location.Lines is { Count: > 0 } lines
-                    ? JsonSerializer.Serialize(lines, IngestionJsonSerializerContext.Default.ProfileLocationLineJsonList)
+                    ? JsonSerializer.Serialize(lines, StorageJsonSerializerContext.Default.ProfileLocationLineJsonList)
                     : null
             }).ToList(),
             Mappings = profile.Mappings.Select(mapping => new ProfileMappingRow

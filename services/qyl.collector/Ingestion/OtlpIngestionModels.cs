@@ -79,6 +79,11 @@ internal sealed record ProfileLocationIngestionRecord
     public IReadOnlyList<ProfileLocationLineJson>? Lines { get; init; }
 }
 
+internal readonly record struct ProfileLocationLineJson(
+    [property: JsonPropertyName("functionOrdinal")] int FunctionOrdinal,
+    [property: JsonPropertyName("line")] long Line,
+    [property: JsonPropertyName("column")] long Column);
+
 internal sealed record ProfileMappingIngestionRecord
 {
     public required int Ordinal { get; init; }

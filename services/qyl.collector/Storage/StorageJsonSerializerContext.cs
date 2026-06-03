@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Ingestion;
+namespace Qyl.Collector.Storage;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -6,9 +6,4 @@ namespace Qyl.Collector.Ingestion;
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     WriteIndented = false)]
 [JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
-internal partial class IngestionJsonSerializerContext : JsonSerializerContext;
-
-internal readonly record struct ProfileLocationLineJson(
-    [property: JsonPropertyName("functionOrdinal")] int FunctionOrdinal,
-    [property: JsonPropertyName("line")] long Line,
-    [property: JsonPropertyName("column")] long Column);
+internal partial class StorageJsonSerializerContext : JsonSerializerContext;
