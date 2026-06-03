@@ -139,7 +139,8 @@ internal sealed partial record ProfileStorageRow
     public DateTimeOffset? CreatedAt { get; init; }
 }
 
-internal sealed record ProfileFunctionRow
+[DuckDbTable("profile_functions")]
+internal sealed partial record ProfileFunctionRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -149,26 +150,33 @@ internal sealed record ProfileFunctionRow
     public long? StartLine { get; init; }
 }
 
-internal sealed record ProfileLocationRow
+[DuckDbTable("profile_locations")]
+internal sealed partial record ProfileLocationRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
     public int? MappingOrdinal { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
     public ulong? Address { get; init; }
     public string? LinesJson { get; init; }
 }
 
-internal sealed record ProfileMappingRow
+[DuckDbTable("profile_mappings")]
+internal sealed partial record ProfileMappingRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
     public string? Filename { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
     public ulong? MemoryStart { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
     public ulong? MemoryLimit { get; init; }
+    [DuckDbColumn(IsUBigInt = true)]
     public ulong? FileOffset { get; init; }
 }
 
-internal sealed record ProfileSampleRow
+[DuckDbTable("profile_samples")]
+internal sealed partial record ProfileSampleRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }
@@ -179,7 +187,8 @@ internal sealed record ProfileSampleRow
     public string? TimestampsJson { get; init; }
 }
 
-internal sealed record ProfileStackRow
+[DuckDbTable("profile_stacks")]
+internal sealed partial record ProfileStackRow
 {
     public required string ProfileId { get; init; }
     public required int Ordinal { get; init; }

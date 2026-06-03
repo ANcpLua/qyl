@@ -648,83 +648,31 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
 
             var headers = results.Select(static r => r.Profile).ToList();
-            await InsertRowsBatchedAsync(con, tx, ProfileStorageRow.TableName, ProfileStorageRow.ColumnList,
-                ProfileStorageRow.ColumnCount, headers, ProfileStorageRow.AddParameters, MaxProfilesPerBatch, token);
+            await InsertRowsBatchedAsync(con, tx, headers, ProfileStorageRow.AddParameters,
+                ProfileStorageRow.BuildMultiRowInsertSql, MaxProfilesPerBatch, token);
 
-            await InsertRowsBatchedAsync(con, tx, "profile_functions",
-                "profile_id, ordinal, name, system_name, filename, start_line", 6,
-                results.SelectMany(static r => r.Functions).ToList(),
-                static (cmd, f) =>
-                {
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.ProfileId });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.Ordinal });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.Name ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.SystemName ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.Filename ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = f.StartLine ?? (object)DBNull.Value });
-                }, 200, token);
+            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Functions).ToList(),
+                ProfileFunctionRow.AddParameters, ProfileFunctionRow.BuildMultiRowInsertSql, 200, token);
 
-            await InsertRowsBatchedAsync(con, tx, "profile_locations",
-                "profile_id, ordinal, mapping_ordinal, address, lines_json", 5,
-                results.SelectMany(static r => r.Locations).ToList(),
-                static (cmd, l) =>
-                {
-                    cmd.Parameters.Add(new DuckDBParameter { Value = l.ProfileId });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = l.Ordinal });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = l.MappingOrdinal ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = l.Address is { } a ? (decimal)a : DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = l.LinesJson ?? (object)DBNull.Value });
-                }, 200, token);
+            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Locations).ToList(),
+                ProfileLocationRow.AddParameters, ProfileLocationRow.BuildMultiRowInsertSql, 200, token);
 
-            await InsertRowsBatchedAsync(con, tx, "profile_mappings",
-                "profile_id, ordinal, filename, memory_start, memory_limit, file_offset", 6,
-                results.SelectMany(static r => r.Mappings).ToList(),
-                static (cmd, m) =>
-                {
-                    cmd.Parameters.Add(new DuckDBParameter { Value = m.ProfileId });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = m.Ordinal });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = m.Filename ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter
-                    {
-                        Value = m.MemoryStart is { } ms ? (decimal)ms : DBNull.Value
-                    });
-                    cmd.Parameters.Add(new DuckDBParameter
-                    {
-                        Value = m.MemoryLimit is { } ml ? (decimal)ml : DBNull.Value
-                    });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = m.FileOffset is { } fo ? (decimal)fo : DBNull.Value });
-                }, 200, token);
+            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Mappings).ToList(),
+                ProfileMappingRow.AddParameters, ProfileMappingRow.BuildMultiRowInsertSql, 200, token);
 
-            await InsertRowsBatchedAsync(con, tx, "profile_samples",
-                "profile_id, ordinal, stack_ordinal, link_trace_id, link_span_id, values_json, timestamps_json", 7,
-                results.SelectMany(static r => r.Samples).ToList(),
-                static (cmd, s) =>
-                {
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.ProfileId });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.Ordinal });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.StackOrdinal ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.LinkTraceId ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.LinkSpanId ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.ValuesJson ?? (object)DBNull.Value });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = s.TimestampsJson ?? (object)DBNull.Value });
-                }, 200, token);
+            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Samples).ToList(),
+                ProfileSampleRow.AddParameters, ProfileSampleRow.BuildMultiRowInsertSql, 200, token);
 
-            await InsertRowsBatchedAsync(con, tx, "profile_stacks", "profile_id, ordinal, location_ordinals_json", 3,
-                results.SelectMany(static r => r.Stacks).ToList(),
-                static (cmd, st) =>
-                {
-                    cmd.Parameters.Add(new DuckDBParameter { Value = st.ProfileId });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = st.Ordinal });
-                    cmd.Parameters.Add(new DuckDBParameter { Value = st.LocationOrdinalsJson ?? (object)DBNull.Value });
-                }, 200, token);
+            await InsertRowsBatchedAsync(con, tx, results.SelectMany(static r => r.Stacks).ToList(),
+                ProfileStackRow.AddParameters, ProfileStackRow.BuildMultiRowInsertSql, 200, token);
 
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 
     private static async Task InsertRowsBatchedAsync<T>(
-        DuckDBConnection con, DbTransaction tx, string table, string columns, int colCount,
-        IReadOnlyList<T> rows, Action<DuckDBCommand, T> addParams, int maxBatch, CancellationToken ct)
+        DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
+        Action<DuckDBCommand, T> addParams, Func<int, string> buildSql, int maxBatch, CancellationToken ct)
     {
         if (rows.Count is 0) return;
         var offset = 0;
@@ -733,7 +681,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var chunk = Math.Min(maxBatch, rows.Count - offset);
             await using var cmd = con.CreateCommand();
             cmd.Transaction = tx;
-            cmd.CommandText = BuildMultiRowInsertSql(table, columns, colCount, chunk);
+            cmd.CommandText = buildSql(chunk);
             for (var i = 0; i < chunk; i++) addParams(cmd, rows[offset + i]);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             offset += chunk;
@@ -786,7 +734,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                profiles.Add(MapProfile(reader));
+                profiles.Add(ProfileStorageRow.MapFromReader(reader));
             }
 
             return profiles;
@@ -805,65 +753,30 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                     "SELECT profile_id, trace_id, span_id, session_id, time_unix_nano, duration_nano, sample_count, sample_type, sample_unit, original_payload_format, service_name, attributes_json, resource_json, schema_url, created_at FROM profiles WHERE profile_id = $1 LIMIT 1";
                 cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
                 using var r = cmd.ExecuteReader();
-                if (r.Read()) header = MapProfile(r);
+                if (r.Read()) header = ProfileStorageRow.MapFromReader(r);
             }
 
             if (header is null) return null;
 
             var functions = ReadChildRows(con, profileId,
                 "SELECT profile_id, ordinal, name, system_name, filename, start_line FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
-                static r => new ProfileFunctionRow
-                {
-                    ProfileId = r.GetString(0),
-                    Ordinal = r.Col(1).GetInt32(0),
-                    Name = r.Col(2).AsString,
-                    SystemName = r.Col(3).AsString,
-                    Filename = r.Col(4).AsString,
-                    StartLine = r.IsDBNull(5) ? null : r.GetInt64(5)
-                });
+                static r => ProfileFunctionRow.MapFromReader(r));
 
             var locations = ReadChildRows(con, profileId,
                 "SELECT profile_id, ordinal, mapping_ordinal, address, lines_json FROM profile_locations WHERE profile_id = $1 ORDER BY ordinal",
-                static r => new ProfileLocationRow
-                {
-                    ProfileId = r.GetString(0),
-                    Ordinal = r.Col(1).GetInt32(0),
-                    MappingOrdinal = r.IsDBNull(2) ? null : r.Col(2).GetInt32(0),
-                    Address = r.IsDBNull(3) ? null : r.Col(3).GetUInt64(0),
-                    LinesJson = r.Col(4).AsString
-                });
+                static r => ProfileLocationRow.MapFromReader(r));
 
             var mappings = ReadChildRows(con, profileId,
                 "SELECT profile_id, ordinal, filename, memory_start, memory_limit, file_offset FROM profile_mappings WHERE profile_id = $1 ORDER BY ordinal",
-                static r => new ProfileMappingRow
-                {
-                    ProfileId = r.GetString(0),
-                    Ordinal = r.Col(1).GetInt32(0),
-                    Filename = r.Col(2).AsString,
-                    MemoryStart = r.IsDBNull(3) ? null : r.Col(3).GetUInt64(0),
-                    MemoryLimit = r.IsDBNull(4) ? null : r.Col(4).GetUInt64(0),
-                    FileOffset = r.IsDBNull(5) ? null : r.Col(5).GetUInt64(0)
-                });
+                static r => ProfileMappingRow.MapFromReader(r));
 
             var samples = ReadChildRows(con, profileId,
                 "SELECT profile_id, ordinal, stack_ordinal, link_trace_id, link_span_id, values_json, timestamps_json FROM profile_samples WHERE profile_id = $1 ORDER BY ordinal",
-                static r => new ProfileSampleRow
-                {
-                    ProfileId = r.GetString(0),
-                    Ordinal = r.Col(1).GetInt32(0),
-                    StackOrdinal = r.IsDBNull(2) ? null : r.Col(2).GetInt32(0),
-                    LinkTraceId = r.Col(3).AsString,
-                    LinkSpanId = r.Col(4).AsString,
-                    ValuesJson = r.Col(5).AsString,
-                    TimestampsJson = r.Col(6).AsString
-                });
+                static r => ProfileSampleRow.MapFromReader(r));
 
             var stacks = ReadChildRows(con, profileId,
                 "SELECT profile_id, ordinal, location_ordinals_json FROM profile_stacks WHERE profile_id = $1 ORDER BY ordinal",
-                static r => new ProfileStackRow
-                {
-                    ProfileId = r.GetString(0), Ordinal = r.Col(1).GetInt32(0), LocationOrdinalsJson = r.Col(2).AsString
-                });
+                static r => ProfileStackRow.MapFromReader(r));
 
             return new ProfileDetail
             {
@@ -1000,26 +913,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
-    private static string BuildMultiRowInsertSql(string table, string columns, int colCount, int rowCount)
-    {
-        var sb = new StringBuilder(256);
-        sb.Append("INSERT INTO ").Append(table).Append(" (").Append(columns).Append(") VALUES ");
-        for (var i = 0; i < rowCount; i++)
-        {
-            if (i > 0) sb.Append(", ");
-            sb.Append('(');
-            for (var c = 0; c < colCount; c++)
-            {
-                if (c > 0) sb.Append(", ");
-                sb.Append('$').Append((i * colCount) + c + 1);
-            }
-
-            sb.Append(')');
-        }
-
-        return sb.ToString();
-    }
-
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var logsCmd = con.CreateCommand();
@@ -1053,27 +946,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ProfileStorageRow MapProfile(DbDataReader reader) =>
-        new()
-        {
-            ProfileId = reader.GetString(0),
-            TraceId = reader.Col(1).AsString,
-            SpanId = reader.Col(2).AsString,
-            SessionId = reader.Col(3).AsString,
-            TimeUnixNano = reader.Col(4).GetUInt64(0),
-            DurationNano = reader.Col(5).GetUInt64(0),
-            SampleCount = reader.Col(6).GetInt32(0),
-            SampleType = reader.Col(7).AsString,
-            SampleUnit = reader.Col(8).AsString,
-            OriginalPayloadFormat = reader.Col(9).AsString,
-            ServiceName = reader.Col(10).AsString,
-            AttributesJson = reader.Col(11).AsString,
-            ResourceJson = reader.Col(12).AsString,
-            SchemaUrl = reader.Col(13).AsString,
-            CreatedAt = reader.Col(14).AsDateTimeOffset
-        };
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 
