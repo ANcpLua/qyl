@@ -580,6 +580,50 @@ interface IVerify : IHazSourcePaths
                 "Use the checked-in OpenTelemetry .proto inputs and Grpc.Tools-generated OpenTelemetry.Proto.* types.");
         });
 
+    Target VerifyOtlpConverterHotPath => d => d
+        .Unlisted()
+        .Description("Verify OTLP converter hot path avoids removed allocation patterns")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var converterFile = CollectorDirectory / "Ingestion" / "OtlpConverter.cs";
+            if (!converterFile.FileExists())
+                throw new FileNotFoundException("Missing OTLP converter", converterFile.ToString());
+
+            string[] forbidden =
+            [
+                ".Select(ConvertProtoAnyValueToString)",
+                ".Where(static kv => ConvertProtoAnyValueToString",
+                ".ToDictionary(",
+                "ToByteArray()",
+                ".FirstOrDefault(static a => a.Key.IsAny("
+            ];
+
+            var lines = File.ReadAllLines(converterFile);
+            var offenders = lines
+                .SelectMany((line, index) => forbidden
+                    .Where(token => line.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (Line: index + 1, Token: token, Text: line.Trim())))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("OTLP converter hot path avoids removed allocation patterns");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Removed hot-path token '{Token}' at {File}:{Line}: {Text}",
+                    offender.Token,
+                    RootDirectory.GetRelativePathTo(converterFile),
+                    offender.Line,
+                    offender.Text);
+
+            throw new InvalidOperationException(
+                "Do not reintroduce LINQ duplicate conversion, ByteString.ToByteArray, or extra session-correlation scans " +
+                "in OtlpConverter hot paths.");
+        });
+
     Target VerifyCollectorSpanIdentityIsComposite => d => d
         .Unlisted()
         .Description("Verify span storage identity is trace-scoped")
@@ -709,6 +753,10 @@ interface IVerify : IHazSourcePaths
                 "SpanClusterRow",
                 "ExtractBaggageJson",
                 "JsonFormatter.Default.Format(profile)",
+                ".Select(ConvertProtoAnyValueToString)",
+                ".ToDictionary(",
+                "ToByteArray()",
+                "Serialize(attributes, ShouldPersistSpanAttribute)",
                 "span_clusters",
                 "ServiceMaterializerService",
                 "ServiceClassifier",
@@ -1020,6 +1068,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
+        .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
         .DependsOn(VerifyNoRemovedBuildSurface)
         .Executes(() =>
@@ -1038,6 +1087,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
+            Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  Collector span storage identity is trace-scoped");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");

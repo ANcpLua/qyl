@@ -45,6 +45,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(Dictionary<string, string>), TypeInfoPropertyName = "DictionaryStringString")]
 [JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(List<string>), TypeInfoPropertyName = "StringList")]
+[JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
 [JsonSerializable(typeof(ClearTelemetryResponse))]
 [JsonSerializable(typeof(MetaResponse))]
 [JsonSerializable(typeof(MetaBuild))]

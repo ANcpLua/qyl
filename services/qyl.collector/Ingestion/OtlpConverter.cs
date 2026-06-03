@@ -112,7 +112,7 @@ internal static class OtlpConverter
             ProtoAnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
             ProtoAnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString(CultureInfo.InvariantCulture),
             ProtoAnyValue.ValueOneofCase.BoolValue => value.BoolValue.ToString().ToLowerInvariant(),
-            ProtoAnyValue.ValueOneofCase.BytesValue => Convert.ToBase64String(value.BytesValue.ToByteArray()),
+            ProtoAnyValue.ValueOneofCase.BytesValue => Convert.ToBase64String(value.BytesValue.Span),
             ProtoAnyValue.ValueOneofCase.ArrayValue => SerializeProtoArray(value.ArrayValue.Values),
             ProtoAnyValue.ValueOneofCase.KvlistValue => SerializeProtoKeyValueList(value.KvlistValue.Values),
             _ => null
@@ -177,18 +177,27 @@ internal static class OtlpConverter
 
     private static string SerializeProtoArray(RepeatedField<ProtoAnyValue> values)
     {
-        var items = values.Select(ConvertProtoAnyValueToString)
-            .Where(static (string? v) => v is not null)
-            .ToArray();
+        var items = new List<string>(values.Count);
+        foreach (var value in values)
+        {
+            if (ConvertProtoAnyValueToString(value) is { } converted)
+                items.Add(converted);
+        }
 
-        return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
+        return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringList);
     }
 
     private static string SerializeProtoKeyValueList(RepeatedField<ProtoKeyValue> values)
     {
-        var dict = values
-            .Where(static kv => ConvertProtoAnyValueToString(kv.Value) is not null)
-            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertProtoAnyValueToString(kv.Value) ?? "");
+        var dict = new Dictionary<string, string>(values.Count, StringComparer.Ordinal);
+        foreach (var kv in values)
+        {
+            if (string.IsNullOrEmpty(kv.Key))
+                continue;
+
+            if (ConvertProtoAnyValueToString(kv.Value) is { } converted)
+                dict[kv.Key] = converted;
+        }
 
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
@@ -196,7 +205,7 @@ internal static class OtlpConverter
     private static string? ToHex(ByteString value)
     {
         if (value.Length is 0) return null;
-        return Convert.ToHexString(value.ToByteArray()).ToLowerInvariant();
+        return Convert.ToHexString(value.Span).ToLowerInvariant();
     }
 
     private readonly record struct GenAiData(
@@ -293,11 +302,7 @@ internal static class OtlpConverter
         string serviceName,
         string? resourceJson)
     {
-        var sessionId = log.Attributes
-            .FirstOrDefault(static a => a.Key.IsAny(AttributeKeySets.SessionCorrelation))
-            is { Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } sessionAttr
-            ? sessionAttr.Value.StringValue
-            : null;
+        var sessionId = ExtractSessionId(log.Attributes);
 
         var body = ConvertProtoAnyValueToSafeLogBody(log.Body);
 
@@ -335,6 +340,20 @@ internal static class OtlpConverter
         }
 
         return PersistedAttributePolicy.SerializeLogAttributes(dict);
+    }
+
+    private static string? ExtractSessionId(RepeatedField<ProtoKeyValue> attributes)
+    {
+        foreach (var attr in attributes)
+        {
+            if (attr.Key.IsAny(AttributeKeySets.SessionCorrelation) &&
+                attr.Value.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue)
+            {
+                return attr.Value.StringValue;
+            }
+        }
+
+        return null;
     }
 
     private static string? ConvertProtoAnyValueToSafeLogBody(ProtoAnyValue? value)
@@ -433,9 +452,10 @@ internal static class OtlpConverter
             SchemaUrl = schemaUrl
         };
 
-        var functions = new List<ProfileFunctionRow>();
-        foreach (var (f, i) in dictionary.FunctionTable.Select(static (f, i) => (f, i)))
+        var functions = new List<ProfileFunctionRow>(dictionary.FunctionTable.Count);
+        for (var i = 0; i < dictionary.FunctionTable.Count; i++)
         {
+            var f = dictionary.FunctionTable[i];
             functions.Add(new ProfileFunctionRow
             {
                 ProfileId = profileId,
@@ -447,17 +467,20 @@ internal static class OtlpConverter
             });
         }
 
-        var locations = new List<ProfileLocationRow>();
-        foreach (var (loc, i) in dictionary.LocationTable.Select(static (l, i) => (l, i)))
+        var locations = new List<ProfileLocationRow>(dictionary.LocationTable.Count);
+        for (var i = 0; i < dictionary.LocationTable.Count; i++)
         {
+            var loc = dictionary.LocationTable[i];
             string? linesJson = null;
             if (loc.Line.Count > 0)
             {
-                linesJson = JsonSerializer.Serialize(
-                    loc.Line.Select(static line => new
-                    {
-                        functionOrdinal = line.FunctionIndex, line = line.Line_, column = line.Column
-                    }));
+                var lines = new List<ProfileLocationLineJson>(loc.Line.Count);
+                foreach (var line in loc.Line)
+                {
+                    lines.Add(new ProfileLocationLineJson(line.FunctionIndex, line.Line_, line.Column));
+                }
+
+                linesJson = JsonSerializer.Serialize(lines, QylSerializerContext.Default.ProfileLocationLineJsonList);
             }
 
             locations.Add(new ProfileLocationRow
@@ -470,9 +493,10 @@ internal static class OtlpConverter
             });
         }
 
-        var mappings = new List<ProfileMappingRow>();
-        foreach (var (m, i) in dictionary.MappingTable.Select(static (m, i) => (m, i)))
+        var mappings = new List<ProfileMappingRow>(dictionary.MappingTable.Count);
+        for (var i = 0; i < dictionary.MappingTable.Count; i++)
         {
+            var m = dictionary.MappingTable[i];
             mappings.Add(new ProfileMappingRow
             {
                 ProfileId = profileId,
@@ -484,9 +508,10 @@ internal static class OtlpConverter
             });
         }
 
-        var samples = new List<ProfileSampleRow>();
-        foreach (var (s, i) in profile.Sample.Select(static (s, i) => (s, i)))
+        var samples = new List<ProfileSampleRow>(profile.Sample.Count);
+        for (var i = 0; i < profile.Sample.Count; i++)
         {
+            var s = profile.Sample[i];
             string? linkTraceId = null;
             string? linkSpanId = null;
             if (s.LinkIndex > 0 && s.LinkIndex < dictionary.LinkTable.Count)
@@ -510,9 +535,10 @@ internal static class OtlpConverter
             });
         }
 
-        var stacks = new List<ProfileStackRow>();
-        foreach (var (st, i) in dictionary.StackTable.Select(static (st, i) => (st, i)))
+        var stacks = new List<ProfileStackRow>(dictionary.StackTable.Count);
+        for (var i = 0; i < dictionary.StackTable.Count; i++)
         {
+            var st = dictionary.StackTable[i];
             stacks.Add(new ProfileStackRow
             {
                 ProfileId = profileId,
@@ -591,3 +617,8 @@ internal static class OtlpConverter
 
     #endregion
 }
+
+internal readonly record struct ProfileLocationLineJson(
+    [property: JsonPropertyName("functionOrdinal")] int FunctionOrdinal,
+    [property: JsonPropertyName("line")] long Line,
+    [property: JsonPropertyName("column")] long Column);
