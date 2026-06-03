@@ -392,9 +392,9 @@ internal static class OtlpConverter
             {
                 ProfileId = profileId,
                 Ordinal = i,
-                Name = Resolve(f.NameStrindex, dictionary),
-                SystemName = Resolve(f.SystemNameStrindex, dictionary),
-                Filename = Resolve(f.FilenameStrindex, dictionary),
+                Name = null,
+                SystemName = null,
+                Filename = null,
                 StartLine = f.StartLine
             });
         }
@@ -433,7 +433,7 @@ internal static class OtlpConverter
             {
                 ProfileId = profileId,
                 Ordinal = i,
-                Filename = Resolve(m.FilenameStrindex, dictionary),
+                Filename = null,
                 MemoryStart = m.MemoryStart,
                 MemoryLimit = m.MemoryLimit,
                 FileOffset = m.FileOffset

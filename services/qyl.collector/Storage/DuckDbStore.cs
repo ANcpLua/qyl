@@ -16,13 +16,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly Counter<long> _droppedJobs;
-    private readonly Counter<long> _droppedSpans;
     private readonly bool _isInMemory;
     private readonly int _jobQueueCapacity;
     private readonly Channel<WriteJob> _jobs;
-
-    private readonly Meter _meter = new(QylTelemetry.StorageMeterName, QylTelemetry.ServiceVersion);
 
     private readonly Channel<IReadJob>? _reads;
     private readonly Thread[] _readerThreads;
@@ -46,9 +42,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
         InitializeSchema(Connection);
-
-        _droppedJobs = _meter.CreateCounter<long>(Duckdb.DroppedJobsTotal);
-        _droppedSpans = _meter.CreateCounter<long>(Duckdb.DroppedSpansTotal);
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(_jobQueueCapacity)
         {
@@ -107,6 +100,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             return;
 
         List<Exception>? shutdownErrors = null;
+        QylMetrics.UnregisterStorageSizeCallback(GetStorageSizeBytes);
 
         _jobs.Writer.TryComplete();
         _reads?.Writer.TryComplete();
@@ -148,7 +142,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
         Connection.Dispose();
         _cts.Dispose();
-        _meter.Dispose();
 
         if (shutdownErrors is { Count: > 0 })
             throw new AggregateException("DuckDB store did not shut down cleanly.", shutdownErrors);
@@ -363,8 +356,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     {
         Interlocked.Increment(ref _droppedJobCount);
         Interlocked.Add(ref _droppedSpanCount, spanCount);
-        _droppedJobs.Add(1);
-        _droppedSpans.Add(spanCount);
+        QylMetrics.RecordDroppedSpans(spanCount);
     }
 
     private double GetWriteQueueUtilization()
