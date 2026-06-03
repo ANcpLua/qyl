@@ -16,15 +16,6 @@ internal static partial class DuckDbSchema
                                             service_name VARCHAR,
                                             attributes_json VARCHAR,
                                             resource_json VARCHAR,
-                                            source_file VARCHAR,
-                                            source_line INTEGER,
-                                            source_column INTEGER,
-                                            source_method VARCHAR,
-                                            attributes VARCHAR,
-                                            dropped_attributes_count BIGINT,
-                                            flags INTEGER,
-                                            resource VARCHAR,
-                                            instrumentation_scope VARCHAR,
                                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                                         );
                                         """;

@@ -13,7 +13,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private const int MaxLogsPerBatch = 150;
 
     private const int SpanColumnCount = 26;
-    private const int LogColumnCount = 16;
+    private const int LogColumnCount = 12;
 
     private const string SpanColumnList = """
                                           span_id, trace_id, parent_span_id, session_id,
@@ -46,8 +46,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                          log_id, trace_id, span_id, session_id,
                                          time_unix_nano, observed_time_unix_nano,
                                          severity_number, severity_text, body,
-                                         service_name, attributes_json, resource_json,
-                                         source_file, source_line, source_column, source_method
+                                         service_name, attributes_json, resource_json
                                          """;
 
     private const string SelectSpanColumns = """
@@ -749,7 +748,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                               + " time_unix_nano, observed_time_unix_nano,"
                               + " severity_number, severity_text, body,"
                               + " service_name, attributes_json, resource_json,"
-                              + " source_file, source_line, source_column, source_method,"
                               + " created_at"
                               + " FROM logs " + qb.WhereClause
                               + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
@@ -1262,10 +1260,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceFile ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceLine ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceColumn ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceMethod ?? (object)DBNull.Value });
     }
 
     private static void InitializeSchema(DuckDBConnection con)
@@ -1318,11 +1312,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             ServiceName = reader.Col(9).AsString,
             AttributesJson = reader.Col(10).AsString,
             ResourceJson = reader.Col(11).AsString,
-            SourceFile = reader.Col(12).AsString,
-            SourceLine = reader.Col(13).AsInt32,
-            SourceColumn = reader.Col(14).AsInt32,
-            SourceMethod = reader.Col(15).AsString,
-            CreatedAt = reader.Col(16).AsDateTimeOffset
+            CreatedAt = reader.Col(12).AsDateTimeOffset
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

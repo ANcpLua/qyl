@@ -21,9 +21,6 @@ namespace Qyl.Collector.Ingestion;
 
 internal static class OtlpConverter
 {
-    private static readonly LogSourceEnricher s_logSourceEnricher =
-        new(new SourceLocationCache());
-
     #region OTLP Trace Conversion
 
     public static List<SpanStorageRow> ConvertTraceRequestToStorageRows(ExportTraceServiceRequest request)
@@ -308,7 +305,6 @@ internal static class OtlpConverter
         var severityText = string.IsNullOrEmpty(log.SeverityText)
             ? SeverityNumberToText(severityNumber)
             : log.SeverityText;
-        var sourceLocation = s_logSourceEnricher.Enrich(log.Attributes);
 
         return new LogStorageRow
         {
@@ -323,11 +319,7 @@ internal static class OtlpConverter
             Body = body,
             ServiceName = serviceName,
             AttributesJson = SerializeProtoAttributes(log.Attributes),
-            ResourceJson = resourceJson,
-            SourceFile = sourceLocation?.FilePath,
-            SourceLine = sourceLocation?.Line,
-            SourceColumn = sourceLocation?.Column,
-            SourceMethod = sourceLocation?.MethodName
+            ResourceJson = resourceJson
         };
     }
 

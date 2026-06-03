@@ -53,7 +53,7 @@ internal static class PersistedAttributePolicy
         ServiceAttributes.Version);
 
     private static readonly FrozenSet<string> s_deniedExactKeys = FrozenSet.Create(
-        StringComparer.Ordinal,
+        StringComparer.OrdinalIgnoreCase,
         CodeAttributes.FilePath,
         CodeAttributes.Stacktrace,
         EnduserAttributes.Id,
@@ -69,6 +69,25 @@ internal static class PersistedAttributePolicy
         SessionAttributes.Id,
         UrlAttributes.Full,
         UserAttributes.Id);
+
+    private static readonly string[] s_deniedKeyTokens =
+    [
+        "access_token",
+        "api-key",
+        "api_key",
+        "apikey",
+        "authorization",
+        "cookie",
+        "credential",
+        "id_token",
+        "jwt",
+        "password",
+        "private_key",
+        "refresh_token",
+        "secret",
+        "set-cookie",
+        "token"
+    ];
 
     internal static string? SerializeSpanAttributes(IReadOnlyDictionary<string, string> attributes) =>
         Serialize(attributes, ShouldPersistSpanAttribute);
@@ -119,12 +138,20 @@ internal static class PersistedAttributePolicy
                key.StartsWithOrdinal(AttributeKeySets.QylCapabilityPrefix);
     }
 
-    private static bool IsDenied(string key) =>
-        s_deniedExactKeys.Contains(key) ||
-        key.StartsWithOrdinal(BaggagePrefix) ||
-        key.ContainsOrdinal("password") ||
-        key.ContainsOrdinal("secret") ||
-        key.ContainsOrdinal("authorization") ||
-        key.ContainsOrdinal("cookie") ||
-        key.ContainsOrdinal("api_key");
+    private static bool IsDenied(string key)
+    {
+        if (s_deniedExactKeys.Contains(key) ||
+            key.StartsWith(BaggagePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (var token in s_deniedKeyTokens)
+        {
+            if (key.Contains(token, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
 }
