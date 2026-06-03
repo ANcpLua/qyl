@@ -4,7 +4,7 @@ using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
 
-internal sealed partial class DuckDbStore : IAsyncDisposable
+internal sealed partial class DuckDbStore : IQylStore
 {
 
     private const int MaxSpansPerBatch = 100;
@@ -368,30 +368,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         var queued = Math.Max(0, Read(ref _queuedWriteJobs));
         return Math.Clamp((double)queued / _jobQueueCapacity, 0, 1);
     }
-
-    public Task<long> GetSpanCountAsync(
-        string projectId,
-        CancellationToken ct = default) =>
-        ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM spans WHERE project_id = $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            var result = cmd.ExecuteScalar();
-            return result is long count ? count : 0;
-        }, ct);
-
-    public Task<long> GetLogCountAsync(
-        string projectId,
-        CancellationToken ct = default) =>
-        ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM logs WHERE project_id = $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            var result = cmd.ExecuteScalar();
-            return result is long count ? count : 0;
-        }, ct);
 
     public Task<long> GetModelPricingCountAsync(CancellationToken ct = default) =>
         ExecuteReadAsync(static con =>

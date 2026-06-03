@@ -6,13 +6,13 @@ internal static class CollectorStorageExtensions
 
     public static IServiceCollection AddQylCollectorStorage(this IServiceCollection services)
     {
-        services.AddSingleton(CreateStore);
-        services.ActivateSingleton<DuckDbStore>();
+        services.AddSingleton<IQylStore>(CreateStore);
+        services.ActivateSingleton<IQylStore>();
 
         return services;
     }
 
-    private static DuckDbStore CreateStore(IServiceProvider services)
+    private static IQylStore CreateStore(IServiceProvider services)
     {
         var config = services.GetRequiredService<IConfiguration>();
         var dataPath = config["QYL_DATA_PATH"] ?? DefaultDataPath;

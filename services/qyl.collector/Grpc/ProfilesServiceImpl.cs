@@ -3,10 +3,10 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class ProfilesServiceImpl(DuckDbStore store)
+internal sealed class ProfilesServiceImpl(IQylStore store)
     : ProfilesService.ProfilesServiceBase
 {
-    private readonly DuckDbStore _store = Guard.NotNull(store);
+    private readonly IQylStore _store = Guard.NotNull(store);
 
     public override async Task<ExportProfilesServiceResponse> Export(
         ExportProfilesServiceRequest request,

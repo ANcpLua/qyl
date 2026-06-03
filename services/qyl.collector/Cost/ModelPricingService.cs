@@ -1,7 +1,7 @@
 namespace Qyl.Collector.Cost;
 
 [QylService(QylLifetime.Singleton)]
-internal sealed partial class ModelPricingService(DuckDbStore store, ILogger<ModelPricingService> logger)
+internal sealed partial class ModelPricingService(IQylStore store, ILogger<ModelPricingService> logger)
 {
     private readonly Lock _lock = new();
     private FrozenDictionary<string, ModelPricingRow> _cache = FrozenDictionary<string, ModelPricingRow>.Empty;

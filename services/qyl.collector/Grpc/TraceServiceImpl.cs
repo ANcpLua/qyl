@@ -5,12 +5,12 @@ using StatusCode = Grpc.Core.StatusCode;
 namespace Qyl.Collector.Grpc;
 
 internal sealed class TraceServiceImpl(
-    DuckDbStore store,
+    IQylStore store,
     ModelPricingService pricingService)
     : TraceService.TraceServiceBase
 {
     private readonly ModelPricingService _pricingService = Guard.NotNull(pricingService);
-    private readonly DuckDbStore _store = Guard.NotNull(store);
+    private readonly IQylStore _store = Guard.NotNull(store);
 
     public override async Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,

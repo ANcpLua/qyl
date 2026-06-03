@@ -945,6 +945,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "DuckDBCommand",
                 "DuckDBParameter",
                 "DuckDBException",
+                "DuckDbStore",
                 "DbCommand",
                 "DbDataReader",
                 "CreateCommand(",
@@ -962,7 +963,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 .Select(file => (
                     File: RootDirectory.GetRelativePathTo(file).ToString(),
                     Text: File.ReadAllText(file)))
-                .Where(static file => !IsStorageFile(file.File))
+                .Where(static file => !IsAllowedDuckDbDetailFile(file.File))
                 .SelectMany(file => forbiddenDuckDbTokens
                     .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
                     .Select(token => (file.File, Token: token)))
@@ -979,12 +980,14 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             throw new InvalidOperationException(
                 "Do not pass DuckDB connections, commands, readers, or raw ExecuteRead/ExecuteWrite hooks outside Storage. " +
-                "Expose intent methods on DuckDbStore instead.");
+                "Expose intent methods on IQylStore and keep DuckDbStore behind the storage composition root.");
 
-            static bool IsStorageFile(string relativePath)
+            static bool IsAllowedDuckDbDetailFile(string relativePath)
             {
                 var normalizedPath = relativePath.Replace('\\', '/');
-                return normalizedPath.Contains("services/qyl.collector/Storage/", StringComparison.Ordinal);
+                return normalizedPath.Contains("services/qyl.collector/Storage/", StringComparison.Ordinal) ||
+                       normalizedPath.EndsWith("services/qyl.collector/Hosting/CollectorStorageExtensions.cs",
+                           StringComparison.Ordinal);
             }
         });
 

@@ -3,10 +3,10 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class LogsServiceImpl(DuckDbStore store)
+internal sealed class LogsServiceImpl(IQylStore store)
     : LogsService.LogsServiceBase
 {
-    private readonly DuckDbStore _store = Guard.NotNull(store);
+    private readonly IQylStore _store = Guard.NotNull(store);
 
     public override async Task<ExportLogsServiceResponse> Export(
         ExportLogsServiceRequest request,

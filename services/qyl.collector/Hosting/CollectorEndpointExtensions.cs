@@ -50,7 +50,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
-        DuckDbStore store,
+        IQylStore store,
         ModelPricingService pricingService,
         CancellationToken ct)
     {
@@ -78,7 +78,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         try
@@ -106,7 +106,7 @@ internal static class CollectorEndpointExtensions
 
 
     private static async Task<IResult> GetSessionsAsync(
-        DuckDbStore store,
+        IQylStore store,
         bool? isActive,
         DateTimeOffset? startTime,
         DateTimeOffset? endTime,
@@ -152,14 +152,14 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionByIdAsync(
         string sessionId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct) =>
         await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
             : Results.Ok(SessionMapper.ToContract(session));
 
     private static async Task<IResult> GetSessionStatsAsync(
-        DuckDbStore store,
+        IQylStore store,
         DateTimeOffset? startTime,
         DateTimeOffset? endTime,
         CancellationToken ct)
@@ -179,7 +179,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionTracesAsync(
         string sessionId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         if (await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is null)
@@ -202,7 +202,7 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetTracesAsync(
-        DuckDbStore store,
+        IQylStore store,
         int? limit,
         CancellationToken ct)
     {
@@ -223,7 +223,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetTraceSpansAsync(
         string traceId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
@@ -237,7 +237,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetTraceAsync(
         string traceId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
@@ -251,7 +251,7 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetLogsAsync(
-        DuckDbStore store,
+        IQylStore store,
         string? sessionId,
         string? traceId,
         string? serviceName,
@@ -282,7 +282,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task StreamLogsAsync(
         HttpContext context,
-        DuckDbStore store,
+        IQylStore store,
         string? serviceName,
         int? minSeverity,
         string? query,
@@ -319,7 +319,7 @@ internal static class CollectorEndpointExtensions
 
     private static async IAsyncEnumerable<(string EventType, LogStreamEvent? Log, HeartbeatEvent? Heartbeat)>
         StreamLogEventsAsync(
-        DuckDbStore store,
+        IQylStore store,
         string? serviceName,
         int? minSeverity,
         string? query,
@@ -399,7 +399,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> IngestOtlpProfilesAsync(
         HttpContext context,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         try
@@ -426,7 +426,7 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetProfilesAsync(
-        DuckDbStore store,
+        IQylStore store,
         string? sessionId,
         string? traceId,
         string? serviceName,
@@ -449,7 +449,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetProfileByIdAsync(
         string profileId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         var detail = await store.GetProfileDetailAsync(profileId, ProjectScope.DefaultProjectId, ct: ct);
@@ -460,7 +460,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetTraceProfilesAsync(
         string traceId,
-        DuckDbStore store,
+        IQylStore store,
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, traceId: traceId, ct: ct);
@@ -469,7 +469,7 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSpanProfilesAsync(
         string spanId,
-        DuckDbStore store,
+        IQylStore store,
         int? limit,
         CancellationToken ct)
     {
