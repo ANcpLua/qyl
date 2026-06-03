@@ -1,6 +1,4 @@
 
-using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
-
 namespace Qyl.Collector.Telemetry;
 
 internal static class QylTelemetry
@@ -13,13 +11,13 @@ internal static class QylTelemetry
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = OtelSchemaUrl.Current
+        TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
 
 
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
-        Version = ServiceVersion, TelemetrySchemaUrl = OtelSchemaUrl.Current
+        Version = ServiceVersion, TelemetrySchemaUrl = CollectorSemanticAttributeCatalog.SchemaUrlCurrent
     });
 }
 

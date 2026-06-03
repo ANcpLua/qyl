@@ -120,9 +120,9 @@ internal static class OtlpConverter
             ProtoAnyValue.ValueOneofCase.IntValue => value.IntValue.ToString(CultureInfo.InvariantCulture),
             ProtoAnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString(CultureInfo.InvariantCulture),
             ProtoAnyValue.ValueOneofCase.BoolValue => value.BoolValue.ToString().ToLowerInvariant(),
-            ProtoAnyValue.ValueOneofCase.BytesValue => Convert.ToBase64String(value.BytesValue.Span),
-            ProtoAnyValue.ValueOneofCase.ArrayValue => SerializeProtoArray(value.ArrayValue.Values),
-            ProtoAnyValue.ValueOneofCase.KvlistValue => SerializeProtoKeyValueList(value.KvlistValue.Values),
+            ProtoAnyValue.ValueOneofCase.BytesValue => null,
+            ProtoAnyValue.ValueOneofCase.ArrayValue => null,
+            ProtoAnyValue.ValueOneofCase.KvlistValue => null,
             _ => null
         };
     }
@@ -178,33 +178,6 @@ internal static class OtlpConverter
             ResourceJson = resourceJson,
             SchemaUrl = schemaUrl
         };
-    }
-
-    private static string SerializeProtoArray(RepeatedField<ProtoAnyValue> values)
-    {
-        var items = new List<string>(values.Count);
-        foreach (var value in values)
-        {
-            if (ConvertProtoAnyValueToString(value) is { } converted)
-                items.Add(converted);
-        }
-
-        return JsonSerializer.Serialize(items, IngestionJsonSerializerContext.Default.StringList);
-    }
-
-    private static string SerializeProtoKeyValueList(RepeatedField<ProtoKeyValue> values)
-    {
-        var dict = new Dictionary<string, string>(values.Count, StringComparer.Ordinal);
-        foreach (var kv in values)
-        {
-            if (string.IsNullOrEmpty(kv.Key))
-                continue;
-
-            if (ConvertProtoAnyValueToString(kv.Value) is { } converted)
-                dict[kv.Key] = converted;
-        }
-
-        return JsonSerializer.Serialize(dict, IngestionJsonSerializerContext.Default.DictionaryStringString);
     }
 
     private static string? ToHex(ByteString value)

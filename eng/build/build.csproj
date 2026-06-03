@@ -29,6 +29,9 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="Nuke.Common"/>
     <PackageReference Include="Nuke.Components"/>
+    <!-- Reflected by BuildCollectorSemanticCatalog to emit collector-local semantic key policy. -->
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions" PrivateAssets="all"/>
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
     <!-- Transitive security overrides (pulled in by Nuke.Common but with vulnerable
          versions; see Directory.Packages.props for the advisories). -->
     <PackageReference Include="NuGet.Packaging"/>

@@ -24,7 +24,13 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         .Executes(() =>
         {
             CollectorSemanticCatalogFile.Parent.CreateDirectory();
-            File.WriteAllText(CollectorSemanticCatalogFile, GenerateCollectorSemanticAttributeCatalogText());
+            var generated = GenerateCollectorSemanticAttributeCatalogText();
+            if (!CollectorSemanticCatalogFile.FileExists() ||
+                !string.Equals(File.ReadAllText(CollectorSemanticCatalogFile), generated, StringComparison.Ordinal))
+            {
+                File.WriteAllText(CollectorSemanticCatalogFile, generated);
+            }
+
             Log.Information(
                 "Generated collector semantic attribute catalog: {File}",
                 RootDirectory.GetRelativePathTo(CollectorSemanticCatalogFile));
@@ -94,8 +100,12 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
                 "CollectorSemanticAttributeCatalog.LogAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.ProfileAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.ResourceAttributeAllowList",
+                "CollectorSemanticAttributeCatalog.SessionCorrelation",
+                "CollectorSemanticAttributeCatalog.QylResourceAttributeAllowList",
                 "CollectorSemanticAttributeCatalog.DeniedExactKeys",
-                "CollectorSemanticAttributeCatalog.SpanStorageProjectionKeys"
+                "CollectorSemanticAttributeCatalog.DeniedKeyTokens",
+                "CollectorSemanticAttributeCatalog.SpanStorageProjectionKeys",
+                "CollectorSemanticAttributeCatalog.GenAiProviderName"
             ];
 
             var missing = required
@@ -126,38 +136,25 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
     string GenerateCollectorSemanticAttributeCatalogText()
     {
         var resolver = new SemConvAttributeResolver(ReadCentralPackageVersions());
+        var allAttributeValues = resolver.AllAttributeValues();
+        var stableAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.StablePackageId);
+        var incubatingAttributeValues = resolver.AttributeValues(ICollectorSemanticCatalog.IncubatingPackageId);
 
-        var spanAttributeAllowList = resolver.ValuesFromTypes(
-            StableAttributes("Db"),
-            StableAttributes("Error"),
-            StableAttributes("Exception"),
-            IncubatingAttributes("GenAi"),
-            StableAttributes("Http"),
-            IncubatingAttributes("Messaging"),
-            StableAttributes("Otel"),
-            IncubatingAttributes("Profile"),
-            StableAttributes("Server"));
+        var spanAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, "db.", "error.", "exception.", "http.", "otel.", "server."),
+            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "messaging.", "profile."));
 
-        var logAttributeAllowList = resolver.ValuesFromTypes(
-            StableAttributes("Error"),
-            StableAttributes("Exception"),
-            IncubatingAttributes("GenAi"),
-            StableAttributes("Http"),
-            IncubatingAttributes("Messaging"),
-            StableAttributes("Otel"),
-            StableAttributes("Server"));
+        var logAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, "error.", "exception.", "http.", "otel.", "server."),
+            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "messaging."));
 
-        var profileAttributeAllowList = resolver.ValuesFromTypes(
-            StableAttributes("Error"),
-            IncubatingAttributes("GenAi"),
-            StableAttributes("Otel"),
-            IncubatingAttributes("Profile"));
+        var profileAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, "error.", "otel."),
+            ValuesWithPrefixes(incubatingAttributeValues, "gen_ai.", "profile."));
 
-        var resourceAttributeAllowList = resolver.ValuesFromTypes(
-            StableAttributes("Deployment"),
-            IncubatingAttributes("Host"),
-            IncubatingAttributes("Os"),
-            StableAttributes("Service"));
+        var resourceAttributeAllowList = NormalizedValues(
+            ValuesWithPrefixes(stableAttributeValues, "deployment.", "service."),
+            ValuesWithPrefixes(incubatingAttributeValues, "host.", "os."));
 
         var qylResourceAttributeAllowList = new[]
         {
@@ -165,48 +162,50 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             "qyl.capability.kind"
         };
 
-        var sessionCorrelation = resolver.ValuesFromMembers(
-            Member(IncubatingAttributes("GenAi"), "ConversationId"),
-            Member(IncubatingAttributes("Mcp"), "SessionId"),
-            Member(IncubatingAttributes("Session"), "Id"));
+        var sessionCorrelation = resolver.RequiredAttributeValues(
+            "gen_ai.conversation.id",
+            "mcp.session.id",
+            "session.id");
 
-        var deniedExactKeys = resolver.ValuesFromTypes(
-                IncubatingAttributes("Enduser"),
-                IncubatingAttributes("User"))
-            .Concat(resolver.ValuesFromMembers(
-                Member(StableAttributes("Code"), "FilePath"),
-                Member(StableAttributes("Code"), "Stacktrace"),
-                Member(StableAttributes("Db"), "QueryText"),
-                Member(StableAttributes("Exception"), "Message"),
-                Member(StableAttributes("Exception"), "Stacktrace"),
-                Member(IncubatingAttributes("GenAi"), "AgentDescription"),
-                Member(IncubatingAttributes("GenAi"), "AgentId"),
-                Member(IncubatingAttributes("GenAi"), "AgentName"),
-                Member(IncubatingAttributes("GenAi"), "ConversationId"),
-                Member(IncubatingAttributes("GenAi"), "DataSourceId"),
-                Member(IncubatingAttributes("GenAi"), "EvaluationExplanation"),
-                Member(IncubatingAttributes("GenAi"), "EvaluationName"),
-                Member(IncubatingAttributes("GenAi"), "InputMessages"),
-                Member(IncubatingAttributes("GenAi"), "OutputMessages"),
-                Member(IncubatingAttributes("GenAi"), "PromptName"),
-                Member(IncubatingAttributes("GenAi"), "ResponseId"),
-                Member(IncubatingAttributes("GenAi"), "RetrievalDocuments"),
-                Member(IncubatingAttributes("GenAi"), "RetrievalQueryText"),
-                Member(IncubatingAttributes("GenAi"), "SystemInstructions"),
-                Member(IncubatingAttributes("GenAi"), "ToolCallArguments"),
-                Member(StableAttributes("Http"), "RequestHeader"),
-                Member(StableAttributes("Http"), "ResponseHeader"),
-                Member(IncubatingAttributes("GenAi"), "ToolCallId"),
-                Member(IncubatingAttributes("GenAi"), "ToolCallResult"),
-                Member(IncubatingAttributes("GenAi"), "ToolDefinitions"),
-                Member(IncubatingAttributes("GenAi"), "ToolDescription"),
-                Member(IncubatingAttributes("GenAi"), "WorkflowName"),
-                Member(IncubatingAttributes("Mcp"), "SessionId"),
-                Member(StableAttributes("Service"), "InstanceId"),
-                Member(IncubatingAttributes("Session"), "Id"),
-                Member(IncubatingAttributes("Session"), "PreviousId"),
-                Member(StableAttributes("Url"), "Full"),
-                Member(StableAttributes("Url"), "Query")))
+        var deniedExactKeys = ValuesWithPrefixes(allAttributeValues, "enduser.", "user.")
+            .Concat(resolver.RequiredAttributeValues(
+                "code.file.path",
+                "code.stacktrace",
+                "db.query.text",
+                "exception.message",
+                "exception.stacktrace",
+                "gen_ai.agent.description",
+                "gen_ai.agent.id",
+                "gen_ai.agent.name",
+                "gen_ai.conversation.id",
+                "gen_ai.data_source.id",
+                "gen_ai.evaluation.explanation",
+                "gen_ai.evaluation.name",
+                "gen_ai.input.messages",
+                "gen_ai.output.messages",
+                "gen_ai.prompt.name",
+                "gen_ai.response.id",
+                "gen_ai.retrieval.documents",
+                "gen_ai.retrieval.query.text",
+                "gen_ai.system_instructions",
+                "gen_ai.tool.call.arguments",
+                "http.request.header",
+                "http.response.header",
+                "gen_ai.tool.call.id",
+                "gen_ai.tool.call.result",
+                "gen_ai.tool.definitions",
+                "gen_ai.tool.description",
+                "gen_ai.workflow.name",
+                "host.id",
+                "host.ip",
+                "host.mac",
+                "host.name",
+                "mcp.session.id",
+                "service.instance.id",
+                "session.id",
+                "session.previous_id",
+                "url.full",
+                "url.query"))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
@@ -240,33 +239,34 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             "token"
         };
 
-        var spanStorageProjectionKeys = resolver.ValuesFromMembers(
-                Member(IncubatingAttributes("GenAi"), "ProviderName"),
-                Member(IncubatingAttributes("GenAi"), "RequestModel"),
-                Member(IncubatingAttributes("GenAi"), "ResponseModel"),
-                Member(IncubatingAttributes("GenAi"), "UsageInputTokens"),
-                Member(IncubatingAttributes("GenAi"), "UsageOutputTokens"),
-                Member(IncubatingAttributes("GenAi"), "RequestTemperature"),
-                Member(IncubatingAttributes("GenAi"), "ResponseFinishReasons"),
-                Member(IncubatingAttributes("GenAi"), "ToolName"))
+        var spanStorageProjectionKeys = resolver.RequiredAttributeValues(
+                "gen_ai.provider.name",
+                "gen_ai.request.model",
+                "gen_ai.response.model",
+                "gen_ai.usage.input_tokens",
+                "gen_ai.usage.output_tokens",
+                "gen_ai.request.temperature",
+                "gen_ai.response.finish_reasons",
+                "gen_ai.tool.name")
             .Append("gen_ai.usage.cost")
             .OrderBy(static key => key, StringComparer.Ordinal)
             .ToArray();
 
         var genAiProjection = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["GenAiProviderName"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ProviderName")),
-            ["GenAiRequestModel"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "RequestModel")),
-            ["GenAiResponseModel"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ResponseModel")),
-            ["GenAiInputTokens"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "UsageInputTokens")),
-            ["GenAiOutputTokens"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "UsageOutputTokens")),
-            ["GenAiTemperature"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "RequestTemperature")),
-            ["GenAiStopReason"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ResponseFinishReasons")),
-            ["GenAiToolName"] = resolver.ValueFromMember(Member(IncubatingAttributes("GenAi"), "ToolName")),
+            ["GenAiProviderName"] = resolver.RequiredAttributeValue("gen_ai.provider.name"),
+            ["GenAiRequestModel"] = resolver.RequiredAttributeValue("gen_ai.request.model"),
+            ["GenAiResponseModel"] = resolver.RequiredAttributeValue("gen_ai.response.model"),
+            ["GenAiInputTokens"] = resolver.RequiredAttributeValue("gen_ai.usage.input_tokens"),
+            ["GenAiOutputTokens"] = resolver.RequiredAttributeValue("gen_ai.usage.output_tokens"),
+            ["GenAiTemperature"] = resolver.RequiredAttributeValue("gen_ai.request.temperature"),
+            ["GenAiStopReason"] = resolver.RequiredAttributeValue("gen_ai.response.finish_reasons"),
+            ["GenAiToolName"] = resolver.RequiredAttributeValue("gen_ai.tool.name"),
             ["GenAiCostUsd"] = "gen_ai.usage.cost",
-            ["HttpRequestMethod"] = resolver.ValueFromMember(Member(StableAttributes("Http"), "RequestMethod")),
-            ["HttpRoute"] = resolver.ValueFromMember(Member(StableAttributes("Http"), "Route")),
-            ["ServiceName"] = resolver.ValueFromMember(Member(StableAttributes("Service"), "Name"))
+            ["HttpRequestMethod"] = resolver.RequiredAttributeValue("http.request.method"),
+            ["HttpRoute"] = resolver.RequiredAttributeValue("http.route"),
+            ["SchemaUrlCurrent"] = resolver.SchemaUrlCurrent(),
+            ["ServiceName"] = resolver.RequiredAttributeValue("service.name")
         };
 
         var builder = new StringBuilder();
@@ -318,18 +318,17 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
             .ToDictionary(static package => package.Id!, static package => package.Version!, StringComparer.Ordinal);
     }
 
-    private static AttributeTypeRef StableAttributes(string domain) =>
-        new(
-            StablePackageId,
-            $"Qyl.OpenTelemetry.SemanticConventions.Attributes.{domain}.{domain}Attributes");
+    private static string[] ValuesWithPrefixes(IEnumerable<string> values, params string[] prefixes) =>
+        values
+            .Where(value => prefixes.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal)))
+            .ToArray();
 
-    private static AttributeTypeRef IncubatingAttributes(string domain) =>
-        new(
-            IncubatingPackageId,
-            $"Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.{domain}.{domain}Attributes");
-
-    private static AttributeMemberRef Member(AttributeTypeRef type, string memberName) =>
-        new(type, memberName);
+    private static string[] NormalizedValues(params IEnumerable<string>[] values) =>
+        values
+            .SelectMany(static value => value)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static value => value, StringComparer.Ordinal)
+            .ToArray();
 
     private static void WriteFrozenSet(
         StringBuilder builder,
@@ -363,58 +362,82 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 }
 
-internal readonly record struct AttributeTypeRef(string PackageId, string TypeName);
-
-internal readonly record struct AttributeMemberRef(AttributeTypeRef Type, string MemberName);
-
 internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, string> packageVersions)
 {
     private readonly Dictionary<string, Assembly> _assemblies = new(StringComparer.Ordinal);
+    private string[]? _allAttributeValues;
 
-    public string[] ValuesFromTypes(params AttributeTypeRef[] typeRefs) =>
-        typeRefs
-            .SelectMany(ValuesFromType)
+    public string[] AllAttributeValues() =>
+        _allAttributeValues ??=
+        [
+            .. AttributeValuesFromPackage(ICollectorSemanticCatalog.StablePackageId)
+                .Concat(AttributeValuesFromPackage(ICollectorSemanticCatalog.IncubatingPackageId))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static value => value, StringComparer.Ordinal)
+        ];
+
+    public string[] AttributeValues(string packageId) =>
+        AttributeValuesFromPackage(packageId)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static value => value, StringComparer.Ordinal)
             .ToArray();
 
-    public string[] ValuesFromMembers(params AttributeMemberRef[] memberRefs) =>
-        memberRefs
-            .Select(ValueFromMember)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static value => value, StringComparer.Ordinal)
-            .ToArray();
+    public string[] RequiredAttributeValues(params string[] values) =>
+        values.Select(RequiredAttributeValue).ToArray();
 
-    public string ValueFromMember(AttributeMemberRef memberRef)
+    public string RequiredAttributeValue(string value)
     {
-        var type = ResolveType(memberRef.Type);
-        var field = type.GetField(memberRef.MemberName, BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+        if (!AllAttributeValues().Contains(value, StringComparer.Ordinal))
+            throw new InvalidOperationException(
+                $"Semantic convention attribute key '{value}' is not present in the configured package references.");
+
+        return value;
+    }
+
+    public string SchemaUrlCurrent()
+    {
+        var assembly = ResolveAssembly(ICollectorSemanticCatalog.StablePackageId);
+        var type = assembly.GetType("Qyl.OpenTelemetry.SemanticConventions.SchemaUrl", throwOnError: true)!;
+        var field = type.GetField("Current", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
         if (field is not { IsLiteral: true, IsInitOnly: false } || field.FieldType != typeof(string))
         {
             throw new InvalidOperationException(
-                $"Semantic convention member '{memberRef.Type.TypeName}.{memberRef.MemberName}' is not a public string constant.");
+                "Semantic convention SchemaUrl.Current is not a public string constant.");
         }
 
         return (string)field.GetRawConstantValue()!;
     }
 
-    private IEnumerable<string> ValuesFromType(AttributeTypeRef typeRef) =>
-        ResolveType(typeRef)
+    private IEnumerable<string> AttributeValuesFromPackage(string packageId) =>
+        ResolveAssembly(packageId)
+            .GetTypes()
+            .Where(static type =>
+                type.FullName is not null &&
+                type.FullName.Contains(".Attributes.", StringComparison.Ordinal) &&
+                type.Name.EndsWith("Attributes", StringComparison.Ordinal))
+            .SelectMany(AttributeValuesFromType);
+
+    private static IEnumerable<string> AttributeValuesFromType(Type type) =>
+        type
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
             .Where(static field => field is { IsLiteral: true, IsInitOnly: false } &&
                                    field.FieldType == typeof(string))
             .Select(static field => (string)field.GetRawConstantValue()!);
 
-    private Type ResolveType(AttributeTypeRef typeRef)
-    {
-        var assembly = ResolveAssembly(typeRef.PackageId);
-        return assembly.GetType(typeRef.TypeName, throwOnError: true)!;
-    }
-
     private Assembly ResolveAssembly(string packageId)
     {
         if (_assemblies.TryGetValue(packageId, out var assembly))
             return assembly;
+
+        try
+        {
+            assembly = Assembly.Load(new AssemblyName(packageId));
+            _assemblies.Add(packageId, assembly);
+            return assembly;
+        }
+        catch (FileNotFoundException)
+        {
+        }
 
         if (!packageVersions.TryGetValue(packageId, out var version))
             throw new InvalidOperationException($"Central package version '{packageId}' is missing.");

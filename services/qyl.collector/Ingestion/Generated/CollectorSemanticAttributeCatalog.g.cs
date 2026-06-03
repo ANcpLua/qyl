@@ -416,6 +416,10 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.definitions",
         "gen_ai.tool.description",
         "gen_ai.workflow.name",
+        "host.id",
+        "host.ip",
+        "host.mac",
+        "host.name",
         "http.request.header",
         "http.response.header",
         "mcp.session.id",
@@ -483,5 +487,6 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiToolName = "gen_ai.tool.name";
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
+    internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.41.0";
     internal const string ServiceName = "service.name";
 }

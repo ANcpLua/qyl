@@ -63,8 +63,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\packages\Qyl.Telemetry\Qyl.Telemetry.csproj"/>
     <PackageReference Include="Qyl.Api.Contracts"/>
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
-    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
