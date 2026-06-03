@@ -33,7 +33,7 @@ dotnet-contrib contribution.
 
 **Run order:**
 
-1. Read `AGENTS.md`, this file, and the semconv generator files under `eng/semconv/`.
+1. Read `AGENTS.md`, this file, and the current generator source for the target repo; qyl no longer has an in-tree semconv generator.
 2. Confirm the target upstream migration scope from repository pins and explicit user input; never infer it from stale notes.
 3. Confirm the generator uses pinned Weaver and pinned upstream semconv source; never fetch `latest`.
 4. Confirm release pins and declarative version-selection config are not mixed:

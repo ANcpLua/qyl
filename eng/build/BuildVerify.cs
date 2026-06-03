@@ -1495,6 +1495,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "PdbSourceResolver.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocation.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
+                RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
                 RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];

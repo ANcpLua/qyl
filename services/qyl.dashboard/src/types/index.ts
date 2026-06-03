@@ -1,6 +1,6 @@
 /**
  * qyl API Types
- * DO NOT edit api.ts directly - it's auto-generated from openapi.yaml
+ * DO NOT edit api.ts directly - it's auto-generated from qyl-api-schema/generated/openapi/qyl.openapi.json
  *
  * Type Pipeline: TypeSpec -> OpenAPI -> openapi-typescript -> api.ts -> index.ts
  * Regenerate with: npm run generate:ts
