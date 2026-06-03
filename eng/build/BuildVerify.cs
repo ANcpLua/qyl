@@ -1316,16 +1316,16 @@ interface IVerify : IHazSourcePaths
                 "namespace Qyl.Collector.Query"
             ];
 
-            string[] removedCollectorRouteLiterals =
+            string[] removedCollectorRoutePrefixes =
             [
-                "\"/observe",
-                "\"/metrics",
-                "\"/logs/live",
-                "\"/sessions/{sessionId}/spans",
-                "\"/traces/{traceId}/profiles",
-                "\"/genai",
-                "\"/telemetry",
-                "\"/meta"
+                "/observe",
+                "/metrics",
+                "/logs/live",
+                "/sessions/{sessionId}/spans",
+                "/traces/{traceId}/profiles",
+                "/genai",
+                "/telemetry",
+                "/meta"
             ];
 
             AbsolutePath[] removedPaths =
@@ -1404,17 +1404,9 @@ interface IVerify : IHazSourcePaths
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var collectorRouteOffenders = (CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs")
-                .FileExists()
-                ? removedCollectorRouteLiterals
-                    .Where(token => File.ReadAllText(CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs")
-                        .Contains(token, StringComparison.Ordinal))
-                    .Select(token => (
-                        File: RootDirectory.GetRelativePathTo(
-                            CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs").ToString(),
-                        Token: token))
-                    .ToList()
-                : [];
+            var collectorRouteOffenders = CollectorSourceFiles()
+                .SelectMany(file => RemovedRouteLiterals(file, removedCollectorRoutePrefixes))
+                .ToList();
 
             var pathOffenders = removedPaths
                 .Where(static path => path.FileExists() || Directory.Exists(path.ToString()))
@@ -1441,7 +1433,8 @@ interface IVerify : IHazSourcePaths
                 Log.Error("  Removed collector query surface '{Token}' found in {File}", offender.Token, offender.File);
 
             foreach (var offender in collectorRouteOffenders)
-                Log.Error("  Removed collector route '{Token}' found in {File}", offender.Token, offender.File);
+                Log.Error("  Removed collector route '{Route}' found in {File}:{Line}",
+                    offender.Route, offender.File, offender.Line);
 
             foreach (var path in pathOffenders)
                 Log.Error("  Removed collector surface found: {Path}", path);
@@ -1548,6 +1541,11 @@ interface IVerify : IHazSourcePaths
         int Line,
         string Kind,
         string Text);
+
+    private readonly record struct RemovedRouteLiteral(
+        string File,
+        int Line,
+        string Route);
 
     private IEnumerable<AbsolutePath> CollectorSourceFiles() =>
         CollectorDirectory.GlobFiles("**/*.cs")
@@ -1678,6 +1676,33 @@ interface IVerify : IHazSourcePaths
 
         SemanticUsageOffender CreateOffender(SyntaxNode node, string kind) =>
             new(relativePath, NodeLine(node), kind, NodePreview(node));
+    }
+
+    private IEnumerable<RemovedRouteLiteral> RemovedRouteLiterals(
+        AbsolutePath file,
+        IReadOnlyCollection<string> removedRoutePrefixes)
+    {
+        var root = ParseCompilationUnit(file);
+        var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+
+        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (InvocationName(invocation.Expression) is not { } invocationName ||
+                !invocationName.StartsWith("Map", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression is not LiteralExpressionSyntax literal ||
+                !literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                literal.Token.ValueText is not { Length: > 0 } route)
+            {
+                continue;
+            }
+
+            if (removedRoutePrefixes.Any(prefix => route.StartsWith(prefix, StringComparison.Ordinal)))
+                yield return new RemovedRouteLiteral(relativePath, NodeLine(literal), route);
+        }
     }
 
     private static CompilationUnitSyntax ParseCompilationUnit(AbsolutePath file)
