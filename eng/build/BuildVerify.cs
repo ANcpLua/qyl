@@ -530,6 +530,63 @@ interface IVerify : IHazSourcePaths
                 "Use a named bounded aggregate limit before materializing Qyl.Api.Contracts session models.");
         });
 
+    Target VerifyInstrumentationHasNoStorageTenantKnowledge => d => d
+        .Unlisted()
+        .Description("Verify instrumentation packages stay storage- and tenant-blind")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenInstrumentationTokens =
+            [
+                "ProjectId",
+                "project_id",
+                "qyl.project.id",
+                "qyl.workspace.id",
+                "tenant.id",
+                "TenantId",
+                "SpanStorageRow",
+                "LogStorageRow",
+                "ProfileStorageRow"
+            ];
+
+            var instrumentationRoots = new[]
+            {
+                RootDirectory / "internal" / "qyl.instrumentation",
+                RootDirectory / "internal" / "qyl.instrumentation.generators"
+            };
+
+            var offenders = instrumentationRoots
+                .Where(static directory => Directory.Exists(directory))
+                .SelectMany(static directory => directory.GlobFiles("**/*.cs"))
+                .Where(static file =>
+                {
+                    var path = file.ToString();
+                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                })
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Text: File.ReadAllText(file)))
+                .SelectMany(file => forbiddenInstrumentationTokens
+                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.File, Token: token)))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Instrumentation packages are storage- and tenant-blind");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Storage or tenant token '{Token}' found in instrumentation file {File}",
+                    offender.Token, offender.File);
+
+            throw new InvalidOperationException(
+                "Do not put storage schemas, tenant ids, project ids, or collector storage rows into instrumentation packages. " +
+                "Stamp project_id only at the collector receiver/ingestion-to-storage boundary.");
+        });
+
     Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
         .Unlisted()
         .Description("Verify collector DuckDB access stays behind storage intent methods")
@@ -975,7 +1032,7 @@ interface IVerify : IHazSourcePaths
 
     Target VerifyCollectorSpanIdentityIsComposite => d => d
         .Unlisted()
-        .Description("Verify span storage identity is trace-scoped")
+        .Description("Verify span storage identity is project- and trace-scoped")
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
@@ -986,7 +1043,8 @@ interface IVerify : IHazSourcePaths
             [
                 "PRIMARY KEY (span_id)",
                 "PRIMARY KEY (\"span_id\")",
-                "ON CONFLICT (span_id)"
+                "ON CONFLICT (span_id)",
+                "ON CONFLICT (trace_id, span_id)"
             ];
 
             var offenders = CollectorDirectory.GlobFiles("**/*.cs")
@@ -1007,17 +1065,18 @@ interface IVerify : IHazSourcePaths
 
             var missingRequired = new List<string>();
             var spanStorageRowText = spanStorageRowFile.FileExists() ? File.ReadAllText(spanStorageRowFile) : "";
-            if (!spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 0)]\n    public required string TraceId", StringComparison.Ordinal) ||
-                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 1)]\n    public required string SpanId", StringComparison.Ordinal))
+            if (!spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = \"VARCHAR(128)\")]\n    public required string ProjectId", StringComparison.Ordinal) ||
+                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 1)]\n    public required string TraceId", StringComparison.Ordinal) ||
+                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 2)]\n    public required string SpanId", StringComparison.Ordinal))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
-                                    + " must declare generated PRIMARY KEY order TraceId=0, SpanId=1");
+                                    + " must declare generated PRIMARY KEY order ProjectId=0, TraceId=1, SpanId=2");
             }
 
-            if (!spanStorageRowText.Contains("ON CONFLICT (trace_id, span_id)", StringComparison.Ordinal))
+            if (!spanStorageRowText.Contains("ON CONFLICT (project_id, trace_id, span_id)", StringComparison.Ordinal))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
-                                    + " must upsert ON CONFLICT (trace_id, span_id)");
+                                    + " must upsert ON CONFLICT (project_id, trace_id, span_id)");
             }
 
             if (!storeFile.FileExists() ||
@@ -1029,7 +1088,7 @@ interface IVerify : IHazSourcePaths
 
             if (offenders.Count is 0 && missingRequired.Count is 0)
             {
-                Log.Information("Collector span storage identity is trace-scoped");
+                Log.Information("Collector span storage identity is project- and trace-scoped");
                 return;
             }
 
@@ -1040,7 +1099,8 @@ interface IVerify : IHazSourcePaths
                 Log.Error("  Missing span identity invariant: {Invariant}", missing);
 
             throw new InvalidOperationException(
-                "Span ids are unique only within traces. Store and upsert spans by (trace_id, span_id), never span_id alone.");
+                "Span ids are unique only within traces and tenants. Store and upsert spans by " +
+                "(project_id, trace_id, span_id), never span_id alone.");
         });
 
     Target VerifyNoRemovedBuildSurface => d => d
@@ -1517,6 +1577,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
+        .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
@@ -1545,6 +1606,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");
             Log.Information("  Collector session facets are bounded");
+            Log.Information("  Instrumentation packages are storage- and tenant-blind");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector storage row tables use generated DuckDB DDL");
@@ -1552,7 +1614,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  OTLP span semantic storage projection is centralized");
-            Log.Information("  Collector span storage identity is trace-scoped");
+            Log.Information("  Collector span storage identity is project- and trace-scoped");
             Log.Information("  Removed local build surfaces stayed removed");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });

@@ -685,24 +685,24 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             if (header is null) return null;
 
-            var functions = ReadChildRows(con, profileId,
-                "SELECT " + ProfileFunctionRow.SelectColumnList + " FROM profile_functions WHERE profile_id = $1 ORDER BY ordinal",
+            var functions = ReadChildRows(con, header.ProjectId, profileId,
+                "SELECT " + ProfileFunctionRow.SelectColumnList + " FROM profile_functions WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
                 static r => ProfileFunctionRow.MapFromReader(r));
 
-            var locations = ReadChildRows(con, profileId,
-                "SELECT " + ProfileLocationRow.SelectColumnList + " FROM profile_locations WHERE profile_id = $1 ORDER BY ordinal",
+            var locations = ReadChildRows(con, header.ProjectId, profileId,
+                "SELECT " + ProfileLocationRow.SelectColumnList + " FROM profile_locations WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
                 static r => ProfileLocationRow.MapFromReader(r));
 
-            var mappings = ReadChildRows(con, profileId,
-                "SELECT " + ProfileMappingRow.SelectColumnList + " FROM profile_mappings WHERE profile_id = $1 ORDER BY ordinal",
+            var mappings = ReadChildRows(con, header.ProjectId, profileId,
+                "SELECT " + ProfileMappingRow.SelectColumnList + " FROM profile_mappings WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
                 static r => ProfileMappingRow.MapFromReader(r));
 
-            var samples = ReadChildRows(con, profileId,
-                "SELECT " + ProfileSampleRow.SelectColumnList + " FROM profile_samples WHERE profile_id = $1 ORDER BY ordinal",
+            var samples = ReadChildRows(con, header.ProjectId, profileId,
+                "SELECT " + ProfileSampleRow.SelectColumnList + " FROM profile_samples WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
                 static r => ProfileSampleRow.MapFromReader(r));
 
-            var stacks = ReadChildRows(con, profileId,
-                "SELECT " + ProfileStackRow.SelectColumnList + " FROM profile_stacks WHERE profile_id = $1 ORDER BY ordinal",
+            var stacks = ReadChildRows(con, header.ProjectId, profileId,
+                "SELECT " + ProfileStackRow.SelectColumnList + " FROM profile_stacks WHERE project_id = $1 AND profile_id = $2 ORDER BY ordinal",
                 static r => ProfileStackRow.MapFromReader(r));
 
             return new ProfileDetail
@@ -717,12 +717,13 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         }, ct);
     }
 
-    private static IReadOnlyList<T> ReadChildRows<T>(DuckDBConnection connection, string profileId,
+    private static IReadOnlyList<T> ReadChildRows<T>(DuckDBConnection connection, string projectId, string profileId,
         string sql, Func<DbDataReader, T> mapper)
     {
         var rows = new List<T>();
         using var cmd = connection.CreateCommand();
         cmd.CommandText = sql;
+        cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
         cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
         using var r = cmd.ExecuteReader();
         while (r.Read()) rows.Add(mapper(r));

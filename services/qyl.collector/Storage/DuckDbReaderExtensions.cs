@@ -3,7 +3,7 @@ namespace Qyl.Collector.Storage;
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
 
 [DuckDbTable("spans", OnConflict = """
-    ON CONFLICT (trace_id, span_id) DO UPDATE SET
+    ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET
         end_time_unix_nano = EXCLUDED.end_time_unix_nano,
         duration_ns = EXCLUDED.duration_ns,
         status_code = EXCLUDED.status_code,
@@ -17,9 +17,11 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
     """)]
 internal sealed partial record SpanStorageRow
 {
-    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required string SpanId { get; init; }
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string TraceId { get; init; }
     public string? ParentSpanId { get; init; }
     public string? SessionId { get; init; }
@@ -107,6 +109,8 @@ internal sealed partial record ModelPricingRow
 [DuckDbTable("logs")]
 internal sealed partial record LogStorageRow
 {
+    [DuckDbColumn(SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
     public required string LogId { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
@@ -132,7 +136,9 @@ internal sealed partial record LogStorageRow
 [DuckDbTable("profiles")]
 internal sealed partial record ProfileStorageRow
 {
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
     public required string ProfileId { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
@@ -161,8 +167,10 @@ internal sealed partial record ProfileStorageRow
 internal sealed partial record ProfileFunctionRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProfileId { get; init; }
+    public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string ProfileId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public string? Name { get; init; }
     public string? SystemName { get; init; }
@@ -174,8 +182,10 @@ internal sealed partial record ProfileFunctionRow
 internal sealed partial record ProfileLocationRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProfileId { get; init; }
+    public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string ProfileId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public int? MappingOrdinal { get; init; }
     [DuckDbColumn(IsUBigInt = true)]
@@ -187,8 +197,10 @@ internal sealed partial record ProfileLocationRow
 internal sealed partial record ProfileMappingRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProfileId { get; init; }
+    public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string ProfileId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public string? Filename { get; init; }
     [DuckDbColumn(IsUBigInt = true)]
@@ -203,8 +215,10 @@ internal sealed partial record ProfileMappingRow
 internal sealed partial record ProfileSampleRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProfileId { get; init; }
+    public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string ProfileId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public int? StackOrdinal { get; init; }
     public string? LinkTraceId { get; init; }
@@ -217,8 +231,10 @@ internal sealed partial record ProfileSampleRow
 internal sealed partial record ProfileStackRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string ProfileId { get; init; }
+    public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string ProfileId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
     public required int Ordinal { get; init; }
     public string? LocationOrdinalsJson { get; init; }
 }
