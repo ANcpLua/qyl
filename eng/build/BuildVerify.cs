@@ -697,7 +697,7 @@ interface IVerify : IHazSourcePaths
             [
                 "FROM spans WHERE project_id = $1 AND session_id = $2",
                 "FROM spans WHERE project_id = $1 AND trace_id = $2",
-                "qb.Add(\"project_id = $N\", ProjectScope.Normalize(projectId));",
+                "qb.Add(\"project_id = $N\", projectId);",
                 "(SELECT COUNT(*) FROM spans WHERE project_id = $1)",
                 "(SELECT COUNT(*) FROM logs WHERE project_id = $1)",
                 "SELECT COUNT(*) FROM spans WHERE project_id = $1",
@@ -713,6 +713,7 @@ interface IVerify : IHazSourcePaths
             ];
 
             var missing = new List<string>();
+            var forbidden = new List<string>();
 
             foreach (var token in requiredProjectScopeTokens)
                 if (!projectScopeText.Contains(token, StringComparison.Ordinal))
@@ -726,18 +727,34 @@ interface IVerify : IHazSourcePaths
                 if (!sessionsText.Contains(token, StringComparison.Ordinal))
                     missing.Add($"{RootDirectory.GetRelativePathTo(sessionsFile)} missing token: {token}");
 
-            if (missing.Count is 0)
+            string[] forbiddenReadScopeTokens =
+            [
+                "projectId = ProjectScope.DefaultProjectId",
+                "ProjectScope.Normalize(projectId)"
+            ];
+
+            foreach (var token in forbiddenReadScopeTokens)
             {
-                Log.Information("Collector storage reads are project-scoped");
+                if (storeText.Contains(token, StringComparison.Ordinal))
+                    forbidden.Add($"{RootDirectory.GetRelativePathTo(storeFile)} contains forbidden token: {token}");
+                if (sessionsText.Contains(token, StringComparison.Ordinal))
+                    forbidden.Add($"{RootDirectory.GetRelativePathTo(sessionsFile)} contains forbidden token: {token}");
+            }
+
+            if (missing.Count is 0 && forbidden.Count is 0)
+            {
+                Log.Information("Collector storage reads require explicit project scope");
                 return;
             }
 
             foreach (var item in missing)
                 Log.Error("  {Missing}", item);
+            foreach (var item in forbidden)
+                Log.Error("  {Forbidden}", item);
 
             throw new InvalidOperationException(
-                "Storage reads over spans, logs, profiles, and session summaries must include project_id scope. " +
-                "project_id is stamped at ingestion and must remain a storage boundary.");
+                "Storage reads over spans, logs, profiles, and session summaries must include explicit project_id scope. " +
+                "Do not default or normalize project scope inside read query APIs; pass the request edge scope in explicitly.");
         });
 
     Target VerifyCollectorDuckDbAccessIsStorageOnly => d => d
@@ -1806,7 +1823,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector log streaming uses storage ordering");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
-            Log.Information("  Collector storage reads are project-scoped");
+            Log.Information("  Collector storage reads require explicit project scope");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector storage row tables and indexes use generated DuckDB DDL");

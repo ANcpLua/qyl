@@ -138,6 +138,7 @@ internal static class CollectorEndpointExtensions
 
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 1_000);
         var sessions = await store.GetSessionsAsync(
+            ProjectScope.DefaultProjectId,
             boundedLimit + 1,
             offset,
             isActive,
@@ -166,7 +167,7 @@ internal static class CollectorEndpointExtensions
         string sessionId,
         DuckDbStore store,
         CancellationToken ct) =>
-        await store.GetSessionAsync(sessionId, ct: ct).ConfigureAwait(false) is not { } session
+        await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
             : Results.Ok(SessionMapper.ToContract(session));
 
@@ -176,7 +177,8 @@ internal static class CollectorEndpointExtensions
         DateTimeOffset? endTime,
         CancellationToken ct)
     {
-        var stats = await store.GetSessionStatsAsync(startTime, endTime, ct: ct).ConfigureAwait(false);
+        var stats = await store.GetSessionStatsAsync(ProjectScope.DefaultProjectId, startTime, endTime, ct: ct)
+            .ConfigureAwait(false);
         return Results.Ok(new SessionStats
         {
             ActiveSessions = stats.ActiveSessions,
@@ -198,7 +200,8 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
-        var spans = await store.GetSpansAsync(limit: boundedLimit, ct: ct).ConfigureAwait(false);
+        var spans = await store.GetSpansAsync(ProjectScope.DefaultProjectId, limit: boundedLimit, ct: ct)
+            .ConfigureAwait(false);
         var traces = spans
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
             .Select(static group =>
@@ -225,6 +228,7 @@ internal static class CollectorEndpointExtensions
     {
         var boundedLimit = Math.Clamp(limit ?? 500, 1, 1_000);
         var logs = await store.GetLogsAsync(
+            ProjectScope.DefaultProjectId,
             session, trace, level, minSeverity, search,
             serviceName: serviceName,
             limit: boundedLimit,
@@ -266,6 +270,7 @@ internal static class CollectorEndpointExtensions
         while (!ct.IsCancellationRequested)
         {
             var rows = await store.GetLogsAsync(
+                ProjectScope.DefaultProjectId,
                 sessionId: null,
                 traceId: null,
                 severityText: null,
@@ -359,6 +364,7 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var profiles = await store.GetProfilesAsync(
+            ProjectScope.DefaultProjectId,
             session,
             trace,
             serviceName: serviceName,
@@ -374,7 +380,7 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         CancellationToken ct)
     {
-        var detail = await store.GetProfileDetailAsync(profileId, ct: ct);
+        var detail = await store.GetProfileDetailAsync(profileId, ProjectScope.DefaultProjectId, ct: ct);
         return detail is not null
             ? Results.Ok(ProfileMapper.ToContract(detail))
             : Results.NotFound(ContractErrorFactory.NotFound("profile", profileId));
@@ -385,7 +391,7 @@ internal static class CollectorEndpointExtensions
         DuckDbStore store,
         CancellationToken ct)
     {
-        var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
+        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, traceId: traceId, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
@@ -395,7 +401,7 @@ internal static class CollectorEndpointExtensions
         int? limit,
         CancellationToken ct)
     {
-        var profiles = await store.GetProfilesAsync(spanId: spanId, limit: limit ?? 100, ct: ct);
+        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, spanId: spanId, limit: limit ?? 100, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 

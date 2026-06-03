@@ -25,12 +25,12 @@ internal sealed partial class DuckDbStore
                                                     """;
 
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
+        string projectId,
         int limit = 100,
         int offset = 0,
         bool? isActive = null,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
-        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default) =>
         await ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
         {
@@ -44,7 +44,7 @@ internal sealed partial class DuckDbStore
                               + " ORDER BY MAX(end_time_unix_nano) DESC"
                               + " LIMIT $6 OFFSET $7";
 
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
@@ -56,7 +56,7 @@ internal sealed partial class DuckDbStore
 
     public async Task<SessionQueryRow?> GetSessionAsync(
         string sessionId,
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default)
     {
         var results = await ExecuteReadAsync(con =>
@@ -66,7 +66,7 @@ internal sealed partial class DuckDbStore
                               + " WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
                               + " GROUP BY COALESCE(session_id, trace_id)";
 
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             return ExecuteSessionQuery(cmd);
@@ -76,9 +76,9 @@ internal sealed partial class DuckDbStore
     }
 
     public Task<SessionStatsRow> GetSessionStatsAsync(
+        string projectId,
         DateTimeOffset? startTime = null,
         DateTimeOffset? endTime = null,
-        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -114,7 +114,7 @@ internal sealed partial class DuckDbStore
                               FROM sessions
                               """;
 
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             AddUnixNanoParam(cmd, startTime);
             AddUnixNanoParam(cmd, endTime);
             AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));

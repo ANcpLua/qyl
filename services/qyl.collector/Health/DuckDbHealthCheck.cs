@@ -11,7 +11,8 @@ internal sealed class DuckDbHealthCheck(DuckDbStore store) : IHealthCheck
     {
         try
         {
-            var stats = await store.GetStorageStatsAsync(ct: cancellationToken).ConfigureAwait(false);
+            var stats = await store.GetStorageStatsAsync(ProjectScope.DefaultProjectId, ct: cancellationToken)
+                .ConfigureAwait(false);
 
             return HealthCheckResult.Healthy(
                 "DuckDB connection is healthy",

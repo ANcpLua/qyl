@@ -232,7 +232,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
         string sessionId,
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -242,7 +242,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans WHERE project_id = $1 AND session_id = $2 ORDER BY start_time_unix_nano ASC";
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
             using var reader = cmd.ExecuteReader();
@@ -255,7 +255,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
         string traceId,
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -265,7 +265,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
                                         + " FROM spans WHERE project_id = $1 AND trace_id = $2 ORDER BY start_time_unix_nano ASC";
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
             using var reader = cmd.ExecuteReader();
@@ -277,6 +277,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     public Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
+        string projectId,
         string? sessionId = null,
         string? providerName = null,
         ulong? startAfter = null,
@@ -284,7 +285,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         byte? statusCode = null,
         string? searchText = null,
         int limit = 100,
-        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -293,7 +293,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var spans = new List<SpanStorageRow>();
             var qb = new QueryBuilder();
 
-            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
+            qb.Add("project_id = $N", projectId);
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(providerName))
@@ -326,7 +326,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
 
     public Task<StorageStats> GetStorageStatsAsync(
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -341,7 +341,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                   (SELECT MIN(start_time_unix_nano) FROM spans WHERE project_id = $1) as oldest_span,
                                   (SELECT MAX(start_time_unix_nano) FROM spans WHERE project_id = $1) as newest_span
                               """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
@@ -424,25 +424,25 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
 
     public Task<long> GetSpanCountAsync(
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default) =>
         ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM spans WHERE project_id = $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             var result = cmd.ExecuteScalar();
             return result is long count ? count : 0;
         }, ct);
 
     public Task<long> GetLogCountAsync(
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default) =>
         ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM logs WHERE project_id = $1";
-            cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             var result = cmd.ExecuteScalar();
             return result is long count ? count : 0;
         }, ct);
@@ -519,6 +519,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
+        string projectId,
         string? sessionId = null,
         string? traceId = null,
         string? severityText = null,
@@ -531,7 +532,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         bool ascending = false,
         bool latestPageAscending = false,
         int limit = 500,
-        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -540,7 +540,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var logs = new List<LogStorageRow>();
             var qb = new QueryBuilder();
 
-            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
+            qb.Add("project_id = $N", projectId);
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(traceId))
@@ -660,13 +660,13 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     public Task<IReadOnlyList<ProfileStorageRow>> GetProfilesAsync(
+        string projectId,
         string? sessionId = null,
         string? traceId = null,
         string? spanId = null,
         string? serviceName = null,
         string? sampleType = null,
         int limit = 100,
-        string projectId = ProjectScope.DefaultProjectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -676,7 +676,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             var profiles = new List<ProfileStorageRow>();
             var qb = new QueryBuilder();
 
-            qb.Add("project_id = $N", ProjectScope.Normalize(projectId));
+            qb.Add("project_id = $N", projectId);
             if (!string.IsNullOrEmpty(sessionId))
                 qb.Add("session_id = $N", sessionId);
             if (!string.IsNullOrEmpty(traceId))
@@ -709,7 +709,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<ProfileDetail?> GetProfileDetailAsync(
         string profileId,
-        string projectId = ProjectScope.DefaultProjectId,
+        string projectId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
@@ -720,7 +720,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
             {
                 cmd.CommandText =
                     "SELECT " + ProfileStorageRow.SelectColumnList + " FROM profiles WHERE project_id = $1 AND profile_id = $2 LIMIT 1";
-                cmd.Parameters.Add(new DuckDBParameter { Value = ProjectScope.Normalize(projectId) });
+                cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
                 cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
                 using var r = cmd.ExecuteReader();
                 if (r.Read()) header = ProfileStorageRow.MapFromReader(r);
