@@ -1423,6 +1423,99 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Do not collapse OTLP attributes to string-only dictionaries. Preserve AnyValue string, bool, int, double, bytes, array, and kvlist values through storage JSON.");
         });
 
+    Target VerifyOtlpUnixNanoValuesStayUnsigned => d => d
+        .Unlisted()
+        .Description("Verify OTLP UnixNano values stay unsigned through ingestion, storage, and contract mapping")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var ingestionModelsFile = CollectorDirectory / "Ingestion" / "OtlpIngestionModels.cs";
+            var storageRowsFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
+            var mappersFile = CollectorDirectory / "Mapping" / "Mappers.cs";
+
+            foreach (var file in new[] { ingestionModelsFile, storageRowsFile, mappersFile })
+            {
+                if (!file.FileExists())
+                    throw new FileNotFoundException("Missing UnixNano verification input", file.ToString());
+            }
+
+            var ingestionText = File.ReadAllText(ingestionModelsFile);
+            var storageText = File.ReadAllText(storageRowsFile);
+            var mapperText = File.ReadAllText(mappersFile);
+
+            var required = new List<(AbsolutePath File, string Token)>
+            {
+                (ingestionModelsFile, "public required ulong StartTimeUnixNano"),
+                (ingestionModelsFile, "public required ulong EndTimeUnixNano"),
+                (ingestionModelsFile, "public required ulong TimeUnixNano"),
+                (ingestionModelsFile, "public ulong? ObservedTimeUnixNano"),
+                (ingestionModelsFile, "public required ulong DurationNano"),
+                (ingestionModelsFile, "public ulong[]? TimestampsUnixNano"),
+                (storageRowsFile, "public required ulong StartTimeUnixNano"),
+                (storageRowsFile, "public required ulong EndTimeUnixNano"),
+                (storageRowsFile, "public required ulong DurationNs"),
+                (storageRowsFile, "public required ulong TimeUnixNano"),
+                (storageRowsFile, "public ulong? ObservedTimeUnixNano"),
+                (storageRowsFile, "public required ulong DurationNano"),
+                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs"),
+                (mappersFile, "TimestampsUnixNano = ParseUlongList(row.TimestampsJson)")
+            };
+
+            var textByFile = new Dictionary<AbsolutePath, string>
+            {
+                [ingestionModelsFile] = ingestionText,
+                [storageRowsFile] = storageText,
+                [mappersFile] = mapperText
+            };
+
+            var missing = required
+                .Where(item => !textByFile[item.File].Contains(item.Token, StringComparison.Ordinal))
+                .ToList();
+
+            string[] forbiddenTokens =
+            [
+                "public required long StartTimeUnixNano",
+                "public required long EndTimeUnixNano",
+                "public required long TimeUnixNano",
+                "public long? ObservedTimeUnixNano",
+                "public required long DurationNano",
+                "public long[]? TimestampsUnixNano",
+                "TimestampsUnixNano = ParseLongList",
+                "(long)startTimeUnixNano",
+                "(long)endTimeUnixNano",
+                "(long)durationNs",
+                "Convert.ToInt64(startTimeUnixNano",
+                "Convert.ToInt64(endTimeUnixNano",
+                "Convert.ToInt64(durationNs"
+            ];
+
+            var offenders = textByFile
+                .SelectMany(file => forbiddenTokens
+                    .Where(token => file.Value.Contains(token, StringComparison.Ordinal))
+                    .Select(token => (file.Key, Token: token)))
+                .ToList();
+
+            if (missing.Count is 0 && offenders.Count is 0)
+            {
+                Log.Information("OTLP UnixNano values stay unsigned through ingestion, storage, and contract mapping");
+                return;
+            }
+
+            foreach (var item in missing)
+                Log.Error("  Missing unsigned UnixNano token '{Token}' in {File}",
+                    item.Token,
+                    RootDirectory.GetRelativePathTo(item.File));
+
+            foreach (var offender in offenders)
+                Log.Error("  Forbidden signed UnixNano token '{Token}' in {File}",
+                    offender.Token,
+                    RootDirectory.GetRelativePathTo(offender.Key));
+
+            throw new InvalidOperationException(
+                "Do not convert OTLP fixed64 UnixNano fields to signed long in collector ingestion, storage, or contract mapping. " +
+                "Qyl.Api.Contracts OTel time fields are unsigned.");
+        });
+
     Target VerifyOtlpConverterUsesCentralizedSemanticProjection => d => d
         .Unlisted()
         .Description("Verify OTLP decoding stays storage-independent and storage projection stays centralized")
@@ -2171,6 +2264,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyOtlpProfileSymbolsAreResolved)
         .DependsOn(VerifyOtlpAttributesPreserveAnyValueTypes)
+        .DependsOn(VerifyOtlpUnixNanoValuesStayUnsigned)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
         .DependsOn(VerifyCollectorIngestionHasNoStorageSchemaKnowledge)
         .DependsOn(VerifyCollectorSpanIdentityIsComposite)
@@ -2206,6 +2300,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector storage row writes use generated DuckDB insert helpers");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
+            Log.Information("  OTLP UnixNano values stay unsigned through ingestion, storage, and contract mapping");
             Log.Information("  OTLP decoding is storage-independent and storage projection is centralized");
             Log.Information("  Collector OTLP ingestion is storage-schema blind");
             Log.Information("  Collector span storage identity is project- and trace-scoped");
