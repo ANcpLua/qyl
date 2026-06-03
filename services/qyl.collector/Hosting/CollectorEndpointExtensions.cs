@@ -28,11 +28,11 @@ internal static class CollectorEndpointExtensions
         api.MapGet("/sessions", GetSessionsAsync);
         api.MapGet("/sessions/stats", GetSessionStatsAsync);
         api.MapGet("/sessions/{sessionId}", GetSessionByIdAsync);
-        api.MapGet("/sessions/{sessionId}/traces", SpanEndpoints.GetSessionTracesAsync);
+        api.MapGet("/sessions/{sessionId}/traces", GetSessionTracesAsync);
 
         api.MapGet("/traces", GetTracesAsync);
-        api.MapGet("/traces/{traceId}", SpanEndpoints.GetTraceAsync);
-        api.MapGet("/traces/{traceId}/spans", SpanEndpoints.GetTraceSpansAsync);
+        api.MapGet("/traces/{traceId}", GetTraceAsync);
+        api.MapGet("/traces/{traceId}/spans", GetTraceSpansAsync);
 
         api.MapGet("/logs", GetLogsAsync);
         api.MapGet("/stream/logs", StreamLogsAsync);
@@ -180,6 +180,26 @@ internal static class CollectorEndpointExtensions
         });
     }
 
+    private static async Task<IResult> GetSessionTracesAsync(
+        string sessionId,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        var spans = await store.GetSpansBySessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct)
+            .ConfigureAwait(false);
+        var traces = spans
+            .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
+            .Select(static group =>
+            {
+                var spanContracts = SpanMapper.ToContracts(
+                    group,
+                    static s => (s.ServiceName ?? "unknown", null));
+                return SpanMapper.ToTrace(group.Key, spanContracts);
+            })
+            .ToList();
+
+        return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
+    }
 
     private static async Task<IResult> GetTracesAsync(
         DuckDbStore store,
@@ -201,6 +221,34 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
     }
 
+    private static async Task<IResult> GetTraceSpansAsync(
+        string traceId,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
+        if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
+
+        var spanContracts = SpanMapper.ToContracts(
+            spans,
+            static s => (s.ServiceName ?? "unknown", null));
+        return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
+    }
+
+    private static async Task<IResult> GetTraceAsync(
+        string traceId,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
+        if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
+
+        var spanContracts = SpanMapper.ToContracts(
+            spans,
+            static r => (r.ServiceName ?? "unknown", null));
+
+        return Results.Ok(SpanMapper.ToTrace(traceId, spanContracts));
+    }
 
     private static async Task<IResult> GetLogsAsync(
         DuckDbStore store,

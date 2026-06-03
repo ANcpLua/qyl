@@ -390,8 +390,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         {
             AbsolutePath[] endpointFiles =
             [
-                CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs",
-                CollectorDirectory / "SpanEndpoints.cs"
+                CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs"
             ];
 
             var storageTypeNames = CollectorSourceFiles()
@@ -1680,6 +1679,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "SpanRowMapper.cs",
+                RootDirectory / "services" / "qyl.collector" / "SpanEndpoints.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "LogSourceEnricher.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "PdbSourceResolver.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocation.cs",
