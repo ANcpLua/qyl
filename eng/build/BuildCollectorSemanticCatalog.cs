@@ -471,11 +471,6 @@ interface ICollectorSemanticCatalog : IHazSourcePaths
         return line.Length <= 160 ? line : line[..160];
     }
 
-    private static IEnumerable<string> OptionalValues(params string?[] values) =>
-        values
-            .Where(static value => !string.IsNullOrWhiteSpace(value))
-            .Select(static value => value!);
-
     private static void WriteFrozenSet(
         StringBuilder builder,
         string name,
@@ -539,11 +534,6 @@ internal sealed class SemConvAttributeResolver(IReadOnlyDictionary<string, strin
 
         return value;
     }
-
-    public string? OptionalAttributeValue(string value) =>
-        AllAttributeValues().Contains(value, StringComparer.Ordinal)
-            ? value
-            : null;
 
     public string SchemaUrlCurrent()
     {
