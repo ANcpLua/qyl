@@ -137,7 +137,7 @@ public static class DbInstrumentation
     private static string GetDbSystem(DbConnection? connection)
     {
         if (connection is null)
-            return "unknown";
+            return DbAttributes.SystemNameValues.OtherSql;
 
         return s_dbSystemCache.GetOrAdd(connection.GetType(), static type =>
             MapTypeNameToDbSystem(type.FullName ?? type.Name));
@@ -149,13 +149,14 @@ public static class DbInstrumentation
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch
         {
-            _ when typeName.ContainsIgnoreCase("DuckDB") => "duckdb",
+            // DuckDB has no stable db.system.name value in the semconv package; use the official SQL fallback.
+            _ when typeName.ContainsIgnoreCase("DuckDB") => DbAttributes.SystemNameValues.OtherSql,
             _ when typeName.ContainsIgnoreCase("Npgsql") => DbAttributes.SystemNameValues.Postgresql,
-            _ when typeName.ContainsIgnoreCase("SqlClient") => "mssql",
+            _ when typeName.ContainsIgnoreCase("SqlClient") => DbAttributes.SystemNameValues.MicrosoftSqlServer,
             _ when typeName.ContainsIgnoreCase("Sqlite") => DbAttributes.SystemNameValues.Sqlite,
-            _ when typeName.ContainsIgnoreCase("Oracle") => "oracle",
+            _ when typeName.ContainsIgnoreCase("Oracle") => DbAttributes.SystemNameValues.OracleDb,
             _ when typeName.ContainsIgnoreCase("MySql") => DbAttributes.SystemNameValues.Mysql,
-            _ when typeName.ContainsIgnoreCase("Firebird") => "firebird",
-            _ => "unknown"
+            _ when typeName.ContainsIgnoreCase("Firebird") => DbAttributes.SystemNameValues.Firebirdsql,
+            _ => DbAttributes.SystemNameValues.OtherSql
         };
 }
