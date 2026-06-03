@@ -14,6 +14,23 @@ internal static class ContractErrorFactory
             ResourceId = resourceId
         };
 
+    internal static ValidationError Validation(string field, string message, string code, string? rejectedValue = null) =>
+        new()
+        {
+            _ = 400,
+            Title = "Validation Failed",
+            Errors =
+            [
+                new ValidationErrorDetail
+                {
+                    Field = field,
+                    Message = message,
+                    Code = code,
+                    RejectedValue = rejectedValue
+                }
+            ]
+        };
+
     internal static ContractInternalServerError InternalServerError(string errorCode) =>
         new()
         {

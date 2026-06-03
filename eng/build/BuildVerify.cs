@@ -821,6 +821,65 @@ interface IVerify : IHazSourcePaths
                 path.FileExists() ? File.ReadAllText(path) : "";
         });
 
+    Target VerifyCollectorStorageWritesUseGeneratedBatchHelper => d => d
+        .Unlisted()
+        .Description("Verify storage row writes use generated DuckDB insert helpers")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            if (!storeFile.FileExists())
+                throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
+
+            var text = File.ReadAllText(storeFile);
+
+            string[] requiredGeneratedInsertHelpers =
+            [
+                "InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters",
+                "InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters",
+                "InsertRowsBatchedAsync(con, tx, rows, ModelPricingRow.AddParameters",
+                "ProfileStorageRow.AddParameters",
+                "ProfileFunctionRow.AddParameters",
+                "ProfileLocationRow.AddParameters",
+                "ProfileMappingRow.AddParameters",
+                "ProfileSampleRow.AddParameters",
+                "ProfileStackRow.AddParameters"
+            ];
+
+            string[] forbiddenManualInsertLoopTokens =
+            [
+                "var totalLogs = logs.Count",
+                "var totalSpans = spans.Count",
+                "BuildMultiRowInsertSql(chunkSize)",
+                "LogStorageRow.AddParameters(cmd, logs[offset + i])",
+                "SpanStorageRow.AddParameters(cmd, spans[offset + i])",
+                "MapSpan(reader)"
+            ];
+
+            var missing = requiredGeneratedInsertHelpers
+                .Where(token => !text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+            var forbidden = forbiddenManualInsertLoopTokens
+                .Where(token => text.Contains(token, StringComparison.Ordinal))
+                .ToList();
+
+            if (missing.Count is 0 && forbidden.Count is 0)
+            {
+                Log.Information("Collector storage row writes use generated DuckDB insert helpers");
+                return;
+            }
+
+            foreach (var token in missing)
+                Log.Error("  Missing generated insert helper usage in DuckDbStore.cs: {Token}", token);
+
+            foreach (var token in forbidden)
+                Log.Error("  Manual storage row insert loop token found in DuckDbStore.cs: {Token}", token);
+
+            throw new InvalidOperationException(
+                "Do not handwrite per-row storage insert loops for generated row types. Use InsertRowsBatchedAsync " +
+                "with each row type's generated AddParameters and BuildMultiRowInsertSql helpers.");
+        });
+
     Target VerifyNoHandwrittenOtlpWireParser => d => d
         .Unlisted()
         .Description("Verify OTLP wire contracts use generated protobuf types")
@@ -1560,6 +1619,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
+        .DependsOn(VerifyCollectorStorageWritesUseGeneratedBatchHelper)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyOtlpConverterUsesCentralizedSemanticProjection)
@@ -1586,6 +1646,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector DuckDB access stays behind storage intent methods");
             Log.Information("  Collector storage row reads use generated DuckDB column lists");
             Log.Information("  Collector storage row tables use generated DuckDB DDL");
+            Log.Information("  Collector storage row writes use generated DuckDB insert helpers");
             Log.Information("  Collector OTLP wire contracts use generated protobuf types");
             Log.Information("  OTLP converter hot path avoids removed allocation patterns");
             Log.Information("  OTLP span semantic storage projection is centralized");

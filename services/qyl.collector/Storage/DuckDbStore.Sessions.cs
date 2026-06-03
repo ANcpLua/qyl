@@ -25,20 +25,27 @@ internal sealed partial class DuckDbStore
     public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         int limit = 100,
         int offset = 0,
-        string? sessionFilter = null,
-        DateTime? after = null,
+        bool? isActive = null,
+        DateTimeOffset? startTime = null,
+        DateTimeOffset? endTime = null,
         CancellationToken ct = default) =>
         await ExecuteReadAsync<IReadOnlyList<SessionQueryRow>>(con =>
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = SessionSelectColumns
-                              + " WHERE ($1::VARCHAR IS NULL OR session_id = $1)"
-                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)"
+                              + " WHERE ($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)"
+                              + " AND ($2::UBIGINT IS NULL OR start_time_unix_nano <= $2)"
                               + " GROUP BY COALESCE(session_id, trace_id)"
+                              + " HAVING ($3::BOOLEAN IS NULL OR (MAX(end_time_unix_nano) >= $4) = $3)"
                               + " ORDER BY MAX(end_time_unix_nano) DESC"
-                              + " LIMIT $3 OFFSET $4";
+                              + " LIMIT $5 OFFSET $6";
 
-            AddSessionQueryParams(cmd, sessionFilter, after, limit, offset);
+            AddUnixNanoParam(cmd, startTime);
+            AddUnixNanoParam(cmd, endTime);
+            cmd.Parameters.Add(new DuckDBParameter { Value = isActive ?? (object)DBNull.Value });
+            AddUnixNanoParam(cmd, TimeProvider.System.GetUtcNow().AddMinutes(-30));
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            cmd.Parameters.Add(new DuckDBParameter { Value = offset });
             return ExecuteSessionQuery(cmd);
         }, ct).ConfigureAwait(false);
 
@@ -118,24 +125,6 @@ internal sealed partial class DuckDbStore
         }, ct);
     }
 
-    private static void AddSessionAfterParam(DuckDBCommand cmd, DateTime? after)
-    {
-        if (after.HasValue)
-        {
-            var utc = after.Value.Kind is DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(after.Value, DateTimeKind.Utc)
-                : after.Value.ToUniversalTime();
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)QylTimeConversions.ToUnixNanoUnsigned(new DateTimeOffset(utc, TimeSpan.Zero))
-            });
-        }
-        else
-        {
-            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-        }
-    }
-
     private static void AddUnixNanoParam(DuckDBCommand cmd, DateTimeOffset? value)
     {
         cmd.Parameters.Add(new DuckDBParameter
@@ -144,24 +133,6 @@ internal sealed partial class DuckDbStore
                 ? (decimal)QylTimeConversions.ToUnixNanoUnsigned(value.Value.ToUniversalTime())
                 : DBNull.Value
         });
-    }
-
-    private static void AddSessionQueryParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
-    {
-        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
-        AddSessionAfterParam(cmd, after);
-    }
-
-    private static void AddSessionQueryParams(
-        DuckDBCommand cmd,
-        string? sessionId,
-        DateTime? after,
-        int limit,
-        int offset)
-    {
-        AddSessionQueryParams(cmd, sessionId, after);
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-        cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
 
     private static List<SessionQueryRow> ExecuteSessionQuery(DbCommand cmd)

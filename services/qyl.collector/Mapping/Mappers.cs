@@ -393,11 +393,17 @@ internal static class SessionMapper
 
     public static CursorPageSessionEntity ToPage(
         IEnumerable<SessionQueryRow> summaries,
-        int total,
-        bool hasMore)
+        bool hasMore,
+        string? previousCursor = null,
+        string? nextCursor = null)
     {
-        _ = total;
-        return new CursorPageSessionEntity { Items = ToContracts(summaries), HasMore = hasMore };
+        return new CursorPageSessionEntity
+        {
+            Items = ToContracts(summaries),
+            HasMore = hasMore,
+            PrevCursor = previousCursor,
+            NextCursor = nextCursor
+        };
     }
 
     private static int ToInt32(long value) =>

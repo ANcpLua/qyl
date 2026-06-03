@@ -44,6 +44,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ContractAttribute))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(NotFoundError))]
+[JsonSerializable(typeof(ValidationError))]
+[JsonSerializable(typeof(ValidationErrorDetail))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]
 [JsonSerializable(typeof(string[]))]
 internal partial class QylSerializerContext : JsonSerializerContext;

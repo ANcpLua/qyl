@@ -252,7 +252,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-                spans.Add(MapSpan(reader));
+                spans.Add(SpanStorageRow.MapFromReader(reader));
 
             return spans;
         }, ct);
@@ -271,7 +271,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-                spans.Add(MapSpan(reader));
+                spans.Add(SpanStorageRow.MapFromReader(reader));
 
             return spans;
         }, ct);
@@ -317,7 +317,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-                spans.Add(MapSpan(reader));
+                spans.Add(SpanStorageRow.MapFromReader(reader));
 
             return spans;
         }, ct);
@@ -480,18 +480,11 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         CancellationToken ct = default) =>
         await ExecuteWriteAsync(async (con, wct) =>
         {
-            if (entries.Count is 0)
-                return;
-
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = ModelPricingRow.BuildMultiRowInsertSql(entries.Count);
-
-            foreach (var entry in entries)
-            {
-                ModelPricingRow.AddParameters(cmd, entry with { ValidFrom = validFrom, ValidTo = null });
-            }
-
-            await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
+            await using var tx = await con.BeginTransactionAsync(wct).ConfigureAwait(false);
+            var rows = entries.Select(entry => entry with { ValidFrom = validFrom, ValidTo = null }).ToList();
+            await InsertRowsBatchedAsync(con, tx, rows, ModelPricingRow.AddParameters,
+                ModelPricingRow.BuildMultiRowInsertSql, rows.Count, wct);
+            await tx.CommitAsync(wct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
     private static void AddShutdownError(ref List<Exception>? errors, Exception error)
@@ -510,28 +503,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-
-            var totalLogs = logs.Count;
-            var offset = 0;
-
-            while (offset < totalLogs)
-            {
-                var chunkSize = Math.Min(MaxLogsPerBatch, totalLogs - offset);
-                var sql = LogStorageRow.BuildMultiRowInsertSql(chunkSize);
-
-                await using var cmd = con.CreateCommand();
-                cmd.Transaction = tx;
-                cmd.CommandText = sql;
-
-                for (var i = 0; i < chunkSize; i++)
-                {
-                    LogStorageRow.AddParameters(cmd, logs[offset + i]);
-                }
-
-                await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-                offset += chunkSize;
-            }
-
+            await InsertRowsBatchedAsync(con, tx, logs, LogStorageRow.AddParameters,
+                LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -850,28 +823,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        var spans = batch.Spans;
-        var totalSpans = spans.Count;
-        var offset = 0;
-
-        while (offset < totalSpans)
-        {
-            var chunkSize = Math.Min(MaxSpansPerBatch, totalSpans - offset);
-            var sql = SpanStorageRow.BuildMultiRowInsertSql(chunkSize);
-
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = sql;
-
-            for (var i = 0; i < chunkSize; i++)
-            {
-                SpanStorageRow.AddParameters(cmd, spans[offset + i]);
-            }
-
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            offset += chunkSize;
-        }
-
+        await InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters,
+            SpanStorageRow.BuildMultiRowInsertSql, MaxSpansPerBatch, ct);
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
@@ -902,9 +855,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         costCmd.CommandText = ModelPricingRow.CreateTableDdl;
         costCmd.ExecuteNonQuery();
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 

@@ -109,13 +109,56 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetSessionsAsync(
         DuckDbStore store,
+        string? userId,
+        bool? isActive,
+        DateTimeOffset? startTime,
+        DateTimeOffset? endTime,
         int? limit,
-        string? serviceName,
+        string? cursor,
         CancellationToken ct)
     {
-        var sessions = await store.GetSessionsAsync(limit ?? 100, 0, serviceName, ct: ct).ConfigureAwait(false);
-        var response = SessionMapper.ToPage(sessions, sessions.Count, false);
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            return Results.BadRequest(ContractErrorFactory.Validation(
+                "userId",
+                "Session userId filtering requires a generated user identity storage projection.",
+                "session.user_filter_not_projected",
+                userId));
+        }
+
+        if (!TryReadOffsetCursor(cursor, out var offset))
+        {
+            return Results.BadRequest(ContractErrorFactory.Validation(
+                "cursor",
+                "Cursor must be a non-negative integer offset.",
+                "cursor.invalid",
+                cursor));
+        }
+
+        var boundedLimit = Math.Clamp(limit ?? 100, 1, 1_000);
+        var sessions = await store.GetSessionsAsync(
+            boundedLimit + 1,
+            offset,
+            isActive,
+            startTime,
+            endTime,
+            ct).ConfigureAwait(false);
+
+        var hasMore = sessions.Count > boundedLimit;
+        var pageItems = hasMore ? sessions.Take(boundedLimit).ToArray() : sessions;
+        var response = SessionMapper.ToPage(
+            pageItems,
+            hasMore,
+            offset > 0 ? Math.Max(0, offset - boundedLimit).ToString(CultureInfo.InvariantCulture) : null,
+            hasMore ? (offset + boundedLimit).ToString(CultureInfo.InvariantCulture) : null);
         return Results.Ok(response);
+    }
+
+    private static bool TryReadOffsetCursor(string? cursor, out int offset)
+    {
+        offset = 0;
+        return string.IsNullOrWhiteSpace(cursor) ||
+               int.TryParse(cursor, NumberStyles.None, CultureInfo.InvariantCulture, out offset) && offset >= 0;
     }
 
     private static async Task<IResult> GetSessionByIdAsync(
