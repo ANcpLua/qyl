@@ -422,7 +422,7 @@ internal static class SessionMapper
                 TotalInputTokens = summary.InputTokens,
                 TotalOutputTokens = summary.OutputTokens,
                 ModelsUsed = [.. summary.Models],
-                ProvidersUsed = ExtractProviders(summary),
+                ProvidersUsed = [.. summary.Providers],
                 EstimatedCostUsd = summary.TotalCostUsd
             }
         };
@@ -439,33 +439,6 @@ internal static class SessionMapper
         _ = total;
         return new CursorPageSessionEntity { Items = ToContracts(summaries), HasMore = hasMore };
     }
-
-    private static List<string> ExtractProviders(SessionQueryRow summary)
-    {
-        var providers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var model in summary.Models)
-        {
-            var provider = InferProvider(model);
-            if (provider is not null)
-                providers.Add(provider);
-        }
-
-        return [.. providers];
-    }
-
-    private static string? InferProvider(string model) =>
-        model switch
-        {
-            _ when model.StartsWithIgnoreCase("gpt") => "openai",
-            _ when model.StartsWithIgnoreCase("o1") => "openai",
-            _ when model.StartsWithIgnoreCase("claude") => "anthropic",
-            _ when model.StartsWithIgnoreCase("gemini") => "google",
-            _ when model.StartsWithIgnoreCase("llama") => "meta",
-            _ when model.StartsWithIgnoreCase("mistral") => "mistral",
-            _ when model.StartsWithIgnoreCase("command") => "cohere",
-            _ => null
-        };
 
     private static int ToInt32(long value) =>
         value switch

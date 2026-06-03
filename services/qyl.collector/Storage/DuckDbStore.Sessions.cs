@@ -16,6 +16,7 @@ internal sealed partial class DuckDbStore
                                                     COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
                                                     COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
                                                     COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
+                                                    LIST(DISTINCT gen_ai_provider_name) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
                                                     LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
                                                     LIST(DISTINCT service_name) FILTER (WHERE service_name IS NOT NULL) AS services
                                                 FROM spans
@@ -187,8 +188,9 @@ internal sealed partial class DuckDbStore
                 TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = reader.Col(8).GetInt64(0),
                 TotalCostUsd = reader.Col(9).GetDouble(0),
-                Models = ReadStringList(reader, 10),
-                Services = ReadStringList(reader, 11)
+                Providers = ReadStringList(reader, 10),
+                Models = ReadStringList(reader, 11),
+                Services = ReadStringList(reader, 12)
             });
         }
 
@@ -225,6 +227,7 @@ internal sealed record SessionQueryRow
     public long TotalTokens { get; init; }
     public long GenAiRequestCount { get; init; }
     public double TotalCostUsd { get; init; }
+    public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];
     public IReadOnlyList<string> Services { get; init; } = [];
 }
