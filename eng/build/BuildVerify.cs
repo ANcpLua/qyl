@@ -848,37 +848,18 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
-            var text = File.ReadAllText(storeFile);
+            var tableInfos = ReadDuckDbTableDdlInfos();
+            var storeRoot = ParseCompilationUnit(storeFile);
+            var mappedRowTypes = DuckDbStoreMappedRowTypes(storeRoot, tableInfos.Select(static info => info.TypeName)
+                    .ToHashSet(StringComparer.Ordinal))
+                .ToArray();
+            var selectColumnListReferences = DuckDbStoreSelectColumnListReferences(storeRoot);
 
-            string[] requiredGeneratedColumnLists =
-            [
-                "SpanStorageRow.SelectColumnList",
-                "LogStorageRow.SelectColumnList",
-                "ProfileStorageRow.SelectColumnList",
-                "ProfileFunctionRow.SelectColumnList",
-                "ProfileLocationRow.SelectColumnList",
-                "ProfileMappingRow.SelectColumnList",
-                "ProfileSampleRow.SelectColumnList",
-                "ProfileStackRow.SelectColumnList",
-                "ModelPricingRow.SelectColumnList",
-                "ModelPricingRow.MapFromReader"
-            ];
-
-            string[] forbiddenManualSelectTokens =
-            [
-                "SelectSpanColumns",
-                "SELECT log_id, trace_id",
-                "SELECT profile_id, trace_id",
-                "SELECT profile_id, ordinal",
-                "SELECT provider, model, input_cost"
-            ];
-
-            var missing = requiredGeneratedColumnLists
-                .Where(token => !text.Contains(token, StringComparison.Ordinal))
+            var missing = mappedRowTypes
+                .Select(static typeName => typeName + ".SelectColumnList")
+                .Where(member => !selectColumnListReferences.Contains(member))
                 .ToList();
-            var forbidden = forbiddenManualSelectTokens
-                .Where(token => text.Contains(token, StringComparison.Ordinal))
-                .ToList();
+            var forbidden = ManualStorageRowSelectOffenders(tableInfos).ToList();
 
             if (missing.Count is 0 && forbidden.Count is 0)
             {
@@ -886,11 +867,14 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 return;
             }
 
-            foreach (var token in missing)
-                Log.Error("  Missing generated column list usage in DuckDbStore.cs: {Token}", token);
+            foreach (var member in missing)
+                Log.Error("  Missing generated column list usage in DuckDbStore.cs: {Member}", member);
 
-            foreach (var token in forbidden)
-                Log.Error("  Manual storage row SELECT token in DuckDbStore.cs: {Token}", token);
+            foreach (var offender in forbidden)
+                Log.Error("  Manual storage row SELECT at {File}:{Line}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
 
             throw new InvalidOperationException(
                 "Do not handwrite SELECT column lists for generated storage rows. Use each row type's " +
@@ -1855,9 +1839,15 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
     private readonly record struct DuckDbTableDdlInfo(
         string TypeName,
+        string TableName,
         bool HasIndexes);
 
     private readonly record struct ManualDdlOffender(
+        string File,
+        int Line,
+        string Text);
+
+    private readonly record struct ManualSelectOffender(
         string File,
         int Line,
         string Text);
@@ -2160,6 +2150,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
                 tables.Add(new DuckDbTableDdlInfo(
                     declaration.Identifier.ValueText,
+                    ReadRequiredPositionalStringAttributeArgument(tableAttribute, 0),
                     !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "Indexes"))));
             }
         }
@@ -2167,6 +2158,68 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         return tables
             .OrderBy(static table => table.TypeName, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static IReadOnlySet<string> DuckDbStoreMappedRowTypes(
+        CompilationUnitSyntax storeRoot,
+        IReadOnlySet<string> tableTypeNames) =>
+        storeRoot.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Where(static memberAccess => memberAccess.Name.Identifier.ValueText is "MapFromReader" &&
+                                          memberAccess.Expression is IdentifierNameSyntax)
+            .Select(static memberAccess => ((IdentifierNameSyntax)memberAccess.Expression).Identifier.ValueText)
+            .Where(tableTypeNames.Contains)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static IReadOnlySet<string> DuckDbStoreSelectColumnListReferences(CompilationUnitSyntax storeRoot) =>
+        storeRoot.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Where(static memberAccess => memberAccess.Name.Identifier.ValueText is "SelectColumnList" &&
+                                          memberAccess.Expression is IdentifierNameSyntax)
+            .Select(static memberAccess =>
+                ((IdentifierNameSyntax)memberAccess.Expression).Identifier.ValueText + "." +
+                memberAccess.Name.Identifier.ValueText)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private IEnumerable<ManualSelectOffender> ManualStorageRowSelectOffenders(
+        IReadOnlyList<DuckDbTableDdlInfo> tableInfos)
+    {
+        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        {
+            var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+            var root = ParseCompilationUnit(file);
+            foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+            {
+                if (!literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                    literal.Token.ValueText is not { Length: > 0 } value ||
+                    !IsManualStorageRowSelect(value, tableInfos))
+                {
+                    continue;
+                }
+
+                yield return new ManualSelectOffender(relativePath, NodeLine(literal), NodePreview(literal));
+            }
+        }
+    }
+
+    private static bool IsManualStorageRowSelect(
+        string sql,
+        IReadOnlyList<DuckDbTableDdlInfo> tableInfos)
+    {
+        var normalized = NormalizeSqlFragment(sql);
+        if (!normalized.StartsWith("select ", StringComparison.Ordinal) ||
+            normalized is "select" or "select " ||
+            normalized.StartsWith("select (", StringComparison.Ordinal) ||
+            normalized.StartsWith("select count(", StringComparison.Ordinal) ||
+            normalized.StartsWith("select min(", StringComparison.Ordinal) ||
+            normalized.StartsWith("select max(", StringComparison.Ordinal) ||
+            normalized.StartsWith("select distinct", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return normalized.Contains(',', StringComparison.Ordinal) &&
+               tableInfos.Any(info => normalized.Contains(" from " + info.TableName, StringComparison.Ordinal));
     }
 
     private static IReadOnlySet<string> DuckDbStoreGeneratedDdlReferences(AbsolutePath storeFile)
@@ -2343,6 +2396,23 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         }
 
         return "";
+    }
+
+    private static string ReadRequiredPositionalStringAttributeArgument(AttributeSyntax attribute, int ordinal)
+    {
+        var argument = attribute.ArgumentList?.Arguments
+            .Where(static argument => argument.NameEquals is null && argument.NameColon is null)
+            .ElementAtOrDefault(ordinal);
+
+        if (argument?.Expression is LiteralExpressionSyntax literal &&
+            literal.IsKind(SyntaxKind.StringLiteralExpression) &&
+            literal.Token.ValueText is { Length: > 0 } value)
+        {
+            return value;
+        }
+
+        throw new InvalidOperationException(
+            $"Attribute '{attribute.Name}' must declare string positional argument {ordinal}.");
     }
 
     private static bool IsUnsafeSpanIdentitySql(string sql)
