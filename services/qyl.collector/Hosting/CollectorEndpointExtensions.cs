@@ -204,19 +204,27 @@ internal static class CollectorEndpointExtensions
 
     private static async Task<IResult> GetLogsAsync(
         DuckDbStore store,
-        string? session,
-        string? trace,
+        string? sessionId,
+        string? traceId,
         string? serviceName,
         string? level,
-        string? search,
-        int? minSeverity,
+        string? query,
+        int? severityMin,
+        DateTimeOffset? startTime,
+        DateTimeOffset? endTime,
         int? limit,
         CancellationToken ct)
     {
         var boundedLimit = Math.Clamp(limit ?? 500, 1, 1_000);
         var logs = await store.GetLogsAsync(
             ProjectScope.DefaultProjectId,
-            session, trace, level, minSeverity, search,
+            sessionId: sessionId,
+            traceId: traceId,
+            severityText: level,
+            minSeverity: severityMin,
+            search: query,
+            start: startTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(startTime.Value.ToUniversalTime()) : null,
+            before: endTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(endTime.Value.ToUniversalTime()) : null,
             serviceName: serviceName,
             limit: boundedLimit,
             ct: ct);

@@ -525,6 +525,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         string? severityText = null,
         int? minSeverity = null,
         string? search = null,
+        ulong? start = null,
         ulong? after = null,
         string? afterLogId = null,
         ulong? before = null,
@@ -554,6 +555,8 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                     $"%{search}%");
             if (!string.IsNullOrEmpty(serviceName))
                 qb.Add("service_name = $N", serviceName);
+            if (start.HasValue)
+                qb.Add("time_unix_nano >= $N", (decimal)start.Value);
             if (after.HasValue)
             {
                 if (string.IsNullOrEmpty(afterLogId))

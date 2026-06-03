@@ -438,74 +438,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/logs/aggregate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Aggregate logs */
-        post: operations["LogsApi_aggregate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/patterns": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get log patterns */
-        get: operations["LogsApi_getPatterns"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Search logs with complex query */
-        post: operations["LogsApi_search"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get log statistics */
-        get: operations["LogsApi_getStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/metrics": {
         parameters: {
             query?: never;
@@ -959,23 +891,6 @@ export interface paths {
         get: operations["TracesApi_list"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/traces/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Search traces */
-        post: operations["TracesApi_search"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2074,124 +1989,6 @@ export interface components {
          */
         "Domains.Observe.Error.TemporalRelationship": "concurrent" | "precedes" | "follows" | "unrelated";
         /**
-         * @description Aggregation functions
-         * @enum {string}
-         */
-        "Domains.Observe.Log.AggregationFunction": "count" | "sum" | "avg" | "min" | "max" | "p50" | "p90" | "p95" | "p99" | "count_distinct";
-        /** @description Attribute filter */
-        "Domains.Observe.Log.AttributeFilter": {
-            /** @description Attribute key */
-            key: string;
-            /** @description Filter operator */
-            operator: components["schemas"]["Domains.Observe.Log.FilterOperator"];
-            /** @description Filter value */
-            value: string;
-        };
-        /**
-         * @description Filter operators
-         * @enum {string}
-         */
-        "Domains.Observe.Log.FilterOperator": "eq" | "neq" | "contains" | "starts_with" | "ends_with" | "regex" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "exists" | "not_exists";
-        /** @description Log aggregation request */
-        "Domains.Observe.Log.LogAggregation": {
-            /** @description Group by fields */
-            group_by: string[];
-            /** @description Aggregation function */
-            function: components["schemas"]["Domains.Observe.Log.AggregationFunction"];
-            /** @description Field to aggregate (for non-count) */
-            field?: string;
-            /** @description Time bucket (for time series) */
-            time_bucket?: components["schemas"]["Domains.Observe.Log.TimeBucket"];
-            /**
-             * Format: int32
-             * @description Top N results
-             */
-            top_n?: number;
-        };
-        /**
-         * @description Log ordering options
-         * @enum {string}
-         */
-        "Domains.Observe.Log.LogOrderBy": "timestamp_asc" | "timestamp_desc" | "severity_asc" | "severity_desc";
-        /** @description Detected log pattern */
-        "Domains.Observe.Log.LogPattern": {
-            /** @description Pattern ID */
-            pattern_id: string;
-            /** @description Pattern template */
-            template: string;
-            /** @description Sample log message */
-            sample: string;
-            /** @description Occurrence count */
-            count: components["schemas"]["Common.Count"];
-            /**
-             * Format: date-time
-             * @description First seen
-             */
-            first_seen: string;
-            /**
-             * Format: date-time
-             * @description Last seen
-             */
-            last_seen: string;
-            /** @description Trend */
-            trend: components["schemas"]["Domains.Observe.Log.LogPatternTrend"];
-            /** @description Severity distribution */
-            severity_distribution?: components["schemas"]["Domains.Observe.Log.LogSeverityStats"][];
-        };
-        /**
-         * @description Log pattern trend
-         * @enum {string}
-         */
-        "Domains.Observe.Log.LogPatternTrend": "increasing" | "decreasing" | "stable" | "new" | "spike";
-        /** @description Log search query */
-        "Domains.Observe.Log.LogQuery": {
-            /** @description Free text search */
-            query?: string;
-            /** @description Severity filter */
-            severity_min?: components["schemas"]["OTel.Enums.SeverityNumber"];
-            /** @description Service name filter */
-            service_name?: string;
-            /** @description Trace ID filter */
-            trace_id?: components["schemas"]["Common.TraceId"];
-            /** @description Span ID filter */
-            span_id?: components["schemas"]["Common.SpanId"];
-            /**
-             * Format: date-time
-             * @description Time range start
-             */
-            time_start?: string;
-            /**
-             * Format: date-time
-             * @description Time range end
-             */
-            time_end?: string;
-            /** @description Attribute filters */
-            attribute_filters?: components["schemas"]["Domains.Observe.Log.AttributeFilter"][];
-            /**
-             * Format: int32
-             * @description Limit
-             */
-            limit?: number;
-            /** @description Order by */
-            order_by?: components["schemas"]["Domains.Observe.Log.LogOrderBy"];
-        };
-        /** @description Log stats by severity */
-        "Domains.Observe.Log.LogSeverityStats": {
-            /** @description Severity number */
-            severity: components["schemas"]["OTel.Enums.SeverityNumber"];
-            /** @description Severity text */
-            severity_text: string;
-            /** @description Count */
-            count: components["schemas"]["Common.Count"];
-            /** @description Percentage of total */
-            percentage: components["schemas"]["Common.Percentage"];
-        };
-        /**
-         * @description Time bucket sizes
-         * @enum {string}
-         */
-        "Domains.Observe.Log.TimeBucket": "1s" | "10s" | "30s" | "1m" | "5m" | "15m" | "30m" | "1h" | "6h" | "12h" | "1d" | "1w";
-        /**
          * @description Device types
          * @enum {string}
          */
@@ -2844,37 +2641,6 @@ export interface components {
             /** @description Workspace ID */
             workspace_id: string;
         };
-        /** @description Log aggregation bucket */
-        LogAggregationBucket: {
-            /** @description Bucket key (group by value) */
-            key: string;
-            /**
-             * Format: double
-             * @description Aggregated value
-             */
-            value: number;
-            /** @description Document count */
-            count: components["schemas"]["Common.Count"];
-            /**
-             * Format: date-time
-             * @description Timestamp (for time series)
-             */
-            timestamp?: string;
-        };
-        /** @description Log aggregation request */
-        LogAggregationRequest: {
-            /** @description Query filters */
-            query?: components["schemas"]["Domains.Observe.Log.LogQuery"];
-            /** @description Aggregation specification */
-            aggregation: components["schemas"]["Domains.Observe.Log.LogAggregation"];
-        };
-        /** @description Log aggregation response */
-        LogAggregationResponse: {
-            /** @description Aggregation results */
-            results: components["schemas"]["LogAggregationBucket"][];
-            /** @description Total matching logs */
-            total_count: components["schemas"]["Common.Count"];
-        };
         /** @description Metric data point */
         MetricDataPoint: {
             /**
@@ -3027,24 +2793,6 @@ export interface components {
              */
             kind: "stringBody";
         };
-        /** @description Log count by dimension */
-        "OTel.Logs.LogCountByDimension": {
-            /** @description Dimension value */
-            dimension: string;
-            /** @description Log count */
-            count: components["schemas"]["Common.Count"];
-            /** @description Error count for this dimension */
-            error_count: components["schemas"]["Common.Count"];
-        };
-        /** @description Log count by severity level */
-        "OTel.Logs.LogCountBySeverity": {
-            /** @description Severity level */
-            severity: components["schemas"]["OTel.Enums.SeverityText"];
-            /** @description Log count */
-            count: components["schemas"]["Common.Count"];
-            /** @description Percentage of total */
-            percentage: components["schemas"]["Common.Percentage"];
-        };
         /** @description OpenTelemetry Log Record */
         "OTel.Logs.LogRecord": {
             /** @description Timestamp when the event occurred (nanoseconds since epoch) */
@@ -3074,22 +2822,6 @@ export interface components {
             resource: components["schemas"]["OTel.Resource.Resource"];
             /** @description Instrumentation scope */
             instrumentation_scope?: components["schemas"]["Common.InstrumentationScope"];
-        };
-        /** @description Aggregated log statistics */
-        "OTel.Logs.LogStats": {
-            /** @description Total log count */
-            total_count: components["schemas"]["Common.Count"];
-            /** @description Log counts by severity */
-            by_severity: components["schemas"]["OTel.Logs.LogCountBySeverity"][];
-            /** @description Log counts by service */
-            by_service: components["schemas"]["OTel.Logs.LogCountByDimension"][];
-            /**
-             * Format: double
-             * @description Logs per second rate
-             */
-            logs_per_second: number;
-            /** @description Error log rate */
-            error_rate: components["schemas"]["Common.Ratio"];
         };
         /**
          * @description Aggregation functions for metrics
@@ -3910,47 +3642,6 @@ export interface components {
              * @description Event timestamp
              */
             timestamp: string;
-        };
-        /** @description Trace search query */
-        TraceQuery: {
-            /** @description Free text search */
-            query?: string;
-            /** @description Service name filter */
-            service_name?: string;
-            /** @description Operation name filter */
-            operation_name?: string;
-            /**
-             * Format: int64
-             * @description Minimum duration in milliseconds
-             */
-            min_duration_ms?: number;
-            /**
-             * Format: int64
-             * @description Maximum duration in milliseconds
-             */
-            max_duration_ms?: number;
-            /** @description Status filter */
-            status?: components["schemas"]["OTel.Enums.SpanStatusCode"];
-            /**
-             * Format: date-time
-             * @description Time range start
-             */
-            start_time?: string;
-            /**
-             * Format: date-time
-             * @description Time range end
-             */
-            end_time?: string;
-            /** @description Tag filters */
-            tags?: Record<string, never>;
-            /**
-             * Format: int32
-             * @description Page size
-             * @default 100
-             */
-            limit: number;
-            /** @description Cursor */
-            cursor?: string;
         };
     };
     responses: never;
@@ -5702,12 +5393,14 @@ export interface operations {
     LogsApi_list: {
         parameters: {
             query?: {
+                /** @description Session ID filter */
+                sessionId?: components["schemas"]["Common.SessionId"];
                 /** @description Service name filter */
                 serviceName?: string;
+                /** @description Severity text filter */
+                level?: string;
                 /** @description Minimum severity */
                 severityMin?: components["schemas"]["OTel.Enums.SeverityNumber"];
-                /** @description Maximum severity */
-                severityMax?: components["schemas"]["OTel.Enums.SeverityNumber"];
                 /** @description Trace ID filter */
                 traceId?: components["schemas"]["Common.TraceId"];
                 /** @description Start time */
@@ -5718,10 +5411,6 @@ export interface operations {
                 query?: string;
                 /** @description Page size */
                 limit?: number;
-                /** @description Cursor */
-                cursor?: string;
-                /** @description Order */
-                orderBy?: components["schemas"]["Domains.Observe.Log.LogOrderBy"];
             };
             header?: never;
             path?: never;
@@ -5758,197 +5447,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Common.Errors.ValidationError"];
-                };
-            };
-            /** @description Internal server error (500) */
-            500: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.InternalServerError"];
-                };
-            };
-        };
-    };
-    LogsApi_aggregate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogAggregationRequest"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogAggregationResponse"];
-                };
-            };
-            /** @description Bad request - validation failed (400) */
-            400: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.ValidationError"];
-                };
-            };
-            /** @description Internal server error (500) */
-            500: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.InternalServerError"];
-                };
-            };
-        };
-    };
-    LogsApi_getPatterns: {
-        parameters: {
-            query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
-                /** @description Minimum occurrences */
-                minCount?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Domains.Observe.Log.LogPattern"][];
-                };
-            };
-            /** @description Internal server error (500) */
-            500: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.InternalServerError"];
-                };
-            };
-        };
-    };
-    LogsApi_search: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Domains.Observe.Log.LogQuery"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description List of items in this page */
-                        items: components["schemas"]["OTel.Logs.LogRecord"][];
-                        /** @description Cursor for the next page (null if no more pages) */
-                        next_cursor?: string;
-                        /** @description Cursor for the previous page (null if first page) */
-                        prev_cursor?: string;
-                        /** @description Whether there are more items available */
-                        has_more: boolean;
-                    };
-                };
-            };
-            /** @description Bad request - validation failed (400) */
-            400: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.ValidationError"];
-                };
-            };
-            /** @description Internal server error (500) */
-            500: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.InternalServerError"];
-                };
-            };
-        };
-    };
-    LogsApi_getStats: {
-        parameters: {
-            query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OTel.Logs.LogStats"];
                 };
             };
             /** @description Internal server error (500) */
@@ -6908,12 +6406,7 @@ export interface operations {
     };
     SessionsApi_getTraces: {
         parameters: {
-            query?: {
-                /** @description Page size */
-                limit?: number;
-                /** @description Cursor */
-                cursor?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 sessionId: string;
@@ -7122,22 +6615,8 @@ export interface operations {
     TracesApi_list: {
         parameters: {
             query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Minimum duration in ms */
-                minDurationMs?: number;
-                /** @description Maximum duration in ms */
-                maxDurationMs?: number;
-                /** @description Status filter */
-                status?: components["schemas"]["OTel.Enums.SpanStatusCode"];
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
                 /** @description Page size */
                 limit?: number;
-                /** @description Cursor for pagination */
-                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -7187,65 +6666,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Common.Errors.NotFoundError"];
-                };
-            };
-            /** @description Internal server error (500) */
-            500: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.InternalServerError"];
-                };
-            };
-        };
-    };
-    TracesApi_search: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TraceQuery"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description List of items in this page */
-                        items: components["schemas"]["OTel.Traces.Trace"][];
-                        /** @description Cursor for the next page (null if no more pages) */
-                        next_cursor?: string;
-                        /** @description Cursor for the previous page (null if first page) */
-                        prev_cursor?: string;
-                        /** @description Whether there are more items available */
-                        has_more: boolean;
-                    };
-                };
-            };
-            /** @description Bad request - validation failed (400) */
-            400: {
-                headers: {
-                    /** @description Trace ID for correlation */
-                    "X-Trace-Id"?: string;
-                    /** @description Request ID for support */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Common.Errors.ValidationError"];
                 };
             };
             /** @description Internal server error (500) */
@@ -7313,12 +6733,7 @@ export interface operations {
     };
     TracesApi_getSpans: {
         parameters: {
-            query?: {
-                /** @description Page size */
-                limit?: number;
-                /** @description Cursor */
-                cursor?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 traceId: components["schemas"]["Common.TraceId"];
