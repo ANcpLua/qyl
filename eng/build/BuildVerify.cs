@@ -494,6 +494,50 @@ interface IVerify : IHazSourcePaths
             }
         });
 
+    Target VerifyCollectorExceptionTelemetryIsBounded => d => d
+        .Unlisted()
+        .Description("Verify collector logs do not promote raw exception type names into dimensions")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            string[] forbiddenTokens =
+            [
+                ".GetType().FullName",
+                ".GetType().Name",
+                "{ExceptionType}",
+                "exceptionType",
+                "ExceptionType"
+            ];
+
+            var offenders = CollectorSourceFiles()
+                .Where(static file => !file.ToString().EndsWith(".g.cs", StringComparison.Ordinal))
+                .Select(file => (
+                    File: RootDirectory.GetRelativePathTo(file).ToString(),
+                    Lines: File.ReadAllLines(file)))
+                .SelectMany(file => file.Lines
+                    .SelectMany((line, index) => forbiddenTokens
+                        .Where(token => line.Contains(token, StringComparison.Ordinal))
+                        .Select(token => (file.File, Line: index + 1, Token: token, Text: line.Trim()))))
+                .ToList();
+
+            if (offenders.Count is 0)
+            {
+                Log.Information("Collector exception telemetry uses bounded categories");
+                return;
+            }
+
+            foreach (var offender in offenders)
+                Log.Error("  Raw exception type telemetry token '{Token}' at {File}:{Line}: {Text}",
+                    offender.Token,
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
+
+            throw new InvalidOperationException(
+                "Do not log raw exception type names as telemetry dimensions. Pass Exception to LoggerMessage " +
+                "and use fixed error categories when a dimension is needed.");
+        });
+
     Target VerifyCollectorSessionFacetsAreBounded => d => d
         .Unlisted()
         .Description("Verify collector session summaries do not aggregate unbounded distinct facets")
@@ -1684,6 +1728,7 @@ interface IVerify : IHazSourcePaths
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticAttributeCatalog)
         .DependsOn<ICollectorSemanticCatalog>(static x => x.VerifyCollectorSemanticPolicyIsCatalogBacked)
         .DependsOn(VerifyCollectorMetricTagsAreBounded)
+        .DependsOn(VerifyCollectorExceptionTelemetryIsBounded)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
         .DependsOn(VerifyCollectorStorageReadsAreProjectScoped)
@@ -1714,6 +1759,7 @@ interface IVerify : IHazSourcePaths
             Log.Information("  Collector semantic attribute catalog matches package references");
             Log.Information("  Collector semantic policy is backed by the generated catalog");
             Log.Information("  Collector metric tags are bounded");
+            Log.Information("  Collector exception telemetry uses bounded categories");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
             Log.Information("  Collector storage reads are project-scoped");

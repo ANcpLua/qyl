@@ -102,7 +102,7 @@ internal static class CollectorEndpointExtensions
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpLogsEndpoint");
-            OtlpLogsLog.FailedToProcessPayload(logger, ex.GetType().FullName ?? ex.GetType().Name);
+            OtlpLogsLog.FailedToProcessPayload(logger, ex);
             return Results.BadRequest();
         }
     }
@@ -344,7 +344,7 @@ internal static class CollectorEndpointExtensions
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpProfilesEndpoint");
-            OtlpProfilesLog.FailedToProcessPayload(logger, ex.GetType().FullName ?? ex.GetType().Name);
+            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
             return Results.BadRequest();
         }
     }
@@ -442,12 +442,12 @@ internal static class CollectorEndpointExtensions
 
 internal static partial class OtlpLogsLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload: {ExceptionType}")]
-    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
 }
 
 internal static partial class OtlpProfilesLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP profiles payload: {ExceptionType}")]
-    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP profiles payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
 }
