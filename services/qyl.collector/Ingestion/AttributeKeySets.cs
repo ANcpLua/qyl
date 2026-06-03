@@ -19,6 +19,7 @@ using ServiceAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Servi
 using SessionAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Session.SessionAttributes;
 using UrlAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Url.UrlAttributes;
 using UserAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.User.UserAttributes;
+using QylGenAiCostProcessor = Qyl.Instrumentation.Instrumentation.GenAi.QylGenAiCostProcessor;
 
 namespace Qyl.Collector.Ingestion;
 
@@ -147,6 +148,38 @@ internal static class AttributeKeySets
         !IsDenied(key) &&
         (s_resourceAttributeAllowList.Contains(key) || s_qylResourceAttributeAllowList.Contains(key));
 
+    private static readonly FrozenSet<string> s_spanStorageProjectionKeys = FrozenSet.Create(
+        StringComparer.Ordinal,
+        GenAiAttributes.ProviderName,
+        GenAiAttributes.RequestModel,
+        GenAiAttributes.ResponseModel,
+        GenAiAttributes.UsageInputTokens,
+        GenAiAttributes.UsageOutputTokens,
+        GenAiAttributes.RequestTemperature,
+        GenAiAttributes.ResponseFinishReasons,
+        GenAiAttributes.ToolName,
+        QylGenAiCostProcessor.CostAttribute);
+
+    internal static bool ShouldConvertSpanAttribute(string key) =>
+        ShouldPersistSpanAttribute(key) ||
+        SessionCorrelation.Contains(key) ||
+        s_spanStorageProjectionKeys.Contains(key);
+
+    internal static SpanStorageProjection ExtractSpanStorageProjection(IReadOnlyDictionary<string, string> attributes) =>
+        new(
+            SessionId: attributes.GetFirstValueOrDefault(SessionCorrelation),
+            GenAiProviderName: attributes.GetValueOrDefault(GenAiAttributes.ProviderName),
+            GenAiRequestModel: attributes.GetValueOrDefault(GenAiAttributes.RequestModel),
+            GenAiResponseModel: attributes.GetValueOrDefault(GenAiAttributes.ResponseModel),
+            GenAiInputTokens: AttributeParsing.ParseNullableLong(
+                attributes.GetValueOrDefault(GenAiAttributes.UsageInputTokens)),
+            GenAiOutputTokens: AttributeParsing.ParseNullableLong(
+                attributes.GetValueOrDefault(GenAiAttributes.UsageOutputTokens)),
+            GenAiTemperature: ParseNullableDouble(attributes.GetValueOrDefault(GenAiAttributes.RequestTemperature)),
+            GenAiStopReason: attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons),
+            GenAiToolName: attributes.GetValueOrDefault(GenAiAttributes.ToolName),
+            GenAiCostUsd: ParseNullableDouble(attributes.GetValueOrDefault(QylGenAiCostProcessor.CostAttribute)));
+
     private static bool IsDenied(string key)
     {
         if (s_deniedExactKeys.Contains(key) ||
@@ -183,7 +216,26 @@ internal static class AttributeKeySets
         dynamicKeys
             .Concat(exactKeys)
             .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    private static double? ParseNullableDouble(string? value) =>
+        string.IsNullOrEmpty(value)
+            ? null
+            : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
+                ? result
+                : null;
 }
+
+internal readonly record struct SpanStorageProjection(
+    string? SessionId,
+    string? GenAiProviderName,
+    string? GenAiRequestModel,
+    string? GenAiResponseModel,
+    long? GenAiInputTokens,
+    long? GenAiOutputTokens,
+    double? GenAiTemperature,
+    string? GenAiStopReason,
+    string? GenAiToolName,
+    double? GenAiCostUsd);
 
 internal static class AttributeLookupExtensions
 {

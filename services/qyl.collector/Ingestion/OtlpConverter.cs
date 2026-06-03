@@ -5,8 +5,6 @@ using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
-using QylGenAiCostProcessor = Qyl.Instrumentation.Instrumentation.GenAi.QylGenAiCostProcessor;
-using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 using ProfileAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.Profile.ProfileAttributes;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
@@ -99,7 +97,7 @@ internal static class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key) ||
-                !ShouldConvertSpanAttribute(attr.Key))
+                !AttributeKeySets.ShouldConvertSpanAttribute(attr.Key))
             {
                 continue;
             }
@@ -110,22 +108,6 @@ internal static class OtlpConverter
 
         return attributes;
     }
-
-    private static bool ShouldConvertSpanAttribute(string key) =>
-        AttributeKeySets.ShouldPersistSpanAttribute(key) ||
-        key.IsAny(AttributeKeySets.SessionCorrelation) ||
-        IsGenAiStorageAttribute(key) ||
-        string.Equals(key, QylGenAiCostProcessor.CostAttribute, StringComparison.Ordinal);
-
-    private static bool IsGenAiStorageAttribute(string key) =>
-        key is GenAiAttributes.ProviderName
-            or GenAiAttributes.RequestModel
-            or GenAiAttributes.ResponseModel
-            or GenAiAttributes.UsageInputTokens
-            or GenAiAttributes.UsageOutputTokens
-            or GenAiAttributes.RequestTemperature
-            or GenAiAttributes.ResponseFinishReasons
-            or GenAiAttributes.ToolName;
 
     private static string? ConvertProtoAnyValueToString(ProtoAnyValue? value)
     {
@@ -168,13 +150,13 @@ internal static class OtlpConverter
         string? schemaUrl, string? resourceJson)
     {
         var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
-        var genAi = ExtractGenAiAttributes(attributes);
+        var projection = AttributeKeySets.ExtractSpanStorageProjection(attributes);
         return new SpanStorageRow
         {
             SpanId = spanId ?? "",
             TraceId = traceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
-            SessionId = attributes.GetFirstValueOrDefault(AttributeKeySets.SessionCorrelation),
+            SessionId = projection.SessionId,
             Name = name ?? "unknown",
             Kind = ConvertSpanKindToByte(kind),
             StartTimeUnixNano = startNano,
@@ -182,15 +164,15 @@ internal static class OtlpConverter
             DurationNs = durationNs,
             StatusCode = ConvertStatusCodeToByte(statusCode),
             ServiceName = serviceName,
-            GenAiProviderName = genAi.ProviderName,
-            GenAiRequestModel = genAi.RequestModel,
-            GenAiResponseModel = genAi.ResponseModel,
-            GenAiInputTokens = genAi.TokensIn,
-            GenAiOutputTokens = genAi.TokensOut,
-            GenAiTemperature = genAi.Temperature,
-            GenAiStopReason = genAi.StopReason,
-            GenAiToolName = genAi.ToolName,
-            GenAiCostUsd = genAi.CostUsd,
+            GenAiProviderName = projection.GenAiProviderName,
+            GenAiRequestModel = projection.GenAiRequestModel,
+            GenAiResponseModel = projection.GenAiResponseModel,
+            GenAiInputTokens = projection.GenAiInputTokens,
+            GenAiOutputTokens = projection.GenAiOutputTokens,
+            GenAiTemperature = projection.GenAiTemperature,
+            GenAiStopReason = projection.GenAiStopReason,
+            GenAiToolName = projection.GenAiToolName,
+            GenAiCostUsd = projection.GenAiCostUsd,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(attributes),
             ResourceJson = resourceJson,
             SchemaUrl = schemaUrl
@@ -230,41 +212,6 @@ internal static class OtlpConverter
         return Convert.ToHexString(value.Span).ToLowerInvariant();
     }
 
-    private readonly record struct GenAiData(
-        string? ProviderName,
-        string? RequestModel,
-        string? ResponseModel,
-        long? TokensIn,
-        long? TokensOut,
-        double? Temperature,
-        string? StopReason,
-        string? ToolName,
-        double? CostUsd);
-
-    private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
-    {
-        var providerName = attributes.GetValueOrDefault(GenAiAttributes.ProviderName);
-
-        var requestModel = attributes.GetValueOrDefault(GenAiAttributes.RequestModel);
-        var responseModel = attributes.GetValueOrDefault(GenAiAttributes.ResponseModel);
-
-        var tokensIn = ParseNullableLong(
-            attributes.GetValueOrDefault(GenAiAttributes.UsageInputTokens));
-
-        var tokensOut = ParseNullableLong(
-            attributes.GetValueOrDefault(GenAiAttributes.UsageOutputTokens));
-
-        var temperature = ParseNullableDouble(attributes.GetValueOrDefault(GenAiAttributes.RequestTemperature));
-        var stopReason = attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons);
-        var toolName = attributes.GetValueOrDefault(GenAiAttributes.ToolName);
-        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault(QylGenAiCostProcessor.CostAttribute));
-
-        return new GenAiData(
-            providerName, requestModel, responseModel,
-            tokensIn, tokensOut, temperature, stopReason,
-            toolName, costUsd);
-    }
-
     private static byte ConvertSpanKindToByte(int? kind) => kind switch
     {
         1 => 1,
@@ -281,16 +228,6 @@ internal static class OtlpConverter
         2 => 2,
         _ => 0
     };
-
-    private static long? ParseNullableLong(string? value) =>
-        AttributeParsing.ParseNullableLong(value);
-
-    private static double? ParseNullableDouble(string? value) =>
-        string.IsNullOrEmpty(value)
-            ? null
-            : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
-                ? result
-                : null;
 
     #endregion
 
