@@ -62,13 +62,24 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                                              """;
 
     private const int MaxProfilesPerBatch = 50;
+    private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
     private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
     private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
 
 
     private static readonly FrozenSet<string> s_allowedClearTables = FrozenSet.Create(
-        StringComparer.Ordinal, "spans", "logs", "profiles");
+        StringComparer.Ordinal, "spans", "logs");
+
+    private static readonly string[] s_profileTables =
+    [
+        "profile_functions",
+        "profile_locations",
+        "profile_mappings",
+        "profile_samples",
+        "profile_stacks",
+        "profiles"
+    ];
 
 
     private readonly CancellationTokenSource _cts = new();
@@ -162,21 +173,10 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
+        List<Exception>? shutdownErrors = null;
+
         _jobs.Writer.TryComplete();
         _reads?.Writer.TryComplete();
-
-        try
-        {
-            await _writerTask.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
-        }
-        catch (TimeoutException ex)
-        {
-            Debug.WriteLine(ex);
-        }
-        catch (OperationCanceledException ex)
-        {
-            Debug.WriteLine(ex);
-        }
 
         // Unblock the reader threads (their WaitToReadAsync observes the token) and any stuck writer,
         // then let each reader dispose its own connection and exit.
@@ -184,19 +184,30 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
         try
         {
-            await _writerTask.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            await _writerTask.WaitAsync(s_shutdownTimeout).ConfigureAwait(false);
         }
         catch (TimeoutException ex)
         {
-            Debug.WriteLine(ex);
+            AddShutdownError(ref shutdownErrors, new TimeoutException("DuckDB writer did not stop before shutdown timeout.", ex));
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
-            Debug.WriteLine(ex);
+            // Cancellation is the normal shutdown signal.
+        }
+        catch (Exception ex)
+        {
+            AddShutdownError(ref shutdownErrors, ex);
         }
 
         foreach (var thread in _readerThreads)
-            thread.Join(TimeSpan.FromSeconds(2));
+        {
+            if (!thread.Join(s_shutdownTimeout))
+            {
+                AddShutdownError(
+                    ref shutdownErrors,
+                    new TimeoutException($"DuckDB reader thread '{thread.Name}' did not stop before shutdown timeout."));
+            }
+        }
 
         if (_reads is not null)
             while (_reads.Reader.TryRead(out var leftover))
@@ -205,6 +216,9 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         Connection.Dispose();
         _cts.Dispose();
         _meter.Dispose();
+
+        if (shutdownErrors is { Count: > 0 })
+            throw new AggregateException("DuckDB store did not shut down cleanly.", shutdownErrors);
     }
 
 
@@ -567,7 +581,14 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
 
-    public Task<int> ClearAllProfilesAsync(CancellationToken ct = default) => ClearTableAsync("profiles", ct);
+    public async Task<int> ClearAllProfilesAsync(CancellationToken ct = default) =>
+        await ExecuteWriteAsync(static async (con, token) =>
+        {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            var deleted = await DeleteProfileTablesAsync(con, tx, token).ConfigureAwait(false);
+            await tx.CommitAsync(token).ConfigureAwait(false);
+            return deleted;
+        }, ct).ConfigureAwait(false);
 
     private async Task<int> ClearTableAsync(string tableName, CancellationToken ct) =>
         await ExecuteWriteAsync(async (con, token) =>
@@ -598,19 +619,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 logsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
 
-            await using (var cmd = con.CreateCommand())
-            {
-                cmd.Transaction = tx;
-                cmd.CommandText = """
-                                  DELETE FROM profile_functions;
-                                  DELETE FROM profile_locations;
-                                  DELETE FROM profile_mappings;
-                                  DELETE FROM profile_samples;
-                                  DELETE FROM profile_stacks;
-                                  DELETE FROM profiles;
-                                  """;
-                profilesDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
+            profilesDeleted = await DeleteProfileTablesAsync(con, tx, token).ConfigureAwait(false);
 
             await tx.CommitAsync(token).ConfigureAwait(false);
 
@@ -621,6 +630,33 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 ProfilesDeleted = profilesDeleted
             };
         }, ct).ConfigureAwait(false);
+
+    private static async Task<int> DeleteProfileTablesAsync(
+        DuckDBConnection con,
+        DbTransaction tx,
+        CancellationToken token)
+    {
+        var deleted = 0;
+
+        foreach (var table in s_profileTables)
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM " + table;
+            var count = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            if (count > 0)
+                deleted += count;
+        }
+
+        return deleted;
+    }
+
+    private static void AddShutdownError(ref List<Exception>? errors, Exception error)
+    {
+        errors ??= [];
+        errors.Add(error);
+        Debug.WriteLine(error);
+    }
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
@@ -1035,7 +1071,20 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                     break;
 
                 while (reader.TryRead(out var job))
-                    job.Execute(con);
+                {
+                    try
+                    {
+                        job.Execute(con);
+                    }
+                    catch (OperationCanceledException oce)
+                    {
+                        job.Abort(oce);
+                    }
+                    catch (Exception ex)
+                    {
+                        job.Abort(ex);
+                    }
+                }
             }
         }
         finally
@@ -1359,6 +1408,7 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     {
         void Execute(DuckDBConnection con);
         void Cancel();
+        void Abort(Exception error);
     }
 
     private sealed class ReadJob<TResult>(Func<DuckDBConnection, TResult> read, CancellationToken ct) : IReadJob
@@ -1393,6 +1443,14 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         }
 
         public void Cancel() => _tcs.TrySetCanceled();
+
+        public void Abort(Exception error)
+        {
+            if (error is OperationCanceledException oce)
+                _tcs.TrySetCanceled(oce.CancellationToken);
+            else
+                _tcs.TrySetException(error);
+        }
     }
 
     private struct QueryBuilder()

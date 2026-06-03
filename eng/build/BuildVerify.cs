@@ -739,6 +739,10 @@ interface IVerify : IHazSourcePaths
                 "qb.Add(\"time_unix_nano > $N\"",
                 "after = ordered[^1].TimeUnixNano",
                 "OrderBy(static l => l.TimeUnixNano).ToArray()",
+                "SpanRowMapper",
+                "ClearTableAsync(\"profiles\"",
+                "thread.Join(TimeSpan.FromSeconds(2))",
+                "DELETE FROM profile_functions;",
                 "/api/v1/ingest",
                 "StartsWithIgnoreCase(\"mcp/\")",
                 "qyl native protocol",
@@ -812,6 +816,7 @@ interface IVerify : IHazSourcePaths
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.cs",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "DuckDbSchema.g.sql",
                 RootDirectory / "services" / "qyl.collector" / "Storage" / "promoted-columns.g.sql",
+                RootDirectory / "services" / "qyl.collector" / "Storage" / "SpanRowMapper.cs",
                 RootDirectory / "packages" / "Qyl.Client",
                 RootDirectory / "packages" / "Qyl.Telemetry" / "Conventions" / "Qyl.g.cs"
             ];
