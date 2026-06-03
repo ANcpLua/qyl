@@ -1275,61 +1275,57 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             var spanStorageRowFile = CollectorDirectory / "Storage" / "DuckDbReaderExtensions.cs";
             var storeFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
 
-            string[] forbidden =
-            [
-                "PRIMARY KEY (span_id)",
-                "PRIMARY KEY (\"span_id\")",
-                "ON CONFLICT (span_id)",
-                "ON CONFLICT (trace_id, span_id)"
-            ];
-
-            var offenders = CollectorDirectory.GlobFiles("**/*.cs")
-                .Concat(CollectorDirectory.GlobFiles("**/*.sql"))
-                .Where(static file =>
-                {
-                    var path = file.ToString();
-                    return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                           && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                })
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
-                .SelectMany(file => forbidden
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
-                    .Select(token => (file.File, Token: token)))
-                .ToList();
-
             var missingRequired = new List<string>();
-            var spanStorageRowText = spanStorageRowFile.FileExists() ? File.ReadAllText(spanStorageRowFile) : "";
-            if (!spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = \"VARCHAR(128)\")]\n    public required string ProjectId", StringComparison.Ordinal) ||
-                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 1)]\n    public required string TraceId", StringComparison.Ordinal) ||
-                !spanStorageRowText.Contains("[DuckDbColumn(PrimaryKeyOrdinal = 2)]\n    public required string SpanId", StringComparison.Ordinal))
+            var spanIdentity = ReadSpanStorageIdentity(spanStorageRowFile);
+            var expectedPrimaryKeyOrdinals = new Dictionary<string, int>(StringComparer.Ordinal)
             {
-                missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
-                                    + " must declare generated PRIMARY KEY order ProjectId=0, TraceId=1, SpanId=2");
+                ["ProjectId"] = 0,
+                ["TraceId"] = 1,
+                ["SpanId"] = 2
+            };
+
+            foreach (var expected in expectedPrimaryKeyOrdinals)
+            {
+                if (!spanIdentity.PrimaryKeyOrdinals.TryGetValue(expected.Key, out var ordinal) || ordinal != expected.Value)
+                {
+                    missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
+                                        + $" must declare {expected.Key} with PrimaryKeyOrdinal = {expected.Value}");
+                }
             }
 
-            if (!spanStorageRowText.Contains("ON CONFLICT (project_id, trace_id, span_id)", StringComparison.Ordinal))
+            foreach (var unexpected in spanIdentity.PrimaryKeyOrdinals.Keys.Except(expectedPrimaryKeyOrdinals.Keys, StringComparer.Ordinal))
+            {
+                missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
+                                    + $" declares unexpected SpanStorageRow primary key column: {unexpected}");
+            }
+
+            if (!NormalizeSqlFragment(spanIdentity.OnConflict).StartsWith(
+                    "on conflict (project_id, trace_id, span_id)",
+                    StringComparison.Ordinal))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(spanStorageRowFile).ToString()
                                     + " must upsert ON CONFLICT (project_id, trace_id, span_id)");
             }
 
-            if (!storeFile.FileExists() ||
-                !File.ReadAllText(storeFile).Contains("SpanStorageRow.CreateTableDdl", StringComparison.Ordinal))
+            if (!StoreInitializesGeneratedSpanDdl(storeFile))
             {
                 missingRequired.Add(RootDirectory.GetRelativePathTo(storeFile).ToString()
                                     + " must initialize spans through SpanStorageRow.CreateTableDdl");
             }
 
-            if (offenders.Count is 0 && missingRequired.Count is 0)
+            var unsafeSql = UnsafeSpanIdentitySqlFragments().ToList();
+
+            if (unsafeSql.Count is 0 && missingRequired.Count is 0)
             {
                 Log.Information("Collector span storage identity is project- and trace-scoped");
                 return;
             }
 
-            foreach (var offender in offenders)
-                Log.Error("  Span identity regression token '{Token}' found in {File}", offender.Token, offender.File);
+            foreach (var offender in unsafeSql)
+                Log.Error("  Unsafe span identity SQL at {File}:{Line}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
 
             foreach (var missing in missingRequired)
                 Log.Error("  Missing span identity invariant: {Invariant}", missing);
@@ -1890,6 +1886,15 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         int Line,
         string Text);
 
+    private readonly record struct SpanStorageIdentity(
+        IReadOnlyDictionary<string, int> PrimaryKeyOrdinals,
+        string OnConflict);
+
+    private readonly record struct UnsafeSqlOffender(
+        string File,
+        int Line,
+        string Text);
+
     private readonly record struct RemovedRouteLiteral(
         string File,
         int Line,
@@ -2171,6 +2176,166 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         node.DescendantNodesAndSelf()
             .OfType<IdentifierNameSyntax>()
             .Any(identifier => storageTypeNames.Contains(identifier.Identifier.ValueText));
+
+    private static SpanStorageIdentity ReadSpanStorageIdentity(AbsolutePath spanStorageRowFile)
+    {
+        if (!spanStorageRowFile.FileExists())
+            throw new FileNotFoundException("Missing SpanStorageRow source", spanStorageRowFile.ToString());
+
+        var root = ParseCompilationUnit(spanStorageRowFile);
+        var spanRecord = root.DescendantNodes()
+            .OfType<RecordDeclarationSyntax>()
+            .SingleOrDefault(static record => record.Identifier.ValueText is "SpanStorageRow");
+
+        if (spanRecord is null)
+            throw new InvalidOperationException("Missing SpanStorageRow declaration.");
+
+        var primaryKeyOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var property in spanRecord.Members.OfType<PropertyDeclarationSyntax>())
+        {
+            foreach (var attribute in property.AttributeLists.SelectMany(static list => list.Attributes))
+            {
+                if (!IsAttributeNamed(attribute, "DuckDbColumn"))
+                    continue;
+
+                if (TryReadNamedIntAttributeArgument(attribute, "PrimaryKeyOrdinal", out var ordinal))
+                    primaryKeyOrdinals[property.Identifier.ValueText] = ordinal;
+            }
+        }
+
+        var tableAttribute = spanRecord.AttributeLists
+            .SelectMany(static list => list.Attributes)
+            .SingleOrDefault(static attribute => IsAttributeNamed(attribute, "DuckDbTable"));
+
+        if (tableAttribute is null)
+            throw new InvalidOperationException("SpanStorageRow must declare DuckDbTable metadata.");
+
+        var onConflict = ReadNamedStringAttributeArgument(tableAttribute, "OnConflict");
+        if (string.IsNullOrWhiteSpace(onConflict))
+            throw new InvalidOperationException("SpanStorageRow DuckDbTable metadata must declare OnConflict.");
+
+        return new SpanStorageIdentity(primaryKeyOrdinals, onConflict);
+    }
+
+    private static bool StoreInitializesGeneratedSpanDdl(AbsolutePath storeFile)
+    {
+        if (!storeFile.FileExists())
+            return false;
+
+        var root = ParseCompilationUnit(storeFile);
+        return root.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Any(static memberAccess =>
+                memberAccess.Expression is IdentifierNameSyntax { Identifier.ValueText: "SpanStorageRow" } &&
+                memberAccess.Name.Identifier.ValueText is "CreateTableDdl");
+    }
+
+    private IEnumerable<UnsafeSqlOffender> UnsafeSpanIdentitySqlFragments()
+    {
+        var sourceFiles = CollectorDirectory.GlobFiles("**/*.cs")
+            .Concat(CollectorDirectory.GlobFiles("**/*.sql"))
+            .Where(static file =>
+            {
+                var path = file.ToString();
+                return !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                       && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+            });
+
+        foreach (var file in sourceFiles)
+        {
+            var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+            if (file.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                var root = ParseCompilationUnit(file);
+                foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+                {
+                    if (literal.IsKind(SyntaxKind.StringLiteralExpression) &&
+                        literal.Token.ValueText is { Length: > 0 } value &&
+                        IsUnsafeSpanIdentitySql(value))
+                    {
+                        yield return new UnsafeSqlOffender(relativePath, NodeLine(literal), NodePreview(literal));
+                    }
+                }
+
+                continue;
+            }
+
+            var lines = File.ReadAllLines(file);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (IsUnsafeSpanIdentitySql(lines[i]))
+                    yield return new UnsafeSqlOffender(relativePath, i + 1, lines[i].Trim());
+            }
+        }
+    }
+
+    private static bool IsAttributeNamed(AttributeSyntax attribute, string expectedName)
+    {
+        var name = attribute.Name.ToString();
+        return name.Equals(expectedName, StringComparison.Ordinal) ||
+               name.Equals(expectedName + "Attribute", StringComparison.Ordinal) ||
+               name.EndsWith("." + expectedName, StringComparison.Ordinal) ||
+               name.EndsWith("." + expectedName + "Attribute", StringComparison.Ordinal);
+    }
+
+    private static bool TryReadNamedIntAttributeArgument(AttributeSyntax attribute, string name, out int value)
+    {
+        value = 0;
+        foreach (var argument in attribute.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<AttributeArgumentSyntax>))
+        {
+            if (argument.NameEquals?.Name.Identifier.ValueText != name ||
+                argument.Expression is not LiteralExpressionSyntax literal ||
+                !literal.IsKind(SyntaxKind.NumericLiteralExpression) ||
+                literal.Token.Value is not int ordinal)
+            {
+                continue;
+            }
+
+            value = ordinal;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ReadNamedStringAttributeArgument(AttributeSyntax attribute, string name)
+    {
+        foreach (var argument in attribute.ArgumentList?.Arguments ?? default(SeparatedSyntaxList<AttributeArgumentSyntax>))
+        {
+            if (argument.NameEquals?.Name.Identifier.ValueText == name &&
+                argument.Expression is LiteralExpressionSyntax literal &&
+                literal.IsKind(SyntaxKind.StringLiteralExpression))
+            {
+                return literal.Token.ValueText;
+            }
+        }
+
+        return "";
+    }
+
+    private static bool IsUnsafeSpanIdentitySql(string sql)
+    {
+        var normalized = NormalizeSqlFragment(sql);
+        return normalized.Contains("primary key (span_id)", StringComparison.Ordinal) ||
+               normalized.Contains("on conflict (span_id)", StringComparison.Ordinal) ||
+               normalized.Contains("on conflict (trace_id, span_id)", StringComparison.Ordinal);
+    }
+
+    private static string NormalizeSqlFragment(string sql)
+    {
+        var normalized = string.Join(
+                ' ',
+                sql.Replace("\"", "", StringComparison.Ordinal)
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            .ToLowerInvariant();
+
+        return normalized
+            .Replace("( ", "(", StringComparison.Ordinal)
+            .Replace(" )", ")", StringComparison.Ordinal)
+            .Replace(" ,", ",", StringComparison.Ordinal)
+            .Replace(",", ", ", StringComparison.Ordinal)
+            .Replace("  ", " ", StringComparison.Ordinal);
+    }
 
     private CollectorAttributeLiteralValues ResolveCollectorAttributeLiteralValues()
     {
