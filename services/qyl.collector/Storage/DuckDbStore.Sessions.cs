@@ -59,72 +59,6 @@ internal sealed partial class DuckDbStore
         return results.Count > 0 ? results[0] : null;
     }
 
-    public async Task<SessionGenAiStats> GetGenAiStatsAsync(
-        string? sessionId = null,
-        DateTime? after = null,
-        CancellationToken ct = default) =>
-        await ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT
-                                  COUNT(*) AS request_count,
-                                  COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                                  COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                                  COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost,
-                                  LIST(DISTINCT gen_ai_provider_name) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
-                                  LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
-                              FROM spans
-                              WHERE gen_ai_provider_name IS NOT NULL
-                                AND ($1::VARCHAR IS NULL OR session_id IS NOT DISTINCT FROM $1)
-                                AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
-                              """;
-            AddSessionQueryParams(cmd, sessionId, after);
-
-            using var reader = cmd.ExecuteReader();
-
-            if (!reader.Read())
-                return new SessionGenAiStats();
-
-            return new SessionGenAiStats
-            {
-                RequestCount = reader.Col(0).GetInt64(0),
-                InputTokens = reader.Col(1).GetInt64(0),
-                OutputTokens = reader.Col(2).GetInt64(0),
-                TotalCostUsd = reader.Col(3).GetDouble(0),
-                Providers = ReadStringList(reader, 4),
-                Models = ReadStringList(reader, 5)
-            };
-        }, ct).ConfigureAwait(false);
-
-    public async Task<IReadOnlyList<SpanStorageRow>> GetGenAiSpansAsync(
-        string? sessionId = null,
-        int limit = 100,
-        CancellationToken ct = default) =>
-        await ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + SelectSpanColumns
-                                        + " FROM spans"
-                                        + " WHERE gen_ai_provider_name IS NOT NULL"
-                                        + (sessionId is null ? "" : " AND session_id = $1")
-                                        + " ORDER BY start_time_unix_nano DESC"
-                                        + (sessionId is null ? " LIMIT $1" : " LIMIT $2");
-
-            if (sessionId is not null)
-                cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            var spans = new List<SpanStorageRow>();
-            using var reader = cmd.ExecuteReader();
-
-            while (reader.Read())
-                spans.Add(MapSpan(reader));
-
-            return spans;
-        }, ct).ConfigureAwait(false);
-
     private static void AddSessionAfterParam(DuckDBCommand cmd, DateTime? after)
     {
         if (after.HasValue)
@@ -230,15 +164,4 @@ internal sealed record SessionQueryRow
     public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];
     public IReadOnlyList<string> Services { get; init; } = [];
-}
-
-internal sealed record SessionGenAiStats
-{
-    public long RequestCount { get; init; }
-    public long InputTokens { get; init; }
-    public long OutputTokens { get; init; }
-    public long TotalTokens => InputTokens + OutputTokens;
-    public double TotalCostUsd { get; init; }
-    public IReadOnlyList<string> Providers { get; init; } = [];
-    public IReadOnlyList<string> Models { get; init; } = [];
 }

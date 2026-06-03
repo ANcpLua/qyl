@@ -319,22 +319,16 @@ function useLiveLogs(
         let eventSource: EventSource | null = null;
 
         const connect = () => {
-            eventSource = new EventSource('/api/v1/logs/live');
+            eventSource = new EventSource('/api/v1/stream/logs');
 
-            eventSource.addEventListener('connected', () => {
+            eventSource.onopen = () => {
                 setIsConnected(true);
-            });
+            };
 
-            eventSource.addEventListener('logs', (e) => {
+            eventSource.addEventListener('log', (e) => {
                 try {
                     const data = JSON.parse(e.data);
-                    // Handle both single log and batch formats
-                    const logs = Array.isArray(data.logs)
-                        ? data.logs.map(normalizeLogRecord)
-                        : Array.isArray(data)
-                            ? data.map(normalizeLogRecord)
-                            : [normalizeLogRecord(data)];
-                    queueLogs(logs);
+                    queueLogs([normalizeLogRecord(data)]);
                 } catch (err) {
                     console.error('Failed to parse log event:', err);
                 }
@@ -344,12 +338,7 @@ function useLiveLogs(
             eventSource.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.logs || data.body) {
-                        const logs = data.logs
-                            ? data.logs.map(normalizeLogRecord)
-                            : [normalizeLogRecord(data)];
-                        queueLogs(logs);
-                    }
+                    if (data.body) queueLogs([normalizeLogRecord(data)]);
                 } catch {
                     // Ignore parse errors for non-log messages
                 }

@@ -100,7 +100,7 @@ internal static class StartupBanner
         if (grpcPort > 0)
             Console.WriteLine($"    gRPC TraceService/LogsService/ProfilesService - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
-        Console.WriteLine("    GET  /api/v1/logs/live  - SSE live log tail");
+        Console.WriteLine("    GET  /api/v1/stream/logs - SSE log stream");
         Console.ResetColor();
         Console.WriteLine();
 

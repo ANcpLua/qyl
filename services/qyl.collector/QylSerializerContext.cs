@@ -6,7 +6,6 @@ using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.OTel.Profiles;
 using Qyl.Api.Contracts.OTel.Traces;
-using ContractGenAiStats = Qyl.Api.Contracts.Domains.AI.GenAi.GenAiStats;
 using ContractAttribute = Qyl.Api.Contracts.Common.Attribute;
 using Resource = Qyl.Api.Contracts.OTel.Resource.Resource;
 
@@ -17,8 +16,6 @@ namespace Qyl.Collector;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     WriteIndented = false)]
-[JsonSerializable(typeof(TelemetryStats))]
-[JsonSerializable(typeof(ContractGenAiStats))]
 [JsonSerializable(typeof(Span))]
 [JsonSerializable(typeof(Span[]))]
 [JsonSerializable(typeof(List<Span>))]
@@ -47,11 +44,4 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(List<string>), TypeInfoPropertyName = "StringList")]
 [JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
-[JsonSerializable(typeof(ClearTelemetryResponse))]
-[JsonSerializable(typeof(MetaResponse))]
-[JsonSerializable(typeof(MetaBuild))]
-[JsonSerializable(typeof(MetaCapabilities))]
-[JsonSerializable(typeof(MetaStatus))]
-[JsonSerializable(typeof(MetaLinks))]
-[JsonSerializable(typeof(MetaPorts))]
 internal partial class QylSerializerContext : JsonSerializerContext;

@@ -15,7 +15,7 @@ export function DashboardLayout() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [isLive, setIsLive] = useState(true);
+    const [isLive, setIsLive] = useState(false);
     const [timeRange, setTimeRange] = useState('15m');
     // Live stream
     const {isConnected, recentSpans, reconnect, clearSpans} = useLiveStream({

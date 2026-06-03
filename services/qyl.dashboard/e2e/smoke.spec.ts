@@ -28,10 +28,6 @@ test.describe('qyl dashboard smoke tests', () => {
         await page.getByRole('link', {name: /logs/i}).click();
         await expect(page).toHaveURL(/\/logs/);
 
-        // Navigate to GenAI
-        await page.getByRole('link', {name: /genai/i}).click();
-        await expect(page).toHaveURL(/\/genai/);
-
         // Navigate to Agents
         await page.getByRole('link', {name: /agents/i}).click();
         await expect(page).toHaveURL(/\/agents/);
@@ -75,12 +71,6 @@ test.describe('qyl dashboard smoke tests', () => {
     test('compatibility endpoints are reachable', async ({request}) => {
         const traces = await request.get('/api/v1/traces?limit=1');
         expect(traces.ok()).toBeTruthy();
-
-        const stats = await request.get('/api/v1/genai/stats');
-        expect(stats.ok()).toBeTruthy();
-
-        const spans = await request.get('/api/v1/genai/spans?limit=1');
-        expect(spans.ok()).toBeTruthy();
 
         const search = await request.post('/api/v1/search/query', {
             data: {
@@ -128,7 +118,7 @@ test.describe('qyl dashboard smoke tests', () => {
         await page.goto('/logs');
 
         const response = await page.waitForResponse(
-            (res) => res.url().includes('/api/v1/logs/live') && res.request().method() === 'GET',
+            (res) => res.url().includes('/api/v1/stream/logs') && res.request().method() === 'GET',
             {timeout: 10_000}
         );
 

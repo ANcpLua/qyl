@@ -64,20 +64,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
     private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
     private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
 
-
-    private static readonly FrozenSet<string> s_allowedClearTables = FrozenSet.Create(
-        StringComparer.Ordinal, "spans", "logs");
-
-    private static readonly string[] s_profileTables =
-    [
-        "profile_functions",
-        "profile_locations",
-        "profile_mappings",
-        "profile_samples",
-        "profile_stacks",
-        "profiles"
-    ];
-
     private readonly CancellationTokenSource _cts = new();
     private readonly Counter<long> _droppedJobs;
     private readonly Counter<long> _droppedSpans;
@@ -572,80 +558,6 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
                 await cmd.ExecuteNonQueryAsync(wct).ConfigureAwait(false);
             }
         }, ct).ConfigureAwait(false);
-
-    public Task<int> ClearAllSpansAsync(CancellationToken ct = default) => ClearTableAsync("spans", ct);
-
-    public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
-
-    public async Task<int> ClearAllProfilesAsync(CancellationToken ct = default) =>
-        await ExecuteWriteAsync(static async (con, token) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            var deleted = await DeleteProfileTablesAsync(con, tx, token).ConfigureAwait(false);
-            await tx.CommitAsync(token).ConfigureAwait(false);
-            return deleted;
-        }, ct).ConfigureAwait(false);
-
-    private async Task<int> ClearTableAsync(string tableName, CancellationToken ct) =>
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM " + SqlBuilder.Whitelisted(tableName, s_allowedClearTables);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
-    public async Task<TelemetryTableClearCounts> ClearAllTelemetryAsync(CancellationToken ct = default) =>
-        await ExecuteWriteAsync(static async (con, token) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-
-            int spansDeleted, logsDeleted, profilesDeleted;
-
-            await using (var cmd = con.CreateCommand())
-            {
-                cmd.Transaction = tx;
-                cmd.CommandText = "DELETE FROM spans";
-                spansDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
-
-            await using (var cmd = con.CreateCommand())
-            {
-                cmd.Transaction = tx;
-                cmd.CommandText = "DELETE FROM logs";
-                logsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            }
-
-            profilesDeleted = await DeleteProfileTablesAsync(con, tx, token).ConfigureAwait(false);
-
-            await tx.CommitAsync(token).ConfigureAwait(false);
-
-            return new TelemetryTableClearCounts
-            {
-                SpansDeleted = spansDeleted,
-                LogsDeleted = logsDeleted,
-                ProfilesDeleted = profilesDeleted
-            };
-        }, ct).ConfigureAwait(false);
-
-    private static async Task<int> DeleteProfileTablesAsync(
-        DuckDBConnection con,
-        DbTransaction tx,
-        CancellationToken token)
-    {
-        var deleted = 0;
-
-        foreach (var table in s_profileTables)
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = "DELETE FROM " + table;
-            var count = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-            if (count > 0)
-                deleted += count;
-        }
-
-        return deleted;
-    }
 
     private static void AddShutdownError(ref List<Exception>? errors, Exception error)
     {
@@ -1478,12 +1390,4 @@ internal sealed partial class DuckDbStore : IAsyncDisposable
         public readonly void ApplyTo(DuckDBCommand cmd) => cmd.Parameters.AddRange(_parameters);
     }
 
-}
-
-
-internal sealed record TelemetryTableClearCounts
-{
-    public int SpansDeleted { get; init; }
-    public int LogsDeleted { get; init; }
-    public int ProfilesDeleted { get; init; }
 }

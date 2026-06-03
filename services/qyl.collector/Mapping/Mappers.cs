@@ -1,6 +1,5 @@
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
-using Qyl.Api.Contracts.Domains.AI.GenAi;
 using Qyl.Api.Contracts.Domains.Observe.Otel;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Enums;
@@ -178,15 +177,6 @@ internal static class LogMapper
     public static IReadOnlyList<LogRecord> ToContracts(IEnumerable<LogStorageRow> records) =>
         [.. records.Select(static record => ToContract(record))];
 
-    internal static LogRecord ToContract(DeduplicatedLiveLog deduplicated)
-    {
-        var body = deduplicated.Log.Body ?? "";
-        if (deduplicated.IsDuplicateSummary && deduplicated.RepeatCount > 0)
-            body = $"{body} [repeated {deduplicated.RepeatCount}x]";
-
-        return ToContract(deduplicated.Log, body);
-    }
-
     private static SeverityNumber MapSeverityNumber(byte severityNumber) =>
         Enum.IsDefined(typeof(SeverityNumber), (int)severityNumber)
             ? (SeverityNumber)severityNumber
@@ -358,36 +348,6 @@ internal static class ProfileMapper
             return null;
         }
     }
-}
-
-internal static class ContractStatsMapper
-{
-    public static Qyl.Api.Contracts.Domains.AI.GenAi.GenAiStats ToContract(SessionGenAiStats stats) =>
-        new()
-        {
-            TotalOperations = stats.RequestCount,
-            TotalInputTokens = stats.InputTokens,
-            TotalOutputTokens = stats.OutputTokens,
-            UsageByModel = [],
-            UsageByProvider = [],
-            UsageByOperation = [],
-            ErrorStats = new GenAiErrorStats { TotalErrors = 0, ErrorRate = 0, ByType = [] },
-            LatencyPercentiles = new LatencyPercentiles { P50 = 0, P75 = 0, P90 = 0, P95 = 0, P99 = 0 },
-            EstimatedCostUsd = stats.TotalCostUsd
-        };
-
-    public static TelemetryStats ToContract(StorageStats stats) =>
-        new()
-        {
-            SpansExported = stats.SpanCount,
-            SpansDropped = stats.DroppedSpanCount,
-            MetricsExported = stats.MetricCount,
-            MetricsDropped = stats.DroppedMetricCount,
-            LogsExported = stats.LogCount,
-            LogsDropped = stats.DroppedLogCount,
-            ExportErrors = stats.DroppedJobCount,
-            QueueUtilization = stats.WriteQueueUtilization
-        };
 }
 
 internal static class AttributeParsing

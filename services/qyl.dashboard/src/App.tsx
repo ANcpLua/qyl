@@ -15,7 +15,6 @@ import {useCollectorMeta} from '@/lib/onboarding';
 
 const TracesPage = lazy(() => import('@/pages/TracesPage').then(m => ({default: m.TracesPage})));
 const LogsPage = lazy(() => import('@/pages/LogsPage').then(m => ({default: m.LogsPage})));
-const GenAIPage = lazy(() => import('@/pages/GenAIPage').then(m => ({default: m.GenAIPage})));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({default: m.DashboardPage})));
 const CostPage = lazy(() => import('@/pages/CostPage').then(m => ({default: m.CostPage})));
 const ServicesPage = lazy(() => import('@/pages/ServicesPage').then(m => ({default: m.ServicesPage})));
@@ -171,7 +170,6 @@ export default function App() {
                                 <Route path="/" element={<FirstVisitGate/>}/>
                                 <Route path="/traces" element={<TracesPage/>}/>
                                 <Route path="/logs" element={<LogsPage/>}/>
-                                <Route path="/genai" element={<GenAIPage/>}/>
                                 <Route path="/cost" element={<CostPage/>}/>
                                 <Route path="/services" element={<ServicesPage/>}/>
                                 <Route path="/dashboards" element={<DashboardPage/>}/>

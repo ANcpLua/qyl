@@ -3,6 +3,7 @@ using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Api.Contracts;
 using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.OTel.Logs;
 
 namespace Qyl.Collector.Hosting;
 
@@ -23,25 +24,18 @@ internal static class CollectorEndpointExtensions
 
         api.MapGet("/sessions", GetSessionsAsync);
         api.MapGet("/sessions/{sessionId}", GetSessionByIdAsync);
-        api.MapGet("/sessions/{sessionId}/spans", SpanEndpoints.GetSessionSpansAsync);
+        api.MapGet("/sessions/{sessionId}/traces", SpanEndpoints.GetSessionTracesAsync);
 
         api.MapGet("/traces", GetTracesAsync);
         api.MapGet("/traces/{traceId}", SpanEndpoints.GetTraceAsync);
+        api.MapGet("/traces/{traceId}/spans", SpanEndpoints.GetTraceSpansAsync);
 
         api.MapGet("/logs", GetLogsAsync);
-        api.MapGet("/logs/live", StreamLogsLiveAsync);
+        api.MapGet("/stream/logs", StreamLogsAsync);
 
         api.MapGet("/profiles", GetProfilesAsync);
         api.MapGet("/profiles/{profileId}", GetProfileByIdAsync);
-        api.MapGet("/traces/{traceId}/profiles", GetTraceProfilesAsync);
-
-        api.MapGet("/genai/stats", GetGenAiStatsAsync);
-        api.MapGet("/genai/spans", GetGenAiSpansAsync);
-
-        api.MapDelete("/telemetry", ClearTelemetryAsync);
-        api.MapGet("/telemetry/stats", GetTelemetryStatsAsync);
-
-        api.MapGet("/meta", GetMeta);
+        api.MapGet("/profiles/by-trace/{traceId}", GetTraceProfilesAsync);
 
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
             Results.File(Path.Combine(env.WebRootPath, "qyl.js"), "application/javascript"));
@@ -170,43 +164,39 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
-    private static ServerSentEventsResult<SseItem<object?>> StreamLogsLiveAsync(
+    private static ServerSentEventsResult<SseItem<LogRecord>> StreamLogsAsync(
         DuckDbStore store,
-        string? session,
-        string? trace,
-        bool? dedupe,
-        int? dedupeWindowSeconds,
+        string? serviceName,
+        int? minSeverity,
+        string? query,
         CancellationToken ct) =>
         TypedResults.ServerSentEvents(
-            StreamLogEventsAsync(store, session, trace, dedupe, dedupeWindowSeconds, ct), null);
+            StreamLogEventsAsync(store, serviceName, minSeverity, query, ct), null);
 
-    private static async IAsyncEnumerable<SseItem<object?>> StreamLogEventsAsync(
+    private static async IAsyncEnumerable<SseItem<LogRecord>> StreamLogEventsAsync(
         DuckDbStore store,
-        string? session,
-        string? trace,
-        bool? dedupe,
-        int? dedupeWindowSeconds,
+        string? serviceName,
+        int? minSeverity,
+        string? query,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var dedupeEnabled = dedupe.GetValueOrDefault(true);
-        var dedupeWindow = TimeSpan.FromSeconds(Math.Clamp(dedupeWindowSeconds ?? 5, 1, 60));
-        var deduplicator = dedupeEnabled ? new LiveLogDeduplicator(dedupeWindow) : null;
-
-        yield return new SseItem<object?>(new { status = "ok" }, "connected");
-
-        (ulong TimeUnixNano, string LogId)? after = null;
+        var hasCursor = false;
+        ulong? afterTimeUnixNano = null;
+        string? afterLogId = null;
         while (!ct.IsCancellationRequested)
         {
             var rows = await store.GetLogsAsync(
-                session,
-                trace,
-                after: after?.TimeUnixNano,
-                afterLogId: after?.LogId,
-                ascending: after is not null,
+                sessionId: null,
+                traceId: null,
+                severityText: null,
+                minSeverity,
+                search: query,
+                serviceName: serviceName,
+                after: afterTimeUnixNano,
+                afterLogId: afterLogId,
+                ascending: hasCursor,
                 limit: 250,
                 ct: ct).ConfigureAwait(false);
-
-            var dedupedPayload = new List<DeduplicatedLiveLog>(rows.Count + 4);
 
             if (rows.Count > 0)
             {
@@ -215,21 +205,12 @@ internal static class CollectorEndpointExtensions
                     .ThenBy(static l => l.LogId, StringComparer.Ordinal)
                     .ToArray();
                 var last = ordered[^1];
-                after = (last.TimeUnixNano, last.LogId);
+                hasCursor = true;
+                afterTimeUnixNano = last.TimeUnixNano;
+                afterLogId = last.LogId;
 
-                if (deduplicator is null)
-                    dedupedPayload.AddRange(ordered.Select(static log => new DeduplicatedLiveLog(log)));
-                else
-                    dedupedPayload.AddRange(deduplicator.ProcessBatch(ordered));
-            }
-
-            if (deduplicator is not null)
-                dedupedPayload.AddRange(deduplicator.FlushExpired(TimeProvider.System.GetUtcNow().UtcDateTime));
-
-            if (dedupedPayload.Count > 0)
-            {
-                var payload = dedupedPayload.Select(LogMapper.ToContract).ToArray();
-                yield return new SseItem<object?>(new { logs = payload }, "logs");
+                foreach (var log in ordered)
+                    yield return new SseItem<LogRecord>(LogMapper.ToContract(log), "log");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);
@@ -300,132 +281,6 @@ internal static class CollectorEndpointExtensions
     {
         var profiles = await store.GetProfilesAsync(traceId: traceId, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
-    }
-
-
-    private static async Task<IResult> GetGenAiStatsAsync(
-        DuckDbStore store,
-        int? hours,
-        string? session_id,
-        CancellationToken ct)
-    {
-        DateTime? after = null;
-        if (hours is > 0)
-            after = TimeProvider.System.GetUtcNow().UtcDateTime.AddHours(-hours.Value);
-
-        var stats = await store.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
-        return Results.Ok(ContractStatsMapper.ToContract(stats));
-    }
-
-    private static async Task<IResult> GetGenAiSpansAsync(
-        DuckDbStore store,
-        string? session_id,
-        int? limit,
-        CancellationToken ct)
-    {
-        var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
-        var spans = await store.GetGenAiSpansAsync(session_id, boundedLimit, ct).ConfigureAwait(false);
-        var spanContracts = SpanMapper.ToContracts(spans, static span => (span.ServiceName ?? "unknown", null));
-
-        return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
-    }
-
-
-    private static async Task<IResult> ClearTelemetryAsync(
-        DuckDbStore store,
-        string? type,
-        CancellationToken ct)
-    {
-        if (!string.IsNullOrEmpty(type))
-        {
-            var deleted = type.ToLowerInvariant() switch
-            {
-                "spans" or "traces" => new TelemetryTableClearCounts
-                {
-                    SpansDeleted = await store.ClearAllSpansAsync(ct).ConfigureAwait(false),
-                },
-                "logs" => new TelemetryTableClearCounts
-                {
-                    LogsDeleted = await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
-                },
-                "profiles" => new TelemetryTableClearCounts
-                {
-                    ProfilesDeleted = await store.ClearAllProfilesAsync(ct).ConfigureAwait(false),
-                },
-                _ => throw new ArgumentException($"Unknown telemetry type: {type}")
-            };
-            return TypedResults.Ok(ToClearTelemetryResponse(deleted, type));
-        }
-
-        var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
-
-        return TypedResults.Ok(ToClearTelemetryResponse(result, "all"));
-
-        static ClearTelemetryResponse ToClearTelemetryResponse(TelemetryTableClearCounts result, string type) =>
-            new()
-        {
-            SpansDeleted = result.SpansDeleted,
-            LogsDeleted = result.LogsDeleted,
-            ProfilesDeleted = result.ProfilesDeleted,
-            SessionsDeleted = 0,
-            ConsoleCleared = 0,
-            Type = type
-        };
-
-    }
-
-    private static async Task<IResult> GetTelemetryStatsAsync(DuckDbStore store, CancellationToken ct)
-    {
-        var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
-        return Results.Ok(ContractStatsMapper.ToContract(stats));
-    }
-
-
-    private static IResult GetMeta(
-        CollectorPortOptions ports,
-        OtlpApiKeyOptions apiKeyOptions,
-        IWebHostEnvironment env)
-    {
-        const string version = BuildVersion.InformationalVersion;
-        var hasEmbeddedDashboard = EmbeddedDashboardExtensions.HasEmbeddedDashboard();
-        var dashboardBuild = DashboardBuildDescriptorReader.TryRead(env);
-
-        return Results.Ok(new MetaResponse
-        {
-            Version = version,
-            Runtime = $"dotnet/{Environment.Version}",
-            Build =
-                new MetaBuild
-                {
-                    InformationalVersion = version,
-                    Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null,
-                    DashboardBuildId = dashboardBuild?.BuildId,
-                    DashboardEntryAsset = dashboardBuild?.EntryAsset,
-                    DashboardBuiltAtUtc = dashboardBuild?.BuiltAtUtc
-                },
-            Capabilities = new MetaCapabilities
-            {
-                Tracing = true,
-                Grpc = true,
-                GenAi = true,
-                Profiles = true,
-                Copilot = false,
-                EmbeddedDashboard = hasEmbeddedDashboard
-            },
-            Status = new MetaStatus
-            {
-                GrpcEnabled = ports.Grpc > 0, AuthMode = apiKeyOptions.IsApiKeyMode ? "api-key" : "unsecured"
-            },
-            Links = new MetaLinks
-            {
-                Dashboard = hasEmbeddedDashboard ? $"http://localhost:{ports.Http}" : null,
-                OtlpHttp = ports.OtlpHttp > 0
-                    ? $"http://localhost:{ports.OtlpHttp}/v1/traces"
-                    : $"http://localhost:{ports.Http}/v1/traces",
-                OtlpGrpc = ports.Grpc > 0 ? $"http://localhost:{ports.Grpc}" : null
-            },
-            Ports = new MetaPorts { Http = ports.Http, Grpc = ports.Grpc, OtlpHttp = ports.OtlpHttp }
-        });
     }
 
 

@@ -1,7 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {fetchJson} from '@/lib/api';
-
 export interface CollectorMeta {
     version?: string | null;
     build?: {
@@ -40,7 +38,7 @@ type BrowserLocation = Pick<Location, 'host' | 'hostname' | 'origin'>;
 export function useCollectorMeta() {
     return useQuery({
         queryKey: ['meta'],
-        queryFn: () => fetchJson<CollectorMeta>('/api/v1/meta').catch(() => null),
+        queryFn: async (): Promise<CollectorMeta | null> => null,
         staleTime: 1000 * 60 * 5,
     });
 }

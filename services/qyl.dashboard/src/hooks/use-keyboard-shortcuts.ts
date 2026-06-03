@@ -132,12 +132,6 @@ export function useNavigationShortcuts(
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // M = Metrics / GenAI
-            registerShortcut({
-                key: 'm',
-                description: 'Go to Metrics / GenAI',
-                handler: () => navigate('/genai'),
-            }),
             // / = Search page
             registerShortcut({
                 key: '/',

@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {SessionEntity, Span} from '@/types';
+import {useCallback, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import type {SessionEntity, Span, Trace} from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
 
@@ -12,73 +12,26 @@ export const telemetryKeys = {
     all: ['telemetry'] as const,
     sessions: () => [...telemetryKeys.all, 'sessions'] as const,
     session: (id: string) => [...telemetryKeys.sessions(), id] as const,
-    sessionSpans: (id: string) => [...telemetryKeys.session(id), 'spans'] as const,
+    sessionSpans: (id: string) => [...telemetryKeys.session(id), 'traces'] as const,
     traceSpans: (id: string) => [...telemetryKeys.all, 'trace', id, 'spans'] as const,
     logs: () => [...telemetryKeys.all, 'logs'] as const,
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
-// Raw snake_case span row shape returned by collector endpoints.
-interface RawSpanRow {
-    span_id: string;
-    trace_id: string;
-    parent_span_id?: string | null;
-    session_id?: string | null;
-    name: string;
-    kind: number;
-    start_time_unix_nano: number;
-    end_time_unix_nano: number;
-    duration_ns: number;
-    status_code: number;
-    status_message?: string | null;
-    service_name?: string | null;
-    attributes_json?: string | null;
-    resource_json?: string | null;
-
-    [key: string]: unknown;
-}
-
-interface RawSpanListResponse {
-    items: RawSpanRow[];
-    total: number;
-}
-
-function rawToSpan(raw: RawSpanRow): TelemetrySpan {
-    type Attr = NonNullable<TelemetrySpan['attributes']>[number];
-    const parseAttrs = (json?: string | null): Attr[] => {
-        if (!json) return [];
-        try {
-            return Object.entries(JSON.parse(json)).map(([key, value]) => ({key, value: value as Attr['value']}));
-        } catch {
-            return [];
-        }
-    };
-
-    const span: TelemetrySpan = {
-        span_id: raw.span_id,
-        trace_id: raw.trace_id,
-        parent_span_id: raw.parent_span_id ?? undefined,
-        name: raw.name,
-        kind: (raw.kind & 0x7) as TelemetrySpan['kind'],
-        start_time_unix_nano: raw.start_time_unix_nano,
-        end_time_unix_nano: raw.end_time_unix_nano,
-        status: {
-            code: (raw.status_code & 0x3) as TelemetrySpan['status']['code'],
-            message: raw.status_message ?? undefined
-        },
-        attributes: parseAttrs(raw.attributes_json),
-        // Collector endpoints return resource JSON as key-value pairs; TypeSpec keeps it typed.
-        resource: Object.fromEntries(
-            parseAttrs(raw.resource_json).map(a => [a.key, a.value]),
-        ) as unknown as TelemetrySpan['resource'],
-    };
-    return span;
-}
-
 // API response types (actual API shape)
 interface ApiSessionsResponse {
     items: SessionEntity[];
     total?: number;
+}
+
+interface ApiSpanPage {
+    items: Span[];
+    has_more: boolean;
+}
+
+interface ApiTracePage {
+    items: Trace[];
+    has_more: boolean;
 }
 
 // Sessions - return array directly for components
@@ -94,8 +47,8 @@ export function useSessions() {
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
-        queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/sessions/${sessionId}/spans`),
-        select: (data): TelemetrySpan[] => data.items.map(rawToSpan),
+        queryFn: () => fetchJson<ApiTracePage>(`/api/v1/sessions/${sessionId}/traces`),
+        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
         enabled: !!sessionId,
     });
 }
@@ -103,186 +56,43 @@ export function useSessionSpans(sessionId: string) {
 export function useTraceSpans(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.traceSpans(traceId),
-        queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/traces/${traceId}/spans`),
-        select: (data): TelemetrySpan[] => data.items.map(rawToSpan),
+        queryFn: () => fetchJson<ApiSpanPage>(`/api/v1/traces/${traceId}/spans`),
+        select: (data): TelemetrySpan[] => data.items,
         enabled: !!traceId,
     });
 }
 
 // Live SSE Stream
 interface UseLiveStreamOptions {
-    sessionFilter?: string;
-    onSpans?: (spans: TelemetrySpan[]) => void;
     onConnect?: () => void;
     onDisconnect?: () => void;
     enabled?: boolean;
 }
 
 export function useLiveStream(options: UseLiveStreamOptions = {}) {
-    const {sessionFilter, onSpans, onConnect, onDisconnect, enabled = true} = options;
-
-    const queryClient = useQueryClient();
-    const eventSourceRef = useRef<EventSource | null>(null);
-    const reconnectTimeoutRef = useRef<number | null>(null);
+    const {onConnect, onDisconnect, enabled = true} = options;
     const [isConnected, setIsConnected] = useState(false);
     const [connectionId, setConnectionId] = useState<string | null>(null);
     const [recentSpans, setRecentSpans] = useState<TelemetrySpan[]>([]);
 
     const connect = useCallback(() => {
-        if (!enabled) return;
-
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-        }
-
-        const url = sessionFilter
-            ? `/api/v1/live?session=${encodeURIComponent(sessionFilter)}`
-            : '/api/v1/live';
-
-        const eventSource = new EventSource(url);
-        eventSourceRef.current = eventSource;
-        let connectedNotified = false;
-
-        const markConnected = (id?: string | null) => {
-            if (id) setConnectionId(id);
-            setIsConnected(true);
-            if (connectedNotified) return;
-            connectedNotified = true;
-            onConnect?.();
-        };
-
-        const safeParseJson = (raw: string): unknown => {
-            try {
-                return JSON.parse(raw);
-            } catch {
-                return null;
-            }
-        };
-
-        const parseEnvelope = (raw: string): { eventType: string; payload: unknown } | null => {
-            const parsed = safeParseJson(raw);
-            if (!parsed || typeof parsed !== 'object')
-                return null;
-
-            const outer = parsed as { eventType?: unknown; data?: unknown };
-            if (typeof outer.eventType !== 'string')
-                return null;
-
-            // .NET TypedResults.ServerSentEvents wraps payloads as:
-            // { eventType, data: { eventType, data, timestamp } }
-            if (outer.data && typeof outer.data === 'object') {
-                const inner = outer.data as { eventType?: unknown; data?: unknown };
-                if (typeof inner.eventType === 'string') {
-                    return {
-                        eventType: inner.eventType.toLowerCase(),
-                        payload: inner.data
-                    };
-                }
-            }
-
-            return {
-                eventType: outer.eventType.toLowerCase(),
-                payload: outer.data
-            };
-        };
-
-        const handleSpansPayload = (payload: unknown) => {
-            const data = payload as
-                | TelemetrySpan[]
-                | { spans?: TelemetrySpan[]; items?: TelemetrySpan[] }
-                | null
-                | undefined;
-            const records = Array.isArray(data)
-                ? data
-                : data?.spans ?? data?.items ?? [];
-
-            if (records.length === 0)
-                return;
-
-            onSpans?.(records);
-
-            // Update recent spans (keep last 100)
-            setRecentSpans((prev) => {
-                const updated = [...records, ...prev];
-                return updated.slice(0, 100);
-            });
-
-            // Invalidate relevant queries
-            queryClient.invalidateQueries({queryKey: telemetryKeys.sessions()});
-        };
-
-        const dispatchEvent = (eventType: string, payload: unknown) => {
-            switch (eventType.toLowerCase()) {
-                case 'connected': {
-                    const data = payload as { connectionId?: string; id?: string } | null | undefined;
-                    markConnected(data?.connectionId ?? data?.id ?? null);
-                    break;
-                }
-                case 'spans':
-                    handleSpansPayload(payload);
-                    break;
-            }
-        };
-
-        eventSource.onopen = () => {
-            // Mark open transport as connected even when custom connected events are absent.
-            markConnected();
-        };
-
-        eventSource.onmessage = (e) => {
-            const envelope = parseEnvelope(e.data);
-            if (!envelope) return;
-            dispatchEvent(envelope.eventType, envelope.payload);
-        };
-
-        eventSource.addEventListener('connected', (e) => {
-            const envelope = parseEnvelope(e.data);
-            if (envelope) {
-                dispatchEvent(envelope.eventType, envelope.payload);
-                return;
-            }
-            dispatchEvent('connected', safeParseJson(e.data));
-        });
-
-        eventSource.addEventListener('spans', (e) => {
-            const envelope = parseEnvelope(e.data);
-            if (envelope) {
-                dispatchEvent(envelope.eventType, envelope.payload);
-                return;
-            }
-            dispatchEvent('spans', safeParseJson(e.data));
-        });
-
-        eventSource.onerror = () => {
+        if (!enabled) {
             setIsConnected(false);
             setConnectionId(null);
             onDisconnect?.();
-            eventSource.close();
-
-            // Reconnect after 3s
-            reconnectTimeoutRef.current = window.setTimeout(() => {
-                connect();
-            }, 3000);
-        };
-    }, [enabled, sessionFilter, onSpans, onConnect, onDisconnect, queryClient]);
-
-    const disconnect = useCallback(() => {
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = null;
+            return;
         }
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
-        }
+
         setIsConnected(false);
         setConnectionId(null);
-    }, []);
+        onConnect?.();
+    }, [enabled, onConnect, onDisconnect]);
 
-    useEffect(() => {
-        connect();
-        return () => disconnect();
-    }, [connect, disconnect]);
+    const disconnect = useCallback(() => {
+        setIsConnected(false);
+        setConnectionId(null);
+        onDisconnect?.();
+    }, [onDisconnect]);
 
     return {
         isConnected,

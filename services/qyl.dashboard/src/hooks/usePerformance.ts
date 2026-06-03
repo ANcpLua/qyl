@@ -2,12 +2,6 @@ import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
-interface StorageStats {
-    spansExported: number;
-    logsExported: number;
-    queueUtilization: number;
-}
-
 export interface TrafficBucket {
     time: string;
     runs: number;
@@ -43,19 +37,10 @@ interface ErrorStats {
 
 export const performanceKeys = {
     all: ['performance'] as const,
-    stats: () => [...performanceKeys.all, 'stats'] as const,
     services: () => [...performanceKeys.all, 'services'] as const,
     errors: () => [...performanceKeys.all, 'errors'] as const,
     traffic: (from: number, to: number) => [...performanceKeys.all, 'traffic', from, to] as const,
 };
-
-export function useStorageStats() {
-    return useQuery({
-        queryKey: performanceKeys.stats(),
-        queryFn: () => fetchJson<StorageStats>('/api/v1/telemetry/stats'),
-        staleTime: 30_000,
-    });
-}
 
 export function useServices() {
     return useQuery({

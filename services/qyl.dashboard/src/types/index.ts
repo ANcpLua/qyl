@@ -17,6 +17,8 @@ export type SpanStatusCode = components['schemas']['OTel.Enums.SpanStatusCode'];
 
 // Models
 export type Span = components['schemas']['OTel.Traces.Span'];
+export type Trace = components['schemas']['OTel.Traces.Trace'];
+export type ContractLogRecord = components['schemas']['OTel.Logs.LogRecord'];
 
 // Session types
 export type SessionEntity = components['schemas']['Domains.Observe.Session.SessionEntity'];

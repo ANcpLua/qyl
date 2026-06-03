@@ -7,7 +7,6 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {ThemeToggle} from '@/components/ui/theme-toggle';
 import {HealthIndicator} from '@/components/health';
-import {ClearTelemetryDialog} from '@/components/ClearTelemetryDialog';
 
 interface TopBarProps {
     isLive: boolean;
@@ -24,7 +23,6 @@ const pageTitle: Record<string, string> = {
     '/traces': 'TRACES',
     '/logs': 'STRUCTURED LOGS',
     '/metrics': 'METRICS',
-    '/genai': 'GENAI TELEMETRY',
     '/search': 'SEARCH',
     '/settings': 'SETTINGS',
     '/bot': 'BOT ANALYTICS',
@@ -175,9 +173,6 @@ export function TopBar({
 
             {/* Theme toggle */}
             <ThemeToggle/>
-
-            {/* Clear telemetry */}
-            <ClearTelemetryDialog onCleared={onRefresh}/>
 
             {/* Refresh - BRUTALIST */}
             <Button

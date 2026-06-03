@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
 import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts';
-import {Activity, AlertCircle, ArrowUpDown, Gauge, Loader2, Server,} from 'lucide-react';
+import {AlertCircle, ArrowUpDown, Gauge, Loader2, Server,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import type {ServiceSummary, TrafficBucket} from '@/hooks/usePerformance';
-import {useErrorStats, useServices, useStorageStats, useTraffic} from '@/hooks/usePerformance';
+import {useErrorStats, useServices, useTraffic} from '@/hooks/usePerformance';
 
 type SortField = 'serviceName' | 'serviceType' | 'latestVersion' | 'firstSeen' | 'lastSeen' | 'lastErrorAt';
 type SortDir = 'asc' | 'desc';
@@ -55,7 +55,6 @@ export function PerformancePage() {
     const [sortField, setSortField] = useState<SortField>('lastSeen');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-    const {data: stats, isLoading: statsLoading, error: statsError} = useStorageStats();
     const {data: servicesData, isLoading: servicesLoading, error: servicesError} = useServices();
     const {data: errorStats, isLoading: errorsLoading, error: errorsError} = useErrorStats();
     const {data: trafficData, isLoading: trafficLoading} = useTraffic();
@@ -67,8 +66,8 @@ export function PerformancePage() {
             errors: b.errors,
         })), [trafficData]);
 
-    const isLoading = statsLoading || servicesLoading || errorsLoading;
-    const error = statsError || servicesError || errorsError;
+    const isLoading = servicesLoading || errorsLoading;
+    const error = servicesError || errorsError;
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -81,7 +80,7 @@ export function PerformancePage() {
 
     const services = servicesData?.services ?? [];
     const sorted = sortServices(services, sortField, sortDir);
-    const hasData = (stats?.spansExported ?? 0) > 0 || services.length > 0;
+    const hasData = services.length > 0;
 
     if (error) {
         return (
@@ -116,23 +115,7 @@ export function PerformancePage() {
     return (
         <div className="p-6 space-y-6">
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-signal-cyan"/>
-                            <span className="text-sm text-brutal-slate">Total Requests</span>
-                        </div>
-                        {statsLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                        ) : (
-                            <div className="text-2xl font-bold mt-1 font-mono">
-                                {(stats?.spansExported ?? 0).toLocaleString()}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">

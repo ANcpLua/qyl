@@ -735,6 +735,11 @@ interface IVerify : IHazSourcePaths
                 "TelemetrySignal",
                 "PublishSpans",
                 "SpanRingBuffer",
+                "LiveLogDeduplicator",
+                "DeduplicatedLiveLog",
+                "SseItem<object?>",
+                "new { status = \"ok\" }",
+                "new { logs =",
                 "QYL_RINGBUFFER_CAPACITY",
                 "PushRange(",
                 "ObservationSubscription",
@@ -924,7 +929,19 @@ interface IVerify : IHazSourcePaths
                 "public int ConsoleCleared",
                 "SessionsDeleted = result.SessionsDeleted",
                 "ConsoleCleared = result.ConsoleCleared",
-                "TotalDeleted =>"
+                "TotalDeleted =>",
+                "GetGenAiStatsAsync",
+                "GetGenAiSpansAsync",
+                "SessionGenAiStats",
+                "ContractStatsMapper",
+                "TelemetryTableClearCounts",
+                "ClearAllTelemetryAsync",
+                "ClearAllSpansAsync",
+                "ClearAllLogsAsync",
+                "ClearAllProfilesAsync",
+                "MetricCount",
+                "DroppedLogCount",
+                "DroppedMetricCount"
             ];
 
             string[] removedCollectorQueryTokens =
@@ -941,7 +958,13 @@ interface IVerify : IHazSourcePaths
             string[] removedCollectorRouteLiterals =
             [
                 "\"/observe",
-                "\"/metrics"
+                "\"/metrics",
+                "\"/logs/live",
+                "\"/sessions/{sessionId}/spans",
+                "\"/traces/{traceId}/profiles",
+                "\"/genai",
+                "\"/telemetry",
+                "\"/meta"
             ];
 
             AbsolutePath[] removedPaths =
