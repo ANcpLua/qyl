@@ -907,64 +907,19 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             if (!storeFile.FileExists())
                 throw new InvalidOperationException("Missing DuckDbStore.cs storage implementation.");
 
-            var storeText = File.ReadAllText(storeFile);
+            var initializedDdlMembers = DuckDbStoreGeneratedDdlReferences(storeFile);
+            var tableInfos = ReadDuckDbTableDdlInfos();
+            var requiredDdlMembers = tableInfos
+                .Select(info => info.TypeName + ".CreateTableDdl")
+                .Concat(tableInfos
+                    .Where(static info => info.HasIndexes)
+                    .Select(static info => info.TypeName + ".IndexesDdl"))
+                .ToArray();
 
-            string[] requiredGeneratedDdl =
-            [
-                "SpanStorageRow.CreateTableDdl",
-                "LogStorageRow.CreateTableDdl",
-                "ProfileStorageRow.CreateTableDdl",
-                "ProfileFunctionRow.CreateTableDdl",
-                "ProfileLocationRow.CreateTableDdl",
-                "ProfileMappingRow.CreateTableDdl",
-                "ProfileSampleRow.CreateTableDdl",
-                "ProfileStackRow.CreateTableDdl",
-                "ModelPricingRow.CreateTableDdl",
-                "SpanStorageRow.IndexesDdl",
-                "LogStorageRow.IndexesDdl",
-                "ProfileStorageRow.IndexesDdl",
-                "ProfileSampleRow.IndexesDdl"
-            ];
-
-            var storageSourceTexts = (CollectorDirectory / "Storage")
-                .GlobFiles("*.cs")
-                .Where(static file => !file.ToString().EndsWith("DuckDbReaderExtensions.cs", StringComparison.Ordinal))
-                .Select(file => (
-                    File: RootDirectory.GetRelativePathTo(file).ToString(),
-                    Text: File.ReadAllText(file)))
+            var missing = requiredDdlMembers
+                .Where(member => !initializedDdlMembers.Contains(member))
                 .ToList();
-
-            string[] forbiddenManualDdl =
-            [
-                "DuckDbSchema.",
-                "SpansDdl",
-                "LogsDdl",
-                "ProfilesDdl",
-                "ProfileFunctionsDdl",
-                "ProfileLocationsDdl",
-                "ProfileMappingsDdl",
-                "ProfileSamplesDdl",
-                "ProfileStacksDdl",
-                "CREATE TABLE IF NOT EXISTS spans",
-                "CREATE TABLE IF NOT EXISTS logs",
-                "CREATE TABLE IF NOT EXISTS profiles",
-                "CREATE TABLE IF NOT EXISTS profile_functions",
-                "CREATE TABLE IF NOT EXISTS profile_locations",
-                "CREATE TABLE IF NOT EXISTS profile_mappings",
-                "CREATE TABLE IF NOT EXISTS profile_samples",
-                "CREATE TABLE IF NOT EXISTS profile_stacks",
-                "CREATE TABLE IF NOT EXISTS model_pricing",
-                "CREATE INDEX IF NOT EXISTS"
-            ];
-
-            var missing = requiredGeneratedDdl
-                .Where(token => !storeText.Contains(token, StringComparison.Ordinal))
-                .ToList();
-            var forbidden = storageSourceTexts
-                .SelectMany(file => forbiddenManualDdl
-                    .Where(token => file.Text.Contains(token, StringComparison.Ordinal))
-                    .Select(token => (file.File, Token: token)))
-                .ToList();
+            var forbidden = ManualStorageDdlOffenders().ToList();
 
             if (missing.Count is 0 && forbidden.Count is 0)
             {
@@ -972,11 +927,14 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 return;
             }
 
-            foreach (var token in missing)
-                Log.Error("  Missing generated CREATE TABLE DDL usage in DuckDbStore.cs: {Token}", token);
+            foreach (var member in missing)
+                Log.Error("  Missing generated DDL usage in DuckDbStore.cs: {Member}", member);
 
             foreach (var offender in forbidden)
-                Log.Error("  Manual storage DDL token found in {File}: {Token}", offender.File, offender.Token);
+                Log.Error("  Manual storage DDL at {File}:{Line}: {Text}",
+                    offender.File,
+                    offender.Line,
+                    offender.Text);
 
             throw new InvalidOperationException(
                 "Do not handwrite CREATE TABLE or CREATE INDEX DDL for generated storage rows. Put schema metadata on " +
@@ -1895,6 +1853,15 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         int Line,
         string Text);
 
+    private readonly record struct DuckDbTableDdlInfo(
+        string TypeName,
+        bool HasIndexes);
+
+    private readonly record struct ManualDdlOffender(
+        string File,
+        int Line,
+        string Text);
+
     private readonly record struct RemovedRouteLiteral(
         string File,
         int Line,
@@ -2176,6 +2143,71 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         node.DescendantNodesAndSelf()
             .OfType<IdentifierNameSyntax>()
             .Any(identifier => storageTypeNames.Contains(identifier.Identifier.ValueText));
+
+    private IReadOnlyList<DuckDbTableDdlInfo> ReadDuckDbTableDdlInfos()
+    {
+        var tables = new List<DuckDbTableDdlInfo>();
+        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        {
+            var root = ParseCompilationUnit(file);
+            foreach (var declaration in root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
+            {
+                var tableAttribute = declaration.AttributeLists
+                    .SelectMany(static list => list.Attributes)
+                    .SingleOrDefault(static attribute => IsAttributeNamed(attribute, "DuckDbTable"));
+                if (tableAttribute is null)
+                    continue;
+
+                tables.Add(new DuckDbTableDdlInfo(
+                    declaration.Identifier.ValueText,
+                    !string.IsNullOrWhiteSpace(ReadNamedStringAttributeArgument(tableAttribute, "Indexes"))));
+            }
+        }
+
+        return tables
+            .OrderBy(static table => table.TypeName, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static IReadOnlySet<string> DuckDbStoreGeneratedDdlReferences(AbsolutePath storeFile)
+    {
+        var root = ParseCompilationUnit(storeFile);
+        return root.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Where(static memberAccess => memberAccess.Name.Identifier.ValueText is "CreateTableDdl" or "IndexesDdl" &&
+                                          memberAccess.Expression is IdentifierNameSyntax)
+            .Select(static memberAccess =>
+                ((IdentifierNameSyntax)memberAccess.Expression).Identifier.ValueText + "." +
+                memberAccess.Name.Identifier.ValueText)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private IEnumerable<ManualDdlOffender> ManualStorageDdlOffenders()
+    {
+        foreach (var file in (CollectorDirectory / "Storage").GlobFiles("*.cs"))
+        {
+            var relativePath = RootDirectory.GetRelativePathTo(file).ToString().Replace('\\', '/');
+            var root = ParseCompilationUnit(file);
+            foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+            {
+                if (!literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                    literal.Token.ValueText is not { Length: > 0 } value ||
+                    !IsManualDuckDbDdl(value))
+                {
+                    continue;
+                }
+
+                yield return new ManualDdlOffender(relativePath, NodeLine(literal), NodePreview(literal));
+            }
+        }
+    }
+
+    private static bool IsManualDuckDbDdl(string value)
+    {
+        var normalized = NormalizeSqlFragment(value);
+        return normalized.Contains("create table if not exists", StringComparison.Ordinal) ||
+               normalized.Contains("create index if not exists", StringComparison.Ordinal);
+    }
 
     private static SpanStorageIdentity ReadSpanStorageIdentity(AbsolutePath spanStorageRowFile)
     {
