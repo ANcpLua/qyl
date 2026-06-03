@@ -43,7 +43,7 @@ internal static class AttributeKeySets
                 attributes.GetValueOrDefault(CollectorSemanticAttributeCatalog.GenAiTemperature)),
             GenAiStopReason: attributes.GetValueOrDefault(CollectorSemanticAttributeCatalog.GenAiStopReason),
             GenAiToolName: attributes.GetValueOrDefault(CollectorSemanticAttributeCatalog.GenAiToolName),
-            GenAiCostUsd: ParseNullableDouble(attributes.GetValueOrDefault(CollectorSemanticAttributeCatalog.GenAiCostUsd)));
+            GenAiCostUsd: ParseNullableDouble(attributes.GetOptionalValueOrDefault(CollectorSemanticAttributeCatalog.GenAiCostUsd)));
 
     private static bool IsDenied(string key)
     {
@@ -101,4 +101,9 @@ internal static class AttributeLookupExtensions
         this string key,
         FrozenSet<string> candidates) =>
         candidates.Contains(key);
+
+    internal static string? GetOptionalValueOrDefault(
+        this IReadOnlyDictionary<string, string> attributes,
+        string? key) =>
+        key is null ? null : attributes.GetValueOrDefault(key);
 }
