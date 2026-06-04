@@ -70,8 +70,11 @@ internal static class CollectorEndpointExtensions
 
             return Results.Accepted();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpTracesEndpoint");
+            OtlpTracesLog.FailedToProcessPayload(logger, ex);
             return Results.BadRequest();
         }
     }
@@ -534,5 +537,11 @@ internal static partial class OtlpLogsLog
 internal static partial class OtlpProfilesLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP profiles payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
+}
+
+internal static partial class OtlpTracesLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP traces payload")]
     public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
 }
