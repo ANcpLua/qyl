@@ -40,12 +40,6 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
         string projectId,
-        string? sessionId = null,
-        string? providerName = null,
-        ulong? startAfter = null,
-        ulong? startBefore = null,
-        byte? statusCode = null,
-        string? searchText = null,
         int limit = 100,
         CancellationToken ct = default);
 

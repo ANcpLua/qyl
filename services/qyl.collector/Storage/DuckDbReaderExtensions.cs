@@ -61,12 +61,6 @@ internal sealed record StorageStats
 {
     public long SpanCount { get; init; }
     public long SessionCount { get; init; }
-    public long LogCount { get; init; }
-    public long DroppedSpanCount { get; init; }
-    public long DroppedJobCount { get; init; }
-    public double WriteQueueUtilization { get; init; }
-    public ulong? OldestSpanTime { get; init; }
-    public ulong? NewestSpanTime { get; init; }
 }
 
 internal sealed record SessionStatsRow

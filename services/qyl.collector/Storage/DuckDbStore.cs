@@ -23,8 +23,6 @@ internal sealed partial class DuckDbStore : IQylStore
     private readonly Thread[] _readerThreads;
     private readonly Task _writerTask;
 
-    private long _droppedJobCount;
-    private long _droppedSpanCount;
     private int _disposed;
     private long _queuedWriteJobs;
 
@@ -210,9 +208,7 @@ internal sealed partial class DuckDbStore : IQylStore
             return ValueTask.CompletedTask;
 
         var job = new FireAndForgetJob(
-            batch.Spans.Count,
-            (con, token) => WriteBatchInternalAsync(con, batch, token),
-            RecordDroppedSpans);
+            (con, token) => WriteBatchInternalAsync(con, batch, token));
 
         Interlocked.Increment(ref _queuedWriteJobs);
         if (!_jobs.Writer.TryWrite(job))
@@ -272,12 +268,6 @@ internal sealed partial class DuckDbStore : IQylStore
 
     public Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
         string projectId,
-        string? sessionId = null,
-        string? providerName = null,
-        ulong? startAfter = null,
-        ulong? startBefore = null,
-        byte? statusCode = null,
-        string? searchText = null,
         int limit = 100,
         CancellationToken ct = default)
     {
@@ -288,18 +278,6 @@ internal sealed partial class DuckDbStore : IQylStore
             var qb = new QueryBuilder();
 
             qb.Add("project_id = $N", projectId);
-            if (!string.IsNullOrEmpty(sessionId))
-                qb.Add("session_id = $N", sessionId);
-            if (!string.IsNullOrEmpty(providerName))
-                qb.Add("gen_ai_provider_name = $N", providerName);
-            if (startAfter.HasValue)
-                qb.Add("start_time_unix_nano >= $N", (decimal)startAfter.Value);
-            if (startBefore.HasValue)
-                qb.Add("start_time_unix_nano <= $N", (decimal)startBefore.Value);
-            if (statusCode.HasValue)
-                qb.Add("status_code = $N", statusCode.Value);
-            if (!string.IsNullOrEmpty(searchText))
-                qb.Add("(name ILIKE $N OR attributes_json ILIKE $N)", $"%{searchText}%");
 
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
@@ -330,10 +308,7 @@ internal sealed partial class DuckDbStore : IQylStore
             cmd.CommandText = """
                               SELECT
                                   (SELECT COUNT(*) FROM spans WHERE project_id = $1) as span_count,
-                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count,
-                                  (SELECT COUNT(*) FROM logs WHERE project_id = $1) as log_count,
-                                  (SELECT MIN(start_time_unix_nano) FROM spans WHERE project_id = $1) as oldest_span,
-                                  (SELECT MAX(start_time_unix_nano) FROM spans WHERE project_id = $1) as newest_span
+                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
@@ -343,30 +318,12 @@ internal sealed partial class DuckDbStore : IQylStore
                 return new StorageStats
                 {
                     SpanCount = DuckDbValueReader.ReadInt64(reader, 0, 0),
-                    SessionCount = DuckDbValueReader.ReadInt64(reader, 1, 0),
-                    LogCount = DuckDbValueReader.ReadInt64(reader, 2, 0),
-                    DroppedSpanCount = Read(ref _droppedSpanCount),
-                    DroppedJobCount = Read(ref _droppedJobCount),
-                    WriteQueueUtilization = GetWriteQueueUtilization(),
-                    OldestSpanTime = DuckDbValueReader.ReadUInt64(reader, 3),
-                    NewestSpanTime = DuckDbValueReader.ReadUInt64(reader, 4)
+                    SessionCount = DuckDbValueReader.ReadInt64(reader, 1, 0)
                 };
             }
 
             return new StorageStats();
         }, ct);
-    }
-
-    private void RecordDroppedSpans(int spanCount)
-    {
-        Interlocked.Increment(ref _droppedJobCount);
-        Interlocked.Add(ref _droppedSpanCount, spanCount);
-    }
-
-    private double GetWriteQueueUtilization()
-    {
-        var queued = Math.Max(0, Read(ref _queuedWriteJobs));
-        return Math.Clamp((double)queued / _jobQueueCapacity, 0, 1);
     }
 
     public Task<long> GetModelPricingCountAsync(CancellationToken ct = default) =>
@@ -833,14 +790,10 @@ internal sealed partial class DuckDbStore : IQylStore
     }
 
     private sealed class FireAndForgetJob(
-        int spanCount,
-        Func<DuckDBConnection, CancellationToken, ValueTask> action,
-        Action<int>? onDropped = null)
+        Func<DuckDBConnection, CancellationToken, ValueTask> action)
         : WriteJob
     {
         public override ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct) => action(con, ct);
-
-        public override void OnAborted(Exception error) => onDropped?.Invoke(spanCount);
     }
 
     private sealed class WriteJob<TResult>(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action)
