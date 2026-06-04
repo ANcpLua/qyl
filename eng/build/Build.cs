@@ -26,7 +26,6 @@ sealed class Build : NukeBuild,
     IPipeline,
     IVerify,
     ICollectorSemanticCatalog,
-    IPricing,
     ISmoke
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");

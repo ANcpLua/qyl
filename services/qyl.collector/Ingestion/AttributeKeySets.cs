@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace Qyl.Collector.Ingestion;
 
 internal static class AttributeKeySets
@@ -67,9 +65,4 @@ internal static class AttributeLookupExtensions
         this string key,
         FrozenSet<string> candidates) =>
         candidates.Contains(key);
-
-    internal static string? GetOptionalValueOrDefault(
-        this IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        string? key) =>
-        key is null ? null : attributes.GetValueOrDefault(key)?.AsString();
 }

@@ -56,11 +56,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pricing snapshot consumed by QylPricingTable (LiteLLM-shape, refreshed by `nuke UpdatePricing`) -->
-    <EmbeddedResource Include="../../eng/pricing/models.json" LogicalName="Qyl.Instrumentation.pricing.models.json"/>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
 

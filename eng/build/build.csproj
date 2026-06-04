@@ -6,7 +6,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace></RootNamespace>
-    <!-- NoWarn consolidated in eng/build/Directory.Build.props -->
     <NukeRootDirectory>..</NukeRootDirectory>
     <NukeScriptDirectory>..</NukeScriptDirectory>
     <NukeTelemetryVersion>1</NukeTelemetryVersion>

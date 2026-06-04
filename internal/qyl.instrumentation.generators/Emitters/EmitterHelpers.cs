@@ -19,31 +19,4 @@ internal static class EmitterHelpers
         sb.AppendLineNoIndent(InterceptsLocationBlock);
         sb.AppendLine();
     }
-
-    public static string BuildParameterList(
-        string containingType,
-        EquatableArray<string> parameterTypes,
-        EquatableArray<string> parameterNames,
-        bool isStatic = false,
-        EquatableArray<string> typeParamNames = default)
-    {
-        var sb = new StringBuilder();
-
-        if (!isStatic)
-            sb.Append($"this global::{containingType} @this");
-
-        for (var i = 0; i < parameterTypes.Length; i++)
-        {
-            if (sb.Length > 0)
-                sb.Append(", ");
-            var typeName = parameterTypes[i]
-                .ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
-            sb.Append($"{typeName} {parameterNames[i]}");
-        }
-
-        return sb.ToString();
-    }
-
-    public static string BuildArgumentList(EquatableArray<string> parameterNames) =>
-        parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
 }
