@@ -191,9 +191,7 @@ internal static class CollectorEndpointExtensions
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
             .Select(static group =>
             {
-                var spanContracts = SpanMapper.ToContracts(
-                    group,
-                    static s => (s.ServiceName ?? "unknown", null));
+                var spanContracts = SpanMapper.ToContracts(group);
                 return SpanMapper.ToTrace(group.Key, spanContracts);
             })
             .ToList();
@@ -213,7 +211,7 @@ internal static class CollectorEndpointExtensions
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
             .Select(static group =>
             {
-                var spanContracts = SpanMapper.ToContracts(group, static r => (r.ServiceName ?? "unknown", null));
+                var spanContracts = SpanMapper.ToContracts(group);
                 return SpanMapper.ToTrace(group.Key, spanContracts);
             })
             .ToList();
@@ -229,9 +227,7 @@ internal static class CollectorEndpointExtensions
         var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
         if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
-        var spanContracts = SpanMapper.ToContracts(
-            spans,
-            static s => (s.ServiceName ?? "unknown", null));
+        var spanContracts = SpanMapper.ToContracts(spans);
         return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
     }
 
@@ -243,9 +239,7 @@ internal static class CollectorEndpointExtensions
         var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
         if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
-        var spanContracts = SpanMapper.ToContracts(
-            spans,
-            static r => (r.ServiceName ?? "unknown", null));
+        var spanContracts = SpanMapper.ToContracts(spans);
 
         return Results.Ok(SpanMapper.ToTrace(traceId, spanContracts));
     }

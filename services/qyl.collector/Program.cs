@@ -24,7 +24,7 @@ var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
 builder.Services.AddQylCollectorStorage();
 builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
 builder.Services.AddQylCollectorTelemetry(builder.Environment);
-builder.WebHost.ConfigureQylCollectorKestrel(builder.Configuration);
+builder.WebHost.ConfigureQylCollectorKestrel(ports);
 
 var app = builder.Build();
 

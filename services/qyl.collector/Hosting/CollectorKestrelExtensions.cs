@@ -6,10 +6,8 @@ internal static class CollectorKestrelExtensions
 {
     public static ConfigureWebHostBuilder ConfigureQylCollectorKestrel(
         this ConfigureWebHostBuilder webHost,
-        IConfiguration config)
+        CollectorPortOptions ports)
     {
-        var ports = CollectorPortOptions.FromConfiguration(config);
-
         webHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(ports.Http, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);

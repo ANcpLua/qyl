@@ -1,6 +1,5 @@
 using Qyl.Api.Contracts.Common;
 using Qyl.Api.Contracts.Common.Pagination;
-using Qyl.Api.Contracts.Domains.Observe.Otel;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Enums;
 using Qyl.Api.Contracts.OTel.Logs;
@@ -61,25 +60,22 @@ internal static class ContractJson
     }
 }
 
+internal static class ResourceMapping
+{
+    public static string ServiceNameOrUnknown(string? serviceName) =>
+        string.IsNullOrWhiteSpace(serviceName) ? "unknown" : serviceName;
+}
+
 internal static class SpanMapper
 {
-    public static Span ToContract(SpanStorageRow record, string serviceName, string? serviceVersion = null) =>
-        ToContractCore(
-            record.TraceId, record.SpanId, record.ParentSpanId, record.SessionId,
-            record.Name, record.Kind, record.StatusCode,
-            record.StartTimeUnixNano, record.EndTimeUnixNano, record.DurationNs,
-            serviceName, serviceVersion,
-            record.AttributesJson, record.ResourceJson, record.SchemaUrl);
-
-    public static List<Span> ToContracts(
-        IEnumerable<SpanStorageRow> records,
-        Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+    public static List<Span> ToContracts(IEnumerable<SpanStorageRow> records) =>
     [
-        .. records.Select(r =>
-        {
-            var (serviceName, serviceVersion) = serviceResolver(r);
-            return ToContract(r, serviceName, serviceVersion);
-        })
+        .. records.Select(static r => ToContractCore(
+            r.TraceId, r.SpanId, r.ParentSpanId, r.SessionId,
+            r.Name, r.Kind, r.StatusCode,
+            r.StartTimeUnixNano, r.EndTimeUnixNano, r.DurationNs,
+            r.ServiceName,
+            r.AttributesJson, r.ResourceJson, r.SchemaUrl))
     ];
 
     public static TraceContract ToTrace(string traceId, IReadOnlyList<Span> spans)
@@ -126,7 +122,7 @@ internal static class SpanMapper
         string traceId, string spanId, string? parentSpanId, string? sessionId,
         string name, byte kind, byte statusCode,
         ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs,
-        string serviceName, string? serviceVersion,
+        string? serviceName,
         string? attributesJson, string? resourceJson, string? schemaUrl)
     {
         _ = sessionId;
@@ -152,13 +148,12 @@ internal static class SpanMapper
             },
             Resource = new Resource
             {
-                ServiceName = string.IsNullOrWhiteSpace(serviceName) ? "unknown" : serviceName,
-                ServiceVersion = serviceVersion,
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(serviceName),
                 Attributes = resourceAttributes
             },
             InstrumentationScope = schemaUrl is null
                 ? null
-                : new InstrumentationScope { ScopeName = schemaUrl, ScopeVersion = serviceVersion }
+                : new InstrumentationScope { ScopeName = schemaUrl }
         };
     }
 }
@@ -178,7 +173,7 @@ internal static class LogMapper
             SpanId = record.SpanId,
             Resource = new Resource
             {
-                ServiceName = string.IsNullOrWhiteSpace(record.ServiceName) ? "unknown" : record.ServiceName,
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
                 Attributes = ContractJson.ParseAttributes(record.ResourceJson)
             }
         };
@@ -221,7 +216,7 @@ internal static class ProfileMapper
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             Resource = new Resource
             {
-                ServiceName = string.IsNullOrWhiteSpace(record.ServiceName) ? "unknown" : record.ServiceName,
+                ServiceName = ResourceMapping.ServiceNameOrUnknown(record.ServiceName),
                 Attributes = ContractJson.ParseAttributes(record.ResourceJson)
             },
             InstrumentationScope = string.IsNullOrWhiteSpace(record.SchemaUrl)
@@ -373,16 +368,6 @@ internal static class ProfileMapper
             return null;
         }
     }
-}
-
-internal static class AttributeParsing
-{
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long? ParseNullableLong(string? value) =>
-        !string.IsNullOrEmpty(value) &&
-        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
-            ? parsed
-            : null;
 }
 
 internal static class SessionMapper
