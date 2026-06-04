@@ -2,6 +2,13 @@ namespace Qyl.Collector.Storage;
 
 internal static class DuckDbValueReader
 {
+    // DuckDB aggregates (SUM over BIGINT, COUNT) return HUGEINT, which the provider surfaces as
+    // System.Numerics.BigInteger. BigInteger is not IConvertible, so Convert.ToXxx throws on it.
+    // Normalize it to a value Convert understands before any numeric read.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static object Normalize(object value) =>
+        value is System.Numerics.BigInteger big ? (decimal)big : value;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ReadString(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
@@ -16,7 +23,7 @@ internal static class DuckDbValueReader
     public static ulong? ReadUInt64(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToUInt64(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : Convert.ToUInt64(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64(DbDataReader reader, int ordinal, ulong defaultValue) =>
@@ -26,7 +33,7 @@ internal static class DuckDbValueReader
     public static long? ReadInt64(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToInt64(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : Convert.ToInt64(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64(DbDataReader reader, int ordinal, long defaultValue) =>
@@ -36,7 +43,7 @@ internal static class DuckDbValueReader
     public static int? ReadInt32(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : Convert.ToInt32(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32(DbDataReader reader, int ordinal, int defaultValue) =>
@@ -46,7 +53,7 @@ internal static class DuckDbValueReader
     public static byte? ReadByte(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToByte(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : Convert.ToByte(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte ReadByte(DbDataReader reader, int ordinal, byte defaultValue) =>
@@ -56,7 +63,7 @@ internal static class DuckDbValueReader
     public static double? ReadDouble(DbDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
-            : Convert.ToDouble(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : Convert.ToDouble(Normalize(reader.GetValue(ordinal)), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double ReadDouble(DbDataReader reader, int ordinal, double defaultValue) =>
