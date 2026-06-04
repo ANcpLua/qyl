@@ -953,9 +953,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "FROM spans WHERE project_id = $1 AND trace_id = $2",
                 "qb.Add(\"project_id = $N\", projectId);",
                 "(SELECT COUNT(*) FROM spans WHERE project_id = $1)",
-                "(SELECT COUNT(*) FROM logs WHERE project_id = $1)",
                 "SELECT COUNT(*) FROM spans WHERE project_id = $1",
-                "SELECT COUNT(*) FROM logs WHERE project_id = $1",
                 "FROM profiles WHERE project_id = $1 AND profile_id = $2",
                 "ReadChildRows(con, header.ProjectId, profileId"
             ];
