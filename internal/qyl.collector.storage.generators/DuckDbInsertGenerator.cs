@@ -57,7 +57,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var indexes = "";
 
         if (tableAttr.ConstructorArguments.Length > 0)
-            tableName = tableAttr.ConstructorArguments[0].Value as string;
+            tableName = tableAttr.GetConstructorArgument<string>(0);
 
         foreach (var named in tableAttr.NamedArguments)
         {
