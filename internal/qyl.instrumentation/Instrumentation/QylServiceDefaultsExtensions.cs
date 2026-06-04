@@ -182,12 +182,12 @@ public static class QylServiceDefaultsExtensions
             })
             .WithTracing(tracing =>
             {
-                tracing.SetSampler(options.ObservabilityMode switch
-                {
-                    ObservabilityMode.OnDemand => new AlwaysOffSampler(),
-                    ObservabilityMode.Warm => new ParentBasedSampler(new AlwaysOffSampler()),
-                    _ => new ParentBasedSampler(new AlwaysOnSampler())
-                });
+                // Maximally AOT-native sealed sampler: inline parent-based + trace-id ratio, no
+                // nested sampler delegation, allocation-free and reflection-free per decision.
+                tracing.SetSampler(new QylAotSampler(
+                    options.ObservabilityMode,
+                    options.TraceSampleRatio,
+                    options.DbOperationSampleRatios));
 
                 tracing
                     .AddSource(serviceName)
@@ -333,6 +333,24 @@ public sealed class QylOptions
     public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
 
     public ObservabilityMode ObservabilityMode { get; set; } = ObservabilityMode.AlwaysOn;
+
+    /// <summary>
+    /// Ratio in <c>[0, 1]</c> applied to ROOT spans by <see cref="QylAotSampler"/> when
+    /// <see cref="ObservabilityMode"/> is <see cref="ObservabilityMode.AlwaysOn"/> (default 1.0 = sample all).
+    /// Child spans always follow their parent's head-sampling decision.
+    /// </summary>
+    public double TraceSampleRatio { get; set; } = 1.0;
+
+    /// <summary>
+    /// Optional per-operation sampling ratios for ROOT spans, keyed by operation/activity name
+    /// (e.g. <c>"SELECT"</c>), matched case-insensitively — e.g. sample all writes but 1% of reads
+    /// on background jobs. Overrides the mode's root default in both <see cref="ObservabilityMode.AlwaysOn"/>
+    /// and <see cref="ObservabilityMode.Warm"/> (so a Warm root that would otherwise be dropped can be
+    /// re-enabled per operation); ignored in <see cref="ObservabilityMode.OnDemand"/>, which drops all.
+    /// For suppressing noisy CHILD db spans use the compile-time
+    /// <see cref="QylNoTraceAttribute"/>/<see cref="QylSampleAttribute"/> lever instead.
+    /// </summary>
+    public Dictionary<string, double> DbOperationSampleRatios { get; } = [];
 }
 
 public enum ObservabilityMode

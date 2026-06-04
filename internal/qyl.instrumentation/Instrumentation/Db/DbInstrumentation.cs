@@ -4,6 +4,11 @@ using DbAttributes = Qyl.OpenTelemetry.SemanticConventions.Attributes.Db.DbAttri
 
 namespace Qyl.Instrumentation.Instrumentation.Db;
 
+// The auto-instrumentation generator also runs on THIS assembly, so without this marker the raw
+// ADO.NET calls below (command.ExecuteReader() etc.) would be intercepted and rewritten to call
+// DbInstrumentation.* again — infinite recursion. [QylNoTrace] makes the generator emit a plain
+// pass-through for this type's own call sites, which is exactly what an instrumentation helper needs.
+[QylNoTrace]
 public static class DbInstrumentation
 {
     private static readonly ConcurrentDictionary<Type, string> s_dbSystemCache = new();
@@ -108,7 +113,11 @@ public static class DbInstrumentation
     {
         var operationName = SqlOperationParser.TryParse(command.CommandText) ?? fallbackOperationName;
 
-        if (ActivitySources.DbSource.StartActivity(operationName, ActivityKind.Client, default(ActivityContext)) is not
+        // Use the 2-arg overload so the ambient Activity.Current becomes the parent.
+        // Passing an explicit default(ActivityContext) here would suppress that fallback,
+        // turning every DB span into a disconnected root and making ParentBasedSampler
+        // evaluate against an invalid parent context (never "parent sampled").
+        if (ActivitySources.DbSource.StartActivity(operationName, ActivityKind.Client) is not
             { } activity)
             return null;
 

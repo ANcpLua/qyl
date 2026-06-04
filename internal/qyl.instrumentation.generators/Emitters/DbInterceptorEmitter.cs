@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -5,6 +6,8 @@ namespace Qyl.Instrumentation.Generators.Emitters;
 
 internal static class DbInterceptorEmitter
 {
+    private const string SamplingHelper = "global::Qyl.Instrumentation.Instrumentation.QylTraceSampling";
+
     public static string Emit(ImmutableArray<DbCallSite> callSites)
     {
         if (callSites.IsEmpty)
@@ -46,48 +49,74 @@ internal static class DbInterceptorEmitter
             ? $"global::{callSite.ConcreteCommandType}"
             : "global::System.Data.Common.DbCommand";
 
-        switch (callSite.Method)
-        {
-            case DbCommandMethod.ExecuteReader when callSite.IsAsync:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "global::System.Threading.Tasks.Task<global::System.Data.Common.DbDataReader>",
-                    "global::System.Threading.CancellationToken cancellationToken = default",
-                    "return DbInstrumentation.ExecuteReaderAsync(command, cancellationToken);");
-                break;
-            case DbCommandMethod.ExecuteReader:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "global::System.Data.Common.DbDataReader",
-                    null,
-                    "return DbInstrumentation.ExecuteReader(command);");
-                break;
-            case DbCommandMethod.ExecuteNonQuery when callSite.IsAsync:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "global::System.Threading.Tasks.Task<int>",
-                    "global::System.Threading.CancellationToken cancellationToken = default",
-                    "return DbInstrumentation.ExecuteNonQueryAsync(command, cancellationToken);");
-                break;
-            case DbCommandMethod.ExecuteNonQuery:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "int",
-                    null,
-                    "return DbInstrumentation.ExecuteNonQuery(command);");
-                break;
-            case DbCommandMethod.ExecuteScalar when callSite.IsAsync:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "global::System.Threading.Tasks.Task<object?>",
-                    "global::System.Threading.CancellationToken cancellationToken = default",
-                    "return DbInstrumentation.ExecuteScalarAsync(command, cancellationToken);");
-                break;
-            case DbCommandMethod.ExecuteScalar:
-                EmitMethod(sb, display, intercept, methodName, commandType,
-                    "object?",
-                    null,
-                    "return DbInstrumentation.ExecuteScalar(command);");
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported DbCommandMethod: {callSite.Method}");
-        }
+        var shape = Describe(callSite);
+        var body = BuildBody(callSite, shape);
+
+        EmitMethod(sb, display, intercept, methodName, commandType, shape.ReturnType, shape.ExtraParam, body);
     }
+
+    private static MethodShape Describe(DbCallSite callSite) =>
+        (callSite.Method, callSite.IsAsync) switch
+        {
+            (DbCommandMethod.ExecuteReader, true) => new MethodShape(
+                "global::System.Threading.Tasks.Task<global::System.Data.Common.DbDataReader>",
+                "global::System.Threading.CancellationToken cancellationToken = default",
+                "command.ExecuteReaderAsync(cancellationToken)",
+                "DbInstrumentation.ExecuteReaderAsync(command, cancellationToken)"),
+            (DbCommandMethod.ExecuteReader, false) => new MethodShape(
+                "global::System.Data.Common.DbDataReader",
+                null,
+                "command.ExecuteReader()",
+                "DbInstrumentation.ExecuteReader(command)"),
+            (DbCommandMethod.ExecuteNonQuery, true) => new MethodShape(
+                "global::System.Threading.Tasks.Task<int>",
+                "global::System.Threading.CancellationToken cancellationToken = default",
+                "command.ExecuteNonQueryAsync(cancellationToken)",
+                "DbInstrumentation.ExecuteNonQueryAsync(command, cancellationToken)"),
+            (DbCommandMethod.ExecuteNonQuery, false) => new MethodShape(
+                "int",
+                null,
+                "command.ExecuteNonQuery()",
+                "DbInstrumentation.ExecuteNonQuery(command)"),
+            (DbCommandMethod.ExecuteScalar, true) => new MethodShape(
+                "global::System.Threading.Tasks.Task<object?>",
+                "global::System.Threading.CancellationToken cancellationToken = default",
+                "command.ExecuteScalarAsync(cancellationToken)",
+                "DbInstrumentation.ExecuteScalarAsync(command, cancellationToken)"),
+            (DbCommandMethod.ExecuteScalar, false) => new MethodShape(
+                "object?",
+                null,
+                "command.ExecuteScalar()",
+                "DbInstrumentation.ExecuteScalar(command)"),
+            _ => throw new InvalidOperationException($"Unsupported DbCommandMethod: {callSite.Method}")
+        };
+
+    private static string[] BuildBody(DbCallSite callSite, MethodShape shape) =>
+        callSite.Sampling switch
+        {
+            // Compile-time drop: the interceptor still exists (visible + auditable in the generated
+            // file) but forwards to the raw ADO.NET call — no Activity, no sampler. The cheapest
+            // possible sampling decision, made entirely by Roslyn.
+            SamplingMode.Never =>
+            [
+                $"return {shape.RawCall};"
+            ],
+            // Per-call-site ratio resolved at compile time: a deterministic, allocation-free trace-id
+            // gate runs before any Activity is created.
+            SamplingMode.Ratio =>
+            [
+                $"if (!{SamplingHelper}.ShouldRecordSite({FormatRatio(callSite.SampleRatio)}))",
+                $"    return {shape.RawCall};",
+                $"return {shape.InstrumentedCall};"
+            ],
+            _ =>
+            [
+                $"return {shape.InstrumentedCall};"
+            ]
+        };
+
+    private static string FormatRatio(double ratio) =>
+        ratio.ToString("R", CultureInfo.InvariantCulture);
 
     private static void EmitMethod(
         IndentedStringBuilder sb,
@@ -97,7 +126,7 @@ internal static class DbInterceptorEmitter
         string commandType,
         string returnType,
         string? extraParam,
-        string body)
+        string[] bodyLines)
     {
         sb.AppendLine($"// Intercepted call at {display}");
         sb.AppendLine(intercept);
@@ -107,9 +136,16 @@ internal static class DbInterceptorEmitter
         sb.AppendLine($"public static {returnType} {methodName}({paramList})");
         using (sb.BeginBlock())
         {
-            sb.AppendLine(body);
+            foreach (var line in bodyLines)
+                sb.AppendLine(line);
         }
 
         sb.AppendLine();
     }
+
+    private readonly record struct MethodShape(
+        string ReturnType,
+        string? ExtraParam,
+        string RawCall,
+        string InstrumentedCall);
 }

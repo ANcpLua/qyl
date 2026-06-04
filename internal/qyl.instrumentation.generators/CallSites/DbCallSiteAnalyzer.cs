@@ -9,6 +9,8 @@ namespace Qyl.Instrumentation.Generators.CallSites;
 internal static class DbCallSiteAnalyzer
 {
     private const string DbCommandTypeName = "System.Data.Common.DbCommand";
+    private const string NoTraceAttributeName = "Qyl.Instrumentation.QylNoTraceAttribute";
+    private const string SampleAttributeName = "Qyl.Instrumentation.QylSampleAttribute";
 
     private static readonly (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[]
         Matchers =
@@ -53,11 +55,15 @@ internal static class DbCallSiteAnalyzer
             is not { } interceptLocation)
             return null;
 
+        var (sampling, sampleRatio) = ResolveSampling(invocation, cancellationToken);
+
         return new DbCallSite(
             IncrementalPipelineHelpers.FormatSortKey(context.Node),
             method,
             isAsync,
             concreteType,
+            sampling,
+            sampleRatio,
             interceptLocation);
     }
 
@@ -105,4 +111,54 @@ internal static class DbCallSiteAnalyzer
 
         return true;
     }
+
+    private static (SamplingMode Mode, double Ratio) ResolveSampling(
+        IInvocationOperation invocation,
+        CancellationToken cancellationToken)
+    {
+        if (invocation.GetContainingMethod(cancellationToken) is not { } method)
+            return (SamplingMode.Always, 1.0);
+
+        // Precedence: method > containing type > assembly. First scope carrying a marker wins.
+        foreach (var scope in EnumerateScopes(method))
+        {
+            if (scope.HasAttribute(NoTraceAttributeName))
+                return (SamplingMode.Never, 0.0);
+
+            if (scope.GetAttribute(SampleAttributeName) is { ConstructorArguments: [{ Value: double ratio }, ..] })
+                return Classify(ratio);
+        }
+
+        return (SamplingMode.Always, 1.0);
+    }
+
+    private static IEnumerable<ISymbol> EnumerateScopes(IMethodSymbol method)
+    {
+        // Walk out through lambda / local-function wrappers so a marker on the enclosing named
+        // method also covers DB calls nested in its lambdas / local functions; the ContainingSymbol
+        // chain ends at the containing type.
+        ISymbol current = method;
+        while (current is IMethodSymbol enclosingMethod)
+        {
+            yield return enclosingMethod;
+            current = enclosingMethod.ContainingSymbol;
+        }
+
+        if (current is INamedTypeSymbol type)
+            yield return type;
+
+        if (method.ContainingAssembly is { } assembly)
+            yield return assembly;
+    }
+
+    private static (SamplingMode Mode, double Ratio) Classify(double ratio) =>
+        // NaN would escape both ratio comparisons below (NaN <= 0 and NaN >= 1 are both false) and
+        // emit a bare `NaN` literal -> CS0103 in the consumer build; treat it as the safe default.
+        double.IsNaN(ratio)
+            ? (SamplingMode.Always, 1.0)
+            : ratio <= 0.0
+                ? (SamplingMode.Never, 0.0)
+                : ratio >= 1.0
+                    ? (SamplingMode.Always, 1.0)
+                    : (SamplingMode.Ratio, ratio);
 }
