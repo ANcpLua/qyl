@@ -1,5 +1,7 @@
 using DuckDB.NET.Data;
 
+using Qyl.Collector.Telemetry;
+
 using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
@@ -14,10 +16,14 @@ internal sealed partial class DuckDbStore : IQylStore
     private const int MaxProfilesPerBatch = 50;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
+    private static readonly Counter<long> s_droppedSpans = QylTelemetry.Meter.CreateCounter<long>(
+        "qyl.collector.spans.dropped", "{span}", "Spans dropped because the DuckDB write queue was full.");
+
     private readonly CancellationTokenSource _cts = new();
     private readonly bool _isInMemory;
     private readonly int _jobQueueCapacity;
     private readonly Channel<WriteJob> _jobs;
+    private readonly ILogger<DuckDbStore>? _logger;
 
     private readonly Channel<IReadJob>? _reads;
     private readonly Thread[] _readerThreads;
@@ -31,12 +37,18 @@ internal sealed partial class DuckDbStore : IQylStore
         string databasePath = "qyl.duckdb",
         int jobQueueCapacity = 1000,
         int maxConcurrentReads = 8,
-        int readQueueCapacity = 1000)
+        int readQueueCapacity = 1000,
+        string? memoryLimit = null,
+        int? threads = null,
+        string? tempDirectory = null,
+        ILogger<DuckDbStore>? logger = null)
     {
         _isInMemory = databasePath == ":memory:";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
+        _logger = logger;
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
+        ConfigureDatabase(Connection, memoryLimit, threads, tempDirectory);
         InitializeSchema(Connection);
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(_jobQueueCapacity)
@@ -48,8 +60,10 @@ internal sealed partial class DuckDbStore : IQylStore
         // DuckDB.NET's *Async methods are synchronous-over-async: the embedded engine has no IO to
         // await, so every read blocks its calling thread for the full query. To keep that blocking
         // off the shared thread pool (Kestrel), reads run on a dedicated set of OS threads, each with
-        // its own READ_ONLY connection (DuckDB MVCC allows concurrent readers). In-memory mode shares
-        // the single writer connection, so its reads are serialized through the writer instead.
+        // its own connection. DuckDB.NET caches one native database instance per file path, so every
+        // connection to that file shares the instance and reads are MVCC-concurrent with the writer.
+        // In-memory mode has no shared on-disk instance, so its reads are serialized through the
+        // single writer connection instead.
         if (_isInMemory)
         {
             _readerThreads = [];
@@ -63,12 +77,16 @@ internal sealed partial class DuckDbStore : IQylStore
                 FullMode = BoundedChannelFullMode.Wait, SingleReader = false, SingleWriter = false
             });
 
+            // Reader connections use the same connection string as the writer on purpose: DuckDB.NET
+            // keys its native-instance cache by file path alone, so an ACCESS_MODE=READ_ONLY token
+            // here would be silently ignored on reuse (the writer already opened the instance
+            // read-write). Sharing that one instance is exactly what makes these reads MVCC-concurrent.
             // Open every reader connection up front (on this thread) so a failure surfaces loudly and
             // immediately as a startup error, not asynchronously on a background thread.
             var connections = new DuckDBConnection[concurrency];
             for (var i = 0; i < concurrency; i++)
             {
-                var con = new DuckDBConnection($"DataSource={databasePath};ACCESS_MODE=READ_ONLY");
+                var con = new DuckDBConnection($"DataSource={databasePath}");
                 con.Open();
                 connections[i] = con;
             }
@@ -131,6 +149,27 @@ internal sealed partial class DuckDbStore : IQylStore
         if (_reads is not null)
             while (_reads.Reader.TryRead(out var leftover))
                 leftover.Cancel();
+
+        // Flush the WAL into the main database file and truncate it so the next start is a clean,
+        // fast open instead of a WAL replay. Pointless for an in-memory database.
+        if (!_isInMemory)
+        {
+            try
+            {
+                await using var checkpoint = Connection.CreateCommand();
+                checkpoint.CommandText = "CHECKPOINT";
+                await checkpoint.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
+            catch (DuckDBException ex)
+            {
+                // A failed final checkpoint is not data loss (the WAL is replayed on next open), but
+                // it must surface and must not abort the rest of teardown — route it into the
+                // shutdown AggregateException instead of throwing past Connection.Dispose().
+                AddShutdownError(
+                    ref shutdownErrors,
+                    new InvalidOperationException("DuckDB shutdown CHECKPOINT failed.", ex));
+            }
+        }
 
         Connection.Dispose();
         _cts.Dispose();
@@ -214,7 +253,14 @@ internal sealed partial class DuckDbStore : IQylStore
         if (!_jobs.Writer.TryWrite(job))
         {
             Interlocked.Decrement(ref _queuedWriteJobs);
-            job.OnAborted(new InvalidOperationException("The DuckDB write queue is full."));
+
+            // The bounded write queue is full: shed this span batch rather than block ingest. The
+            // load-shedding is intentional, but it MUST be observable — record the loss as a metric
+            // and a warning so dropped telemetry never disappears silently.
+            var dropped = batch.Spans.Count;
+            s_droppedSpans.Add(dropped);
+            if (_logger is not null)
+                LogSpansDropped(_logger, dropped, _jobQueueCapacity);
         }
 
         return ValueTask.CompletedTask;
@@ -686,8 +732,9 @@ internal sealed partial class DuckDbStore : IQylStore
         }
     }
 
-    // One dedicated OS thread per reader slot. Each owns a private READ_ONLY connection and runs the
-    // synchronous (native, blocking) DuckDB read jobs here — never on a thread-pool thread.
+    // One dedicated OS thread per reader slot. Each owns a private connection (sharing the writer's
+    // cached native instance) and runs the synchronous (native, blocking) DuckDB read jobs here —
+    // never on a thread-pool thread.
     private void ReaderLoop(DuckDBConnection con)
     {
         var reader = _reads!.Reader;
@@ -746,6 +793,36 @@ internal sealed partial class DuckDbStore : IQylStore
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
+    private static void ConfigureDatabase(DuckDBConnection con, string? memoryLimit, int? threads, string? tempDirectory)
+    {
+        // Tuning for a write-heavy embedded store. preserve_insertion_order=false drops the
+        // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
+        // memory and lifts bulk-write throughput. memory_limit / threads / temp_directory are
+        // operator-supplied (trusted config); when unset, DuckDB's own defaults apply.
+        ExecutePragma(con, "SET preserve_insertion_order = false");
+
+        if (!string.IsNullOrWhiteSpace(memoryLimit))
+            ExecutePragma(con, $"SET memory_limit = '{EscapeSqlLiteral(memoryLimit)}'");
+
+        if (threads is > 0)
+            ExecutePragma(con, $"SET threads = {threads.Value.ToString(CultureInfo.InvariantCulture)}");
+
+        if (!string.IsNullOrWhiteSpace(tempDirectory))
+            ExecutePragma(con, $"SET temp_directory = '{EscapeSqlLiteral(tempDirectory)}'");
+    }
+
+    private static void ExecutePragma(DuckDBConnection con, string sql)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+
+    // SET ... pragmas take no bound parameters, so operator-supplied values are interpolated.
+    // The values are trusted config, but escape single quotes anyway so a stray quote can't break
+    // the statement.
+    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
+
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var logsCmd = con.CreateCommand();
@@ -778,6 +855,12 @@ internal sealed partial class DuckDbStore : IQylStore
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
+
+    [LoggerMessage(
+        EventId = 1001,
+        Level = LogLevel.Warning,
+        Message = "DuckDB write queue full (capacity {QueueCapacity}); dropped {DroppedSpans} spans.")]
+    private static partial void LogSpansDropped(ILogger logger, int droppedSpans, int queueCapacity);
 
 
     private abstract class WriteJob

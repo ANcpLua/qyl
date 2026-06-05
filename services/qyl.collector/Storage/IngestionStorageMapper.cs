@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Qyl.Collector.Storage;
 
 internal static class IngestionStorageMapper
@@ -180,9 +178,11 @@ internal static class IngestionStorageMapper
                 StackOrdinal = sample.StackOrdinal,
                 LinkTraceId = sample.LinkTraceId,
                 LinkSpanId = sample.LinkSpanId,
-                ValuesJson = sample.Values is { Length: > 0 } values ? JsonSerializer.Serialize(values) : null,
+                ValuesJson = sample.Values is { Length: > 0 } values
+                    ? JsonSerializer.Serialize(values, StorageJsonSerializerContext.Default.Int64Array)
+                    : null,
                 TimestampsJson = sample.TimestampsUnixNano is { Length: > 0 } timestamps
-                    ? JsonSerializer.Serialize(timestamps)
+                    ? JsonSerializer.Serialize(timestamps, StorageJsonSerializerContext.Default.UInt64Array)
                     : null
             }).ToList(),
             Stacks = profile.Stacks.Select(stack => new ProfileStackRow
@@ -191,7 +191,7 @@ internal static class IngestionStorageMapper
                 ProfileId = profileId,
                 Ordinal = stack.Ordinal,
                 LocationOrdinalsJson = stack.LocationOrdinals is { Length: > 0 } ordinals
-                    ? JsonSerializer.Serialize(ordinals)
+                    ? JsonSerializer.Serialize(ordinals, StorageJsonSerializerContext.Default.Int32Array)
                     : null
             }).ToList()
         };

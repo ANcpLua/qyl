@@ -20,6 +20,11 @@ internal static class CollectorStorageExtensions
         if (!string.IsNullOrEmpty(dataDir))
             Directory.CreateDirectory(dataDir);
 
-        return new DuckDbStore(dataPath);
+        return new DuckDbStore(
+            dataPath,
+            memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
+            threads: config.GetValue<int?>("QYL_DB_THREADS"),
+            tempDirectory: config["QYL_DB_TEMP_DIR"],
+            logger: services.GetService<ILogger<DuckDbStore>>());
     }
 }
