@@ -47,7 +47,9 @@ internal sealed partial record SpanStorageRow
     public string? GenAiToolName { get; init; }
     public double? GenAiCostUsd { get; init; }
 
+    [DuckDbColumn(SqlType = "JSON")]
     public string? AttributesJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
 
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
@@ -138,7 +140,9 @@ internal sealed partial record LogStorageRow
     public string? Body { get; init; }
 
     public string? ServiceName { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
     public string? AttributesJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
@@ -183,7 +187,9 @@ internal sealed partial record ProfileStorageRow
 
     public string? ServiceName { get; init; }
 
+    [DuckDbColumn(SqlType = "JSON")]
     public string? AttributesJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
