@@ -344,11 +344,8 @@ internal static class OtlpConverter
         var sampleType = Resolve(profile.SampleType?.TypeStrindex ?? 0, dictionary);
         var sampleUnit = Resolve(profile.SampleType?.UnitStrindex ?? 0, dictionary);
 
-        var functions = new List<ProfileFunctionIngestionRecord>(dictionary.FunctionTable.Count);
-        for (var i = 0; i < dictionary.FunctionTable.Count; i++)
-        {
-            var f = dictionary.FunctionTable[i];
-            functions.Add(new ProfileFunctionIngestionRecord
+        var functions = MapTable(dictionary.FunctionTable, (f, i) =>
+            new ProfileFunctionIngestionRecord
             {
                 Ordinal = i,
                 Name = Resolve(f.NameStrindex, dictionary),
@@ -356,12 +353,9 @@ internal static class OtlpConverter
                 Filename = Resolve(f.FilenameStrindex, dictionary),
                 StartLine = f.StartLine
             });
-        }
 
-        var locations = new List<ProfileLocationIngestionRecord>(dictionary.LocationTable.Count);
-        for (var i = 0; i < dictionary.LocationTable.Count; i++)
+        var locations = MapTable(dictionary.LocationTable, static (loc, i) =>
         {
-            var loc = dictionary.LocationTable[i];
             List<ProfileLocationLineJson>? lines = null;
             if (loc.Line.Count > 0)
             {
@@ -372,20 +366,17 @@ internal static class OtlpConverter
                 }
             }
 
-            locations.Add(new ProfileLocationIngestionRecord
+            return new ProfileLocationIngestionRecord
             {
                 Ordinal = i,
                 MappingOrdinal = loc.MappingIndex,
                 Address = loc.Address,
                 Lines = lines
-            });
-        }
+            };
+        });
 
-        var mappings = new List<ProfileMappingIngestionRecord>(dictionary.MappingTable.Count);
-        for (var i = 0; i < dictionary.MappingTable.Count; i++)
-        {
-            var m = dictionary.MappingTable[i];
-            mappings.Add(new ProfileMappingIngestionRecord
+        var mappings = MapTable(dictionary.MappingTable, (m, i) =>
+            new ProfileMappingIngestionRecord
             {
                 Ordinal = i,
                 Filename = Resolve(m.FilenameStrindex, dictionary),
@@ -393,12 +384,9 @@ internal static class OtlpConverter
                 MemoryLimit = m.MemoryLimit,
                 FileOffset = m.FileOffset
             });
-        }
 
-        var samples = new List<ProfileSampleIngestionRecord>(profile.Sample.Count);
-        for (var i = 0; i < profile.Sample.Count; i++)
+        var samples = MapTable(profile.Sample, (s, i) =>
         {
-            var s = profile.Sample[i];
             string? linkTraceId = null;
             string? linkSpanId = null;
             if (s.LinkIndex > 0 && s.LinkIndex < dictionary.LinkTable.Count)
@@ -408,7 +396,7 @@ internal static class OtlpConverter
                 linkSpanId = ToHex(link.SpanId);
             }
 
-            samples.Add(new ProfileSampleIngestionRecord
+            return new ProfileSampleIngestionRecord
             {
                 Ordinal = i,
                 StackOrdinal = s.StackIndex,
@@ -416,19 +404,15 @@ internal static class OtlpConverter
                 LinkSpanId = linkSpanId,
                 Values = s.Values.Count > 0 ? s.Values.ToArray() : null,
                 TimestampsUnixNano = s.TimestampsUnixNano.Count > 0 ? s.TimestampsUnixNano.ToArray() : null
-            });
-        }
+            };
+        });
 
-        var stacks = new List<ProfileStackIngestionRecord>(dictionary.StackTable.Count);
-        for (var i = 0; i < dictionary.StackTable.Count; i++)
-        {
-            var st = dictionary.StackTable[i];
-            stacks.Add(new ProfileStackIngestionRecord
+        var stacks = MapTable(dictionary.StackTable, static (st, i) =>
+            new ProfileStackIngestionRecord
             {
                 Ordinal = i,
                 LocationOrdinals = st.LocationIndices.Count > 0 ? st.LocationIndices.ToArray() : null
             });
-        }
 
         return new ProfileIngestionRecord
         {
@@ -453,6 +437,21 @@ internal static class OtlpConverter
             Samples = samples,
             Stacks = stacks
         };
+    }
+
+    // Projects a protobuf repeated table into pre-sized ingestion records, removing the repeated
+    // new-List/for/Add scaffolding. Projections that resolve *_strindex fields capture the string
+    // table `dictionary` (profile ingest is low-frequency, not the per-attribute hot path); the
+    // ones that don't stay static. The literal `Resolve(x.YStrindex, dictionary)` shape is also
+    // pinned by BuildVerify.VerifyOtlpProfileSymbolsAreResolved.
+    private static List<TResult> MapTable<TSource, TResult>(
+        IReadOnlyList<TSource> source,
+        Func<TSource, int, TResult> project)
+    {
+        var result = new List<TResult>(source.Count);
+        for (var i = 0; i < source.Count; i++)
+            result.Add(project(source[i], i));
+        return result;
     }
 
     private static Dictionary<string, OtlpAttributeValue> ExtractProfileAttributes(
