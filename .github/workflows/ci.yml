@@ -40,6 +40,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # VerifyCollectorEndpointLimitsMatchOpenApi reads the API contract from the
+      # sibling qyl-api-schema repo (RootDirectory.Parent/qyl-api-schema/...). It is a
+      # separate PUBLIC repo with the generated OpenAPI committed, so a shallow,
+      # unauthenticated clone into the sibling path is all the Verify gate needs.
+      - name: Checkout API schema contract
+        run: git clone --depth 1 https://github.com/O-ANcppLua/qyl-api-schema.git "${{ github.workspace }}/../qyl-api-schema"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
         with:
