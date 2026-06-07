@@ -178,7 +178,7 @@ internal static class LogMapper
             }
         };
 
-    public static IReadOnlyList<LogRecord> ToContracts(IEnumerable<LogStorageRow> records) =>
+    public static IReadOnlyList<LogRecord> ToContracts(IReadOnlyList<LogStorageRow> records) =>
         [.. records.Select(static record => ToContract(record))];
 
     private static SeverityNumber MapSeverityNumber(byte severityNumber) =>
@@ -323,7 +323,7 @@ internal static class ProfileMapper
         };
     }
 
-    public static IReadOnlyList<Profile> ToContracts(IEnumerable<ProfileStorageRow> records) =>
+    public static IReadOnlyList<Profile> ToContracts(IReadOnlyList<ProfileStorageRow> records) =>
         [.. records.Select(static record => ToContract(record))];
 
     private static OriginalPayloadFormat? MapPayloadFormat(string? format) =>
@@ -401,11 +401,11 @@ internal static class SessionMapper
         };
     }
 
-    private static List<SessionEntity> ToContracts(IEnumerable<SessionQueryRow> summaries) =>
+    private static List<SessionEntity> ToContracts(IReadOnlyList<SessionQueryRow> summaries) =>
         [.. summaries.Select(ToContract)];
 
     public static CursorPageSessionEntity ToPage(
-        IEnumerable<SessionQueryRow> summaries,
+        IReadOnlyList<SessionQueryRow> summaries,
         bool hasMore,
         string? previousCursor = null,
         string? nextCursor = null)
