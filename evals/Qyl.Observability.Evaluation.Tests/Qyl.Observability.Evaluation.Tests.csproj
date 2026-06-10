@@ -1,0 +1,14 @@
+<Project Sdk="ANcpLua.NET.Sdk.Test">
+
+  <PropertyGroup>
+    <RootNamespace>Qyl.Observability.Evaluation.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Qyl.Observability.Evaluation\Qyl.Observability.Evaluation.csproj"/>
+  </ItemGroup>
+
+</Project>

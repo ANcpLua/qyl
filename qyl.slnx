@@ -36,6 +36,7 @@
 
   <Folder Name="/evals/">
     <Project Path="evals/Qyl.Observability.Evaluation/Qyl.Observability.Evaluation.csproj" />
+    <Project Path="evals/Qyl.Observability.Evaluation.Tests/Qyl.Observability.Evaluation.Tests.csproj" />
   </Folder>
 
 </Solution>

@@ -88,5 +88,5 @@ public sealed class ToolCallAccuracyEvaluator(ObservabilityEvaluationRecord reco
     }
 
     private static bool JsonValuesEqual(JsonElement actual, JsonElement expected)
-        => actual.ValueKind == expected.ValueKind && actual.ToString().Equals(expected.ToString(), StringComparison.Ordinal);
+        => JsonElement.DeepEquals(actual, expected);
 }
