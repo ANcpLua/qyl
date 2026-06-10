@@ -25,6 +25,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <!-- Microsoft.Extensions -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.AI.Evaluation" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
     <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->

@@ -34,4 +34,8 @@
     <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
   </Folder>
 
+  <Folder Name="/evals/">
+    <Project Path="evals/Qyl.Observability.Evaluation/Qyl.Observability.Evaluation.csproj" />
+  </Folder>
+
 </Solution>
