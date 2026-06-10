@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI.Evaluation;
+using Qyl.Observability.Evaluation;
 using Qyl.Observability.Evaluation.Evaluators;
 
 namespace Qyl.Observability.Evaluation.Tests;
