@@ -52,7 +52,11 @@ internal sealed class FrankensteinCli
 
     private int Run(ParsedArguments arguments)
     {
-        if (arguments.Command.Length is 0 || arguments.Has("--help") || arguments.Has("-h"))
+        if (arguments.Command.Length is 0 ||
+            string.Equals(arguments.Command, "--help", StringComparison.Ordinal) ||
+            string.Equals(arguments.Command, "-h", StringComparison.Ordinal) ||
+            arguments.Has("--help") ||
+            arguments.Has("-h"))
         {
             WriteUsage();
             return arguments.Command.Length is 0 ? 1 : 0;

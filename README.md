@@ -90,10 +90,11 @@ Generated files are not hand-edited. Fix the generator or schema input, regenera
 When a pet package breaks, do not guess.
 
 ```bash
-dotnet run --project internal/frankenstein -- doctor examples/otel --target codex --plan reports/otel-plan.md
-dotnet run --project internal/frankenstein -- repair examples/otel --target codex --plan reports/otel-plan.md --out .tmp/frankenstein/otel-repaired
-dotnet run --project internal/frankenstein -- validate .tmp/frankenstein/otel-repaired --target codex
-dotnet run --project internal/frankenstein -- roundtrip .tmp/frankenstein/otel-repaired --target codex --report reports/frankenstein-final.md
+PATH="$PWD:$PATH"
+frankenstein doctor examples/otel --target codex --plan reports/otel-plan.md
+frankenstein repair examples/otel --target codex --plan reports/otel-plan.md --out .tmp/frankenstein/otel-repaired
+frankenstein validate .tmp/frankenstein/otel-repaired --target codex
+frankenstein roundtrip .tmp/frankenstein/otel-repaired --target codex --report reports/frankenstein-final.md
 ```
 
 Frankenstein copies the package into quarantine, inspects `pet.json`, reads the spritesheet dimensions, reconstructs the atlas grid, validates animation rows, checks ability metadata, verifies target compatibility, and writes a repair plan before touching anything. A package is healthy only when it survives import, export, re-import, validation, and normalized diff without source mutation or silent data loss.
