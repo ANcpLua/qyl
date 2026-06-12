@@ -1,0 +1,13 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Qyl.Conformance</RootNamespace>
+    <!-- DTOs mirror the @qyl/telemetry-control-graph wire contract (conformance-plan.json).
+         They are replaced by Qyl.Api.Contracts types once the ControlGraph models ship in
+         the next contracts release; the verifier logic is contract-shape independent. -->
+  </PropertyGroup>
+
+</Project>

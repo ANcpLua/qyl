@@ -24,6 +24,7 @@
   </Folder>
 
   <Folder Name="/internal/">
+    <Project Path="internal/qyl.conformance/qyl.conformance.csproj" />
     <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj" />
     <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
     <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
@@ -37,6 +38,7 @@
 
   <Folder Name="/evals/">
     <Project Path="evals/Qyl.Observability.Evaluation/Qyl.Observability.Evaluation.csproj" />
+    <Project Path="evals/Qyl.Conformance.Tests/Qyl.Conformance.Tests.csproj" />
     <Project Path="evals/Qyl.Observability.Evaluation.Tests/Qyl.Observability.Evaluation.Tests.csproj" />
   </Folder>
 
