@@ -50,8 +50,8 @@
   <PropertyGroup>
     <Authors>ancplua</Authors>
     <Company>qyl</Company>
-    <PackageProjectUrl>https://github.com/O-ANcppLua/qyl</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/O-ANcppLua/qyl</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ANcpLua/qyl</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ANcpLua/qyl</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

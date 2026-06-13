@@ -79,7 +79,7 @@ The collector must not define public HTTP DTOs. Any new public model belongs in 
 
 ### Removed Product Identity Drift
 
-The old qyl API identity around `ANcpLua.OtelConventions.Api` and `@o-ancpplua/otel-conventions-api` is no longer the collector direction. The product API contract identity is `Qyl.Api.Contracts`, sourced from `qyl-api-schema`.
+The old qyl API identity around `ANcpLua.OtelConventions.Api` and `@ancplua/otel-conventions-api` is no longer the collector direction. The product API contract identity is `Qyl.Api.Contracts`, sourced from `qyl-api-schema`.
 
 OpenTelemetry semantic convention packages remain useful, but they are infrastructure for semantic keys and attribute metadata. They are not qyl's product API.
 
@@ -185,7 +185,7 @@ Do not reintroduce:
 
 - Collector-local public API DTOs.
 - Storage records as public API route models.
-- `ANcpLua.OtelConventions.Api` or `@o-ancpplua/otel-conventions-api` as qyl product API identity.
+- `ANcpLua.OtelConventions.Api` or `@ancplua/otel-conventions-api` as qyl product API identity.
 - Handwritten semantic convention string literals in collector runtime code.
 - DuckDB connections passed to endpoint/service callers.
 - DuckDB schema emitters inside `qyl-api-schema`.

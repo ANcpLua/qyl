@@ -45,7 +45,7 @@ jobs:
       # separate PUBLIC repo with the generated OpenAPI committed, so a shallow,
       # unauthenticated clone into the sibling path is all the Verify gate needs.
       - name: Checkout API schema contract
-        run: git clone --depth 1 https://github.com/O-ANcppLua/qyl-api-schema.git "${{ github.workspace }}/../qyl-api-schema"
+        run: git clone --depth 1 https://github.com/ANcpLua/qyl-api-schema.git "${{ github.workspace }}/../qyl-api-schema"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
