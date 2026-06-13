@@ -2,11 +2,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Qyl.Instrumentation.Generators.Models;
 
-#region Provider Types
-
-internal sealed record ProviderDefinition(
-    string ProviderId,
-    string TypeContains);
+#region Composition Definitions
 
 internal sealed record HostedServiceDefinition(
     string TypeFullyQualifiedName,
@@ -29,41 +25,6 @@ internal sealed record QylHealthCheckDefinition(
     string Name,
     EquatableArray<string> Tags,
     string SortKey);
-
-internal static class ProviderRegistry
-{
-    public static readonly ImmutableArray<ProviderDefinition> GenAiProviders =
-    [
-        new("azure.ai.openai", "Azure.AI.OpenAI"),
-        new("azure.ai.inference", "Azure.AI.Inference"),
-
-        new("openai", "OpenAI"),
-
-        new("anthropic", "Anthropic"),
-
-        new("aws.bedrock", "Bedrock"),
-
-        new("gcp.gemini", "GenerativeAI"),
-        new("gcp.vertex_ai", "AIPlatform"),
-
-        new("cohere", "Cohere"),
-        new("mistral_ai", "Mistral"),
-        new("groq", "Groq"),
-        new("deepseek", "Deepseek"),
-        new("perplexity", "Perplexity"),
-        new("x_ai", "xAI"),
-
-        new("microsoft_agents", "Agents.AI"),
-
-        new("ollama", "Ollama"),
-        new("together_ai", "Together"),
-        new("replicate", "Replicate"),
-        new("meta", "Meta"),
-        new("huggingface", "HuggingFace"),
-        new("fireworks", "Fireworks"),
-        new("anyscale", "Anyscale")
-    ];
-}
 
 #endregion
 
