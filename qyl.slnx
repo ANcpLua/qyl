@@ -28,7 +28,6 @@
     <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj" />
     <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
     <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
-    <Project Path="internal/frankenstein/frankenstein.csproj" />
   </Folder>
 
   <Folder Name="/eng/">

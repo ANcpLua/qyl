@@ -107,7 +107,7 @@ stay. This is the highest silent-drift risk in the fleet.
 3. **Version skew:** SemanticConventions consumed at `3.0.0` (qyl) vs `3.0.1` (autoinstrumentation). qyl-api-schema has 4-way release drift (npm `0.2.0`, nupkg `0.1.9`, stray tarballs `0.1.4–0.1.8`, top tag `v0.1.1`) + 5 leftover `.tgz` + a committed `.nupkg` at root.
 4. **otelconventions-lint second snapshot:** `qyl-api-schema/emitters/otelconventions-lint/data/otel-attribute-registry.json` is self-labeled "registry 1.40" — already skewed from the fleet's 1.41.0. Same-repo drift.
 5. **api-schema `HANDOFF.md` is partially stale:** claims `fail-on-diagnostics` is "typed but dead" (actually removed) and the conformance plan is "shallow" (actually already emits `exporter_ids`/`export_edges`). Treat it as history, not truth.
-6. **qyl dead code:** `internal/qyl.instrumentation.generators/Models/Models.cs` `ProviderRegistry.GenAiProviders` is unwired and could drift from semconv `gen_ai.provider.name`. Also `internal/frankenstein/` is a game-asset side-quest with zero telemetry ties — extraction candidate.
+6. **qyl dead code:** `internal/qyl.instrumentation.generators/Models/Models.cs` `ProviderRegistry.GenAiProviders` is unwired and could drift from semconv `gen_ai.provider.name`. (`internal/frankenstein/` — the game-asset side-quest with zero telemetry ties — has been removed; recoverable from git history if ever needed.)
 
 ---
 
