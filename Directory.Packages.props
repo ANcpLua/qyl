@@ -69,8 +69,8 @@
     <!-- Transitive security overrides (via Nuke.Common): force patched versions that
          close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging 6.12.1) and GHSA-37gx-xxp4-5rgx /
          GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml 9.0.0). -->
-    <PackageVersion Include="NuGet.Packaging" Version="7.3.1"/>
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.8"/>
+    <PackageVersion Include="NuGet.Packaging" Version="7.6.0"/>
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9"/>
     <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
     <!-- Qyl-private vendor-fork of the upstream OTel semantic-conventions source-generator
@@ -78,10 +78,10 @@
          the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
          When #4424 merges these PackageReference rows swap to the upstream id — type identities
          preserved, so consumer code keeps compiling. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.1"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.1"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
-    <PackageVersion Include="Qyl.Api.Contracts" Version="0.1.9"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="0.2.0"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>

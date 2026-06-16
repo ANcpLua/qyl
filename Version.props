@@ -1,26 +1,26 @@
 <Project>
   <PropertyGroup Label="Package Versions">
-    <DotNetRuntimeVersion>10.0.8</DotNetRuntimeVersion>
-    <MicrosoftExtensionsVersion>10.6.0</MicrosoftExtensionsVersion>
-    <MicrosoftExtensionsAiVersion>10.6.0</MicrosoftExtensionsAiVersion>
-    <OpenTelemetryVersion>1.15.3</OpenTelemetryVersion>
+    <DotNetRuntimeVersion>10.0.9</DotNetRuntimeVersion>
+    <MicrosoftExtensionsVersion>10.7.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsAiVersion>10.7.0</MicrosoftExtensionsAiVersion>
+    <OpenTelemetryVersion>1.16.0</OpenTelemetryVersion>
     <OpenTelemetryAspNetCoreInstrumentationVersion>1.15.1</OpenTelemetryAspNetCoreInstrumentationVersion>
-    <DuckDBVersion>1.5.0</DuckDBVersion>
-    <GoogleProtobufVersion>3.34.0</GoogleProtobufVersion>
-    <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
-    <GrpcToolsVersion>2.78.0</GrpcToolsVersion>
+    <DuckDBVersion>1.5.3</DuckDBVersion>
+    <GoogleProtobufVersion>3.35.1</GoogleProtobufVersion>
+    <GrpcAspNetCoreVersion>2.80.0</GrpcAspNetCoreVersion>
+    <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
     <!-- Single version for ANcpLua.Roslyn.Utilities packages used in this repo.
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.26</ANcpLuaRoslynUtilitiesVersion>
-    <ANcpLuaAgentsVersion>1.4.3</ANcpLuaAgentsVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.27</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaAgentsVersion>1.10.0</ANcpLuaAgentsVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) — mirrors SDK truth; inlined so the repo builds with or without the sibling SDK checkout. -->
-    <MicrosoftAgentsAIVersion>1.8.0</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIHostingVersion>1.8.0-preview.260528.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIVersion>1.10.0</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIHostingVersion>1.10.0-preview.260610.1</MicrosoftAgentsAIHostingVersion>
 
-    <OpenAIVersion>2.10.0</OpenAIVersion>
+    <OpenAIVersion>2.11.0</OpenAIVersion>
     <NukeVersion>10.1.0</NukeVersion>
-    <SpectreConsoleVersion>0.55.2</SpectreConsoleVersion>
+    <SpectreConsoleVersion>0.57.0</SpectreConsoleVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
   </PropertyGroup>
 </Project>
