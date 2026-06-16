@@ -72,6 +72,11 @@ jobs:
       - name: Build
         run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config
 
+      # Live contract-conformance: boots the collector over in-memory DuckDB, seeds via OTLP,
+      # and validates /api/v1 responses deserialize into the generated Qyl.Api.Contracts DTOs.
+      - name: Collector contract conformance test
+        run: dotnet run --project evals/Qyl.Collector.Contract.Tests/Qyl.Collector.Contract.Tests.csproj --configuration Release --no-build
+
       - name: Verify
         run: ./eng/build.sh Verify --Configuration Release
 

@@ -1,0 +1,27 @@
+<Project Sdk="ANcpLua.NET.Sdk.Test">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Qyl.Collector.Contract.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Live contract-conformance test: boots the real collector over an in-memory DuckDB,
+    seeds via the OTLP ingest path, reads back through /api/v1, and validates the live
+    responses deserialize into the generated Qyl.Api.Contracts DTOs. This complements the
+    static eng/build VerifyCollector* fitness functions (which prove no hand-written
+    lookalikes can compile) with runtime serialization/projection fidelity.
+
+    The collector exposes `public partial class Program`, which collides with the test
+    SDK's generated entry point; the `collector` extern alias disambiguates it while the
+    OTLP proto + Qyl.Api.Contracts types stay in the global namespace.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\services\qyl.collector\qyl.collector.csproj" Aliases="global,collector"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
+  </ItemGroup>
+
+</Project>

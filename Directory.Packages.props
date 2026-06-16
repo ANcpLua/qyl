@@ -42,6 +42,7 @@
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>

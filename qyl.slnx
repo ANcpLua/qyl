@@ -39,6 +39,7 @@
     <Project Path="evals/Qyl.Observability.Evaluation/Qyl.Observability.Evaluation.csproj" />
     <Project Path="evals/Qyl.Conformance.Tests/Qyl.Conformance.Tests.csproj" />
     <Project Path="evals/Qyl.Observability.Evaluation.Tests/Qyl.Observability.Evaluation.Tests.csproj" />
+    <Project Path="evals/Qyl.Collector.Contract.Tests/Qyl.Collector.Contract.Tests.csproj" />
   </Folder>
 
 </Solution>
