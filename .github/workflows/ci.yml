@@ -34,7 +34,7 @@ env:
 jobs:
   backend:
     name: Backend (.NET)
-    runs-on: ubuntu-latest
+    runs-on: qyl-linux
 
     steps:
       - name: Checkout
@@ -82,7 +82,7 @@ jobs:
 
   frontend:
     name: Frontend (React)
-    runs-on: ubuntu-latest
+    runs-on: qyl-linux
 
     steps:
       - name: Checkout
@@ -125,7 +125,7 @@ jobs:
 
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: qyl-linux
 
     steps:
       - name: Checkout
