@@ -17,9 +17,11 @@ import {
     getSpanTypeLabel,
     nanoToIso,
     nsToMs,
+    selectTraceViewSource,
     STATUS_ERROR,
     useSessions,
     useSessionSpans,
+    useTraces,
     useTraceSpans,
 } from '@/hooks/use-telemetry';
 import type {Span} from '@/types';
@@ -377,13 +379,27 @@ export function TracesPage() {
     const {data: sessions = []} = useSessions();
 
     // When traceId is present, fetch spans for that trace directly;
-    // otherwise fall back to session-based span loading.
+    // otherwise load the selected session's traces.
     const sessionSpanQuery = useSessionSpans(
         traceId ? '' : (sessionId || sessions[0]?.['session.id'] || '')
     );
     const traceSpanQuery = useTraceSpans(traceId);
 
-    const {data: spans = [], isLoading} = traceId ? traceSpanQuery : sessionSpanQuery;
+    // A session can legitimately surface zero traces (e.g. plain HTTP telemetry with no session
+    // join), which would otherwise render an empty waterfall. In that case fall back to recent
+    // project-wide traces so the telemetry stays visible.
+    const source = selectTraceViewSource({
+        hasTraceId: !!traceId,
+        sessionResolved: !sessionSpanQuery.isLoading,
+        sessionSpanCount: sessionSpanQuery.data?.length ?? 0,
+    });
+    const allTracesQuery = useTraces(source === 'all-traces');
+
+    const activeQuery =
+        source === 'trace' ? traceSpanQuery
+            : source === 'all-traces' ? allTracesQuery
+                : sessionSpanQuery;
+    const {data: spans = [], isLoading} = activeQuery;
 
     // Build span tree and compute timeline bounds
     const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {

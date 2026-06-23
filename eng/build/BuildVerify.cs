@@ -949,7 +949,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
             string[] requiredStoreTokens =
             [
-                "FROM spans WHERE project_id = $1 AND session_id = $2",
+                "FROM spans WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))",
                 "FROM spans WHERE project_id = $1 AND trace_id = $2",
                 "qb.Add(\"project_id = $N\", projectId);",
                 "(SELECT COUNT(*) FROM spans WHERE project_id = $1)",

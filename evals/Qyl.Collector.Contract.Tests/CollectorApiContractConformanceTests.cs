@@ -14,6 +14,7 @@ using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Api.Contracts.Common.Pagination;
+using Qyl.Api.Contracts.Domains.Observe.Session;
 using Xunit;
 
 namespace Qyl.Collector.Contract.Tests;
@@ -62,6 +63,43 @@ public sealed class CollectorApiContractConformanceTests
         var span = trace.Spans.Single(static s => s.Name == SpanName);
         Assert.False(string.IsNullOrEmpty(span.TraceId));
         Assert.False(string.IsNullOrEmpty(span.SpanId));
+    }
+
+    // Regression: ordinary HTTP telemetry carries no session.id/gen_ai.conversation.id/mcp.session.id,
+    // so the collector synthesizes a session id of COALESCE(session_id, trace_id) == trace_id. The
+    // /api/v1/sessions aggregation counted those spans (trace_count=1, span_count=2), but the
+    // session's own traces endpoint filtered strictly on session_id = {id} and returned nothing —
+    // leaving the dashboard's session-scoped Traces view empty. The traces endpoint must return the
+    // same traces the session's trace_count is derived from.
+    [Fact]
+    public async Task SessionTraces_ForNonSessionHttpTelemetry_ReturnsTheTracesItCounts()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = new CollectorFactory();
+        using var client = factory.CreateClient();
+
+        var traceIdBytes = Enumerable.Range(17, 16).Select(static i => (byte)i).ToArray();
+        var expectedSessionId = Convert.ToHexString(traceIdBytes).ToLowerInvariant();
+
+        await IngestAsync(client, "/v1/traces", BuildTwoSpanTraceRequest(traceIdBytes).ToByteArray(), ct);
+
+        // The synthesized session surfaces with the spans it aggregated.
+        var sessions = await PollAsync<CursorPageSessionEntity>(
+            client,
+            "/api/v1/sessions",
+            page => page.Items.Any(s => s.SessionId == expectedSessionId),
+            ct);
+        var session = sessions.Items.Single(s => s.SessionId == expectedSessionId);
+        Assert.Equal(1, session.TraceCount);
+        Assert.Equal(2, session.SpanCount);
+
+        // The session's traces endpoint must return the same single trace (with both spans).
+        var traces = await client.GetFromJsonAsync<CursorPageTrace>(
+            $"/api/v1/sessions/{expectedSessionId}/traces", Strict, ct);
+        Assert.NotNull(traces);
+        var trace = Assert.Single(traces.Items);
+        Assert.Equal(expectedSessionId, trace.TraceId);
+        Assert.Equal(2, trace.SpanCount);
     }
 
     [Fact]
@@ -158,6 +196,56 @@ public sealed class CollectorApiContractConformanceTests
                                     Kind = Span.Types.SpanKind.Server,
                                     StartTimeUnixNano = 1_000_000_000UL,
                                     EndTimeUnixNano = 2_000_000_000UL,
+                                    Status = new Status { Code = Status.Types.StatusCode.Ok },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+    }
+
+    // A plain HTTP trace (server root + client child) with NO session-correlation attributes, so the
+    // span rows persist with a NULL session_id and the collector synthesizes the session from trace_id.
+    private static ExportTraceServiceRequest BuildTwoSpanTraceRequest(byte[] traceIdBytes)
+    {
+        var traceId = ByteString.CopyFrom(traceIdBytes);
+        var rootSpanId = ByteString.CopyFrom(Enumerable.Range(1, 8).Select(static i => (byte)i).ToArray());
+        var childSpanId = ByteString.CopyFrom(Enumerable.Range(9, 8).Select(static i => (byte)i).ToArray());
+
+        return new ExportTraceServiceRequest
+        {
+            ResourceSpans =
+            {
+                new ResourceSpans
+                {
+                    Resource = ServiceResource(),
+                    ScopeSpans =
+                    {
+                        new ScopeSpans
+                        {
+                            Spans =
+                            {
+                                new Span
+                                {
+                                    TraceId = traceId,
+                                    SpanId = rootSpanId,
+                                    Name = "GET /things",
+                                    Kind = Span.Types.SpanKind.Server,
+                                    StartTimeUnixNano = 1_000_000_000UL,
+                                    EndTimeUnixNano = 2_000_000_000UL,
+                                    Status = new Status { Code = Status.Types.StatusCode.Ok },
+                                },
+                                new Span
+                                {
+                                    TraceId = traceId,
+                                    SpanId = childSpanId,
+                                    ParentSpanId = rootSpanId,
+                                    Name = "SELECT things",
+                                    Kind = Span.Types.SpanKind.Client,
+                                    StartTimeUnixNano = 1_200_000_000UL,
+                                    EndTimeUnixNano = 1_800_000_000UL,
                                     Status = new Status { Code = Status.Types.StatusCode.Ok },
                                 },
                             },

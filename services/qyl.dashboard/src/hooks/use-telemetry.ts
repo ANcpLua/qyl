@@ -13,6 +13,7 @@ export const telemetryKeys = {
     sessions: () => [...telemetryKeys.all, 'sessions'] as const,
     session: (id: string) => [...telemetryKeys.sessions(), id] as const,
     sessionSpans: (id: string) => [...telemetryKeys.session(id), 'traces'] as const,
+    traces: () => [...telemetryKeys.all, 'traces'] as const,
     traceSpans: (id: string) => [...telemetryKeys.all, 'trace', id, 'spans'] as const,
     logs: () => [...telemetryKeys.all, 'logs'] as const,
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
@@ -60,6 +61,35 @@ export function useTraceSpans(traceId: string) {
         select: (data): TelemetrySpan[] => data.items,
         enabled: !!traceId,
     });
+}
+
+// Project-wide recent traces, flattened to spans. Used as the TracesPage fallback when a session
+// surfaces no retrievable traces (e.g. plain HTTP telemetry without a session join), so the
+// waterfall stays populated instead of showing "No traces found".
+export function useTraces(enabled = true) {
+    return useQuery({
+        queryKey: telemetryKeys.traces(),
+        queryFn: () => fetchJson<ApiTracePage>('/api/v1/traces'),
+        select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
+        enabled,
+        refetchInterval: 10000,
+    });
+}
+
+export type TraceViewSource = 'trace' | 'session' | 'all-traces';
+
+// Decides which span source feeds the trace waterfall:
+//   - 'trace'      a ?traceId= deep-link is present
+//   - 'all-traces' the selected session resolved with zero traces (fallback)
+//   - 'session'    default: the session's own traces (incl. while still loading)
+export function selectTraceViewSource(args: {
+    hasTraceId: boolean;
+    sessionResolved: boolean;
+    sessionSpanCount: number;
+}): TraceViewSource {
+    if (args.hasTraceId) return 'trace';
+    if (args.sessionResolved && args.sessionSpanCount === 0) return 'all-traces';
+    return 'session';
 }
 
 // Live SSE Stream

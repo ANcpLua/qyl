@@ -276,8 +276,14 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             var spans = new List<SpanStorageRow>();
             using var cmd = con.CreateCommand();
+            // A session id is COALESCE(session_id, trace_id) — the same identity the session
+            // aggregation (DuckDbStore.Sessions) and GetSessionAsync use. Match it here too:
+            // non-session telemetry (e.g. plain HTTP) persists with a NULL session_id and is keyed
+            // by its trace_id, so a strict `session_id = $2` would drop the very spans the session's
+            // trace_count/span_count were derived from.
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE project_id = $1 AND session_id = $2 ORDER BY start_time_unix_nano ASC";
+                                        + " FROM spans WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
+                                        + " ORDER BY start_time_unix_nano ASC";
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
