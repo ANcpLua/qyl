@@ -31,6 +31,7 @@
   </Folder>
 
   <Folder Name="/eng/">
+    <File Path="eng\automation\CHANGELOG.md" />
     <Project Path="eng/build/build.csproj" />
     <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
   </Folder>

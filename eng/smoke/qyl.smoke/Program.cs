@@ -66,7 +66,7 @@ var agent = chatClient
     })
     .AsBuilder()
     .UseQylAgentTelemetry()
-    .Build()
+    .Build(host.Services)
     .RecordInQylInventory(
         inventory,
         key: "SmokeAgent",

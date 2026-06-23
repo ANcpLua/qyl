@@ -275,7 +275,10 @@ public static class QylServiceDefaultsExtensions
 
             ConfigureHttpClients(builder);
 
-            if (options.EnableOpenApi)
+            // OpenAPI registers EndpointMetadataApiDescriptionProvider, which needs EndpointDataSource —
+            // a service only the web host (WebApplicationBuilder) provides. Skip it on generic hosts
+            // (console/worker apps) so ValidateOnBuild doesn't throw.
+            if (options.EnableOpenApi && builder is WebApplicationBuilder)
                 builder.Services.AddOpenApi();
 
             if (options.EnableAntiforgery)
