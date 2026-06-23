@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using GenAiAttributes = Qyl.OpenTelemetry.SemanticConventions.Incubating.Attributes.GenAi.GenAiAttributes;
 
 namespace Qyl.Instrumentation.Instrumentation.GenAi;
 
@@ -49,12 +50,12 @@ internal sealed class TracedAIFunction(
             return null;
         }
 
-        activity.SetTag("gen_ai.operation.name", operationName);
-        activity.SetTag("gen_ai.tool.name", Name);
+        activity.SetTag(GenAiAttributes.OperationName, operationName);
+        activity.SetTag(GenAiAttributes.ToolName, Name);
 
         if (!string.IsNullOrEmpty(Description))
         {
-            activity.SetTag("gen_ai.tool.description", Description);
+            activity.SetTag(GenAiAttributes.ToolDescription, Description);
         }
 
         if (tagFactory is not null)
