@@ -23,7 +23,7 @@ RUN npm run build && \
 # STAGE 2: Build .NET
 # ============================================================================
 # Using Debian (not Alpine) because DuckDB native libs require glibc
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:dc8430e6024d454edadad1e160e1973be3cabbb7125998ef190d9e5c6adf7dbb AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:548d93f8a18a1acbe6cc127bc4f47281430d34a9e35c18afa80a8d6741c2adc3 AS build
 
 WORKDIR /src
 
@@ -63,7 +63,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
 # ============================================================================
 # STAGE 3: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:9b5222b0ff8e9eb991a7c1a64b25f0f771d21ccc05dfa1c834f5668ffd9cd73f AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:ddcf70ad1ab963a4fcd41fbd722a6b660e404e87567cfbd46fd2809c21b02088 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
