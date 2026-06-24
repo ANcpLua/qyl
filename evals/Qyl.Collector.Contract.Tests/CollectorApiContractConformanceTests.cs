@@ -79,7 +79,9 @@ public sealed class CollectorApiContractConformanceTests
         using var client = factory.CreateClient();
 
         var traceIdBytes = Enumerable.Range(17, 16).Select(static i => (byte)i).ToArray();
-        var expectedSessionId = Convert.ToHexString(traceIdBytes).ToLowerInvariant();
+        // OTel trace ids are lowercase hex; the collector synthesizes the session id from the
+        // (lowercased) trace id. ToHexStringLower yields that directly — no ToLowerInvariant (CA1308).
+        var expectedSessionId = Convert.ToHexStringLower(traceIdBytes);
 
         await IngestAsync(client, "/v1/traces", BuildTwoSpanTraceRequest(traceIdBytes).ToByteArray(), ct);
 
