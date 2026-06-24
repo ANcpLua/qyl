@@ -22,7 +22,7 @@ RUN npm run build
 # ============================================================================
 # STAGE 2: Production nginx
 # ============================================================================
-FROM nginx:1.30-alpine@sha256:0272e4604ed93c1792f03695a033a6e8546840f86e0de20a884bb17d2c924883
+FROM nginx:1.30-alpine@sha256:9f00a7a92624975cdd964ec71fbb86bf91dc117e86436a9a91fa7b5cdb9615d1
 
 # Labels for container registries
 LABEL org.opencontainers.image.title="qyl.dashboard"
