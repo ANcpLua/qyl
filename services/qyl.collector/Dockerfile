@@ -6,7 +6,7 @@
 # ============================================================================
 # STAGE 1: Build React Dashboard
 # ============================================================================
-FROM node:24-slim@sha256:24dc26ef1e3c3690f27ebc4136c9c186c3133b25563ae4d7f0692e4d1fe5db0e AS dashboard
+FROM node:24-slim@sha256:964191e9c047c5ababb0ba8a6e613cc70714a1de1fbca57e717c516f689c8053 AS dashboard
 
 WORKDIR /dashboard
 
