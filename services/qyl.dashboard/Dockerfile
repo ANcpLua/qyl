@@ -7,7 +7,7 @@
 # ============================================================================
 # STAGE 1: Build React App
 # ============================================================================
-FROM node:24-alpine@sha256:156b55f92e98ccd5ef49578a8cea0df4679826564bad1c9d4ef04462b9f0ded6 AS build
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN npm run build
 # ============================================================================
 # STAGE 2: Production nginx
 # ============================================================================
-FROM nginx:1.30-alpine@sha256:9f00a7a92624975cdd964ec71fbb86bf91dc117e86436a9a91fa7b5cdb9615d1
+FROM nginx:1.31-alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa
 
 # Labels for container registries
 LABEL org.opencontainers.image.title="qyl.dashboard"

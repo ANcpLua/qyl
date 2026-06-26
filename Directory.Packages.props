@@ -20,7 +20,7 @@
     <!-- Instrumentation packages ship on a slower cadence than the SDK. Keep
          AspNetCore explicit while Http and Runtime use the shared instrumentation
          version until their release cadence converges. -->
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <!-- Microsoft.Extensions -->
@@ -78,8 +78,8 @@
          the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
          When #4424 merges these PackageReference rows swap to the upstream id — type identities
          preserved, so consumer code keeps compiling. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.1"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.1"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.0.2"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.0.2"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
     <PackageVersion Include="Qyl.Api.Contracts" Version="0.2.0"/>
   </ItemGroup>
