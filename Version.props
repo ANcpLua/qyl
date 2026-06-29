@@ -15,8 +15,8 @@
     <ANcpLuaAgentsVersion>1.11.0</ANcpLuaAgentsVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) — mirrors SDK truth; inlined so the repo builds with or without the sibling SDK checkout. -->
-    <MicrosoftAgentsAIVersion>1.10.0</MicrosoftAgentsAIVersion>
-    <MicrosoftAgentsAIHostingVersion>1.10.0-preview.260610.1</MicrosoftAgentsAIHostingVersion>
+    <MicrosoftAgentsAIVersion>1.11.0</MicrosoftAgentsAIVersion>
+    <MicrosoftAgentsAIHostingVersion>1.11.0-preview.260623.1</MicrosoftAgentsAIHostingVersion>
 
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.0</SpectreConsoleVersion>
