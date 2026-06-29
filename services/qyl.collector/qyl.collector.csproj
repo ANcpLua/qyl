@@ -52,6 +52,7 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <PackageReference Include="Qyl.Api.Contracts"/>
+    <PackageReference Include="Qyl.OpenTelemetry.AutoInstrumentation"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
