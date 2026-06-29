@@ -33,14 +33,6 @@
   <Folder Name="/eng/">
     <File Path="eng\automation\CHANGELOG.md" />
     <Project Path="eng/build/build.csproj" />
-    <Project Path="eng/smoke/qyl.smoke/qyl.smoke.csproj" />
-  </Folder>
-
-  <Folder Name="/evals/">
-    <Project Path="evals/Qyl.Observability.Evaluation/Qyl.Observability.Evaluation.csproj" />
-    <Project Path="evals/Qyl.Conformance.Tests/Qyl.Conformance.Tests.csproj" />
-    <Project Path="evals/Qyl.Observability.Evaluation.Tests/Qyl.Observability.Evaluation.Tests.csproj" />
-    <Project Path="evals/Qyl.Collector.Contract.Tests/Qyl.Collector.Contract.Tests.csproj" />
   </Folder>
 
 </Solution>

@@ -1,7 +1,0 @@
-{
-  "$schema": "../build/build.schema.json",
-  "Solution": "../../qyl.slnx",
-  "SkipVerify": false,
-  "StopOnFail": false,
-  "LiveOutput": false
-}

@@ -3,7 +3,4 @@
        qyl Root Build Targets
        ======================================================================= -->
 
-  <!-- Import Shared Targets -->
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.targets"/>
-
 </Project>

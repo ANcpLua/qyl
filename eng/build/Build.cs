@@ -25,8 +25,7 @@ sealed class Build : NukeBuild,
     IDocker,
     IPipeline,
     IVerify,
-    ICollectorSemanticCatalog,
-    ISmoke
+    ICollectorSemanticCatalog
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 
@@ -67,15 +66,6 @@ sealed class Build : NukeBuild,
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendLint);
-
-    Target Full => d => d
-        .Description("Full local gate: CI plus smoke targets")
-        .DependsOn(Clean)
-        .DependsOn<ICompile>(static x => x.Compile)
-        .DependsOn<IVerify>(static x => x.Verify)
-        .DependsOn<IPipeline>(static x => x.FrontendBuild)
-        .DependsOn<IPipeline>(static x => x.FrontendLint)
-        .DependsOn<ISmoke>(static x => x.Smoke);
 
     Target Dev => d => d
         .Description("Start development environment (Docker + compile)")

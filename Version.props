@@ -18,7 +18,6 @@
     <MicrosoftAgentsAIVersion>1.10.0</MicrosoftAgentsAIVersion>
     <MicrosoftAgentsAIHostingVersion>1.10.0-preview.260610.1</MicrosoftAgentsAIHostingVersion>
 
-    <OpenAIVersion>2.11.0</OpenAIVersion>
     <NukeVersion>10.1.0</NukeVersion>
     <SpectreConsoleVersion>0.57.0</SpectreConsoleVersion>
     <VersionizeVersion>2.5.0</VersionizeVersion>
