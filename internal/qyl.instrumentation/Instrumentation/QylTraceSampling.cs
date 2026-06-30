@@ -1,8 +1,8 @@
 namespace Qyl.Instrumentation.Instrumentation;
 
 /// <summary>
-/// Allocation-free, reflection-free trace-id sampling primitives shared by
-/// <see cref="QylAotSampler"/> and by the generated per-call-site sampling gates.
+/// Allocation-free, reflection-free trace-id sampling primitive used by
+/// <see cref="QylAotSampler"/>.
 /// The ratio algorithm mirrors the OpenTelemetry <c>TraceIdRatioBased</c> sampler so that a single
 /// trace is decided consistently — the decision depends only on the trace id, never on wall-clock,
 /// randomness, or process-local state, which is exactly what makes it NativeAOT-safe (no JIT,
@@ -35,21 +35,5 @@ public static class QylTraceSampling
         value &= long.MaxValue;
 
         return value < (long)(ratio * long.MaxValue);
-    }
-
-    /// <summary>
-    /// Per-call-site gate used by generated interceptors for <c>[QylSample(ratio)]</c> sites.
-    /// Keys off the ambient trace (<see cref="Activity.Current"/>) so the whole trace stays
-    /// consistent; with no ambient trace the decision is deferred to the runtime sampler
-    /// (returns <see langword="true"/> — let the span be created and let <see cref="QylAotSampler"/> decide).
-    /// </summary>
-    public static bool ShouldRecordSite(double ratio)
-    {
-        if (ratio >= 1.0)
-            return true;
-        if (ratio <= 0.0)
-            return false;
-
-        return Activity.Current is not { } current || IsSampledByRatio(current.TraceId, ratio);
     }
 }

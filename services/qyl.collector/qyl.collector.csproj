@@ -8,7 +8,11 @@
     <PublishTrimmed>false</PublishTrimmed>
     <IsAotCompatible>false</IsAotCompatible>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
-    <QylDatabase>false</QylDatabase>
+    <!-- qyl.collector runs two interceptor generators that both target WebApplicationBuilder.Build():
+         ServiceDefaults (DI/health/endpoints) and Qyl.OpenTelemetry.AutoInstrumentation (OTel middleware).
+         C# forbids two interceptors per call site (CS9153), so hand Build() to ServiceDefaults — which
+         composes QylInterceptedAspNetCore.Build — and opt the OTel generator out of intercepting Build(). -->
+    <QylAutoInstrumentationInterceptWebApplicationBuilderBuild>false</QylAutoInstrumentationInterceptWebApplicationBuilderBuild>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -52,11 +56,8 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <PackageReference Include="Qyl.Api.Contracts"/>
+    <PackageReference Include="Qyl.OpenTelemetry.AutoInstrumentation"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <CompilerVisibleProperty Include="QylDatabase"/>
   </ItemGroup>
 
   <!-- Source generators (compile-time only) -->

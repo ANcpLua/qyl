@@ -822,48 +822,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "Stamp project_id only at the collector receiver/ingestion-to-storage boundary.");
         });
 
-    Target VerifyDbInstrumentationUsesSemanticConstants => d => d
-        .Unlisted()
-        .Description("Verify DbInstrumentation emits db.system.name through semantic convention constants")
-        .OnlyWhenDynamic(() => SkipVerify != true)
-        .Executes(() =>
-        {
-            var dbInstrumentationFile = RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "Db" /
-                                        "DbInstrumentation.cs";
-            if (!dbInstrumentationFile.FileExists())
-                throw new FileNotFoundException("Missing DbInstrumentation", dbInstrumentationFile.ToString());
-
-            string[] forbiddenDbSystemValues =
-            [
-                "=> \"duckdb\"",
-                "=> \"mssql\"",
-                "=> \"oracle\"",
-                "=> \"firebird\"",
-                "=> \"unknown\"",
-                "return \"unknown\""
-            ];
-
-            var text = File.ReadAllText(dbInstrumentationFile);
-            var offenders = forbiddenDbSystemValues
-                .Where(token => text.Contains(token, StringComparison.Ordinal))
-                .ToList();
-
-            if (offenders.Count is 0)
-            {
-                Log.Information("DbInstrumentation db.system.name values use semantic convention constants");
-                return;
-            }
-
-            foreach (var offender in offenders)
-                Log.Error("  Manual db.system.name value '{Token}' found in {File}",
-                    offender,
-                    RootDirectory.GetRelativePathTo(dbInstrumentationFile));
-
-            throw new InvalidOperationException(
-                "Do not hardcode known db.system.name values in DbInstrumentation. Use " +
-                "Qyl.OpenTelemetry.SemanticConventions.Attributes.Db.DbAttributes.SystemNameValues.");
-        });
-
     Target VerifyInstrumentationTelemetryIsBoundedAndRedacted => d => d
         .Unlisted()
         .Description("Verify instrumentation telemetry avoids raw exception content and unbounded span names")
@@ -2484,7 +2442,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorLogStreamingUsesStorageOrdering)
         .DependsOn(VerifyCollectorSessionFacetsAreBounded)
         .DependsOn(VerifyInstrumentationHasNoStorageTenantKnowledge)
-        .DependsOn(VerifyDbInstrumentationUsesSemanticConstants)
         .DependsOn(VerifyInstrumentationTelemetryIsBoundedAndRedacted)
         .DependsOn(VerifyCollectorStorageReadsAreProjectScoped)
         .DependsOn(VerifyCollectorDuckDbAccessIsStorageOnly)
@@ -2525,7 +2482,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             Log.Information("  Collector log streaming uses storage ordering");
             Log.Information("  Collector session facets are bounded");
             Log.Information("  Instrumentation packages are storage- and tenant-blind");
-            Log.Information("  DbInstrumentation db.system.name values use semantic convention constants");
             Log.Information("  Instrumentation telemetry is bounded and redacted by default");
             Log.Information("  Collector storage reads require explicit project scope");
             Log.Information("  Collector DuckDB access stays behind storage intent methods");

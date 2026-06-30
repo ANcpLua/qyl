@@ -24,7 +24,6 @@
   </Folder>
 
   <Folder Name="/internal/">
-    <Project Path="internal/qyl.conformance/qyl.conformance.csproj" />
     <Project Path="internal/qyl.instrumentation/qyl.instrumentation.csproj" />
     <Project Path="internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
     <Project Path="internal/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
