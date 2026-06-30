@@ -57,13 +57,12 @@ jobs:
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
-          cache: true
-          cache-dependency-path: |
-            **/Directory.Packages.props
-            **/*.csproj
-            **/*.fsproj
-            **/packages.lock.json
-            **/nuget.config
+          # No Actions NuGet cache on the self-hosted runner: ~/.nuget/packages already persists on
+          # the runner's local disk between jobs, so the cache is redundant. Worse, any change to a
+          # dependency file (e.g. a Directory.Packages.props version bump) misses the key and forces a
+          # post-job tar+upload of the accumulated multi-GB global packages folder (~17 min at ~5 MB/s),
+          # which serializes the whole PR behind one cache-save step. Restore stays fast from local disk.
+          cache: false
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
