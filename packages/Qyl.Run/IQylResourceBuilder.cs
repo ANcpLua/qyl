@@ -32,26 +32,26 @@ internal sealed class QylResourceBuilder(
 
 public static class QylResourceBuilderExtensions
 {
-    public static IQylResourceBuilder WaitFor(this IQylResourceBuilder builder, params IQylResourceBuilder[] others)
+    extension(IQylResourceBuilder builder)
     {
-        Guard.NotNull(builder);
-        Guard.NotNull(others);
-        if (others.Length == 0) return builder;
-
-        var merged = new List<string>(builder.Resource.WaitForNames);
-        foreach (var other in others)
+        public IQylResourceBuilder WaitFor(params IQylResourceBuilder[] others)
         {
-            if (!merged.Contains(other.Resource.Name, StringComparer.Ordinal))
+            Guard.NotNull(builder);
+            Guard.NotNull(others);
+            if (others.Length == 0) return builder;
+
+            var merged = new List<string>(builder.Resource.WaitForNames);
+            foreach (var other in others)
             {
-                merged.Add(other.Resource.Name);
+                if (!merged.Contains(other.Resource.Name, StringComparer.Ordinal))
+                {
+                    merged.Add(other.Resource.Name);
+                }
             }
+
+            return builder.Update(r => r with { WaitForNames = new ReadOnlyCollection<string>(merged) });
         }
 
-        return builder.Update(r => r with { WaitForNames = new ReadOnlyCollection<string>(merged) });
-    }
-
-    public static IQylResourceBuilder WithCollector(this IQylResourceBuilder builder, IQylResourceBuilder collector)
-    {
-        return builder.WaitFor(collector);
+        public IQylResourceBuilder WithCollector(IQylResourceBuilder collector) => builder.WaitFor(collector);
     }
 }

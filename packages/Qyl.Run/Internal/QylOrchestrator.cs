@@ -13,6 +13,7 @@ internal sealed partial class QylOrchestrator(
     QylResourceRegistry registry,
     IOptions<QylAppOptions> options,
     IHttpClientFactory httpClientFactory,
+    QylProcessLauncher launcher,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
@@ -39,10 +40,13 @@ internal sealed partial class QylOrchestrator(
         foreach (var r in resources) registry.Publish(r.Name, ResourceLifecycle.Pending);
 
         var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken)).ToArray();
-        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         try
         {
+            // WhenAll stays inside the try so that a cancellation observed during startup — a dependency
+            // wait or health poll seeing stoppingToken — still runs StopAllAsync instead of escaping past
+            // the finally and leaving already-started child processes orphaned.
+            await Task.WhenAll(tasks).ConfigureAwait(false);
             await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -57,10 +61,7 @@ internal sealed partial class QylOrchestrator(
 
     private async Task StartResourceAsync(QylResource resource, CancellationToken stoppingToken)
     {
-        foreach (var depName in resource.WaitForNames)
-        {
-            await WaitForReadyAsync(depName, stoppingToken).ConfigureAwait(false);
-        }
+        await registry.WhenAllReadyAsync(resource.WaitForNames, stoppingToken).ConfigureAwait(false);
 
         try
         {
@@ -73,38 +74,14 @@ internal sealed partial class QylOrchestrator(
             var endpoint =
                 new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost, port));
 
-            if (string.IsNullOrEmpty(resource.Launch.Executable))
+            // A resource with no executable is an already-running external endpoint we only health-probe;
+            // otherwise the launcher spawns a child process whose lifecycle we own via _processes.
+            Process? process = null;
+            if (!string.IsNullOrEmpty(resource.Launch.Executable))
             {
-                if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
-                {
-                    registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
-                    LogReady(logger, resource.Name, endpoint);
-                }
-                else
-                {
-                    registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
-                        "Health probe timed out for external endpoint");
-                }
-
-                return;
+                process = launcher.Launch(resource, endpoint);
+                _processes[resource.Name] = process;
             }
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = resource.Launch.Executable,
-                WorkingDirectory = resource.Launch.WorkingDirectory ?? string.Empty,
-                RedirectStandardOutput = options.Value.CaptureChildOutput,
-                RedirectStandardError = options.Value.CaptureChildOutput,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            foreach (var arg in resource.Launch.Args) startInfo.ArgumentList.Add(arg);
-            foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
-            startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
-
-            var process = Process.Start(startInfo) ??
-                          throw new InvalidOperationException($"Process.Start returned null for '{resource.Name}'");
-            _processes[resource.Name] = process;
 
             if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
             {
@@ -113,7 +90,10 @@ internal sealed partial class QylOrchestrator(
             }
             else
             {
-                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out");
+                var reason = process is null
+                    ? "Health probe timed out for external endpoint"
+                    : "Health probe timed out";
+                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, reason);
             }
         }
         catch (SocketException ex)
@@ -138,20 +118,6 @@ internal sealed partial class QylOrchestrator(
     {
         LogFailed(logger, resource.Name, ex.Message, ex);
         registry.Publish(resource.Name, ResourceLifecycle.Failed, lastError: ex.Message);
-    }
-
-    private async Task WaitForReadyAsync(string name, CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            if (registry.Snapshot.TryGetValue(name, out var state) && state.Lifecycle == ResourceLifecycle.Ready)
-            {
-                return;
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
-                stoppingToken).ConfigureAwait(false);
-        }
     }
 
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
