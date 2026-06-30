@@ -40,10 +40,13 @@ internal sealed partial class QylOrchestrator(
         foreach (var r in resources) registry.Publish(r.Name, ResourceLifecycle.Pending);
 
         var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken)).ToArray();
-        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         try
         {
+            // WhenAll stays inside the try so that a cancellation observed during startup — a dependency
+            // wait or health poll seeing stoppingToken — still runs StopAllAsync instead of escaping past
+            // the finally and leaving already-started child processes orphaned.
+            await Task.WhenAll(tasks).ConfigureAwait(false);
             await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
