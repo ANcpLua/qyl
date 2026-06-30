@@ -46,6 +46,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .Select(GeneratorPipelineHelpers.IsQylRuntimeReferenced)
             .WithTrackingName(PipelineStage.QylRuntimeCheck);
 
+        var otelAutoInstrumentationAvailable = context.CompilationProvider
+            .Select(GeneratorPipelineHelpers.IsOtelAutoInstrumentationReferenced)
+            .WithTrackingName(PipelineStage.OtelAutoInstrumentationCheck);
+
         var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(CouldBeBuildInvocation, ExtractBuilderCallSite)
             .WhereNotNull()
@@ -53,7 +57,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var builderInput = builderCallSites.CollectAsEquatableArray()
             .Combine(runtimeAvailable)
-            .Select(static (input, _) => new BuilderInterceptorInput(input.Left, input.Right));
+            .Combine(otelAutoInstrumentationAvailable)
+            .Select(static (input, _) =>
+                new BuilderInterceptorInput(input.Left.Left, input.Left.Right, input.Right));
 
         context.RegisterSourceOutput(builderInput, EmitBuilderInterceptors);
     }
@@ -96,11 +102,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         if (!input.QylRuntimeAvailable)
             return;
 
-        var source = GenerateBuilderInterceptorSource(input.CallSites.AsImmutableArray());
+        var source = GenerateBuilderInterceptorSource(
+            input.CallSites.AsImmutableArray(),
+            input.OtelAutoInstrumentationAvailable);
         context.AddSource(BuilderInterceptorsFile, SourceText.From(source, Encoding.UTF8));
     }
 
-    private static string GenerateBuilderInterceptorSource(ImmutableArray<BuilderCallSite> callSites)
+    private static string GenerateBuilderInterceptorSource(
+        ImmutableArray<BuilderCallSite> callSites,
+        bool otelAutoInstrumentationAvailable)
     {
         var sb = new StringBuilder();
 
@@ -114,7 +124,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         foreach (var callSite in callSites.OrderBy(static c => c.SortKey, StringComparer.Ordinal))
         {
             if (callSite.Kind is BuilderCallKind.Build)
-                AppendBuildInterceptorMethod(sb, callSite, index);
+                AppendBuildInterceptorMethod(sb, callSite, index, otelAutoInstrumentationAvailable);
             index++;
         }
 
@@ -122,10 +132,22 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static void AppendBuildInterceptorMethod(StringBuilder sb, BuilderCallSite callSite, int index)
+    private static void AppendBuildInterceptorMethod(
+        StringBuilder sb,
+        BuilderCallSite callSite,
+        int index,
+        bool otelAutoInstrumentationAvailable)
     {
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
+
+        // When Qyl.OpenTelemetry.AutoInstrumentation is referenced, route the build through its
+        // QylInterceptedAspNetCore.Build wrapper (build + OTel middleware) so this stays the single
+        // interceptor on the call site. The consumer opts the OTel generator out of Build() so the
+        // two do not collide (CS9153). Without the package, build the host directly.
+        var buildExpression = otelAutoInstrumentationAvailable
+            ? $"global::{GeneratorPipelineHelpers.QylInterceptedAspNetCoreTypeName}.Build(builder)"
+            : "builder.Build()";
 
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
@@ -137,7 +159,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHostedServices(builder.Services);
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylServices(builder.Services);
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHealthChecks(builder.Services);
-                                    var app = builder.Build();
+                                    var app = {{buildExpression}};
                                     app.MapQylDefaultEndpoints();
                                     return app;
                                 }
@@ -147,10 +169,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static class PipelineStage
     {
         public const string QylRuntimeCheck = nameof(QylRuntimeCheck);
+        public const string OtelAutoInstrumentationCheck = nameof(OtelAutoInstrumentationCheck);
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
     }
 
     private readonly record struct BuilderInterceptorInput(
         EquatableArray<BuilderCallSite> CallSites,
-        bool QylRuntimeAvailable);
+        bool QylRuntimeAvailable,
+        bool OtelAutoInstrumentationAvailable);
 }
