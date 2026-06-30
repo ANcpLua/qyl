@@ -33,6 +33,16 @@ internal sealed partial class QylOrchestrator(
         Message = "Resource '{Name}' failed to start: {Reason}")]
     private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
 
+    // Child stdout/stderr are drained on a Debug channel so they never block the child's pipe buffer
+    // while staying out of the Spectre.Console live table at the default Information level.
+    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStdout, Level = LogLevel.Debug,
+        Message = "[{Name}] {Line}")]
+    private static partial void LogChildStdout(ILogger logger, string name, string line);
+
+    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStderr, Level = LogLevel.Debug,
+        Message = "[{Name}] {Line}")]
+    private static partial void LogChildStderr(ILogger logger, string name, string line);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         LogBoot(logger, resources.Count);
@@ -102,9 +112,42 @@ internal sealed partial class QylOrchestrator(
             foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
             startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
 
-            var process = Process.Start(startInfo) ??
-                          throw new InvalidOperationException($"Process.Start returned null for '{resource.Name}'");
+            var process = new Process { StartInfo = startInfo };
+            if (options.Value.CaptureChildOutput)
+            {
+                var childName = resource.Name;
+                process.OutputDataReceived += (_, e) =>
+                {
+                    if (e.Data is { } line) LogChildStdout(logger, childName, line);
+                };
+                process.ErrorDataReceived += (_, e) =>
+                {
+                    if (e.Data is { } line) LogChildStderr(logger, childName, line);
+                };
+            }
+
+            try
+            {
+                if (!process.Start())
+                {
+                    throw new InvalidOperationException($"Process.Start returned false for '{resource.Name}'");
+                }
+            }
+            catch
+            {
+                process.Dispose();
+                throw;
+            }
+
             _processes[resource.Name] = process;
+
+            // Begin draining both pipes immediately: a redirected stream that is never read fills the OS
+            // pipe buffer and blocks the child on write, so it would never reach its health endpoint.
+            if (options.Value.CaptureChildOutput)
+            {
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+            }
 
             if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
             {
