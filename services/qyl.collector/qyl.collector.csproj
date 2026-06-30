@@ -67,7 +67,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Official OpenTelemetry OTLP proto inputs pinned from opentelemetry-proto v1.8.0. -->
     <Protobuf Include="Protos/opentelemetry/proto/common/v1/common.proto" ProtoRoot="Protos" GrpcServices="None"/>
     <Protobuf Include="Protos/opentelemetry/proto/resource/v1/resource.proto" ProtoRoot="Protos" GrpcServices="None"/>
     <Protobuf Include="Protos/opentelemetry/proto/trace/v1/trace.proto" ProtoRoot="Protos" GrpcServices="None"/>
