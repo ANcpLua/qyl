@@ -13,6 +13,7 @@ internal sealed partial class QylOrchestrator(
     QylResourceRegistry registry,
     IOptions<QylAppOptions> options,
     IHttpClientFactory httpClientFactory,
+    QylProcessLauncher launcher,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
@@ -32,16 +33,6 @@ internal sealed partial class QylOrchestrator(
     [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error,
         Message = "Resource '{Name}' failed to start: {Reason}")]
     private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
-
-    // Child stdout/stderr are drained on a Debug channel so they never block the child's pipe buffer
-    // while staying out of the Spectre.Console live table at the default Information level.
-    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStdout, Level = LogLevel.Debug,
-        Message = "[{Name}] {Line}")]
-    private static partial void LogChildStdout(ILogger logger, string name, string line);
-
-    [LoggerMessage(EventId = QylConstants.LogEvents.ChildStderr, Level = LogLevel.Debug,
-        Message = "[{Name}] {Line}")]
-    private static partial void LogChildStderr(ILogger logger, string name, string line);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -83,70 +74,13 @@ internal sealed partial class QylOrchestrator(
             var endpoint =
                 new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost, port));
 
-            if (string.IsNullOrEmpty(resource.Launch.Executable))
+            // A resource with no executable is an already-running external endpoint we only health-probe;
+            // otherwise the launcher spawns a child process whose lifecycle we own via _processes.
+            Process? process = null;
+            if (!string.IsNullOrEmpty(resource.Launch.Executable))
             {
-                if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
-                {
-                    registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
-                    LogReady(logger, resource.Name, endpoint);
-                }
-                else
-                {
-                    registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
-                        "Health probe timed out for external endpoint");
-                }
-
-                return;
-            }
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = resource.Launch.Executable,
-                WorkingDirectory = resource.Launch.WorkingDirectory ?? string.Empty,
-                RedirectStandardOutput = options.Value.CaptureChildOutput,
-                RedirectStandardError = options.Value.CaptureChildOutput,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            foreach (var arg in resource.Launch.Args) startInfo.ArgumentList.Add(arg);
-            foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
-            startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
-
-            var process = new Process { StartInfo = startInfo };
-            if (options.Value.CaptureChildOutput)
-            {
-                var childName = resource.Name;
-                process.OutputDataReceived += (_, e) =>
-                {
-                    if (e.Data is { } line) LogChildStdout(logger, childName, line);
-                };
-                process.ErrorDataReceived += (_, e) =>
-                {
-                    if (e.Data is { } line) LogChildStderr(logger, childName, line);
-                };
-            }
-
-            try
-            {
-                if (!process.Start())
-                {
-                    throw new InvalidOperationException($"Process.Start returned false for '{resource.Name}'");
-                }
-            }
-            catch
-            {
-                process.Dispose();
-                throw;
-            }
-
-            _processes[resource.Name] = process;
-
-            // Begin draining both pipes immediately: a redirected stream that is never read fills the OS
-            // pipe buffer and blocks the child on write, so it would never reach its health endpoint.
-            if (options.Value.CaptureChildOutput)
-            {
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                process = launcher.Launch(resource, endpoint);
+                _processes[resource.Name] = process;
             }
 
             if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
@@ -156,7 +90,10 @@ internal sealed partial class QylOrchestrator(
             }
             else
             {
-                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out");
+                var reason = process is null
+                    ? "Health probe timed out for external endpoint"
+                    : "Health probe timed out";
+                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, reason);
             }
         }
         catch (SocketException ex)
