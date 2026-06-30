@@ -51,7 +51,6 @@
   <!-- MSBuild property toggles for source generator pipelines -->
   <ItemGroup>
     <CompilerVisibleProperty Include="QylGenAi"/>
-    <CompilerVisibleProperty Include="QylDatabase"/>
     <CompilerVisibleProperty Include="QylAgent"/>
   </ItemGroup>
 

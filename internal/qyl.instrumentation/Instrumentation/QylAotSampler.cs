@@ -23,8 +23,6 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// head-sampling decision or the trace tree breaks) and override the mode's root default in both
 /// <see cref="ObservabilityMode.AlwaysOn"/> and <see cref="ObservabilityMode.Warm"/> —
 /// <see cref="ObservabilityMode.OnDemand"/> drops everything first, so they are ignored there.
-/// To suppress a noisy <i>child</i> span use the compile-time
-/// <see cref="QylNoTraceAttribute"/>/<see cref="QylSampleAttribute"/> lever instead.
 /// </remarks>
 public sealed class QylAotSampler : Sampler
 {
