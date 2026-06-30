@@ -13,7 +13,6 @@
          C# forbids two interceptors per call site (CS9153), so hand Build() to ServiceDefaults — which
          composes QylInterceptedAspNetCore.Build — and opt the OTel generator out of intercepting Build(). -->
     <QylAutoInstrumentationInterceptWebApplicationBuilderBuild>false</QylAutoInstrumentationInterceptWebApplicationBuilderBuild>
-    <QylDatabase>false</QylDatabase>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -59,10 +58,6 @@
     <PackageReference Include="Qyl.Api.Contracts"/>
     <PackageReference Include="Qyl.OpenTelemetry.AutoInstrumentation"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <CompilerVisibleProperty Include="QylDatabase"/>
   </ItemGroup>
 
   <!-- Source generators (compile-time only) -->

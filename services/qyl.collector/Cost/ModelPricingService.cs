@@ -3,7 +3,6 @@ namespace Qyl.Collector.Cost;
 [QylService(QylLifetime.Singleton)]
 internal sealed partial class ModelPricingService(IQylStore store, ILogger<ModelPricingService> logger)
 {
-    private readonly Lock _lock = new();
     private FrozenDictionary<string, ModelPricingRow> _cache = FrozenDictionary<string, ModelPricingRow>.Empty;
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -18,6 +17,11 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
     }
 
     public double? ComputeCost(string? provider, string? model, long? inputTokens, long? outputTokens)
+        => ComputeCost(Volatile.Read(ref _cache), provider, model, inputTokens, outputTokens);
+
+    private static double? ComputeCost(
+        FrozenDictionary<string, ModelPricingRow> cache,
+        string? provider, string? model, long? inputTokens, long? outputTokens)
     {
         if (provider is null || model is null)
             return null;
@@ -26,10 +30,10 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
             return null;
 
         var key = MakeCacheKey(provider, model);
-        if (!_cache.TryGetValue(key, out var pricing))
+        if (!cache.TryGetValue(key, out var pricing))
         {
             key = MakeCacheKey("*", model);
-            if (!_cache.TryGetValue(key, out pricing))
+            if (!cache.TryGetValue(key, out pricing))
                 return null;
         }
 
@@ -41,6 +45,7 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
 
     public SpanBatch EnrichBatchWithCost(SpanBatch batch)
     {
+        var cache = Volatile.Read(ref _cache);
         var spans = batch.Spans;
         List<SpanStorageRow>? enriched = null;
 
@@ -48,6 +53,7 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
         {
             var span = spans[i];
             var cost = ComputeCost(
+                cache,
                 span.GenAiProviderName, span.GenAiRequestModel,
                 span.GenAiInputTokens, span.GenAiOutputTokens);
 
@@ -74,10 +80,7 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
         foreach (var entry in entries)
             cache.TryAdd(MakeCacheKey(entry.Provider, entry.Model), entry);
 
-        lock (_lock)
-        {
-            _cache = cache.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-        }
+        Volatile.Write(ref _cache, cache.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase));
 
         LogPricingCacheRefreshed(cache.Count);
     }

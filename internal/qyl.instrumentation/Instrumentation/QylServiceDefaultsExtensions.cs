@@ -350,8 +350,6 @@ public sealed class QylOptions
     /// on background jobs. Overrides the mode's root default in both <see cref="ObservabilityMode.AlwaysOn"/>
     /// and <see cref="ObservabilityMode.Warm"/> (so a Warm root that would otherwise be dropped can be
     /// re-enabled per operation); ignored in <see cref="ObservabilityMode.OnDemand"/>, which drops all.
-    /// For suppressing noisy CHILD db spans use the compile-time
-    /// <see cref="QylNoTraceAttribute"/>/<see cref="QylSampleAttribute"/> lever instead.
     /// </summary>
     public Dictionary<string, double> DbOperationSampleRatios { get; } = [];
 }
