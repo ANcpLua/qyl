@@ -61,10 +61,7 @@ internal sealed partial class QylOrchestrator(
 
     private async Task StartResourceAsync(QylResource resource, CancellationToken stoppingToken)
     {
-        foreach (var depName in resource.WaitForNames)
-        {
-            await WaitForReadyAsync(depName, stoppingToken).ConfigureAwait(false);
-        }
+        await registry.WhenAllReadyAsync(resource.WaitForNames, stoppingToken).ConfigureAwait(false);
 
         try
         {
@@ -121,20 +118,6 @@ internal sealed partial class QylOrchestrator(
     {
         LogFailed(logger, resource.Name, ex.Message, ex);
         registry.Publish(resource.Name, ResourceLifecycle.Failed, lastError: ex.Message);
-    }
-
-    private async Task WaitForReadyAsync(string name, CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            if (registry.Snapshot.TryGetValue(name, out var state) && state.Lifecycle == ResourceLifecycle.Ready)
-            {
-                return;
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
-                stoppingToken).ConfigureAwait(false);
-        }
     }
 
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
