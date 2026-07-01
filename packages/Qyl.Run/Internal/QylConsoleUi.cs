@@ -95,6 +95,23 @@ internal sealed class QylConsoleUi(
 
     private async Task HandleKeysAsync(CancellationToken stoppingToken)
     {
+        // Non-interactive host (CI, piped stdout, detached, `dotnet run` capture): Console.KeyAvailable
+        // throws on redirected input, so there is no keyboard control surface. Idle until shutdown and let
+        // the /runner API + live table be the surface.
+        if (Console.IsInputRedirected)
+        {
+            try
+            {
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // shutdown requested
+            }
+
+            return;
+        }
+
         AnsiConsole.MarkupLine(Footer);
 
         while (!stoppingToken.IsCancellationRequested)
