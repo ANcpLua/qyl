@@ -106,5 +106,6 @@ public static class QylConstants
         public const int RunnerApiRequestFailed = 1109;
         public const int ContainerStarted = 1110;
         public const int ContainerStopped = 1111;
+        public const int ContainerLogFollowerFailed = 1112;
     }
 }

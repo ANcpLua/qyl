@@ -16,6 +16,7 @@ namespace Qyl.Run.Internal;
 // Binding failure is non-fatal: the Spectre TUI remains the primary control surface.
 internal sealed partial class QylRunnerApi(
     QylResourceRegistry registry,
+    QylLogStore logStore,
     IOptions<QylAppOptions> options,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
@@ -82,18 +83,36 @@ internal sealed partial class QylRunnerApi(
             }
 
             var path = (context.Request.Url?.AbsolutePath ?? string.Empty).TrimEnd('/');
-            if (path.EndsWith("/resources/stream", StringComparison.Ordinal))
+            const string resourcesRoot = QylConstants.Routes.Runner + "/resources";
+            if (!path.StartsWith(resourcesRoot, StringComparison.Ordinal))
             {
-                await StreamAsync(context, stoppingToken).ConfigureAwait(false);
+                NotFound(context);
+                return;
             }
-            else if (path.EndsWith("/resources", StringComparison.Ordinal))
+
+            var rest = path[resourcesRoot.Length..].Trim('/');
+            switch (rest)
             {
-                await SnapshotAsync(context).ConfigureAwait(false);
+                case "":
+                    await SnapshotAsync(context).ConfigureAwait(false);
+                    return;
+                case "stream":
+                    await StreamAsync(context, stoppingToken).ConfigureAwait(false);
+                    return;
+            }
+
+            var segments = rest.Split('/');
+            if (segments is [var resourceName, "logs"])
+            {
+                await LogSnapshotAsync(context, resourceName).ConfigureAwait(false);
+            }
+            else if (segments is [var streamResource, "logs", "stream"])
+            {
+                await LogStreamAsync(context, streamResource, stoppingToken).ConfigureAwait(false);
             }
             else
             {
-                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                context.Response.Close();
+                NotFound(context);
             }
         }
         catch (OperationCanceledException)
@@ -123,6 +142,66 @@ internal sealed partial class QylRunnerApi(
         context.Response.Headers["Cache-Control"] = "no-store";
         context.Response.ContentLength64 = payload.Length;
         await context.Response.OutputStream.WriteAsync(payload).ConfigureAwait(false);
+        context.Response.Close();
+    }
+
+    private async Task LogSnapshotAsync(HttpListenerContext context, string resource)
+    {
+        QylLogLine[] lines = [.. logStore.Snapshot(resource)];
+        var payload = JsonSerializer.SerializeToUtf8Bytes(lines, QylRunnerJsonContext.Default.QylLogLineArray);
+
+        context.Response.ContentType = "application/json";
+        context.Response.Headers["Cache-Control"] = "no-store";
+        context.Response.ContentLength64 = payload.Length;
+        await context.Response.OutputStream.WriteAsync(payload).ConfigureAwait(false);
+        context.Response.Close();
+    }
+
+    private async Task LogStreamAsync(HttpListenerContext context, string resource, CancellationToken stoppingToken)
+    {
+        context.Response.ContentType = "text/event-stream";
+        context.Response.Headers["Cache-Control"] = "no-cache";
+        context.Response.SendChunked = true;
+
+        using var subscription = logStore.Subscribe(resource);
+        var stream = context.Response.OutputStream;
+
+        try
+        {
+            foreach (var line in logStore.Snapshot(resource))
+            {
+                await WriteFrameAsync(stream,
+                    JsonSerializer.Serialize(line, QylRunnerJsonContext.Default.QylLogLine), stoppingToken)
+                    .ConfigureAwait(false);
+            }
+
+            await foreach (var line in subscription.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            {
+                await WriteFrameAsync(stream,
+                    JsonSerializer.Serialize(line, QylRunnerJsonContext.Default.QylLogLine), stoppingToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or IOException)
+        {
+            // client disconnected or the runner is shutting down — end the stream quietly
+        }
+        finally
+        {
+            try
+            {
+                context.Response.Close();
+            }
+            catch (Exception)
+            {
+                // connection already torn down
+            }
+        }
+    }
+
+    private static void NotFound(HttpListenerContext context)
+    {
+        context.Response.StatusCode = (int)HttpStatusCode.NotFound;
         context.Response.Close();
     }
 
@@ -171,9 +250,12 @@ internal sealed partial class QylRunnerApi(
         return [.. registry.Snapshot.Values.OrderBy(static s => s.Name, StringComparer.Ordinal)];
     }
 
-    private static async Task WriteEventAsync(Stream stream, QylResourceState state, CancellationToken cancellationToken)
+    private static Task WriteEventAsync(Stream stream, QylResourceState state, CancellationToken cancellationToken) =>
+        WriteFrameAsync(stream, JsonSerializer.Serialize(state, QylRunnerJsonContext.Default.QylResourceState),
+            cancellationToken);
+
+    private static async Task WriteFrameAsync(Stream stream, string json, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(state, QylRunnerJsonContext.Default.QylResourceState);
         var frame = Encoding.UTF8.GetBytes($"data: {json}\n\n");
         await stream.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -195,4 +277,6 @@ internal sealed partial class QylRunnerApi(
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(QylResourceState))]
 [JsonSerializable(typeof(QylResourceState[]))]
+[JsonSerializable(typeof(QylLogLine))]
+[JsonSerializable(typeof(QylLogLine[]))]
 internal sealed partial class QylRunnerJsonContext : JsonSerializerContext;

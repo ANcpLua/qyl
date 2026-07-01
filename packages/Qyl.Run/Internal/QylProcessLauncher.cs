@@ -5,7 +5,10 @@ namespace Qyl.Run.Internal;
 
 // Spawns a child process for a launchable resource and keeps its redirected stdout/stderr drained.
 // The orchestrator owns the returned process's lifecycle (tracking + shutdown); this type only starts it.
-internal sealed partial class QylProcessLauncher(IOptions<QylAppOptions> options, ILogger<QylProcessLauncher> logger)
+internal sealed partial class QylProcessLauncher(
+    IOptions<QylAppOptions> options,
+    QylLogStore logStore,
+    ILogger<QylProcessLauncher> logger)
 {
     // Child stdout/stderr are drained on a Debug channel so they never block the child's pipe buffer
     // while staying out of the Spectre.Console live table at the default Information level.
@@ -41,11 +44,15 @@ internal sealed partial class QylProcessLauncher(IOptions<QylAppOptions> options
             var childName = resource.Name;
             process.OutputDataReceived += (_, e) =>
             {
-                if (e.Data is { } line) LogChildStdout(logger, childName, line);
+                if (e.Data is not { } line) return;
+                LogChildStdout(logger, childName, line);
+                logStore.Append(childName, isError: false, line);
             };
             process.ErrorDataReceived += (_, e) =>
             {
-                if (e.Data is { } line) LogChildStderr(logger, childName, line);
+                if (e.Data is not { } line) return;
+                LogChildStderr(logger, childName, line);
+                logStore.Append(childName, isError: true, line);
             };
         }
 

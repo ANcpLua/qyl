@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 
 namespace Qyl.Run.Internal;
@@ -8,7 +9,7 @@ namespace Qyl.Run.Internal;
 //
 // Host ports are assigned atomically by the runtime (`-p 127.0.0.1:0:<containerPort>`, then read back with
 // `port`), which side-steps the allocate-then-bind race that DCP-style pre-allocation is prone to.
-internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher> logger)
+internal sealed partial class QylContainerLauncher(QylLogStore logStore, ILogger<QylContainerLauncher> logger)
 {
     public async Task<QylContainerHandle> StartAsync(QylResource resource,
         IReadOnlyDictionary<string, string> referenceEnv, CancellationToken cancellationToken)
@@ -64,8 +65,64 @@ internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher>
                        throw new InvalidOperationException(
                            $"Could not read the mapped host port for container '{resource.Name}'.");
 
-        LogContainerStarted(logger, resource.Name, runtime, hostPort);
-        return new QylContainerHandle(runtime, name, containerId, hostPort);
+        var follower = StartLogFollower(runtime, name, resource.Name);
+        try
+        {
+            LogContainerStarted(logger, resource.Name, runtime, hostPort);
+            var handle = new QylContainerHandle(runtime, name, containerId, hostPort, follower);
+            follower = null; // ownership transferred to the handle (disposed in StopAsync)
+            return handle;
+        }
+        finally
+        {
+            follower?.Dispose();
+        }
+    }
+
+    // Stream the container's stdout/stderr into the log store via `docker logs -f`. Best-effort: the
+    // container is already running, so a failed follower must not fail the resource. The follower ends on
+    // its own when the container is removed, and is killed explicitly on teardown.
+    private Process? StartLogFollower(string runtime, string containerName, string resourceName)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = runtime,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("logs");
+        startInfo.ArgumentList.Add("-f");
+        startInfo.ArgumentList.Add("--tail");
+        startInfo.ArgumentList.Add("100");
+        startInfo.ArgumentList.Add(containerName);
+
+        var process = new Process { StartInfo = startInfo };
+        process.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data is { } line) logStore.Append(resourceName, isError: false, line);
+        };
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is { } line) logStore.Append(resourceName, isError: true, line);
+        };
+
+        try
+        {
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            return process;
+        }
+        catch (Win32Exception ex)
+        {
+            // The container is already running; only its log follower could not start. Surface it and
+            // degrade gracefully (logs unavailable) rather than failing the resource or swallowing silently.
+            process.Dispose();
+            LogLogFollowerFailed(logger, resourceName, ex.Message);
+            return null;
+        }
     }
 
     // Readiness = the container reached and holds the running state. Generic containers (redis, postgres, …)
@@ -92,6 +149,20 @@ internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher>
 
     public async Task StopAsync(QylContainerHandle handle, CancellationToken cancellationToken)
     {
+        if (handle.LogFollower is { } follower)
+        {
+            try
+            {
+                if (!follower.HasExited) follower.Kill(true);
+            }
+            catch (InvalidOperationException)
+            {
+                // follower already exited
+            }
+
+            follower.Dispose();
+        }
+
         await RunAsync(handle.Runtime, ["rm", "-f", handle.ContainerName], cancellationToken).ConfigureAwait(false);
         LogContainerStopped(logger, handle.ContainerName, handle.Runtime);
     }
@@ -154,7 +225,12 @@ internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher>
         Message = "Container '{ContainerName}' removed via {Runtime}")]
     private static partial void LogContainerStopped(ILogger logger, string containerName, string runtime);
 
+    [LoggerMessage(EventId = QylConstants.LogEvents.ContainerLogFollowerFailed, Level = LogLevel.Warning,
+        Message = "Log follower for container '{Name}' could not start; logs unavailable: {Reason}")]
+    private static partial void LogLogFollowerFailed(ILogger logger, string name, string reason);
+
     private readonly record struct CliResult(int ExitCode, string StdOut, string StdErr);
 }
 
-internal sealed record QylContainerHandle(string Runtime, string ContainerName, string ContainerId, int HostPort);
+internal sealed record QylContainerHandle(
+    string Runtime, string ContainerName, string ContainerId, int HostPort, Process? LogFollower);

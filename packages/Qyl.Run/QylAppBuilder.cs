@@ -88,6 +88,7 @@ public sealed class QylAppBuilder
         Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe)
             .AddStandardResilienceHandler();
         Host.Services.AddSingleton<QylResourceRegistry>();
+        Host.Services.AddSingleton<QylLogStore>();
         Host.Services.AddSingleton<QylProcessLauncher>();
         Host.Services.AddSingleton<QylContainerLauncher>();
         Host.Services.AddHostedService<QylOrchestrator>();

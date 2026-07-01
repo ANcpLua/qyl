@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useResources } from "./useResources";
+import { useLogs } from "./useLogs";
 import type { ResourceLifecycle } from "./types";
 
 const DOT: Record<ResourceLifecycle, string> = {
@@ -12,6 +14,8 @@ const DOT: Record<ResourceLifecycle, string> = {
 
 export default function App() {
   const { resources, connection } = useResources();
+  const [selected, setSelected] = useState<string | null>(null);
+  const logs = useLogs(selected);
 
   return (
     <main className="app">
@@ -36,7 +40,11 @@ export default function App() {
           </thead>
           <tbody>
             {resources.map((r) => (
-              <tr key={r.name}>
+              <tr
+                key={r.name}
+                className={r.name === selected ? "row selected" : "row"}
+                onClick={() => setSelected(r.name === selected ? null : r.name)}
+              >
                 <td className="name">{r.name}</td>
                 <td>
                   <span className="dot" style={{ background: DOT[r.lifecycle] }} />
@@ -51,7 +59,12 @@ export default function App() {
                 <td>{r.allocatedPort ?? "—"}</td>
                 <td>
                   {r.endpoint ? (
-                    <a href={r.endpoint} target="_blank" rel="noreferrer">
+                    <a
+                      href={r.endpoint}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {r.endpoint}
                     </a>
                   ) : (
@@ -62,6 +75,30 @@ export default function App() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {selected ? (
+        <section className="logs">
+          <div className="logs-head">
+            <span>
+              logs · <strong>{selected}</strong>
+            </span>
+            <button className="logs-close" onClick={() => setSelected(null)}>
+              ✕
+            </button>
+          </div>
+          <div className="logs-body">
+            {logs.length === 0
+              ? "— no output yet —"
+              : logs.map((l, i) => (
+                  <div key={i} className={l.stream === "err" ? "logline err-line" : "logline"}>
+                    {l.line}
+                  </div>
+                ))}
+          </div>
+        </section>
+      ) : (
+        resources.length > 0 && <p className="hint">Click a resource to stream its logs.</p>
       )}
     </main>
   );

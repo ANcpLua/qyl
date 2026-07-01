@@ -11,3 +11,9 @@ export interface ResourceState {
   endpoint: string | null;
   lastError: string | null;
 }
+
+export interface LogLine {
+  resource: string;
+  stream: "out" | "err";
+  line: string;
+}
