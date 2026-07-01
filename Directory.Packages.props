@@ -81,7 +81,7 @@
          the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
          When #4424 merges these PackageReference rows swap to the upstream id — type identities
          preserved, so consumer code keeps compiling. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="4.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="4.0.3"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.1.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.1.0"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
