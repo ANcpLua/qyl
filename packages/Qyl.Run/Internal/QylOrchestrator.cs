@@ -88,7 +88,7 @@ internal sealed partial class QylOrchestrator(
             Process? process = null;
             if (!string.IsNullOrEmpty(resource.Launch.Executable))
             {
-                process = launcher.Launch(resource, endpoint);
+                process = launcher.Launch(resource, endpoint, BuildReferenceEnv(resource));
                 _processes[resource.Name] = process;
             }
 
@@ -131,7 +131,8 @@ internal sealed partial class QylOrchestrator(
 
     private async Task StartContainerResourceAsync(QylResource resource, CancellationToken stoppingToken)
     {
-        var handle = await containerLauncher.StartAsync(resource, stoppingToken).ConfigureAwait(false);
+        var handle = await containerLauncher.StartAsync(resource, BuildReferenceEnv(resource), stoppingToken)
+            .ConfigureAwait(false);
         _containers[resource.Name] = handle;
 
         var endpoint = new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost,
@@ -148,6 +149,44 @@ internal sealed partial class QylOrchestrator(
             registry.Publish(resource.Name, ResourceLifecycle.Failed, handle.HostPort, endpoint,
                 "Container did not reach running state");
         }
+    }
+
+    // Env-based service discovery: for each referenced resource that is already resolved (we WaitFor them),
+    // publish its endpoint into this resource's environment using Aspire's services__<name>__<ep>__<index>
+    // convention, and wire a referenced collector as the dependent's OTLP endpoint.
+    private Dictionary<string, string> BuildReferenceEnv(QylResource resource)
+    {
+        var env = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var referenceName in resource.References)
+        {
+            if (!registry.Snapshot.TryGetValue(referenceName, out var state) || state.Endpoint is null)
+            {
+                continue;
+            }
+
+            var url = state.Endpoint.ToString();
+            env[$"services__{referenceName}__default__0"] = url;
+
+            if (IsCollector(referenceName))
+            {
+                env[QylConstants.Env.OtelExporterOtlpEndpoint] = url;
+            }
+        }
+
+        return env;
+    }
+
+    private bool IsCollector(string name)
+    {
+        foreach (var resource in resources)
+        {
+            if (string.Equals(resource.Name, name, StringComparison.Ordinal))
+            {
+                return string.Equals(resource.Kind, QylConstants.ResourceKinds.Collector, StringComparison.Ordinal);
+            }
+        }
+
+        return false;
     }
 
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)

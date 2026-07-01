@@ -17,6 +17,9 @@ public sealed record QylResource
 
     public ReadOnlyCollection<string> WaitForNames { get; init; } = ReadOnlyCollection<string>.Empty;
 
+    // Resources whose resolved endpoint is injected into this resource's environment (service discovery).
+    public ReadOnlyCollection<string> References { get; init; } = ReadOnlyCollection<string>.Empty;
+
     public string? Description { get; init; }
 
     // Non-null for container resources: the orchestrator drives an OCI runtime instead of the process launcher.

@@ -10,7 +10,8 @@ namespace Qyl.Run.Internal;
 // `port`), which side-steps the allocate-then-bind race that DCP-style pre-allocation is prone to.
 internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher> logger)
 {
-    public async Task<QylContainerHandle> StartAsync(QylResource resource, CancellationToken cancellationToken)
+    public async Task<QylContainerHandle> StartAsync(QylResource resource,
+        IReadOnlyDictionary<string, string> referenceEnv, CancellationToken cancellationToken)
     {
         var spec = resource.Container ??
                    throw new InvalidOperationException($"Resource '{resource.Name}' has no container spec.");
@@ -27,6 +28,12 @@ internal sealed partial class QylContainerLauncher(ILogger<QylContainerLauncher>
             string.Create(CultureInfo.InvariantCulture, $"{QylConstants.Network.Loopback}:0:{spec.ContainerPort}")
         };
         foreach (var kv in spec.Env)
+        {
+            arguments.Add("-e");
+            arguments.Add($"{kv.Key}={kv.Value}");
+        }
+
+        foreach (var kv in referenceEnv)
         {
             arguments.Add("-e");
             arguments.Add($"{kv.Key}={kv.Value}");

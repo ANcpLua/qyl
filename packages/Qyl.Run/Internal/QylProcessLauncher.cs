@@ -19,7 +19,7 @@ internal sealed partial class QylProcessLauncher(IOptions<QylAppOptions> options
 
     // Starts the process synchronously and returns it already draining. Ownership transfers to the caller:
     // on success the caller must track and dispose it; on failure this method disposes before throwing.
-    public Process Launch(QylResource resource, Uri endpoint)
+    public Process Launch(QylResource resource, Uri endpoint, IReadOnlyDictionary<string, string> referenceEnv)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -32,6 +32,7 @@ internal sealed partial class QylProcessLauncher(IOptions<QylAppOptions> options
         };
         foreach (var arg in resource.Launch.Args) startInfo.ArgumentList.Add(arg);
         foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
+        foreach (var kv in referenceEnv) startInfo.Environment[kv.Key] = kv.Value;
         startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
 
         var process = new Process { StartInfo = startInfo };
