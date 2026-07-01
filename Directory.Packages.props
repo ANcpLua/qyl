@@ -45,7 +45,7 @@
     <!-- Transitive security override: Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which
          has GHSA-v5pm-xwqc-g5wc (NU1903, high). 2.7.5 is the first patched 2.x. Not functionally exercised
          (collector runs with EnableOpenApi=false); this only lifts the transitive off the vulnerable range. -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.9.0"/>
+    <PackageVersion Include="Microsoft.OpenApi" Version="3.7.0"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
