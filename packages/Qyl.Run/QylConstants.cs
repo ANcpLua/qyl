@@ -26,6 +26,15 @@ public static class QylConstants
         public const string Dashboard = "dashboard";
         public const string Collector = "collector";
         public const string Project = "project";
+        public const string Container = "container";
+    }
+
+    public static class Container
+    {
+        public const string Docker = "docker";
+        public const string Podman = "podman";
+        public const string NamePrefix = "qyl-run-";
+        public const int RunningPollIntervalMs = 300;
     }
 
     public static class Environments
@@ -49,6 +58,7 @@ public static class QylConstants
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
         public const string OtelExporterOtlpEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT";
+        public const string ContainerRuntime = "QYL_CONTAINER_RUNTIME";
     }
 
     public static class Routes
@@ -94,5 +104,7 @@ public static class QylConstants
         public const int RunnerApiListening = 1107;
         public const int RunnerApiBindFailed = 1108;
         public const int RunnerApiRequestFailed = 1109;
+        public const int ContainerStarted = 1110;
+        public const int ContainerStopped = 1111;
     }
 }

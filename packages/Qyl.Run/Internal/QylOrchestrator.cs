@@ -14,6 +14,7 @@ internal sealed partial class QylOrchestrator(
     IOptions<QylAppOptions> options,
     IHttpClientFactory httpClientFactory,
     QylProcessLauncher launcher,
+    QylContainerLauncher containerLauncher,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
@@ -21,6 +22,8 @@ internal sealed partial class QylOrchestrator(
         CompositeFormat.Parse(QylConstants.Network.LocalhostUrlTemplate);
 
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
+
+    private readonly ConcurrentDictionary<string, QylContainerHandle> _containers = new(StringComparer.Ordinal);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
         Message = "qyl.run orchestrator booting with {Count} resource(s)")]
@@ -66,6 +69,12 @@ internal sealed partial class QylOrchestrator(
         try
         {
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
+
+            if (resource.Container is not null)
+            {
+                await StartContainerResourceAsync(resource, stoppingToken).ConfigureAwait(false);
+                return;
+            }
 
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
                 ? PortAllocator.ClaimFreePort(options.Value.RunnerHost)
@@ -120,6 +129,27 @@ internal sealed partial class QylOrchestrator(
         registry.Publish(resource.Name, ResourceLifecycle.Failed, lastError: ex.Message);
     }
 
+    private async Task StartContainerResourceAsync(QylResource resource, CancellationToken stoppingToken)
+    {
+        var handle = await containerLauncher.StartAsync(resource, stoppingToken).ConfigureAwait(false);
+        _containers[resource.Name] = handle;
+
+        var endpoint = new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost,
+            handle.HostPort));
+
+        if (await QylContainerLauncher.WaitForRunningAsync(handle, options.Value.StartupTimeoutSeconds, stoppingToken)
+                .ConfigureAwait(false))
+        {
+            registry.Publish(resource.Name, ResourceLifecycle.Ready, handle.HostPort, endpoint);
+            LogReady(logger, resource.Name, endpoint);
+        }
+        else
+        {
+            registry.Publish(resource.Name, ResourceLifecycle.Failed, handle.HostPort, endpoint,
+                "Container did not reach running state");
+        }
+    }
+
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
     {
         using var client = httpClientFactory.CreateClient(QylConstants.HttpClients.HealthProbe);
@@ -169,6 +199,25 @@ internal sealed partial class QylOrchestrator(
 
             registry.Publish(name, ResourceLifecycle.Stopped);
             process.Dispose();
+        }
+
+        foreach (var (name, handle) in _containers)
+        {
+            registry.Publish(name, ResourceLifecycle.Stopping);
+            try
+            {
+                await containerLauncher.StopAsync(handle, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Win32Exception)
+            {
+                // runtime CLI vanished — best-effort teardown
+            }
+            catch (InvalidOperationException)
+            {
+                // container already gone — nothing to clean up
+            }
+
+            registry.Publish(name, ResourceLifecycle.Stopped);
         }
 
         registry.Complete();
