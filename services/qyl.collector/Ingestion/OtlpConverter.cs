@@ -137,6 +137,46 @@ internal static class OtlpConverter
         return attributes;
     }
 
+    // CODE RED #4: OTLP span Events (including OTel exception events) and Links were dropped on ingest.
+    // Capture them here so ingest -> storage -> span-detail API preserves them.
+    private static IReadOnlyDictionary<string, OtlpAttributeValue> ConvertSpanChildAttributes(
+        RepeatedField<ProtoKeyValue> protoAttributes)
+    {
+        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        foreach (var attr in protoAttributes)
+        {
+            if (string.IsNullOrEmpty(attr.Key) || !AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key))
+                continue;
+
+            var value = ConvertProtoAnyValue(attr.Value);
+            if (value is not null) attributes[attr.Key] = value;
+        }
+
+        return attributes;
+    }
+
+    private static IReadOnlyList<SpanEventIngest> BuildSpanEvents(ProtoSpan span)
+    {
+        if (span.Events.Count is 0) return [];
+
+        var events = new List<SpanEventIngest>(span.Events.Count);
+        foreach (var e in span.Events)
+            events.Add(new SpanEventIngest(e.Name ?? "", e.TimeUnixNano, ConvertSpanChildAttributes(e.Attributes)));
+
+        return events;
+    }
+
+    private static IReadOnlyList<SpanLinkIngest> BuildSpanLinks(ProtoSpan span)
+    {
+        if (span.Links.Count is 0) return [];
+
+        var links = new List<SpanLinkIngest>(span.Links.Count);
+        foreach (var l in span.Links)
+            links.Add(new SpanLinkIngest(ToHex(l.TraceId) ?? "", ToHex(l.SpanId) ?? "", ConvertSpanChildAttributes(l.Attributes)));
+
+        return links;
+    }
+
     private static OtlpAttributeValue? ConvertProtoAnyValue(ProtoAnyValue? value)
     {
         if (value is null) return null;
@@ -199,10 +239,13 @@ internal static class OtlpConverter
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
             StatusCode = span.Status is not null ? (int)span.Status.Code : null,
+            StatusMessage = string.IsNullOrEmpty(span.Status?.Message) ? null : span.Status.Message,
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
-            SchemaUrl = schemaUrl
+            SchemaUrl = schemaUrl,
+            Events = BuildSpanEvents(span),
+            Links = BuildSpanLinks(span)
         };
 
     #endregion

@@ -15,7 +15,10 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
-        schema_url = EXCLUDED.schema_url
+        schema_url = EXCLUDED.schema_url,
+        status_message = EXCLUDED.status_message,
+        events_json = EXCLUDED.events_json,
+        links_json = EXCLUDED.links_json
     """)]
 internal sealed partial record SpanStorageRow
 {
@@ -54,6 +57,14 @@ internal sealed partial record SpanStorageRow
 
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
+
+    // CODE RED #4: previously dropped on ingest — status message + events (incl. exception events) + links.
+    [DuckDbColumn(SqlType = "VARCHAR")]
+    public string? StatusMessage { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? EventsJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? LinksJson { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
     public DateTimeOffset? CreatedAt { get; init; }

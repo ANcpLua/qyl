@@ -63,7 +63,10 @@ internal static class IngestionStorageMapper
             GenAiToolName = projection.GenAiToolName,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes),
             ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(span.ResourceAttributes),
-            SchemaUrl = span.SchemaUrl
+            SchemaUrl = span.SchemaUrl,
+            StatusMessage = span.StatusMessage,
+            EventsJson = SpanChildStorage.SerializeEvents(span.Events),
+            LinksJson = SpanChildStorage.SerializeLinks(span.Links)
         };
     }
 

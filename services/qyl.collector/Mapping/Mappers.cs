@@ -75,7 +75,8 @@ internal static class SpanMapper
             r.Name, r.Kind, r.StatusCode,
             r.StartTimeUnixNano, r.EndTimeUnixNano, r.DurationNs,
             r.ServiceName,
-            r.AttributesJson, r.ResourceJson, r.SchemaUrl))
+            r.AttributesJson, r.ResourceJson, r.SchemaUrl,
+            r.StatusMessage, r.EventsJson, r.LinksJson))
     ];
 
     public static TraceContract ToTrace(string traceId, IReadOnlyList<Span> spans)
@@ -118,12 +119,52 @@ internal static class SpanMapper
             _ => SpanStatusCode.Unset
         };
 
+    // CODE RED #4: rehydrate the span's events (incl. exception events) and links from storage.
+    private static IReadOnlyList<SpanEvent> MapEvents(string? eventsJson)
+    {
+        var stored = SpanChildStorage.DeserializeEvents(eventsJson);
+        if (stored is null || stored.Count is 0) return [];
+
+        var result = new List<SpanEvent>(stored.Count);
+        foreach (var e in stored)
+        {
+            result.Add(new SpanEvent
+            {
+                Name = e.Name,
+                TimeUnixNano = e.TimeUnixNano,
+                Attributes = ContractJson.ParseAttributes(e.AttributesJson)
+            });
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<SpanLink> MapLinks(string? linksJson)
+    {
+        var stored = SpanChildStorage.DeserializeLinks(linksJson);
+        if (stored is null || stored.Count is 0) return [];
+
+        var result = new List<SpanLink>(stored.Count);
+        foreach (var l in stored)
+        {
+            result.Add(new SpanLink
+            {
+                TraceId = l.TraceId,
+                SpanId = l.SpanId,
+                Attributes = ContractJson.ParseAttributes(l.AttributesJson)
+            });
+        }
+
+        return result;
+    }
+
     private static Span ToContractCore(
         string traceId, string spanId, string? parentSpanId, string? sessionId,
         string name, byte kind, byte statusCode,
         ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs,
         string? serviceName,
-        string? attributesJson, string? resourceJson, string? schemaUrl)
+        string? attributesJson, string? resourceJson, string? schemaUrl,
+        string? statusMessage, string? eventsJson, string? linksJson)
     {
         _ = sessionId;
         _ = durationNs;
@@ -140,11 +181,12 @@ internal static class SpanMapper
             StartTimeUnixNano = startTimeUnixNano,
             EndTimeUnixNano = endTimeUnixNano,
             Attributes = attributes,
-            Events = [],
-            Links = [],
+            Events = MapEvents(eventsJson),
+            Links = MapLinks(linksJson),
             Status = new SpanStatus
             {
-                Code = MapStatus(statusCode)
+                Code = MapStatus(statusCode),
+                Message = statusMessage
             },
             Resource = new Resource
             {
