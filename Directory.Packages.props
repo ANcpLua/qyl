@@ -42,6 +42,10 @@
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
+    <!-- Transitive security override: Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which
+         has GHSA-v5pm-xwqc-g5wc (NU1903, high). 2.7.5 is the first patched 2.x. Not functionally exercised
+         (collector runs with EnableOpenApi=false); this only lifts the transitive off the vulnerable range. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
@@ -74,7 +78,7 @@
          the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
          When #4424 merges these PackageReference rows swap to the upstream id — type identities
          preserved, so consumer code keeps compiling. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="3.1.2"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="4.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.1.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.1.0"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
