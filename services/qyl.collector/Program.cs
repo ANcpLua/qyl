@@ -2,7 +2,6 @@ using Qyl.Collector;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Telemetry;
 using Qyl.Instrumentation.Instrumentation;
-using Qyl.OpenTelemetry.AutoInstrumentation;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -25,9 +24,6 @@ var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
 builder.Services.AddQylCollectorStorage();
 builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
 builder.Services.AddQylCollectorTelemetry(builder.Environment);
-// Server-request spans: 4.0.0 injects the middleware via IStartupFilter (the Build() interceptor that
-// used to wire it is gone), so register it explicitly. ServiceDefaults owns Build() alone now — no CS9153.
-builder.Services.AddQylAspNetCoreInstrumentation();
 builder.WebHost.ConfigureQylCollectorKestrel(ports);
 
 var app = builder.Build();
