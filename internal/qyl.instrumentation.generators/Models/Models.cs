@@ -4,16 +4,6 @@ namespace Qyl.Instrumentation.Generators.Models;
 
 #region Composition Definitions
 
-internal sealed record HostedServiceDefinition(
-    string TypeFullyQualifiedName,
-    string SortKey);
-
-internal sealed record MapEndpointsDefinition(
-    string ContainingTypeFullyQualifiedName,
-    string MethodName,
-    int Order,
-    string SortKey);
-
 internal sealed record QylServiceDefinition(
     string TypeFullyQualifiedName,
     string LifetimeMethodName,
