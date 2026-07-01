@@ -14,20 +14,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 {
     private const string BuilderInterceptorsFile = "Intercepts.g.cs";
 
-    // Fail fast (QYL0138): if a WebApplicationBuilder.Build() call site exists and the Qyl runtime is
-    // referenced but Qyl.OpenTelemetry.AutoInstrumentation is not, we do NOT emit a degraded interceptor
-    // that silently drops the OTel middleware — we surface a build error instead. Nothing is swallowed.
-    private static readonly DiagnosticDescriptor MissingAutoInstrumentation = new(
-        "QYL0138",
-        "Qyl.OpenTelemetry.AutoInstrumentation package is required",
-        "A WebApplicationBuilder.Build() call site was found and the Qyl runtime is referenced, but "
-        + "Qyl.OpenTelemetry.AutoInstrumentation is not. The Build() auto-instrumentation interceptor was "
-        + "not generated. Add <PackageReference Include=\"Qyl.OpenTelemetry.AutoInstrumentation\" /> so the "
-        + "OTel middleware is wired, or remove the Qyl runtime dependency.",
-        "Qyl.Instrumentation",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     private const string InterceptsLocationAttributeDeclaration = """
                                                                   using Qyl.Instrumentation;
 
@@ -60,10 +46,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .Select(GeneratorPipelineHelpers.IsQylRuntimeReferenced)
             .WithTrackingName(PipelineStage.QylRuntimeCheck);
 
-        var otelAutoInstrumentationAvailable = context.CompilationProvider
-            .Select(GeneratorPipelineHelpers.IsOtelAutoInstrumentationReferenced)
-            .WithTrackingName(PipelineStage.OtelAutoInstrumentationCheck);
-
         var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(CouldBeBuildInvocation, ExtractBuilderCallSite)
             .WhereNotNull()
@@ -71,9 +53,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var builderInput = builderCallSites.CollectAsEquatableArray()
             .Combine(runtimeAvailable)
-            .Combine(otelAutoInstrumentationAvailable)
             .Select(static (input, _) =>
-                new BuilderInterceptorInput(input.Left.Left, input.Left.Right, input.Right));
+                new BuilderInterceptorInput(input.Left, input.Right));
 
         context.RegisterSourceOutput(builderInput, EmitBuilderInterceptors);
     }
@@ -120,15 +101,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         if (callSites.IsEmpty)
             return;
 
-        if (!input.OtelAutoInstrumentationAvailable)
-        {
-            // Fail fast rather than silently emitting an interceptor that builds the host without the OTel
-            // middleware wrapper. Reported once (Location.None) — it is a missing-package configuration
-            // error, not a per-call-site code error.
-            context.ReportDiagnostic(Diagnostic.Create(MissingAutoInstrumentation, Location.None));
-            return;
-        }
-
         var source = GenerateBuilderInterceptorSource(callSites);
         context.AddSource(BuilderInterceptorsFile, SourceText.From(source, Encoding.UTF8));
     }
@@ -163,13 +135,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
 
-        // Route the build through Qyl.OpenTelemetry.AutoInstrumentation's QylInterceptedAspNetCore.Build
-        // wrapper (build + OTel middleware) so this stays the single interceptor on the call site. The
-        // consumer opts the OTel generator out of Build() so the two do not collide (CS9153). The package
-        // is guaranteed present here — EmitBuilderInterceptors raises QYL0138 when it is absent, so there
-        // is no silent no-OTel fallback.
-        var buildExpression = $"global::{GeneratorPipelineHelpers.QylInterceptedAspNetCoreTypeName}.Build(builder)";
-
+        // Wire qyl ServiceDefaults (conventions, generated service + health-check registration, and
+        // default endpoints) at the single WebApplicationBuilder.Build() call site, then build the host.
+        // The OTel ASP.NET Core server-span middleware is registered independently via
+        // AddQylAspNetCoreInstrumentation() (an IStartupFilter), so this interceptor no longer composes it
+        // and no longer contends with the OTel package for the Build() call site (the CS9153 collision that
+        // the old QylInterceptedAspNetCore.Build wrapper + opt-out property existed to work around).
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -178,7 +149,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                 {
                                     builder.TryUseQylConventions();
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHealthChecks(builder.Services);
-                                    var app = {{buildExpression}};
+                                    var app = builder.Build();
                                     app.MapQylDefaultEndpoints();
                                     return app;
                                 }
@@ -188,12 +159,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static class PipelineStage
     {
         public const string QylRuntimeCheck = nameof(QylRuntimeCheck);
-        public const string OtelAutoInstrumentationCheck = nameof(OtelAutoInstrumentationCheck);
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
     }
 
     private readonly record struct BuilderInterceptorInput(
         EquatableArray<BuilderCallSite> CallSites,
-        bool QylRuntimeAvailable,
-        bool OtelAutoInstrumentationAvailable);
+        bool QylRuntimeAvailable);
 }
