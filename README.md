@@ -56,9 +56,9 @@ AOT-safe compile-time interceptors + `DiagnosticListener`, not a CLR profiler) i
 it in; `Qyl.OpenTelemetry.SemanticConventions` is the emitted vocabulary; and `qyl.collector`
 is the backend that receives the signals.
 
-The OTel-conformant target (roles, the AOT automatic-instrumentation method, a
-signals-per-library conformance matrix, and the gaps to close — notably the **logs** signal)
-is specified in **[`docs/observability.md`](docs/observability.md)**.
+The OTel role mapping, the AOT automatic-instrumentation method, and the signal coverage
+(all three signals — traces, metrics, logs — implemented and NativeAOT-verified across the
+60-item contract) are documented in **[`docs/observability.md`](docs/observability.md)**.
 
 ## Run Locally
 

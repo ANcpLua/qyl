@@ -1,11 +1,12 @@
 # Observability & Instrumentation (OpenTelemetry)
 
-> **Status of this document.** This is the **OpenTelemetry-conformant target** for qyl's
-> instrumentation, written to the ideal OTel guidelines so implementation can catch up to
-> it. Cells and checklist items are marked: **✅ shipped/verified · 🟡 partial · 🎯 not yet
-> (implement or verify)**. When a cell is uncertain it is marked 🎯 on purpose — the gap is
-> the next task. Do not "downgrade" a 🎯 to ✅ without evidence in the code; do not claim a
-> capability the source does not have.
+> **Status of this document.** A vocabulary + role map that pins qyl's instrumentation to the
+> official OpenTelemetry guidelines. It describes **current, honestly-tracked state** — not
+> aspirational targets. The per-item source of truth is the *generated* coverage matrix in the
+> `Qyl.OpenTelemetry.AutoInstrumentation` repo (derived from a contract whose only statuses are
+> `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot` — there is no
+> "planned" state, by design: "missing values stay missing; never synthesize"). Do not add a
+> capability here that the contract/code does not have.
 
 qyl is an OpenTelemetry-native observability platform. This document pins the vocabulary to
 the [OpenTelemetry glossary](https://opentelemetry.io/docs/concepts/glossary/) and maps each
@@ -51,51 +52,34 @@ runtime IL emission).
 Explicitly **out of scope** because they break AOT: CLR-profiler / IL-rewriting, runtime
 monkey-patching, and reflection-heavy dynamic proxies.
 
-## Conformance matrix (target)
+## Signal coverage
 
-Rows are **Instrumented Libraries**; columns are the three OTel signals. This is the
-OTel-conformant target — the ideal is **all three signals** for every instrumented library.
+The generic Instrumentation Library — [`Qyl.OpenTelemetry.AutoInstrumentation`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation) — implements **all three OpenTelemetry signals** across the full 60-item OTel .NET auto-instrumentation contract, verified under NativeAOT:
 
-| Instrumented Library | Traces | Metrics | Logs | Notes |
-|---|:--:|:--:|:--:|---|
-| HttpClient | ✅ | 🎯 | 🎯 | BCL `HttpHandlerDiagnosticListener`. |
-| ASP.NET Core | ✅ | ✅ | 🎯 | Kestrel/framework listener; metrics demo shipped. |
-| EF Core | ✅ | 🎯 | 🎯 | `EntityFrameworkCoreDiagnosticListener`. |
-| SqlClient (`Microsoft.Data.SqlClient`) | ✅ | 🎯 | 🎯 | Source interceptor. |
-| gRPC client | ✅ | 🎯 | 🎯 | `GrpcClientDiagnosticListener`. |
-| GraphQL | 🟡 | 🎯 | 🎯 | Option toggle present (`QylAutoInstrumentationOptions`); verify coverage. |
-| Oracle MDA | 🎯 | 🎯 | 🎯 | Option toggle present; implement/verify. |
-| GenAI (`IChatClient`) | 🟡 | 🎯 | 🎯 | `qyl.instrumentation` GenAI; align to OTel **GenAI** semconv. |
-| Agents (MAF) | ✅ | 🎯 | 🎯 | `invoke_agent` / `execute_tool` spans. |
+- **Traces** — HttpClient, ASP.NET Core, EF Core, SqlClient, gRPC, Kafka, RabbitMQ, MongoDB, Redis, Quartz, MassTransit, NServiceBus, MySQL, Npgsql, SQLite, Oracle MDA, Elasticsearch, GraphQL, Azure SDK.
+- **Metrics** — ASP.NET Core, HttpClient, .NET runtime, process, Npgsql, NServiceBus, SqlClient.
+- **Logs** — `ILogger`, log4net, NLog.
 
-> **Primary gap for the next contributor: the Logs signal.** No instrumented library above
-> emits the OpenTelemetry **logs** signal yet — bridging `ILogger`/library logs into OTLP
-> logs (with trace correlation) is the highest-leverage OTel-conformance work. After that:
-> fill the Metrics column and confirm GraphQL/Oracle traces. Verify every cell against the
-> code before promoting it to ✅.
+> The **authoritative, per-item coverage matrix is generated** in that repo (`docs/coverage-matrix.md`, from the contract) — qyl does not keep a second copy. Each row carries lane, status, call-site visibility, payload access, and evidence, anchored to the official OpenTelemetry source. That generated matrix is the source of truth; this page only summarizes it.
 
-## Ideal OTel-conformance checklist
+The only items **not** implemented are the ones that are **structurally impossible** under the NativeAOT / source-generator substrate (reflection-required): classic ASP.NET (Framework), WCF (Core/Service), and ASP.NET Framework metrics — marked `unsupported_nativeaot`. These are boundaries, not a backlog.
 
-Treat each unchecked item as a target for the instrumentation libraries:
+The **domain layer** (`internal/qyl.instrumentation`) adds what the generic library cannot know: **GenAI** (`IChatClient`) and **agent inventory** telemetry for qyl's own workload.
 
-- 🎯 **All three signals** (traces, metrics, logs) per instrumented library — see matrix.
-- 🎯 **Instrumentation Scope naming** — every Tracer/Meter/Logger is created with a `name`
-  = the instrumentation library identifier and a `version` = its package version, so each
-  scope is unambiguous. See below.
-- ✅ **Semantic conventions** — emit stable conventions by default; incubating opt-in via the
-  `.Incubating` package. Keep pinned to a known semconv version (currently v1.41.0).
-- 🎯 **Resource attributes** — `service.name` / `service.version` / `service.instance.id`
-  and `telemetry.sdk.*` set on every signal.
-- 🎯 **Context propagation** — W3C Trace Context / Baggage across HttpClient/gRPC boundaries.
-- ✅ **Opt-in / no surprise telemetry** — nothing emitted unless enabled; per-signal toggles.
-- ✅ **Privacy by default** — no raw prompts, headers, query strings, or PII unless explicitly
-  opted in (`QylAutoInstrumentationOptions` redaction; agent sensitive-data off by default).
-- ✅ **Zero source changes** — `PackageReference`-only automatic instrumentation.
-- ✅ **AOT-clean** — no CLR profiler / IL rewrite / runtime monkey-patch; interceptor-based.
+## Guarantees the instrumentation library holds
+
+Grounded in its contract + `AGENTS.md` (do not overstate these; they are current, not aspirational):
+
+- **All three signals** shipped and NativeAOT-verified — the contract has no "planned" state; every item is `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot`.
+- **Semantic conventions** — emitted against `Qyl.OpenTelemetry.SemanticConventions` (stable; incubating opt-in), pinned to OTel semconv **v1.41.0**.
+- **Never synthesize** — "missing values stay missing"; qyl never invents a value the instrumented library did not expose.
+- **Privacy by default** — URLs/query values redacted per key; `db.query.text` behind upstream flags; agent sensitive-data off by default.
+- **Zero source changes** — `PackageReference`-only.
+- **AOT-clean** — no CLR profiler / IL rewrite / runtime monkey-patch; compile-time `[InterceptsLocation]` interceptors + `DiagnosticListener`.
 
 ### Instrumentation Scope naming
 
-Per OTel, the scope `name` should identify the *instrumentation*, not the app. Target:
+Per OTel, the scope `name` identifies the *instrumentation*, not the app. In this stack:
 
 - Generic library scopes → the `Qyl.OpenTelemetry.AutoInstrumentation.*` identifiers
   (`QylActivityNames`), each with the package version.
