@@ -16,6 +16,7 @@
 
   <Folder Name="/packages/">
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
+    <Project Path="packages/Qyl.Run.Host/Qyl.Run.Host.csproj" />
   </Folder>
 
   <Folder Name="/services/">
