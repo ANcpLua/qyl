@@ -21,7 +21,22 @@ internal sealed record SpanIngestionRecord
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
     public string? SchemaUrl { get; init; }
+    public string? StatusMessage { get; init; }
+    public IReadOnlyList<SpanEventIngest> Events { get; init; } = [];
+    public IReadOnlyList<SpanLinkIngest> Links { get; init; } = [];
 }
+
+/// <summary>An OTLP span event captured at ingest (name, timestamp, attributes).</summary>
+internal sealed record SpanEventIngest(
+    string Name,
+    ulong TimeUnixNano,
+    IReadOnlyDictionary<string, OtlpAttributeValue> Attributes);
+
+/// <summary>An OTLP span link captured at ingest (linked trace/span, attributes).</summary>
+internal sealed record SpanLinkIngest(
+    string TraceId,
+    string SpanId,
+    IReadOnlyDictionary<string, OtlpAttributeValue> Attributes);
 
 internal sealed record LogIngestionRecord
 {
