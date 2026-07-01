@@ -60,6 +60,7 @@ public sealed class QylAppBuilder
         Host.Services.AddSingleton<QylProcessLauncher>();
         Host.Services.AddHostedService<QylOrchestrator>();
         Host.Services.AddHostedService<QylConsoleUi>();
+        Host.Services.AddHostedService<QylRunnerApi>();
         return new QylApp(Host.Build());
     }
 

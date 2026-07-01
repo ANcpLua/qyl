@@ -14,7 +14,8 @@ public static class QylConstants
 
     public static class Ports
     {
-        public const int Dashboard = 18888;
+        public const int RunnerApi = 18888;
+        public const int Dashboard = 5050;
         public const int OtlpGrpc = 4317;
         public const int OtlpHttp = 4318;
         public const int DynamicAllocation = 0;
@@ -90,5 +91,8 @@ public static class QylConstants
         public const int ResourceStopped = 1104;
         public const int ChildStdout = 1105;
         public const int ChildStderr = 1106;
+        public const int RunnerApiListening = 1107;
+        public const int RunnerApiBindFailed = 1108;
+        public const int RunnerApiRequestFailed = 1109;
     }
 }
