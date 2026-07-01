@@ -1,6 +1,5 @@
 namespace Qyl.Collector.Cost;
 
-[QylService(QylLifetime.Singleton)]
 internal sealed partial class ModelPricingService(IQylStore store, ILogger<ModelPricingService> logger)
 {
     private FrozenDictionary<string, ModelPricingRow> _cache = FrozenDictionary<string, ModelPricingRow>.Empty;
