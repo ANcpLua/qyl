@@ -8,7 +8,7 @@ public sealed class QylAppOptions
     public const string SectionName = "Qyl:Run";
 
     [Range(0, 65535, ErrorMessage = $"{SectionName}:{nameof(RunnerPort)} must be a valid TCP port (0 = auto-allocate)")]
-    public int RunnerPort { get; set; } = QylConstants.Ports.Dashboard;
+    public int RunnerPort { get; set; } = QylConstants.Ports.RunnerApi;
 
     [Required(ErrorMessage = $"{SectionName}:{nameof(RunnerHost)} is required")]
     public string RunnerHost { get; set; } = QylConstants.Network.Loopback;
