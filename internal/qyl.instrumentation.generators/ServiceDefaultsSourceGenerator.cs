@@ -14,6 +14,20 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 {
     private const string BuilderInterceptorsFile = "Intercepts.g.cs";
 
+    // Fail fast (QYL0138): if a WebApplicationBuilder.Build() call site exists and the Qyl runtime is
+    // referenced but Qyl.OpenTelemetry.AutoInstrumentation is not, we do NOT emit a degraded interceptor
+    // that silently drops the OTel middleware — we surface a build error instead. Nothing is swallowed.
+    private static readonly DiagnosticDescriptor MissingAutoInstrumentation = new(
+        "QYL0138",
+        "Qyl.OpenTelemetry.AutoInstrumentation package is required",
+        "A WebApplicationBuilder.Build() call site was found and the Qyl runtime is referenced, but "
+        + "Qyl.OpenTelemetry.AutoInstrumentation is not. The Build() auto-instrumentation interceptor was "
+        + "not generated. Add <PackageReference Include=\"Qyl.OpenTelemetry.AutoInstrumentation\" /> so the "
+        + "OTel middleware is wired, or remove the Qyl runtime dependency.",
+        "Qyl.Instrumentation",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private const string InterceptsLocationAttributeDeclaration = """
                                                                   using Qyl.Instrumentation;
 
@@ -102,15 +116,24 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         if (!input.QylRuntimeAvailable)
             return;
 
-        var source = GenerateBuilderInterceptorSource(
-            input.CallSites.AsImmutableArray(),
-            input.OtelAutoInstrumentationAvailable);
+        var callSites = input.CallSites.AsImmutableArray();
+        if (callSites.IsEmpty)
+            return;
+
+        if (!input.OtelAutoInstrumentationAvailable)
+        {
+            // Fail fast rather than silently emitting an interceptor that builds the host without the OTel
+            // middleware wrapper. Reported once (Location.None) — it is a missing-package configuration
+            // error, not a per-call-site code error.
+            context.ReportDiagnostic(Diagnostic.Create(MissingAutoInstrumentation, Location.None));
+            return;
+        }
+
+        var source = GenerateBuilderInterceptorSource(callSites);
         context.AddSource(BuilderInterceptorsFile, SourceText.From(source, Encoding.UTF8));
     }
 
-    private static string GenerateBuilderInterceptorSource(
-        ImmutableArray<BuilderCallSite> callSites,
-        bool otelAutoInstrumentationAvailable)
+    private static string GenerateBuilderInterceptorSource(ImmutableArray<BuilderCallSite> callSites)
     {
         var sb = new StringBuilder();
 
@@ -124,7 +147,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         foreach (var callSite in callSites.OrderBy(static c => c.SortKey, StringComparer.Ordinal))
         {
             if (callSite.Kind is BuilderCallKind.Build)
-                AppendBuildInterceptorMethod(sb, callSite, index, otelAutoInstrumentationAvailable);
+                AppendBuildInterceptorMethod(sb, callSite, index);
             index++;
         }
 
@@ -135,19 +158,17 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static void AppendBuildInterceptorMethod(
         StringBuilder sb,
         BuilderCallSite callSite,
-        int index,
-        bool otelAutoInstrumentationAvailable)
+        int index)
     {
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
 
-        // When Qyl.OpenTelemetry.AutoInstrumentation is referenced, route the build through its
-        // QylInterceptedAspNetCore.Build wrapper (build + OTel middleware) so this stays the single
-        // interceptor on the call site. The consumer opts the OTel generator out of Build() so the
-        // two do not collide (CS9153). Without the package, build the host directly.
-        var buildExpression = otelAutoInstrumentationAvailable
-            ? $"global::{GeneratorPipelineHelpers.QylInterceptedAspNetCoreTypeName}.Build(builder)"
-            : "builder.Build()";
+        // Route the build through Qyl.OpenTelemetry.AutoInstrumentation's QylInterceptedAspNetCore.Build
+        // wrapper (build + OTel middleware) so this stays the single interceptor on the call site. The
+        // consumer opts the OTel generator out of Build() so the two do not collide (CS9153). The package
+        // is guaranteed present here — EmitBuilderInterceptors raises QYL0138 when it is absent, so there
+        // is no silent no-OTel fallback.
+        var buildExpression = $"global::{GeneratorPipelineHelpers.QylInterceptedAspNetCoreTypeName}.Build(builder)";
 
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
