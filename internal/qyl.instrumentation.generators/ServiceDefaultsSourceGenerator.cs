@@ -177,7 +177,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                     this global::{{GeneratorPipelineHelpers.WebApplicationBuilderTypeName}} builder)
                                 {
                                     builder.TryUseQylConventions();
-                                    global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHostedServices(builder.Services);
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylServices(builder.Services);
                                     global::Qyl.Instrumentation.Generators.QylGeneratedRegistry.RegisterQylHealthChecks(builder.Services);
                                     var app = {{buildExpression}};

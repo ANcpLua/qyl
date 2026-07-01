@@ -16,22 +16,6 @@ public sealed class RegistryGenerator : IIncrementalGenerator
         var runtimeAvailable = context.CompilationProvider
             .Select(GeneratorPipelineHelpers.IsQylRuntimeReferenced);
 
-        var hostedServices = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                HostedServiceAnalyzer.HostedServiceAttributeMetadataName,
-                HostedServiceAnalyzer.CouldBeHostedServiceClass,
-                HostedServiceAnalyzer.Extract)
-            .WhereNotNull()
-            .WithTrackingName(nameof(RegistryGenerator) + ".HostedServices");
-
-        var mapEndpoints = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                MapEndpointsAnalyzer.MapEndpointsAttributeMetadataName,
-                MapEndpointsAnalyzer.CouldBeMapEndpointsMethod,
-                MapEndpointsAnalyzer.Extract)
-            .WhereNotNull()
-            .WithTrackingName(nameof(RegistryGenerator) + ".MapEndpoints");
-
         var services = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 QylServiceAnalyzer.QylServiceAttributeMetadataName,
@@ -48,9 +32,7 @@ public sealed class RegistryGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(nameof(RegistryGenerator) + ".HealthChecks");
 
-        var combined = hostedServices.CollectAsEquatableArray()
-            .Combine(mapEndpoints.CollectAsEquatableArray())
-            .Combine(services.CollectAsEquatableArray())
+        var combined = services.CollectAsEquatableArray()
             .Combine(healthChecks.CollectAsEquatableArray())
             .Combine(runtimeAvailable);
 
@@ -58,12 +40,10 @@ public sealed class RegistryGenerator : IIncrementalGenerator
             combined,
             static (spc, input) =>
             {
-                var ((((hosted, endpoints), svcs), health), runtime) = input;
+                var ((svcs, health), runtime) = input;
                 if (!runtime) return;
 
-                var source = HostedServiceEmitter.Emit(
-                    hosted.IsDefaultOrEmpty ? [] : hosted.AsImmutableArray(),
-                    endpoints.IsDefaultOrEmpty ? [] : endpoints.AsImmutableArray(),
+                var source = QylRegistryEmitter.Emit(
                     svcs.IsDefaultOrEmpty ? [] : svcs.AsImmutableArray(),
                     health.IsDefaultOrEmpty ? [] : health.AsImmutableArray());
 

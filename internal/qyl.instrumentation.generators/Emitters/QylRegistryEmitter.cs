@@ -3,20 +3,12 @@ using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
 
-internal static class HostedServiceEmitter
+internal static class QylRegistryEmitter
 {
     public static string Emit(
-        ImmutableArray<HostedServiceDefinition> hostedServices,
-        ImmutableArray<MapEndpointsDefinition> mapEndpoints,
         ImmutableArray<QylServiceDefinition> services,
         ImmutableArray<QylHealthCheckDefinition> healthChecks)
     {
-        var orderedHosted = hostedServices
-            .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
-            .ToImmutableArray();
-
-        var orderedEndpoints = SortMapEndpoints(mapEndpoints);
-
         var orderedServices = services
             .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
             .ToImmutableArray();
@@ -35,37 +27,13 @@ internal static class HostedServiceEmitter
             sb.AppendLine("internal static class QylGeneratedRegistry");
             using (sb.BeginBlock())
             {
-                EmitHostedServices(sb, orderedHosted);
-                sb.AppendLine();
                 EmitServices(sb, orderedServices);
                 sb.AppendLine();
                 EmitHealthChecks(sb, orderedHealthChecks);
-                sb.AppendLine();
-                EmitMapEndpoints(sb, orderedEndpoints);
             }
         }
 
         return sb.ToString();
-    }
-
-    private static void EmitHostedServices(
-        IndentedStringBuilder sb,
-        ImmutableArray<HostedServiceDefinition> ordered)
-    {
-        sb.AppendLine(
-            "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylHostedServices(");
-        sb.AppendLine(
-            "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
-        using (sb.BeginBlock())
-        {
-            foreach (var def in ordered)
-            {
-                sb.AppendLine(
-                    $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionHostedServiceExtensions.AddHostedService<{def.TypeFullyQualifiedName}>(services);");
-            }
-
-            sb.AppendLine("return services;");
-        }
     }
 
     private static void EmitServices(
@@ -120,42 +88,4 @@ internal static class HostedServiceEmitter
     }
 
     private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
-
-    private static IReadOnlyList<MapEndpointsDefinition> SortMapEndpoints(
-        ImmutableArray<MapEndpointsDefinition> mapEndpoints)
-    {
-        var ordered = new List<MapEndpointsDefinition>(mapEndpoints.Length);
-        foreach (var endpoint in mapEndpoints)
-            ordered.Add(endpoint);
-
-        ordered.Sort(CompareMapEndpoints);
-        return ordered;
-    }
-
-    private static int CompareMapEndpoints(MapEndpointsDefinition left, MapEndpointsDefinition right)
-    {
-        var orderComparison = left.Order.CompareTo(right.Order);
-        return orderComparison is not 0
-            ? orderComparison
-            : StringComparer.Ordinal.Compare(left.SortKey, right.SortKey);
-    }
-
-    private static void EmitMapEndpoints(
-        IndentedStringBuilder sb,
-        IReadOnlyList<MapEndpointsDefinition> ordered)
-    {
-        sb.AppendLine(
-            "public static global::Microsoft.AspNetCore.Builder.WebApplication MapQylGeneratedEndpoints(");
-        sb.AppendLine(
-            "    this global::Microsoft.AspNetCore.Builder.WebApplication app)");
-        using (sb.BeginBlock())
-        {
-            foreach (var def in ordered)
-            {
-                sb.AppendLine($"{def.ContainingTypeFullyQualifiedName}.{def.MethodName}(app);");
-            }
-
-            sb.AppendLine("return app;");
-        }
-    }
 }
