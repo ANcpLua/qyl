@@ -90,6 +90,7 @@ public static class QylConstants
         public const string ProjectFlag = "--project";
         public const int HealthPollIntervalMs = 500;
         public const int StartupTimeoutSeconds = 60;
+        public const int MaxRestarts = 3;
     }
 
     public static class LogEvents
@@ -99,6 +100,7 @@ public static class QylConstants
         public const int ResourceReady = 1102;
         public const int ResourceFailed = 1103;
         public const int ResourceStopped = 1104;
+        public const int ResourceRestarting = 1113;
         public const int ChildStdout = 1105;
         public const int ChildStderr = 1106;
         public const int RunnerApiListening = 1107;

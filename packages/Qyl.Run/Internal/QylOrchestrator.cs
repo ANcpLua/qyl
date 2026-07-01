@@ -37,6 +37,10 @@ internal sealed partial class QylOrchestrator(
         Message = "Resource '{Name}' failed to start: {Reason}")]
     private static partial void LogFailed(ILogger logger, string name, string reason, Exception? ex);
 
+    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceRestarting, Level = LogLevel.Warning,
+        Message = "Resource '{Name}' exited (code {ExitCode}); restarting (attempt {Attempt})")]
+    private static partial void LogRestarting(ILogger logger, string name, int exitCode, int attempt);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         LogBoot(logger, resources.Count);
@@ -96,6 +100,12 @@ internal sealed partial class QylOrchestrator(
             {
                 registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
                 LogReady(logger, resource.Name, endpoint);
+
+                // Own a launched process for the rest of its life: restart it if it crashes (bounded).
+                if (process is not null)
+                {
+                    await SuperviseProcessAsync(resource, process, port, endpoint, stoppingToken).ConfigureAwait(false);
+                }
             }
             else
             {
@@ -148,6 +158,62 @@ internal sealed partial class QylOrchestrator(
         {
             registry.Publish(resource.Name, ResourceLifecycle.Failed, handle.HostPort, endpoint,
                 "Container did not reach running state");
+        }
+    }
+
+    // Restart-on-crash for a launched process: while the runner is up, an unexpected exit is a crash — relaunch
+    // it (bounded by MaxRestarts) and re-probe health. Cancellation means shutdown, not a crash.
+    private async Task SuperviseProcessAsync(QylResource resource, Process process, int port, Uri endpoint,
+        CancellationToken stoppingToken)
+    {
+        var current = process;
+        var restarts = 0;
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await current.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (stoppingToken.IsCancellationRequested) return;
+
+            var exitCode = current.ExitCode;
+            current.Dispose();
+
+            if (restarts >= QylConstants.Orchestrator.MaxRestarts)
+            {
+                _processes.TryRemove(resource.Name, out _);
+                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
+                    $"Process exited (code {exitCode}); restart limit ({QylConstants.Orchestrator.MaxRestarts}) reached");
+                return;
+            }
+
+            restarts++;
+            LogRestarting(logger, resource.Name, exitCode, restarts);
+            registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
+                $"Process exited (code {exitCode}); restarting ({restarts}/{QylConstants.Orchestrator.MaxRestarts})");
+
+            try
+            {
+                current = launcher.Launch(resource, endpoint, BuildReferenceEnv(resource));
+                _processes[resource.Name] = current;
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or FileNotFoundException)
+            {
+                _processes.TryRemove(resource.Name, out _);
+                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, $"Restart failed: {ex.Message}");
+                return;
+            }
+
+            var healthy = await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false);
+            registry.Publish(resource.Name,
+                healthy ? ResourceLifecycle.Ready : ResourceLifecycle.Failed, port, endpoint,
+                healthy ? null : "Health probe timed out after restart");
         }
     }
 
