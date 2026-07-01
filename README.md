@@ -46,6 +46,20 @@ Public API shapes belong in `qyl-api-schema` and must flow into qyl through
 ingest wire types, and internal projections may exist only when they are not returned
 as the product API contract.
 
+## Observability & Instrumentation
+
+qyl uses OpenTelemetry terminology precisely. In OTel terms: the **Instrumentation Library**
+(the thing that makes other libraries observable via **Automatic Instrumentation** — here,
+AOT-safe compile-time interceptors + `DiagnosticListener`, not a CLR profiler) is
+[`Qyl.OpenTelemetry.AutoInstrumentation`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation);
+`internal/qyl.instrumentation` adds qyl's GenAI/agent **domain** instrumentation and composes
+it in; `Qyl.OpenTelemetry.SemanticConventions` is the emitted vocabulary; and `qyl.collector`
+is the backend that receives the signals.
+
+The OTel-conformant target (roles, the AOT automatic-instrumentation method, a
+signals-per-library conformance matrix, and the gaps to close — notably the **logs** signal)
+is specified in **[`docs/observability.md`](docs/observability.md)**.
+
 ## Run Locally
 
 ```bash
