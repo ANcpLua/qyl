@@ -23,10 +23,12 @@ internal sealed class QylConsoleUi(
             .Overflow(VerticalOverflow.Ellipsis)
             .StartAsync(async ctx =>
             {
+                // Subscribe first, then paint the snapshot: no event can slip between the two.
+                using var subscription = registry.Subscribe();
                 Repaint(table);
                 ctx.Refresh();
 
-                await foreach (var _ in registry.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+                await foreach (var _ in subscription.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
                 {
                     Repaint(table);
                     ctx.Refresh();
