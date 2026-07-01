@@ -4,12 +4,6 @@ namespace Qyl.Instrumentation.Generators.Models;
 
 #region Composition Definitions
 
-internal sealed record QylServiceDefinition(
-    string TypeFullyQualifiedName,
-    string LifetimeMethodName,
-    string? InterfaceFullyQualifiedName,
-    string SortKey);
-
 internal sealed record QylHealthCheckDefinition(
     string TypeFullyQualifiedName,
     string Name,

@@ -5,14 +5,8 @@ namespace Qyl.Instrumentation.Generators.Emitters;
 
 internal static class QylRegistryEmitter
 {
-    public static string Emit(
-        ImmutableArray<QylServiceDefinition> services,
-        ImmutableArray<QylHealthCheckDefinition> healthChecks)
+    public static string Emit(ImmutableArray<QylHealthCheckDefinition> healthChecks)
     {
-        var orderedServices = services
-            .OrderBy(static d => d.SortKey, StringComparer.Ordinal)
-            .ToImmutableArray();
-
         var orderedHealthChecks = healthChecks
             .OrderBy(static d => d.Name, StringComparer.Ordinal)
             .ToImmutableArray();
@@ -27,35 +21,11 @@ internal static class QylRegistryEmitter
             sb.AppendLine("internal static class QylGeneratedRegistry");
             using (sb.BeginBlock())
             {
-                EmitServices(sb, orderedServices);
-                sb.AppendLine();
                 EmitHealthChecks(sb, orderedHealthChecks);
             }
         }
 
         return sb.ToString();
-    }
-
-    private static void EmitServices(
-        IndentedStringBuilder sb,
-        ImmutableArray<QylServiceDefinition> ordered)
-    {
-        sb.AppendLine(
-            "public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection RegisterQylServices(");
-        sb.AppendLine(
-            "    this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
-        using (sb.BeginBlock())
-        {
-            foreach (var def in ordered)
-            {
-                var call = def.InterfaceFullyQualifiedName is null
-                    ? $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.TypeFullyQualifiedName}>(services);"
-                    : $"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.Add{def.LifetimeMethodName}<{def.InterfaceFullyQualifiedName}, {def.TypeFullyQualifiedName}>(services);";
-                sb.AppendLine(call);
-            }
-
-            sb.AppendLine("return services;");
-        }
     }
 
     private static void EmitHealthChecks(

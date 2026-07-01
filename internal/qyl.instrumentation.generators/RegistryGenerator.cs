@@ -16,14 +16,6 @@ public sealed class RegistryGenerator : IIncrementalGenerator
         var runtimeAvailable = context.CompilationProvider
             .Select(GeneratorPipelineHelpers.IsQylRuntimeReferenced);
 
-        var services = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                QylServiceAnalyzer.QylServiceAttributeMetadataName,
-                QylServiceAnalyzer.CouldBeQylServiceClass,
-                QylServiceAnalyzer.Extract)
-            .WhereNotNull()
-            .WithTrackingName(nameof(RegistryGenerator) + ".Services");
-
         var healthChecks = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 QylHealthCheckAnalyzer.QylHealthCheckAttributeMetadataName,
@@ -32,19 +24,17 @@ public sealed class RegistryGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(nameof(RegistryGenerator) + ".HealthChecks");
 
-        var combined = services.CollectAsEquatableArray()
-            .Combine(healthChecks.CollectAsEquatableArray())
+        var combined = healthChecks.CollectAsEquatableArray()
             .Combine(runtimeAvailable);
 
         context.RegisterSourceOutput(
             combined,
             static (spc, input) =>
             {
-                var ((svcs, health), runtime) = input;
+                var (health, runtime) = input;
                 if (!runtime) return;
 
                 var source = QylRegistryEmitter.Emit(
-                    svcs.IsDefaultOrEmpty ? [] : svcs.AsImmutableArray(),
                     health.IsDefaultOrEmpty ? [] : health.AsImmutableArray());
 
                 spc.AddSource(GeneratedFileName, SourceText.From(source, Encoding.UTF8));
