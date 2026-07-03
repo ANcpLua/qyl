@@ -119,7 +119,6 @@ internal static class SpanMapper
             _ => SpanStatusCode.Unset
         };
 
-    // CODE RED #4: rehydrate the span's events (incl. exception events) and links from storage.
     private static IReadOnlyList<SpanEvent> MapEvents(string? eventsJson)
     {
         var stored = SpanChildStorage.DeserializeEvents(eventsJson);

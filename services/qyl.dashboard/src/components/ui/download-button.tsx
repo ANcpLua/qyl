@@ -41,7 +41,6 @@ export function DownloadButton<T extends Record<string, unknown>>({
         try {
             const data = getData();
             if (data.length === 0) {
-                // Could show a toast here, but for now just skip
                 return;
             }
             downloadData(data, format, filenamePrefix, columns);

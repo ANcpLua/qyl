@@ -58,7 +58,6 @@ internal sealed partial record SpanStorageRow
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
 
-    // CODE RED #4: previously dropped on ingest — status message + events (incl. exception events) + links.
     [DuckDbColumn(SqlType = "VARCHAR")]
     public string? StatusMessage { get; init; }
     [DuckDbColumn(SqlType = "JSON")]

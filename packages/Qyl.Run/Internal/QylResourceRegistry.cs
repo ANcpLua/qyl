@@ -8,7 +8,7 @@ internal sealed class QylResourceRegistry(TimeProvider time)
 {
     // Broadcast fan-out: every subscriber (the Spectre TUI, an SSE endpoint, …) owns its own channel.
     // Publish records the latest state and mirrors the event into every subscriber's channel, so a second
-    // consumer never steals events from the first (the old single-reader channel could not be shared).
+    // consumer never steals events from the first.
     private readonly ConcurrentDictionary<Guid, Channel<QylResourceState>> _subscribers = new();
 
     private readonly ConcurrentDictionary<string, QylResourceState> _latest = new(StringComparer.Ordinal);
