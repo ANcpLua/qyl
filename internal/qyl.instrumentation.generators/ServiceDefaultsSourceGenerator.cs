@@ -138,9 +138,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Wire qyl ServiceDefaults (conventions, generated service + health-check registration, and
         // default endpoints) at the single WebApplicationBuilder.Build() call site, then build the host.
         // The OTel ASP.NET Core server-span middleware is registered independently via
-        // AddQylAspNetCoreInstrumentation() (an IStartupFilter), so this interceptor no longer composes it
-        // and no longer contends with the OTel package for the Build() call site (the CS9153 collision that
-        // the old QylInterceptedAspNetCore.Build wrapper + opt-out property existed to work around).
+        // AddQylAspNetCoreInstrumentation() (an IStartupFilter); composing it here would contend with the
+        // OTel package for the Build() call site (CS9153 duplicate interceptor).
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}

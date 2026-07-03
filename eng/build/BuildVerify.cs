@@ -2019,8 +2019,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "AttributeKeyPrefix",
                 "StartsWithOrdinal(QylCapabilityPrefix)",
                 "Paths.Any(path.StartsWithIgnoreCase)",
-                "status_message",
-                "span.Status?.Message",
                 "ProfileDataJson",
                 "profile_data_json",
                 "ProfileFrameType",

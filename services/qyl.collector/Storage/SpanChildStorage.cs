@@ -20,9 +20,8 @@ internal sealed class SpanLinkJson
 }
 
 /// <summary>
-/// Serializes a span's events and links to JSON for the spans row. Previously OTLP span Events (including
-/// OTel exception events) and Links were dropped on ingest (CODE RED #4); they are now persisted so the
-/// span-detail API can return them. Each child's attributes reuse the same safe-attribute JSON as the span.
+/// Serializes a span's events and links to JSON for the spans row. Each child's attributes reuse the
+/// same safe-attribute JSON as the span.
 /// </summary>
 internal static class SpanChildStorage
 {

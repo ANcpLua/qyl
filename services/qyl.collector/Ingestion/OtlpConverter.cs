@@ -137,8 +137,6 @@ internal static class OtlpConverter
         return attributes;
     }
 
-    // CODE RED #4: OTLP span Events (including OTel exception events) and Links were dropped on ingest.
-    // Capture them here so ingest -> storage -> span-detail API preserves them.
     private static IReadOnlyDictionary<string, OtlpAttributeValue> ConvertSpanChildAttributes(
         RepeatedField<ProtoKeyValue> protoAttributes)
     {

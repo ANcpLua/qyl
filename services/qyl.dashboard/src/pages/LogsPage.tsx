@@ -518,8 +518,6 @@ export function LogsPage() {
         const currentGen = logsBufferRef.current.generation;
         if (currentGen !== lastGenerationRef.current) {
             lastGenerationRef.current = currentGen;
-            // With composite keys, we don't need to clear expanded state anymore!
-            // Just remeasure since indices may have shifted
             rowVirtualizer.measure();
         }
     }, [logsVersion, rowVirtualizer]);

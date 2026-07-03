@@ -8,15 +8,6 @@ authoritative copy and all execution now live there:
 
 This stub remains so existing links into qyl don't 404.
 
-## What stays in qyl
-
-The flagship depends on these qyl assets — they stay here, not in the new repo:
-
-- **`qyl.conformance`** — the runtime verifier (declared-vs-observed diff engine,
-  `conformant` gate). The flagship's PR-7 wires `qyl verify` against it.
-- **`Qyl.Api.Contracts`** — the `TelemetryControlGraph` / `ConformanceReport` types
-  (published to nuget.org via `qyl-api-schema`) that the loop's reports round-trip through.
-
 ## Status
 
 Campaign live: building `typespec-agent-framework` through the PRD's PR-0→~PR-8
