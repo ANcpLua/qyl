@@ -53,7 +53,7 @@ npm run build        # tsc -b && vite build
 npm test             # vitest
 
 # Local distributed runner (collector + dashboard together)
-dotnet run --project packages/Qyl.Run
+dotnet run --project packages/Qyl.Run.Host
 ```
 
 ## Branches, commits, PRs
