@@ -13,10 +13,6 @@ public sealed class QylAppBuilder
     private QylAppBuilder(HostApplicationBuilder host)
     {
         Host = host;
-        Host.Services
-            .AddOptionsWithValidateOnStart<QylAppOptions>()
-            .BindConfiguration(QylAppOptions.SectionName)
-            .ValidateDataAnnotations();
     }
 
     public HostApplicationBuilder Host { get; }
@@ -83,11 +79,20 @@ public sealed class QylAppBuilder
 
     public QylApp Build()
     {
+        // Bound here, not in the ctor, so configuration sources added after Create() are still seen;
+        // FromConfiguration validates imperatively, keeping the fail-fast of the old ValidateOnStart
+        // without reflection-based binding. Retry policy for health probes lives in the orchestrator's
+        // poll loop; the client timeout only bounds a single attempt so a hung connect cannot eat the
+        // whole startup deadline.
+        Host.Services.AddSingleton(QylAppOptions.FromConfiguration(Host.Configuration));
         Host.Services.AddSingleton(TimeProvider.System);
         Host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));
-        Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe)
-            .AddStandardResilienceHandler();
+#pragma warning disable AL1105 // health probing IS the retry loop; a resilience pipeline here would double-retry and drags non-AOT config binding back in
+        Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe, static client =>
+            client.Timeout = TimeSpan.FromSeconds(QylConstants.Orchestrator.HealthProbeAttemptTimeoutSeconds));
+#pragma warning restore AL1105
         Host.Services.AddSingleton<QylResourceRegistry>();
+        Host.Services.AddSingleton<QylRestartRequests>();
         Host.Services.AddSingleton<QylLogStore>();
         Host.Services.AddSingleton<QylProcessLauncher>();
         Host.Services.AddSingleton<QylContainerLauncher>();
