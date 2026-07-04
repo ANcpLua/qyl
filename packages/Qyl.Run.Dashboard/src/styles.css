@@ -69,3 +69,50 @@ body {
 
 .grid a { color: var(--accent); text-decoration: none; }
 .grid a:hover { text-decoration: underline; }
+
+.grid tbody tr.row { cursor: pointer; }
+.grid tbody tr.row:hover { background: #151b26; }
+.grid tbody tr.selected { background: #16202e; }
+
+.hint { color: var(--muted); font-size: 0.82rem; margin-top: 1rem; }
+
+.logs {
+  margin-top: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.logs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.logs-head strong { color: var(--text); }
+
+.logs-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.logs-close:hover { color: var(--text); }
+
+.logs-body {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  max-height: 320px;
+  overflow: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.logline { white-space: pre-wrap; word-break: break-word; color: #c9d4e0; }
+.logline.err-line { color: #f87171; }

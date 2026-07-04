@@ -26,6 +26,15 @@ public static class QylConstants
         public const string Dashboard = "dashboard";
         public const string Collector = "collector";
         public const string Project = "project";
+        public const string Container = "container";
+    }
+
+    public static class Container
+    {
+        public const string Docker = "docker";
+        public const string Podman = "podman";
+        public const string NamePrefix = "qyl-run-";
+        public const int RunningPollIntervalMs = 300;
     }
 
     public static class Environments
@@ -49,6 +58,7 @@ public static class QylConstants
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
         public const string OtelExporterOtlpEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT";
+        public const string ContainerRuntime = "QYL_CONTAINER_RUNTIME";
     }
 
     public static class Routes
@@ -80,6 +90,7 @@ public static class QylConstants
         public const string ProjectFlag = "--project";
         public const int HealthPollIntervalMs = 500;
         public const int StartupTimeoutSeconds = 60;
+        public const int MaxRestarts = 3;
     }
 
     public static class LogEvents
@@ -89,10 +100,14 @@ public static class QylConstants
         public const int ResourceReady = 1102;
         public const int ResourceFailed = 1103;
         public const int ResourceStopped = 1104;
+        public const int ResourceRestarting = 1113;
         public const int ChildStdout = 1105;
         public const int ChildStderr = 1106;
         public const int RunnerApiListening = 1107;
         public const int RunnerApiBindFailed = 1108;
         public const int RunnerApiRequestFailed = 1109;
+        public const int ContainerStarted = 1110;
+        public const int ContainerStopped = 1111;
+        public const int ContainerLogFollowerFailed = 1112;
     }
 }

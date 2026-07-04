@@ -50,6 +50,37 @@ public sealed class QylAppBuilder
             environment, project, null, description);
     }
 
+    // A container resource: the orchestrator drives an OCI runtime (docker/podman) to run <image>, binds a
+    // host port to <containerPort>, and tracks it for teardown. Following Aspire's Executable+Container model
+    // without its container-client SDK — the runtime is driven via its CLI, which stays AOT-clean.
+    public IQylResourceBuilder AddContainer(string name, string image, int containerPort,
+        IReadOnlyDictionary<string, string>? env = null, string? description = null)
+    {
+        Guard.NotNullOrWhiteSpace(name);
+        Guard.NotNullOrWhiteSpace(image);
+
+        return Register(new QylResource
+        {
+            Name = name,
+            Kind = QylConstants.ResourceKinds.Container,
+            Environment = QylConstants.Environments.Dev,
+            Port = QylConstants.Ports.DynamicAllocation,
+            Launch = new QylLaunchSpec { Executable = string.Empty },
+            Container = new QylContainerSpec
+            {
+                Image = image,
+                ContainerPort = containerPort,
+                Env = env ?? new Dictionary<string, string>()
+            },
+            Description = description
+        });
+    }
+
+    public IQylResourceBuilder AddRedis(string name, string image = "redis:7-alpine", string? description = null)
+    {
+        return AddContainer(name, image, 6379, description: description);
+    }
+
     public QylApp Build()
     {
         Host.Services.AddSingleton(TimeProvider.System);
@@ -57,7 +88,9 @@ public sealed class QylAppBuilder
         Host.Services.AddHttpClient(QylConstants.HttpClients.HealthProbe)
             .AddStandardResilienceHandler();
         Host.Services.AddSingleton<QylResourceRegistry>();
+        Host.Services.AddSingleton<QylLogStore>();
         Host.Services.AddSingleton<QylProcessLauncher>();
+        Host.Services.AddSingleton<QylContainerLauncher>();
         Host.Services.AddHostedService<QylOrchestrator>();
         Host.Services.AddHostedService<QylConsoleUi>();
         Host.Services.AddHostedService<QylRunnerApi>();
@@ -68,12 +101,7 @@ public sealed class QylAppBuilder
         Uri? externalEndpoint, string? description)
     {
         Guard.NotNullOrWhiteSpace(name);
-        if (_resources.Any(r => string.Equals(r.Name, name, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException($"Resource '{name}' was already added; names must be unique.");
-        }
-
-        var resource = new QylResource
+        return Register(new QylResource
         {
             Name = name,
             Kind = kind,
@@ -81,12 +109,21 @@ public sealed class QylAppBuilder
             Port = port,
             Launch = BuildLaunchSpec(project, externalEndpoint, environment, name),
             Description = description
-        };
-        _resources.Add(resource);
-        return new QylResourceBuilder(this, resource, (oldR, newR) =>
+        });
+    }
+
+    private QylResourceBuilder Register(QylResource resource)
+    {
+        if (_resources.Any(r => string.Equals(r.Name, resource.Name, StringComparison.Ordinal)))
         {
-            var idx = _resources.IndexOf(oldR);
-            if (idx >= 0) _resources[idx] = newR;
+            throw new InvalidOperationException($"Resource '{resource.Name}' was already added; names must be unique.");
+        }
+
+        _resources.Add(resource);
+        return new QylResourceBuilder(this, resource, (oldResource, newResource) =>
+        {
+            var index = _resources.IndexOf(oldResource);
+            if (index >= 0) _resources[index] = newResource;
         });
     }
 

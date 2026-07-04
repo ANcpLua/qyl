@@ -17,7 +17,13 @@ public sealed record QylResource
 
     public ReadOnlyCollection<string> WaitForNames { get; init; } = ReadOnlyCollection<string>.Empty;
 
+    // Resources whose resolved endpoint is injected into this resource's environment (service discovery).
+    public ReadOnlyCollection<string> References { get; init; } = ReadOnlyCollection<string>.Empty;
+
     public string? Description { get; init; }
+
+    // Non-null for container resources: the orchestrator drives an OCI runtime instead of the process launcher.
+    public QylContainerSpec? Container { get; init; }
 }
 
 public sealed record QylLaunchSpec
@@ -27,6 +33,15 @@ public sealed record QylLaunchSpec
     public IReadOnlyDictionary<string, string> Env { get; init; } = new Dictionary<string, string>();
     public string? WorkingDirectory { get; init; }
     public string HealthPath { get; init; } = QylConstants.Routes.Health;
+}
+
+public sealed record QylContainerSpec
+{
+    public required string Image { get; init; }
+    public required int ContainerPort { get; init; }
+    public IReadOnlyDictionary<string, string> Env { get; init; } = new Dictionary<string, string>();
+    public ReadOnlyCollection<string> Args { get; init; } = ReadOnlyCollection<string>.Empty;
+    public ReadOnlyCollection<string> Volumes { get; init; } = ReadOnlyCollection<string>.Empty;
 }
 
 public enum ResourceLifecycle
