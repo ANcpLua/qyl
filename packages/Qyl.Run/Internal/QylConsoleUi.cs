@@ -6,6 +6,7 @@ namespace Qyl.Run.Internal;
 internal sealed class QylConsoleUi(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
+    QylRestartRequests restartRequests,
     IHostApplicationLifetime lifetime) : BackgroundService
 {
     private const string Footer =
@@ -134,10 +135,31 @@ internal sealed class QylConsoleUi(
                 case QylConstants.Keys.Stop:
                     lifetime.StopApplication();
                     return;
+                case QylConstants.Keys.Restart: RequestRestarts(); break;
                 case QylConstants.Keys.Browser: OpenBrowser(); break;
                 case QylConstants.Keys.Help: AnsiConsole.MarkupLine(Footer); break;
             }
         }
+    }
+
+    // Restart is keyboard-only by design (never a /runner HTTP verb). The table has no row selection, so
+    // [R] restarts every launched process resource — the dev-inner-loop "bounce my apps" gesture; externals
+    // and containers are skipped (the orchestrator also ignores names it holds no live process for).
+    private void RequestRestarts()
+    {
+        var requested = 0;
+        foreach (var resource in resources)
+        {
+            if (resource.Container is null && !string.IsNullOrEmpty(resource.Launch.Executable))
+            {
+                restartRequests.Request(resource.Name);
+                requested++;
+            }
+        }
+
+        AnsiConsole.MarkupLine(requested == 0
+            ? "[yellow]No restartable process resources.[/]"
+            : $"[aqua]Restart requested for {requested} process resource(s).[/]");
     }
 
     private void OpenBrowser()
