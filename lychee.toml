@@ -11,6 +11,10 @@ exclude_path = [
   "services/qyl.dashboard/playwright-report",
 ]
 
+# Markdown only. Vite HTML (services/qyl.dashboard/index.html) references
+# runtime-served paths like /favicon.svg that do not exist statically.
+extensions = ["md"]
+
 # localhost / private-range URLs are runtime examples (collector ports,
 # OTLP endpoints), not web links.
 exclude_all_private = true
