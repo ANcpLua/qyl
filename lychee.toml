@@ -23,7 +23,12 @@ exclude_all_private = true
 include_fragments = true
 
 timeout = 20
-max_retries = 2
+max_retries = 3
+retry_wait_time = 2
+
+# Some CDNs (e.g. opentelemetry.io) reset connections from non-browser
+# user agents; a browser UA keeps genuine links from flaking the build.
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
 # 429 = rate-limited, not dead. Everything else outside 2xx fails the check.
 accept = ["200..=299", "429"]
