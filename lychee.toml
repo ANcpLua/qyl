@@ -32,3 +32,8 @@ user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
 
 # 429 = rate-limited, not dead. Everything else outside 2xx fails the check.
 accept = ["200..=299", "429"]
+
+# opentelemetry.io's CDN intermittently resets connections from GitHub
+# Actions IPs even with a browser UA (same link set passes and fails across
+# runs). The spec URLs are stable; excluding beats a flaky red check.
+exclude = ['^https?://opentelemetry\.io']
