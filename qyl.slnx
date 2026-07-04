@@ -11,7 +11,6 @@
     <File Path="global.json" />
     <File Path="nuget.config" />
     <File Path="eng/MSBuild/Shared.props" />
-    <File Path="eng/MSBuild/Shared.targets" />
   </Folder>
 
   <Folder Name="/packages/">
@@ -31,7 +30,6 @@
   </Folder>
 
   <Folder Name="/eng/">
-    <File Path="eng\automation\CHANGELOG.md" />
     <Project Path="eng/build/build.csproj" />
   </Folder>
 

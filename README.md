@@ -21,12 +21,15 @@ qyl.dashboard -> operator UI
 
 | Project | Purpose |
 | --- | --- |
-| `services/qyl.collector` | OTLP ingest, REST API, SSE streaming, DuckDB storage |
-| `services/qyl.dashboard` | React dashboard for traces, logs, metrics, services, alerts, and issues |
+| `services/qyl.collector` | OTLP ingest (traces, logs, profiles), REST API, SSE streaming, DuckDB storage |
+| `services/qyl.dashboard` | React dashboard for traces, logs, services, issues, alerts, errors, performance, cost, conversations, and agents |
 | `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
 | `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
-| `packages/Qyl.Run` | local distributed-app runner for collector/dashboard workflows |
+| `packages/Qyl.Run` | local distributed-app runner library for collector/dashboard workflows |
+| `packages/Qyl.Run.Host` | executable host for the runner (`dotnet run --project packages/Qyl.Run.Host`) |
+| `packages/Qyl.Run.Dashboard` | standalone dev-only resource dashboard for the runner (Vite/React) |
+| `eng/build` | build/verify pipeline (`BuildVerify` guards, semantic catalog) |
 
 ## Contracts
 
@@ -70,6 +73,12 @@ dotnet run --project services/qyl.collector
 cd services/qyl.dashboard
 npm install
 npm run dev
+```
+
+Or run collector + dashboard together via the local runner:
+
+```bash
+dotnet run --project packages/Qyl.Run.Host
 ```
 
 Point OpenTelemetry exporters at the collector:

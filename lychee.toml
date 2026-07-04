@@ -1,0 +1,25 @@
+# Link checker configuration (lychee) — run by .github/workflows/links.yml.
+# Checks markdown files for local file links that do not resolve, #fragments
+# that do not exist in the target document, and dead external URLs.
+
+# Build output / dependency folders (belt and braces — directory traversal
+# already respects .gitignore).
+exclude_path = [
+  "node_modules",
+  "artifacts",
+  "services/qyl.dashboard/coverage",
+  "services/qyl.dashboard/playwright-report",
+]
+
+# localhost / private-range URLs are runtime examples (collector ports,
+# OTLP endpoints), not web links.
+exclude_all_private = true
+
+# Verify that #anchors actually exist in the target document.
+include_fragments = true
+
+timeout = 20
+max_retries = 2
+
+# 429 = rate-limited, not dead. Everything else outside 2xx fails the check.
+accept = ["200..=299", "429"]

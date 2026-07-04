@@ -35,8 +35,7 @@
 - .NET code: nullable enabled, central package management
   (`Directory.Packages.props`), `Version.props` is the single owner of
   versions — never edit `<Version>` lines directly.
-- Don't suggest patterns that contradict `CLAUDE.md`, `AGENTS.md`, or the
-  repo's `.coderabbit.yaml` `path_instructions`.
+- Don't suggest patterns that contradict `CLAUDE.md` / `AGENTS.md`.
 
 ## Rate-limit / failure behavior
 
