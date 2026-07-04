@@ -1,4 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>ANcpLua/github-settings-automation"]
+  "extends": ["github>ANcpLua/github-settings-automation"],
+  "packageRules": [
+    {
+      "description": "Microsoft.OpenApi is pinned to 2.x (see Directory.Packages.props): 3.x makes IOpenApiMediaType.Example read-only, which the Microsoft.AspNetCore.OpenApi XML-comment source generator (latest 10.0.9) still assigns — CS0200 in generated code we must not hand-edit. Re-proposed twice (#462 reverted, #465 closed); re-enable majors once ASP.NET's generator supports OpenAPI.NET v3.",
+      "matchDepNames": ["Microsoft.OpenApi"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "js-yaml appears only as an npm overrides security floor (^4.2.0, from #406); every consumer (openapi-typescript→@redocly/openapi-core, shadcn→cosmiconfig) declares ^4.x. Forcing a v5 major through overrides pushes an out-of-range API (breaking dump/quoteStyle changes) into build tools for zero security gain (npm audit clean). #425 closed on this basis; majors here should follow the consumers, not lead them.",
+      "matchDepNames": ["js-yaml"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
 }
