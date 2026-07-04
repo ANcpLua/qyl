@@ -89,6 +89,7 @@ public static class QylConstants
         public const string RunCommand = "run";
         public const string ProjectFlag = "--project";
         public const int HealthPollIntervalMs = 500;
+        public const int HealthProbeAttemptTimeoutSeconds = 5;
         public const int StartupTimeoutSeconds = 60;
         public const int MaxRestarts = 3;
     }
@@ -109,5 +110,6 @@ public static class QylConstants
         public const int ContainerStarted = 1110;
         public const int ContainerStopped = 1111;
         public const int ContainerLogFollowerFailed = 1112;
+        public const int ResourceUserRestart = 1114;
     }
 }

@@ -1,12 +1,11 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Qyl.Run.Internal;
 
 // Spawns a child process for a launchable resource and keeps its redirected stdout/stderr drained.
 // The orchestrator owns the returned process's lifecycle (tracking + shutdown); this type only starts it.
 internal sealed partial class QylProcessLauncher(
-    IOptions<QylAppOptions> options,
+    QylAppOptions options,
     QylLogStore logStore,
     ILogger<QylProcessLauncher> logger)
 {
@@ -28,8 +27,8 @@ internal sealed partial class QylProcessLauncher(
         {
             FileName = resource.Launch.Executable,
             WorkingDirectory = resource.Launch.WorkingDirectory ?? string.Empty,
-            RedirectStandardOutput = options.Value.CaptureChildOutput,
-            RedirectStandardError = options.Value.CaptureChildOutput,
+            RedirectStandardOutput = options.CaptureChildOutput,
+            RedirectStandardError = options.CaptureChildOutput,
             UseShellExecute = false,
             CreateNoWindow = true
         };
@@ -39,7 +38,7 @@ internal sealed partial class QylProcessLauncher(
         startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
 
         var process = new Process { StartInfo = startInfo };
-        if (options.Value.CaptureChildOutput)
+        if (options.CaptureChildOutput)
         {
             var childName = resource.Name;
             process.OutputDataReceived += (_, e) =>
@@ -65,7 +64,7 @@ internal sealed partial class QylProcessLauncher(
 
             // Begin draining both pipes immediately: a redirected stream that is never read fills the OS
             // pipe buffer and blocks the child on write, so it would never reach its health endpoint.
-            if (options.Value.CaptureChildOutput)
+            if (options.CaptureChildOutput)
             {
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();

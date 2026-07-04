@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Qyl.Run.Internal;
 
@@ -17,12 +16,12 @@ namespace Qyl.Run.Internal;
 internal sealed partial class QylRunnerApi(
     QylResourceRegistry registry,
     QylLogStore logStore,
-    IOptions<QylAppOptions> options,
+    QylAppOptions options,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var opts = options.Value;
+        var opts = options;
         var prefix = $"{QylConstants.Network.HttpScheme}://{opts.RunnerHost}:{opts.RunnerPort}{QylConstants.Routes.Runner}/";
 
         using var listener = new HttpListener();

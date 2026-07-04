@@ -11,6 +11,9 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The orchestrator core must stay honestly AOT-clean: no reflection config binding, no resilience
+         pipeline, source-generated JSON only. The analyzers keep that claim checked at build time. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +22,6 @@
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 

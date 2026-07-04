@@ -4,17 +4,17 @@ using System.ComponentModel;
 using System.Net.Sockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Qyl.Run.Internal;
 
 internal sealed partial class QylOrchestrator(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
-    IOptions<QylAppOptions> options,
+    QylAppOptions options,
     IHttpClientFactory httpClientFactory,
     QylProcessLauncher launcher,
     QylContainerLauncher containerLauncher,
+    QylRestartRequests restartRequests,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
@@ -24,6 +24,10 @@ internal sealed partial class QylOrchestrator(
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
 
     private readonly ConcurrentDictionary<string, QylContainerHandle> _containers = new(StringComparer.Ordinal);
+
+    // Names whose next exit is a user-requested restart, not a crash: supervision consumes the marker,
+    // relaunches on the same port, and resets the crash budget instead of burning it.
+    private readonly ConcurrentDictionary<string, byte> _userRestarts = new(StringComparer.Ordinal);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
         Message = "qyl.run orchestrator booting with {Count} resource(s)")]
@@ -41,12 +45,17 @@ internal sealed partial class QylOrchestrator(
         Message = "Resource '{Name}' exited (code {ExitCode}); restarting (attempt {Attempt})")]
     private static partial void LogRestarting(ILogger logger, string name, int exitCode, int attempt);
 
+    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceUserRestart, Level = LogLevel.Information,
+        Message = "Resource '{Name}' restarting on request")]
+    private static partial void LogUserRestart(ILogger logger, string name);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         LogBoot(logger, resources.Count);
         foreach (var r in resources) registry.Publish(r.Name, ResourceLifecycle.Pending);
 
-        var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken)).ToArray();
+        var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken))
+            .Append(ListenForRestartRequestsAsync(stoppingToken)).ToArray();
 
         try
         {
@@ -81,11 +90,11 @@ internal sealed partial class QylOrchestrator(
             }
 
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
-                ? PortAllocator.ClaimFreePort(options.Value.RunnerHost)
+                ? PortAllocator.ClaimFreePort(options.RunnerHost)
                 : resource.Port;
 
             var endpoint =
-                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost, port));
+                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost, port));
 
             // A resource with no executable is an already-running external endpoint we only health-probe;
             // otherwise the launcher spawns a child process whose lifecycle we own via _processes.
@@ -145,10 +154,10 @@ internal sealed partial class QylOrchestrator(
             .ConfigureAwait(false);
         _containers[resource.Name] = handle;
 
-        var endpoint = new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.Value.RunnerHost,
+        var endpoint = new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost,
             handle.HostPort));
 
-        if (await QylContainerLauncher.WaitForRunningAsync(handle, options.Value.StartupTimeoutSeconds, stoppingToken)
+        if (await QylContainerLauncher.WaitForRunningAsync(handle, options.StartupTimeoutSeconds, stoppingToken)
                 .ConfigureAwait(false))
         {
             registry.Publish(resource.Name, ResourceLifecycle.Ready, handle.HostPort, endpoint);
@@ -185,18 +194,30 @@ internal sealed partial class QylOrchestrator(
             var exitCode = current.ExitCode;
             current.Dispose();
 
-            if (restarts >= QylConstants.Orchestrator.MaxRestarts)
+            if (_userRestarts.TryRemove(resource.Name, out _))
+            {
+                // Deliberate restart from the TUI: same port, same endpoint (bind-with-retry — the health
+                // poll below gives the relaunched child the full startup window to reclaim the socket),
+                // and a fresh crash budget.
+                restarts = 0;
+                LogUserRestart(logger, resource.Name);
+                registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
+                    "Restart requested from TUI");
+            }
+            else if (restarts >= QylConstants.Orchestrator.MaxRestarts)
             {
                 _processes.TryRemove(resource.Name, out _);
                 registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint,
                     $"Process exited (code {exitCode}); restart limit ({QylConstants.Orchestrator.MaxRestarts}) reached");
                 return;
             }
-
-            restarts++;
-            LogRestarting(logger, resource.Name, exitCode, restarts);
-            registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
-                $"Process exited (code {exitCode}); restarting ({restarts}/{QylConstants.Orchestrator.MaxRestarts})");
+            else
+            {
+                restarts++;
+                LogRestarting(logger, resource.Name, exitCode, restarts);
+                registry.Publish(resource.Name, ResourceLifecycle.Starting, port, endpoint,
+                    $"Process exited (code {exitCode}); restarting ({restarts}/{QylConstants.Orchestrator.MaxRestarts})");
+            }
 
             try
             {
@@ -214,6 +235,43 @@ internal sealed partial class QylOrchestrator(
             registry.Publish(resource.Name,
                 healthy ? ResourceLifecycle.Ready : ResourceLifecycle.Failed, port, endpoint,
                 healthy ? null : "Health probe timed out after restart");
+        }
+    }
+
+    // Consumes TUI restart requests: mark the name as a user restart, then kill the live process — its
+    // supervision loop observes the exit, sees the marker, and relaunches on the unchanged endpoint.
+    // Names without a live process (external endpoints, containers, already-failed) are ignored.
+    private async Task ListenForRestartRequestsAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await foreach (var name in restartRequests.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            {
+                // Only a Ready resource has a supervision loop waiting to relaunch it. Killing a child
+                // that is still Starting would orphan the resource in Failed with nobody to restart it.
+                if (!registry.Snapshot.TryGetValue(name, out var state) ||
+                    state.Lifecycle != ResourceLifecycle.Ready)
+                {
+                    continue;
+                }
+
+                if (!_processes.TryGetValue(name, out var process)) continue;
+
+                _userRestarts[name] = 0;
+                try
+                {
+                    if (!process.HasExited) process.Kill(true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Exited between the check and the kill — supervision is already handling it, and the
+                    // marker turns that exit into the restart the user just asked for.
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // shutdown — nothing to drain
         }
     }
 
@@ -258,7 +316,7 @@ internal sealed partial class QylOrchestrator(
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
     {
         using var client = httpClientFactory.CreateClient(QylConstants.HttpClients.HealthProbe);
-        var deadline = time.GetUtcNow().AddSeconds(options.Value.StartupTimeoutSeconds);
+        var deadline = time.GetUtcNow().AddSeconds(options.StartupTimeoutSeconds);
         var probeUri = new Uri(baseEndpoint, healthPath);
 
         while (!stoppingToken.IsCancellationRequested && time.GetUtcNow() < deadline)
