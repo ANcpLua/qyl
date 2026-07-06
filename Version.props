@@ -11,7 +11,7 @@
     <GrpcToolsVersion>2.81.1</GrpcToolsVersion>
     <!-- Single version for ANcpLua.Roslyn.Utilities packages used in this repo.
          The packages ship in lockstep; reintroduce a second variable only if they diverge. -->
-    <ANcpLuaRoslynUtilitiesVersion>2.2.29</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>2.2.33</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaAgentsVersion>1.11.0</ANcpLuaAgentsVersion>
 
     <!-- MAF (Microsoft.Agents.AI.*) — mirrors SDK truth; inlined so the repo builds with or without the sibling SDK checkout. -->
