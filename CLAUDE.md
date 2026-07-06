@@ -145,3 +145,17 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   (Nuke pulls vuln 6.12.1/9.0.0), left intact. Fixed 2 dangling `AGENTS.md` refs created
   by its deletion (`docs/observability.md`, `.github/copilot-instructions.md`). README +
   observability.md AOT-wording scoped to the external library. Committed to main.
+- 2026-07-06 — Code-scanning alert cleanup (Claude): the 3 open CodeQL alerts were
+  stale — CodeQL default setup had been disabled since ~2026-05-06 and the flagged
+  files (`services/qyl.mcp/.../error-explorer.html`, `eng/semconv/.../gen.py`) were
+  deleted afterwards, so no scan ever closed them. Re-enabled default setup
+  (`gh api PATCH .../code-scanning/default-setup` → run 28823965956); fresh scan
+  auto-closed alerts #1/#2 as fixed. Alert #3 (Python) couldn't self-close — repo has
+  no Python left, so no superseding analysis; deleted the orphaned Python analysis
+  chain (id 1223235746 → `next_analysis_url: null`), alert gone. The scan surfaced NEW
+  alert #4 (`cs/user-controlled-bypass`, high) at `OtlpApiKeyMiddleware.cs:15` — the
+  unauthenticated OPTIONS pass-through. Verified no exploit (CORS middleware terminates
+  OPTIONS on OTLP paths when enabled; OTLP endpoints are POST-only so OPTIONS hits
+  405/404 when CORS disabled) but the branch is dead in both modes → removed it.
+  `dotnet build services/qyl.collector` → 0 warnings, 0 errors. Alert #4 auto-closes
+  on the next push-triggered scan.

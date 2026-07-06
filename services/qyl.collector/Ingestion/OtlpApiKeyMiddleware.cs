@@ -12,12 +12,6 @@ internal sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptio
             return;
         }
 
-        if (context.Request.Method == "OPTIONS")
-        {
-            await next(context).ConfigureAwait(false);
-            return;
-        }
-
         var apiKey = context.Request.Headers[options.HeaderName].FirstOrDefault();
 
         if (!ValidateApiKey(apiKey))
