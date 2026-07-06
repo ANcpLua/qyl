@@ -48,7 +48,7 @@
     <!-- Pinned to 2.x: Microsoft.OpenApi 3.x makes IOpenApiMediaType.Example read-only, which the .NET SDK's
          Microsoft.AspNetCore.OpenApi source generator still assigns (CS0200) — v3 is ahead of the SDK's support.
          2.9.0 also clears the GHSA-v5pm-xwqc-g5wc advisory (NU1903). Revert of the Renovate v3 bump (#462). -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.9.0"/>
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.10.0"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
