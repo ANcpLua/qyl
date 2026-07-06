@@ -36,7 +36,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- GenerateDocumentationFile is provided by ANcpLua.NET.Sdk (Common.props) with the same value. -->
     <!-- Critical async/dispose rules - VSTHRD* removed (analyzer never installed) -->
     <WarningsAsErrors>CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
   </PropertyGroup>
@@ -59,10 +59,8 @@
     <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
   </PropertyGroup>
 
-  <!-- CI Detection -->
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' OR '$(TF_BUILD)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
+  <!-- CI detection (ContinuousIntegrationBuild) is provided by ANcpLua.NET.Sdk
+       (ContinuousIntegrationBuild.props) covering GITHUB_ACTIONS, TF_BUILD, CI and ~10 more. -->
 
   <!-- Import qyl-specific Props (OTel config, etc.) -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
