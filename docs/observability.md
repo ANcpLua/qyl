@@ -64,13 +64,13 @@ The generic Instrumentation Library — [`Qyl.OpenTelemetry.AutoInstrumentation`
 
 The only items **not** implemented are the ones that are **structurally impossible** under the NativeAOT / source-generator substrate (reflection-required): classic ASP.NET (Framework), WCF (Core/Service), and ASP.NET Framework metrics — marked `unsupported_nativeaot`. These are boundaries, not a backlog.
 
-The **domain layer** (`internal/qyl.instrumentation`) adds what the generic library cannot know: **GenAI** (`IChatClient`) and **agent inventory** telemetry for qyl's own workload.
+The **domain layer** (`internal/qyl.instrumentation`) adds what the generic library cannot know: **GenAI** (`IChatClient`) and **agent inventory** telemetry for qyl's own workload. It targets the ASP.NET Core minimal-API surface (no upstream AOT annotations), so it deliberately does not set `IsAotCompatible` — the NativeAOT-verified claim on this page scopes to the generic library, not to this layer or the collector.
 
 ## Guarantees the instrumentation library holds
 
-Grounded in its contract + `AGENTS.md` (do not overstate these; they are current, not aspirational):
+Grounded in its contract (do not overstate these; they are current, not aspirational):
 
-- **All three signals** shipped and NativeAOT-verified — the contract has no "planned" state; every item is `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot`.
+- **All three signals** shipped and NativeAOT-verified in that library's own repo — the contract has no "planned" state; every item is `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot`.
 - **Semantic conventions** — emitted against `Qyl.OpenTelemetry.SemanticConventions` (stable; incubating opt-in), pinned to OTel semconv **v1.41.0**.
 - **Never synthesize** — "missing values stay missing"; qyl never invents a value the instrumented library did not expose.
 - **Privacy by default** — URLs/query values redacted per key; `db.query.text` behind upstream flags; agent sensitive-data off by default.

@@ -60,8 +60,11 @@ it in; `Qyl.OpenTelemetry.SemanticConventions` is the emitted vocabulary; and `q
 is the backend that receives the signals.
 
 The OTel role mapping, the AOT automatic-instrumentation method, and the signal coverage
-(all three signals — traces, metrics, logs — implemented and NativeAOT-verified across the
-60-item contract) are documented in **[`docs/observability.md`](docs/observability.md)**.
+(all three signals — traces, metrics, logs — implemented across the 60-item contract and
+NativeAOT-verified in the external `Qyl.OpenTelemetry.AutoInstrumentation` repo) are
+documented in **[`docs/observability.md`](docs/observability.md)**. That AOT claim scopes
+to the instrumentation library; the in-repo collector and `internal/qyl.instrumentation`
+are ASP.NET Core components that neither need nor claim NativeAOT.
 
 ## Run Locally
 
