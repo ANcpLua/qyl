@@ -206,3 +206,22 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   (all projects incl. collector, dashboard, eng/tools). The TelemetryFabric idea itself
   (one fluent entry point composing collector + per-platform telemetry + semconv/privacy
   config; "eng not product" for dashboard) is a post-beta design conversation, not code.
+- 2026-07-07 — TelemetryFabric design note (Claude + user): the stashed ideation formalized
+  into `docs/design/telemetry-fabric.md` (62e260f6) — three layers (product surfaces /
+  platform contracts / generated outputs), governing rule "subsets stay abstracted"
+  (no subsystem at top level; Override/Generate are the only doors), grounded against
+  the semantic-catalog generate→verify pattern, Qyl.Run, and qyl.mobile.
+- 2026-07-07 — Reference-sweep adoption (Claude): audited ~/WebApplicationNativeAOT1's
+  telemetry reference collection (vendored dotnet/runtime DiagnosticSource/EventSource,
+  Roslyn/Razor telemetry, Aspire ServiceDefaults) against qyl. Verdict: qyl already
+  delegates histograms/aggregation/propagation to the OTel SDK + BCL (the very code the
+  reference vendors); samplers/batching/health-polling are solid. ONE naive spot replaced
+  (1331b950): `QylAgentInventory` did a per-span O(n) registration scan on the OTel export
+  path and kept ≤10k DateTimes per agent for a 24h count → rewritten with the runtime's
+  interval-accounting pattern (97×15-min slot ring + name-keyed dictionary): O(1) per
+  span, fixed memory, no undercount past the old cap (window edge 15-min granular).
+  Inventory endpoint now snapshots once per request. Evidence: qyl.instrumentation +
+  full qyl.slnx 0W/0E; VerifyInstrumentationTelemetryIsBoundedAndRedacted +
+  VerifyInstrumentationHasNoStorageTenantKnowledge Succeeded. No other replacement
+  justified (Razor/Roslyn telemetry is VS-telemetry-bound; ServiceDefaults1/
+  telemetry.example are stock Aspire/demo code inferior to QylServiceDefaultsExtensions).
