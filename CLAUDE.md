@@ -189,3 +189,20 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   and added `-not -path './eng/reference/*'` to the audit find. Pushed as d2f123d2 —
   rerun green (CI success, Links success; CodeQL push scan passed on the identical-code
   parent 3d79c325). Extraction stream closed: main is green.
+- 2026-07-07 — Collector WIP resolved (Claude, on request): the uncommitted sketch in
+  Program.cs (fluent `app.AddTelemetryFabric("qyl", fabric => fabric.UseCollector(...)
+  .ObserveProducts().UseSemantics("qyl.semconv.yaml").UsePrivacy("qyl.privacy.yaml")
+  .GenerateEverything().AllowOverrides())` plus per-platform `AddSampling`/
+  `AddBrowserTelemetry`/`AddIosTelemetry`/`AddAndroidTelemetry`/`AddDashboard`/
+  `AddPrivacy` calls) was API ideation, not implementable code — it referenced methods
+  that don't exist and its comments were open design questions. Alongside it: IDE-added
+  redundant usings in 5 hosting/dashboard files (incl. `using ANcpLua.Roslyn.Utilities`,
+  which the VerifyCollectorHasNoRuntimeRoslynUtilityReference gate forbids) and accidental
+  paste damage in docs/observability.md (stray "l#", guardrail sentence replaced by
+  https://github.com/ANcpLua/qyl.mobile/blob/main/ios/TelemetryObserver/ViewModels/TelemetryDashboardViewModel.swift
+  — breadcrumb kept here). Everything preserved verbatim in `git stash` ("collector WIP
+  ideation: TelemetryFabric sketch...") — recover with `git stash list` / `git stash pop`.
+  Working tree restored to HEAD. Evidence: `dotnet build qyl.slnx` → 0 warnings, 0 errors
+  (all projects incl. collector, dashboard, eng/tools). The TelemetryFabric idea itself
+  (one fluent entry point composing collector + per-platform telemetry + semconv/privacy
+  config; "eng not product" for dashboard) is a post-beta design conversation, not code.
