@@ -28,7 +28,7 @@ qyl.dashboard -> operator UI
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
 | `packages/Qyl.Run` | local distributed-app runner library for collector/dashboard workflows |
 | `packages/Qyl.Run.Host` | executable host for the runner (`dotnet run --project packages/Qyl.Run.Host`) |
-| `packages/Qyl.Run.Dashboard` | standalone dev-only resource dashboard for the runner (Vite/React) |
+| `packages/Qyl.Run.Console` | dev-only runner console — live resource view for the runner (Vite/React); not the product dashboard |
 | `eng/build` | build/verify pipeline (`BuildVerify` guards, semantic catalog) |
 
 ## Contracts
