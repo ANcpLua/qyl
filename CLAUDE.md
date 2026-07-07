@@ -186,4 +186,6 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   red — its `find . -name '*.csproj'` sweep hit the ARCHIVED
   `eng/reference/.../_build.csproj` (NU1010: no CPM versions for Mono.Cecil/MinVer/etc.).
   Fixed both ends: renamed the archive file to `_build.csproj.txt` (inert to every glob)
-  and added `-not -path './eng/reference/*'` to the audit find. Pushed; watching the rerun.
+  and added `-not -path './eng/reference/*'` to the audit find. Pushed as d2f123d2 —
+  rerun green (CI success, Links success; CodeQL push scan passed on the identical-code
+  parent 3d79c325). Extraction stream closed: main is green.
