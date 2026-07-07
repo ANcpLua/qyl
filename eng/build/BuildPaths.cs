@@ -17,6 +17,16 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
+
+    /// <summary>
+    ///     Projects with IsPackable=true — the packages qyl actually ships.
+    ///     Qyl.Run.Host is deliberately not here: its csproj keeps the runnable
+    ///     launcher unpacked and Qyl.Run as the packable artifact.
+    /// </summary>
+    AbsolutePath[] ShippablePackProjects =>
+    [
+        PackagesDirectory / "Qyl.Run" / "Qyl.Run.csproj"
+    ];
 }
 
 interface IVersionize : IHazSourcePaths

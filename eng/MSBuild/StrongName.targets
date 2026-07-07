@@ -1,0 +1,92 @@
+<Project>
+  <!-- =======================================================================
+       Strong-name signing from a text-encoded key
+       Extracted from open-telemetry/opentelemetry-dotnet-instrumentation
+       (Apache-2.0) Common.props. The .snk lives base64-encoded in source
+       control and is materialized only into ignored intermediate output.
+
+       Opt in per project:
+         <SignAssembly>true</SignAssembly>
+         <StrongNameKeyBase64File>path/to/key.snk.base64</StrongNameKeyBase64File>
+       ======================================================================= -->
+
+  <UsingTask
+    TaskName="DecodeBase64File"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyFile="$([System.IO.Path]::Combine('$(MSBuildToolsPath)', 'Microsoft.Build.Tasks.Core.dll'))"
+    Condition="'$(SignAssembly)' == 'true' AND '$(StrongNameKeyBase64File)' != ''">
+    <ParameterGroup>
+      <SourceFile ParameterType="System.String" Required="true" />
+      <DestinationFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+var base64Text = string.Concat(File.ReadAllLines(SourceFile));
+var decodedBytes = Convert.FromBase64String(base64Text);
+var destinationInfo = new FileInfo(DestinationFile);
+if (destinationInfo.Exists && destinationInfo.Length == decodedBytes.Length
+    && File.ReadAllBytes(DestinationFile).SequenceEqual(decodedBytes))
+{
+    return true;
+}
+
+var directory = Path.GetDirectoryName(DestinationFile);
+if (!string.IsNullOrEmpty(directory))
+{
+    Directory.CreateDirectory(directory);
+}
+
+var temporaryFile = DestinationFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+try
+{
+    File.WriteAllBytes(temporaryFile, decodedBytes);
+
+    try
+    {
+        if (File.Exists(DestinationFile))
+        {
+            File.Replace(temporaryFile, DestinationFile, null);
+        }
+        else
+        {
+            File.Move(temporaryFile, DestinationFile);
+        }
+    }
+    catch (IOException)
+    {
+        destinationInfo.Refresh();
+        if (!destinationInfo.Exists || destinationInfo.Length != decodedBytes.Length
+            || !File.ReadAllBytes(DestinationFile).SequenceEqual(decodedBytes))
+        {
+            throw;
+        }
+    }
+}
+finally
+{
+    if (File.Exists(temporaryFile))
+    {
+        File.Delete(temporaryFile);
+    }
+}
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="GenerateAssemblyOriginatorKeyFile"
+          BeforeTargets="ResolveKeySource"
+          Condition="'$(SignAssembly)' == 'true' AND '$(StrongNameKeyBase64File)' != ''">
+    <PropertyGroup>
+      <AssemblyOriginatorKeyFile>$([System.IO.Path]::Combine('$(BaseIntermediateOutputPath)', 'qyl-strongname.snk'))</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <FileWrites Include="$(AssemblyOriginatorKeyFile)" />
+    </ItemGroup>
+
+    <DecodeBase64File SourceFile="$(StrongNameKeyBase64File)" DestinationFile="$(AssemblyOriginatorKeyFile)" />
+  </Target>
+</Project>

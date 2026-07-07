@@ -159,3 +159,26 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   405/404 when CORS disabled) but the branch is dead in both modes → removed it.
   `dotnet build services/qyl.collector` → 0 warnings, 0 errors. Alert #4 auto-closes
   on the next push-triggered scan.
+- 2026-07-07 — otel-dotnet-instrumentation extraction integrated (Claude). The raw dump in
+  `eng/build/extract with the rest/` (which sat inside build.csproj's compile glob and broke
+  the NUKE build) is gone; treasure landed as: `eng/tools/` (SdkVersionAnalyzer — expected
+  version now read from global.json, channel-tag/digest-pinned FROMs treated as unpinned;
+  DependencyListGenerator — vendored dotnet-outdated, library-referenced by eng/build;
+  LibraryVersionsGenerator — qyl-shaped definitions, output to Artifacts/generated;
+  GacInstallTool — net462 via reference assemblies), `eng/build/` components IHousekeeping
+  (`VerifySdkVersions` now in Ci, `UpdateSdkVersions`, `GenerateDependencyList`,
+  `GenerateLibraryVersions`) + IPack (`Pack`, `CleanLocalPackagesCache`) + Attributes/
+  Extensions/Models helpers, root props NuGetAudit(all/low), dormant
+  `eng/MSBuild/StrongName.targets` (base64-snk decode), CPM entries (Microsoft.Build pinned
+  18.0.2 — Nuke 10.1.0 floor, NU1109 below). Non-integrated originals archived under
+  `eng/reference/otel-dotnet-instrumentation/` with README mapping. Evidence: all four tool
+  projects + build.csproj + Qyl.Run/Host + all internal projects build 0W/0E;
+  `./eng/build.sh VerifySdkVersions` → "SDK versions are consistent." (3 workflows,
+  2 Dockerfiles); `GenerateDependencyList` → docs/dependencies.md (independently re-confirms
+  drift item #1: resolves ANcpLua.Roslyn.Utilities 2.2.33); `Pack --skip Compile` →
+  Artifacts/nuget/Qyl.Run.1.0.0.nupkg (version stamp = beta step 2, untouched). NOTE:
+  `qyl.slnx` full build is red from PRE-EXISTING uncommitted collector WIP (Program.cs
+  sketch calls AddIosTelemetry/AddDashboard/etc. that don't exist) — left untouched, not
+  committed. Qyl.Run.Host is IsPackable=false by design → ShippablePackProjects = Qyl.Run
+  only. Also fixed eng/build.sh fallback paths (global.json/.nuke lookup pointed at eng/
+  instead of repo root). Committed to main (extraction only, no collector files).

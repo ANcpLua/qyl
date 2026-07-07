@@ -34,4 +34,11 @@
     <Project Path="eng/build/build.csproj" />
   </Folder>
 
+  <Folder Name="/eng/tools/">
+    <Project Path="eng/tools/DependencyListGenerator/DependencyListGenerator.csproj" />
+    <Project Path="eng/tools/GacInstallTool/GacInstallTool.csproj" />
+    <Project Path="eng/tools/LibraryVersionsGenerator/LibraryVersionsGenerator.csproj" />
+    <Project Path="eng/tools/SdkVersionAnalyzer/SdkVersionAnalyzer.csproj" />
+  </Folder>
+
 </Solution>

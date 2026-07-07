@@ -3,4 +3,8 @@
        qyl Root Build Targets
        ======================================================================= -->
 
+  <!-- Strong-naming support (dormant until a project sets SignAssembly=true and
+       StrongNameKeyBase64File). Keeps the .snk text-encoded in source control. -->
+  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/StrongName.targets"/>
+
 </Project>

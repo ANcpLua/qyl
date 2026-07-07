@@ -25,7 +25,9 @@ sealed class Build : NukeBuild,
     IDocker,
     IPipeline,
     IVerify,
-    ICollectorSemanticCatalog
+    ICollectorSemanticCatalog,
+    IHousekeeping,
+    IPack
 {
     internal static string VersionLabel => GitScalar("describe --tags --always --dirty", "local");
 
@@ -64,6 +66,7 @@ sealed class Build : NukeBuild,
         .DependsOn(Clean)
         .DependsOn<ICompile>(static x => x.Compile)
         .DependsOn<IVerify>(static x => x.Verify)
+        .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
         .DependsOn<IPipeline>(static x => x.FrontendLint);
 

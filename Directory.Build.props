@@ -46,6 +46,16 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Supply-chain audit at restore time (pattern from opentelemetry-dotnet-instrumentation):
+       audit direct AND transitive references down to low-severity advisories. Findings surface
+       as NU19xx restore warnings; the security overrides in Directory.Packages.props are how
+       they get resolved. -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
+
   <!-- NuGet Package Metadata (for publishable packages) -->
   <PropertyGroup>
     <Authors>ancplua</Authors>

@@ -37,4 +37,10 @@
     <PackageReference Include="System.Security.Cryptography.Xml"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Vendored dotnet-outdated analysis (eng/tools) backing the GenerateDependencyList
+         target — same direct-library-call pattern as upstream otel's _build.csproj. -->
+    <ProjectReference Include="..\tools\DependencyListGenerator\DependencyListGenerator.csproj" />
+  </ItemGroup>
+
 </Project>
