@@ -78,7 +78,7 @@
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
     <!-- eng/tools maintenance tooling (extracted from opentelemetry-dotnet-instrumentation).
          NuGet.ProjectModel matches the NuGet.Packaging 7.6.0 security override above. -->
-    <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1"/>
+    <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>
     <!-- 18.0.2 floor: Nuke.Common 10.1.0 -> Nuke.ProjectModel requires it (NU1109 with
          transitive pinning below that). -->
     <PackageVersion Include="Microsoft.Build" Version="18.0.2"/>
