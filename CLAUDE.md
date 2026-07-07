@@ -182,3 +182,8 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   committed. Qyl.Run.Host is IsPackable=false by design → ShippablePackProjects = Qyl.Run
   only. Also fixed eng/build.sh fallback paths (global.json/.nuke lookup pointed at eng/
   instead of repo root). Committed to main (extraction only, no collector files).
+- 2026-07-07 — CI follow-up on 3d79c325 (Claude): Backend + Frontend green; Dependency Audit
+  red — its `find . -name '*.csproj'` sweep hit the ARCHIVED
+  `eng/reference/.../_build.csproj` (NU1010: no CPM versions for Mono.Cecil/MinVer/etc.).
+  Fixed both ends: renamed the archive file to `_build.csproj.txt` (inert to every glob)
+  and added `-not -path './eng/reference/*'` to the audit find. Pushed; watching the rerun.

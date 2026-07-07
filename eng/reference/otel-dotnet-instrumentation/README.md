@@ -23,7 +23,9 @@ pattern library; nothing here is compiled.
 ## What is archived here and why it was not integrated
 
 - `build/` — otel's partial-class NUKE build (`Build.cs`, NuGet/installation-script
-  steps, `_build.csproj`): qyl's interface-composed NUKE build is the better shape;
+  steps, `_build.csproj.txt` — extension neutralized so `*.csproj` globs like the CI
+  dependency-audit sweep never treat the archive as a restorable project): qyl's
+  interface-composed NUKE build is the better shape;
   the transferable steps were ported, the native-artifact plumbing is otel-specific.
   `AssemblyRedirectionSourceGenerator.cs` (Mono.Cecil → C-macro header) only serves
   otel's native profiler loader.
