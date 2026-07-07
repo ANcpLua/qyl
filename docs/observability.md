@@ -1,13 +1,12 @@
-# Observability & Instrumentation (OpenTelemetry)
+l# Observability & Instrumentation (OpenTelemetry)
 
 > **Status of this document.** A vocabulary + role map that pins qyl's instrumentation to the
 > official OpenTelemetry guidelines. It describes **current, honestly-tracked state** — not
 > aspirational targets. The per-item source of truth is the *generated* coverage matrix in the
 > `Qyl.OpenTelemetry.AutoInstrumentation` repo (derived from a contract whose only statuses are
 > `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot` — there is no
-> "planned" state, by design: "missing values stay missing; never synthesize"). Do not add a
-> capability here that the contract/code does not have.
-
+> "planned" state, by design: "missing values stay missing; never synthesize").
+https://github.com/ANcpLua/qyl.mobile/blob/main/ios/TelemetryObserver/ViewModels/TelemetryDashboardViewModel.swift
 qyl is an OpenTelemetry-native observability platform. This document pins the vocabulary to
 the [OpenTelemetry glossary](https://opentelemetry.io/docs/concepts/glossary/) and maps each
 qyl component to its OTel role, so contributors (human or agent) share one precise model.

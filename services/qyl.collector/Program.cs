@@ -30,7 +30,22 @@ var app = builder.Build();
 
 await app.InitializeQylCollectorAsync().ConfigureAwait(false);
 app.UseQylCollectorMiddleware();
+app.AddTelemetryFabric("qyl", fabric => fabric
+    .UseCollector("collector", port: 5100)
+    .ObserveProducts()
+    .UseSemantics("qyl.semconv.yaml")
+    .UsePrivacy("qyl.privacy.yaml")
+    .GenerateEverything()
+    .AllowOverrides());
 
+await app.Build().RunAsync();
+
+app.AddSampling(); // isnt this also easier if we just include it all int he vertival slices
+app.AddBrowserTelemetry(); // includes collector backend  etcpp
+app.AddIosTelemetry(); // includes collector backend  etcpp
+app.AddAndroidTelemetry(); // includes collector backend  etcpp
+app.AddDashboard(); // eng not product
+app.AddPrivacy(); // cant we default this or whats this good for
 app.MapQylCollectorEndpoints();
 
 StartupBanner.Print(

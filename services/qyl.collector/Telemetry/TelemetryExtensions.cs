@@ -9,9 +9,7 @@ internal static class TelemetryExtensions
     public static void AddQylTelemetry(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
-
         services.AddRedaction(static builder => builder.AddQylRedactors());
-
         services.AddExceptionSummarizer(static builder =>
         {
             builder.AddHttpProvider();
@@ -30,7 +28,6 @@ internal static class TelemetryExtensions
         });
 
         services.AddLogEnricher<QylRequestEnricher>();
-
         services.AddApplicationLogEnricher(static options =>
         {
             options.ApplicationName = true;
