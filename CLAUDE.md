@@ -225,3 +225,40 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   VerifyInstrumentationHasNoStorageTenantKnowledge Succeeded. No other replacement
   justified (Razor/Roslyn telemetry is VS-telemetry-bound; ServiceDefaults1/
   telemetry.example are stock Aspire/demo code inferior to QylServiceDefaultsExtensions).
+- 2026-07-08 — Bot-PR sweep + self-handling auto-review loop (Claude, ultracode research):
+  merged ALL 5 open renovate PRs and hardened the no-human loop. Root cause of the
+  pile-up was NOT the bumps — main's own Link check was RED: `docs/design/telemetry-fabric.md:192`
+  links a source file in the PRIVATE `ANcpLua/qyl.mobile` repo, which the anonymous
+  lychee checker 404s. Fixed by excluding `^https?://github\.com/ANcpLua/qyl\.mobile`
+  in `lychee.toml` (bba2a547, same rationale as localhost/private-range URLs) → cleared
+  the required Link check on main and all 5 PRs at once. Then `gh pr update-branch` on
+  #500/#501/#465/#502 re-ran their checks against fixed main (the NU1010 audit fix from
+  d2f123d2 was already on main; their branches were just stale). #503 (SemanticConventions
+  3.2.0) had a REAL failure — `VerifyCollectorSemanticAttributeCatalog` stale (3.2.0 moves
+  the OTel schema URL 1.41.0→1.43.0); regenerated via `./eng/build.sh
+  GenerateCollectorSemanticAttributeCatalog` and committed the 1-line `.g.cs` (e3650cf1).
+  All 4 required checks (Backend/Frontend/Dependency Audit/Link) then green on every PR.
+  Merge evidence: #502 merged BY `app/renovate` itself (platformAutomerge, proving the
+  no-human loop already works when checks are green); #500/#501/#465/#503 squash-merged.
+  0 open PRs. KEY finding: PRs reached mergeStateStatus=CLEAN with reviewDecision="" and
+  merged with NO approval — the required 1-review is not a hard gate here (owner merges
+  bypass via enforce_admins=false; renovate app self-merges). So the break was purely
+  "main red + stale branches", not a missing approver.
+  NEW FILE `.github/workflows/renovate-auto-review.yml`: adds the AI quality gate the
+  loop lacked. CodeRabbit is NOT active (app uninstalled; only the codex connector
+  comments — CODE_RABBIT/AGENTIC_QYL_CODERABBIT secrets exist but dormant) → used the
+  Claude review trick: anthropics/claude-code-action@v1 (SHA-pinned
+  ba0aafd4308cbba7165f9f2cdb0cfbed5a3c99ce), auth via existing CLAUDE_CODE_OAUTH_TOKEN,
+  approver identity via the existing AUTOMERGE GitHub App
+  (actions/create-github-app-token@fee1f7d, AUTOMERGE_APP_ID/_PRIVATE_KEY) so the
+  approval reliably counts if branch protection ever tightens. Scoped hard to renovate/*
+  branches on plain `pull_request` (same-repo branches → write token, no
+  pull_request_target footgun). Claude reads the diff read-only, APPROVEs safe
+  patch/minor manifest-only bumps, HOLDs majors / non-manifest diffs / failing checks
+  (respects the deliberately-disabled majors in renovate.json). actionlint clean. API
+  grounded against canonical docs (code.claude.com/docs, claude-code-action README/usage;
+  v1 GA: direct_prompt→prompt, mode auto-detected, claude_args passthrough). FIRST-RUN
+  VERIFICATION PENDING — the workflow header documents the exact `gh pr view` check to run
+  on the next renovate patch/minor PR (expect reviewDecision=APPROVED, review authored by
+  the automerge app). Left renovate.json merge policy UNTOUCHED — did not enable blanket
+  major automerge (majors stay human-gated by design).
