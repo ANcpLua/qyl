@@ -24,12 +24,18 @@
 #   out or executes PR code.
 #
 # APPROVER IDENTITY
-#   The approving review is authored by the AUTOMERGE GitHub App (via
-#   actions/create-github-app-token), not the default GITHUB_TOKEN. A review by
-#   the default token is authored by github-actions[bot] and GitHub has, in some
-#   configurations, declined to count that toward the *required* approval count;
-#   an App-authored review counts reliably. Renovate is the PR author, so the
-#   App (a different identity) is allowed to approve it.
+#   The approving review is authored by github-actions[bot] via the default
+#   GITHUB_TOKEN. This repo has "Allow GitHub Actions to create and approve pull
+#   requests" ON (can_approve_pull_request_reviews=true), so that review posts
+#   fine; renovate is the PR author, so a different identity is doing the approve.
+#   NOTE: the approval is belt-and-suspenders — empirically these PRs already
+#   reach mergeStateStatus=CLEAN and renovate self-merges them on green checks
+#   with no approval, so even if a stricter config ever discounts a bot approval,
+#   the merge path does not depend on it. (An earlier revision tried the AUTOMERGE
+#   GitHub App as approver, but AUTOMERGE_APP_ID is not installed on this repo —
+#   "Integration not found" — so GITHUB_TOKEN it is.) The `review` job is NOT a
+#   required status check, so if an org ever disables Actions approvals the failed
+#   approve call cannot block the merge.
 #
 # FIRST-RUN VERIFICATION (do once on the next renovate patch/minor PR):
 #   gh pr view <n> --json reviewDecision,mergeStateStatus,reviews \
@@ -65,20 +71,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      # App-token = the reviewer identity whose approval reliably counts.
-      - name: Mint automerge App token (approver identity)
-        id: app-token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
-        with:
-          app-id: ${{ secrets.AUTOMERGE_APP_ID }}
-          private-key: ${{ secrets.AUTOMERGE_APP_PRIVATE_KEY }}
-
       - name: Claude dependency review + gated approve
         uses: anthropics/claude-code-action@ba0aafd4308cbba7165f9f2cdb0cfbed5a3c99ce # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # gh runs authored as the automerge App, so the approving review counts.
-          github_token: ${{ steps.app-token.outputs.token }}
+          # Default GITHUB_TOKEN: gh calls (incl. the approve) run as
+          # github-actions[bot]; the job's pull-requests:write scope covers it.
           prompt: |
             You are the autonomous review gate for a Renovate dependency-bump PR:
             repository ${{ github.repository }}, PR #${{ github.event.pull_request.number }},
