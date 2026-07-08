@@ -491,6 +491,6 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiToolName = "gen_ai.tool.name";
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";
-    internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.41.0";
+    internal const string SchemaUrlCurrent = "https://opentelemetry.io/schemas/1.43.0";
     internal const string ServiceName = "service.name";
 }
