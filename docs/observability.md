@@ -12,6 +12,18 @@ qyl is an OpenTelemetry-native observability platform. This document pins the vo
 the [OpenTelemetry glossary](https://opentelemetry.io/docs/concepts/glossary/) and maps each
 qyl component to its OTel role, so contributors (human or agent) share one precise model.
 
+## OpenTelemetry specification surface (tracked)
+
+qyl tracks these OpenTelemetry specifications at the following versions (latest upstream
+releases, verified against the OTel GitHub release tags — current, not aspirational):
+
+| Specification | Version | Upstream |
+|---|---|---|
+| [OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/) | **v1.58.0** | [`opentelemetry-specification`](https://github.com/open-telemetry/opentelemetry-specification/releases/tag/v1.58.0) |
+| [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) | **v1.43.0** | [`semantic-conventions`](https://github.com/open-telemetry/semantic-conventions/releases/tag/v1.43.0) — schema URL `https://opentelemetry.io/schemas/1.43.0` |
+| [OTLP (OpenTelemetry Protocol)](https://opentelemetry.io/docs/specs/otlp/) | **v1.10.0** (stable signals) | [`opentelemetry-proto`](https://github.com/open-telemetry/opentelemetry-proto/releases/tag/v1.10.0) — vendored trace/logs/metrics/common/resource + collector services at v1.10.0. The unstable `profiles/v1development` signal stays on its earlier development revision (its v1.10.0 dictionary-encoding rework is a breaking dev-signal change, not yet adopted). |
+| [OpAMP (Open Agent Management Protocol)](https://opentelemetry.io/docs/specs/opamp/) | not adopted | — |
+
 ## OpenTelemetry terminology (canonical)
 
 | Term | OpenTelemetry definition | In qyl |
@@ -20,7 +32,7 @@ qyl component to its OTel role, so contributors (human or agent) share one preci
 | **Instrumentation Library** (a.k.a. *Instrumenting Library*) | The library that provides the instrumentation for a given Instrumented Library. May be the same library if instrumentation is built in. Example: `io.opentelemetry.contrib.mongodb`. | **`Qyl.OpenTelemetry.AutoInstrumentation`** (generic libraries) and **`qyl.instrumentation`** (qyl's own GenAI/agent domain) and **`ANcpLua.Agents.Instrumentation`** (Microsoft Agent Framework). |
 | **Instrumentation Scope** | The `name` + optional `version` given when obtaining a Tracer / Meter / Logger. The name/version pair identifies the scope in which telemetry is emitted. | `QylActivitySource` / `QylActivityNames` (name + package version). See [naming guidelines](#instrumentation-scope-naming). |
 | **Automatic Instrumentation** | Telemetry collection that does **not** require the end user to modify application source code — via compile-time/runtime code manipulation, monkey-patching, or eBPF. | qyl's method is **AOT-safe compile-time source interceptors + `DiagnosticListener`** (see [Automatic instrumentation under .NET AOT](#automatic-instrumentation-under-net-aot)). |
-| **Semantic Conventions** | The shared attribute/metric/span vocabulary telemetry must follow. | `Qyl.OpenTelemetry.SemanticConventions` (+ `.Incubating`), tracking OTel semconv **v1.41.0**. |
+| **Semantic Conventions** | The shared attribute/metric/span vocabulary telemetry must follow. | `Qyl.OpenTelemetry.SemanticConventions` (+ `.Incubating`), tracking OTel semconv **v1.43.0**. |
 
 ## qyl components in OTel terms
 
@@ -71,7 +83,7 @@ The **domain layer** (`internal/qyl.instrumentation`) adds what the generic libr
 Grounded in its contract (do not overstate these; they are current, not aspirational):
 
 - **All three signals** shipped and NativeAOT-verified in that library's own repo — the contract has no "planned" state; every item is `implemented` / `option_bound` / `control_bound` / `unsupported_nativeaot`.
-- **Semantic conventions** — emitted against `Qyl.OpenTelemetry.SemanticConventions` (stable; incubating opt-in), pinned to OTel semconv **v1.41.0**.
+- **Semantic conventions** — emitted against `Qyl.OpenTelemetry.SemanticConventions` (stable; incubating opt-in), pinned to OTel semconv **v1.43.0**.
 - **Never synthesize** — "missing values stay missing"; qyl never invents a value the instrumented library did not expose.
 - **Privacy by default** — URLs/query values redacted per key; `db.query.text` behind upstream flags; agent sensitive-data off by default.
 - **Zero source changes** — `PackageReference`-only.
