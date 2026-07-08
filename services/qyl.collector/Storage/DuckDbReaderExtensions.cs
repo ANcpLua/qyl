@@ -12,6 +12,9 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         service_name = COALESCE(EXCLUDED.service_name, service_name),
         gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
         gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
+        gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,
+        gen_ai_cache_creation_input_tokens = EXCLUDED.gen_ai_cache_creation_input_tokens,
+        gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,
         gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
@@ -45,6 +48,9 @@ internal sealed partial record SpanStorageRow
     public string? GenAiResponseModel { get; init; }
     public long? GenAiInputTokens { get; init; }
     public long? GenAiOutputTokens { get; init; }
+    public long? GenAiCacheReadInputTokens { get; init; }
+    public long? GenAiCacheCreationInputTokens { get; init; }
+    public long? GenAiReasoningTokens { get; init; }
     public double? GenAiTemperature { get; init; }
     public string? GenAiStopReason { get; init; }
     public string? GenAiToolName { get; init; }

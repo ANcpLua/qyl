@@ -15,17 +15,23 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
         await RefreshCacheAsync(ct);
     }
 
-    public double? ComputeCost(string? provider, string? model, long? inputTokens, long? outputTokens)
-        => ComputeCost(Volatile.Read(ref _cache), provider, model, inputTokens, outputTokens);
+    public double? ComputeCost(
+        string? provider, string? model, long? inputTokens, long? outputTokens,
+        long? cacheReadTokens = null, long? cacheCreationTokens = null, long? reasoningTokens = null)
+        => ComputeCost(
+            Volatile.Read(ref _cache), provider, model, inputTokens, outputTokens,
+            cacheReadTokens, cacheCreationTokens, reasoningTokens);
 
     private static double? ComputeCost(
         FrozenDictionary<string, ModelPricingRow> cache,
-        string? provider, string? model, long? inputTokens, long? outputTokens)
+        string? provider, string? model, long? inputTokens, long? outputTokens,
+        long? cacheReadTokens = null, long? cacheCreationTokens = null, long? reasoningTokens = null)
     {
         if (provider is null || model is null)
             return null;
 
-        if (inputTokens is null && outputTokens is null)
+        if (inputTokens is null && outputTokens is null
+            && cacheReadTokens is null && cacheCreationTokens is null && reasoningTokens is null)
             return null;
 
         var key = MakeCacheKey(provider, model);
@@ -36,11 +42,19 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
                 return null;
         }
 
-        var cost = ((inputTokens ?? 0) * ((double)pricing.InputCost / 1_000_000.0))
-                   + ((outputTokens ?? 0) * ((double)pricing.OutputCost / 1_000_000.0));
+        // Token classes are disjoint (Anthropic/OpenAI report cached-read, cache-creation and
+        // reasoning tokens separately from plain input/output), so costs are additive. Optional
+        // per-Mtoken rates fall back to the plain input/output rate when a model omits them.
+        var cost = ((inputTokens ?? 0) * PerToken(pricing.InputCost))
+                   + ((outputTokens ?? 0) * PerToken(pricing.OutputCost))
+                   + ((cacheReadTokens ?? 0) * PerToken(pricing.CacheReadCost ?? pricing.InputCost))
+                   + ((cacheCreationTokens ?? 0) * PerToken(pricing.CacheWriteCost ?? pricing.InputCost))
+                   + ((reasoningTokens ?? 0) * PerToken(pricing.ReasoningCost ?? pricing.OutputCost));
 
         return cost;
     }
+
+    private static double PerToken(decimal costPerMillion) => (double)costPerMillion / 1_000_000.0;
 
     public SpanBatch EnrichBatchWithCost(SpanBatch batch)
     {
@@ -54,7 +68,8 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
             var cost = ComputeCost(
                 cache,
                 span.GenAiProviderName, span.GenAiRequestModel,
-                span.GenAiInputTokens, span.GenAiOutputTokens);
+                span.GenAiInputTokens, span.GenAiOutputTokens,
+                span.GenAiCacheReadInputTokens, span.GenAiCacheCreationInputTokens, span.GenAiReasoningTokens);
 
             if (cost is not null && enriched is null)
             {
