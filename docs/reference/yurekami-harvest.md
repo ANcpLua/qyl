@@ -55,5 +55,11 @@ Net new liftable code from ~143k LOC of references = the cost wiring. That's exp
 the donors are Python/Lean/TS in different domains; qyl's overlap with them is
 architectural, and qyl had already converged on the same patterns independently.
 
+## Follow-up (deferred, low priority)
+- #7 cost was **verified live** ($0, synthetic OTLP span → DuckDB read: 1M tokens/class on
+  `claude-sonnet-4-6` → `gen_ai_cost_usd = 22.05`, the unique correct-wiring value). Not yet
+  a CI regression test — the repo has **no .NET test project**, so wiring one up for a single
+  assertion isn't worth it pre-beta. Revisit when there's a second reason to add the test project.
+
 ## Rule
 Pull **one row at a time**, transpile into qyl idiom, run the relevant verify gate, commit. Donor source now lives in `ANcpLua/yurekami-refs` (private) — clone it when a `REF-ONLY` row is revisited.
