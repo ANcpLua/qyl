@@ -89,15 +89,14 @@ jobs:
           # github-actions[bot]; the job's pull-requests:write scope covers it.
           prompt: |
             You are the autonomous review gate for a Renovate dependency-bump PR:
-            repository ${{ github.repository }}, PR #${{ github.event.pull_request.number }},
-            head branch ${{ github.event.pull_request.head.ref }}.
+            repository ${{ github.repository }}, PR #${{ github.event.pull_request.number }}.
+            You have a Bash tool with the `gh` CLI already authenticated. You MUST
+            use it — do not answer in prose. Take these steps now:
 
-            Inspect it read-only:
-              gh pr view ${{ github.event.pull_request.number }} --json title,labels,files
-              gh pr diff ${{ github.event.pull_request.number }}
-              gh pr checks ${{ github.event.pull_request.number }}
-
-            Decide, then act exactly once:
+            1. Run: gh pr view ${{ github.event.pull_request.number }} --json title,labels,files
+            2. Run: gh pr diff ${{ github.event.pull_request.number }}
+            3. Run: gh pr checks ${{ github.event.pull_request.number }}
+            4. Decide, then run EXACTLY ONE of the two commands below and then stop.
 
             APPROVE — run:
               gh pr review ${{ github.event.pull_request.number }} --approve --body "<one-line reason>"
@@ -105,6 +104,8 @@ jobs:
               - Every changed file is a dependency manifest / lockfile / pin:
                 Directory.Packages.props, Version.props, package.json,
                 package-lock.json, renovate.json, or a Dockerfile base/digest pin.
+                (A regenerated *.g.cs catalog committed alongside the bump is NOT a
+                manifest — if the diff includes source/generated files, HOLD.)
               - It is NOT a major-version bump (labels contain no "major", and the
                 version change is not X.y.z -> (X+1).0.0) of a runtime-critical
                 library.
@@ -118,7 +119,7 @@ jobs:
             and never try to force a held dependency through.
 
             Do not merge; renovate's platformAutomerge lands approved+green PRs.
-            Post nothing other than the single review action above.
+            Your only side effect must be the single `gh pr review` command.
           claude_args: >-
-            --max-turns 15
-            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr review:*)"
+            --max-turns 20
+            --allowedTools "Bash(gh:*)"
