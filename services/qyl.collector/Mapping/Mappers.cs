@@ -71,9 +71,9 @@ internal static class SpanMapper
     public static List<Span> ToContracts(IEnumerable<SpanStorageRow> records) =>
     [
         .. records.Select(static r => ToContractCore(
-            r.TraceId, r.SpanId, r.ParentSpanId, r.SessionId,
+            r.TraceId, r.SpanId, r.ParentSpanId,
             r.Name, r.Kind, r.StatusCode,
-            r.StartTimeUnixNano, r.EndTimeUnixNano, r.DurationNs,
+            r.StartTimeUnixNano, r.EndTimeUnixNano,
             r.ServiceName,
             r.AttributesJson, r.ResourceJson, r.SchemaUrl,
             r.StatusMessage, r.EventsJson, r.LinksJson))
@@ -82,8 +82,8 @@ internal static class SpanMapper
     public static TraceContract ToTrace(string traceId, IReadOnlyList<Span> spans)
     {
         var rootSpan = spans.FirstOrDefault(static s => s.ParentSpanId is null);
-        var start = spans.Count is 0 ? 0UL : spans.Min(static s => s.StartTimeUnixNano);
-        var end = spans.Count is 0 ? 0UL : spans.Max(static s => s.EndTimeUnixNano);
+        var start = spans.Min(static s => s.StartTimeUnixNano);
+        var end = spans.Max(static s => s.EndTimeUnixNano);
         var duration = end >= start ? end - start : 0UL;
 
         return new TraceContract
@@ -158,15 +158,13 @@ internal static class SpanMapper
     }
 
     private static Span ToContractCore(
-        string traceId, string spanId, string? parentSpanId, string? sessionId,
+        string traceId, string spanId, string? parentSpanId,
         string name, byte kind, byte statusCode,
-        ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs,
+        ulong startTimeUnixNano, ulong endTimeUnixNano,
         string? serviceName,
         string? attributesJson, string? resourceJson, string? schemaUrl,
         string? statusMessage, string? eventsJson, string? linksJson)
     {
-        _ = sessionId;
-        _ = durationNs;
         var attributes = ContractJson.ParseAttributes(attributesJson);
         var resourceAttributes = ContractJson.ParseAttributes(resourceJson);
 
@@ -464,7 +462,6 @@ internal static class SessionMapper
         value switch
         {
             > int.MaxValue => int.MaxValue,
-            < int.MinValue => int.MinValue,
             _ => (int)value
         };
 

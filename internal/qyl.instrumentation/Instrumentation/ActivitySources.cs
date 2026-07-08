@@ -19,8 +19,6 @@ public static class ActivitySources
 
     private static readonly ActivitySource s_genAiSource = new(GenAi, s_version);
 
-    private static readonly ActivitySource s_dbSource = new(Db, s_version);
-
     private static readonly ActivitySource s_agentSource = new(Agent, s_version);
 
     private static readonly Meter s_genAiMeter = new(GenAi, s_version);
@@ -28,8 +26,6 @@ public static class ActivitySources
     private static readonly Meter s_agentMeter = new(Agent, s_version);
 
     public static ActivitySource GenAiSource => s_genAiSource;
-
-    public static ActivitySource DbSource => s_dbSource;
 
     public static ActivitySource AgentSource => s_agentSource;
 

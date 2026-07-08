@@ -18,7 +18,6 @@ using OpenTelemetry.Trace;
 using Qyl.Instrumentation;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
-using Qyl.Instrumentation.Instrumentation.GenAi;
 using Qyl.Instrumentation.Instrumentation.Inventory;
 using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
 
@@ -184,10 +183,7 @@ public static class QylServiceDefaultsExtensions
             {
                 // Maximally AOT-native sealed sampler: inline parent-based + trace-id ratio, no
                 // nested sampler delegation, allocation-free and reflection-free per decision.
-                tracing.SetSampler(new QylAotSampler(
-                    options.ObservabilityMode,
-                    options.TraceSampleRatio,
-                    options.DbOperationSampleRatios));
+                tracing.SetSampler(new QylAotSampler());
 
                 tracing
                     .AddSource(serviceName)
@@ -334,33 +330,6 @@ public sealed class QylOptions
     public Action<MeterProviderBuilder>? ConfigureMetrics { get; set; }
 
     public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
-
-    public ObservabilityMode ObservabilityMode { get; set; } = ObservabilityMode.AlwaysOn;
-
-    /// <summary>
-    /// Ratio in <c>[0, 1]</c> applied to ROOT spans by <see cref="QylAotSampler"/> when
-    /// <see cref="ObservabilityMode"/> is <see cref="ObservabilityMode.AlwaysOn"/> (default 1.0 = sample all).
-    /// Child spans always follow their parent's head-sampling decision.
-    /// </summary>
-    public double TraceSampleRatio { get; set; } = 1.0;
-
-    /// <summary>
-    /// Optional per-operation sampling ratios for ROOT spans, keyed by operation/activity name
-    /// (e.g. <c>"SELECT"</c>), matched case-insensitively — e.g. sample all writes but 1% of reads
-    /// on background jobs. Overrides the mode's root default in both <see cref="ObservabilityMode.AlwaysOn"/>
-    /// and <see cref="ObservabilityMode.Warm"/> (so a Warm root that would otherwise be dropped can be
-    /// re-enabled per operation); ignored in <see cref="ObservabilityMode.OnDemand"/>, which drops all.
-    /// </summary>
-    public Dictionary<string, double> DbOperationSampleRatios { get; } = [];
-}
-
-public enum ObservabilityMode
-{
-    AlwaysOn,
-
-    OnDemand,
-
-    Warm
 }
 
 internal sealed class QylServiceDefaultsMarker;

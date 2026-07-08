@@ -6,7 +6,7 @@ internal interface IQylStore : IAsyncDisposable
 
     Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default);
 
-    Task InsertProfilesAsync(IReadOnlyList<ProfileConversionResult> results, CancellationToken ct = default);
+    Task InsertProfilesAsync(IReadOnlyList<ProfileDetail> results, CancellationToken ct = default);
 
     Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         string projectId,

@@ -45,15 +45,11 @@ internal sealed partial record SpanStorageRow
 
     public string? GenAiProviderName { get; init; }
     public string? GenAiRequestModel { get; init; }
-    public string? GenAiResponseModel { get; init; }
     public long? GenAiInputTokens { get; init; }
     public long? GenAiOutputTokens { get; init; }
     public long? GenAiCacheReadInputTokens { get; init; }
     public long? GenAiCacheCreationInputTokens { get; init; }
     public long? GenAiReasoningTokens { get; init; }
-    public double? GenAiTemperature { get; init; }
-    public string? GenAiStopReason { get; init; }
-    public string? GenAiToolName { get; init; }
     public double? GenAiCostUsd { get; init; }
 
     [DuckDbColumn(SqlType = "JSON")]
@@ -331,14 +327,4 @@ internal sealed record ProfileDetail
     public required IReadOnlyList<ProfileMappingRow> Mappings { get; init; }
     public required IReadOnlyList<ProfileSampleRow> Samples { get; init; }
     public required IReadOnlyList<ProfileStackRow> Stacks { get; init; }
-}
-
-internal sealed record ProfileConversionResult
-{
-    public required ProfileStorageRow Profile { get; init; }
-    public required List<ProfileFunctionRow> Functions { get; init; }
-    public required List<ProfileLocationRow> Locations { get; init; }
-    public required List<ProfileMappingRow> Mappings { get; init; }
-    public required List<ProfileSampleRow> Samples { get; init; }
-    public required List<ProfileStackRow> Stacks { get; init; }
 }

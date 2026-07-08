@@ -36,11 +36,7 @@ internal sealed partial class ModelPricingService(IQylStore store, ILogger<Model
 
         var key = MakeCacheKey(provider, model);
         if (!cache.TryGetValue(key, out var pricing))
-        {
-            key = MakeCacheKey("*", model);
-            if (!cache.TryGetValue(key, out pricing))
-                return null;
-        }
+            return null;
 
         // Token classes are disjoint (Anthropic/OpenAI report cached-read, cache-creation and
         // reasoning tokens separately from plain input/output), so costs are additive. Optional

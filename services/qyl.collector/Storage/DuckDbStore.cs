@@ -383,13 +383,7 @@ internal sealed partial class DuckDbStore : IQylStore
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
-            var result = cmd.ExecuteScalar();
-            return result switch
-            {
-                long value => value,
-                int value => value,
-                _ => 0
-            };
+            return (long)cmd.ExecuteScalar()!;
         }, ct);
 
     public Task<IReadOnlyList<ModelPricingRow>> GetActiveModelPricingAsync(CancellationToken ct = default) =>
@@ -541,7 +535,7 @@ internal sealed partial class DuckDbStore : IQylStore
     }
 
 
-    public async Task InsertProfilesAsync(IReadOnlyList<ProfileConversionResult> results,
+    public async Task InsertProfilesAsync(IReadOnlyList<ProfileDetail> results,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();

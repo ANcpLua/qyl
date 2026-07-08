@@ -22,9 +22,9 @@ internal static class IngestionStorageMapper
         return rows;
     }
 
-    public static List<ProfileConversionResult> ToProfileStorageRows(ProfileIngestionBatch batch)
+    public static List<ProfileDetail> ToProfileStorageRows(ProfileIngestionBatch batch)
     {
-        var rows = new List<ProfileConversionResult>(batch.Profiles.Count);
+        var rows = new List<ProfileDetail>(batch.Profiles.Count);
 
         foreach (var profile in batch.Profiles)
             rows.Add(ToProfileStorageRows(profile));
@@ -55,15 +55,11 @@ internal static class IngestionStorageMapper
             ServiceName = span.ServiceName,
             GenAiProviderName = projection.GenAiProviderName,
             GenAiRequestModel = projection.GenAiRequestModel,
-            GenAiResponseModel = projection.GenAiResponseModel,
             GenAiInputTokens = projection.GenAiInputTokens,
             GenAiOutputTokens = projection.GenAiOutputTokens,
             GenAiCacheReadInputTokens = projection.GenAiCacheReadInputTokens,
             GenAiCacheCreationInputTokens = projection.GenAiCacheCreationInputTokens,
             GenAiReasoningTokens = projection.GenAiReasoningTokens,
-            GenAiTemperature = projection.GenAiTemperature,
-            GenAiStopReason = projection.GenAiStopReason,
-            GenAiToolName = projection.GenAiToolName,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes),
             ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(span.ResourceAttributes),
             SchemaUrl = span.SchemaUrl,
@@ -117,7 +113,7 @@ internal static class IngestionStorageMapper
         };
     }
 
-    private static ProfileConversionResult ToProfileStorageRows(ProfileIngestionRecord profile)
+    private static ProfileDetail ToProfileStorageRows(ProfileIngestionRecord profile)
     {
         var projectId = ProjectScope.Normalize(profile.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeProfileAttributes(profile.Attributes);
@@ -142,7 +138,7 @@ internal static class IngestionStorageMapper
             SchemaUrl = profile.SchemaUrl
         };
 
-        return new ProfileConversionResult
+        return new ProfileDetail
         {
             Profile = header,
             Functions = profile.Functions.Select(function => new ProfileFunctionRow

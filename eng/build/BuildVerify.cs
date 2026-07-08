@@ -863,12 +863,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     .Select(token => (file.File, Token: token)))
                 .ToList();
 
-            var genAiFile = RootDirectory / "internal" / "qyl.instrumentation" / "Instrumentation" / "GenAi" /
-                            "GenAiInstrumentation.cs";
-            var genAiText = genAiFile.FileExists() ? File.ReadAllText(genAiFile) : "";
-            if (!genAiText.Contains("GenAiConstants.NormalizeOperationName", StringComparison.Ordinal))
-                offenders.Add((RootDirectory.GetRelativePathTo(genAiFile).ToString(), "GenAiConstants.NormalizeOperationName"));
-
             if (offenders.Count is 0)
             {
                 Log.Information("Instrumentation telemetry is bounded and redacted by default");
