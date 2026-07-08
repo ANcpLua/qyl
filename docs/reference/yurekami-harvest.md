@@ -3,9 +3,11 @@
 > Source of truth for what qyl mines from the local reference clones under
 > `~/yurekami` (11 projects, ~143k LOC). Full per-project dossiers + master index
 > are vendored at [`./yurekami-extraction/`](./yurekami-extraction/) (start at
-> [`INDEX.md`](./yurekami-extraction/INDEX.md)); the live clones remain at
-> `~/yurekami/` as ground truth — **do not delete a clone until its pattern is
-> fully transpiled and its `Status` below is `LANDED`**.
+> [`INDEX.md`](./yurekami-extraction/INDEX.md)). The source itself is archived
+> **source-only** in the private repo **`ANcpLua/yurekami-refs`** (upstream git
+> history + `node_modules` + build artifacts + >1 MB data stripped; ~12 MB). The
+> local clones under `~/yurekami/` were deleted after the harvest — to consult a
+> donor's code, `git clone git@github.com:ANcpLua/yurekami-refs.git`.
 >
 > **Nothing here is a straight file-merge.** The donors are Python / Lean / TS /
 > Markdown; qyl is .NET + TS. Every row is a *pattern transpile* into qyl's own
@@ -51,4 +53,4 @@ the donors are Python/Lean/TS in different domains; qyl's overlap with them is
 architectural, and qyl had already converged on the same patterns independently.
 
 ## Rule
-Pull **one row at a time**, transpile into qyl idiom, run the relevant verify gate, commit. Only after a row is `LANDED` is its donor clone eligible for deletion. Until then the clone stays.
+Pull **one row at a time**, transpile into qyl idiom, run the relevant verify gate, commit. Donor source now lives in `ANcpLua/yurekami-refs` (private) — clone it when a `REF-ONLY` row is revisited.
