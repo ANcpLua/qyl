@@ -1,0 +1,116 @@
+# =============================================================================
+# renovate-auto-review — autonomous AI review + gated approval for bot deps PRs
+# -----------------------------------------------------------------------------
+# WHY THIS EXISTS
+#   Renovate already self-merges its PRs here: the shared preset
+#   (github>ANcpLua/github-settings-automation) sets platformAutomerge:true, so
+#   a renovate PR merges itself once the required checks go green — no human.
+#   (Proven: PR #502 was merged by app/renovate.) This workflow is the QUALITY
+#   GATE that layer was missing: an AI reviewer that reads every dependency diff,
+#   APPROVES safe patch/minor bumps (so the merge stays fully autonomous even if
+#   branch protection's "1 approval" is ever enforced), and HOLDS majors or any
+#   diff that strays outside dependency manifests for a human to look at.
+#
+#   CodeRabbit is not active on this repo (the app isn't installed; the codex
+#   connector only comments), so the review gate is Claude — anthropics/
+#   claude-code-action, the GA (@v1) action — per the "claude review trick".
+#
+# SECURITY / TRUST MODEL
+#   Renovate branches (renovate/*) live IN THIS REPO, not on a fork, so the
+#   plain `pull_request` event already grants a write-scoped token — we do NOT
+#   need pull_request_target and its untrusted-code footguns. The job is hard-
+#   scoped to renovate/* branches authored by renovate[bot]; nothing else runs.
+#   Claude only READS the diff (gh pr diff) and posts a review — it never checks
+#   out or executes PR code.
+#
+# APPROVER IDENTITY
+#   The approving review is authored by the AUTOMERGE GitHub App (via
+#   actions/create-github-app-token), not the default GITHUB_TOKEN. A review by
+#   the default token is authored by github-actions[bot] and GitHub has, in some
+#   configurations, declined to count that toward the *required* approval count;
+#   an App-authored review counts reliably. Renovate is the PR author, so the
+#   App (a different identity) is allowed to approve it.
+#
+# FIRST-RUN VERIFICATION (do once on the next renovate patch/minor PR):
+#   gh pr view <n> --json reviewDecision,mergeStateStatus,reviews \
+#     -q '{decision:.reviewDecision, merge:.mergeStateStatus,
+#          who:[.reviews[]|{a:.author.login,s:.state}]}'
+#   Expect decision=APPROVED, a review by the automerge app, merge trending CLEAN.
+# =============================================================================
+
+name: renovate-auto-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Least privilege at the top; the job elevates only pull-requests:write.
+permissions:
+  contents: read
+
+concurrency:
+  group: renovate-auto-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Belt-and-suspenders scoping: renovate/* branch AND renovate[bot] author,
+    # and never on drafts.
+    if: >-
+      github.event.pull_request.draft == false &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+      contains(fromJSON('["renovate[bot]", "app/renovate"]'), github.event.pull_request.user.login)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # App-token = the reviewer identity whose approval reliably counts.
+      - name: Mint automerge App token (approver identity)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.AUTOMERGE_APP_PRIVATE_KEY }}
+
+      - name: Claude dependency review + gated approve
+        uses: anthropics/claude-code-action@ba0aafd4308cbba7165f9f2cdb0cfbed5a3c99ce # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # gh runs authored as the automerge App, so the approving review counts.
+          github_token: ${{ steps.app-token.outputs.token }}
+          prompt: |
+            You are the autonomous review gate for a Renovate dependency-bump PR:
+            repository ${{ github.repository }}, PR #${{ github.event.pull_request.number }},
+            head branch ${{ github.event.pull_request.head.ref }}.
+
+            Inspect it read-only:
+              gh pr view ${{ github.event.pull_request.number }} --json title,labels,files
+              gh pr diff ${{ github.event.pull_request.number }}
+              gh pr checks ${{ github.event.pull_request.number }}
+
+            Decide, then act exactly once:
+
+            APPROVE — run:
+              gh pr review ${{ github.event.pull_request.number }} --approve --body "<one-line reason>"
+            ONLY IF ALL hold:
+              - Every changed file is a dependency manifest / lockfile / pin:
+                Directory.Packages.props, Version.props, package.json,
+                package-lock.json, renovate.json, or a Dockerfile base/digest pin.
+              - It is NOT a major-version bump (labels contain no "major", and the
+                version change is not X.y.z -> (X+1).0.0) of a runtime-critical
+                library.
+              - No required status check is currently failing.
+
+            HOLD (do NOT approve) — instead run:
+              gh pr review ${{ github.event.pull_request.number }} --comment --body "<why a human should check: which package, why major/why the diff strayed>"
+            IF it is a major bump, touches source/build/generator logic, or any
+            check is failing. Renovate keeps some majors deliberately disabled
+            (see renovate.json: Microsoft.OpenApi, js-yaml) — respect that intent
+            and never try to force a held dependency through.
+
+            Do not merge; renovate's platformAutomerge lands approved+green PRs.
+            Post nothing other than the single review action above.
+          claude_args: >-
+            --max-turns 15
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr review:*)"
