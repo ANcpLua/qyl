@@ -39,10 +39,17 @@
 #   approve call cannot block the merge.
 #
 # FIRST-RUN VERIFICATION (do once on the next renovate patch/minor PR):
-#   gh pr view <n> --json reviewDecision,mergeStateStatus,reviews \
-#     -q '{decision:.reviewDecision, merge:.mergeStateStatus,
-#          who:[.reviews[]|{a:.author.login,s:.state}]}'
-#   Expect decision=APPROVED, a review by the automerge app, merge trending CLEAN.
+#   gh pr view <n> --json reviewDecision,reviews \
+#     -q '{decision:.reviewDecision, who:[.reviews[]|{a:.author.login,s:.state}]}'
+#   Expect a review authored by github-actions[bot] (APPROVE for a safe
+#   patch/minor manifest-only bump, COMMENT for a major / non-manifest diff).
+#
+# IF NO github-actions REVIEW APPEARS but the job is green: check the run log
+# for `"is_error": true` with `"total_cost_usd": 0` and num_turns:1. That means
+# the model call was rejected before Claude acted — almost always a stale
+# CLAUDE_CODE_OAUTH_TOKEN. Regenerate it (`claude setup-token`) and update the
+# repo secret. The action reports the STEP as success even on is_error, so this
+# gate degrades silently; the merge still happens via renovate on green checks.
 # =============================================================================
 
 name: renovate-auto-review
