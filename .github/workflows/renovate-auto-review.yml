@@ -70,6 +70,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      id-token: write   # claude_code_oauth_token is exchanged via OIDC
     steps:
       - name: Claude dependency review + gated approve
         uses: anthropics/claude-code-action@ba0aafd4308cbba7165f9f2cdb0cfbed5a3c99ce # v1
