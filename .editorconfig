@@ -353,9 +353,6 @@ dotnet_diagnostic.CA1819.severity = none # Tool definition arrays
 [src/qyl.hosting/**/*.cs]
 resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel activity names
 
-[src/qyl.copilot/**/*.cs]
-resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel GenAI operation names
-
 # =============================================================================
 # PROGRAM.CS
 # =============================================================================

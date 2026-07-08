@@ -282,3 +282,18 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   blocking by design (review job isn't a required check; renovate self-merges on green
   regardless). ACTION FOR USER: refresh CLAUDE_CODE_OAUTH_TOKEN, then the AI review/approve
   gate goes live with zero further code changes.
+- 2026-07-09 — GitHub Copilot removed from qyl tooling (Claude, on request — user dropped
+  Copilot: quota exhausted for 5 days, refill only 2026-08-01). Deleted
+  `.github/copilot-instructions.md` (its "coordinate with CodeRabbit" bullets were stale
+  anyway — CodeRabbit isn't installed, see 2026-07-08). Dropped the `copilot/` branch
+  prefix from both jobs + the prefix-policy comment in `.github/workflows/auto-merge.yml`
+  (only `claude/` remains; `actionlint` clean). Removed the dead
+  `[src/qyl.copilot/**/*.cs]` section from `.editorconfig` — that path doesn't exist
+  (the whole `src/` tree is gone; ~20 more stale `[src/**]` sections remain there, a
+  separate cleanup). PRODUCT MENTIONS DELIBERATELY KEPT: `StartupBanner.cs:75` and
+  `SettingsPage.tsx:369` advertise GitHub/Copilot integration to *users* — we support it
+  without using it. CAVEAT: `auto-merge.yml`'s header says "Synced from
+  github-settings-automation/templates/auto-merge.yml … do not hand-edit per-repo" — the
+  weekly enforce-repo-settings sweep will revert the `copilot/` removal unless the same
+  edit lands in that template repo. Dormant `CODE_RABBIT` / `AGENTIC_QYL_CODERABBIT` repo
+  secrets (2026-03-11) are still unreferenced by any workflow; safe to delete.
