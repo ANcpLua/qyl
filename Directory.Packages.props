@@ -81,7 +81,7 @@
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1"/>
     <!-- 18.0.2 floor: Nuke.Common 10.1.0 -> Nuke.ProjectModel requires it (NU1109 with
          transitive pinning below that). -->
-    <PackageVersion Include="Microsoft.Build" Version="18.0.2"/>
+    <PackageVersion Include="Microsoft.Build" Version="18.7.1"/>
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"/>
     <PackageVersion Include="NuGet.ProjectModel" Version="7.6.0"/>
     <PackageVersion Include="System.IO.Abstractions" Version="22.1.1"/>
