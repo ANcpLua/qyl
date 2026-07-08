@@ -7,7 +7,10 @@
 > **source-only** in the private repo **`ANcpLua/yurekami-refs`** (upstream git
 > history + `node_modules` + build artifacts + >1 MB data stripped; ~12 MB). The
 > local clones under `~/yurekami/` were deleted after the harvest — to consult a
-> donor's code, `git clone git@github.com:ANcpLua/yurekami-refs.git`.
+> donor's code, `gh repo clone ANcpLua/yurekami-refs` (the repo is private;
+> SSH-URL clones need a key configured — `gh`/HTTPS auth is the reliable path).
+> Verified 2026-07-08: a fresh clone restores HEAD `14e393e`, all 1078 files,
+> `git fsck` clean, no LFS pointers.
 >
 > **Nothing here is a straight file-merge.** The donors are Python / Lean / TS /
 > Markdown; qyl is .NET + TS. Every row is a *pattern transpile* into qyl's own
