@@ -262,3 +262,23 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   on the next renovate patch/minor PR (expect reviewDecision=APPROVED, review authored by
   the automerge app). Left renovate.json merge policy UNTOUCHED — did not enable blanket
   major automerge (majors stay human-gated by design).
+- 2026-07-08 — Auto-review LIVE-VERIFIED on #504 + 6th PR merged (Claude). Renovate opened
+  #504 (SemanticConventions.Incubating 3.2.0) right after #503 merged; same stale-catalog
+  Backend failure → regenerated catalog (a2eaf892), all 4 required checks green, squash-
+  merged. 0 open PRs (6 bot PRs total cleared this session). Used #504 as the live test bed
+  for renovate-auto-review.yml and fixed FOUR real wiring bugs the first runs exposed, each
+  proven by a fresh run: (1) the AUTOMERGE GitHub App approver idea is DEAD — AUTOMERGE_APP_ID
+  is not an installed App on the repo ("Integration not found"); dropped it for the default
+  GITHUB_TOKEN (repo has can_approve_pull_request_reviews=true). (2) `claude_code_oauth_token`
+  needs `id-token: write` (OIDC exchange) — added. (3) the action `git fetch`es the base to
+  diff → needs an `actions/checkout` step — added (safe: renovate/* is trusted in-repo, Claude
+  limited to `gh` reads). (4) imperative prompt + `Bash(gh:*)` so Claude acts instead of
+  answering in prose. After all four: run is GREEN, mode auto-detected=agent, model
+  claude-sonnet-5 initializes. REMAINING BLOCKER (my tools can't fix): the model call returns
+  `is_error:true, total_cost_usd:0, num_turns:1` — rejected before Claude acts, i.e. the
+  **CLAUDE_CODE_OAUTH_TOKEN secret (created 2026-05-06) is stale/invalid**; regenerating it
+  needs the user's interactive `claude setup-token`. The action reports the STEP as success
+  even on is_error, so the gate no-ops SILENTLY — documented in the workflow header. Non-
+  blocking by design (review job isn't a required check; renovate self-merges on green
+  regardless). ACTION FOR USER: refresh CLAUDE_CODE_OAUTH_TOKEN, then the AI review/approve
+  gate goes live with zero further code changes.
