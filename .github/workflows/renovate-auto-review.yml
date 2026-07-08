@@ -38,7 +38,9 @@
 #   required status check, so if an org ever disables Actions approvals the failed
 #   approve call cannot block the merge.
 #
-# FIRST-RUN VERIFICATION (do once on the next renovate patch/minor PR):
+# FIRST-RUN VERIFICATION — trigger manually against any PR (no need to wait for
+# a renovate PR), then inspect:
+#   gh workflow run renovate-auto-review.yml -f pr=<n> --repo ANcpLua/qyl
 #   gh pr view <n> --json reviewDecision,reviews \
 #     -q '{decision:.reviewDecision, who:[.reviews[]|{a:.author.login,s:.state}]}'
 #   Expect a review authored by github-actions[bot] (APPROVE for a safe
@@ -57,28 +59,41 @@ name: renovate-auto-review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  # Manual test hook: run the gate against any PR by number. Used to verify the
+  # loop after refreshing CLAUDE_CODE_OAUTH_TOKEN. The operator picks the PR, so
+  # the renovate/* + author scoping below is relaxed for this path.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to review"
+        required: true
+        type: string
 
 # Least privilege at the top; the job elevates only pull-requests:write.
 permissions:
   contents: read
 
 concurrency:
-  group: renovate-auto-review-${{ github.event.pull_request.number }}
+  group: renovate-auto-review-${{ github.event.pull_request.number || github.event.inputs.pr }}
   cancel-in-progress: true
 
 jobs:
   review:
-    # Belt-and-suspenders scoping: renovate/* branch AND renovate[bot] author,
-    # and never on drafts.
+    # Belt-and-suspenders scoping on the automatic path: renovate/* branch AND
+    # renovate[bot] author, never on drafts. workflow_dispatch is operator-driven
+    # and bypasses that (the operator chose the PR).
     if: >-
-      github.event.pull_request.draft == false &&
-      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
-      contains(fromJSON('["renovate[bot]", "app/renovate"]'), github.event.pull_request.user.login)
+      github.event_name == 'workflow_dispatch' ||
+      ( github.event.pull_request.draft == false &&
+        startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+        contains(fromJSON('["renovate[bot]", "app/renovate"]'), github.event.pull_request.user.login) )
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
       id-token: write   # claude_code_oauth_token is exchanged via OIDC
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr }}
     steps:
       # The action needs git context (it fetches the base branch to diff).
       # Safe here: renovate/* is an in-repo trusted branch and Claude is limited
@@ -96,17 +111,17 @@ jobs:
           # github-actions[bot]; the job's pull-requests:write scope covers it.
           prompt: |
             You are the autonomous review gate for a Renovate dependency-bump PR:
-            repository ${{ github.repository }}, PR #${{ github.event.pull_request.number }}.
+            repository ${{ github.repository }}, PR #${{ env.PR_NUMBER }}.
             You have a Bash tool with the `gh` CLI already authenticated. You MUST
             use it — do not answer in prose. Take these steps now:
 
-            1. Run: gh pr view ${{ github.event.pull_request.number }} --json title,labels,files
-            2. Run: gh pr diff ${{ github.event.pull_request.number }}
-            3. Run: gh pr checks ${{ github.event.pull_request.number }}
+            1. Run: gh pr view ${{ env.PR_NUMBER }} --json title,labels,files
+            2. Run: gh pr diff ${{ env.PR_NUMBER }}
+            3. Run: gh pr checks ${{ env.PR_NUMBER }}
             4. Decide, then run EXACTLY ONE of the two commands below and then stop.
 
             APPROVE — run:
-              gh pr review ${{ github.event.pull_request.number }} --approve --body "<one-line reason>"
+              gh pr review ${{ env.PR_NUMBER }} --approve --body "<one-line reason>"
             ONLY IF ALL hold:
               - Every changed file is a dependency manifest / lockfile / pin:
                 Directory.Packages.props, Version.props, package.json,
@@ -119,7 +134,7 @@ jobs:
               - No required status check is currently failing.
 
             HOLD (do NOT approve) — instead run:
-              gh pr review ${{ github.event.pull_request.number }} --comment --body "<why a human should check: which package, why major/why the diff strayed>"
+              gh pr review ${{ env.PR_NUMBER }} --comment --body "<why a human should check: which package, why major/why the diff strayed>"
             IF it is a major bump, touches source/build/generator logic, or any
             check is failing. Renovate keeps some majors deliberately disabled
             (see renovate.json: Microsoft.OpenApi, js-yaml) — respect that intent
