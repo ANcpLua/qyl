@@ -5,7 +5,7 @@ namespace Qyl.Run.Internal;
 
 // Bounded, per-resource log buffer with broadcast fan-out — the log analogue of QylResourceRegistry.
 // Producers (the process launcher; the container `docker logs -f` follower) Append lines; consumers take a
-// Snapshot of recent lines and Subscribe for subsequent ones (the /runner API, and through it the dashboard).
+// Snapshot of recent lines and Subscribe for subsequent ones (the /runner API, and through it the runner console).
 internal sealed class QylLogStore
 {
     private const int MaxLinesPerResource = 500;

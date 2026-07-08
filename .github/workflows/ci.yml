@@ -154,6 +154,7 @@ jobs:
             find . -name '*.csproj' \
               -not -path './Artifacts/*' \
               -not -path './artifacts/*' \
+              -not -path './eng/reference/*' \
               -not -path '*/bin/*' \
               -not -path '*/obj/*' \
               -print0

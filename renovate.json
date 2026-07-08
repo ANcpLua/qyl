@@ -1,6 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>ANcpLua/github-settings-automation"],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "eng/reference/**"
+  ],
   "packageRules": [
     {
       "description": "Microsoft.OpenApi is pinned to 2.x (see Directory.Packages.props): 3.x makes IOpenApiMediaType.Example read-only, which the Microsoft.AspNetCore.OpenApi XML-comment source generator (latest 10.0.9) still assigns — CS0200 in generated code we must not hand-edit. Re-proposed twice (#462 reverted, #465 closed); re-enable majors once ASP.NET's generator supports OpenAPI.NET v3.",

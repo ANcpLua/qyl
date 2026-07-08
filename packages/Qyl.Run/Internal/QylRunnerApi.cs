@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Qyl.Run.Internal;
 
-// Read-only, loopback-only HTTP surface exposing the runner's resource state to a dev dashboard.
+// Read-only, loopback-only HTTP surface exposing the runner's resource state to the dev runner console (packages/Qyl.Run.Console).
 // Deliberate choices, all traceable to the design constraints:
 //   - HttpListener (pure BCL) not Kestrel  -> AOT-clean, zero added dependency, no builder restructuring.
 //   - GET-only, NO control verbs           -> cannot mutate; start/stop/restart stay on the TUI keyboard,
@@ -70,7 +70,7 @@ internal sealed partial class QylRunnerApi(
     {
         try
         {
-            // Read-only, dev-only, loopback: permit any origin so the dashboard (served from Vite/another
+            // Read-only, dev-only, loopback: permit any origin so the runner console (served from Vite/another
             // loopback port) can fetch/subscribe. There is nothing here to protect and nothing to mutate.
             context.Response.Headers["Access-Control-Allow-Origin"] = "*";
 
@@ -265,7 +265,7 @@ internal sealed partial class QylRunnerApi(
     private partial void LogListening(string prefix);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.RunnerApiBindFailed, Level = LogLevel.Warning,
-        Message = "Runner API could not bind {Prefix} — dashboard state feed disabled: {Reason}")]
+        Message = "Runner API could not bind {Prefix} — runner-console state feed disabled: {Reason}")]
     private partial void LogBindFailed(string prefix, string reason);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.RunnerApiRequestFailed, Level = LogLevel.Debug,

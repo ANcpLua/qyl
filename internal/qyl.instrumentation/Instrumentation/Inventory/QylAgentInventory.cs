@@ -5,14 +5,16 @@ namespace Qyl.Instrumentation.Instrumentation.Inventory;
 
 public sealed class QylAgentInventory : IQylAgentInventory
 {
-    private const int ActivityWindowCap = 10_000;
-
     internal const string InventorySizeMetricName = "qyl.observability.inventory.size";
 
     private readonly ConcurrentDictionary<string, AgentRegistration> _entries =
         new(StringComparer.Ordinal);
 
-    private readonly ConcurrentDictionary<string, ConcurrentQueue<DateTime>> _activity =
+    // Keyed by agent Name (multiple registrations sharing a Name share one window,
+    // matching the previous queue-per-name behavior). Windows exist only for
+    // registered names, so RecordActivity stays a single O(1) lookup on the span
+    // export path — this replaces a per-span linear scan over all registrations.
+    private readonly ConcurrentDictionary<string, AgentActivityWindow> _activityByName =
         new(StringComparer.Ordinal);
 
     private readonly TimeProvider _time;
@@ -37,25 +39,22 @@ public sealed class QylAgentInventory : IQylAgentInventory
             : registration;
 
         _entries[registration.Key] = stamped;
+
+        if (!string.IsNullOrEmpty(registration.Name))
+            _ = _activityByName.GetOrAdd(registration.Name, static _ => new AgentActivityWindow());
     }
 
     public void RecordActivity(string agentName, DateTime timestamp)
     {
         if (string.IsNullOrEmpty(agentName)) return;
 
-        if (!IsRegisteredName(agentName)) return;
-
-        var queue = _activity.GetOrAdd(agentName, static _ => new ConcurrentQueue<DateTime>());
-        queue.Enqueue(timestamp);
-
-        while (queue.Count > ActivityWindowCap && queue.TryDequeue(out _))
-        {
-        }
+        if (_activityByName.TryGetValue(agentName, out var window))
+            window.Record(timestamp);
     }
 
     public IReadOnlyList<AgentRegistration> Snapshot()
     {
-        var cutoff = _time.GetUtcNow().UtcDateTime - TimeSpan.FromHours(24);
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
         var snapshot = new List<AgentRegistration>(_entries.Count);
 
         foreach (var entry in _entries.Values)
@@ -63,21 +62,8 @@ public sealed class QylAgentInventory : IQylAgentInventory
             DateTime? lastSeen = null;
             long count24h = 0;
 
-            if (_activity.TryGetValue(entry.Name, out var queue))
-            {
-                while (queue.TryPeek(out var head) && head < cutoff)
-                    queue.TryDequeue(out _);
-
-                count24h = queue.Count;
-                if (count24h > 0)
-                {
-                    foreach (var ts in queue)
-                    {
-                        if (lastSeen is null || ts > lastSeen)
-                            lastSeen = ts;
-                    }
-                }
-            }
+            if (_activityByName.TryGetValue(entry.Name, out var window))
+                (count24h, lastSeen) = window.Read(nowUtc);
 
             snapshot.Add(entry with { LastSeenUtc = lastSeen, CallCount24h = count24h });
         }
@@ -85,19 +71,68 @@ public sealed class QylAgentInventory : IQylAgentInventory
         return snapshot;
     }
 
-    private bool IsRegisteredName(string agentName)
-    {
-        foreach (var entry in _entries.Values)
-        {
-            if (string.Equals(entry.Name, agentName, StringComparison.Ordinal))
-                return true;
-        }
-
-        return false;
-    }
-
     public static string? HashInstructions(string? instructions) =>
         string.IsNullOrEmpty(instructions)
             ? null
             : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(instructions)));
+
+    /// <summary>
+    ///     24h sliding call window as interval-accounted counters (the
+    ///     dotnet/runtime EventCounter/RateLimiter pattern): one count per
+    ///     15-minute slot in a fixed ring instead of one timestamp per call.
+    ///     Bounds memory to the ring regardless of call volume (the previous
+    ///     queue kept up to 10k DateTimes per agent and undercounted past the
+    ///     cap); the window edge has 15-minute granularity.
+    /// </summary>
+    private sealed class AgentActivityWindow
+    {
+        private const long TicksPerSlot = TimeSpan.TicksPerMinute * 15;
+        private const int SlotsPerWindow = 96;
+        private const int SlotCount = SlotsPerWindow + 1;
+
+        private readonly Lock _lock = new();
+        private readonly long[] _slotNumbers = new long[SlotCount];
+        private readonly long[] _counts = new long[SlotCount];
+        private long _lastSeenTicks;
+
+        public void Record(DateTime timestampUtc)
+        {
+            var slot = timestampUtc.Ticks / TicksPerSlot;
+            var index = (int)(slot % SlotCount);
+
+            lock (_lock)
+            {
+                if (_slotNumbers[index] != slot)
+                {
+                    _slotNumbers[index] = slot;
+                    _counts[index] = 0;
+                }
+
+                _counts[index]++;
+
+                if (timestampUtc.Ticks > _lastSeenTicks)
+                    _lastSeenTicks = timestampUtc.Ticks;
+            }
+        }
+
+        public (long Count24h, DateTime? LastSeenUtc) Read(DateTime nowUtc)
+        {
+            var currentSlot = nowUtc.Ticks / TicksPerSlot;
+            var oldestIncludedSlot = currentSlot - SlotsPerWindow;
+
+            lock (_lock)
+            {
+                long count = 0;
+                for (var i = 0; i < SlotCount; i++)
+                {
+                    if (_slotNumbers[i] >= oldestIncludedSlot && _counts[i] > 0)
+                        count += _counts[i];
+                }
+
+                return count > 0
+                    ? (count, new DateTime(_lastSeenTicks, DateTimeKind.Utc))
+                    : (0, null);
+            }
+        }
+    }
 }

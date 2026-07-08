@@ -35,8 +35,11 @@ public static class QylAgentInventoryEndpoint
         return app;
     }
 
-    private static Ok<AgentInventoryResponse> GetInventory(IQylAgentInventory inventory) =>
-        TypedResults.Ok(new AgentInventoryResponse(inventory.Snapshot(), inventory.Snapshot().Count));
+    private static Ok<AgentInventoryResponse> GetInventory(IQylAgentInventory inventory)
+    {
+        var items = inventory.Snapshot();
+        return TypedResults.Ok(new AgentInventoryResponse(items, items.Count));
+    }
 }
 
 public sealed record AgentInventoryResponse(IReadOnlyList<AgentRegistration> Items, int Total);

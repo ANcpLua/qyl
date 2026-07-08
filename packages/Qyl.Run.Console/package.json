@@ -1,9 +1,9 @@
 {
-  "name": "qyl.run.dashboard",
+  "name": "qyl.run.console",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Standalone dev-only resource dashboard for the Qyl.Run runner. Reads the read-only /runner state API. NOT part of the qyl product dashboard.",
+  "description": "Dev-only runner console for Qyl.Run — a live resource view over the runner's read-only /runner state API. Dev tooling, NOT the qyl product dashboard (services/qyl.dashboard).",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
