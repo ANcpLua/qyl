@@ -20,8 +20,9 @@
 #   plain `pull_request` event already grants a write-scoped token — we do NOT
 #   need pull_request_target and its untrusted-code footguns. The job is hard-
 #   scoped to renovate/* branches authored by renovate[bot]; nothing else runs.
-#   Claude only READS the diff (gh pr diff) and posts a review — it never checks
-#   out or executes PR code.
+#   The branch IS checked out (the action needs git context to diff), but Claude
+#   is restricted to `gh pr` READ commands + the single review action via
+#   allowedTools — it never builds or executes the PR's code.
 #
 # APPROVER IDENTITY
 #   The approving review is authored by github-actions[bot] via the default
@@ -72,6 +73,14 @@ jobs:
       pull-requests: write
       id-token: write   # claude_code_oauth_token is exchanged via OIDC
     steps:
+      # The action needs git context (it fetches the base branch to diff).
+      # Safe here: renovate/* is an in-repo trusted branch and Claude is limited
+      # to `gh pr` READ commands (see allowedTools) — it never runs PR code.
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+
       - name: Claude dependency review + gated approve
         uses: anthropics/claude-code-action@ba0aafd4308cbba7165f9f2cdb0cfbed5a3c99ce # v1
         with:
