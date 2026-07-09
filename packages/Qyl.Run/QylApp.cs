@@ -9,9 +9,7 @@ public sealed class QylApp(IHost host) : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        if (host is IAsyncDisposable asyncDisposable) return asyncDisposable.DisposeAsync();
-        host.Dispose();
-        return ValueTask.CompletedTask;
+        return ((IAsyncDisposable)host).DisposeAsync();
     }
 
     public Task RunAsync(CancellationToken cancellationToken = default)

@@ -13,7 +13,6 @@ internal sealed partial class QylOrchestrator(
     QylAppOptions options,
     IHttpClientFactory httpClientFactory,
     QylProcessLauncher launcher,
-    QylContainerLauncher containerLauncher,
     QylRestartRequests restartRequests,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
@@ -22,8 +21,6 @@ internal sealed partial class QylOrchestrator(
         CompositeFormat.Parse(QylConstants.Network.LocalhostUrlTemplate);
 
     private readonly ConcurrentDictionary<string, Process> _processes = new(StringComparer.Ordinal);
-
-    private readonly ConcurrentDictionary<string, QylContainerHandle> _containers = new(StringComparer.Ordinal);
 
     // Names whose next exit is a user-requested restart, not a crash: supervision consumes the marker,
     // relaunches on the same port, and resets the crash budget instead of burning it.
@@ -77,17 +74,9 @@ internal sealed partial class QylOrchestrator(
 
     private async Task StartResourceAsync(QylResource resource, CancellationToken stoppingToken)
     {
-        await registry.WhenAllReadyAsync(resource.WaitForNames, stoppingToken).ConfigureAwait(false);
-
         try
         {
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
-
-            if (resource.Container is not null)
-            {
-                await StartContainerResourceAsync(resource, stoppingToken).ConfigureAwait(false);
-                return;
-            }
 
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
                 ? PortAllocator.ClaimFreePort(options.RunnerHost)
@@ -96,14 +85,9 @@ internal sealed partial class QylOrchestrator(
             var endpoint =
                 new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost, port));
 
-            // A resource with no executable is an already-running external endpoint we only health-probe;
-            // otherwise the launcher spawns a child process whose lifecycle we own via _processes.
-            Process? process = null;
-            if (!string.IsNullOrEmpty(resource.Launch.Executable))
-            {
-                process = launcher.Launch(resource, endpoint, BuildReferenceEnv(resource));
-                _processes[resource.Name] = process;
-            }
+            // The launcher spawns a child process whose lifecycle we own via _processes.
+            var process = launcher.Launch(resource, endpoint);
+            _processes[resource.Name] = process;
 
             if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
             {
@@ -111,17 +95,11 @@ internal sealed partial class QylOrchestrator(
                 LogReady(logger, resource.Name, endpoint);
 
                 // Own a launched process for the rest of its life: restart it if it crashes (bounded).
-                if (process is not null)
-                {
-                    await SuperviseProcessAsync(resource, process, port, endpoint, stoppingToken).ConfigureAwait(false);
-                }
+                await SuperviseProcessAsync(resource, process, port, endpoint, stoppingToken).ConfigureAwait(false);
             }
             else
             {
-                var reason = process is null
-                    ? "Health probe timed out for external endpoint"
-                    : "Health probe timed out";
-                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, reason);
+                registry.Publish(resource.Name, ResourceLifecycle.Failed, port, endpoint, "Health probe timed out");
             }
         }
         catch (SocketException ex)
@@ -146,28 +124,6 @@ internal sealed partial class QylOrchestrator(
     {
         LogFailed(logger, resource.Name, ex.Message, ex);
         registry.Publish(resource.Name, ResourceLifecycle.Failed, lastError: ex.Message);
-    }
-
-    private async Task StartContainerResourceAsync(QylResource resource, CancellationToken stoppingToken)
-    {
-        var handle = await containerLauncher.StartAsync(resource, BuildReferenceEnv(resource), stoppingToken)
-            .ConfigureAwait(false);
-        _containers[resource.Name] = handle;
-
-        var endpoint = new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost,
-            handle.HostPort));
-
-        if (await QylContainerLauncher.WaitForRunningAsync(handle, options.StartupTimeoutSeconds, stoppingToken)
-                .ConfigureAwait(false))
-        {
-            registry.Publish(resource.Name, ResourceLifecycle.Ready, handle.HostPort, endpoint);
-            LogReady(logger, resource.Name, endpoint);
-        }
-        else
-        {
-            registry.Publish(resource.Name, ResourceLifecycle.Failed, handle.HostPort, endpoint,
-                "Container did not reach running state");
-        }
     }
 
     // Restart-on-crash for a launched process: while the runner is up, an unexpected exit is a crash — relaunch
@@ -221,7 +177,7 @@ internal sealed partial class QylOrchestrator(
 
             try
             {
-                current = launcher.Launch(resource, endpoint, BuildReferenceEnv(resource));
+                current = launcher.Launch(resource, endpoint);
                 _processes[resource.Name] = current;
             }
             catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or FileNotFoundException)
@@ -275,44 +231,6 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    // Env-based service discovery: for each referenced resource that is already resolved (we WaitFor them),
-    // publish its endpoint into this resource's environment using Aspire's services__<name>__<ep>__<index>
-    // convention, and wire a referenced collector as the dependent's OTLP endpoint.
-    private Dictionary<string, string> BuildReferenceEnv(QylResource resource)
-    {
-        var env = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var referenceName in resource.References)
-        {
-            if (!registry.Snapshot.TryGetValue(referenceName, out var state) || state.Endpoint is null)
-            {
-                continue;
-            }
-
-            var url = state.Endpoint.ToString();
-            env[$"services__{referenceName}__default__0"] = url;
-
-            if (IsCollector(referenceName))
-            {
-                env[QylConstants.Env.OtelExporterOtlpEndpoint] = url;
-            }
-        }
-
-        return env;
-    }
-
-    private bool IsCollector(string name)
-    {
-        foreach (var resource in resources)
-        {
-            if (string.Equals(resource.Name, name, StringComparison.Ordinal))
-            {
-                return string.Equals(resource.Kind, QylConstants.ResourceKinds.Collector, StringComparison.Ordinal);
-            }
-        }
-
-        return false;
-    }
-
     private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
     {
         using var client = httpClientFactory.CreateClient(QylConstants.HttpClients.HealthProbe);
@@ -362,25 +280,6 @@ internal sealed partial class QylOrchestrator(
 
             registry.Publish(name, ResourceLifecycle.Stopped);
             process.Dispose();
-        }
-
-        foreach (var (name, handle) in _containers)
-        {
-            registry.Publish(name, ResourceLifecycle.Stopping);
-            try
-            {
-                await containerLauncher.StopAsync(handle, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Win32Exception)
-            {
-                // runtime CLI vanished — best-effort teardown
-            }
-            catch (InvalidOperationException)
-            {
-                // container already gone — nothing to clean up
-            }
-
-            registry.Publish(name, ResourceLifecycle.Stopped);
         }
 
         registry.Complete();

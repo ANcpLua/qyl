@@ -15,33 +15,18 @@ public static class QylConstants
     public static class Ports
     {
         public const int RunnerApi = 18888;
-        public const int Dashboard = 5050;
-        public const int OtlpGrpc = 4317;
-        public const int OtlpHttp = 4318;
         public const int DynamicAllocation = 0;
     }
 
     public static class ResourceKinds
     {
-        public const string Dashboard = "dashboard";
         public const string Collector = "collector";
         public const string Project = "project";
-        public const string Container = "container";
-    }
-
-    public static class Container
-    {
-        public const string Docker = "docker";
-        public const string Podman = "podman";
-        public const string NamePrefix = "qyl-run-";
-        public const int RunningPollIntervalMs = 300;
     }
 
     public static class Environments
     {
         public const string Dev = "dev";
-        public const string Staging = "staging";
-        public const string Prod = "prod";
     }
 
     public static class Network
@@ -57,29 +42,23 @@ public static class QylConstants
         public const string AspNetCoreEnvironment = "ASPNETCORE_ENVIRONMENT";
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
-        public const string OtelExporterOtlpEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT";
-        public const string ContainerRuntime = "QYL_CONTAINER_RUNTIME";
     }
 
     public static class Routes
     {
         public const string Health = "/health";
         public const string Runner = "/runner";
-        public const string Fleet = "/api/v1/fleet";
-        public const string ApiRoot = "/api/v1";
     }
 
     public static class HttpClients
     {
         public const string HealthProbe = "qyl-run-health";
-        public const string FleetProxy = "qyl-run-proxy";
     }
 
     public static class Keys
     {
         public const char Stop = 'S';
         public const char Restart = 'R';
-        public const char Browser = 'B';
         public const char Help = 'H';
     }
 
@@ -107,9 +86,6 @@ public static class QylConstants
         public const int RunnerApiListening = 1107;
         public const int RunnerApiBindFailed = 1108;
         public const int RunnerApiRequestFailed = 1109;
-        public const int ContainerStarted = 1110;
-        public const int ContainerStopped = 1111;
-        public const int ContainerLogFollowerFailed = 1112;
         public const int ResourceUserRestart = 1114;
     }
 }

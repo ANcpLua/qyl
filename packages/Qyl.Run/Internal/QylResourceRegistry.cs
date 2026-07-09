@@ -59,24 +59,6 @@ internal sealed class QylResourceRegistry(TimeProvider time)
         foreach (var channel in _subscribers.Values) channel.Writer.TryWrite(state);
     }
 
-    // Completes the first time the named resource reaches Ready. Subscribing (Signal) before the recheck
-    // closes the race with Publish: a Ready arriving in between still completes the same TaskCompletionSource.
-    public Task WhenReadyAsync(string name, CancellationToken cancellationToken)
-    {
-        var tcs = Signal(name);
-        if (_latest.TryGetValue(name, out var state) && state.Lifecycle == ResourceLifecycle.Ready)
-        {
-            tcs.TrySetResult();
-        }
-
-        return tcs.Task.WaitAsync(cancellationToken);
-    }
-
-    public Task WhenAllReadyAsync(IEnumerable<string> names, CancellationToken cancellationToken)
-    {
-        return Task.WhenAll(names.Select(name => WhenReadyAsync(name, cancellationToken)));
-    }
-
     public void Complete()
     {
         _completed = true;

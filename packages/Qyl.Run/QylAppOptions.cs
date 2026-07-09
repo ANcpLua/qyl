@@ -12,10 +12,8 @@ public sealed class QylAppOptions
 
     public int StartupTimeoutSeconds { get; init; } = QylConstants.Orchestrator.StartupTimeoutSeconds;
 
-    public bool CaptureChildOutput { get; init; } = true;
-
     // Manual, reflection-free bind: ConfigurationBinder and DataAnnotations validation both walk the type
-    // via reflection, which the trimmer cannot see through. Reading the four known keys explicitly keeps
+    // via reflection, which the trimmer cannot see through. Reading the known keys explicitly keeps
     // env-var/appsettings overrides working while the options path stays trim/AOT-clean, and calling this
     // from Build() keeps the old ValidateOnStart fail-fast semantics.
     public static QylAppOptions FromConfiguration(IConfiguration configuration)
@@ -26,8 +24,7 @@ public sealed class QylAppOptions
             RunnerPort = ReadInt(section, nameof(RunnerPort), QylConstants.Ports.RunnerApi),
             RunnerHost = section[nameof(RunnerHost)] ?? QylConstants.Network.Loopback,
             StartupTimeoutSeconds =
-                ReadInt(section, nameof(StartupTimeoutSeconds), QylConstants.Orchestrator.StartupTimeoutSeconds),
-            CaptureChildOutput = ReadBool(section, nameof(CaptureChildOutput), true)
+                ReadInt(section, nameof(StartupTimeoutSeconds), QylConstants.Orchestrator.StartupTimeoutSeconds)
         };
 
         if (options.RunnerPort is < 0 or > 65535)
@@ -56,14 +53,5 @@ public sealed class QylAppOptions
         return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? value
             : throw new InvalidOperationException($"{SectionName}:{key} must be an integer, got '{raw}'");
-    }
-
-    private static bool ReadBool(IConfiguration section, string key, bool fallback)
-    {
-        var raw = section[key];
-        if (raw is null) return fallback;
-        return bool.TryParse(raw, out var value)
-            ? value
-            : throw new InvalidOperationException($"{SectionName}:{key} must be true or false, got '{raw}'");
     }
 }

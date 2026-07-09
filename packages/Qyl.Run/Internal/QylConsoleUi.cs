@@ -10,7 +10,7 @@ internal sealed class QylConsoleUi(
     IHostApplicationLifetime lifetime) : BackgroundService
 {
     private const string Footer =
-        "[grey][[S]] Stop   [[R]] Restart   [[B]] Open browser   [[H]] Help   [[Esc]] Exit[/]";
+        "[grey][[S]] Stop   [[R]] Restart   [[H]] Help   [[Esc]] Exit[/]";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -136,41 +136,25 @@ internal sealed class QylConsoleUi(
                     lifetime.StopApplication();
                     return;
                 case QylConstants.Keys.Restart: RequestRestarts(); break;
-                case QylConstants.Keys.Browser: OpenBrowser(); break;
                 case QylConstants.Keys.Help: AnsiConsole.MarkupLine(Footer); break;
             }
         }
     }
 
     // Restart is keyboard-only by design (never a /runner HTTP verb). The table has no row selection, so
-    // [R] restarts every launched process resource — the dev-inner-loop "bounce my apps" gesture; externals
-    // and containers are skipped (the orchestrator also ignores names it holds no live process for).
+    // [R] restarts every launched process resource — the dev-inner-loop "bounce my apps" gesture (the
+    // orchestrator also ignores names it holds no live process for).
     private void RequestRestarts()
     {
         var requested = 0;
         foreach (var resource in resources)
         {
-            if (resource.Container is null && !string.IsNullOrEmpty(resource.Launch.Executable))
-            {
-                restartRequests.Request(resource.Name);
-                requested++;
-            }
+            restartRequests.Request(resource.Name);
+            requested++;
         }
 
         AnsiConsole.MarkupLine(requested == 0
             ? "[yellow]No restartable process resources.[/]"
             : $"[aqua]Restart requested for {requested} process resource(s).[/]");
-    }
-
-    private void OpenBrowser()
-    {
-        var target = resources.FirstOrDefault(r => r.Kind == QylConstants.ResourceKinds.Dashboard);
-        if (target is null || !registry.Snapshot.TryGetValue(target.Name, out var state) || state.Endpoint is null)
-        {
-            AnsiConsole.MarkupLine("[red]No dashboard resource is ready yet.[/]");
-            return;
-        }
-
-        Process.Start(new ProcessStartInfo(state.Endpoint.ToString()) { UseShellExecute = true })?.Dispose();
     }
 }
