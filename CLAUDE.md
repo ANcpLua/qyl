@@ -292,8 +292,19 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   (the whole `src/` tree is gone; ~20 more stale `[src/**]` sections remain there, a
   separate cleanup). PRODUCT MENTIONS DELIBERATELY KEPT: `StartupBanner.cs:75` and
   `SettingsPage.tsx:369` advertise GitHub/Copilot integration to *users* — we support it
-  without using it. CAVEAT: `auto-merge.yml`'s header says "Synced from
-  github-settings-automation/templates/auto-merge.yml … do not hand-edit per-repo" — the
-  weekly enforce-repo-settings sweep will revert the `copilot/` removal unless the same
-  edit lands in that template repo. Dormant `CODE_RABBIT` / `AGENTIC_QYL_CODERABBIT` repo
-  secrets (2026-03-11) are still unreferenced by any workflow; safe to delete.
+  without using it. Dormant `CODE_RABBIT` / `AGENTIC_QYL_CODERABBIT` repo secrets
+  (2026-03-11) are still unreferenced by any workflow; safe to delete.
+- 2026-07-09 — Upstream template de-copilot'd so the sweep can't revert (Claude,
+  ANcpLua/github-settings-automation@8fe9c17). `enforce-repo-settings.yml` compares each
+  repo's `.github/workflows/auto-merge.yml` **byte-for-byte** against
+  `templates/auto-merge.yml` and REPLACES drifted copies, so qyl's edit had to land
+  upstream or be overwritten. Applied the identical `copilot/` removal to
+  `templates/auto-merge.yml` + that repo's own copy, and dropped Copilot from the
+  advisory-reviewer list in its `AGENTS.md`. Verified safe fleet-wide first: **zero
+  `copilot/` branches and zero open Copilot PRs** across qyl, TourPlanner, Paperless,
+  github-settings-automation. Evidence: `actionlint` clean; template YAML parses; blob
+  sha `0400f9f…` now identical on qyl / templates/ / the template repo's own copy →
+  sweep sees "already canonical" and skips qyl. TourPlanner + Paperless still carry the
+  old `b17d756…` and will be auto-synced to canonical on the next Monday-17:00-UTC sweep
+  (topic mode targets exactly those two; qyl is not topic-tagged, so default-mode sweeps
+  never touched it anyway — only `recent`/`full` dispatch would).
