@@ -292,8 +292,11 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   (the whole `src/` tree is gone; ~20 more stale `[src/**]` sections remain there, a
   separate cleanup). PRODUCT MENTIONS DELIBERATELY KEPT: `StartupBanner.cs:75` and
   `SettingsPage.tsx:369` advertise GitHub/Copilot integration to *users* — we support it
-  without using it. Dormant `CODE_RABBIT` / `AGENTIC_QYL_CODERABBIT` repo secrets
-  (2026-03-11) are still unreferenced by any workflow; safe to delete.
+  without using it. Also DELETED the dormant `CODE_RABBIT` / `AGENTIC_QYL_CODERABBIT`
+  repo secrets (created 2026-03-11, never referenced by any workflow — verified by grep
+  before deletion). Values are unrecoverable; reinstalling CodeRabbit would need fresh
+  tokens. `gh secret list` now: AUTOMERGE_APP_ID/_PRIVATE_KEY, CLAUDE_CODE_OAUTH_TOKEN,
+  DOCKERHUB_TOKEN/_USERNAME, JULES_API_KEY, TRIAGE_PAT.
 - 2026-07-09 — Upstream template de-copilot'd so the sweep can't revert (Claude,
   ANcpLua/github-settings-automation@8fe9c17). `enforce-repo-settings.yml` compares each
   repo's `.github/workflows/auto-merge.yml` **byte-for-byte** against
