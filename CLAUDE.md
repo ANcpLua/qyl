@@ -311,3 +311,22 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   old `b17d756…` and will be auto-synced to canonical on the next Monday-17:00-UTC sweep
   (topic mode targets exactly those two; qyl is not topic-tagged, so default-mode sweeps
   never touched it anyway — only `recent`/`full` dispatch would).
+- 2026-07-10 — Stale `.editorconfig` sections purged (Claude, user-approved decision) —
+  closes the "~20 more stale `[src/**]` sections" note from 2026-07-09. Deleted 25 dead
+  sections (166 lines): all 21 `[src/...]` globs (no `src/` dir exists; 0 matching files),
+  `[tests/**/*.cs]` + `[examples/**/*.cs]` (neither dir exists; zero C# test projects in
+  repo — dashboard tests are TS under `services/qyl.dashboard/src/__tests__`), and both
+  `[services/qyl.collector/Ingestion/Otlp*.cs]` QYL0001 suppressions (OtlpAttributes.cs
+  was deleted; QYL0001 is defined by NO analyzer in the current build — real in-repo IDs
+  are QYL0136/QYL0137 in `internal/qyl.instrumentation.generators/Analyzers/`; git
+  `log -S` traces QYL0001 to long-removed code). Deliberately did NOT repoint Group-A
+  globs to the real roots: builds have been 0W/0E for months with them inert (baseline
+  `.globalconfig` `suggestion` severities are the lived-in reality), repointing would
+  newly silence CA2100 (SQL-injection review) on Storage code, and the sections' own
+  justifications had rotted (e.g. "lowercase 'qyl' namespace" — actual namespaces are
+  PascalCase `Qyl.Collector.*`). Principle: if IDE suggestion noise ever gets real,
+  re-add a targeted section against the real path with fresh justification. Kept all
+  live sections: `[packages/**/*.cs]` CA2007 re-enable, `[eng/build/**]`, generated-code
+  exclusions, file-type blocks. Evidence: `grep -c '^\[src/' .editorconfig` → 0;
+  `git diff --stat` → 166 deletions only; `dotnet build qyl.slnx` → 0 Warning(s),
+  0 Error(s).
