@@ -39,7 +39,7 @@ Reach parity on its genuine engineering strengths (below); win on those two.
   The root-cause LLM work runs on Sentry's servers. **This is their moat and their
   dependency.** Self-hosted Sentry can't use it (`--disable-skills=seer`).
 - **Embedded agents** translate NL → Sentry query syntax (`search_events`,
-  `search_issues`), grounded in **~90 bundled static OTel semconv JSON files**
+  `search_issues`), grounded in **~74 bundled static OTel semconv JSON files**
   (`internal/agents/tools/data/`), Zod-validated structured output, `stepCountIs(5)`
   cap, a `rescueFromText` fallback for when structured generation fails
   (`callEmbeddedAgent.ts`). A `use_sentry` meta-agent wraps the whole catalog via
@@ -54,7 +54,7 @@ Reach parity on its genuine engineering strengths (below); win on those two.
 - Schema-validated embedded-agent output **with** a prose-rescue fallback.
 - Error taxonomy: tool errors returned as `isError:true` text, never thrown;
   4xx never logged, 5xx always (`server.ts:421-444`).
-- A real **eval harness** (24 `*.eval.ts`, `ToolPredictionScorer`) gating tool
+- A real **eval harness** (23 `*.eval.ts`, `ToolPredictionScorer`) gating tool
   quality + a token-budget check per tool change.
 - `gen_ai.*` self-instrumentation on every tool call.
 
@@ -71,7 +71,7 @@ Reach parity on its genuine engineering strengths (below); win on those two.
 - **`services/qyl.collector`** — OTLP ingest, REST API, DuckDB storage. The
   backend Sentry-MCP would have to call a SaaS for; qyl has it locally.
 - **First-party OTel semantic conventions** — `Qyl.OpenTelemetry.SemanticConventions`
-  (Weaver-generated, always current) + the genai registry. Sentry *bundled ~90
+  (Weaver-generated, always current) + the genai registry. Sentry *bundled ~74
   static JSON files*; qyl **generates** them. Exploit this.
 - **`Qyl.Host` design** ([DESIGN.md](./DESIGN.md)) — the polyglot engine that
   `mcp-run` folds into; MCP as a strategy, not the substrate.

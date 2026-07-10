@@ -23,7 +23,7 @@ capability the product needs is ~15 additive lines away.
 A dependency-light distributed-app runner: launches local service processes,
 health-probes them, supervises/restarts, renders a Spectre.Console TUI, and
 exposes a read-only HTTP/SSE state feed. Two NuGets (`ANcpLua.Roslyn.Utilities`,
-`Spectre.Console`), `IsAotCompatible=true`, ~650 LoC.
+`Spectre.Console`), `IsAotCompatible=true`, ~1,350 LoC.
 
 - **Public surface:** `QylAppBuilder.Create(args)` → `AddCollector(name, port?,
   project?)` / `AddProject(name, project, port?)` → `Build()` → `QylApp.RunAsync()`.
@@ -57,7 +57,7 @@ can be added."* The mechanism is polyglot; the shipped surface is not.
 ### `mcp-run` (TypeScript) — MCP supervisor, polyglot
 
 Written **1:1 after `Qyl.Run`** so it can be ported back mechanically
-(`mcp-run/ARCHITECTURE.md:1`, *"deliberately shaped 1:1 after
+(`mcp-run/ARCHITECTURE.md:3`, *"deliberately shaped 1:1 after
 qyl/packages/Qyl.Run … so it can later be ported into qyl mechanically"*). Same
 lifecycle enum, same `MaxRestarts: 3`, same runner API on `:18888`, same
 replay-on-subscribe SSE contract. ~1300 LoC runner + ~1380 LoC dashboard.
@@ -86,7 +86,7 @@ tuple among many, not a wired-in assumption.
 
 **Its lock is the other axis: readiness = the MCP handshake.** Ready requires
 `initialize` + `tools/list` to succeed (`orchestrator.ts:214`); liveness is an
-MCP `ping` (`:303`); stdout is reserved as the JSON-RPC channel and never logged.
+MCP `ping` (`:304`); stdout is reserved as the JSON-RPC channel and never logged.
 It captures `serverInfo`, `toolCount`, and `hasAppUi` from the handshake. It
 **cannot supervise a plain HTTP service** — which is the only thing `Qyl.Run`
 launches today.
@@ -137,7 +137,7 @@ command.
 ## Naming: why `Qyl.Host`, not `qyl.mcp`
 
 `qyl.mcp` is a **burned name**. It was deleted in commit `43d032f9` (2026-05-25,
-*"Path C Phase 1: qyl.mcp destruction"*, 301 files). Its successor already exists
+*"Path C Phase 1: qyl.mcp destruction"*, 53 files). Its successor already exists
 and is not this engine: `qyl-apps-server`'s README (in this workspace) calls itself *"the
 successor to the deleted services/qyl.mcp Apps."* A host that **runs** MCP servers
 is not itself an MCP server; reusing `qyl.mcp` for the host would collide with the
@@ -192,6 +192,7 @@ point. That is the engine.
 - **There is no `qyl.run.dashboard`.** The runner frontend is
   `packages/Qyl.Run.Console` (package name `qyl.run.console`), distinct from the
   product dashboard `services/qyl.dashboard`.
-- **`mcp-run/ARCHITECTURE.md:193` lists OTLP as "out of scope (v1)" while
-  `telemetry.ts` ships and exports.** The doc it calls "the single source of
-  truth" contradicts the code; reconcile on port.
+- **RESOLVED 2026-07-11:** `mcp-run/ARCHITECTURE.md` used to list OTLP as
+  "out of scope (v1)" while `telemetry.ts` shipped; the doc now has a
+  "Host-side telemetry" section documenting `McpTelemetry` and OTLP was
+  removed from the out-of-scope list.

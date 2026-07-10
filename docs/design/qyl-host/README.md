@@ -52,7 +52,7 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 ## Facts to carry forward (verified, correct the old record)
 
 - **Aspire is NOT a dependency** anywhere. `Qyl.Run.csproj:7` says "Zero Aspire
-  deps." Drop the "Aspire-style" framing; it undersells a ~650 LoC zero-dep engine.
+  deps." Drop the "Aspire-style" framing; it undersells a ~1,350 LoC zero-dep engine.
 - **There is no `qyl.run.dashboard`.** The runner frontend is
   `packages/Qyl.Run.Console`; the product dashboard is `services/qyl.dashboard`.
 - **Do not design against `Qyl.Run/README.md`** — it documents `AddDashboard`,

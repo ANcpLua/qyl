@@ -368,3 +368,31 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   → 0 hits; mcp-run `npm run build --workspace runner` → tsc clean (dashboard
   workspace build fails on a PRE-EXISTING `./styles.css` TS2882, untouched by
   this change); mcp.json parses.
+- 2026-07-11 — Derot pass over workspace markdown (Claude, 4 parallel rot-scouts,
+  every finding verified against ground truth before applying). Workspace router
+  CLAUDE.md: ZERO rot — all registry/version/package claims verified true.
+  mcp-run/ARCHITECTURE.md: `Qyl.Run.Dashboard` doesn't exist → `Qyl.Run.Console`
+  (5 spots); `IQylResourceBuilder (+WaitFor, WithReference)` — those C# members
+  don't exist (interface has only `Update`; `.waitFor()/.withReference()` are
+  new in mcp-run) (3 spots); OTLP removed from "Out of scope" — `telemetry.ts`
+  ships it; added a "Host-side telemetry" section (`McpTelemetry`, QYL_OTLP_ENDPOINT
+  default :4318, mcp.method/tool.name + gen_ai.tool.name, session.id,
+  MCP_RUN_RECORD_INPUTS/OUTPUTS) — this also RESOLVES the contradiction
+  DESIGN.md:195 flagged (bullet updated). qyl-apps-server: INTERFACE.md wiring
+  section said "wire with QYL_DEMO=1" but the live main.ts wiring diverged on
+  purpose (QYL_COLLECTOR_URL, no QYL_DEMO) → rewritten as DONE with actual env;
+  dead scratchpad `qyl-mcp-prior-art/` refs → repointed to qyl git history
+  before 43d032f9 (verified: that commit touches 28 services/qyl.mcp files);
+  sentry-mcp-comparison.md: clone path qyl-workspace→qyl-references, tool count
+  6→7 (display_mcp_dashboard landed), smoke-test 30→~40 assertions (41 check()s).
+  qyl-host design docs: 43d032f9 "301 files"→53 (git show --shortstat); Sentry
+  "~90 semconv JSON files"→~74 (counted), eval harness 24→23 *.eval.ts; Qyl.Run
+  "~650 LoC"→~1,350 (wc -l = 1,353; fixed at the SOURCE too —
+  packages/Qyl.Run/README.md:55 LoC table); 3 line-citation drifts
+  (ARCHITECTURE.md:1→:3, orchestrator :303→:304, OTLP bullet). FLAGGED, NOT
+  CHANGED: plugins/qyl-mcp/agents/qyl-mcp.md allowedTools omits
+  display_mcp_dashboard (possibly intentional scope); Qyl.Run/README.md still
+  documents AddDashboard/.WithCollector/.WaitFor/[B] absent from code
+  (aspirational-spec vs rot — human call); INTERFACE.md:60 lists
+  /traces/{id}/spans as "used" though server.ts uses /traces/{id} (endpoint IS
+  real, harmless). Verify: residual-grep for all stale tokens → 0 hits.
