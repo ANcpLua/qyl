@@ -330,3 +330,15 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   exclusions, file-type blocks. Evidence: `grep -c '^\[src/' .editorconfig` → 0;
   `git diff --stat` → 166 deletions only; `dotnet build qyl.slnx` → 0 Warning(s),
   0 Error(s).
+- 2026-07-10 — Non-beta projects deferred out of the workspace (Claude, user-directed).
+  Moved `qyl-workspace/qyl.mobile` + `qyl-workspace/qyl-tracker-companion` (both clean,
+  `main...origin/main`, nothing stranded) to `~/RiderProjects/after qyl is in public beta/`,
+  whose new `CLAUDE.md` is the compendium of parked nice-to-haves (incl. the Sophia
+  pet/mercenary concept — idea only, no repo). Workspace `CLAUDE.md` router updated:
+  product family is now `qyl/` + `Qyl.OpenTelemetry.AutoInstrumentation/`, plus a
+  "Deferred until public beta" section. Repo-wide grep for
+  `qyl.mobile|tracker-companion|pet|mercenary|sophia`: the remaining in-repo mentions
+  (`lychee.toml:40` exclusion, `docs/design/telemetry-fabric.md:192` grounding row,
+  progress-log breadcrumbs above) all reference the **GitHub** repo `ANcpLua/qyl.mobile`,
+  which didn't move — left intact, not rot. No code/build references existed; nothing in
+  the beta path depends on either repo.
