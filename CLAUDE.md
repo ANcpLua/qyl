@@ -332,7 +332,7 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   0 Error(s).
 - 2026-07-10 — Non-beta projects deferred out of the workspace (Claude, user-directed).
   Moved `qyl-workspace/qyl.mobile` + `qyl-workspace/qyl-tracker-companion` (both clean,
-  `main...origin/main`, nothing stranded) to `~/RiderProjects/after qyl is in public beta/`,
+  `main...origin/main`, nothing stranded) to `~/RiderProjects/qyl-parked/`,
   whose new `CLAUDE.md` is the compendium of parked nice-to-haves (incl. the Sophia
   pet/mercenary concept — idea only, no repo). Workspace `CLAUDE.md` router updated:
   product family is now `qyl/` + `Qyl.OpenTelemetry.AutoInstrumentation/`, plus a
@@ -345,7 +345,7 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
 - 2026-07-10 — Reference clones relocated (Claude, user-directed): `semantic-conventions`
   (pulled to eb614277), `semantic-conventions-genai` (63f8200), `sentry-mcp` (9c88431d,
   already latest) — all clean, pulled to upstream HEAD, then moved to
-  `~/RiderProjects/qyl references/`. Weaver/build files pin registries by GitHub commit,
+  `~/RiderProjects/qyl-references/`. Weaver/build files pin registries by GitHub commit,
   not local path (verified by grep) — nothing build-critical breaks. Path-citing docs
   fixed: workspace router CLAUDE.md (registry routing + upstream-clones invariant),
   `docs/design/qyl-host/MCP-STRATEGY.md:6` (7b1f3cb9), SemanticConventions `AGENTS.md:50`
