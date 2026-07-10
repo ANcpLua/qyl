@@ -1,0 +1,71 @@
+# READ THIS — Qyl.Host handoff
+
+> **He left this before resetting it all.** Read this, then work through it *with
+> the user* — do not execute silently. This folder is the single place the
+> Qyl.Host unification lives. Everything below is committed and pushed to the
+> (now private) `ANcpLua/qyl` remote, so it survives a local reset.
+
+## What this is
+
+A plan to merge the two app hosts that exist today into one polyglot engine.
+The full design, with file:line evidence, is **[DESIGN.md](./DESIGN.md)** in this
+folder. Read that second; read this first.
+
+## The one-paragraph version
+
+There are two app hosts, deliberately written as twins. `packages/Qyl.Run` (C#)
+supervises processes over **HTTP health** but can only launch **.NET**
+(`QylAppBuilder.cs:104-111` hardcodes `dotnet run --project`). `~/Desktop/mcp-run`
+(TypeScript, shaped 1:1 after `Qyl.Run`) launches **any executable** but only
+supervises **MCP servers** (readiness is the `initialize`+`tools/list` handshake).
+Each is locked on the axis the other is free. The plan makes **runtime** and
+**readiness** independent strategies in one engine, `Qyl.Host`.
+
+## Where to start with the user (in order)
+
+1. **Confirm the direction.** `Qyl.Host` as the engine; `qyl run` stays the CLI
+   verb. MCP becomes a plugin (`Qyl.Host.Mcp`), not the substrate. Do NOT reuse
+   the name `qyl.mcp` — it was deleted in `43d032f9` and `~/Desktop/qyl-apps-server`
+   already inherited it.
+2. **Step 1 is the load-bearing unlock: `AddExecutable(name, command, args, port?)`**
+   in `QylAppBuilder`. ~15 lines, additive, non-breaking. `QylLaunchSpec` already
+   carries `Executable`; this only adds the public door. `AddProject`/`AddCollector`
+   become thin wrappers over it. This ends the .NET-only lock. Build must stay
+   green (repo invariant — see `qyl/CLAUDE.md`).
+3. **Then** the ordered migration path in DESIGN.md §"Migration path": step 2
+   `IReadinessProbe`, step 3 `Qyl.Host.Mcp` (+ port `mcp-run/telemetry.ts`), step 4
+   `waitFor`/`withReference`, step 5 Console convergence, step 6 rename last.
+
+## Repo state at handoff (2026-07-10)
+
+- **`ANcpLua/qyl` is now PRIVATE** (was public; set back on request — system
+  critical). Verified `visibility: PRIVATE`.
+- **All four repos clean and fully pushed** (dirty=0, ahead=0): `qyl`,
+  `~/Desktop/mcp-run`, `~/Desktop/qyl-apps-server`, `~/Desktop/x-apps-server`.
+- The three Desktop repos are private on `github.com/ANcpLua`. `x-apps-server` is
+  **architectural reference only** — the user does not want the X product
+  developed further.
+
+## Facts to carry forward (verified, correct the old record)
+
+- **Aspire is NOT a dependency** anywhere. `Qyl.Run.csproj:7` says "Zero Aspire
+  deps." Drop the "Aspire-style" framing; it undersells a ~650 LoC zero-dep engine.
+- **There is no `qyl.run.dashboard`.** The runner frontend is
+  `packages/Qyl.Run.Console`; the product dashboard is `services/qyl.dashboard`.
+- **Do not design against `Qyl.Run/README.md`** — it documents `AddDashboard`,
+  `.WithCollector`, `.WaitFor`, and a `[B]` browser key that do NOT exist in code.
+- **Rename cost is zero externally.** `Qyl.Run` is not on nuget.org; its only
+  consumer is `Qyl.Run.Host`.
+- **The autoinstrumentation goal is not a separate engine** — it is what
+  `Qyl.Host` becomes once the probe/transport are pluggable. `mcp-run/telemetry.ts`
+  already proves "instrument the host, not the client."
+
+## Session context (what happened right before the reset)
+
+Non-qyl, but part of the same sitting, for whoever resumes:
+- Reclaimed ~18.6 GB of regenerable build output across `~/RiderProjects` and home.
+- Fixed Codex `~/.codex/config.toml` (a stray `model` string inside
+  `tui.model_availability_nux` was breaking chat/task startup), updated Codex to
+  0.143.0, repaired its state DB, cleared dead config paths.
+- Disabled all `ancplua`/`personal` Codex plugins; left OpenAI's enabled. Overview
+  at `~/Desktop/codex-plugins.html`.
