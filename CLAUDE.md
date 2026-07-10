@@ -342,3 +342,11 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   progress-log breadcrumbs above) all reference the **GitHub** repo `ANcpLua/qyl.mobile`,
   which didn't move — left intact, not rot. No code/build references existed; nothing in
   the beta path depends on either repo.
+- 2026-07-10 — Reference clones relocated (Claude, user-directed): `semantic-conventions`
+  (pulled to eb614277), `semantic-conventions-genai` (63f8200), `sentry-mcp` (9c88431d,
+  already latest) — all clean, pulled to upstream HEAD, then moved to
+  `~/RiderProjects/qyl references/`. Weaver/build files pin registries by GitHub commit,
+  not local path (verified by grep) — nothing build-critical breaks. Path-citing docs
+  fixed: workspace router CLAUDE.md (registry routing + upstream-clones invariant),
+  `docs/design/qyl-host/MCP-STRATEGY.md:6` (7b1f3cb9), SemanticConventions `AGENTS.md:50`
+  (c663cde in that repo).
