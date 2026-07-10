@@ -15,8 +15,9 @@ folder. Read that second; read this first.
 
 There are two app hosts, deliberately written as twins. `packages/Qyl.Run` (C#)
 supervises processes over **HTTP health** but can only launch **.NET**
-(`QylAppBuilder.cs:104-111` hardcodes `dotnet run --project`). `~/Desktop/mcp-run`
-(TypeScript, shaped 1:1 after `Qyl.Run`) launches **any executable** but only
+(`QylAppBuilder.cs:104-111` hardcodes `dotnet run --project`). `mcp-run`
+(in this workspace since 2026-07-11; TypeScript, shaped 1:1 after `Qyl.Run`)
+launches **any executable** but only
 supervises **MCP servers** (readiness is the `initialize`+`tools/list` handshake).
 Each is locked on the axis the other is free. The plan makes **runtime** and
 **readiness** independent strategies in one engine, `Qyl.Host`.
@@ -25,8 +26,8 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 
 1. **Confirm the direction.** `Qyl.Host` as the engine; `qyl run` stays the CLI
    verb. MCP becomes a plugin (`Qyl.Host.Mcp`), not the substrate. Do NOT reuse
-   the name `qyl.mcp` — it was deleted in `43d032f9` and `~/Desktop/qyl-apps-server`
-   already inherited it.
+   the name `qyl.mcp` — it was deleted in `43d032f9` and `qyl-apps-server`
+   (in this workspace) already inherited it.
 2. **Step 1 is the load-bearing unlock: `AddExecutable(name, command, args, port?)`**
    in `QylAppBuilder`. ~15 lines, additive, non-breaking. `QylLaunchSpec` already
    carries `Executable`; this only adds the public door. `AddProject`/`AddCollector`
@@ -41,8 +42,10 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 - **`ANcpLua/qyl` is now PRIVATE** (was public; set back on request — system
   critical). Verified `visibility: PRIVATE`.
 - **All four repos clean and fully pushed** (dirty=0, ahead=0): `qyl`,
-  `~/Desktop/mcp-run`, `~/Desktop/qyl-apps-server`, `~/Desktop/x-apps-server`.
-- The three Desktop repos are private on `github.com/ANcpLua`. `x-apps-server` is
+  `mcp-run`, `qyl-apps-server`, `x-apps-server`. (Since then: `mcp-run` and
+  `qyl-apps-server` moved from `~/Desktop` into this workspace, 2026-07-10/11;
+  `x-apps-server` was deleted locally and lives only on GitHub.)
+- All three are private on `github.com/ANcpLua`. `x-apps-server` is
   **architectural reference only** — the user does not want the X product
   developed further.
 

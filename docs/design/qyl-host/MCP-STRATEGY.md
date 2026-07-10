@@ -4,7 +4,8 @@
 > directive, not a checklist — the sequencing inside each bet is yours. Every
 > claim about Sentry MCP is grounded in its source at
 > `~/RiderProjects/qyl-references/sentry-mcp` (cited); every claim about qyl is
-> from the repos in this workspace + `~/Desktop/mcp-run`.
+> from the repos in this workspace (incl. `mcp-run`, moved in from
+> `~/Desktop` 2026-07-11).
 
 ## The one-line strategy
 
@@ -63,7 +64,7 @@ Reach parity on its genuine engineering strengths (below); win on those two.
   + MCP dashboard (Sentry-widget grid) rendered *in the conversation* via
   `@modelcontextprotocol/ext-apps`. Successor to the deleted `services/qyl.mcp`.
   **This is the thing Sentry MCP does not have.**
-- **`~/Desktop/mcp-run`** — polyglot MCP host; `/runner/mcp` passthrough +
+- **`mcp-run`** (in this workspace) — polyglot MCP host; `/runner/mcp` passthrough +
   `telemetry.ts` host-side OTLP self-monitoring that already calls itself *"the
   qyl-based answer to Sentry's MCP monitoring product."* Emits `mcp.tool.name` +
   `gen_ai.tool.name` to the qyl collector.

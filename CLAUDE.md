@@ -350,3 +350,21 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   fixed: workspace router CLAUDE.md (registry routing + upstream-clones invariant),
   `docs/design/qyl-host/MCP-STRATEGY.md:6` (7b1f3cb9), SemanticConventions `AGENTS.md:50`
   (c663cde in that repo).
+- 2026-07-11 — MCP repos consolidated into the workspace (Claude, user-directed).
+  Moved `~/RiderProjects/qyl-apps-server` (2026-07-10) and `~/Desktop/mcp-run`
+  (2026-07-11) into `qyl-workspace/` — both clean, `main...origin/main`, nothing
+  stranded; the two halves of the planned `qyl.mcp` merge now live next to `qyl/`.
+  Workspace router CLAUDE.md updated with entries for both. Every stale
+  `~/Desktop/...` path fixed across repos: in qyl `docs/design/qyl-host/`
+  MCP-STRATEGY.md (audience note + inventory bullet), README.md (twin-hosts
+  paragraph, step-1 qyl.mcp note, handoff snapshot — also records that
+  `x-apps-server` was deleted locally and is GitHub-only now), DESIGN.md (scope
+  + qyl-apps-server README citation); in mcp-run `runner/main.ts` (functional
+  `cwd:` for the qyl-apps workload → workspace path; commented x-apps block
+  annotated GitHub-only) and ARCHITECTURE.md (sample updated to match actual
+  main.ts); in qyl-apps-server INTERFACE.md (pattern-reference + integrator
+  wiring paths) and `plugins/qyl-mcp/mcp.json` (functional `args:` path).
+  Evidence: repo-wide grep for `Desktop/(mcp-run|qyl-apps-server|x-apps-server)`
+  → 0 hits; mcp-run `npm run build --workspace runner` → tsc clean (dashboard
+  workspace build fails on a PRE-EXISTING `./styles.css` TS2882, untouched by
+  this change); mcp.json parses.

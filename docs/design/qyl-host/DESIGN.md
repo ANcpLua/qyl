@@ -2,7 +2,7 @@
 
 > **Status:** design-of-record / proposal. Retires the "Aspire-style" framing.
 > **Scope:** unify the two app hosts that exist today — `packages/Qyl.Run` (C#)
-> and `~/Desktop/mcp-run` (TypeScript) — into one engine whose runtime and
+> and `mcp-run` (TypeScript, in this workspace) — into one engine whose runtime and
 > protocol are both pluggable. Every claim below cites source; words are claims,
 > tool output is proof.
 
@@ -138,7 +138,7 @@ command.
 
 `qyl.mcp` is a **burned name**. It was deleted in commit `43d032f9` (2026-05-25,
 *"Path C Phase 1: qyl.mcp destruction"*, 301 files). Its successor already exists
-and is not this engine: `~/Desktop/qyl-apps-server`'s README calls itself *"the
+and is not this engine: `qyl-apps-server`'s README (in this workspace) calls itself *"the
 successor to the deleted services/qyl.mcp Apps."* A host that **runs** MCP servers
 is not itself an MCP server; reusing `qyl.mcp` for the host would collide with the
 server that already inherited the name.
