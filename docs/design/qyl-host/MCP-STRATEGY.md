@@ -3,7 +3,7 @@
 > **Audience:** a high-capability agent picking up the qyl MCP work. This is a
 > directive, not a checklist — the sequencing inside each bet is yours. Every
 > claim about Sentry MCP is grounded in its source at
-> `~/RiderProjects/qyl-workspace/sentry-mcp` (cited); every claim about qyl is
+> `~/RiderProjects/qyl references/sentry-mcp` (cited); every claim about qyl is
 > from the repos in this workspace + `~/Desktop/mcp-run`.
 
 ## The one-line strategy
