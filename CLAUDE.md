@@ -541,3 +541,22 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   rest of the surface; (b) qyl-api-schema VERSIONING.md prescribes
   DeprecatedMappings ingestion normalization the collector does NOT implement
   — decide: implement at ingest or soften the doc.
+- 2026-07-11 — Composition primitives + canonical-host guard (Claude, follow-up to the
+  hardening pass, per the user's architecture directive). Qyl.Run gains public
+  composition-scope primitives (QylResourceBuilderExtensions): WithEnvironment,
+  WithIsolatedStorage, DisableSelfTelemetryExport, GetEndpoint("api"/"otlp-http"/
+  "otlp-grpc") — ExportToDedicatedCollector now composes from exactly these (its body
+  reads like the directive's sketch); QylConstants.EndpointKinds added.
+  CollectorSelfExportGuard extended beyond the literal alias list to CANONICAL host
+  identity: local host name, DNS resolution to loopback, and any up-interface unicast
+  address count as self (best-effort, resolution failures never block legit remotes).
+  Port checked first so foreign-port endpoints skip resolution. AUDITED per directive:
+  InitializeQylCollectorAsync is exactly one genuinely-async call
+  (ModelPricingService.InitializeAsync — durable-state restore), which is the
+  directive's own justified case — kept; AddService(serviceName, serviceVersion:)
+  auto-generates per-process service.instance.id (OTel .NET default), so the two
+  instances are distinct without extra config. EVIDENCE: qyl.slnx --no-incremental
+  0W/0E; composition suite green (unique ports, cycle/dup rejection, dedicated
+  auth=Unsecured/exporter=''/isolated db); guard: http://Mac:4318 (hostname alias) →
+  fatal at boot, http://telemetry.example.com:4318 → starts normally; live e2e:
+  5100/5200 healthy, diagnostics=3 traces all service.name=collector, primary=0.

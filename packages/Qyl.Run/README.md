@@ -26,12 +26,21 @@ await app.Build().RunAsync();
 ```
 
 `AddCollector` pins the child's ports through `QYL_PORT` / `QYL_OTLP_PORT` / `QYL_GRPC_PORT`
-and defaults loopback dev children to `QYL_OTLP_AUTH_MODE=Unsecured` unless the parent
-environment already chose an auth mode. The dedicated diagnostics instance gets freshly
-claimed OTLP receiver ports, its own `qyl.<name>.duckdb`, its own `OTEL_SERVICE_NAME`, and
-a force-blanked `OTEL_EXPORTER_OTLP_ENDPOINT`. `ExportTo(existing)` targets an
-already-added collector instead; `RejectSelfReference()` fails composition if the resolved
-export endpoint points back at any of the owning collector's own ports.
+(unique across the composition — the first collector keeps 4318/4317, later ones claim free
+ports) and defaults loopback dev children to `QYL_OTLP_AUTH_MODE=Unsecured` unless the parent
+environment already chose an auth mode. The dedicated diagnostics instance gets its own
+`qyl.<name>.duckdb`, its own `OTEL_SERVICE_NAME` (plus the SDK's per-process
+`service.instance.id`), and a force-blanked `OTEL_EXPORTER_OTLP_ENDPOINT`.
+`ExportTo(existing)` targets an already-added collector instead.
+
+Safety is automatic: self-reference, port-identity, and two-process-cycle validation always
+runs at composition time (`RejectSelfReference()` is call-site documentation), and the
+collector re-validates the resolved endpoint at startup — a loopback alias, the machine's own
+host name, or any local-interface address on one of its own ports is fatal at boot.
+
+The composition primitives `ExportToDedicatedCollector` builds on are public for custom
+topologies: `WithEnvironment(name, value)`, `WithIsolatedStorage()`,
+`DisableSelfTelemetryExport()`, and `GetEndpoint("api" | "otlp-http" | "otlp-grpc")`.
 
 ## CLI
 

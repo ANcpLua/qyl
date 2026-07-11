@@ -60,6 +60,13 @@ public static class QylConstants
         public const string DataPathTemplate = "qyl.{0}.duckdb";
     }
 
+    public static class EndpointKinds
+    {
+        public const string Api = "api";
+        public const string OtlpHttp = "otlp-http";
+        public const string OtlpGrpc = "otlp-grpc";
+    }
+
     public static class Routes
     {
         public const string Health = "/health";

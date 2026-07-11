@@ -1,5 +1,4 @@
 using ANcpLua.Roslyn.Utilities;
-using Qyl.Run.Internal;
 
 namespace Qyl.Run;
 
@@ -68,28 +67,13 @@ public sealed class QylSelfTelemetryBuilder
                 $"Self-telemetry for '{_owner.Resource.Name}' already has an export target ('{_target.Resource.Name}').");
         }
 
-        var dedicated = _app.AddCollector(name, port, _ownerProject);
-        dedicated.Update(r => r with
-        {
-            Launch = r.Launch with
-            {
-                Env = Merge(r.Launch.Env, new Dictionary<string, string>
-                {
-                    [QylConstants.Env.QylDataPath] =
-                        string.Format(CultureInfo.InvariantCulture, QylConstants.Collector.DataPathTemplate, name),
-                    // The loop-breaker: a blank endpoint reads as "no exporter" in the collector's
-                    // service defaults, and explicitly overrides any OTEL_EXPORTER_OTLP_ENDPOINT the
-                    // runner's own environment would otherwise leak into the child. Without this, an
-                    // ambient endpoint could point the diagnostics instance back at the primary.
-                    [QylConstants.Env.OtelExporterOtlpEndpoint] = string.Empty,
-                    // A dedicated diagnostics sink must accept its owner's exporter, which sends no
-                    // auth headers: an inherited ApiKey mode would 401-drop every batch silently.
-                    [QylConstants.Env.QylOtlpAuthMode] = QylConstants.Collector.UnsecuredAuthMode
-                })
-            }
-        });
+        // A dedicated diagnostics sink must also accept its owner's exporter, which sends no auth
+        // headers: an inherited ApiKey mode would 401-drop every batch silently.
+        _target = _app.AddCollector(name, port, _ownerProject)
+            .WithIsolatedStorage()
+            .DisableSelfTelemetryExport()
+            .WithEnvironment(QylConstants.Env.QylOtlpAuthMode, QylConstants.Collector.UnsecuredAuthMode);
 
-        _target = dedicated;
         return this;
     }
 
@@ -154,28 +138,11 @@ public sealed class QylSelfTelemetryBuilder
                 "wiring both directions would be a feedback loop.");
         }
 
-        var endpoint = string.Format(CultureInfo.InvariantCulture, QylConstants.Network.LocalhostUrlTemplate,
-            QylConstants.Network.Loopback, target.OtlpHttpPort);
+        var endpoint = _target.GetEndpoint(QylConstants.EndpointKinds.OtlpHttp);
 
-        _owner.Update(r => r with
-        {
-            Launch = r.Launch with
-            {
-                Env = Merge(r.Launch.Env, new Dictionary<string, string>
-                {
-                    [QylConstants.Env.OtelExporterOtlpEndpoint] = endpoint,
-                    // The .NET OTLP exporter defaults to grpc; the target address is the OTLP/HTTP receiver.
-                    [QylConstants.Env.OtelExporterOtlpProtocol] = QylConstants.Collector.OtlpHttpProtobuf
-                })
-            }
-        });
-    }
-
-    private static Dictionary<string, string> Merge(
-        IReadOnlyDictionary<string, string> current, Dictionary<string, string> overrides)
-    {
-        var merged = new Dictionary<string, string>(current, StringComparer.Ordinal);
-        foreach (var kv in overrides) merged[kv.Key] = kv.Value;
-        return merged;
+        _owner
+            .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint, endpoint.ToString().TrimEnd('/'))
+            // The .NET OTLP exporter defaults to grpc; the target address is the OTLP/HTTP receiver.
+            .WithEnvironment(QylConstants.Env.OtelExporterOtlpProtocol, QylConstants.Collector.OtlpHttpProtobuf);
     }
 }
