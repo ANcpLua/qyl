@@ -29,9 +29,9 @@ qyl.dashboard -> operator UI
 | `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
 | `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
-| `packages/Qyl.Run` | local distributed-app runner library for collector/dashboard workflows |
+|  `packages/Qyl.Host` | local distributed-app runner library for collector/dashboard workflows |
 | `packages/Qyl.Run.Host` | executable host for the runner (`dotnet run --project packages/Qyl.Run.Host`) |
-| `packages/Qyl.Run.Console` | dev-only runner console — live resource view for the runner (Vite/React); not the product dashboard |
+| `packages/Qyl.Host.Console` | dev-only runner console — live resource view for the runner (Vite/React); not the product dashboard |
 | `eng/build` | build/verify pipeline (`BuildVerify` guards, semantic catalog) |
 
 ## Product surface

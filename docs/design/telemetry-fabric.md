@@ -191,7 +191,7 @@ The fabric is a composition layer over machinery that already exists or has prec
 | `UseContracts(.PrivacyDefaults())` | collector redaction (`AddQylRedactors`), attribute allow/deny lists in the semantic policy |
 | `.Generate(...)` | eng/build generator targets (`GenerateCollectorSemanticAttributeCatalog`, `GenerateDependencyList`, `GenerateLibraryVersions`) + Verify gates keeping generated output honest |
 | `.Observe(.iOS(...))` | qyl.mobile ([TelemetryDashboardViewModel.swift](https://github.com/ANcpLua/qyl.mobile/blob/main/ios/TelemetryObserver/ViewModels/TelemetryDashboardViewModel.swift)) |
-| `QylAppBuilder` | `packages/Qyl.Run` (fluent AppHost-equivalent, subprocess orchestration) |
+| `QylAppBuilder` | `packages/Qyl.Host` (fluent AppHost-equivalent, subprocess orchestration) |
 
 The existing generate→verify pattern (generator target + Verify gate that fails when
 output is stale or hand-edited) is exactly the contract `.Generate(...)` should keep:

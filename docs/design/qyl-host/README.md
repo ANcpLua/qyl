@@ -13,7 +13,7 @@ folder. Read that second; read this first.
 
 ## The one-paragraph version
 
-There are two app hosts, deliberately written as twins. `packages/Qyl.Run` (C#)
+There are two app hosts, deliberately written as twins. `packages/Qyl.Host` (C#, renamed from `Qyl.Run` 2026-07-11)
 supervises processes over **HTTP health** but can only launch **.NET**
 (`QylAppBuilder.cs:185-191` hardcodes `dotnet run --project`). The TS twin
 (shaped 1:1 after `Qyl.Run`; since the 2026-07-11 merge it is the `runner/`
@@ -58,7 +58,7 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 - **Aspire is NOT a dependency** anywhere. `Qyl.Run.csproj:7` says "Zero Aspire
   deps." Drop the "Aspire-style" framing; it undersells a ~1,700 LoC zero-dep engine.
 - **There is no `qyl.run.dashboard`.** The runner frontend is
-  `packages/Qyl.Run.Console`; the product dashboard is `services/qyl.dashboard`.
+  `packages/Qyl.Host.Console`; the product dashboard is `services/qyl.dashboard`.
 - **`Qyl.Run/README.md` is trustworthy again** — rewritten 2026-07-11 to the
   real surface (`AddCollector`/`AddProject`/`AddCommand` + `WaitFor` + the
   self-telemetry composition primitives). The old fiction became real code

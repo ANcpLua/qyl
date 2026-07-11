@@ -1,6 +1,6 @@
 # qyl.run.console
 
-Dev-only **runner console** for the [`Qyl.Run`](../Qyl.Run) distributed-app runner —
+Dev-only **runner console** for the [`Qyl.Host`](../Qyl.Host) distributed-app runner —
 a qyl-native (React + Vite + TypeScript) equivalent of Aspire's dashboard *resource view*.
 
 It reads the runner's **read-only** state API and renders live resource status:
@@ -24,5 +24,5 @@ terminal (TUI) keyboard.
 dotnet run --project packages/Qyl.Run.Host
 
 # 2) start this dashboard (Vite dev server on :5051, proxies /runner -> :18888)
-cd packages/Qyl.Run.Console && npm install && npm run dev
+cd packages/Qyl.Host.Console && npm install && npm run dev
 ```

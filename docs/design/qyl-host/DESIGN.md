@@ -1,7 +1,7 @@
 # Qyl.Host — one polyglot app host
 
 > **Status:** design-of-record / proposal. Retires the "Aspire-style" framing.
-> **Scope:** unify the two app hosts that exist today — `packages/Qyl.Run` (C#)
+> **Scope:** unify the two app hosts that exist today — `packages/Qyl.Host` (C#, renamed from `Qyl.Run` at step 6)
 > and the TS host `mcp-run` (since the 2026-07-11 merge, the `runner/` half of
 > `qyl-workspace/qyl.mcp`; the standalone repo is archived) — into one engine
 > whose runtime and protocol are both pluggable. Every claim below cites source;
@@ -49,7 +49,7 @@ exposes a read-only HTTP/SSE state feed. Two NuGets (`ANcpLua.Roslyn.Utilities`,
 **The lock.** `QylProcessLauncher` is generic — it runs whatever
 `Launch.Executable` + `Args` say. But the *only* builder path that creates
 resources hardcodes the toolchain, `QylAppBuilder.BuildLaunchSpec`
-(`packages/Qyl.Run/QylAppBuilder.cs`):
+(`packages/Qyl.Host/QylAppBuilder.cs`):
 
 ```csharp
 Executable = QylConstants.Orchestrator.DotnetExecutable,   // "dotnet"
@@ -222,7 +222,7 @@ point. That is the engine.
   app host — launch, supervise, and observe any process in any language, with one
   origin and one trace.*
 - **There is no `qyl.run.dashboard`.** The runner frontend is
-  `packages/Qyl.Run.Console` (package name `qyl.run.console`), distinct from the
+  `packages/Qyl.Host.Console` (package name `qyl.host.console`), distinct from the
   product dashboard `services/qyl.dashboard`.
 - **RESOLVED 2026-07-11:** `mcp-run/ARCHITECTURE.md` used to list OTLP as
   "out of scope (v1)" while `telemetry.ts` shipped; the doc now has a
