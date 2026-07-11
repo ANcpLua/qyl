@@ -67,11 +67,9 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
 5. ~~**Auth + scoping.**~~ SHIPPED 2026-07-11 — gRPC interceptor mirrors the HTTP
    key boundary, the read API is gated in ApiKey mode, and read-side project scoping
    is real (X-Qyl-Project); see the progress-log entry.
-6. **Release coherence.** `0.1.0-beta.1` is **not stamped** — the only pack artifact is
-   `Qyl.Run.1.0.0.nupkg`. One version owner (`Version.props`); pipeline is
-   verify → pack → publish → index → clean-restore. Trap to remember: `nuget.config`
-   `<clear/>`s to a single source, so a local feed must be added *with* a matching
-   `packageSourceMapping` entry or restore fails (NU1100/NU1507).
+6. ~~**Release coherence.**~~ SHIPPED 2026-07-11 — `QylVersion=0.1.0-beta.1` in
+   `Version.props` flows to every project; pack → local-feed → isolated clean-restore
+   verified; publish gate stays closed. See the progress-log entry.
 7. **Tests.** Zero backend test projects; frontend coverage ~26% with no threshold;
    Playwright `baseURL` is `:5100` while its webServer runs `:4173`.
 
@@ -1013,3 +1011,21 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   boots until the stale dev DBs were deleted. Lesson: prefer SIGTERM + drain for
   collector children; dev *.duckdb artifacts are disposable. Verify 38/38; dashboard
   tsc/build/18-18 tests green.
+- 2026-07-11 — **Repair-plan Phase 6 (release coherence) SHIPPED** (Claude) — and with
+  it, REPAIR-PROMPT.md phases 1–6 are COMPLETE. `Version.props` gains the single
+  product-version owner: `QylVersion=0.1.0-beta.1` → `Version`, flowing to every
+  project as assembly/file/package version (the collector's compile-time BuildVersion
+  constant picks it up via InformationalVersion). ShippablePackProjects = Qyl.Host +
+  Qyl.Host.Mcp (the Mcp package needed its packed README — NU5039 — written and
+  Pack'd). PIPELINE PROVEN: Verify 38/38 → `Pack --Configuration Release` →
+  Qyl.Host.0.1.0-beta.1.nupkg + Qyl.Host.Mcp.0.1.0-beta.1.nupkg (nuspec
+  <version>0.1.0-beta.1</version>; assembly InformationalVersion
+  0.1.0-beta.1+<sha>) → local folder feed → scratch consumer with a nuget.config
+  exercising the documented trap CORRECTLY (<clear/> + nuget.org pattern * + qyl-local
+  pattern Qyl.Host* added in the same change) → `dotnet restore --packages
+  <isolated cache>` resolves BOTH packages 0.1.0-beta.1 from the local feed
+  (project.assets.json: type=package). PUBLISH GATE CLOSED, verified: no workflow and
+  no NUKE target pushes packages (grep nuget-push over .github/workflows + eng/build →
+  0 hits) — nothing ships publicly until experimental public beta, per the SSOT rule.
+  The repo nuget.config stays single-source; the local feed lives only in the
+  scratch consumer's config (the trap note in nuget.config remains the guidance).

@@ -24,4 +24,8 @@
     <ProjectReference Include="..\Qyl.Host\Qyl.Host.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
 </Project>
