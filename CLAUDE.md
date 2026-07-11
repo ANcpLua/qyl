@@ -512,3 +512,10 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   NOTE: services/qyl.collector/qyl.duckdb.pre-selftel.bak is the June-era DB set
   aside during verification (its stale schema 500s /api/v1/traces on current code —
   pre-existing, unrelated); delete or migrate whenever.
+- 2026-07-11 — CI BLOCKER (needs user, tools can't fix): every GitHub Actions job on
+  every commit since ~35cb8d73 fails in ~2s with zero steps executed — annotation:
+  "The job was not started because recent account payments have failed or your
+  spending limit needs to be increased." This includes a1db9557/c89c387b (the
+  self-telemetry feature + hardening), whose code is verified green LOCALLY
+  (qyl.slnx 0W/0E + live e2e above). FIX: GitHub → Settings → Billing & plans →
+  resolve payment/spending limit, then `gh run rerun --failed` the head run.
