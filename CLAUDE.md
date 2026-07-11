@@ -930,3 +930,14 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   subsequent boot crash-loops on WAL replay ("Failure while replaying WAL … no default
   database set"); the fix is deleting the orphaned *.duckdb*. #510 §10 is now 5/5 —
   the MVP checklist is complete.
+- 2026-07-11 — RECORD CORRECTION for add5c606 (#510 ④): that commit's own CI run went RED
+  on VerifyCollectorStorageWritesAreReplayIdempotent — NOT because of the workload. Staging
+  `eng/build/BuildVerify.cs` by explicit path swept in the PARALLEL session's uncommitted
+  hunk (their updated replay-idempotency invariant expecting the RequireIdOrAbsent converter
+  rewrite), added to the shared file BETWEEN this session's clone-isolated verification
+  (honestly green) and its commit — so the new invariant shipped 20 minutes before its
+  matching collector code. Self-healed when a6a648e7 (Phase 1) landed; main was red for one
+  intermediate commit. Lesson recorded to session memory alongside the 8cc8b6b3 and d4247ff9
+  incidents: `git add <path>` commits the file's CURRENT content, not "my edit" — in this
+  multi-session checkout, review `git diff --staged -- <file>` per co-editable file before
+  every commit.
