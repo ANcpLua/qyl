@@ -57,10 +57,8 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
    progress-log entry. Note: the `/health` claim in the original item was stale;
    the endpoints were live, and the shipped `CollectorHealthGuard` now makes the
    false-positive class impossible rather than merely absent.
-2. **Decide the product surface.** The dashboard ships pages with no backing endpoint
-   (see README "Product surface"). Shrink to the verified vertical — traces, sessions,
-   logs, GenAI cost — and delete pages that have no endpoint. No adapters, no stubs:
-   missing values stay missing. Pages return only when a real endpoint ships.
+2. ~~**Decide the product surface.**~~ SHIPPED 2026-07-11 — dashboard shrunk to the
+   verified vertical (traces/sessions, logs, GenAI cost); see the progress-log entry.
 3. **One topology.** Embedded single-origin collector (`QylEmbedDashboard=true` for
    release builds); delete the standalone dashboard Docker path; fix compose.
 4. **`Qyl.Host` convergence + MCP wiring.** See `docs/design/qyl-host/`.
@@ -840,3 +838,29 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   38/38 Succeeded (twice: at a6a648e7 and after the hardening follow-up); refuted
   findings (not bugs): span-link strict ids (profiles proto mandates absence-tolerance,
   trace links don't), health-guard ready-tag linkage (hypothetical generator regression).
+- 2026-07-11 — **Repair-plan Phase 2 (product surface) SHIPPED** (Claude). Dashboard
+  shrunk to the verified vertical — every remaining page is backed by a live collector
+  route. DELETED (10 pages, all on phantom endpoints the collector hard-404s):
+  Services, Dashboards(+/:id), Settings (incl. the /api/v1/github/* first-visit gate),
+  Issues(+detail), Alerts, Performance, ErrorsOutages, Conversations, Agents — plus
+  their hooks (use-agent-runs/-conversations/-dashboards/-errors/-issues/
+  usePerformance/use-agent-inventory/use-llm-config), the components/dashboards
+  widgets, and 4 now-unused viz deps (echarts, echarts-for-react, recharts,
+  @tanstack/react-table). KEPT: Traces (sessions + waterfall), Logs (+SSE), Onboarding
+  (links retargeted to kept pages). REBUILT: CostPage on the REAL surface —
+  /api/v1/sessions genai_usage (request/token totals, providers/models, per-session
+  estimated_cost_usd); the old page's 4 /api/v1/cost/* queries had no backing route.
+  FirstVisitGate is now client-side (localStorage) → /onboarding once, then /traces;
+  '/' redirects to /traces; NEW catch-all route → /traces (a stale bookmark to a
+  deleted page previously rendered a BLANK WHITE page — the exact symptom the user
+  screenshotted from the sibling session's run). README Product-surface section
+  rewritten to the shrunk reality. FLAGGED, deliberate: generated types/api.ts still
+  declares the contract's never-implemented route families (issues/errors/services/
+  dashboards) — that's qyl-api-schema surface, single-sourced; trimming the CONTRACT
+  is a separate qyl-api-schema decision, not a dashboard edit. EVIDENCE: tsc clean;
+  npm build green; 18/18 tests; ./eng/build.sh Verify --Configuration Release 38/38
+  Succeeded; browser walk on the built bundle (vite preview :4173 — note it binds
+  ::1-only, use localhost): /traces renders (honest empty state, health pill ERROR
+  with no collector — truthful), /cost renders (summary cards + empty state),
+  /issues redirects to /traces; residual grep: 0 functional references to deleted
+  routes/endpoints outside generated api.ts and explanatory comments.

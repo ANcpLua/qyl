@@ -112,12 +112,6 @@ export function useNavigationShortcuts(
 
     useEffect(() => {
         const unsubscribes = [
-            // R = Resources (home page)
-            registerShortcut({
-                key: 'r',
-                description: 'Go to Resources',
-                handler: () => navigate('/'),
-            }),
             // T = Traces
             registerShortcut({
                 key: 't',
@@ -130,17 +124,11 @@ export function useNavigationShortcuts(
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // A = Agents
+            // $ = GenAI cost
             registerShortcut({
-                key: 'a',
-                description: 'Go to Agents',
-                handler: () => navigate('/agents'),
-            }),
-            // , = Settings (common convention)
-            registerShortcut({
-                key: ',',
-                description: 'Open Settings',
-                handler: () => navigate('/settings'),
+                key: '$',
+                description: 'Go to GenAI Cost',
+                handler: () => navigate('/cost'),
             }),
             // Escape = Close panel / Clear selection
             registerShortcut({

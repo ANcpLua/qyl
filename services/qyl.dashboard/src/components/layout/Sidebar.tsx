@@ -1,31 +1,17 @@
 import {NavLink, useLocation} from 'react-router-dom';
 import type {LucideIcon} from 'lucide-react';
 import {
-    Activity,
-    AlertCircle,
-    Bot,
-    Bug,
     ChevronLeft,
     ChevronRight,
     CircleDollarSign,
-    Database,
     FileText,
-    Gauge,
     GitBranch,
-    Globe,
-    LayoutGrid,
-    MessageSquare,
-    MessagesSquare,
     Radio,
-    Settings,
     Terminal,
-    TriangleAlert,
-    Zap,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
-import {useDashboards} from '@/hooks/use-dashboards';
 
 interface NavItem {
     to: string;
@@ -34,29 +20,13 @@ interface NavItem {
     shortcut: string;
 }
 
+// One entry per shipped product surface: traces (incl. sessions), logs, GenAI cost.
+// A page returns here only when a real collector endpoint backs it.
 const navItems: NavItem[] = [
-    {to: '/', icon: Activity, label: 'DASHBOARD', shortcut: 'H'},
-    {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
-    {to: '/errors', icon: AlertCircle, label: 'ERRORS', shortcut: 'E'},
     {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
-    {to: '/conversations', icon: MessagesSquare, label: 'CONVERSATIONS', shortcut: 'N'},
-    {to: '/agents', icon: Bot, label: 'AGENTS', shortcut: 'A'},
     {to: '/cost', icon: CircleDollarSign, label: 'COST', shortcut: '$'},
-    {to: '/services', icon: Globe, label: 'SERVICES', shortcut: 'V'},
-    {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
-    {to: '/dashboards', icon: LayoutGrid, label: 'DASHBOARDS', shortcut: 'D'},
-    {to: '/alerts', icon: TriangleAlert, label: 'ALERTS', shortcut: 'L'},
 ];
-
-const dashboardIconMap: Record<string, LucideIcon> = {
-    'activity': Activity,
-    'globe': Globe,
-    'brain': Zap,
-    'database': Database,
-    'alert-triangle': TriangleAlert,
-    'message-square': MessageSquare,
-};
 
 interface SidebarProps {
     collapsed: boolean;
@@ -66,7 +36,6 @@ interface SidebarProps {
 
 export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     const location = useLocation();
-    const {data: dashboards} = useDashboards();
 
     return (
         <TooltipProvider delay={0}>
@@ -150,99 +119,11 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     })}
                 </nav>
 
-                {/* Auto-detected dashboards */}
-                {dashboards && dashboards.length > 0 && (
-                    <div className="px-2 space-y-1">
-                        {!collapsed && (
-                            <div
-                                className="px-3 pt-2 pb-1 text-[11px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
-                                DASHBOARDS
-                            </div>
-                        )}
-                        {dashboards.map((db) => {
-                            const Icon = dashboardIconMap[db.icon] ?? Activity;
-                            const to = `/dashboards/${db.id}`;
-                            const isActive = location.pathname === to;
-
-                            const dbLinkContent = (
-                                <NavLink
-                                    key={db.id}
-                                    to={to}
-                                    className={cn(
-                                        'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
-                                        isActive
-                                            ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
-                                            : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
-                                    )}
-                                >
-                                    <Icon className="w-4 h-4 flex-shrink-0"/>
-                                    {!collapsed && (
-                                        <span className="flex-1 truncate">{db.title.toUpperCase()}</span>
-                                    )}
-                                </NavLink>
-                            );
-
-                            if (collapsed) {
-                                return (
-                                    <Tooltip key={db.id}>
-                                        <TooltipTrigger render={dbLinkContent}/>
-                                        <TooltipContent side="right"
-                                                        className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
-                                            {db.title.toUpperCase()}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                );
-                            }
-
-                            return dbLinkContent;
-                        })}
-                    </div>
-                )}
-
                 {/* Separator line */}
                 <div className="border-t border-brutal-zinc/70"/>
 
                 {/* Bottom section */}
                 <div className="p-2 space-y-1">
-                    {(() => {
-                        const isActive = location.pathname === '/settings';
-
-                        const settingsContent = (
-                            <NavLink
-                                to="/settings"
-                                className={cn(
-                                    'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
-                                    isActive
-                                        ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
-                                        : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
-                                )}
-                            >
-                                <Settings className="w-4 h-4 flex-shrink-0"/>
-                                {!collapsed && (
-                                    <>
-                                        <span className="flex-1">SETTINGS</span>
-                                        <kbd className="kbd text-[10px]">,</kbd>
-                                    </>
-                                )}
-                            </NavLink>
-                        );
-
-                        if (collapsed) {
-                            return (
-                                <Tooltip>
-                                    <TooltipTrigger render={settingsContent}/>
-                                    <TooltipContent side="right"
-                                                    className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
-                                        SETTINGS
-                                        <kbd className="kbd text-[11px]">,</kbd>
-                                    </TooltipContent>
-                                </Tooltip>
-                            );
-                        }
-
-                        return settingsContent;
-                    })()}
-
                     {/* Collapse toggle */}
                     <Button
                         variant="ghost"

@@ -25,7 +25,7 @@ qyl.dashboard -> operator UI
 | Project | Purpose |
 | --- | --- |
 | `services/qyl.collector` | OTLP ingest (traces, logs, profiles), REST API, SSE streaming, DuckDB storage |
-| `services/qyl.dashboard` | React dashboard. Backed by the collector API today: traces, sessions, logs, profiles (GenAI token usage and cost ride along on sessions). Other pages ship in the UI ahead of their endpoints — see [Product surface](#product-surface) |
+| `services/qyl.dashboard` | React dashboard. Every page is backed by a live collector route: traces (incl. sessions), logs, GenAI cost (from session usage) — see [Product surface](#product-surface) |
 | `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
 | `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
@@ -36,8 +36,9 @@ qyl.dashboard -> operator UI
 
 ## Product surface
 
-qyl is pre-beta, and the dashboard currently ships more pages than the collector
-has endpoints. What the collector actually serves today, in full:
+qyl is pre-beta. The dashboard is deliberately shrunk to the verified vertical —
+every page it ships is backed by a live collector route (repair-plan phase 2,
+2026-07-11). What the collector serves today, in full:
 
 | Area | Routes |
 | --- | --- |
@@ -48,11 +49,14 @@ has endpoints. What the collector actually serves today, in full:
 | OTLP ingest | `POST /v1/traces`, `/v1/logs`, `/v1/profiles` |
 
 GenAI token usage and cost are real, but they are enriched onto **sessions** — there
-is no separate cost API. Dashboard pages outside the areas above (services, issues,
-alerts, errors, performance, conversations, agents, GitHub integration) have no
-backing route yet and will 404 against a live collector. They are UI ahead of
-product, not shipped capability; deciding which become real and which get deleted is
-tracked as the product-surface question, not papered over with stubs.
+is no separate cost API; the dashboard's Cost page reads them from `/api/v1/sessions`.
+Dashboard pages: Traces (sessions + waterfall), Logs (list + SSE stream), GenAI Cost,
+plus the onboarding page. The former unbacked pages (services, issues, alerts, errors,
+performance, conversations, agents, settings/GitHub) were deleted 2026-07-11 — no
+adapters, no stubs; a page returns only when a real endpoint ships. Profiles have
+API routes but no page yet. Note: the `qyl-api-schema` contract still declares some
+never-implemented route families (issues, errors, services, dashboards) — trimming
+the contract is tracked separately from the dashboard.
 
 ## Contracts
 

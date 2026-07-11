@@ -1,152 +1,57 @@
-import {useMemo, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
-import {
-    createColumnHelper,
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type SortingState,
-    useReactTable,
-} from '@tanstack/react-table';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import * as echarts from 'echarts/core';
-import {LineChart} from 'echarts/charts';
-import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent,} from 'echarts/components';
-import {CanvasRenderer} from 'echarts/renderers';
-import {
-    Activity,
-    ArrowDown,
-    ArrowUp,
-    ChevronLeft,
-    ChevronRight,
-    CircleDollarSign,
-    Filter,
-    TriangleAlert,
-    Zap,
-} from 'lucide-react';
+import {useMemo} from 'react';
+import {CircleDollarSign} from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {fetchJson} from '@/lib/api';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
+import {useSessions} from '@/hooks/use-telemetry';
+import type {SessionEntity} from '@/types';
 
-echarts.use([LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, CanvasRenderer]);
+// GenAI cost, sourced exclusively from the real session surface (/api/v1/sessions →
+// genai_usage). The collector aggregates per-session request counts, token totals and
+// estimated cost through its pricing pipeline; anything beyond that (per-model cost split,
+// budgets, time series) has no backing endpoint and deliberately does not appear here.
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface CostByModel {
-    model: string;
-    provider: string;
-    callCount: number;
-    totalInputTokens: number;
-    totalOutputTokens: number;
-    totalCost: number;
+interface SessionCostRow {
+    sessionId: string;
+    state: string;
+    requests: number;
+    inputTokens: number;
+    outputTokens: number;
+    models: string[];
+    providers: string[];
+    costUsd: number | undefined;
 }
 
-interface CostByService {
-    service: string;
-    callCount: number;
-    totalCost: number;
+function toCostRow(session: SessionEntity): SessionCostRow | null {
+    const usage = session.genai_usage;
+    if (!usage) return null;
+    return {
+        sessionId: session['session.id'],
+        state: session.state,
+        requests: usage.request_count,
+        inputTokens: usage.total_input_tokens,
+        outputTokens: usage.total_output_tokens,
+        models: usage.models_used,
+        providers: usage.providers_used,
+        costUsd: usage.estimated_cost_usd,
+    };
 }
 
-interface CostTimeSeries {
-    bucket: string;
-    model: string;
-    cost: number;
-}
+const usd = (value: number) =>
+    value.toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 4});
 
-interface BudgetStatus {
-    dailyBudget: number | null;
-    spentToday: number;
-    remaining: number | null;
-    status: 'ok' | 'warning' | 'exceeded';
-}
+const count = (value: number) => value.toLocaleString('en-US');
 
-// ── API hooks ────────────────────────────────────────────────────────────────
-
-function useCostByModel() {
-    return useQuery({
-        queryKey: ['cost', 'by-model'],
-        queryFn: () => fetchJson<CostByModel[]>('/api/v1/cost/by-model'),
-        staleTime: 30_000,
-    });
-}
-
-function useCostByService() {
-    return useQuery({
-        queryKey: ['cost', 'by-service'],
-        queryFn: () => fetchJson<CostByService[]>('/api/v1/cost/by-service'),
-        staleTime: 30_000,
-    });
-}
-
-function useCostTimeSeries() {
-    return useQuery({
-        queryKey: ['cost', 'timeseries'],
-        queryFn: () => fetchJson<CostTimeSeries[]>('/api/v1/cost/timeseries'),
-        staleTime: 30_000,
-    });
-}
-
-function useBudgetStatus() {
-    return useQuery({
-        queryKey: ['cost', 'budget'],
-        queryFn: () => fetchJson<BudgetStatus>('/api/v1/cost/budget'),
-        staleTime: 30_000,
-    });
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCost(value: number): string {
-    if (value < 0.01) return `$${value.toFixed(4)}`;
-    if (value < 1) return `$${value.toFixed(3)}`;
-    return `$${value.toFixed(2)}`;
-}
-
-function formatTokens(n: number): string {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-    return String(n);
-}
-
-// ── KPI Cards ────────────────────────────────────────────────────────────────
-
-function KpiCard({
-                     label,
-                     value,
-                     icon: Icon,
-                     variant = 'default',
-                 }: {
-    label: string;
-    value: string;
-    icon: React.ElementType;
-    variant?: 'default' | 'warning' | 'danger';
-}) {
+function SummaryCard({label, value, accent}: { label: string; value: string; accent?: boolean }) {
     return (
-        <Card className={cn(
-            'border-3',
-            variant === 'warning' && 'border-signal-yellow/50',
-            variant === 'danger' && 'border-signal-red/50',
-        )}>
-            <CardContent className="pt-4 pb-3 space-y-1">
-                <div className="flex items-center gap-1.5">
-                    <Icon className={cn(
-                        'w-3.5 h-3.5',
-                        variant === 'default' && 'text-signal-orange',
-                        variant === 'warning' && 'text-signal-yellow',
-                        variant === 'danger' && 'text-signal-red',
-                    )}/>
-                    <span className="text-[10px] font-bold text-brutal-slate tracking-widest uppercase">
-                        {label}
-                    </span>
+        <Card className="border border-brutal-zinc/70 bg-brutal-carbon/92">
+            <CardContent className="p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brutal-slate">
+                    {label}
                 </div>
                 <div className={cn(
-                    'text-xl font-bold tracking-wider',
-                    variant === 'default' && 'text-brutal-white',
-                    variant === 'warning' && 'text-signal-yellow',
-                    variant === 'danger' && 'text-signal-red',
+                    'mt-2 font-mono text-2xl tracking-[-0.02em]',
+                    accent ? 'text-signal-orange' : 'text-brutal-white'
                 )}>
                     {value}
                 </div>
@@ -155,336 +60,123 @@ function KpiCard({
     );
 }
 
-// ── ECharts cost timeseries ──────────────────────────────────────────────────
-
-function CostTimeSeriesChart({data}: { data: CostTimeSeries[] }) {
-    const chartRef = useRef<ReactEChartsCore>(null);
-
-    const option = useMemo(() => {
-        const modelSet = new Set(data.map(d => d.model));
-        const models = [...modelSet];
-        const buckets = [...new Set(data.map(d => d.bucket))].sort();
-
-        const series = models.map((model, i) => {
-            const modelData = data.filter(d => d.model === model);
-            const costMap = new Map(modelData.map(d => [d.bucket, d.cost]));
-            return {
-                name: model,
-                type: 'line' as const,
-                smooth: true,
-                symbol: 'none',
-                areaStyle: {opacity: 0.15},
-                lineStyle: {width: 2},
-                data: buckets.map(b => costMap.get(b) ?? 0),
-                color: [
-                    'var(--color-signal-orange)',
-                    'var(--color-signal-cyan)',
-                    'var(--color-signal-green)',
-                    'var(--color-signal-violet)',
-                    'var(--color-signal-yellow)',
-                ][i % 5],
-            };
-        });
-
-        return {
-            backgroundColor: 'transparent',
-            grid: {left: 60, right: 16, top: 40, bottom: 60},
-            tooltip: {
-                trigger: 'axis' as const,
-                backgroundColor: 'var(--color-brutal-black)',
-                borderColor: 'var(--color-brutal-dark)',
-                textStyle: {color: 'var(--color-brutal-white)', fontSize: 11},
-                valueFormatter: (v: number) => formatCost(v),
-            },
-            legend: {
-                top: 8,
-                textStyle: {color: 'var(--color-brutal-zinc)', fontSize: 10},
-            },
-            dataZoom: [{type: 'inside'}],
-            xAxis: {
-                type: 'category' as const,
-                data: buckets.map(b => {
-                    const d = new Date(b);
-                    return `${String(d.getHours()).padStart(2, '0')}:00`;
-                }),
-                axisLine: {lineStyle: {color: 'var(--color-brutal-dark)'}},
-                axisLabel: {color: 'var(--color-brutal-zinc)', fontSize: 10},
-            },
-            yAxis: {
-                type: 'value' as const,
-                axisLine: {lineStyle: {color: 'var(--color-brutal-dark)'}},
-                axisLabel: {color: 'var(--color-brutal-zinc)', fontSize: 10, formatter: (v: number) => formatCost(v)},
-                splitLine: {lineStyle: {color: 'var(--color-brutal-dark)', type: 'dashed' as const}},
-            },
-            series,
-        };
-    }, [data]);
-
-    return (
-        <div className="border-3 border-brutal-zinc bg-brutal-carbon p-4 space-y-3">
-            <div className="text-[10px] font-bold text-brutal-slate tracking-widest uppercase">
-                COST OVER TIME (HOURLY)
-            </div>
-            <ReactEChartsCore
-                ref={chartRef}
-                echarts={echarts}
-                option={option}
-                style={{height: 280}}
-                notMerge
-            />
-        </div>
-    );
-}
-
-// ── TanStack cost breakdown table ────────────────────────────────────────────
-
-const columnHelper = createColumnHelper<CostByModel>();
-
-const columns = [
-    columnHelper.accessor('model', {
-        header: 'Model',
-        cell: info => (
-            <span className="font-semibold text-brutal-white">{info.getValue()}</span>
-        ),
-    }),
-    columnHelper.accessor('provider', {
-        header: 'Provider',
-        cell: info => (
-            <Badge variant="secondary" className="text-[10px] bg-brutal-zinc/30 border-brutal-zinc">
-                {info.getValue()}
-            </Badge>
-        ),
-    }),
-    columnHelper.accessor('callCount', {
-        header: 'Calls',
-        cell: info => formatTokens(info.getValue()),
-    }),
-    columnHelper.accessor('totalInputTokens', {
-        header: 'Input Tokens',
-        cell: info => formatTokens(info.getValue()),
-    }),
-    columnHelper.accessor('totalOutputTokens', {
-        header: 'Output Tokens',
-        cell: info => formatTokens(info.getValue()),
-    }),
-    columnHelper.accessor('totalCost', {
-        header: 'Total Cost',
-        cell: info => (
-            <span className="font-bold text-signal-orange">{formatCost(info.getValue())}</span>
-        ),
-    }),
-];
-
-function CostBreakdownTable({data}: { data: CostByModel[] }) {
-    const [sorting, setSorting] = useState<SortingState>([{id: 'totalCost', desc: true}]);
-    const [globalFilter, setGlobalFilter] = useState('');
-
-    const table = useReactTable({
-        data,
-        columns,
-        state: {sorting, globalFilter},
-        onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        initialState: {pagination: {pageSize: 15}},
-    });
-
-    return (
-        <div className="border-3 border-brutal-zinc bg-brutal-carbon space-y-0">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-brutal-zinc/70">
-                <span className="text-[10px] font-bold text-brutal-slate tracking-widest uppercase">
-                    COST BY MODEL
-                </span>
-                <div className="flex items-center gap-2">
-                    <Filter className="w-3.5 h-3.5 text-brutal-slate"/>
-                    <input
-                        type="text"
-                        placeholder="Filter..."
-                        value={globalFilter}
-                        onChange={e => setGlobalFilter(e.target.value)}
-                        className="bg-brutal-dark border border-brutal-zinc/70 px-2 py-1 text-[11px] text-brutal-white placeholder:text-brutal-zinc focus:border-signal-orange/50 outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal-orange w-40"
-                        aria-label="Filter cost table"
-                    />
-                </div>
-            </div>
-
-            <div className="overflow-x-auto">
-                <table className="w-full text-[11px]">
-                    <thead>
-                    {table.getHeaderGroups().map(headerGroup => (
-                        <tr key={headerGroup.id} className="border-b border-brutal-zinc/70">
-                            {headerGroup.headers.map(header => (
-                                <th
-                                    key={header.id}
-                                    className="px-4 py-2 text-left font-bold text-brutal-slate tracking-widest uppercase cursor-pointer select-none hover:text-brutal-white"
-                                    onClick={header.column.getToggleSortingHandler()}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                        {header.column.getIsSorted() === 'asc' && <ArrowUp className="w-3 h-3"/>}
-                                        {header.column.getIsSorted() === 'desc' && <ArrowDown className="w-3 h-3"/>}
-                                    </div>
-                                </th>
-                            ))}
-                        </tr>
-                    ))}
-                    </thead>
-                    <tbody>
-                    {table.getRowModel().rows.map(row => (
-                        <tr key={row.id} className="border-b border-brutal-zinc/30 hover:bg-brutal-dark/60">
-                            {row.getVisibleCells().map(cell => (
-                                <td key={cell.id} className="px-4 py-2 text-brutal-slate">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                    {table.getRowModel().rows.length === 0 && (
-                        <tr>
-                            <td colSpan={columns.length}
-                                className="px-4 py-8 text-center text-brutal-zinc text-xs font-bold tracking-widest">
-                                NO COST DATA YET
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-            </div>
-
-            {table.getPageCount() > 1 && (
-                <div className="flex items-center justify-between px-4 py-2 border-t border-brutal-zinc/70">
-                    <span className="text-[10px] text-brutal-slate">
-                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                    </span>
-                    <div className="flex gap-1">
-                        <button
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                            className="p-1 text-brutal-slate hover:text-brutal-white disabled:opacity-30"
-                            aria-label="Previous page"
-                        >
-                            <ChevronLeft className="w-4 h-4"/>
-                        </button>
-                        <button
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                            className="p-1 text-brutal-slate hover:text-brutal-white disabled:opacity-30"
-                            aria-label="Next page"
-                        >
-                            <ChevronRight className="w-4 h-4"/>
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ── CostPage ─────────────────────────────────────────────────────────────────
-
 export function CostPage() {
-    const {data: byModel, isLoading: loadingModel} = useCostByModel();
-    const {data: byService, isLoading: loadingService} = useCostByService();
-    const {data: timeseries, isLoading: loadingTs} = useCostTimeSeries();
-    const {data: budget} = useBudgetStatus();
+    const {data: sessions = [], isLoading} = useSessions();
 
-    const isLoading = loadingModel || loadingService || loadingTs;
-
-    const totalSpendToday = useMemo(
-        () => byModel?.reduce((sum, m) => sum + m.totalCost, 0) ?? 0,
-        [byModel],
+    const rows = useMemo(
+        () => sessions
+            .map(toCostRow)
+            .filter((row): row is SessionCostRow => row !== null)
+            .sort((a, b) => (b.costUsd ?? 0) - (a.costUsd ?? 0)),
+        [sessions]
     );
 
-    const topModel = useMemo(
-        () => byModel?.reduce<CostByModel | null>((top, m) => (!top || m.totalCost > top.totalCost) ? m : top, null),
-        [byModel],
-    );
+    const totals = useMemo(() => {
+        const providers = new Set<string>();
+        const models = new Set<string>();
+        let requests = 0;
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let costUsd = 0;
+        let hasCost = false;
 
-    const budgetVariant = budget?.status === 'exceeded' ? 'danger'
-        : budget?.status === 'warning' ? 'warning'
-            : 'default';
+        for (const row of rows) {
+            requests += row.requests;
+            inputTokens += row.inputTokens;
+            outputTokens += row.outputTokens;
+            row.providers.forEach((p) => providers.add(p));
+            row.models.forEach((m) => models.add(m));
+            if (row.costUsd !== undefined) {
+                costUsd += row.costUsd;
+                hasCost = true;
+            }
+        }
+
+        return {requests, inputTokens, outputTokens, costUsd, hasCost, providers, models};
+    }, [rows]);
 
     return (
-        <div className="flex-1 p-6 space-y-6 overflow-auto">
-            <h1 className="text-lg font-bold text-brutal-white tracking-wider uppercase">
-                COST
-            </h1>
-
-            {/* KPI cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <KpiCard
-                    label="Spend Today"
-                    value={isLoading ? '...' : formatCost(totalSpendToday)}
-                    icon={CircleDollarSign}
-                />
-                <KpiCard
-                    label="Top Model"
-                    value={isLoading ? '...' : (topModel?.model ?? 'N/A')}
-                    icon={Zap}
-                />
-                <KpiCard
-                    label="Total Calls"
-                    value={isLoading ? '...' : formatTokens(byModel?.reduce((s, m) => s + m.callCount, 0) ?? 0)}
-                    icon={Activity}
-                />
-                <KpiCard
-                    label="Budget"
-                    value={budget ? (budget.dailyBudget ? `${formatCost(budget.remaining ?? 0)} left` : 'No limit') : '...'}
-                    icon={TriangleAlert}
-                    variant={budgetVariant}
-                />
+        <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2">
+                <CircleDollarSign className="w-4 h-4 text-signal-orange"/>
+                <h2 className="text-sm font-semibold tracking-[0.14em] text-brutal-white">GENAI COST</h2>
+                <span className="text-[11px] text-brutal-slate tracking-[0.08em]">
+                    FROM SESSION USAGE · ESTIMATED VIA MODEL PRICING
+                </span>
             </div>
 
-            {/* Timeseries chart */}
-            {timeseries && timeseries.length > 0 && (
-                <CostTimeSeriesChart data={timeseries}/>
-            )}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <SummaryCard
+                    label="Estimated cost"
+                    value={totals.hasCost ? usd(totals.costUsd) : '—'}
+                    accent
+                />
+                <SummaryCard label="GenAI requests" value={count(totals.requests)}/>
+                <SummaryCard label="Input tokens" value={count(totals.inputTokens)}/>
+                <SummaryCard label="Output tokens" value={count(totals.outputTokens)}/>
+            </div>
 
-            {/* Cost breakdown table */}
-            {byModel && (
-                <CostBreakdownTable data={byModel}/>
-            )}
-
-            {/* Service cost summary */}
-            {byService && byService.length > 0 && (
-                <div className="border-3 border-brutal-zinc bg-brutal-carbon p-4 space-y-3">
-                    <div className="text-[10px] font-bold text-brutal-slate tracking-widest uppercase">
-                        COST BY SERVICE
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                        {byService.map(s => (
-                            <div key={s.service}
-                                 className="border border-brutal-zinc/50 bg-brutal-dark/50 px-3 py-2 space-y-1">
-                                <div className="text-[11px] font-semibold text-brutal-white truncate">{s.service}</div>
-                                <div className="flex items-center justify-between">
-                                    <span
-                                        className="text-[10px] text-brutal-slate">{formatTokens(s.callCount)} calls</span>
-                                    <span
-                                        className="text-[11px] font-bold text-signal-orange">{formatCost(s.totalCost)}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {(totals.providers.size > 0 || totals.models.size > 0) && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                    {[...totals.providers].sort().map((provider) => (
+                        <Badge key={`p-${provider}`}
+                               className="bg-signal-violet/15 text-signal-violet border border-signal-violet/40 text-[11px] tracking-[0.08em]">
+                            {provider.toUpperCase()}
+                        </Badge>
+                    ))}
+                    {[...totals.models].sort().map((model) => (
+                        <Badge key={`m-${model}`}
+                               className="bg-brutal-dark/85 text-brutal-slate border border-brutal-zinc text-[11px] tracking-[0.08em]">
+                            {model}
+                        </Badge>
+                    ))}
                 </div>
             )}
 
-            {/* Empty state */}
-            {!isLoading && (!byModel || byModel.length === 0) && (
-                <div className="flex items-center justify-center h-48 border-3 border-brutal-zinc bg-brutal-carbon">
-                    <div className="text-center space-y-2">
-                        <CircleDollarSign className="w-8 h-8 mx-auto text-brutal-zinc"/>
-                        <div className="text-brutal-slate text-xs font-bold tracking-widest">
-                            NO COST DATA YET
+            <Card className="border border-brutal-zinc/70 bg-brutal-carbon/92">
+                <CardContent className="p-0">
+                    {isLoading ? (
+                        <div className="p-6 text-sm text-brutal-slate">Loading sessions…</div>
+                    ) : rows.length === 0 ? (
+                        <div className="p-6 text-sm text-brutal-slate">
+                            No GenAI usage recorded yet. Sessions gain cost data once spans carry
+                            gen_ai token usage and a pricing profile matches the model.
                         </div>
-                        <div className="text-brutal-zinc text-[10px]">
-                            Cost tracking starts when GenAI spans arrive with token counts.
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead>
+                                <tr className="border-b border-brutal-zinc/70 text-[11px] uppercase tracking-[0.18em] text-brutal-slate">
+                                    <th className="px-4 py-2.5 font-semibold">Session</th>
+                                    <th className="px-4 py-2.5 font-semibold">State</th>
+                                    <th className="px-4 py-2.5 font-semibold text-right">Requests</th>
+                                    <th className="px-4 py-2.5 font-semibold text-right">Tokens in</th>
+                                    <th className="px-4 py-2.5 font-semibold text-right">Tokens out</th>
+                                    <th className="px-4 py-2.5 font-semibold">Providers</th>
+                                    <th className="px-4 py-2.5 font-semibold text-right">Est. cost</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {rows.map((row) => (
+                                    <tr key={row.sessionId}
+                                        className="border-b border-brutal-zinc/40 hover:bg-brutal-dark/60">
+                                        <td className="px-4 py-2 font-mono text-brutal-white">{row.sessionId}</td>
+                                        <td className="px-4 py-2 uppercase text-brutal-slate">{row.state}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-brutal-white">{count(row.requests)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-brutal-white">{count(row.inputTokens)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-brutal-white">{count(row.outputTokens)}</td>
+                                        <td className="px-4 py-2 text-brutal-slate">{row.providers.join(', ')}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-signal-orange">
+                                            {row.costUsd !== undefined ? usd(row.costUsd) : '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                </div>
-            )}
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

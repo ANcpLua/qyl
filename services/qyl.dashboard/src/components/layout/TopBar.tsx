@@ -17,10 +17,9 @@ interface TopBarProps {
 }
 
 const pageTitle: Record<string, string> = {
-    '/': 'RESOURCES',
     '/traces': 'TRACES',
     '/logs': 'STRUCTURED LOGS',
-    '/settings': 'SETTINGS',
+    '/cost': 'GENAI COST',
 };
 
 const timeRanges = [
@@ -52,10 +51,7 @@ export function TopBar({
         return () => clearInterval(interval);
     }, []);
 
-    const title = pageTitle[location.pathname]
-        ?? (location.pathname.startsWith('/dashboards/')
-            ? (location.pathname.split('/').pop() ?? 'dashboard').replace(/-/g, ' ').toUpperCase()
-            : 'QYL.');
+    const title = pageTitle[location.pathname] ?? 'QYL.';
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString('en-US', {

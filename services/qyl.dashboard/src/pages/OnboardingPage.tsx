@@ -446,9 +446,9 @@ export function OnboardingPage() {
                                 <Button
                                     variant="outline"
                                     className="h-10 rounded-full border-white/10 bg-white/0 px-4 text-brutal-white hover:bg-white/6"
-                                    render={<Link to="/settings"/>}
+                                    render={<Link to="/logs"/>}
                                 >
-                                    Settings
+                                    Logs
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -508,9 +508,9 @@ export function OnboardingPage() {
                                     <Button
                                         variant="outline"
                                         className="h-11 rounded-full border-white/10 bg-white/0 px-5 text-brutal-white hover:bg-white/6"
-                                        render={<Link to="/issues"/>}
+                                        render={<Link to="/logs"/>}
                                     >
-                                        Inspect issues
+                                        Stream logs
                                     </Button>
                                 </div>
 
@@ -952,17 +952,17 @@ export function OnboardingPage() {
                                             <Button
                                                 variant="outline"
                                                 className="h-11 rounded-full border-white/10 bg-white/0 px-6 text-brutal-white hover:bg-white/6"
-                                                render={<Link to="/services"/>}
+                                                render={<Link to="/logs"/>}
                                             >
-                                                Service map
+                                                Stream logs
                                                 <Database className="h-4 w-4"/>
                                             </Button>
                                             <Button
                                                 variant="outline"
                                                 className="h-11 rounded-full border-white/10 bg-white/0 px-6 text-brutal-white hover:bg-white/6"
-                                                render={<Link to="/settings"/>}
+                                                render={<Link to="/cost"/>}
                                             >
-                                                Configure keys
+                                                GenAI cost
                                                 <Bot className="h-4 w-4"/>
                                             </Button>
                                         </div>

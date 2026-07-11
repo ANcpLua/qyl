@@ -1,5 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {Toaster} from '@/components/ui/sonner';
 import {ErrorBoundary} from '@/components/ui/error-boundary';
@@ -15,18 +15,8 @@ import {useCollectorMeta} from '@/lib/onboarding';
 
 const TracesPage = lazy(() => import('@/pages/TracesPage').then(m => ({default: m.TracesPage})));
 const LogsPage = lazy(() => import('@/pages/LogsPage').then(m => ({default: m.LogsPage})));
-const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({default: m.DashboardPage})));
 const CostPage = lazy(() => import('@/pages/CostPage').then(m => ({default: m.CostPage})));
-const ServicesPage = lazy(() => import('@/pages/ServicesPage').then(m => ({default: m.ServicesPage})));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({default: m.SettingsPage})));
-const IssuesPage = lazy(() => import('@/pages/IssuesPage').then(m => ({default: m.IssuesPage})));
-const IssueDetailPage = lazy(() => import('@/pages/IssueDetailPage').then(m => ({default: m.IssueDetailPage})));
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({default: m.OnboardingPage})));
-const AlertsPage = lazy(() => import('@/pages/AlertsPage').then(m => ({default: m.AlertsPage})));
-const PerformancePage = lazy(() => import('@/pages/PerformancePage').then(m => ({default: m.PerformancePage})));
-const ErrorsOutagesPage = lazy(() => import('@/pages/ErrorsOutagesPage').then(m => ({default: m.ErrorsOutagesPage})));
-const ConversationsPage = lazy(() => import('@/pages/ConversationsPage').then(m => ({default: m.ConversationsPage})));
-const AgentsPage = lazy(() => import('@/pages/AgentsPage').then(m => ({default: m.AgentsPage})));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -40,20 +30,18 @@ const queryClient = new QueryClient({
 
 const BUILD_VERSION_CHECK_INTERVAL_MS = 60_000;
 
-function FirstVisitGate() {
-    const {data, isLoading} = useQuery({
-        queryKey: ['github-status'],
-        queryFn: async () => {
-            const res = await fetch('/api/v1/github/status');
-            if (!res.ok) return {configured: false};
-            return res.json() as Promise<{ configured: boolean }>;
-        },
-        staleTime: 1000 * 60 * 5,
-    });
+const ONBOARDING_SEEN_KEY = 'qyl:onboarding-seen';
 
-    if (isLoading) return null;
-    if (!data?.configured) return <Navigate to="/onboarding" replace/>;
-    return <DashboardPage/>;
+// First visit lands on onboarding (endpoint setup); every visit after that goes straight to
+// traces. Purely client-side state — the old gate probed a /api/v1/github/status endpoint the
+// collector never served.
+function FirstVisitGate() {
+    if (localStorage.getItem(ONBOARDING_SEEN_KEY) === null) {
+        localStorage.setItem(ONBOARDING_SEEN_KEY, new Date().toISOString());
+        return <Navigate to="/onboarding" replace/>;
+    }
+
+    return <Navigate to="/traces" replace/>;
 }
 
 function BuildUpdateBanner() {
@@ -169,17 +157,9 @@ export default function App() {
                                 <Route path="/traces" element={<TracesPage/>}/>
                                 <Route path="/logs" element={<LogsPage/>}/>
                                 <Route path="/cost" element={<CostPage/>}/>
-                                <Route path="/services" element={<ServicesPage/>}/>
-                                <Route path="/dashboards" element={<DashboardPage/>}/>
-                                <Route path="/dashboards/:id" element={<DashboardPage/>}/>
-                                <Route path="/settings" element={<SettingsPage/>}/>
-                                <Route path="/issues" element={<IssuesPage/>}/>
-                                <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                                <Route path="/alerts" element={<AlertsPage/>}/>
-                                <Route path="/performance" element={<PerformancePage/>}/>
-                                <Route path="/errors" element={<ErrorsOutagesPage/>}/>
-                                <Route path="/conversations" element={<ConversationsPage/>}/>
-                                <Route path="/agents" element={<AgentsPage/>}/>
+                                {/* Routes from the pre-shrink surface (issues, alerts, …) may live
+                                    on in bookmarks; a no-match render would be a blank page. */}
+                                <Route path="*" element={<Navigate to="/traces" replace/>}/>
                             </Route>
                         </Routes>
                     </Suspense>
