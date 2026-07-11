@@ -434,3 +434,17 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   ANcpLua/qyl-api-schema`). npm side untouched (all-or-nothing: nuget auths
   first, npm publishes last). AFTER publish+index: bump Qyl.Api.Contracts
   0.2.2 → 0.2.3 in qyl Directory.Packages.props:88 and restore-verify.
+- 2026-07-11 — v0.2.3 PUBLISHED + consumed; migration loop CLOSED (Claude +
+  user). Root cause of BOTH registry failures: qyl-api-schema was deleted and
+  recreated 2026-07-08, so the trusted-publishing policies on nuget.org AND
+  npmjs pinned the DEAD repo id (policy showed #1231216126; live repo is
+  #1293864142) — "Active" but matching nothing. User recreated both policies
+  (nuget.org: repo/workflow/environment re-pinned; npmjs: Trusted Publisher
+  re-connected). Rerun evidence: run 29131737334 rerun #2 → NuGet OIDC auth +
+  push SUCCESS, npm still ENEEDAUTH (its publisher fixed after); rerun #3 →
+  conclusion success. Verified live: npm @ancplua/qyl-api-schema 0.2.3
+  (dist-tag latest), nuget.org flatcontainer lists 0.2.3. Consumer bump:
+  Directory.Packages.props:99 Qyl.Api.Contracts 0.2.2→0.2.3; 0.2.3 restored
+  from nuget.org into the global cache; `dotnet build qyl.slnx` → 0 Warning(s)
+  0 Error(s). Version-lockstep invariant fully restored end-to-end: TypeSpec
+  keys (1.43.0) = .NET constants (1.43.0), contracts wire-identical.
