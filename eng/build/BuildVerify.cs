@@ -1846,11 +1846,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     missingRequired.Add(RootDirectory.GetRelativePathTo(storageMapperFile) + $" must contain deterministic storage identity token '{token}'");
             }
 
-            if (!converterText.Contains("var profileId = ToHex(profile.ProfileId) ?? \"\";", StringComparison.Ordinal))
+            if (!converterText.Contains("var profileId = RequireIdOrAbsent(profile.ProfileId, 16, \"profile_id\") ?? \"\";",
+                    StringComparison.Ordinal))
             {
                 missingRequired.Add(
                     RootDirectory.GetRelativePathTo(converterFile)
-                    + " must leave missing OTLP profile ids empty so storage materialization derives the deterministic fallback id");
+                    + " must leave missing OTLP profile ids empty (RequireIdOrAbsent -> null -> \"\") so storage materialization derives the deterministic fallback id");
             }
 
             if (!persistedPolicyText.Contains("OrderBy(static item => item.Key, StringComparer.Ordinal)", StringComparison.Ordinal))
@@ -1943,7 +1944,10 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             [
                 "Nuke.OpenTelemetry.Conventions",
                 "Qyl.Client",
-                "Qyl.OpenTelemetry.SemanticConventions.SourceGeneration",
+                // Qyl.OpenTelemetry.SemanticConventions.SourceGeneration was tombstoned here when the
+                // collector's semantic handwiring was pruned (84a034e1). Un-tombstoned 2026-07-11 for
+                // #510 §5: the demo workload consumes the generator on purpose. The collector itself
+                // stays off it via VerifyCollectorUsesSemanticConstants (catalog-only consumption).
                 "Scalar.Kiota",
                 "core/specs",
                 "core/openapi",

@@ -1,0 +1,28 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Qyl.Run.Workload</RootNamespace>
+    <!-- Synthetic demo workload for `qyl run` demo mode (#510 ④⑤): dev/demo tool, never packed. -->
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- CA5394: Random.Shared here fabricates demo telemetry values — nothing security-relevant. -->
+    <NoWarn>$(NoWarn);CA5394</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
+    <!-- Analyzer-only: emits the [SemanticConvention*] markers + typed setters/instrument
+         factories from the embedded semconv registry. The workload is deliberately the
+         first real consumer of this generator surface (#510 §5). -->
+    <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
+  </ItemGroup>
+
+</Project>

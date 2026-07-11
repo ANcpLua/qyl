@@ -761,3 +761,45 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   Nothing lost: donor source is in the private archive, dispositions in git history.
   Known caveat (surfaced to user twice): the repo is public WITH history — HEAD deletion
   does not unpublish; only a history rewrite would.
+- 2026-07-11 — **#510 MVP checklist ④ shipped: synthetic workload through the SemConv
+  generators** (Claude; parallel session executing repair phases 1-6 in the same checkout —
+  all verification ran in a pristine HEAD clone + ④ overlay so their uncommitted collector
+  WIP never contaminated evidence). NEW `packages/Qyl.Run.Workload` (ANcpLua.NET.Sdk, Exe,
+  IsPackable=false — same family precedent as Qyl.Run.Host): slim web host (honors the
+  runner-injected ASPNETCORE_URLS, serves `/health` for AddProject readiness — zero Qyl.Run
+  model changes needed) + a BackgroundService emitting 3 concurrent session loops of
+  realistic traces (SERVER `POST /api/*` root → db CLIENT `SELECT qyl_demo.*` → gen_ai
+  CLIENT `chat <model>`), ~7% error turns (chat error.type=rate_limit_exceeded → root 429),
+  10 provider/model profiles matching the pricing seed, OTLP http/protobuf export (traces +
+  logs + metrics; env-default `127.0.0.1:4318` when the runner hasn't injected an endpoint).
+  **The §5 payoff — first real consumer of the source generators — WORKS: every marker
+  surface compiled on first try.** 12 `[SemanticConvention*]` markers (stable Activities
+  http/server/db/error; Incubating Activities gen_ai/session; Meters http.server +
+  Incubating db.client/gen_ai.client; Attributes ×3) — zero hand-rolled attribute strings.
+  Generated-key audit via EmitCompilerGeneratedFiles: all current-shape (gen_ai.provider.name,
+  gen_ai.usage.input_tokens/output_tokens as Int64, db.system.name, http.request.method,
+  session.id…) — the ingest normalizer stays idle. UNBLOCKING CHANGE, deliberate: the
+  `Qyl.OpenTelemetry.SemanticConventions.SourceGeneration` token was LIFTED from
+  `VerifyNoRemovedBuildSurface.removedTokens` (tombstoned in 84a034e1 to keep the
+  *collector* off it; #510 §5 supersedes for the workload) — the collector stays guarded by
+  VerifyCollectorUsesSemanticConstants; CPM pin 3.4.0 added (analyzer-only, PrivateAssets).
+  GROUND-TRUTH CORRECTIONS found en route: session.id is a SPAN-attribute correlation key
+  (catalog set gen_ai.conversation.id/mcp.session.id/session.id) — resource-level session.id
+  is never consulted AND is deny-listed, so the workload stamps it per-span via the generated
+  SetSessionId; the collector has NO metrics signal (no /v1/metrics route, no gRPC
+  MetricsService — POST 404s) — the workload ships OTLP metrics anyway (exporter drops
+  quietly; lights up if the collector ever grows the signal) and the generated instrument
+  factories are exercised regardless (gen_ai.client.token.usage Histogram<long>{token},
+  operation.duration/http.server.request.duration Histogram<double> s). EVIDENCE (clone =
+  HEAD+④, exactly what CI sees): `dotnet build qyl.slnx` 0W/0E; `./eng/build.sh Verify
+  --Configuration Release` all 38 targets Succeeded (VerifyNoRemovedBuildSurface green with
+  the lifted token; OpenApi target needs the ../qyl-api-schema sibling — clone got a symlink);
+  LIVE smoke (collector :5310-5312, isolated duckdb, workload exporting to :5311):
+  /api/v1/sessions → 22 sessions keyed by demo session.id with genai_usage (e.g. req:15,
+  in:26394, out:10258, providers [anthropic,deepseek,google,mistral,openai], cost $0.4998 —
+  pricing pipeline live); /api/v1/traces → 35 traces, services=[workload], 7 error traces,
+  span shapes verified (chat error.type=rate_limit_exceeded + root http 429); /api/v1/logs →
+  trace-correlated log records (body sha256-redacted by the collector — by design);
+  /api/v1/sessions/stats → sessions_with_genai=19, sessions_with_errors=7. API-envelope
+  gotcha for future queries: list endpoints wrap in `items`, sessions key is literally
+  `"session.id"`. Smoke processes killed, smoke duckdb deleted. ⑤ (--demo composition) next.
