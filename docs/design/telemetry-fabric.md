@@ -3,9 +3,10 @@
 > **Status: design proposal (post-beta). Nothing here is implemented.** This document is
 > the deliberate exception to the "no aspirational capabilities" rule that governs
 > `docs/observability.md` — it exists precisely to hold the aspiration so product docs
-> never have to. Origin: an ideation sketch in `services/qyl.collector/Program.cs`
-> (preserved in `git stash`: "collector WIP ideation: TelemetryFabric sketch...") refined
-> into this API design on 2026-07-07.
+> never have to. Origin: an ideation sketch in `services/qyl.collector/Program.cs`,
+> refined into this API design on 2026-07-07. The original sketch is archived at tag
+> `archive/stash-telemetryfabric-ideation` (`git stash apply
+> archive/stash-telemetryfabric-ideation`); it was never implementable as written.
 
 ## Problem
 

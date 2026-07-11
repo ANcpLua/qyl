@@ -46,12 +46,24 @@
 #   Expect a review authored by github-actions[bot] (APPROVE for a safe
 #   patch/minor manifest-only bump, COMMENT for a major / non-manifest diff).
 #
-# IF NO github-actions REVIEW APPEARS but the job is green: check the run log
-# for `"is_error": true` with `"total_cost_usd": 0` and num_turns:1. That means
-# the model call was rejected before Claude acted — almost always a stale
-# CLAUDE_CODE_OAUTH_TOKEN. Regenerate it (`claude setup-token`) and update the
-# repo secret. The action reports the STEP as success even on is_error, so this
-# gate degrades silently; the merge still happens via renovate on green checks.
+# IF NO github-actions REVIEW APPEARS, the failure is one of three — check in
+# this order, because two of them are GREEN-but-inert:
+#
+#   1. Job RED, log says "Workflow initiated by non-human actor: renovate
+#      (type: Bot)". The `allowed_bots` input below is empty or missing. This
+#      killed every renovate PR from 2026-07-08 to 2026-07-11.
+#   2. Job GREEN, log says "Skipping action due to workflow validation error".
+#      The PR modifies THIS file, and the action refuses to run a workflow that
+#      differs from the one on the default branch. Expected and unavoidable —
+#      judge a fix to this file only on the NEXT renovate PR, never on the PR
+#      that changes it.
+#   3. Job GREEN, log has `"is_error": true` / `"total_cost_usd": 0` /
+#      num_turns:1. The model call was rejected before Claude acted — a stale
+#      CLAUDE_CODE_OAUTH_TOKEN. Regenerate with `claude setup-token` and update
+#      the repo secret. (Happened once, resolved 2026-07-08.)
+#
+# The action reports the STEP as success in cases 2 and 3, so the gate can
+# degrade silently; the merge still happens via renovate on green checks.
 # =============================================================================
 
 name: renovate-auto-review
@@ -59,9 +71,10 @@ name: renovate-auto-review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  # Manual test hook: run the gate against any PR by number. Used to verify the
-  # loop after refreshing CLAUDE_CODE_OAUTH_TOKEN. The operator picks the PR, so
-  # the renovate/* + author scoping below is relaxed for this path.
+  # Manual test hook: run the gate against any PR by number — the operator-driven
+  # way to exercise the loop without waiting for a renovate PR. The operator picks
+  # the PR, so the renovate/* + author scoping below is relaxed for this path
+  # (and the bot-actor check never fires, since the actor is a human).
   workflow_dispatch:
     inputs:
       pr:
@@ -107,6 +120,12 @@ jobs:
         uses: anthropics/claude-code-action@e90deca47693f9457b72f2b53c17d7c445a87342 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The action refuses non-human actors unless they are listed here
+          # (default "" = no bots), so every renovate[bot] run died on
+          # "Workflow initiated by non-human actor". Named actor, never '*':
+          # on a public repo '*' would let any external App invoke this action
+          # with a prompt it controls.
+          allowed_bots: "renovate"
           # Default GITHUB_TOKEN: gh calls (incl. the approve) run as
           # github-actions[bot]; the job's pull-requests:write scope covers it.
           prompt: |

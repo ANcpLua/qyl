@@ -8,7 +8,7 @@
 
 | Package | Resolved version |
 |---------|------------------|
-| ANcpLua.Roslyn.Utilities | 2.2.33 |
+| ANcpLua.Roslyn.Utilities | 2.2.36 |
 | Microsoft.Bcl.HashCode | 6.0.0 |
 | Microsoft.CodeAnalysis.Common | 5.6.0 |
 | Microsoft.CodeAnalysis.CSharp | 5.6.0 |

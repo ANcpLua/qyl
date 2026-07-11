@@ -5,7 +5,10 @@ qyl is an OpenTelemetry-compatible observability platform. OpenTelemetry is the 
 ## Architecture
 
 ```text
-typespec-otel-semconv
+OpenTelemetry semantic conventions (Weaver-generated)
+        |
+        v
+Qyl.OpenTelemetry.SemanticConventions -> typed constants + the otel-keys projection
         |
         v
 qyl-api-schema -> OpenAPI / JSON Schema / Qyl.Api.Contracts / TS contract types
@@ -22,7 +25,7 @@ qyl.dashboard -> operator UI
 | Project | Purpose |
 | --- | --- |
 | `services/qyl.collector` | OTLP ingest (traces, logs, profiles), REST API, SSE streaming, DuckDB storage |
-| `services/qyl.dashboard` | React dashboard for traces, logs, services, issues, alerts, errors, performance, cost, conversations, and agents |
+| `services/qyl.dashboard` | React dashboard. Backed by the collector API today: traces, sessions, logs, profiles (GenAI token usage and cost ride along on sessions). Other pages ship in the UI ahead of their endpoints — see [Product surface](#product-surface) |
 | `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
 | `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
 | `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
@@ -30,6 +33,26 @@ qyl.dashboard -> operator UI
 | `packages/Qyl.Run.Host` | executable host for the runner (`dotnet run --project packages/Qyl.Run.Host`) |
 | `packages/Qyl.Run.Console` | dev-only runner console — live resource view for the runner (Vite/React); not the product dashboard |
 | `eng/build` | build/verify pipeline (`BuildVerify` guards, semantic catalog) |
+
+## Product surface
+
+qyl is pre-beta, and the dashboard currently ships more pages than the collector
+has endpoints. What the collector actually serves today, in full:
+
+| Area | Routes |
+| --- | --- |
+| Traces | `GET /api/v1/traces`, `/traces/{traceId}`, `/traces/{traceId}/spans` |
+| Sessions | `GET /api/v1/sessions`, `/sessions/stats`, `/sessions/{sessionId}`, `/sessions/{sessionId}/traces` |
+| Logs | `GET /api/v1/logs`, `/stream/logs` (SSE) |
+| Profiles | `GET /api/v1/profiles`, `/profiles/{profileId}`, `/profiles/by-trace/{traceId}`, `/profiles/by-span/{spanId}` |
+| OTLP ingest | `POST /v1/traces`, `/v1/logs`, `/v1/profiles` |
+
+GenAI token usage and cost are real, but they are enriched onto **sessions** — there
+is no separate cost API. Dashboard pages outside the areas above (services, issues,
+alerts, errors, performance, conversations, agents, GitHub integration) have no
+backing route yet and will 404 against a live collector. They are UI ahead of
+product, not shipped capability; deciding which become real and which get deleted is
+tracked as the product-surface question, not papered over with stubs.
 
 ## Contracts
 
@@ -78,10 +101,20 @@ npm install
 npm run dev
 ```
 
-Or run collector + dashboard together via the local runner:
+Or run the collector via the local runner, which also provisions a dedicated
+diagnostics collector on `:5200` for the collector's own self-telemetry:
 
 ```bash
 dotnet run --project packages/Qyl.Run.Host
+```
+
+The runner starts collectors, not the dashboard — run the dashboard's dev server
+separately (above). The collector serves the dashboard itself only when the built
+SPA is embedded into it, which needs both the build flag and a built `dist/`:
+
+```bash
+cd services/qyl.dashboard && npm run build && cd -
+dotnet run --project services/qyl.collector -p:QylEmbedDashboard=true
 ```
 
 Point OpenTelemetry exporters at the collector:

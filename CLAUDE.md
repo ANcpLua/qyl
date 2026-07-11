@@ -1,25 +1,24 @@
-# CLAUDE.md — qyl beta-launch SSOT (Fable execution stream)
+# CLAUDE.md — qyl SSOT
 
-> This file is the **single source of truth** and **memory stream** for the beta
-> push. No `CHANGELOG.md`, no second contract. Fable keeps it perma-updated: append
-> what you did (with evidence) under **Progress log**, tick the checklist, never
-> silently drop a finding. The old `AGENTS.md` symlink/contract was retired on purpose;
-> today's pattern below overrides its Branch/PR ceremony.
-> **Absolute deadline: beta launch in ~1 day (today = 2026-07-06).**
+> This file is the **single source of truth** and **memory stream** for qyl. No
+> `CHANGELOG.md`, no second contract. Append what you did — with evidence — under
+> **Progress log**; never silently drop a finding. The old `AGENTS.md`
+> symlink/contract was retired on purpose; the operating pattern below overrides its
+> Branch/PR ceremony.
+>
+> **Evidence rule (the one that matters):** report only work you can point to real
+> command output for. Words are claims; tool output is proof. When a claim really
+> needs proving, a fresh-context verifier that *re-executes* beats self-critique.
 
-## Today's operating pattern — no ceremony
+## Operating pattern
 
-- **No PRs. No feature branches. No worktrees.** Work directly on `main`, local.
-- **No blockers today.** `git commit`, `--force`, `git reset`, delete — allowed locally.
-  Nothing is forbidden until shortly before launch.
-- **Publish locally, not via CI.** Don't wait on `ci.yml`. Pack to a **local NuGet feed**;
-  build dashboard/collector locally. CI is re-armed only at the very end (final green
-  before the public beta tag).
-- **Scope filter:** only reason about things **created or modified in July 2026**. Older
-  is out of scope unless you can concretely argue it must change.
-- **Version target: `0.1.0-beta.1`.** SemVer prerelease; NuGet treats `-beta.1` as
-  prerelease; `beta.1 → beta.2` iterates cleanly. Base `0.1.0` already in both
-  `package.json`; add the `-beta.1` suffix where the product is stamped.
+- **No PRs. No feature branches. No worktrees.** Work directly on `main`, single
+  consolidated commits, push immediately.
+- **Build green + Verify green are correctness, not ceremony.** Never distort product
+  code to satisfy a stale verifier — fix the verifier. Never hand-edit `*.g.cs` — fix
+  the generator, regenerate, commit the result.
+- **The repo is public** (`ANcpLua/qyl`, since 2026-07-11). Nothing ships publicly —
+  no beta tag, no package publish — until qyl reaches an experimental public beta.
 
 ## Invariants that still hold (correctness, not ceremony — never skip)
 
@@ -38,102 +37,55 @@
   `ANcpLua.NET.Sdk` family. Tests on **Microsoft.Testing.Platform**. Dashboard: ESM,
   Node ≥ 20, React 19 + Vite + TanStack + Tailwind 4; no new external runtime deps.
 - **Ports:** REST/dashboard/OTLP-HTTP `:5100`, OTLP/gRPC `:4317`, OTLP HTTP `:4318`.
+- **The transitive security overrides are load-bearing — don't "clean them up".**
+  `Directory.Packages.props` + `eng/build/build.csproj` pin `NuGet.Packaging` and
+  `System.Security.Cryptography.Xml` above the vulnerable versions that `Nuke.Tooling`
+  and `Microsoft.Build.Tasks.Core` still pull transitively. Audited 2026-07-06: the
+  overrides are what resolves them to safe versions. Removing them reintroduces the CVEs.
+- **NativeAOT is an *external*-library claim.** "All three signals NativeAOT-verified"
+  scopes to `Qyl.OpenTelemetry.AutoInstrumentation` (its own repo). The collector is a
+  backend receiver (`PublishAot=false`) and `internal/qyl.instrumentation` is an
+  ASP.NET Core surface — neither needs nor claims AOT. Only `packages/Qyl.Run` is
+  AOT-flagged in-repo. Don't let the claim creep back onto the collector.
 
-## Version drift found (noted, not yet fixed — Fable fixes in step 1)
+## Open work (the repair plan, phase-gated — don't batch phases)
 
-1. **`Version.props:14`** `ANcpLuaRoslynUtilitiesVersion = 2.2.33` is **stale**;
-   `global.json:11-12` (SDK + Testing) already at **`2.2.35`** (commits #493/#494).
-   → bump Version.props to `2.2.35`. **Real drift.**
-2. **`docs/package-api-update-matrix.md:30-31`** lists Roslyn.Utilities `2.2.26 → 2.2.27`
-   — stale "latest" rows (actual 2.2.35). Historical log, but the top row is now wrong.
-3. **`docs/package-api-update-matrix.md:60`** shows `Qyl.Api.Contracts 0.2.0 → 0.2.1`
-   but `Directory.Packages.props:88` = **`0.2.2`**. Matrix one release behind.
-4. Product version consistent at `0.1.0` in both dashboard `package.json`; no `.NET`
-   product `<Version>` exists yet.
-5. **`nuget.config`** comment was doubly wrong: cited **"NuGet 6.13+"** (actual bundled
-   NuGet in SDK 10.0.301 = **7.6.0**) and justified `packageSourceMapping` by "**multiple**
-   package sources" while the file `<clear/>`s to a **single** source. **FIXED 2026-07-06:**
-   rewrote the comment to the real reason (defensive supply-chain lock, not a requirement)
-   and made it **version-number-free** so it can't rot again. **Beta blocker still stands:**
-   step 4's local feed must be added *with* a matching `<packageSource>`/`<package pattern>`
-   entry or restore fails (NU1100/NU1507) — now spelled out in the comment itself.
-7. **Version-citing comments audited repo-wide — the rest are correct, not rot.** Verified
-   `Directory.Packages.props:72-76` + `eng/build/build.csproj:34-37` security overrides:
-   the cited `NuGet.Packaging 6.12.1` / `System.Security.Cryptography.Xml 9.0.0` are the
-   **vulnerable transitive versions still pulled** (`Nuke.Tooling` → 6.12.1,
-   `Microsoft.Build.Tasks.Core` → 9.0.0; override resolves 7.6.0 / 10.0.9). Override is
-   **still required** — leave it. `renovate.json` OpenApi/js-yaml rationales match current
-   pins. `docs/package-api-update-matrix.md` is a deliberate historical log (see #2/#3).
-6. **Doc wording — "NativeAOT-verified"** (`README.md:62-64`, `docs/observability.md:57,73`):
-   the claim legitimately refers to the **external**
-   `Qyl.OpenTelemetry.AutoInstrumentation` library (`4.0.3`, verified in its own repo) —
-   **not** the collector (backend receiver, `PublishAot=false`/`IsAotCompatible=false`,
-   needs no AOT) and not in-repo `internal/qyl.instrumentation` (`IsAotCompatible`
-   deliberately unset — ASP.NET-Core minimal-API surface has no upstream AOT
-   annotations; only `packages/Qyl.Run` is truly AOT-flagged). Not a bug — a wording
-   gap: a careful reader of "all three signals NativeAOT-verified" expects the in-repo
-   instrumentation package to be AOT-flagged. **FIXED 2026-07-06:** README + both
-   observability.md spots now scope the claim to the external library and state that
-   collector/`qyl.instrumentation` neither need nor claim AOT.
+Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — see the
+2026-07-11 progress-log entries. What remains, roughly in order:
 
----
+1. **Data integrity.** No startup migration exists: the persisted DuckDB predates the
+   cache-token columns, so generated SQL selects `gen_ai_cache_read_input_tokens`
+   against an older DB and every `GET /api/v1/traces` 500s. Schema is source-generated
+   (`internal/qyl.collector.storage.generators/DuckDbEmitter.cs`) — emit
+   `ALTER TABLE ADD COLUMN IF NOT EXISTS` per column at startup from the same
+   generator. Also: OTLP/JSON trace/span IDs are decoded as base64 when the spec
+   mandates **hex** (spec-compliant JSON exporters get mangled, unjoinable IDs; no
+   16-byte length validation either). And `/health` is a **false positive** — it is
+   never mapped, so the SPA fallback returns `index.html` 200, fooling both Railway's
+   `healthcheckPath` and `Qyl.Run`'s readiness probe; `MapQylEndpoints` is never
+   called and `DuckDbHealthCheck` is never registered.
+2. **Decide the product surface.** The dashboard ships pages with no backing endpoint
+   (see README "Product surface"). Shrink to the verified vertical — traces, sessions,
+   logs, GenAI cost — and delete pages that have no endpoint. No adapters, no stubs:
+   missing values stay missing. Pages return only when a real endpoint ships.
+3. **One topology.** Embedded single-origin collector (`QylEmbedDashboard=true` for
+   release builds); delete the standalone dashboard Docker path; fix compose.
+4. **`Qyl.Host` convergence + MCP wiring.** See `docs/design/qyl-host/`.
+5. **Auth + scoping.** gRPC ingest has no API-key boundary (HTTP does); the read API is
+   unauthenticated; `ProjectScope.cs` hardcodes `"default"`.
+6. **Release coherence.** `0.1.0-beta.1` is **not stamped** — the only pack artifact is
+   `Qyl.Run.1.0.0.nupkg`. One version owner (`Version.props`); pipeline is
+   verify → pack → publish → index → clean-restore. Trap to remember: `nuget.config`
+   `<clear/>`s to a single source, so a local feed must be added *with* a matching
+   `packageSourceMapping` entry or restore fails (NU1100/NU1507).
+7. **Tests.** Zero backend test projects; frontend coverage ~26% with no threshold;
+   Playwright `baseURL` is `:5100` while its webServer runs `:4173`.
 
-## === FABLE PROMPT (execute; ≤3000 chars) ===
-
-You are the sole dev shipping qyl's first local beta today. Work directly on `main`,
-local only — no PR, no branch, no worktree, no CI wait. Force-push/reset/delete are
-fine locally. This CLAUDE.md is your source of truth and memory: after each step append
-to **Progress log** with the command + its output as evidence.
-
-Goal (prompt ends here): a **buildable, packable, locally-runnable `0.1.0-beta.1`**.
-
-Do, in order, stopping only on a blocker your tools can't solve:
-
-1. Fix version drift: set `Version.props` `ANcpLuaRoslynUtilitiesVersion` to `2.2.35`.
-   Refresh/annotate the two stale `docs/package-api-update-matrix.md` rows
-   (Roslyn.Utilities → 2.2.35, Qyl.Api.Contracts → 0.2.2). `Version.props` is the only
-   place package versions live — never hard-code in a `.csproj`.
-2. Stamp the beta `0.1.0-beta.1`: dashboards keep base `0.1.0`; add the `-beta.1`
-   prerelease suffix at the product/pack layer.
-3. Build green locally: `dotnet build` (collector + Qyl.Run*), dashboard
-   `npm ci && npm run build && npm test`. Fix real failures; don't delete the
-   `BuildVerify` `removedCollectorTokens` guard to pass — keep removed symbols gone.
-4. Pack + local-publish shippable packages (`Qyl.Run`, `Qyl.Run.Host`, generators) to a
-   **local NuGet feed**; build collector + dashboard artifacts. NOTE: `nuget.config`
-   `<clear/>`s to nuget.org only — add the local feed AND a matching
-   `packageSourceMapping` entry or restore fails (NU1100/NU1507). Fix its stale comment
-   too (says "6.13+"/"multiple sources"; actual NuGet 7.6.0, single source).
-5. Verify it runs: `dotnet run --project packages/Qyl.Run.Host`. **Set
-   `QYL_OTLP_AUTH_MODE=Unsecured`** or children crash-loop ("health probe timed out").
-   Confirm collector `:5100`, OTLP `:4317`/`:4318`, dashboard reachable.
-
-Evidence rule: report only work you can point to real command output for — words are
-claims, tool output is proof. When done, write a short "beta ready" note here and stop.
-
-## === END FABLE PROMPT ===
-
----
-
-## Fable model notes (Anthropic Fable guidance — apply while executing)
-
-- **Ground progress claims.** Report only work with evidence (command + output). Words
-  are claims, not proof — only the evidence block counts. (Near-eliminated fabricated
-  status reports in Anthropic's tests.)
-- **Don't over-prescribe.** Fable degrades under too-prescriptive per-step checklists.
-  Definition + trigger is enough; let the model sequence. Keep prompts short/precise.
-- **Avoid the `reasoning_extraction` refusal.** Never instruct "explain your reasoning"
-  or "show your derivation in the response" — it triggers a refusal classifier and forces
-  fallback to Opus 4.8. Point wording at **tool/command output only**, never internal
-  reasoning. Tool-results are fine to show; internal reasoning is not.
-- **Verify with a fresh context.** When a step genuinely needs verification, a separate
-  fresh-context verifier subagent that **re-executes** beats self-critique. Optional
-  today given the lean/local pattern — use only where a claim really needs proof.
-
-## Tooling tips (optional, post-beta)
+## Tooling tips
 
 - **mergiraf** — Rust, AST-based git merge driver ("structure over lines"): resolves
   trivial conflicts (imports, attribute/member order) on the syntax tree via one
-  `~/.gitconfig` entry. Low priority today (no branches/merges); keep for later.
+  `~/.gitconfig` entry. Low priority while the repo is main-only; keep for later.
 
 ## Progress log (Fable appends here, newest last)
 
@@ -201,7 +153,9 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   paste damage in docs/observability.md (stray "l#", guardrail sentence replaced by
   https://github.com/ANcpLua/qyl.mobile/blob/main/ios/TelemetryObserver/ViewModels/TelemetryDashboardViewModel.swift
   — breadcrumb kept here). Everything preserved verbatim in `git stash` ("collector WIP
-  ideation: TelemetryFabric sketch...") — recover with `git stash list` / `git stash pop`.
+  ideation: TelemetryFabric sketch...") — **that stash was dropped 2026-07-11; the content
+  now lives at tag `archive/stash-telemetryfabric-ideation` (b2dfdd63), recover with
+  `git stash apply archive/stash-telemetryfabric-ideation`.**
   Working tree restored to HEAD. Evidence: `dotnet build qyl.slnx` → 0 warnings, 0 errors
   (all projects incl. collector, dashboard, eng/tools). The TelemetryFabric idea itself
   (one fluent entry point composing collector + per-platform telemetry + semconv/privacy
@@ -617,3 +571,79 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   VerifyCollectorSemanticAttributeCatalog green on 3.4.0 (no attribute-surface
   change — 3.4.0 is analyzers/docs only). qyl-api-schema VERSIONING.md
   (3970104) now records the collector implementation instead of prescribing it.
+- 2026-07-11 — **Phase 0 (restore the instruments) COMPLETE: CI green + hygiene sweep**
+  (Claude; every register item re-verified by fresh-context agents with adversarial
+  refuters before being touched — 14 agents on the register, 8 on the matrix, 0 errors).
+  **CI GREEN.** The blocker was a two-stage chain, and the register's diagnosis was
+  already stale: `VerifyNoRemovedBuildSurface` / `GenAiToolCallId` was fixed by 45859f26
+  (tombstone narrowed to the actually-pruned surface), after which the real red target was
+  `VerifyCollectorUsesSemanticConstants` — a raw `"db.system"` literal at
+  DeprecatedAttributeNormalizer.cs:28. Root cause: `db.system` is deprecated but STILL
+  SHIPS, so the policy already sanctions it (`eng/config/collector-semantic-policy.json:155`
+  `projectionConstants.DbSystemDeprecated`) and the generator already emits
+  `CollectorSemanticAttributeCatalog.DbSystemDeprecated` — the normalizer just never
+  consumed it. Fixed in 2dbe9b21 by routing the key through the generated constant (the
+  other four mapped keys stay literals because upstream DELETED them, so no constant can
+  exist). No verifier weakened, no `.g.cs` hand-edited. Evidence: local
+  `./eng/build.sh Verify --Configuration Release` → all 38 targets Succeeded; GitHub on
+  2dbe9b21 → CI ✅, Links ✅, CodeQL ✅.
+  **Hygiene, each item re-verified first (three register claims were themselves WRONG):**
+  (1) `Version.props:14` ANcpLuaRoslynUtilitiesVersion 2.2.33 → **2.2.36** — NOT the 2.2.35
+  the register said; global.json and nuget.org latest are both 2.2.36. Build 0W/0E;
+  `GenerateDependencyList` re-resolves 2.2.36; the three `Compile Remove` globs in
+  qyl.instrumentation.generators still match at 2.2.36 (all three paths verified present in
+  the .Sources contentFiles), clean `--no-incremental` rebuild green.
+  (2) **Register #9 was wrong on BOTH counts and is NOT user-only.** The
+  CLAUDE_CODE_OAUTH_TOKEN was already refreshed 2026-07-08T10:59:17Z and is proven live
+  (run 28937509277: `is_error:false`, num_turns 2, $0.165) — `claude setup-token` is NOT
+  needed. The actual live defect: `renovate-auto-review.yml` never set `allowed_bots`, so
+  the action rejected every renovate[bot] run ("Workflow initiated by non-human actor:
+  renovate (type: Bot)") — every bot PR from 2026-07-08T22:53 to 2026-07-11T03:04 died
+  RED, and the gate has never reviewed a real renovate PR (#506/#509/#511 all merged with
+  `reviews:[]`). Fixed here: `allowed_bots: "renovate"` (named actor, never `'*'` — the
+  action's own docs warn `'*'` lets external Apps invoke it with prompts they control, and
+  qyl is public). Input existence confirmed against action.yml at the pinned SHA e90deca;
+  actionlint clean. The stale troubleshooting header now documents all three real failure
+  modes, incl. the green-but-inert workflow-validation skip that fires on any PR touching
+  this file — so judge the fix on the NEXT renovate PR, never on the one that lands it.
+  (3) `.gitignore` **already** covered qyl.duckdb (`*.duckdb`, `*.duckdb.wal` at :99-100,
+  `*.bak` at :172) and nothing duckdb-shaped is tracked — the task was already satisfied;
+  no `git rm --cached` (there was nothing to remove).
+  (4) Root README overclaims corrected: the dashboard row no longer advertises
+  issues/alerts/errors/performance/cost/conversations/agents (the collector serves 13
+  `/api/v1` routes — traces, sessions, logs, profiles — and hard-404s the rest); the
+  "collector + dashboard together" runner claim is now truthful (Qyl.Run.Host launches the
+  collector + its dedicated diagnostics collector on :5200, NOT the dashboard; embedding
+  needs BOTH `-p:QylEmbedDashboard=true` AND a built `dist/`). Added a **Product surface**
+  section stating exactly what is backed vs. UI-ahead-of-product — the honest input to the
+  Phase 2 decision. Also fixed rot the register missed: the architecture diagram still
+  showed the RETIRED `typespec-otel-semconv` npm package as the head of the chain.
+  (5) `docs/package-api-update-matrix.md` refreshed with a dated 2026-07-11 pass. Six rows
+  had moved pins, re-verified by `ilspycmd` decompile-diff of the shipped assemblies:
+  Roslyn.Utilities(.Sources) 2.2.27→2.2.36, Qyl.Api.Contracts 0.2.1→**0.4.0** (the
+  register's "0.2.2" was three releases dead), SemanticConventions(+Incubating)
+  3.1.0→3.4.0. That diff caught a breaking change nobody had recorded: **3.3.0 removed 37
+  `DbAttributes.SystemNameValues` members and `HttpAttributes.RequestMethodValues.Query`**
+  from the STABLE assembly. qyl is insulated — the collector consumes the generated catalog,
+  never SemConv types directly (`VerifyCollectorUsesSemanticConstants` enforces it). Three
+  rows (Mvc.Testing, Extensions.AI.OpenAI, OpenAI) document packages qyl no longer
+  references (pins deleted 2026-06-29, 4bb36ddf); annotated, not deleted, so the historical
+  verification survives.
+  (6) Both stashes dropped — but **tagged first**, so nothing is stranded:
+  `archive/stash-telemetryfabric-ideation` (b2dfdd63) and
+  `archive/stash-obsolete-doc-deletions` (6b915565); recover with
+  `git stash apply <tag>`. stash@{1} only deleted two docs already gone from main;
+  stash@{0}'s design content lives on in docs/design/telemetry-fabric.md, whose provenance
+  pointer (and the 2026-07-07 log entry's now-false "git stash pop" instruction) now cite
+  the tag.
+  (7) This file's stale scaffolding retired: the 2026-07-06 "absolute deadline", the
+  "Today's operating pattern" section, the resolved version-drift register, and the
+  **never-executed** FABLE PROMPT block (its own targets had rotted: 2.2.35 vs actual
+  2.2.36, Contracts 0.2.2 vs actual 0.4.0). The two durable findings buried in the drift
+  register — the transitive security overrides are load-bearing, and NativeAOT is an
+  external-library claim — were promoted into Invariants rather than lost. Progress log
+  preserved verbatim.
+  **NOT done (Phase 1+, unchanged):** DuckDB startup migration, OTLP/JSON hex trace-ID
+  decoding, real `/health`, the `0.1.0-beta.1` stamp, the product-surface decision.
+  **Nothing is left for the user** — the one "user-only" item (register #9) turned out to
+  be already resolved and agent-fixable.
