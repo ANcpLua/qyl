@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 internal sealed partial class QylOrchestrator(
     IReadOnlyList<QylResource> resources,
@@ -27,7 +27,7 @@ internal sealed partial class QylOrchestrator(
     private readonly ConcurrentDictionary<string, byte> _userRestarts = new(StringComparer.Ordinal);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
-        Message = "qyl.run orchestrator booting with {Count} resource(s)")]
+        Message = "qyl.host orchestrator booting with {Count} resource(s)")]
     private static partial void LogBoot(ILogger logger, int count);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,

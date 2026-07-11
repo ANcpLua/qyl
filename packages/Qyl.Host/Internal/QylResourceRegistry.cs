@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, TimeProvider time)
 {

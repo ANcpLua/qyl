@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 internal sealed class QylConsoleUi(
     IReadOnlyList<QylResource> resources,

@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 /// <summary>
 /// Extension seam for the runner's loopback HTTP surface. The core API stays read-only

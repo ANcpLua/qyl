@@ -1,4 +1,4 @@
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 /// <summary>
 /// The default <see cref="IReadinessProbe"/>: GET the resource's health path until it answers

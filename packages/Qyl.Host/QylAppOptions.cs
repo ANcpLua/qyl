@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 public sealed class QylAppOptions
 {
-    public const string SectionName = "Qyl:Run";
+    public const string SectionName = "Qyl:Host";
 
     public int RunnerPort { get; init; } = QylConstants.Ports.RunnerApi;
 

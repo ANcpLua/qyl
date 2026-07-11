@@ -192,8 +192,12 @@ mechanical, last-step change.
    (`QYL_RUNNER_ORIGIN`). The ext-apps MCP Apps sandbox rendering deliberately
    STAYS with qyl.mcp's dashboard (the shipped MCP surface) until the C# runner
    grows a sandbox origin — recorded alongside the liveness-ping deferral.
-6. **Rename `Qyl.Run` → `Qyl.Host`** — last, mechanical, once the surface is
-   settled.
+6. **Rename `Qyl.Run` → `Qyl.Host`** — ✅ DONE 2026-07-11 (repair-plan phase 4).
+   Engine package/namespace/dir renamed (`packages/Qyl.Host`, PackageId
+   `Qyl.Host`, options section `Qyl:Host`); console dir/package renamed
+   (`packages/Qyl.Host.Console`, brand `qyl.host`). `Qyl.Run.Host` (the
+   runnable `qyl run` launcher) and `Qyl.Run.Workload` keep their names — they
+   are the *run* command surface, not the engine.
 
 ## The autoinstrumentation throughline
 

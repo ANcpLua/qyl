@@ -1,6 +1,6 @@
 using ANcpLua.Roslyn.Utilities;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 /// <summary>
 /// Configures where a collector's own telemetry (its self-instrumentation spans/logs) is exported.

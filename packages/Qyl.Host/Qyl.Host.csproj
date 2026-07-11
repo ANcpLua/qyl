@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Qyl.Run</RootNamespace>
-    <PackageId>Qyl.Run</PackageId>
-    <Description>qyl's distributed-app runner — fluent AppHost-equivalent with Spectre.Console CLI, subprocess orchestration, and deferred endpoint resolution. Zero Aspire deps; ships on the shared Microsoft.AspNetCore.App framework plus Spectre.Console.</Description>
+    <RootNamespace>Qyl.Host</RootNamespace>
+    <PackageId>Qyl.Host</PackageId>
+    <Description>qyl's distributed-app host — fluent AppHost-equivalent with Spectre.Console CLI, subprocess orchestration, and deferred endpoint resolution. Zero Aspire deps; ships on the shared Microsoft.AspNetCore.App framework plus Spectre.Console.</Description>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

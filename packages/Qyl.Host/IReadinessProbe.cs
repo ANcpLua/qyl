@@ -1,4 +1,4 @@
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 /// <summary>
 /// Decides when a launched resource counts as ready. The orchestrator calls this once per

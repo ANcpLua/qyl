@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 // TUI → orchestrator control channel for user-requested restarts. Deliberately in-process only and never
 // exposed over the /runner HTTP surface: control verbs stay on the keyboard, so the read-only API can

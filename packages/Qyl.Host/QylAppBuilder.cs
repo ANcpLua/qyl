@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Qyl.Run.Internal;
+using Qyl.Host.Internal;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 public sealed class QylAppBuilder
 {

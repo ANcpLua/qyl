@@ -1,7 +1,7 @@
 
 using System.Collections.ObjectModel;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 public sealed record QylResource
 {

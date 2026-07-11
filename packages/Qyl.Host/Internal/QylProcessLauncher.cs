@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 // Spawns a child process for a launchable resource and keeps its redirected stdout/stderr drained.
 // The orchestrator owns the returned process's lifecycle (tracking + shutdown); this type only starts it.

@@ -1,4 +1,4 @@
-# Qyl.Run
+# Qyl.Host
 
 Distributed-app runner for the [qyl](https://github.com/ancplua/qyl) observability platform.
 A full Aspire-AppHost replacement with **zero Aspire dependencies** — ships on the shared
@@ -7,7 +7,7 @@ A full Aspire-AppHost replacement with **zero Aspire dependencies** — ships on
 ## Surface
 
 ```csharp
-using Qyl.Run;
+using Qyl.Host;
 
 var app = QylAppBuilder.Create(args);
 
@@ -71,7 +71,7 @@ v0.1.0 — qyl distributed-app runner
 
 ## Weight
 
-|                    | Aspire                                               | Qyl.Run                    |
+|                    | Aspire                                               | Qyl.Host                    |
 |--------------------|------------------------------------------------------|----------------------------|
 | Third-party NuGets | 11 (KubernetesClient, Grpc.AspNetCore, Humanizer, …) | **1** (Spectre.Console)    |
 | Framework refs     | `Microsoft.AspNetCore.App`                           | `Microsoft.AspNetCore.App` |
@@ -79,7 +79,7 @@ v0.1.0 — qyl distributed-app runner
 
 ## Configuration
 
-`QylAppOptions` (`Qyl:Run` section — `RunnerPort`, `RunnerHost`, `StartupTimeoutSeconds`)
+`QylAppOptions` (`Qyl:Host` section — `RunnerPort`, `RunnerHost`, `StartupTimeoutSeconds`)
 is bound reflection-free in `Build()` via `QylAppOptions.FromConfiguration`, which
 validates imperatively and fails fast — the trim/AOT-clean replacement for
 `AddOptionsWithValidateOnStart` + DataAnnotations. Override values through any

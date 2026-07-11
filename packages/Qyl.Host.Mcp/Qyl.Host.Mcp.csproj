@@ -10,7 +10,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- IsAotCompatible deliberately NOT claimed: the engine (Qyl.Run) keeps the claim; this
+    <!-- IsAotCompatible deliberately NOT claimed: the engine (Qyl.Host) keeps the claim; this
          package leans on the MCP SDK whose AOT posture is not verified here. -->
   </PropertyGroup>
 
@@ -21,7 +21,7 @@
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="ModelContextProtocol.Core"/>
-    <ProjectReference Include="..\Qyl.Run\Qyl.Run.csproj"/>
+    <ProjectReference Include="..\Qyl.Host\Qyl.Host.csproj"/>
   </ItemGroup>
 
 </Project>

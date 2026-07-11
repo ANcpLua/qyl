@@ -61,7 +61,9 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
    verified vertical (traces/sessions, logs, GenAI cost); see the progress-log entry.
 3. ~~**One topology.**~~ SHIPPED 2026-07-11 — release builds embed the dashboard
    (single origin :5100); standalone dashboard Docker path deleted; compose fixed.
-4. **`Qyl.Host` convergence + MCP wiring.** See `docs/design/qyl-host/`.
+4. ~~**`Qyl.Host` convergence + MCP wiring.**~~ SHIPPED 2026-07-11 — all four
+   remaining migration steps landed (IReadinessProbe, Qyl.Host.Mcp, console
+   convergence, rename); see the progress-log entry and `docs/design/qyl-host/`.
 5. **Auth + scoping.** gRPC ingest has no API-key boundary (HTTP does); the read API is
    unauthenticated; `ProjectScope.cs` hardcodes `"default"`.
 6. **Release coherence.** `0.1.0-beta.1` is **not stamped** — the only pack artifact is
@@ -941,3 +943,37 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   incidents: `git add <path>` commits the file's CURRENT content, not "my edit" — in this
   multi-session checkout, review `git diff --staged -- <file>` per co-editable file before
   every commit.
+- 2026-07-11 — **Repair-plan Phase 4 (Qyl.Host convergence) SHIPPED** (Claude), four
+  commits, each independently verified: **Step 2** (d59a510a) `IReadinessProbe` — the
+  orchestrator's health poll moved verbatim into `HttpHealthProbe`; per-resource
+  override via `WithReadinessProbe`; proven live (default probe Ready + forever-404
+  health path Ready ONLY via a TCP-connect override). **Step 3** (47bab824)
+  `Qyl.Host.Mcp` — opt-in package on ModelContextProtocol.Core 1.4.1:
+  `McpHandshakeProbe` (initialize + tools/list, client parks in `McpClientRegistry`),
+  connection-only kinds AddMcpStdio (SDK-spawned) / AddMcpHttp / AddMcpInProc (Pipe
+  pair; C# SDK couples server+transport at Create, so the factory takes ITransport),
+  `/runner/mcp` passthrough via the new core `IQylRunnerRequestHandler` seam (core
+  stays GET-only), and `McpTelemetry` — the telemetry.ts port (CLIENT spans, mcp.* +
+  gen_ai.tool.name dual keys, QYL_MCP_* gates, spec-hex ids). Core seams: nullable
+  `QylResource.Launch` (connection-only resources; Build() demands a probe),
+  public `AddResource`; LATENT BUG fixed: two Port=0 resources tripped the
+  port-uniqueness check (DynamicAllocation=0 — two dynamic projects would too).
+  LIVE: inproc echo + stdio node server Ready via handshake; passthrough matrix
+  green (200/200/200/502/404/409); spans in a live collector with hex ids accepted —
+  a real third-party emitter validating the Phase-1 contract (mcp.* stripped by the
+  collector allowlist as documented; span name is the recovery channel). **Step 5**
+  (74c3a634) console convergence — `QylResourceState.Kind` (registry-stamped),
+  Qyl.Run.Console gained the MCP tools panel wired to `/runner/mcp`, proxy target
+  env-overridable; browser e2e: kind column, tools listed, echo called through the
+  UI ("echo: converged console says hi"). Ext-apps sandbox rendering deliberately
+  stays with qyl.mcp's dashboard (recorded in DESIGN.md). **Step 6** (this commit)
+  rename — engine `packages/Qyl.Run`→`Qyl.Host` (PackageId/namespace/`Qyl:Host`
+  options section), console →`Qyl.Host.Console` (brand qyl.host); `Qyl.Run.Host` +
+  `Qyl.Run.Workload` deliberately KEEP their names (the `qyl run` command surface,
+  not the engine); ShippablePackProjects → Qyl.Host. Boot smoke from repo root:
+  diagnostics→collector both healthy on 5100/5200 (a first smoke failed 000/000 —
+  methodology, not regression: running the host from its own dir breaks the
+  composition's repo-root-relative project paths). DEFERRED, recorded in DESIGN.md:
+  MCP liveness ping + reconnect supervision; C# sandbox origin for ext-apps
+  rendering. EVIDENCE per step: build 0W/0E + Verify 38/38 (×4) + live runs above;
+  CI green on d59a510a/47bab824/74c3a634 [Step-6 CI: FILL on push].

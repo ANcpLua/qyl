@@ -21,11 +21,11 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     /// <summary>
     ///     Projects with IsPackable=true — the packages qyl actually ships.
     ///     Qyl.Run.Host is deliberately not here: its csproj keeps the runnable
-    ///     launcher unpacked and Qyl.Run as the packable artifact.
+    ///     launcher unpacked and Qyl.Host as the packable artifact.
     /// </summary>
     AbsolutePath[] ShippablePackProjects =>
     [
-        PackagesDirectory / "Qyl.Run" / "Qyl.Run.csproj"
+        PackagesDirectory / "Qyl.Host" / "Qyl.Host.csproj"
     ];
 }
 

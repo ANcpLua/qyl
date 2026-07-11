@@ -1,6 +1,6 @@
 using ANcpLua.Roslyn.Utilities;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 /// <summary>
 /// Composition-scope primitives on <see cref="IQylResourceBuilder"/>. These are the building

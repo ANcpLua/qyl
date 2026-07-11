@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 internal static class PortAllocator
 {

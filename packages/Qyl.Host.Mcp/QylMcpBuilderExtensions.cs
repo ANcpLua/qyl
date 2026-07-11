@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Qyl.Run;
+using Qyl.Host;
 
 namespace Qyl.Host.Mcp;
 

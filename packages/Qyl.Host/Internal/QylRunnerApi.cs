@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
-// Read-only, loopback-only HTTP surface exposing the runner's resource state to the dev runner console (packages/Qyl.Run.Console).
+// Read-only, loopback-only HTTP surface exposing the runner's resource state to the dev runner console (packages/Qyl.Host.Console).
 // Deliberate choices, all traceable to the design constraints:
 //   - HttpListener (pure BCL) not Kestrel  -> AOT-clean, zero added dependency, no builder restructuring.
 //   - GET-only, NO control verbs IN CORE   -> the core routes cannot mutate; start/stop/restart stay on

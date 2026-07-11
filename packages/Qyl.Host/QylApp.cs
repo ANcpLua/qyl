@@ -1,7 +1,7 @@
 
 using Microsoft.Extensions.Hosting;
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 public sealed class QylApp(IHost host) : IAsyncDisposable
 {

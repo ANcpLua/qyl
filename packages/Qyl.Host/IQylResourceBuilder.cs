@@ -1,5 +1,5 @@
 
-namespace Qyl.Run;
+namespace Qyl.Host;
 
 public interface IQylResourceBuilder
 {

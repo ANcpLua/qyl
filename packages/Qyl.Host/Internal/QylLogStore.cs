@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace Qyl.Run.Internal;
+namespace Qyl.Host.Internal;
 
 // Bounded, per-resource log buffer with broadcast fan-out — the log analogue of QylResourceRegistry.
 // Producers (the process launcher; the container `docker logs -f` follower) Append lines; consumers take a

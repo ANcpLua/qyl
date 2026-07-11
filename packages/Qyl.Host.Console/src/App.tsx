@@ -25,7 +25,7 @@ export default function App() {
     <main className="app">
       <header className="header">
         <h1>
-          qyl<span className="accent">.run</span>
+          qyl<span className="accent">.host</span>
         </h1>
         <span className={`conn conn-${connection}`}>● {connection}</span>
       </header>
