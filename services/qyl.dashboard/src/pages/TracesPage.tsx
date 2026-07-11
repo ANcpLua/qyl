@@ -45,7 +45,7 @@ function getDurationNs(span: Span): number {
 function getGenAiAttrs(span: Span) {
     const attrs = getAttributesRecord(span);
     return {
-        system: attrs['gen_ai.system'] as string | undefined,
+        provider: attrs['gen_ai.provider.name'] as string | undefined,
         requestModel: attrs['gen_ai.request.model'] as string | undefined,
         inputTokens: attrs['gen_ai.usage.input_tokens'] as number | undefined,
         outputTokens: attrs['gen_ai.usage.output_tokens'] as number | undefined,
@@ -321,7 +321,7 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
             <Separator/>
 
             {/* GenAI specific */}
-            {genai.system && (
+            {genai.provider && (
                 <>
                     <Separator/>
                     <div>
@@ -329,7 +329,7 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="text-brutal-slate">Provider:</span>
-                                <span className="ml-2">{genai.system}</span>
+                                <span className="ml-2">{genai.provider}</span>
                             </div>
                             <div>
                                 <span className="text-brutal-slate">Model:</span>

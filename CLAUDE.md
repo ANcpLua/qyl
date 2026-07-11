@@ -448,3 +448,34 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   from nuget.org into the global cache; `dotnet build qyl.slnx` → 0 Warning(s)
   0 Error(s). Version-lockstep invariant fully restored end-to-end: TypeSpec
   keys (1.43.0) = .NET constants (1.43.0), contracts wire-identical.
+- 2026-07-11 — 1.41-era shims REMOVED; v0.3.0 shipped + consumed (Claude,
+  user-directed: "remove any finding of 1.41.0 and shims that hide the 1.42
+  changes"). qyl-api-schema 790ec95 → v0.3.0 (published, run 29133616213
+  success first try): deleted otel-keys-legacy.tsp + all 10 frozen gen_ai.*
+  consts and their contract fields (system, prompt, completion,
+  usagePromptTokens/usageCompletionTokens, OpenAI vendor block); OpenAI
+  service_tier ×2 + system_fingerprint repointed to the openai.* successors,
+  response_format/seed dropped (superseded by gen_ai.output.type /
+  gen_ai.request.seed which already existed as fields); orphaned
+  OpenAiResponseFormat enum deleted; OTelVersion enum +v1_42 +v1_43
+  (additive); VerifyKeysLockstep back to pure pin assertion; VERSIONING.md
+  example updated (ingestion mapping section KEPT — old-key telemetry is
+  ingestion normalization, not contract). KEY FINDING: @typespec/versioning
+  had already excluded every removed field from the emitted current-version
+  artifacts, so the wire surface was never carrying them — removal is
+  source-breaking (hence minor bump 0.3.0), wire-additive only (enum values).
+  Nuke Check 11/11 green. qyl side (this commit): Directory.Packages.props
+  Qyl.Api.Contracts 0.2.3→0.3.0 AND Qyl.OpenTelemetry.SemanticConventions(+
+  .Incubating) 3.2.0→3.3.0 — 3.2.0 was the stale partial regen whose
+  non-GenAI constants were 1.41-era fossils (that repo's own AGENTS.md);
+  3.3.0 is the full-1.43-surface release. Dashboard gen_ai.system shims
+  removed: TracesPage getGenAiAttrs now reads gen_ai.provider.name (UI
+  already labeled it "Provider"), use-telemetry getSpanColor/getSpanTypeLabel
+  dropped the gen_ai.system fallback (2 spots). Evidence: dotnet build
+  qyl.slnx 0W/0E on new pins; dashboard npm build + 18/18 tests green.
+  SWEPT+KEPT (not rot): Analyzers' v1.41.0 mentions in SemanticConventions
+  are factual history (when upstream changed things); its deprecation catalog
+  already maps ALL 1.42 gen_ai migrations; AutoInstrumentation clean (no
+  legacy keys) → NO 4.0.4 / 3.4.0 releases needed. NOTED, out of scope:
+  dashboard still dual-reads pre-1.41-era http.method / db.system old keys —
+  different era, ingestion-tolerance decision for another day.

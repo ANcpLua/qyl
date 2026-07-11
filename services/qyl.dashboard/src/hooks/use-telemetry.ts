@@ -138,7 +138,7 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 export function getSpanColor(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
     // GenAI spans
-    if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
+    if (attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
     }
     // HTTP spans
@@ -159,7 +159,7 @@ export function getSpanColor(span: TelemetrySpan): string {
 
 export function getSpanTypeLabel(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
-    if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
+    if (attrs['gen_ai.provider.name']) {
         return 'GenAI';
     }
     if (attrs['http.method'] || attrs['http.request.method']) {
