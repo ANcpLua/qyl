@@ -1,8 +1,14 @@
 # qyl.mcp merge — execution prompt
 
+> **EXECUTED 2026-07-11 — do not run again.** The merge landed as
+> `qyl-workspace/qyl.mcp` (github.com/ANcpLua/qyl.mcp); the old repos are
+> archived with pointer READMEs. The merge record with evidence lives in the
+> workspace router `qyl-workspace/CLAUDE.md` ("The qyl.mcp merge — DONE").
+> Kept for provenance only.
+>
 > Companion to [MCP-STRATEGY.md](./MCP-STRATEGY.md) (the why / the parity
-> targets). This file is the hand-off prompt for the session that performs the
-> mcp-run + qyl-apps-server merge. Paste or point an agent at the block below.
+> targets). This file was the hand-off prompt for the session that performed
+> the mcp-run + qyl-apps-server merge.
 
 ## === QYL.MCP MERGE PROMPT (execute) ===
 
