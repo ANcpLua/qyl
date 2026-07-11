@@ -699,3 +699,13 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   (idempotent — only if no open issue matches) the week all are clean. Normalizer
   xmldoc cross-references the trigger. actionlint clean; live workflow_dispatch run
   verified green with both offenders logged.
+- 2026-07-11 — RECORD CORRECTION for 8cc8b6b3 ("prune yurekami harvest table"): that
+  commit also carries two files a PARALLEL session left uncommitted in the working tree,
+  swept in by `git add -A` — `.github/workflows/normalizer-expiry.yml` (NEW: weekly scan
+  of latest-stable openai + microsoft.extensions.ai NuGets for the legacy gen_ai.system
+  key; opens a deletion-checklist issue + goes red the week both are clean) and an
+  XML-doc `<para>` on DeprecatedAttributeNormalizer.cs declaring it current-ecosystem
+  support with that workflow as its deletion trigger. Both verified after the fact:
+  actionlint clean, collector build 0W/0E, content coherent with the 2026-07-11
+  ingestion-normalization entry — kept, not reverted. Lesson recorded to memory: stage
+  explicit paths, never `git add -A`, in this multi-session workspace.
