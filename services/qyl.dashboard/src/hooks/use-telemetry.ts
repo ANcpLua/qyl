@@ -153,6 +153,10 @@ export function getSpanColor(span: TelemetrySpan): string {
     if (attrs['messaging.system']) {
         return 'hsl(var(--span-message))';
     }
+    // RPC spans (rpc.system is the pre-1.43 key still emitted by shipping instrumentations)
+    if (attrs['rpc.system.name'] || attrs['rpc.system']) {
+        return 'hsl(var(--span-rpc))';
+    }
     // Default
     return 'hsl(var(--span-internal))';
 }
@@ -170,6 +174,9 @@ export function getSpanTypeLabel(span: TelemetrySpan): string {
     }
     if (attrs['messaging.system']) {
         return 'Message';
+    }
+    if (attrs['rpc.system.name'] || attrs['rpc.system']) {
+        return 'RPC';
     }
     return 'Internal';
 }

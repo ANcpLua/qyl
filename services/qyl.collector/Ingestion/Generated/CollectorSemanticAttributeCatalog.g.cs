@@ -223,6 +223,28 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.status_code",
         "otel.status_description",
         "profile.frame.type", // incubating
+        "rpc.connect_rpc.error_code",
+        "rpc.connect_rpc.request.metadata",
+        "rpc.connect_rpc.response.metadata",
+        "rpc.grpc.request.metadata",
+        "rpc.grpc.response.metadata",
+        "rpc.grpc.status_code",
+        "rpc.jsonrpc.error_code",
+        "rpc.jsonrpc.error_message",
+        "rpc.jsonrpc.request_id",
+        "rpc.jsonrpc.version",
+        "rpc.message.compressed_size",
+        "rpc.message.id",
+        "rpc.message.type",
+        "rpc.message.uncompressed_size",
+        "rpc.method", // incubating
+        "rpc.method_original", // incubating
+        "rpc.request.metadata", // incubating
+        "rpc.response.metadata", // incubating
+        "rpc.response.status_code", // incubating
+        "rpc.service",
+        "rpc.system",
+        "rpc.system.name", // incubating
         "server.address",
         "server.port"
     );
@@ -369,6 +391,28 @@ internal static class CollectorSemanticAttributeCatalog
         "otel.scope.version",
         "otel.status_code",
         "otel.status_description",
+        "rpc.connect_rpc.error_code",
+        "rpc.connect_rpc.request.metadata",
+        "rpc.connect_rpc.response.metadata",
+        "rpc.grpc.request.metadata",
+        "rpc.grpc.response.metadata",
+        "rpc.grpc.status_code",
+        "rpc.jsonrpc.error_code",
+        "rpc.jsonrpc.error_message",
+        "rpc.jsonrpc.request_id",
+        "rpc.jsonrpc.version",
+        "rpc.message.compressed_size",
+        "rpc.message.id",
+        "rpc.message.type",
+        "rpc.message.uncompressed_size",
+        "rpc.method", // incubating
+        "rpc.method_original", // incubating
+        "rpc.request.metadata", // incubating
+        "rpc.response.metadata", // incubating
+        "rpc.response.status_code", // incubating
+        "rpc.service",
+        "rpc.system",
+        "rpc.system.name", // incubating
         "server.address",
         "server.port"
     );
@@ -515,6 +559,12 @@ internal static class CollectorSemanticAttributeCatalog
         "http.request.header",
         "http.response.header",
         "mcp.session.id", // incubating
+        "rpc.connect_rpc.request.metadata",
+        "rpc.connect_rpc.response.metadata",
+        "rpc.grpc.request.metadata",
+        "rpc.grpc.response.metadata",
+        "rpc.request.metadata", // incubating
+        "rpc.response.metadata", // incubating
         "service.instance.id",
         "session.id", // incubating
         "session.previous_id", // incubating
