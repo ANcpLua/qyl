@@ -751,3 +751,13 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   Issue #510 body: §2/§3/§4 rows stamped shipped/cut/later per reality; §7 per-row
   "_?_" triage table DELETED as superseded by the triage comment + §10 checklist.
   Board state: ①②③ ticked, ④ synthetic workload + ⑤ --demo remain (0/2).
+- 2026-07-11 — yurekami references deleted from HEAD (Claude, user: "do it" on the
+  when-can-we-delete assessment). All 12 dossiers under docs/reference/yurekami-extraction/
+  removed; yurekami-harvest.md rewritten as a ~30-line routing stub keeping ONLY the two
+  rows with a planned consumer — the rubric-autograder + Verbalized Sampling eval patterns,
+  earmarked for the qyl.mcp eval-harness seam — plus the private-archive pointer
+  (ANcpLua/yurekami-refs, restore-verified) and the git breadcrumb (full table + dossiers
+  at 8c49a3ab). The stub's own header says to delete it when the eval harness ships.
+  Nothing lost: donor source is in the private archive, dispositions in git history.
+  Known caveat (surfaced to user twice): the repo is public WITH history — HEAD deletion
+  does not unpublish; only a history rewrite would.
