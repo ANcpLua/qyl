@@ -39,15 +39,50 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> SpanAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "db.cassandra.consistency_level",
+        "db.cassandra.coordinator.dc",
+        "db.cassandra.coordinator.id",
+        "db.cassandra.idempotence",
+        "db.cassandra.page_size",
+        "db.cassandra.speculative_execution_count",
+        "db.cassandra.table",
+        "db.client.connections.pool.name",
+        "db.client.connections.state",
         "db.collection.name",
+        "db.connection_string",
+        "db.cosmosdb.client_id",
+        "db.cosmosdb.connection_mode",
+        "db.cosmosdb.consistency_level",
+        "db.cosmosdb.container",
+        "db.cosmosdb.operation_type",
+        "db.cosmosdb.regions_contacted",
+        "db.cosmosdb.request_charge",
+        "db.cosmosdb.request_content_length",
+        "db.cosmosdb.status_code",
+        "db.cosmosdb.sub_status_code",
+        "db.elasticsearch.cluster.name",
+        "db.elasticsearch.node.name",
+        "db.elasticsearch.path_parts",
+        "db.instance.id",
+        "db.jdbc.driver_classname",
+        "db.mongodb.collection",
+        "db.mssql.instance_name",
+        "db.name",
         "db.namespace",
+        "db.operation",
         "db.operation.batch.size",
         "db.operation.name",
         "db.query.summary",
         "db.query.text",
+        "db.redis.database_index",
         "db.response.status_code",
+        "db.sql.table",
+        "db.statement",
         "db.stored_procedure.name",
+        "db.system",
         "db.system.name",
+        "db.user",
+        "error.message",
         "error.type",
         "exception.escaped",
         "exception.message",
@@ -97,7 +132,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.response.time_to_first_chunk", // incubating
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
-        "gen_ai.system", // incubating
+        "gen_ai.retrieval.top_k", // incubating
         "gen_ai.system_instructions", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
@@ -109,19 +144,31 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.type", // incubating
         "gen_ai.usage.cache_creation.input_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
-        "gen_ai.usage.completion_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
-        "gen_ai.usage.prompt_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
+        "http.client_ip",
+        "http.flavor",
+        "http.host",
+        "http.method",
         "http.request.header",
         "http.request.method",
         "http.request.method_original",
         "http.request.resend_count",
+        "http.request_content_length",
+        "http.request_content_length_uncompressed",
         "http.response.header",
         "http.response.status_code",
+        "http.response_content_length",
+        "http.response_content_length_uncompressed",
         "http.route",
+        "http.scheme",
+        "http.server_name",
+        "http.status_code",
+        "http.target",
+        "http.url",
+        "http.user_agent",
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -131,30 +178,30 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.destination.subscription.name", // incubating
         "messaging.destination.template", // incubating
         "messaging.destination.temporary", // incubating
-        "messaging.destination_publish.anonymous", // incubating
-        "messaging.destination_publish.name", // incubating
-        "messaging.eventhubs.consumer.group", // incubating
+        "messaging.destination_publish.anonymous",
+        "messaging.destination_publish.name",
+        "messaging.eventhubs.consumer.group",
         "messaging.eventhubs.message.enqueued_time", // incubating
         "messaging.gcp_pubsub.message.ack_deadline", // incubating
         "messaging.gcp_pubsub.message.ack_id", // incubating
         "messaging.gcp_pubsub.message.delivery_attempt", // incubating
         "messaging.gcp_pubsub.message.ordering_key", // incubating
-        "messaging.kafka.consumer.group", // incubating
-        "messaging.kafka.destination.partition", // incubating
+        "messaging.kafka.consumer.group",
+        "messaging.kafka.destination.partition",
         "messaging.kafka.message.key", // incubating
-        "messaging.kafka.message.offset", // incubating
+        "messaging.kafka.message.offset",
         "messaging.kafka.message.tombstone", // incubating
         "messaging.kafka.offset", // incubating
         "messaging.message.body.size", // incubating
         "messaging.message.conversation_id", // incubating
         "messaging.message.envelope.size", // incubating
         "messaging.message.id", // incubating
-        "messaging.operation", // incubating
+        "messaging.operation",
         "messaging.operation.name", // incubating
         "messaging.operation.type", // incubating
         "messaging.rabbitmq.destination.routing_key", // incubating
         "messaging.rabbitmq.message.delivery_tag", // incubating
-        "messaging.rocketmq.client_group", // incubating
+        "messaging.rocketmq.client_group",
         "messaging.rocketmq.consumption_model", // incubating
         "messaging.rocketmq.message.delay_time_level", // incubating
         "messaging.rocketmq.message.delivery_timestamp", // incubating
@@ -163,12 +210,14 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.rocketmq.message.tag", // incubating
         "messaging.rocketmq.message.type", // incubating
         "messaging.rocketmq.namespace", // incubating
-        "messaging.servicebus.destination.subscription_name", // incubating
+        "messaging.servicebus.destination.subscription_name",
         "messaging.servicebus.disposition_status", // incubating
         "messaging.servicebus.message.delivery_count", // incubating
         "messaging.servicebus.message.enqueued_time", // incubating
         "messaging.system", // incubating
         "otel.event.name",
+        "otel.library.name",
+        "otel.library.version",
         "otel.scope.name",
         "otel.scope.version",
         "otel.status_code",
@@ -180,6 +229,7 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "error.message",
         "error.type",
         "exception.escaped",
         "exception.message",
@@ -229,7 +279,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.response.time_to_first_chunk", // incubating
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
-        "gen_ai.system", // incubating
+        "gen_ai.retrieval.top_k", // incubating
         "gen_ai.system_instructions", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
@@ -241,19 +291,31 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.type", // incubating
         "gen_ai.usage.cache_creation.input_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
-        "gen_ai.usage.completion_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
-        "gen_ai.usage.prompt_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
+        "http.client_ip",
+        "http.flavor",
+        "http.host",
+        "http.method",
         "http.request.header",
         "http.request.method",
         "http.request.method_original",
         "http.request.resend_count",
+        "http.request_content_length",
+        "http.request_content_length_uncompressed",
         "http.response.header",
         "http.response.status_code",
+        "http.response_content_length",
+        "http.response_content_length_uncompressed",
         "http.route",
+        "http.scheme",
+        "http.server_name",
+        "http.status_code",
+        "http.target",
+        "http.url",
+        "http.user_agent",
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -263,30 +325,30 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.destination.subscription.name", // incubating
         "messaging.destination.template", // incubating
         "messaging.destination.temporary", // incubating
-        "messaging.destination_publish.anonymous", // incubating
-        "messaging.destination_publish.name", // incubating
-        "messaging.eventhubs.consumer.group", // incubating
+        "messaging.destination_publish.anonymous",
+        "messaging.destination_publish.name",
+        "messaging.eventhubs.consumer.group",
         "messaging.eventhubs.message.enqueued_time", // incubating
         "messaging.gcp_pubsub.message.ack_deadline", // incubating
         "messaging.gcp_pubsub.message.ack_id", // incubating
         "messaging.gcp_pubsub.message.delivery_attempt", // incubating
         "messaging.gcp_pubsub.message.ordering_key", // incubating
-        "messaging.kafka.consumer.group", // incubating
-        "messaging.kafka.destination.partition", // incubating
+        "messaging.kafka.consumer.group",
+        "messaging.kafka.destination.partition",
         "messaging.kafka.message.key", // incubating
-        "messaging.kafka.message.offset", // incubating
+        "messaging.kafka.message.offset",
         "messaging.kafka.message.tombstone", // incubating
         "messaging.kafka.offset", // incubating
         "messaging.message.body.size", // incubating
         "messaging.message.conversation_id", // incubating
         "messaging.message.envelope.size", // incubating
         "messaging.message.id", // incubating
-        "messaging.operation", // incubating
+        "messaging.operation",
         "messaging.operation.name", // incubating
         "messaging.operation.type", // incubating
         "messaging.rabbitmq.destination.routing_key", // incubating
         "messaging.rabbitmq.message.delivery_tag", // incubating
-        "messaging.rocketmq.client_group", // incubating
+        "messaging.rocketmq.client_group",
         "messaging.rocketmq.consumption_model", // incubating
         "messaging.rocketmq.message.delay_time_level", // incubating
         "messaging.rocketmq.message.delivery_timestamp", // incubating
@@ -295,12 +357,14 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.rocketmq.message.tag", // incubating
         "messaging.rocketmq.message.type", // incubating
         "messaging.rocketmq.namespace", // incubating
-        "messaging.servicebus.destination.subscription_name", // incubating
+        "messaging.servicebus.destination.subscription_name",
         "messaging.servicebus.disposition_status", // incubating
         "messaging.servicebus.message.delivery_count", // incubating
         "messaging.servicebus.message.enqueued_time", // incubating
         "messaging.system", // incubating
         "otel.event.name",
+        "otel.library.name",
+        "otel.library.version",
         "otel.scope.name",
         "otel.scope.version",
         "otel.status_code",
@@ -311,6 +375,7 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> ProfileAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "error.message",
         "error.type",
         "gen_ai.agent.description", // incubating
         "gen_ai.agent.id", // incubating
@@ -356,7 +421,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.response.time_to_first_chunk", // incubating
         "gen_ai.retrieval.documents", // incubating
         "gen_ai.retrieval.query.text", // incubating
-        "gen_ai.system", // incubating
+        "gen_ai.retrieval.top_k", // incubating
         "gen_ai.system_instructions", // incubating
         "gen_ai.token.type", // incubating
         "gen_ai.tool.call.arguments", // incubating
@@ -368,13 +433,13 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.tool.type", // incubating
         "gen_ai.usage.cache_creation.input_tokens", // incubating
         "gen_ai.usage.cache_read.input_tokens", // incubating
-        "gen_ai.usage.completion_tokens", // incubating
         "gen_ai.usage.input_tokens", // incubating
         "gen_ai.usage.output_tokens", // incubating
-        "gen_ai.usage.prompt_tokens", // incubating
         "gen_ai.usage.reasoning.output_tokens", // incubating
         "gen_ai.workflow.name", // incubating
         "otel.event.name",
+        "otel.library.name",
+        "otel.library.version",
         "otel.scope.name",
         "otel.scope.version",
         "otel.status_code",
@@ -384,6 +449,7 @@ internal static class CollectorSemanticAttributeCatalog
 
     internal static readonly FrozenSet<string> ResourceAttributeAllowList = FrozenSet.Create(
         StringComparer.Ordinal,
+        "deployment.environment",
         "deployment.environment.name",
         "host.arch", // incubating
         "host.cpu.cache.l2.size", // incubating
@@ -418,8 +484,8 @@ internal static class CollectorSemanticAttributeCatalog
         "db.query.text",
         "enduser.id", // incubating
         "enduser.pseudo.id", // incubating
-        "enduser.role", // incubating
-        "enduser.scope", // incubating
+        "enduser.role",
+        "enduser.scope",
         "exception.message",
         "exception.stacktrace",
         "gen_ai.agent.description", // incubating
