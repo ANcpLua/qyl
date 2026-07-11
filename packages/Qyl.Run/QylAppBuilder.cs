@@ -24,10 +24,52 @@ public sealed class QylAppBuilder
         return new QylAppBuilder(Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args ?? []));
     }
 
-    public IQylResourceBuilder AddCollector(string name, int? port = null, string? project = null)
+    public IQylResourceBuilder AddCollector(string name, int? port = null, string? project = null,
+        Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
     {
-        return AddCore(name, QylConstants.ResourceKinds.Collector, port ?? QylConstants.Ports.DynamicAllocation,
-            project);
+        Guard.NotNullOrWhiteSpace(name);
+
+        // Collectors resolve to a concrete port at composition time: the child only learns its API
+        // port through QYL_PORT, so deferring to launch-time DynamicAllocation would health-probe a
+        // port the collector never binds (it would fall back to its built-in 5100 default).
+        var apiPort = port ?? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback);
+
+        var env = new Dictionary<string, string>
+        {
+            [QylConstants.Env.QylPort] = apiPort.ToString(CultureInfo.InvariantCulture),
+            // Pin the OTLP receiver ports the resource record advertises, so ambient QYL_OTLP_PORT/
+            // QYL_GRPC_PORT in the runner's environment cannot desync child reality from composition.
+            [QylConstants.Env.QylOtlpPort] =
+                QylConstants.Collector.DefaultOtlpHttpPort.ToString(CultureInfo.InvariantCulture),
+            [QylConstants.Env.QylGrpcPort] =
+                QylConstants.Collector.DefaultGrpcPort.ToString(CultureInfo.InvariantCulture)
+        };
+
+        // The runner launches children with ASPNETCORE_ENVIRONMENT=dev, which is not "Development",
+        // so the collector's auth fallback is ApiKey and it refuses to start without a key. Default
+        // the loopback dev-runner children to Unsecured unless the operator's environment already
+        // decided the auth mode (the child inherits that decision).
+        if (Environment.GetEnvironmentVariable(QylConstants.Env.QylOtlpAuthMode) is null)
+            env[QylConstants.Env.QylOtlpAuthMode] = QylConstants.Collector.UnsecuredAuthMode;
+
+        var builder = Register(new QylResource
+        {
+            Name = name,
+            Kind = QylConstants.ResourceKinds.Collector,
+            Port = apiPort,
+            OtlpHttpPort = QylConstants.Collector.DefaultOtlpHttpPort,
+            GrpcPort = QylConstants.Collector.DefaultGrpcPort,
+            Launch = BuildLaunchSpec(project, name, env)
+        });
+
+        if (selfTelemetry is not null)
+        {
+            var telemetry = new QylSelfTelemetryBuilder(this, builder, project);
+            selfTelemetry(telemetry);
+            telemetry.Apply();
+        }
+
+        return builder;
     }
 
     public IQylResourceBuilder AddProject(string name, string project, int? port = null)
@@ -87,7 +129,8 @@ public sealed class QylAppBuilder
         });
     }
 
-    private static QylLaunchSpec BuildLaunchSpec(string? project, string serviceName)
+    private static QylLaunchSpec BuildLaunchSpec(string? project, string serviceName,
+        IReadOnlyDictionary<string, string>? extraEnv = null)
     {
         if (project is null)
         {
@@ -100,6 +143,11 @@ public sealed class QylAppBuilder
             [QylConstants.Env.DotnetEnvironment] = QylConstants.Environments.Dev,
             [QylConstants.Env.OtelServiceName] = serviceName
         };
+
+        if (extraEnv is not null)
+        {
+            foreach (var kv in extraEnv) env[kv.Key] = kv.Value;
+        }
 
         return new QylLaunchSpec
         {

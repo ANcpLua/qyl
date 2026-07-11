@@ -11,18 +11,27 @@ using Qyl.Run;
 
 var app = QylAppBuilder.Create(args);
 
-var collectorDev  = app.AddCollector("collector-dev",  port: 5100, environment: "dev",
-                                     project: "services/qyl.collector");
-var collectorProd = app.AddCollector("collector-prod", environment: "prod",
-                                     project: "services/qyl.collector");
+// Collector + one-way self-telemetry: the collector's own OTLP telemetry flows into a
+// dedicated diagnostics collector (same project, second process) whose exporter stays
+// disabled — no third collector, no feedback loop.
+app.AddCollector("collector", port: 5100, project: "services/qyl.collector",
+    selfTelemetry: static telemetry => telemetry
+        .ExportToDedicatedCollector("diagnostics", port: 5200)
+        .RejectSelfReference());
 
-app.AddDashboard("dashboard", port: 5050, project: "services/qyl.dashboard")
-   .WithCollector(collectorDev)
-   .WithCollector(collectorProd)
-   .WaitFor(collectorDev, collectorProd);
+// Any other .NET project:
+app.AddProject("worker", "services/my.worker");
 
 await app.Build().RunAsync();
 ```
+
+`AddCollector` pins the child's ports through `QYL_PORT` / `QYL_OTLP_PORT` / `QYL_GRPC_PORT`
+and defaults loopback dev children to `QYL_OTLP_AUTH_MODE=Unsecured` unless the parent
+environment already chose an auth mode. The dedicated diagnostics instance gets freshly
+claimed OTLP receiver ports, its own `qyl.<name>.duckdb`, its own `OTEL_SERVICE_NAME`, and
+a force-blanked `OTEL_EXPORTER_OTLP_ENDPOINT`. `ExportTo(existing)` targets an
+already-added collector instead; `RejectSelfReference()` fails composition if the resolved
+export endpoint points back at any of the owning collector's own ports.
 
 ## CLI
 
@@ -34,17 +43,14 @@ await app.Build().RunAsync();
 |___/
 v0.1.0 — qyl distributed-app runner
 
-╭─────────────────┬────────┬───────┬───────────────────────╮
-│                 │ Status │ Port  │ Endpoint              │
-├─────────────────┼────────┼───────┼───────────────────────┤
-│ collector-dev   │   ●    │ 5100  │ http://127.0.0.1:5100 │
-│ collector-prod  │   ●    │ 5101  │ http://127.0.0.1:5101 │
-│ dashboard       │   ●    │ 5050  │ http://127.0.0.1:5050 │
-╰─────────────────┴────────┴───────┴───────────────────────╯
-[S] Stop   [R] Restart   [B] Open browser   [H] Help   [Esc] Exit
+╭─────────────┬────────┬──────┬────────────────────────╮
+│             │ Status │ Port │ Endpoint               │
+├─────────────┼────────┼──────┼────────────────────────┤
+│ collector   │   ●    │ 5100 │ http://127.0.0.1:5100/ │
+│ diagnostics │   ●    │ 5200 │ http://127.0.0.1:5200/ │
+╰─────────────┴────────┴──────┴────────────────────────╯
+[S] Stop   [R] Restart   [H] Help
 ```
-
-`[B]` always opens the first declared `dashboard` resource.
 
 ## Weight
 
@@ -56,17 +62,11 @@ v0.1.0 — qyl distributed-app runner
 
 ## Configuration
 
-Bind `QylAppOptions` via the standard options pattern:
-
-```csharp
-app.Host.Services
-       .AddOptionsWithValidateOnStart<QylAppOptions>()
-       .BindConfiguration(QylAppOptions.SectionName)
-       .ValidateDataAnnotations();
-```
-
-The builder sets this up automatically on `QylAppBuilder.Create(args)` — you only need to
-override it if you want custom validation.
+`QylAppOptions` (`Qyl:Run` section — `RunnerPort`, `RunnerHost`, `StartupTimeoutSeconds`)
+is bound reflection-free in `Build()` via `QylAppOptions.FromConfiguration`, which
+validates imperatively and fails fast — the trim/AOT-clean replacement for
+`AddOptionsWithValidateOnStart` + DataAnnotations. Override values through any
+configuration source added before `Build()` (env vars, appsettings, command line).
 
 ## License
 

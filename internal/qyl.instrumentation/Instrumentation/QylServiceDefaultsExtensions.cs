@@ -117,7 +117,11 @@ public static class QylServiceDefaultsExtensions
     internal static void ConfigureQylTelemetry<TBuilder>(TBuilder builder, QylOptions options)
         where TBuilder : IHostApplicationBuilder
     {
-        var serviceName = builder.Environment.ApplicationName;
+        // OTEL_SERVICE_NAME wins over the assembly name so two processes of the same project (e.g. a
+        // collector plus its dedicated diagnostics collector) keep distinct service identities.
+        var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] is { Length: > 0 } configuredName
+            ? configuredName
+            : builder.Environment.ApplicationName;
         var serviceVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "0.0.0";
 
         var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];

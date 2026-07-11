@@ -11,6 +11,12 @@ public sealed record QylResource
 
     public required int Port { get; init; }
 
+    // Collector resources only: the OTLP receiver ports the child is pinned to via
+    // QYL_OTLP_PORT / QYL_GRPC_PORT. 0 = not an OTLP receiver.
+    public int OtlpHttpPort { get; init; }
+
+    public int GrpcPort { get; init; }
+
     public required QylLaunchSpec Launch { get; init; }
 }
 

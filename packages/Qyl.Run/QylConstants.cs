@@ -42,6 +42,22 @@ public static class QylConstants
         public const string AspNetCoreEnvironment = "ASPNETCORE_ENVIRONMENT";
         public const string DotnetEnvironment = "DOTNET_ENVIRONMENT";
         public const string OtelServiceName = "OTEL_SERVICE_NAME";
+        public const string OtelExporterOtlpEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT";
+        public const string OtelExporterOtlpProtocol = "OTEL_EXPORTER_OTLP_PROTOCOL";
+        public const string QylPort = "QYL_PORT";
+        public const string QylOtlpPort = "QYL_OTLP_PORT";
+        public const string QylGrpcPort = "QYL_GRPC_PORT";
+        public const string QylDataPath = "QYL_DATA_PATH";
+        public const string QylOtlpAuthMode = "QYL_OTLP_AUTH_MODE";
+    }
+
+    public static class Collector
+    {
+        public const int DefaultOtlpHttpPort = 4318;
+        public const int DefaultGrpcPort = 4317;
+        public const string OtlpHttpProtobuf = "http/protobuf";
+        public const string UnsecuredAuthMode = "Unsecured";
+        public const string DataPathTemplate = "qyl.{0}.duckdb";
     }
 
     public static class Routes
