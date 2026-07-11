@@ -557,6 +557,6 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   auto-generates per-process service.instance.id (OTel .NET default), so the two
   instances are distinct without extra config. EVIDENCE: qyl.slnx --no-incremental
   0W/0E; composition suite green (unique ports, cycle/dup rejection, dedicated
-  auth=Unsecured/exporter=''/isolated db); guard: http://Mac:4318 (hostname alias) →
-  fatal at boot, http://telemetry.example.com:4318 → starts normally; live e2e:
+  auth=Unsecured/exporter=''/isolated db); guard: `http://Mac:4318` (hostname alias) →
+  fatal at boot, `http://telemetry.example.com:4318` → starts normally; live e2e:
   5100/5200 healthy, diagnostics=3 traces all service.name=collector, primary=0.
