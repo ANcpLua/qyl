@@ -173,7 +173,12 @@ internal static class OtlpConverter
 
         var links = new List<SpanLinkIngest>(span.Links.Count);
         foreach (var l in span.Links)
-            links.Add(new SpanLinkIngest(ToHex(l.TraceId) ?? "", ToHex(l.SpanId) ?? "", ConvertSpanChildAttributes(l.Attributes)));
+        {
+            links.Add(new SpanLinkIngest(
+                RequireId(l.TraceId, 16, "link.trace_id"),
+                RequireId(l.SpanId, 8, "link.span_id"),
+                ConvertSpanChildAttributes(l.Attributes)));
+        }
 
         return links;
     }
@@ -232,9 +237,9 @@ internal static class OtlpConverter
         new()
         {
             ProjectIdHint = projectIdHint,
-            SpanId = ToHex(span.SpanId) ?? "",
-            TraceId = ToHex(span.TraceId) ?? "",
-            ParentSpanId = ToHex(span.ParentSpanId),
+            SpanId = RequireId(span.SpanId, 8, "span_id"),
+            TraceId = RequireId(span.TraceId, 16, "trace_id"),
+            ParentSpanId = RequireIdOrAbsent(span.ParentSpanId, 8, "parent_span_id"),
             Name = span.Name ?? "unknown",
             Kind = (int)span.Kind,
             StartTimeUnixNano = span.StartTimeUnixNano,
@@ -253,11 +258,22 @@ internal static class OtlpConverter
 
     #region Shared Helpers
 
-    private static string? ToHex(ByteString value)
+    // The spec fixes trace ids at 16 bytes and span ids at 8; anything else is sender corruption
+    // and must reject the request cleanly (HTTP 400 / gRPC InvalidArgument), never store an
+    // unjoinable id.
+    private static string RequireId(ByteString value, int requiredBytes, string field)
     {
-        if (value.Length is 0) return null;
+        if (value.Length != requiredBytes)
+        {
+            throw new InvalidDataException(
+                $"OTLP field '{field}' must be {requiredBytes} bytes; got {value.Length}.");
+        }
+
         return Convert.ToHexString(value.Span).ToLowerInvariant();
     }
+
+    private static string? RequireIdOrAbsent(ByteString value, int requiredBytes, string field) =>
+        value.Length is 0 ? null : RequireId(value, requiredBytes, field);
 
     private static byte[] CopyBytes(ByteString value)
     {
@@ -304,8 +320,8 @@ internal static class OtlpConverter
         return new LogIngestionRecord
         {
             ProjectIdHint = projectIdHint,
-            TraceId = ToHex(log.TraceId),
-            SpanId = ToHex(log.SpanId),
+            TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
+            SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
             SeverityNumber = severityNumber,
@@ -381,7 +397,7 @@ internal static class OtlpConverter
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
         string? schemaUrl)
     {
-        var profileId = ToHex(profile.ProfileId) ?? "";
+        var profileId = RequireIdOrAbsent(profile.ProfileId, 16, "profile_id") ?? "";
         var sessionId = ExtractProfileSessionId(profile.AttributeIndices, dictionary);
         var attributes = ExtractProfileAttributes(profile.AttributeIndices, dictionary);
 
@@ -438,8 +454,8 @@ internal static class OtlpConverter
             if (s.LinkIndex > 0 && s.LinkIndex < dictionary.LinkTable.Count)
             {
                 var link = dictionary.LinkTable[s.LinkIndex];
-                linkTraceId = ToHex(link.TraceId);
-                linkSpanId = ToHex(link.SpanId);
+                linkTraceId = RequireIdOrAbsent(link.TraceId, 16, "link.trace_id");
+                linkSpanId = RequireIdOrAbsent(link.SpanId, 8, "link.span_id");
             }
 
             return new ProfileSampleIngestionRecord
@@ -562,13 +578,19 @@ internal static class OtlpConverter
 
             var link = dictionary.LinkTable[sample.LinkIndex];
             if (link.TraceId.Length > 0 || link.SpanId.Length > 0)
-                return (ToHex(link.TraceId), ToHex(link.SpanId));
+            {
+                return (RequireIdOrAbsent(link.TraceId, 16, "link.trace_id"),
+                    RequireIdOrAbsent(link.SpanId, 8, "link.span_id"));
+            }
         }
 
         foreach (var link in dictionary.LinkTable)
         {
             if (link.TraceId.Length > 0 || link.SpanId.Length > 0)
-                return (ToHex(link.TraceId), ToHex(link.SpanId));
+            {
+                return (RequireIdOrAbsent(link.TraceId, 16, "link.trace_id"),
+                    RequireIdOrAbsent(link.SpanId, 8, "link.span_id"));
+            }
         }
 
         return (null, null);

@@ -33,6 +33,7 @@ await app.InitializeQylCollectorAsync().ConfigureAwait(false);
 app.UseQylCollectorMiddleware();
 
 app.MapQylCollectorEndpoints();
+CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app);
 
 StartupBanner.Print(
     $"http://localhost:{ports.Http}", ports.Http, ports.Grpc, ports.OtlpHttp,

@@ -1,4 +1,3 @@
-using System.Text;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
@@ -50,8 +49,10 @@ internal static class OtlpPayloadParser
         where T : IMessage<T>, new()
     {
         await using var payload = await ReadBoundedPayloadAsync(request, ct).ConfigureAwait(false);
-        using var reader = new StreamReader(payload, Encoding.UTF8);
-        var json = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+
+        // The OTLP spec mandates hex for trace/span/profile ids in JSON, but protojson decodes
+        // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
+        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(payload.GetBuffer().AsSpan(0, (int)payload.Length));
         return JsonParser.Default.Parse<T>(json);
     }
 

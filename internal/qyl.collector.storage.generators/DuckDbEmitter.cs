@@ -33,6 +33,7 @@ internal static class DuckDbEmitter
         sb.AppendLine();
 
         EmitCreateTableDdl(sb, table);
+        EmitMigrateTableDdl(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -134,6 +135,36 @@ internal static class DuckDbEmitter
         }
 
         sb.AppendLineNoIndent("        );");
+        sb.AppendLineNoIndent("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    // One ALTER TABLE ... ADD COLUMN IF NOT EXISTS per column: run at startup after CREATE TABLE
+    // IF NOT EXISTS (and before index DDL) so a database persisted by an older schema gains any
+    // columns added since. Migration-added columns are always nullable — NOT NULL cannot hold for
+    // pre-existing rows — and readers already map SQL NULL to CLR defaults for non-nullable
+    // properties. New databases get the full constrained schema from CreateTableDdl; every ALTER
+    // then no-ops.
+    private static void EmitMigrateTableDdl(IndentedStringBuilder sb, DuckDbTableInfo table)
+    {
+        sb.AppendLine("public const string MigrateTableDdl = \"\"\"");
+
+        foreach (var column in table.Columns)
+        {
+            var line = new StringBuilder("        ALTER TABLE ");
+            line.Append(SqlIdentifier.Quote(table.TableName))
+                .Append(" ADD COLUMN IF NOT EXISTS ")
+                .Append(SqlIdentifier.Quote(column.ColumnName))
+                .Append(' ')
+                .Append(ResolveSqlType(column));
+
+            if (!string.IsNullOrWhiteSpace(column.DefaultSql))
+                line.Append(" DEFAULT ").Append(column.DefaultSql);
+
+            line.Append(';');
+            sb.AppendLineNoIndent(line.ToString());
+        }
+
         sb.AppendLineNoIndent("        \"\"\";");
         sb.AppendLine();
     }

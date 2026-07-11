@@ -1,9 +1,11 @@
+using System.Buffers;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,10 +61,18 @@ public static class QylServiceDefaultsExtensions
         if (options.EnableDefaultHealthEndpoints)
         {
             app.MapHealthChecks(QylEndpoints.Health,
-                new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag) });
+                new HealthCheckOptions
+                {
+                    Predicate = static check => check.Tags.Contains(QylEndpoints.ReadyTag),
+                    ResponseWriter = WriteHealthReportJsonAsync
+                });
 
             app.MapHealthChecks(QylEndpoints.Alive,
-                new HealthCheckOptions { Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag) });
+                new HealthCheckOptions
+                {
+                    Predicate = static check => check.Tags.Contains(QylEndpoints.LiveTag),
+                    ResponseWriter = WriteHealthReportJsonAsync
+                });
         }
 
         app.UseMiddleware<ExceptionCaptureMiddleware>();
@@ -75,6 +85,41 @@ public static class QylServiceDefaultsExtensions
         app.MapQylAgentInventory();
 
         return app;
+    }
+
+    // The default health-check writer emits bare "Healthy"/"Unhealthy" text, which is
+    // indistinguishable from any other 200 body when probing through proxies. JSON with the
+    // per-entry breakdown makes the response self-evidently a health report and shows exactly
+    // which registered check (e.g. a database check) produced the status. Hand-rolled with
+    // Utf8JsonWriter: no serializer contract, no reflection.
+    private static Task WriteHealthReportJsonAsync(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json; charset=utf-8";
+
+        var buffer = new ArrayBufferWriter<byte>(512);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("status", report.Status.ToString());
+            writer.WriteNumber("totalDurationMs", report.TotalDuration.TotalMilliseconds);
+            writer.WriteStartObject("entries");
+
+            foreach (var (name, entry) in report.Entries)
+            {
+                writer.WriteStartObject(name);
+                writer.WriteString("status", entry.Status.ToString());
+                if (!string.IsNullOrEmpty(entry.Description))
+                    writer.WriteString("description", entry.Description);
+
+                writer.WriteNumber("durationMs", entry.Duration.TotalMilliseconds);
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+        }
+
+        return context.Response.Body.WriteAsync(buffer.WrittenMemory, context.RequestAborted).AsTask();
     }
 
 

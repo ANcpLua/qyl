@@ -823,11 +823,16 @@ internal sealed partial class DuckDbStore : IQylStore
     // the statement.
     private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
 
+    // Per table: CREATE TABLE IF NOT EXISTS (full schema for new databases), then the generated
+    // ALTER TABLE ... ADD COLUMN IF NOT EXISTS migration (existing databases persisted by an older
+    // schema gain missing columns), then CREATE INDEX IF NOT EXISTS — indexes last, because an
+    // index may target a column the migration just added.
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var logsCmd = con.CreateCommand();
         logsCmd.CommandText = string.Concat(
             LogStorageRow.CreateTableDdl, "\n",
+            LogStorageRow.MigrateTableDdl, "\n",
             LogStorageRow.IndexesDdl);
         logsCmd.ExecuteNonQuery();
 
@@ -839,6 +844,12 @@ internal sealed partial class DuckDbStore : IQylStore
             ProfileMappingRow.CreateTableDdl, "\n",
             ProfileSampleRow.CreateTableDdl, "\n",
             ProfileStackRow.CreateTableDdl, "\n",
+            ProfileStorageRow.MigrateTableDdl, "\n",
+            ProfileFunctionRow.MigrateTableDdl, "\n",
+            ProfileLocationRow.MigrateTableDdl, "\n",
+            ProfileMappingRow.MigrateTableDdl, "\n",
+            ProfileSampleRow.MigrateTableDdl, "\n",
+            ProfileStackRow.MigrateTableDdl, "\n",
             ProfileStorageRow.IndexesDdl, "\n",
             ProfileSampleRow.IndexesDdl);
         profilesCmd.ExecuteNonQuery();
@@ -846,11 +857,14 @@ internal sealed partial class DuckDbStore : IQylStore
         using var cmd = con.CreateCommand();
         cmd.CommandText = string.Concat(
             SpanStorageRow.CreateTableDdl, "\n",
+            SpanStorageRow.MigrateTableDdl, "\n",
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
         using var costCmd = con.CreateCommand();
-        costCmd.CommandText = ModelPricingRow.CreateTableDdl;
+        costCmd.CommandText = string.Concat(
+            ModelPricingRow.CreateTableDdl, "\n",
+            ModelPricingRow.MigrateTableDdl);
         costCmd.ExecuteNonQuery();
     }
 
