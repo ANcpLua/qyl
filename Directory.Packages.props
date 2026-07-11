@@ -96,7 +96,7 @@
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.3.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.3.0"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
-    <PackageVersion Include="Qyl.Api.Contracts" Version="0.3.0"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="0.4.0"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>
