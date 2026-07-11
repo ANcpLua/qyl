@@ -685,3 +685,17 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   deleted, git history keeps the evidence), Rule ends with "then delete the row",
   INDEX.md §4 marked superseded by the table. CI on the derot commit 8b08f757
   confirmed green (CI ✅ Links ✅) — the morning's billing blocker is resolved.
+- 2026-07-11 — Normalizer expiry trigger (Claude, user-approved). Evidence first:
+  scanned the NuGet cache DLLs (UTF-8 + UTF-16LE) — LATEST OpenAI .NET 2.12.0 emits
+  gen_ai.system with NO gen_ai.provider.name; Microsoft.Extensions.AI 10.7.0 still
+  carries the legacy spelling; Microsoft.Agents.AI core is clean (provider.name
+  only). So the ingest normalizer is CURRENT-ecosystem support (qyl subscribes to
+  those ActivitySources; auto-instrumentation captures their spans with their key
+  spellings), not pre-1.42 legacy support — decision: keep until the ecosystem
+  migrates. NEW .github/workflows/normalizer-expiry.yml (weekly cron + dispatch):
+  downloads latest STABLE openai + microsoft.extensions.ai from nuget.org
+  flatcontainer, scans lib/**/*.dll for gen_ai.system (both encodings); green while
+  any still ship it (offenders logged), red + auto-opened deletion-checklist issue
+  (idempotent — only if no open issue matches) the week all are clean. Normalizer
+  xmldoc cross-references the trigger. actionlint clean; live workflow_dispatch run
+  verified green with both offenders logged.
