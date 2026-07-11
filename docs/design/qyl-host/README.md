@@ -3,7 +3,7 @@
 > **He left this before resetting it all.** Read this, then work through it *with
 > the user* — do not execute silently. This folder is the single place the
 > Qyl.Host unification lives. Everything below is committed and pushed to the
-> (now private) `ANcpLua/qyl` remote, so it survives a local reset.
+> `ANcpLua/qyl` remote (public again since 2026-07-11), so it survives a local reset.
 
 ## What this is
 
@@ -15,8 +15,9 @@ folder. Read that second; read this first.
 
 There are two app hosts, deliberately written as twins. `packages/Qyl.Run` (C#)
 supervises processes over **HTTP health** but can only launch **.NET**
-(`QylAppBuilder.cs:104-111` hardcodes `dotnet run --project`). `mcp-run`
-(in this workspace since 2026-07-11; TypeScript, shaped 1:1 after `Qyl.Run`)
+(`QylAppBuilder.cs:185-191` hardcodes `dotnet run --project`). The TS twin
+(shaped 1:1 after `Qyl.Run`; since the 2026-07-11 merge it is the `runner/`
+half of `qyl-workspace/qyl.mcp`, formerly the standalone `mcp-run`)
 launches **any executable** but only
 supervises **MCP servers** (readiness is the `initialize`+`tools/list` handshake).
 Each is locked on the axis the other is free. The plan makes **runtime** and
@@ -26,24 +27,26 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 
 1. **Confirm the direction.** `Qyl.Host` as the engine; `qyl run` stays the CLI
    verb. MCP becomes a plugin (`Qyl.Host.Mcp`), not the substrate. Do NOT reuse
-   the name `qyl.mcp` — it was deleted in `43d032f9` and `qyl-apps-server`
-   (in this workspace) already inherited it.
+   the name `qyl.mcp` — it was deleted in `43d032f9` and the merged MCP repo
+   `qyl-workspace/qyl.mcp` (qyl-apps-server's successor) already inherited it.
 2. **Step 1 is the load-bearing unlock: `AddExecutable(name, command, args, port?)`**
    in `QylAppBuilder`. ~15 lines, additive, non-breaking. `QylLaunchSpec` already
    carries `Executable`; this only adds the public door. `AddProject`/`AddCollector`
    become thin wrappers over it. This ends the .NET-only lock. Build must stay
    green (repo invariant — see `qyl/CLAUDE.md`).
 3. **Then** the ordered migration path in DESIGN.md §"Migration path": step 2
-   `IReadinessProbe`, step 3 `Qyl.Host.Mcp` (+ port `mcp-run/telemetry.ts`), step 4
+   `IReadinessProbe`, step 3 `Qyl.Host.Mcp` (+ port `qyl.mcp/runner/src/telemetry.ts`), step 4
    `waitFor`/`withReference`, step 5 Console convergence, step 6 rename last.
 
 ## Repo state at handoff (2026-07-10)
 
-- **`ANcpLua/qyl` is now PRIVATE** (was public; set back on request — system
-  critical). Verified `visibility: PRIVATE`.
+- **`ANcpLua/qyl` was set PRIVATE at handoff** (was public; set back on request
+  — system critical; verified `visibility: PRIVATE` then). **Public again since
+  2026-07-11.**
 - **All four repos clean and fully pushed** (dirty=0, ahead=0): `qyl`,
   `mcp-run`, `qyl-apps-server`, `x-apps-server`. (Since then: `mcp-run` and
-  `qyl-apps-server` moved from `~/Desktop` into this workspace, 2026-07-10/11;
+  `qyl-apps-server` moved from `~/Desktop` into this workspace 2026-07-10/11,
+  then merged into `qyl.mcp` and were archived on GitHub 2026-07-11;
   `x-apps-server` was deleted locally and lives only on GitHub.)
 - All three are private on `github.com/ANcpLua`. `x-apps-server` is
   **architectural reference only** — the user does not want the X product
@@ -52,16 +55,19 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 ## Facts to carry forward (verified, correct the old record)
 
 - **Aspire is NOT a dependency** anywhere. `Qyl.Run.csproj:7` says "Zero Aspire
-  deps." Drop the "Aspire-style" framing; it undersells a ~1,350 LoC zero-dep engine.
+  deps." Drop the "Aspire-style" framing; it undersells a ~1,700 LoC zero-dep engine.
 - **There is no `qyl.run.dashboard`.** The runner frontend is
   `packages/Qyl.Run.Console`; the product dashboard is `services/qyl.dashboard`.
-- **Do not design against `Qyl.Run/README.md`** — it documents `AddDashboard`,
-  `.WithCollector`, `.WaitFor`, and a `[B]` browser key that do NOT exist in code.
+- **`Qyl.Run/README.md` is trustworthy again** — rewritten 2026-07-11 to the
+  real surface (`AddCollector`/`AddProject` + the self-telemetry composition
+  primitives); the old `AddDashboard`/`.WithCollector`/`.WaitFor`/`[B]` fiction
+  is gone. `waitFor`-style dependency ordering still does not exist in code.
 - **Rename cost is zero externally.** `Qyl.Run` is not on nuget.org; its only
   consumer is `Qyl.Run.Host`.
 - **The autoinstrumentation goal is not a separate engine** — it is what
-  `Qyl.Host` becomes once the probe/transport are pluggable. `mcp-run/telemetry.ts`
-  already proves "instrument the host, not the client."
+  `Qyl.Host` becomes once the probe/transport are pluggable.
+  `qyl.mcp/runner/src/telemetry.ts` already proves "instrument the host, not
+  the client."
 
 ## Session context (what happened right before the reset)
 

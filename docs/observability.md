@@ -21,7 +21,7 @@ releases, verified against the OTel GitHub release tags — current, not aspirat
 |---|---|---|
 | [OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/) | **v1.58.0** | [`opentelemetry-specification`](https://github.com/open-telemetry/opentelemetry-specification/releases/tag/v1.58.0) |
 | [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) | **v1.43.0** | [`semantic-conventions`](https://github.com/open-telemetry/semantic-conventions/releases/tag/v1.43.0) — schema URL `https://opentelemetry.io/schemas/1.43.0` |
-| [OTLP (OpenTelemetry Protocol)](https://opentelemetry.io/docs/specs/otlp/) | **v1.10.0** (stable signals) | [`opentelemetry-proto`](https://github.com/open-telemetry/opentelemetry-proto/releases/tag/v1.10.0) — vendored trace/logs/metrics/common/resource + collector services at v1.10.0. The unstable `profiles/v1development` signal stays on its earlier development revision (its v1.10.0 dictionary-encoding rework is a breaking dev-signal change, not yet adopted). |
+| [OTLP (OpenTelemetry Protocol)](https://opentelemetry.io/docs/specs/otlp/) | **v1.10.0** (stable signals) | [`opentelemetry-proto`](https://github.com/open-telemetry/opentelemetry-proto/releases/tag/v1.10.0) — vendored trace/logs/common/resource + collector services at v1.10.0 (no metrics proto — the metrics signal is not implemented). The unstable `profiles/v1development` signal stays on its earlier development revision (its v1.10.0 dictionary-encoding rework is a breaking dev-signal change, not yet adopted). |
 | [OpAMP (Open Agent Management Protocol)](https://opentelemetry.io/docs/specs/opamp/) | not adopted | — |
 
 ## OpenTelemetry terminology (canonical)

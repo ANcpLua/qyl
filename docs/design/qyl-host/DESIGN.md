@@ -2,9 +2,12 @@
 
 > **Status:** design-of-record / proposal. Retires the "Aspire-style" framing.
 > **Scope:** unify the two app hosts that exist today — `packages/Qyl.Run` (C#)
-> and `mcp-run` (TypeScript, in this workspace) — into one engine whose runtime and
-> protocol are both pluggable. Every claim below cites source; words are claims,
-> tool output is proof.
+> and the TS host `mcp-run` (since the 2026-07-11 merge, the `runner/` half of
+> `qyl-workspace/qyl.mcp`; the standalone repo is archived) — into one engine
+> whose runtime and protocol are both pluggable. Every claim below cites source;
+> `mcp-run` file citations refer to the pre-merge layout, preserved verbatim in
+> the archived repo (the same code lives on under `qyl.mcp/runner/src/`). Words
+> are claims, tool output is proof.
 
 ## TL;DR
 
@@ -23,7 +26,7 @@ capability the product needs is ~15 additive lines away.
 A dependency-light distributed-app runner: launches local service processes,
 health-probes them, supervises/restarts, renders a Spectre.Console TUI, and
 exposes a read-only HTTP/SSE state feed. Two NuGets (`ANcpLua.Roslyn.Utilities`,
-`Spectre.Console`), `IsAotCompatible=true`, ~1,350 LoC.
+`Spectre.Console`), `IsAotCompatible=true`, ~1,700 LoC.
 
 - **Public surface:** `QylAppBuilder.Create(args)` → `AddCollector(name, port?,
   project?, selfTelemetry?)` / `AddProject(name, project, port?)` → `Build()` →
@@ -98,12 +101,13 @@ launches today.
 
 ## What each got right that the other lacks
 
-- **`mcp-run` has the API `Qyl.Run`'s README only promised.** `waitFor` +
+- **`mcp-run` has the dependency API `Qyl.Run` still lacks.** `waitFor` +
   `withReference` with dependency-ordered startup and cycle detection
-  (`orchestrator.ts:68-91`). `Qyl.Run/README.md` documents `.WaitFor`,
-  `.WithCollector`, `AddDashboard`, and a `[B] Open browser` key — **none of which
-  exist in the code** (actual TUI footer is `[S] Stop [R] Restart [H] Help [Esc]
-  Exit`, `QylConsoleUi.cs:12-13`). Do not design against that README.
+  (`app-builder.ts:119`, `orchestrator.ts:68-91`) — no equivalent exists in
+  `Qyl.Run`. (Its README
+  once advertised `.WaitFor`, `.WithCollector`, `AddDashboard`, and a `[B]`
+  browser key that never existed in code; it was rewritten 2026-07-11 to the
+  real surface and is trustworthy again.)
 - **`mcp-run` has `/runner/mcp` passthrough + host-side OTLP self-monitoring**
   (`runner-api.ts:108-136`, `telemetry.ts`). `Qyl.Run` has neither.
 - **`Qyl.Run` has HTTP-health supervision, the Spectre TUI, AOT, and lives in the
@@ -119,12 +123,12 @@ lose the ability to supervise `qyl.collector`. Instead, absorb `mcp-run`'s
 ```
 packages/
   Qyl.Host                         ← the engine. polyglot, protocol-agnostic.
-    QylLaunchSpec { Executable, Args, Env, Cwd }     (already exists — QylResources.cs:17)
+    QylLaunchSpec { Executable, Args, Env, Cwd }     (already exists — QylResources.cs:23)
     AddExecutable(name, command, args, port?)        (the missing public door — ~15 lines)
     IReadinessProbe                                  (the missing abstraction)
       ├─ HttpHealthProbe   → GET /health             (what Qyl.Run does today)
       └─ McpHandshakeProbe → initialize + tools/list (what mcp-run does today)
-    waitFor / withReference + cycle detection        (port from orchestrator.ts:68-91)
+    waitFor / withReference + cycle detection        (port from app-builder.ts:119 + orchestrator.ts:68-91)
     lifecycle · MaxRestarts=3 · log ring buffer · /runner SSE   (already exists)
 
   Qyl.Host.Mcp                     ← MCP as a plugin, not the core
@@ -143,8 +147,9 @@ command.
 
 `qyl.mcp` is a **burned name**. It was deleted in commit `43d032f9` (2026-05-25,
 *"Path C Phase 1: qyl.mcp destruction"*, 53 files). Its successor already exists
-and is not this engine: `qyl-apps-server`'s README (in this workspace) calls itself *"the
-successor to the deleted services/qyl.mcp Apps."* A host that **runs** MCP servers
+and is not this engine: `qyl.mcp/server`'s README (the merged successor to
+`qyl-apps-server`) calls itself *"the successor to the deleted services/qyl.mcp
+Apps."* A host that **runs** MCP servers
 is not itself an MCP server; reusing `qyl.mcp` for the host would collide with the
 server that already inherited the name.
 
@@ -166,8 +171,8 @@ mechanical, last-step change.
    `/runner/mcp` passthrough, and a port of `telemetry.ts`. MCP support becomes an
    opt-in package, not a core assumption.
 4. **`waitFor` / `withReference`** — port dependency-ordered startup + cycle
-   detection from `orchestrator.ts:68-91`. This is the API `Qyl.Run`'s README
-   already advertises; make it real.
+   detection from `orchestrator.ts:68-91`. This is the API the old `Qyl.Run`
+   README advertised (removed in the 2026-07-11 rewrite); make it real.
 5. **`Qyl.Host.Console`** — converge `Qyl.Run.Console` and `mcp-run/dashboard`;
    keep the ext-apps MCP Apps rendering from the latter.
 6. **Rename `Qyl.Run` → `Qyl.Host`** — last, mechanical, once the surface is
@@ -181,7 +186,8 @@ the probe and transport are pluggable. `telemetry.ts` already proves the thesis
 (`telemetry.ts:1-15`): *"instrumenting HERE monitors every MCP server without
 touching any of them."* It emits `mcp.tool.name` **and** `gen_ai.tool.name`
 together (`:122-123`), gates payload capture behind `MCP_RUN_RECORD_INPUTS/OUTPUTS`,
-and targets the qyl collector via `QYL_OTLP_ENDPOINT`. The principle generalizes:
+and targets the qyl collector via `QYL_OTLP_ENDPOINT`. (Post-merge the gate env
+vars are `QYL_MCP_RECORD_INPUTS/OUTPUTS`.) The principle generalizes:
 **instrument the host, not the client.** A host that spawns arbitrary executables
 and owns their transport is exactly the seam where you inject instrumentation into
 a language you don't control. Polyglot host + owned transport = the injection

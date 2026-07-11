@@ -4,8 +4,16 @@
 > directive, not a checklist — the sequencing inside each bet is yours. Every
 > claim about Sentry MCP is grounded in its source at
 > `~/RiderProjects/qyl-references/sentry-mcp` (cited); every claim about qyl is
-> from the repos in this workspace (incl. `mcp-run`, moved in from
-> `~/Desktop` 2026-07-11).
+> from the repos in this workspace.
+>
+> **Merge executed 2026-07-11:** `mcp-run` + `qyl-apps-server` are now ONE repo,
+> `qyl-workspace/qyl.mcp` (`runner/` + `server/` + `dashboard/`); the old repos
+> are archived GitHub pointers. Read the inventory below with that mapping —
+> `mcp-run` ≙ `qyl.mcp/runner`, `qyl-apps-server` ≙ `qyl.mcp/server`. The merge
+> also closed parity item 1 (tool-slot economy: curated `tools/list` + budget
+> asserted in code) and left seams for items 4–5 (a `capability` field on every
+> catalog def; the exported def list for evals). The forward directive — the
+> remaining parity gaps and the two bets — still stands.
 
 ## The one-line strategy
 
@@ -60,11 +68,13 @@ Reach parity on its genuine engineering strengths (below); win on those two.
 
 ## Qyl's assets today (the inventory you're building on)
 
-- **`qyl-apps-server`** — MCP Apps server: interactive trace/log **waterfall UI**
+- **`qyl.mcp` (`server/`, formerly `qyl-apps-server`)** — MCP Apps server:
+  interactive trace/log **waterfall UI**
   + MCP dashboard (Sentry-widget grid) rendered *in the conversation* via
   `@modelcontextprotocol/ext-apps`. Successor to the deleted `services/qyl.mcp`.
   **This is the thing Sentry MCP does not have.**
-- **`mcp-run`** (in this workspace) — polyglot MCP host; `/runner/mcp` passthrough +
+- **`qyl.mcp` (`runner/`, formerly `mcp-run`)** — polyglot MCP host, now
+  hosting the telemetry server in-process; `/runner/mcp` passthrough +
   `telemetry.ts` host-side OTLP self-monitoring that already calls itself *"the
   qyl-based answer to Sentry's MCP monitoring product."* Emits `mcp.tool.name` +
   `gen_ai.tool.name` to the qyl collector.
@@ -74,12 +84,15 @@ Reach parity on its genuine engineering strengths (below); win on those two.
   (Weaver-generated, always current) + the genai registry. Sentry *bundled ~74
   static JSON files*; qyl **generates** them. Exploit this.
 - **`Qyl.Host` design** ([DESIGN.md](./DESIGN.md)) — the polyglot engine that
-  `mcp-run` folds into; MCP as a strategy, not the substrate.
+  `qyl.mcp/runner` folds into; MCP as a strategy, not the substrate.
 
 ## Parity checklist (table stakes — close these)
 
 1. **Tool-slot economy.** Do not dump every tool into `tools/list`. Curate a
    small top-level set + a search/execute catalog. Enforce a budget.
+   **Closed 2026-07-11** — `qyl.mcp` ships a curated top-level set +
+   `search_qyl_tools`/`execute_qyl_tool` catalog, budget asserted at
+   `createServer()` against the actual registrations.
 2. **NL→query embedded agent — and do it BETTER than Sentry.** Same idea
    (translate NL → qyl's query/trace API), but ground it in qyl's **first-party
    Weaver-generated semconv**, not a bundled static copy. Sentry's field grounding
@@ -101,13 +114,13 @@ self-hosted**. Qyl holds the full trace/span/error graph locally *and* has an
 MCP-Apps rendering layer. Build a root-cause agent over qyl's own data that
 returns an **interactive waterfall with the culprit span/error highlighted**, the
 linked logs inline, and a fix suggestion — rendered in the chat via
-`qyl-apps-server`. Self-hosted (no autofix-SaaS dependency) and visual (which a
+`qyl.mcp/server`. Self-hosted (no autofix-SaaS dependency) and visual (which a
 text MCP structurally cannot be). This is the single highest-leverage
 differentiator: it attacks Sentry's moat on the one axis they can't defend.
 
 ### Bet 2 — The self-instrumenting polyglot host = the autoinstrumentation engine
 `telemetry.ts` already proves the thesis: *instrument the host, not the client.*
-Fold `mcp-run` into `Qyl.Host` so the same server that answers questions **also
+Fold `qyl.mcp/runner` into `Qyl.Host` so the same server that answers questions **also
 auto-instruments every process/MCP it launches, in any language,** emitting to the
 qyl collector. Sentry MCP monitors Sentry; `Qyl.Host` monitors everything it
 hosts. That is the "MCP monitoring" product Sentry ships — generalized, polyglot,
@@ -117,8 +130,10 @@ collector *and* a stdio MCP *and* a Python client under one trace.
 
 ## Sequencing (order within each is yours)
 
-1. Consolidate the MCP surface onto `Qyl.Host` + `qyl-apps-server`; close the
-   tool-economy + authz + eval parity gaps.
+1. Consolidate the MCP surface — **done 2026-07-11**: `qyl.mcp` is the one
+   surface and the tool-economy gap is closed; the authz + eval gaps remain
+   (seams left in the catalog defs), and the `Qyl.Host` convergence is still
+   ahead (DESIGN.md).
 2. Ship the hosted remote+auth endpoint on Railway.
 3. Build the NL→query embedded agent on first-party semconv.
 4. **Bet 1** (visual root cause) — the flagship demo.

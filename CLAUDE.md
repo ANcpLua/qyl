@@ -647,3 +647,29 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   decoding, real `/health`, the `0.1.0-beta.1` stamp, the product-surface decision.
   **Nothing is left for the user** — the one "user-only" item (register #9) turned out to
   be already resolved and agent-fixable.
+- 2026-07-11 — Markdown derot pass over the whole repo (Claude, user-directed "clean up
+  qyl any markdown file / trust your own data"; ultracode: 7 parallel rot-scouts over all
+  34 .md files, every finding verified against ground truth, then a 2-agent adversarial
+  gate — facts refuter re-executed all 13 claims [0 refuted], coherence scout re-read the
+  6 edited files in full). CLEAN (no rot found): README.md, CLAUDE.md non-log sections,
+  telemetry-fabric.md, package-api-update-matrix.md, dependencies.md, all 12 yurekami
+  extraction files, Qyl.Run.Console/eng/dashboard READMEs. FIXED (6 files): the
+  `docs/design/qyl-host/` trio caught up with today's qyl.mcp merge — MCP-STRATEGY.md got
+  a "Merge executed 2026-07-11" banner (mcp-run ≙ qyl.mcp/runner, qyl-apps-server ≙
+  qyl.mcp/server; parity item 1 tool-slot economy marked closed, authz/eval seams noted
+  open), DESIGN.md header now scopes its pre-merge mcp-run citations to the archived
+  layout, and the handoff README's stale claims were corrected in place ("now private" →
+  public since 2026-07-11 [gh: visibility PUBLIC]; "do not design against Qyl.Run/README"
+  retired — that README was rewritten to the real surface at a1db9557). Line-citation
+  drift fixed against the actual source: QylAppBuilder.cs:104-111→185-191,
+  QylResources.cs:17→23, withReference cite orchestrator.ts→app-builder.ts:119; Qyl.Run
+  LoC ~1,350→~1,700 (wc -l = 1,695) in 3 docs; env rename noted
+  (MCP_RUN_RECORD_*→QYL_MCP_RECORD_*). Two content errors killed: observability.md
+  claimed vendored METRICS protos (csproj vendors common/resource/trace/logs/profiles
+  only — no metrics signal exists); yurekami-harvest.md row 5 cited QylAotSampler.cs:61
+  (file is 41 lines; real cite :39 always-sample-root) and the 3725a4c3-deleted
+  QylTraceSampling.cs. The coherence gate caught one contradiction MY OWN edit introduced
+  (visibility corrected on the wrong bullet, leaving "is now PRIVATE" adjacent) — fixed
+  before commit; the verify-your-verifier loop earned its cost. Residual grep: every
+  remaining mcp-run/qyl-apps-server mention is a dated historical record or covered by
+  the new banners.
