@@ -53,17 +53,10 @@
 Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — see the
 2026-07-11 progress-log entries. What remains, roughly in order:
 
-1. **Data integrity.** No startup migration exists: the persisted DuckDB predates the
-   cache-token columns, so generated SQL selects `gen_ai_cache_read_input_tokens`
-   against an older DB and every `GET /api/v1/traces` 500s. Schema is source-generated
-   (`internal/qyl.collector.storage.generators/DuckDbEmitter.cs`) — emit
-   `ALTER TABLE ADD COLUMN IF NOT EXISTS` per column at startup from the same
-   generator. Also: OTLP/JSON trace/span IDs are decoded as base64 when the spec
-   mandates **hex** (spec-compliant JSON exporters get mangled, unjoinable IDs; no
-   16-byte length validation either). And `/health` is a **false positive** — it is
-   never mapped, so the SPA fallback returns `index.html` 200, fooling both Railway's
-   `healthcheckPath` and `Qyl.Run`'s readiness probe; `MapQylEndpoints` is never
-   called and `DuckDbHealthCheck` is never registered.
+1. ~~**Data integrity.**~~ SHIPPED 2026-07-11 (a6a648e7 + follow-up) — see the
+   progress-log entry. Note: the `/health` claim in the original item was stale;
+   the endpoints were live, and the shipped `CollectorHealthGuard` now makes the
+   false-positive class impossible rather than merely absent.
 2. **Decide the product surface.** The dashboard ships pages with no backing endpoint
    (see README "Product surface"). Shrink to the verified vertical — traces, sessions,
    logs, GenAI cost — and delete pages that have no endpoint. No adapters, no stubs:
@@ -803,3 +796,47 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   /api/v1/sessions/stats → sessions_with_genai=19, sessions_with_errors=7. API-envelope
   gotcha for future queries: list endpoints wrap in `items`, sessions key is literally
   `"session.id"`. Smoke processes killed, smoke duckdb deleted. ⑤ (--demo composition) next.
+- 2026-07-11 — **Repair-plan Phase 1 (data integrity) SHIPPED** (Claude, a6a648e7 +
+  hardening follow-up; ultracode: 4 dimension-finders + per-finding refuters, 9 agents,
+  3 confirmed / 2 refuted). Three collector fixes, all live-proven on :5147:
+  (1) **DuckDB startup migration** — DuckDbEmitter emits `MigrateTableDdl` (one
+  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` per column, nullable, DEFAULT kept);
+  InitializeSchema runs Create → Migrate → Indexes per table. The June-era
+  qyl.duckdb.pre-selftel.bak that 500'd `GET /api/v1/traces` serves 200 with data;
+  fresh-DB boot healthy; corrupted DB fails boot loudly (DuckDBException, exit 134, no
+  listener). Fixture .bak DELETED (served its purpose). Review-confirmed hardening:
+  migration can't rewrite KEYS, so the generator also emits `PrimaryKeyColumnsCsv` and
+  the store verifies persisted PK identity via parameterized `duckdb_constraints()` at
+  boot — a pre-2026-06-03 DB (spans PK trace_id,span_id) previously booted green while
+  EVERY span insert binder-errored into the fire-and-forget void; now it's refused
+  loudly with remediation (proven: crafted old-shape DB → InvalidOperationException
+  naming actual vs required key; June fixture still boots). Emitter's non-nullable
+  decimal reader arm got the missing DBNull guard (`? 0m :`) the migration rationale
+  depends on.
+  (2) **OTLP/JSON ids are spec-hex, strict** — CONTRACT DECISION: spec-hex only, NO
+  base64 tolerance. New OtlpJsonIdNormalizer rewrites id fields hex→base64 pre-protojson
+  (protojson's bytes default silently mis-decoded spec-hex ids into mangled unjoinable
+  ids — baseline-proven: hex span 202'd pre-fix and stored mangled); wrong length /
+  non-hex / empty payload → InvalidDataException → 400. OtlpConverter
+  RequireId/RequireIdOrAbsent validates 16/8 bytes on ALL paths (JSON, protobuf HTTP,
+  gRPC); GrpcExport maps InvalidDataException → InvalidArgument with generic detail
+  (`ex.Message` is tombstoned — VerifyNoRemovedBuildSurface caught the attempt).
+  Live matrix: hex span 202 + joinable by EXACT id; 31-char / non-hex / 24-char-base64
+  all 400; hex log joins by traceId; empty body 400 with zero ArgumentException noise.
+  BOTH ENDS in lockstep: qyl.mcp telemetry.ts now emits hex (qyl.mcp@7d1ad3a, build +
+  smoke green) — the flip side the repair prompt named.
+  (3) **Health surface** — SSOT CORRECTION: the register's "/health is a false
+  positive; MapQylEndpoints never called; DuckDbHealthCheck never registered" was
+  STALE — the baseline run proved /health answers from a real MapHealthChecks endpoint
+  (the qyl.instrumentation Build()-interceptor wires MapQylDefaultEndpoints +
+  RegisterQylHealthChecks). Shipped instead: /health + /alive write a JSON report with
+  per-entry breakdown (live: duckdb entry Healthy with description — registration
+  proven), and CollectorHealthGuard fails boot loudly if the interceptor wiring ever
+  goes inert. Fallback unchanged (unknown route → SPA / 404 hint).
+  CROSS-SESSION: the parallel #510 session's add5c606 swept in this session's
+  BuildVerify.cs hunk (replay-idempotency literal for the new converter shape) → its CI
+  went red; a6a648e7 pushed 2 min later restored verifier↔code agreement — CI ✅ Links ✅
+  on a6a648e7. EVIDENCE: build 0W/0E; ./eng/build.sh Verify --Configuration Release
+  38/38 Succeeded (twice: at a6a648e7 and after the hardening follow-up); refuted
+  findings (not bugs): span-link strict ids (profiles proto mandates absence-tolerance,
+  trace links don't), health-guard ready-tag linkage (hypothetical generator regression).

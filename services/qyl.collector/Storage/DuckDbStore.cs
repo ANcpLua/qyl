@@ -866,6 +866,56 @@ internal sealed partial class DuckDbStore : IQylStore
             ModelPricingRow.CreateTableDdl, "\n",
             ModelPricingRow.MigrateTableDdl);
         costCmd.ExecuteNonQuery();
+
+        VerifyPersistedPrimaryKeys(con);
+    }
+
+    // ALTER can add missing columns, but it cannot rewrite a primary key — and the generated
+    // inserts hard-depend on the current key via ON CONFLICT. A database persisted before a key
+    // change would boot green and then fail every insert with a binder error the fire-and-forget
+    // writer swallows: silent total data loss behind a healthy /health. Refuse such a database
+    // loudly at boot instead.
+    private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
+    {
+        VerifyPersistedPrimaryKey(con, SpanStorageRow.TableName, SpanStorageRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, LogStorageRow.TableName, LogStorageRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileStorageRow.TableName, ProfileStorageRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileFunctionRow.TableName, ProfileFunctionRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileLocationRow.TableName, ProfileLocationRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv);
+        VerifyPersistedPrimaryKey(con, ModelPricingRow.TableName, ModelPricingRow.PrimaryKeyColumnsCsv);
+    }
+
+    private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string tableName, string expectedCsv)
+    {
+        if (expectedCsv.Length is 0)
+            return;
+
+        var expected = expectedCsv.Split(',').ToHashSet(StringComparer.Ordinal);
+        var actual = new HashSet<string>(StringComparer.Ordinal);
+
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = """
+                          SELECT unnest(constraint_column_names)
+                          FROM duckdb_constraints()
+                          WHERE table_name = $1 AND constraint_type = 'PRIMARY KEY'
+                          """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            actual.Add(reader.GetString(0));
+
+        if (!expected.SetEquals(actual))
+        {
+            throw new InvalidOperationException(
+                $"The persisted database's '{tableName}' table declares primary key " +
+                $"({string.Join(", ", actual.Order(StringComparer.Ordinal))}) but this build requires " +
+                $"({string.Join(", ", expected.Order(StringComparer.Ordinal))}). Startup migration adds columns but never " +
+                "rewrites keys, and a drifted key breaks the ON CONFLICT upsert target silently. " +
+                "Move the database file aside (dev data) or re-ingest into a fresh one.");
+        }
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);

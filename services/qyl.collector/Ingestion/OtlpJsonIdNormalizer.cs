@@ -27,6 +27,9 @@ internal static class OtlpJsonIdNormalizer
         if (utf8Json.StartsWith(utf8Bom))
             utf8Json = utf8Json[utf8Bom.Length..];
 
+        if (utf8Json.IsEmpty)
+            throw new InvalidDataException("OTLP/JSON payload is empty.");
+
         var reader = new Utf8JsonReader(utf8Json, new JsonReaderOptions { MaxDepth = 128 });
         var buffer = new ArrayBufferWriter<byte>(utf8Json.Length);
         using var writer = new Utf8JsonWriter(buffer);

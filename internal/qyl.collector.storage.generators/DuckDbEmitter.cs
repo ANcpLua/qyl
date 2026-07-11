@@ -34,6 +34,7 @@ internal static class DuckDbEmitter
 
         EmitCreateTableDdl(sb, table);
         EmitMigrateTableDdl(sb, table);
+        EmitPrimaryKeyColumns(sb, table);
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
         EmitMapFromReader(sb, table, [.. table.Columns]);
@@ -166,6 +167,21 @@ internal static class DuckDbEmitter
         }
 
         sb.AppendLineNoIndent("        \"\"\";");
+        sb.AppendLine();
+    }
+
+    // The declared primary-key columns, in ordinal order, as a comma-separated list. Startup
+    // schema verification compares this against the persisted table's actual key: ALTER can add
+    // missing columns, but it cannot rewrite a primary key, and a drifted key silently breaks the
+    // ON CONFLICT upsert target — better to refuse the database loudly at boot.
+    private static void EmitPrimaryKeyColumns(IndentedStringBuilder sb, DuckDbTableInfo table)
+    {
+        var primaryKeyColumns = table.Columns
+            .Where(static c => c.PrimaryKeyOrdinal >= 0)
+            .OrderBy(static c => c.PrimaryKeyOrdinal)
+            .Select(static c => c.ColumnName);
+
+        sb.AppendLine($"public const string PrimaryKeyColumnsCsv = \"{string.Join(",", primaryKeyColumns)}\";");
         sb.AppendLine();
     }
 
@@ -312,7 +328,10 @@ internal static class DuckDbEmitter
             "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}, 0UL)",
             "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}, 0L)",
             "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}, 0d)",
-            "decimal" or "System.Decimal" => $"reader.GetDecimal({ordinal})",
+            // DBNull-guarded like every other non-nullable arm: migration-added columns hold SQL
+            // NULL for pre-migration rows, and the MigrateTableDdl rationale depends on readers
+            // defaulting them.
+            "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? 0m : reader.GetDecimal({ordinal})",
             "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}, 0)",
             "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}, 0)",
             "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? default",
