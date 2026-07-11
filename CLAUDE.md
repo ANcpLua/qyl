@@ -396,3 +396,41 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   (aspirational-spec vs rot — human call); INTERFACE.md:60 lists
   /traces/{id}/spans as "used" though server.ts uses /traces/{id} (endpoint IS
   real, harmless). Verify: residual-grep for all stale tokens → 0 hits.
+- 2026-07-11 — Semconv key projection migrated 1.41.0 → 1.43.0; version-lockstep
+  invariant RESTORED (Claude, user-directed). New TypeSpec emitter wired into the
+  SemanticConventions repo's Weaver pipeline
+  (src/…SourceGeneration/scripts/emit_typespec_keys.py, 15b996a — reads the same
+  resolved-registry.json as the C# surface, mirrors emit_attributes.py naming/
+  collision/deprecation rules; AGENTS.md playbook updated). qyl-api-schema
+  (1a5d804): generated/otel-keys.gen.tsp regenerated at core v1.43.0
+  (89aae438…) + genai dev registry (c321d7eb) — 930 keys vs the old frozen 707;
+  diff proof: 0 value changes across the whole surface, 10 consts gone (ALL
+  deprecated-era gen_ai.* that upstream deleted; of the gen_ai.openai.* five,
+  service_tier ×2 + system_fingerprint renamed to openai.*, seed +
+  response_format removed with no successor). All 10 were used as @encodedName
+  wire names on deliberately-deprecated migration fields → frozen verbatim in
+  NEW hand-maintained generated/otel-keys-legacy.tsp (same Keys.GenAi namespace
+  via TypeSpec namespace merging — zero edits to consuming models). Retired npm
+  dep @ancplua/typespec-otel-semconv@1.41.0-2 removed (+ its renovate rule);
+  VerifyKeysLockstep rewritten: header-pin assertion (OtelKeysVersion=1.43.0 in
+  .nuke/parameters.json) + legacy/generated const-disjointness guard, replacing
+  the npm byte-diff. EVIDENCE: emitted outputs (openapi/ts-types/contracts/
+  json-schema/control-graph) byte-identical → wire-neutral; nuke Check all 11
+  targets green locally; CI Nuke build verification green on 1a5d804. Workspace
+  router CLAUDE.md skew sections updated to RESOLVED. INCIDENT (contained):
+  first `gh release create v0.2.3` ran from the SemanticConventions cwd →
+  tagged the WRONG repo, whose NuGet publish workflow started; cancelled within
+  seconds (only checkout/version steps ran), release+tag deleted, nuget.org
+  verified clean (no 0.2.3, latest 3.3.0). Correct release v0.2.3 created on
+  ANcpLua/qyl-api-schema. BLOCKER (needs user, tools can't fix): publish.yml
+  run 29131737334 failed at "Authenticate to NuGet (OIDC)" — nuget.org token
+  exchange HTTP 401 "No matching trust policy owned by user 'ANcpLua'". This
+  was the FIRST-EVER run of publish.yml (0.2.2 predates it), so its "setup is
+  complete" header claim was never exercised; the nuget.org trusted-publishing
+  policy is missing/expired (pending policies expire unused after ~7 days).
+  FIX: nuget.org → account ANcpLua → Trusted Publishing → (re)create policy
+  {owner: ANcpLua, repo: qyl-api-schema, workflow: publish.yml, environment:
+  release}, then re-run the failed run (`gh run rerun 29131737334 --repo
+  ANcpLua/qyl-api-schema`). npm side untouched (all-or-nothing: nuget auths
+  first, npm publishes last). AFTER publish+index: bump Qyl.Api.Contracts
+  0.2.2 → 0.2.3 in qyl Directory.Packages.props:88 and restore-verify.
