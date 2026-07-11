@@ -622,6 +622,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.reasoning.output_tokens" // incubating
     );
 
+    internal const string DbSystemDeprecated = "db.system";
     internal const string DbSystemName = "db.system.name";
     internal const string GenAiCacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens"; // incubating
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
