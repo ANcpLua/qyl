@@ -83,6 +83,7 @@ public static class QylConstants
         public const string DotnetExecutable = "dotnet";
         public const string RunCommand = "run";
         public const string ProjectFlag = "--project";
+        public const string NoLaunchProfileFlag = "--no-launch-profile";
         public const int HealthPollIntervalMs = 500;
         public const int HealthProbeAttemptTimeoutSeconds = 5;
         public const int StartupTimeoutSeconds = 60;

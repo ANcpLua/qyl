@@ -34,22 +34,27 @@ public sealed class QylAppBuilder
         // port the collector never binds (it would fall back to its built-in 5100 default).
         var apiPort = port ?? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback);
 
+        // OTLP receiver ports must be unique across the whole composition: two children pinned to
+        // the same receiver port either lose a bind race or, worse, receive each other's telemetry.
+        // The first collector gets the well-known defaults; every later one gets freshly claimed ports.
+        var otlpHttpPort = NextFreePort(QylConstants.Collector.DefaultOtlpHttpPort, apiPort);
+        var grpcPort = NextFreePort(QylConstants.Collector.DefaultGrpcPort, apiPort, otlpHttpPort);
+
         var env = new Dictionary<string, string>
         {
             [QylConstants.Env.QylPort] = apiPort.ToString(CultureInfo.InvariantCulture),
-            // Pin the OTLP receiver ports the resource record advertises, so ambient QYL_OTLP_PORT/
-            // QYL_GRPC_PORT in the runner's environment cannot desync child reality from composition.
-            [QylConstants.Env.QylOtlpPort] =
-                QylConstants.Collector.DefaultOtlpHttpPort.ToString(CultureInfo.InvariantCulture),
-            [QylConstants.Env.QylGrpcPort] =
-                QylConstants.Collector.DefaultGrpcPort.ToString(CultureInfo.InvariantCulture)
+            // Pin the ports the resource record advertises, so ambient QYL_OTLP_PORT/QYL_GRPC_PORT
+            // in the runner's environment cannot desync child reality from composition.
+            [QylConstants.Env.QylOtlpPort] = otlpHttpPort.ToString(CultureInfo.InvariantCulture),
+            [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture)
         };
 
         // The runner launches children with ASPNETCORE_ENVIRONMENT=dev, which is not "Development",
         // so the collector's auth fallback is ApiKey and it refuses to start without a key. Default
         // the loopback dev-runner children to Unsecured unless the operator's environment already
-        // decided the auth mode (the child inherits that decision).
-        if (Environment.GetEnvironmentVariable(QylConstants.Env.QylOtlpAuthMode) is null)
+        // decided the auth mode (the child inherits that decision). Whitespace counts as undecided:
+        // `export QYL_OTLP_AUTH_MODE=` yields "" (not null), and "" is not a decision.
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(QylConstants.Env.QylOtlpAuthMode)))
             env[QylConstants.Env.QylOtlpAuthMode] = QylConstants.Collector.UnsecuredAuthMode;
 
         var builder = Register(new QylResource
@@ -57,8 +62,8 @@ public sealed class QylAppBuilder
             Name = name,
             Kind = QylConstants.ResourceKinds.Collector,
             Port = apiPort,
-            OtlpHttpPort = QylConstants.Collector.DefaultOtlpHttpPort,
-            GrpcPort = QylConstants.Collector.DefaultGrpcPort,
+            OtlpHttpPort = otlpHttpPort,
+            GrpcPort = grpcPort,
             Launch = BuildLaunchSpec(project, name, env)
         });
 
@@ -114,11 +119,37 @@ public sealed class QylAppBuilder
         });
     }
 
+    // First caller of a well-known port keeps it; later collectors get freshly claimed ports so the
+    // composition can never pin two children to the same receiver. alsoAvoid covers ports assigned
+    // earlier in the same AddCollector call that are not yet visible in _resources.
+    private int NextFreePort(int preferred, params int[] alsoAvoid)
+    {
+        var taken = _resources
+            .SelectMany(static r => new[] { r.Port, r.OtlpHttpPort, r.GrpcPort })
+            .Concat(alsoAvoid)
+            .Where(static p => p > 0)
+            .ToHashSet();
+
+        return taken.Contains(preferred)
+            ? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback)
+            : preferred;
+    }
+
     private QylResourceBuilder Register(QylResource resource)
     {
         if (_resources.Any(r => string.Equals(r.Name, resource.Name, StringComparison.Ordinal)))
         {
             throw new InvalidOperationException($"Resource '{resource.Name}' was already added; names must be unique.");
+        }
+
+        var portClash = _resources.FirstOrDefault(r =>
+            r.Port == resource.Port ||
+            (resource.OtlpHttpPort > 0 && (r.Port == resource.OtlpHttpPort || r.OtlpHttpPort == resource.OtlpHttpPort)) ||
+            (resource.GrpcPort > 0 && (r.Port == resource.GrpcPort || r.GrpcPort == resource.GrpcPort)));
+        if (portClash is not null)
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' overlaps a port already used by '{portClash.Name}'; every api/otlp/grpc port must be unique.");
         }
 
         _resources.Add(resource);
@@ -152,8 +183,12 @@ public sealed class QylAppBuilder
         return new QylLaunchSpec
         {
             Executable = QylConstants.Orchestrator.DotnetExecutable,
+            // --no-launch-profile: a Properties/launchSettings.json in the child project would
+            // otherwise silently override every env var injected here, including the ports and the
+            // self-telemetry loop-breaker. Composition-declared env must always win.
             Args = new ReadOnlyCollection<string>([
-                QylConstants.Orchestrator.RunCommand, QylConstants.Orchestrator.ProjectFlag, project
+                QylConstants.Orchestrator.RunCommand, QylConstants.Orchestrator.NoLaunchProfileFlag,
+                QylConstants.Orchestrator.ProjectFlag, project
             ]),
             Env = env
         };

@@ -5,12 +5,17 @@ namespace Qyl.Run;
 
 /// <summary>
 /// Configures where a collector's own telemetry (its self-instrumentation spans/logs) is exported.
-/// The flow is strictly one-way: the owning collector exports OTLP to the target collector, and the
-/// target's own exporter stays disabled — so there is no third collector and no feedback loop.
+/// The flow is strictly one-way: the owning collector exports OTLP to the target collector, and no
+/// export path back to the owner can be composed — so there is no third collector and no feedback loop.
 /// <code>
 /// collector self-telemetry ──OTLP──&gt; diagnostics collector
 /// diagnostics self-telemetry ──X──&gt; nowhere
 /// </code>
+/// Safety is automatic: self-reference and cycle validation always runs at composition time
+/// (see <see cref="RejectSelfReference"/>), and the collector re-validates the resolved endpoint
+/// against its own ports at startup. A dedicated target (<see cref="ExportToDedicatedCollector"/>)
+/// additionally has its exporter force-disabled; an <see cref="ExportTo"/> target's exporter remains
+/// the caller's responsibility apart from the cycle guard.
 /// </summary>
 public sealed class QylSelfTelemetryBuilder
 {
@@ -18,7 +23,6 @@ public sealed class QylSelfTelemetryBuilder
     private readonly IQylResourceBuilder _owner;
     private readonly string? _ownerProject;
     private IQylResourceBuilder? _target;
-    private bool _rejectSelfReference;
 
     internal QylSelfTelemetryBuilder(QylAppBuilder app, IQylResourceBuilder owner, string? ownerProject)
     {
@@ -30,7 +34,8 @@ public sealed class QylSelfTelemetryBuilder
     /// <summary>
     /// Export the owning collector's self-telemetry to an already-added collector resource.
     /// The export endpoint is the target's OTLP/HTTP receiver (its <c>QYL_OTLP_PORT</c>),
-    /// never its API/dashboard port.
+    /// never its API/dashboard port. The target's own exporter configuration is left to the
+    /// caller; wiring the target back at the owner is rejected as a cycle.
     /// </summary>
     public QylSelfTelemetryBuilder ExportTo(IQylResourceBuilder collector)
     {
@@ -49,8 +54,10 @@ public sealed class QylSelfTelemetryBuilder
     /// Provision a dedicated diagnostics collector — the same collector project started as a second
     /// process/resource — and export the owning collector's self-telemetry to it. The dedicated
     /// instance gets its own API port, freshly claimed OTLP receiver ports, separate DuckDB storage
-    /// (<c>qyl.&lt;name&gt;.duckdb</c>), and its own service identity; its exporter is force-disabled
-    /// (inherited <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is blanked) so its telemetry goes nowhere.
+    /// (<c>qyl.&lt;name&gt;.duckdb</c>), and its own service identity. Its telemetry pipeline is a
+    /// guaranteed dead end: the exporter env is force-blanked (an inherited
+    /// <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> cannot chain it onward) and its ingest runs Unsecured so
+    /// the owner's exporter — which carries no auth headers — is never silently 401-dropped.
     /// </summary>
     public QylSelfTelemetryBuilder ExportToDedicatedCollector(string name, int? port = null)
     {
@@ -61,29 +68,23 @@ public sealed class QylSelfTelemetryBuilder
                 $"Self-telemetry for '{_owner.Resource.Name}' already has an export target ('{_target.Resource.Name}').");
         }
 
-        // Fresh OTLP receiver ports: the primary already occupies the collector defaults (4318/4317),
-        // so the dedicated instance must never fall back to them.
-        var otlpHttpPort = PortAllocator.ClaimFreePort(QylConstants.Network.Loopback);
-        var grpcPort = PortAllocator.ClaimFreePort(QylConstants.Network.Loopback);
-
         var dedicated = _app.AddCollector(name, port, _ownerProject);
         dedicated.Update(r => r with
         {
-            OtlpHttpPort = otlpHttpPort,
-            GrpcPort = grpcPort,
             Launch = r.Launch with
             {
                 Env = Merge(r.Launch.Env, new Dictionary<string, string>
                 {
-                    [QylConstants.Env.QylOtlpPort] = otlpHttpPort.ToString(CultureInfo.InvariantCulture),
-                    [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture),
                     [QylConstants.Env.QylDataPath] =
                         string.Format(CultureInfo.InvariantCulture, QylConstants.Collector.DataPathTemplate, name),
                     // The loop-breaker: a blank endpoint reads as "no exporter" in the collector's
                     // service defaults, and explicitly overrides any OTEL_EXPORTER_OTLP_ENDPOINT the
                     // runner's own environment would otherwise leak into the child. Without this, an
                     // ambient endpoint could point the diagnostics instance back at the primary.
-                    [QylConstants.Env.OtelExporterOtlpEndpoint] = string.Empty
+                    [QylConstants.Env.OtelExporterOtlpEndpoint] = string.Empty,
+                    // A dedicated diagnostics sink must accept its owner's exporter, which sends no
+                    // auth headers: an inherited ApiKey mode would 401-drop every batch silently.
+                    [QylConstants.Env.QylOtlpAuthMode] = QylConstants.Collector.UnsecuredAuthMode
                 })
             }
         });
@@ -93,17 +94,19 @@ public sealed class QylSelfTelemetryBuilder
     }
 
     /// <summary>
-    /// Reject, at composition time, any resolved export endpoint that points back at the owning
-    /// collector itself — its API port or either of its own OTLP receiver ports.
+    /// Kept for call-site readability: self-reference and cycle validation is ALWAYS enforced by
+    /// <c>Apply()</c> whether or not this is called — a resolved endpoint pointing back at any of
+    /// the owning collector's own ports (api / otlp-http / grpc), or a target that already exports
+    /// to the owner, fails composition unconditionally.
     /// </summary>
     public QylSelfTelemetryBuilder RejectSelfReference()
     {
-        _rejectSelfReference = true;
         return this;
     }
 
-    // Runs after the user callback returns: resolves the target's OTLP/HTTP endpoint, validates it,
-    // and injects the exporter configuration into the owning collector's launch environment.
+    // Runs after the user callback returns: resolves the target's OTLP/HTTP endpoint, validates it
+    // (always — safety is not opt-in), and injects the exporter configuration into the owning
+    // collector's launch environment.
     internal void Apply()
     {
         if (_target is null)
@@ -130,13 +133,25 @@ public sealed class QylSelfTelemetryBuilder
                 $"Self-telemetry target '{target.Name}' has no OTLP receiver port; only collector resources can receive self-telemetry.");
         }
 
-        if (_rejectSelfReference &&
-            (target.OtlpHttpPort == owner.Port || target.OtlpHttpPort == owner.OtlpHttpPort ||
-             target.OtlpHttpPort == owner.GrpcPort))
+        if (target.OtlpHttpPort == owner.Port || target.OtlpHttpPort == owner.OtlpHttpPort ||
+            target.OtlpHttpPort == owner.GrpcPort)
         {
             throw new InvalidOperationException(
                 $"Self-telemetry endpoint for '{owner.Name}' resolves to port {target.OtlpHttpPort}, which is one of its own ports " +
                 $"(api {owner.Port}, otlp-http {owner.OtlpHttpPort}, grpc {owner.GrpcPort}) — that would be a feedback loop.");
+        }
+
+        // Two-collector cycle guard: if the target already exports to the owner's OTLP receiver,
+        // wiring owner→target would close a loop spanning two processes.
+        if (target.Launch.Env.TryGetValue(QylConstants.Env.OtelExporterOtlpEndpoint, out var targetExport) &&
+            !string.IsNullOrWhiteSpace(targetExport) &&
+            Uri.TryCreate(targetExport, UriKind.Absolute, out var targetExportUri) &&
+            (targetExportUri.Port == owner.OtlpHttpPort || targetExportUri.Port == owner.GrpcPort ||
+             targetExportUri.Port == owner.Port))
+        {
+            throw new InvalidOperationException(
+                $"Self-telemetry target '{target.Name}' already exports to '{owner.Name}' ({targetExport}); " +
+                "wiring both directions would be a feedback loop.");
         }
 
         var endpoint = string.Format(CultureInfo.InvariantCulture, QylConstants.Network.LocalhostUrlTemplate,

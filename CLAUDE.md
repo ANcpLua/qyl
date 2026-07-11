@@ -479,3 +479,36 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   legacy keys) → NO 4.0.4 / 3.4.0 releases needed. NOTED, out of scope:
   dashboard still dual-reads pre-1.41-era http.method / db.system old keys —
   different era, ingestion-tolerance decision for another day.
+- 2026-07-11 — Self-telemetry hardening pass (Claude, ultracode: 24-agent adversarial
+  review over the a1db9557 feature; every confirmed finding fixed, refuted ones
+  dropped). FIXED: (1) validation is now ALWAYS-ON — RejectSelfReference() kept as
+  call-site documentation only; same-resource, port-identity and two-process cycle
+  checks run unconditionally in Apply(); (2) every AddCollector now allocates UNIQUE
+  api/otlp/grpc ports (first collector keeps 4318/4317, later ones claim free ports;
+  Register throws on any overlap) — kills the ExportTo(existing) 4318-bind-race /
+  self-loop the review proved; (3) children launch with `dotnet run
+  --no-launch-profile` so a future launchSettings.json can't override injected env
+  (verifier proved SDK 10.0.301 lets launchSettings win otherwise); (4) dedicated
+  diagnostics sink forces QYL_OTLP_AUTH_MODE=Unsecured (ambient ApiKey would silently
+  401-drop the owner's header-less exporter); (5) auth-mode default gate now treats
+  empty-string env as undecided (`export QYL_OTLP_AUTH_MODE=` crash-looped both
+  children before); (6) OTEL_SERVICE_NAME rebind no longer unsubscribes the
+  assembly-name ActivitySource (AddSource both when they differ) — spans from
+  AddProject children using `new ActivitySource(<assembly>)` survived only by luck
+  before; (7) NEW collector-side startup guard CollectorSelfExportGuard (the
+  "validate twice" half): resolved loopback OTEL_EXPORTER_OTLP_ENDPOINT on any own
+  port (api/otlp/grpc, aliases localhost/127.0.0.1/::1/[::1]/0.0.0.0) throws at boot.
+  DESIGN.md Qyl.Run surface section updated (4 stale points). ACCEPTED, not fixed
+  (all [low], documented): PortAllocator claim-then-release TOCTOU window; no
+  readiness ordering primary↔diagnostics (OTLP exporter retry/batch covers it);
+  Unsecured-on-AnyIP posture equals the previous manual workaround; same-project
+  concurrent `dotnet run` build race (3 clean-slate repro attempts failed on macOS).
+  EVIDENCE: qyl.slnx 0W/0E; composition tests — unique-port allocation (diag 4318,
+  main claimed 62678), duplicate ports rejected, missing target rejected, dedicated
+  accepted (auth=Unsecured, exporter='', qyl.diagnostics.duckdb); startup guard threw
+  InvalidOperationException on OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318;
+  live run: collector+diagnostics healthy 5100/5200, diagnostics /api/v1/traces = 3
+  traces all service.name=collector, primary /api/v1/traces = 0 (no self-ingest).
+  NOTE: services/qyl.collector/qyl.duckdb.pre-selftel.bak is the June-era DB set
+  aside during verification (its stale schema 500s /api/v1/traces on current code —
+  pre-existing, unrelated); delete or migrate whenever.

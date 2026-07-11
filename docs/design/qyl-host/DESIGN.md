@@ -26,9 +26,13 @@ exposes a read-only HTTP/SSE state feed. Two NuGets (`ANcpLua.Roslyn.Utilities`,
 `Spectre.Console`), `IsAotCompatible=true`, ~1,350 LoC.
 
 - **Public surface:** `QylAppBuilder.Create(args)` → `AddCollector(name, port?,
-  project?)` / `AddProject(name, project, port?)` → `Build()` → `QylApp.RunAsync()`.
-  The only fluent primitive is `IQylResourceBuilder.Update(mutate)`.
-- **Resource model:** `QylResource { Name, Kind, Port, Launch }`,
+  project?, selfTelemetry?)` / `AddProject(name, project, port?)` → `Build()` →
+  `QylApp.RunAsync()`. Fluent primitives: `IQylResourceBuilder.Update(mutate)` and
+  `QylSelfTelemetryBuilder` (`ExportTo` / `ExportToDedicatedCollector` /
+  `RejectSelfReference` — validation is always-on; the method is call-site
+  documentation) for one-way collector self-telemetry into a dedicated
+  diagnostics collector whose own exporter stays disabled.
+- **Resource model:** `QylResource { Name, Kind, Port, OtlpHttpPort, GrpcPort, Launch }`,
   `QylLaunchSpec { Executable, Args, Env, WorkingDirectory, HealthPath="/health" }`,
   `enum ResourceLifecycle { Pending, Starting, Ready, Stopping, Stopped, Failed }`.
 - **Readiness = HTTP:** `QylOrchestrator.PollHealthAsync` polls `GET
@@ -42,15 +46,16 @@ exposes a read-only HTTP/SSE state feed. Two NuGets (`ANcpLua.Roslyn.Utilities`,
 **The lock.** `QylProcessLauncher` is generic — it runs whatever
 `Launch.Executable` + `Args` say. But the *only* builder path that creates
 resources hardcodes the toolchain, `QylAppBuilder.BuildLaunchSpec`
-(`packages/Qyl.Run/QylAppBuilder.cs:104-111`):
+(`packages/Qyl.Run/QylAppBuilder.cs`):
 
 ```csharp
 Executable = QylConstants.Orchestrator.DotnetExecutable,   // "dotnet"
-Args = [ RunCommand, ProjectFlag, project ]                // "run", "--project", <path>
+Args = [ RunCommand, NoLaunchProfileFlag, ProjectFlag, project ]
 ```
 
 There is **no public API to set a custom executable** — `AddCollector`/`AddProject`
-take only name/project/port. `Qyl.Run.Host/Program.cs:10` states it plainly:
+take only name/project/port (plus collector self-telemetry wiring).
+`Qyl.Run.Host/Program.cs` states it plainly:
 *"resources are launched via `dotnet run --project <path>`, so only .NET projects
 can be added."* The mechanism is polyglot; the shipped surface is not.
 

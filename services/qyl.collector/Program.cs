@@ -21,6 +21,7 @@ builder.AddQylServiceDefaults(options =>
 });
 
 var ports = builder.Services.AddQylCollectorCore(builder.Configuration);
+CollectorSelfExportGuard.ThrowIfSelfExporting(builder.Configuration, ports);
 builder.Services.AddQylCollectorStorage();
 builder.Services.AddQylCollectorAuth(builder.Configuration, builder.Environment);
 builder.Services.AddQylCollectorTelemetry(builder.Environment);

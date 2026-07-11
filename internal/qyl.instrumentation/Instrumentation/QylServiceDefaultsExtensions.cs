@@ -199,6 +199,11 @@ public static class QylServiceDefaultsExtensions
                     })
                     .AddHttpClientInstrumentation();
 
+                // OTEL_SERVICE_NAME may rename the service, but apps following the
+                // assembly-name ActivitySource convention must stay subscribed.
+                if (!string.Equals(serviceName, builder.Environment.ApplicationName, StringComparison.Ordinal))
+                    tracing.AddSource(builder.Environment.ApplicationName);
+
                 foreach (var source in s_genAiExternalActivitySources)
                     tracing.AddSource(source);
 
