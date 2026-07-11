@@ -1,4 +1,5 @@
 using Qyl.Collector.Cost;
+using Qyl.Collector.Grpc;
 
 namespace Qyl.Collector.Hosting;
 
@@ -23,7 +24,10 @@ internal static class CollectorCoreExtensions
         {
             options.ResponseCompressionLevel = CompressionLevel.Optimal;
             options.ResponseCompressionAlgorithm = "gzip";
+            // The gRPC half of the API-key boundary; the HTTP half is CollectorApiKeyMiddleware.
+            options.Interceptors.Add<OtlpApiKeyInterceptor>();
         });
+        services.AddSingleton<OtlpApiKeyInterceptor>();
 
         return ports;
     }

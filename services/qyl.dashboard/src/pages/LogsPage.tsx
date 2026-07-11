@@ -14,6 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {withApiKeyQuery} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
@@ -325,7 +326,7 @@ function useLiveLogs(
         let eventSource: EventSource | null = null;
 
         const connect = () => {
-            eventSource = new EventSource('/api/v1/stream/logs');
+            eventSource = new EventSource(withApiKeyQuery('/api/v1/stream/logs'));
 
             eventSource.onopen = () => {
                 setIsConnected(true);

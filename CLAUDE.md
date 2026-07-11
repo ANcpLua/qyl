@@ -64,8 +64,9 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
 4. ~~**`Qyl.Host` convergence + MCP wiring.**~~ SHIPPED 2026-07-11 — all four
    remaining migration steps landed (IReadinessProbe, Qyl.Host.Mcp, console
    convergence, rename); see the progress-log entry and `docs/design/qyl-host/`.
-5. **Auth + scoping.** gRPC ingest has no API-key boundary (HTTP does); the read API is
-   unauthenticated; `ProjectScope.cs` hardcodes `"default"`.
+5. ~~**Auth + scoping.**~~ SHIPPED 2026-07-11 — gRPC interceptor mirrors the HTTP
+   key boundary, the read API is gated in ApiKey mode, and read-side project scoping
+   is real (X-Qyl-Project); see the progress-log entry.
 6. **Release coherence.** `0.1.0-beta.1` is **not stamped** — the only pack artifact is
    `Qyl.Run.1.0.0.nupkg`. One version owner (`Version.props`); pipeline is
    verify → pack → publish → index → clean-restore. Trap to remember: `nuget.config`
@@ -976,4 +977,39 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   composition's repo-root-relative project paths). DEFERRED, recorded in DESIGN.md:
   MCP liveness ping + reconnect supervision; C# sandbox origin for ext-apps
   rendering. EVIDENCE per step: build 0W/0E + Verify 38/38 (×4) + live runs above;
-  CI green on d59a510a/47bab824/74c3a634 [Step-6 CI: FILL on push].
+  CI green on d59a510a/47bab824/74c3a634; Step-6 push 3b04c865 was CI ✅ but Links ❌ — the rename left doc-side paths stale (console README's ../Qyl.Run relative link + README/design-doc rows); fixed forward in 52aa28e6 (local relative-link resolver proved 0 broken before push).
+- 2026-07-11 — **Repair-plan Phase 5 (auth + scoping) SHIPPED** (Claude). ONE collector
+  credential, THREE enforcement points, one validator: (1) NEW OtlpApiKeyValidator
+  (fixed-time compare, primary+secondary) shared by both transports; (2) the HTTP
+  middleware (renamed OtlpApiKeyMiddleware → CollectorApiKeyMiddleware — it now guards
+  the READ API too) covers /v1/* AND /api/v1/* in ApiKey mode; /health, /alive and the
+  SPA shell stay open (Railway/runner probes need credential-less liveness). Read-API
+  requests may pass ?api_key= as a fallback — EventSource cannot set headers (SSE log
+  stream); ASP.NET's default query redaction keeps the key out of the collector's own
+  telemetry. (3) NEW gRPC OtlpApiKeyInterceptor — same options, same validator,
+  Unauthenticated instead of 401, wired via AddGrpc interceptors. RECORDED SCHEME:
+  x-otlp-api-key stays the single header for ingest AND read (historical name kept
+  deliberately — one credential, no second vocabulary). Dashboard reads the key from
+  localStorage 'qyl:api-key' (fetchJson header injection + withApiKeyQuery for
+  EventSource); key-entry UI deferred. SCOPING: ingest already persisted real project
+  ids (qyl.project.id/qyl.workspace.id resource attrs → ProjectScope.Normalize) — the
+  gap was read-side; all 13 read handlers now resolve the scope from the X-Qyl-Project
+  header (absent = "default"). Header-based selection is wire-compatible; a formal
+  contract axis goes through qyl-api-schema when multi-project goes public (noted in
+  the endpoint helper). EVIDENCE (live matrix on :5147-5149): Unsecured — no-key
+  accepts everywhere (HTTP 202, read 200, gRPC span ingested AND queryable by hex id);
+  ApiKey — health 200 keyless; HTTP OTLP 401/401/202; read API 401(no)/401(wrong)/
+  200(header)/200(query)/SSE-200(query); gRPC Unauthenticated(no)/Unauthenticated
+  (wrong)/accepted-with-key proven by the span landing in storage (grpcurl's
+  "Internal: failed to decompress" on success cells is a client-side gzip artifact —
+  the collector compresses responses; rejects surface cleanly). SCOPING — alpha-project
+  span invisible to default scope (list excludes it, by-id 404) and visible under
+  X-Qyl-Project: alpha (list shows only it, by-id 200); default sees only default.
+  CONSTRAINTS held: Qyl.Run.Host composition boots both collectors healthy
+  (loopback children still default Unsecured; QylSelfTelemetryBuilder untouched).
+  ENVIRONMENTAL incident during evidence, not code: hard process kills (kill-by-port)
+  corrupted a dev DuckDB WAL (services/qyl.collector/qyl.diagnostics.duckdb.wal) —
+  the diagnostics child then crashed at DuckDBOpen replaying it, failing composition
+  boots until the stale dev DBs were deleted. Lesson: prefer SIGTERM + drain for
+  collector children; dev *.duckdb artifacts are disposable. Verify 38/38; dashboard
+  tsc/build/18-18 tests green.

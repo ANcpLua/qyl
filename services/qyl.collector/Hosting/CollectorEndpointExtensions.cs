@@ -109,6 +109,7 @@ internal static class CollectorEndpointExtensions
 
 
     private static async Task<IResult> GetSessionsAsync(
+        HttpContext httpContext,
         IQylStore store,
         bool? isActive,
         DateTimeOffset? startTime,
@@ -128,7 +129,7 @@ internal static class CollectorEndpointExtensions
 
         var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit);
         var sessions = await store.GetSessionsAsync(
-            ProjectScope.DefaultProjectId,
+            ResolveProjectScope(httpContext),
             boundedLimit + 1,
             offset,
             isActive,
@@ -154,20 +155,22 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetSessionByIdAsync(
+        HttpContext httpContext,
         string sessionId,
         IQylStore store,
         CancellationToken ct) =>
-        await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is not { } session
+        await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
             ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
             : Results.Ok(SessionMapper.ToContract(session));
 
     private static async Task<IResult> GetSessionStatsAsync(
+        HttpContext httpContext,
         IQylStore store,
         DateTimeOffset? startTime,
         DateTimeOffset? endTime,
         CancellationToken ct)
     {
-        var stats = await store.GetSessionStatsAsync(ProjectScope.DefaultProjectId, startTime, endTime, ct: ct)
+        var stats = await store.GetSessionStatsAsync(ResolveProjectScope(httpContext), startTime, endTime, ct: ct)
             .ConfigureAwait(false);
         return Results.Ok(new SessionStats
         {
@@ -181,14 +184,15 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetSessionTracesAsync(
+        HttpContext httpContext,
         string sessionId,
         IQylStore store,
         CancellationToken ct)
     {
-        if (await store.GetSessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false) is null)
+        if (await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is null)
             return Results.NotFound(ContractErrorFactory.NotFound("session", sessionId));
 
-        var spans = await store.GetSpansBySessionAsync(sessionId, ProjectScope.DefaultProjectId, ct: ct)
+        var spans = await store.GetSpansBySessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct)
             .ConfigureAwait(false);
         var traces = spans
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
@@ -203,12 +207,13 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetTracesAsync(
+        HttpContext httpContext,
         IQylStore store,
         int? limit,
         CancellationToken ct)
     {
         var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit);
-        var spans = await store.GetSpansAsync(ProjectScope.DefaultProjectId, limit: boundedLimit, ct: ct)
+        var spans = await store.GetSpansAsync(ResolveProjectScope(httpContext), limit: boundedLimit, ct: ct)
             .ConfigureAwait(false);
         var traces = spans
             .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
@@ -223,11 +228,12 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetTraceSpansAsync(
+        HttpContext httpContext,
         string traceId,
         IQylStore store,
         CancellationToken ct)
     {
-        var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
+        var spans = await store.GetTraceAsync(traceId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false);
         if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
         var spanContracts = SpanMapper.ToContracts(spans);
@@ -235,11 +241,12 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetTraceAsync(
+        HttpContext httpContext,
         string traceId,
         IQylStore store,
         CancellationToken ct)
     {
-        var spans = await store.GetTraceAsync(traceId, ProjectScope.DefaultProjectId, ct: ct).ConfigureAwait(false);
+        var spans = await store.GetTraceAsync(traceId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false);
         if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
 
         var spanContracts = SpanMapper.ToContracts(spans);
@@ -248,6 +255,7 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetLogsAsync(
+        HttpContext httpContext,
         IQylStore store,
         string? sessionId,
         string? traceId,
@@ -262,7 +270,7 @@ internal static class CollectorEndpointExtensions
     {
         var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.LogMaxLimit);
         var logs = await store.GetLogsAsync(
-            ProjectScope.DefaultProjectId,
+            ResolveProjectScope(httpContext),
             sessionId: sessionId,
             traceId: traceId,
             severityText: level,
@@ -290,7 +298,7 @@ internal static class CollectorEndpointExtensions
         context.Response.Headers.CacheControl = "no-cache,no-store";
         context.Response.Headers.Pragma = "no-cache";
 
-        await foreach (var streamEvent in StreamLogEventsAsync(store, serviceName, minSeverity, query, ct)
+        await foreach (var streamEvent in StreamLogEventsAsync(store, ResolveProjectScope(context), serviceName, minSeverity, query, ct)
                            .ConfigureAwait(false))
         {
             if (streamEvent.Log is { } log)
@@ -317,6 +325,7 @@ internal static class CollectorEndpointExtensions
     private static async IAsyncEnumerable<(string EventType, LogStreamEvent? Log, HeartbeatEvent? Heartbeat)>
         StreamLogEventsAsync(
         IQylStore store,
+        string projectId,
         string? serviceName,
         int? minSeverity,
         string? query,
@@ -328,7 +337,7 @@ internal static class CollectorEndpointExtensions
         while (!ct.IsCancellationRequested)
         {
             var rows = await store.GetLogsAsync(
-                ProjectScope.DefaultProjectId,
+                projectId,
                 sessionId: null,
                 traceId: null,
                 severityText: null,
@@ -423,6 +432,7 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetProfilesAsync(
+        HttpContext httpContext,
         IQylStore store,
         string? sessionId,
         string? traceId,
@@ -433,7 +443,7 @@ internal static class CollectorEndpointExtensions
     {
         var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
         var profiles = await store.GetProfilesAsync(
-            ProjectScope.DefaultProjectId,
+            ResolveProjectScope(httpContext),
             sessionId,
             traceId,
             serviceName: serviceName,
@@ -445,36 +455,47 @@ internal static class CollectorEndpointExtensions
     }
 
     private static async Task<IResult> GetProfileByIdAsync(
+        HttpContext httpContext,
         string profileId,
         IQylStore store,
         CancellationToken ct)
     {
-        var detail = await store.GetProfileDetailAsync(profileId, ProjectScope.DefaultProjectId, ct: ct);
+        var detail = await store.GetProfileDetailAsync(profileId, ResolveProjectScope(httpContext), ct: ct);
         return detail is not null
             ? Results.Ok(ProfileMapper.ToContract(detail))
             : Results.NotFound(ContractErrorFactory.NotFound("profile", profileId));
     }
 
     private static async Task<IResult> GetTraceProfilesAsync(
+        HttpContext httpContext,
         string traceId,
         IQylStore store,
         CancellationToken ct)
     {
-        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, traceId: traceId, ct: ct);
+        var profiles = await store.GetProfilesAsync(ResolveProjectScope(httpContext), traceId: traceId, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
     private static async Task<IResult> GetSpanProfilesAsync(
+        HttpContext httpContext,
         string spanId,
         IQylStore store,
         int? limit,
         CancellationToken ct)
     {
         var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
-        var profiles = await store.GetProfilesAsync(ProjectScope.DefaultProjectId, spanId: spanId, limit: boundedLimit, ct: ct);
+        var profiles = await store.GetProfilesAsync(ResolveProjectScope(httpContext), spanId: spanId, limit: boundedLimit, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
+
+    // Phase-5 decision: the read API resolves its project scope from the X-Qyl-Project header,
+    // absent meaning "default" (ingest already persists real project ids from qyl.project.id /
+    // qyl.workspace.id resource attributes). Header-based selection is wire-compatible with the
+    // published contract; a formal contract axis goes through qyl-api-schema when multi-project
+    // goes public.
+    private static string ResolveProjectScope(HttpContext httpContext) =>
+        ProjectScope.Normalize(httpContext.Request.Headers["X-Qyl-Project"].FirstOrDefault());
 
     private static Task FallbackHandler(HttpContext context)
     {

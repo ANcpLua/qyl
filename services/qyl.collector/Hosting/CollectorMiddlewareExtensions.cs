@@ -15,7 +15,7 @@ internal static class CollectorMiddlewareExtensions
         if (otlpCorsOptions.IsEnabled)
             app.UseMiddleware<OtlpCorsMiddleware>(otlpCorsOptions);
 
-        app.UseMiddleware<OtlpApiKeyMiddleware>(otlpApiKeyOptions);
+        app.UseMiddleware<CollectorApiKeyMiddleware>(otlpApiKeyOptions);
 
         app.UseRequestDecompression();
 
