@@ -519,3 +519,25 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   self-telemetry feature + hardening), whose code is verified green LOCALLY
   (qyl.slnx 0W/0E + live e2e above). FIX: GitHub → Settings → Billing & plans →
   resolve payment/spending limit, then `gh run rerun --failed` the head run.
+- 2026-07-11 — Anti-pattern round 2 → qyl-api-schema v0.4.0 shipped + consumed
+  (Claude, user-invited "optimize anti patterns"). Findings, each verified
+  before cutting: (1) OTelVersion enum had ZERO consumers anywhere (contract
+  emits + qyl product code) — the exact surface that rotted at 1.41; DELETED,
+  the semconv pin is machine-checked (otel-keys header + OtelKeysVersion),
+  not prose-tracked. (2) http.tsp/db.tsp carried the SAME dead-shim class as
+  the GenAI one, from the 1.23/1.24 stabilizations: @removed migration fields
+  on upstream-deleted keys (http.target/url/method/status_code/
+  content-lengths, db.name/statement/operation/user) + hand-typed
+  gen_ai.usage.total_tokens — all DELETED; @typespec/versioning had already
+  excluded every one from current-version artifacts, so the release's wire
+  impact = OTelVersion schema removal only. (3) Version axes minimized:
+  HttpVersions/DbVersions had zero annotations → @versioned dropped entirely;
+  GenAiVersions trimmed to v1_27/v1_38/v1_40; VERSIONING.md codifies the
+  keep-axes-minimal rule. Evidence: Nuke Check 11/11; v0.4.0 publish run
+  success (npm+nuget); qyl pin 0.3.0→0.4.0 (cc33439b) restored from nuget.org,
+  qyl.slnx 0W/0E. FLAGGED for later: (a) SemanticConventions'
+  OpenTelemetryDeprecatedSemconvCatalog.cs hand-duplicates registry
+  deprecation data — could be generated from resolved-registry.json like the
+  rest of the surface; (b) qyl-api-schema VERSIONING.md prescribes
+  DeprecatedMappings ingestion normalization the collector does NOT implement
+  — decide: implement at ingest or soften the doc.
