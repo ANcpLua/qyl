@@ -1,0 +1,27 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Qyl.Host.Mcp</RootNamespace>
+    <PackageId>Qyl.Host.Mcp</PackageId>
+    <Description>MCP support for the qyl runner — McpHandshakeProbe readiness (initialize + tools/list), connection-only MCP resource kinds (stdio/http/inproc), the /runner/mcp passthrough, and OTLP self-monitoring of every passthrough call. Opt-in package; the engine has no MCP assumption.</Description>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- IsAotCompatible deliberately NOT claimed: the engine (Qyl.Run) keeps the claim; this
+         package leans on the MCP SDK whose AOT posture is not verified here. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <PackageReference Include="ModelContextProtocol.Core"/>
+    <ProjectReference Include="..\Qyl.Run\Qyl.Run.csproj"/>
+  </ItemGroup>
+
+</Project>

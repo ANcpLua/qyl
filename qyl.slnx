@@ -15,6 +15,7 @@
   </Folder>
 
   <Folder Name="/packages/">
+    <Project Path="packages/Qyl.Host.Mcp/Qyl.Host.Mcp.csproj" />
     <Project Path="packages/Qyl.Run/Qyl.Run.csproj" />
     <Project Path="packages/Qyl.Run.Host/Qyl.Run.Host.csproj" />
     <Project Path="packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj" />

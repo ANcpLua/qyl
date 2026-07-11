@@ -126,8 +126,10 @@ public sealed class QylSelfTelemetryBuilder
         }
 
         // Two-collector cycle guard: if the target already exports to the owner's OTLP receiver,
-        // wiring owner→target would close a loop spanning two processes.
-        if (target.Launch.Env.TryGetValue(QylConstants.Env.OtelExporterOtlpEndpoint, out var targetExport) &&
+        // wiring owner→target would close a loop spanning two processes. Self-telemetry targets are
+        // always launched collectors, so a null Launch simply has no export env to check.
+        if (target.Launch is { } targetLaunch &&
+            targetLaunch.Env.TryGetValue(QylConstants.Env.OtelExporterOtlpEndpoint, out var targetExport) &&
             !string.IsNullOrWhiteSpace(targetExport) &&
             Uri.TryCreate(targetExport, UriKind.Absolute, out var targetExportUri) &&
             (targetExportUri.Port == owner.OtlpHttpPort || targetExportUri.Port == owner.GrpcPort ||

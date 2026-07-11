@@ -22,17 +22,23 @@ internal sealed partial class QylProcessLauncher(
     // on success the caller must track and dispose it; on failure this method disposes before throwing.
     public Process Launch(QylResource resource, Uri endpoint)
     {
+        if (resource.Launch is not { } launch)
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' is connection-only (no launch spec); nothing to launch.");
+        }
+
         var startInfo = new ProcessStartInfo
         {
-            FileName = resource.Launch.Executable,
-            WorkingDirectory = resource.Launch.WorkingDirectory ?? string.Empty,
+            FileName = launch.Executable,
+            WorkingDirectory = launch.WorkingDirectory ?? string.Empty,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        foreach (var arg in resource.Launch.Args) startInfo.ArgumentList.Add(arg);
-        foreach (var kv in resource.Launch.Env) startInfo.Environment[kv.Key] = kv.Value;
+        foreach (var arg in launch.Args) startInfo.ArgumentList.Add(arg);
+        foreach (var kv in launch.Env) startInfo.Environment[kv.Key] = kv.Value;
         startInfo.Environment[QylConstants.Env.AspNetCoreUrls] = endpoint.ToString();
 
         var process = new Process { StartInfo = startInfo };

@@ -87,6 +87,19 @@ internal sealed partial class QylOrchestrator(
             var endpoint =
                 new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost, port));
 
+            // Connection-only resource (no launch spec): the probe owns the whole lifecycle-to-Ready
+            // story (for MCP kinds it connects, handshakes, and parks the live client in a registry).
+            // Nothing to supervise — there is no child process; the probe's transport owns any it made.
+            if (resource.Launch is null)
+            {
+                var connected = await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false);
+                registry.Publish(resource.Name,
+                    connected ? ResourceLifecycle.Ready : ResourceLifecycle.Failed, port, endpoint,
+                    connected ? null : "Readiness probe timed out");
+                if (connected) LogReady(logger, resource.Name, endpoint);
+                return;
+            }
+
             // The launcher spawns a child process whose lifecycle we own via _processes.
             var process = launcher.Launch(resource, endpoint);
             _processes[resource.Name] = process;
@@ -277,9 +290,11 @@ internal sealed partial class QylOrchestrator(
     private Task<bool> ProbeReadinessAsync(QylResource resource, int port, Uri endpoint,
         CancellationToken stoppingToken)
     {
+        // Launch-less resources always carry an explicit probe (Build() enforces it); the default
+        // HTTP probe exists only for launched processes with a health path.
         var probe = resource.ReadinessProbe ?? new HttpHealthProbe(
             httpClientFactory,
-            resource.Launch.HealthPath,
+            resource.Launch!.HealthPath,
             TimeSpan.FromSeconds(options.StartupTimeoutSeconds),
             time);
 

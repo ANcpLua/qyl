@@ -20,7 +20,10 @@ public sealed record QylResource
     // Names of resources that must report Ready before this resource's process is launched.
     public IReadOnlyList<string> WaitsFor { get; init; } = [];
 
-    public required QylLaunchSpec Launch { get; init; }
+    // Null = a connection-only resource: the runner launches no child process, and readiness is
+    // decided entirely by ReadinessProbe (required in that case — Build() enforces it). The MCP
+    // kinds use this: the SDK transport owns the connection (and for stdio, the process).
+    public QylLaunchSpec? Launch { get; init; }
 
     // Optional per-resource readiness override; null means the default HTTP health probe against
     // Launch.HealthPath. Set via QylResourceBuilderExtensions.WithReadinessProbe.

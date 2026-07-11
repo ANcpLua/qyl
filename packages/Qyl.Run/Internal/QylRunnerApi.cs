@@ -9,14 +9,18 @@ namespace Qyl.Run.Internal;
 // Read-only, loopback-only HTTP surface exposing the runner's resource state to the dev runner console (packages/Qyl.Run.Console).
 // Deliberate choices, all traceable to the design constraints:
 //   - HttpListener (pure BCL) not Kestrel  -> AOT-clean, zero added dependency, no builder restructuring.
-//   - GET-only, NO control verbs           -> cannot mutate; start/stop/restart stay on the TUI keyboard,
-//                                             so this endpoint can never become a product-API contract.
+//   - GET-only, NO control verbs IN CORE   -> the core routes cannot mutate; start/stop/restart stay on
+//                                             the TUI keyboard. Opt-in packages may claim additional
+//                                             /runner/* routes (with their own verbs) through the
+//                                             IQylRunnerRequestHandler seam — e.g. Qyl.Host.Mcp's
+//                                             /runner/mcp/* passthrough.
 //   - source-generated JSON                -> AOT/trim-safe serialization.
 // Binding failure is non-fatal: the Spectre TUI remains the primary control surface.
 internal sealed partial class QylRunnerApi(
     QylResourceRegistry registry,
     QylLogStore logStore,
     QylAppOptions options,
+    IEnumerable<IQylRunnerRequestHandler> requestHandlers,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -73,6 +77,13 @@ internal sealed partial class QylRunnerApi(
             // Read-only, dev-only, loopback: permit any origin so the runner console (served from Vite/another
             // loopback port) can fetch/subscribe. There is nothing here to protect and nothing to mutate.
             context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+
+            // Registered extension handlers get first claim on the request (they may accept verbs the
+            // core routes never will). A handler that returns true has written and closed the response.
+            foreach (var handler in requestHandlers)
+            {
+                if (await handler.TryHandleAsync(context, stoppingToken).ConfigureAwait(false)) return;
+            }
 
             if (!string.Equals(context.Request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
             {

@@ -49,9 +49,16 @@ public static class QylResourceBuilderExtensions
     {
         Guard.NotNull(builder);
         Guard.NotNullOrWhiteSpace(name);
+        if (builder.Resource.Launch is null)
+        {
+            throw new InvalidOperationException(
+                $"Resource '{builder.Resource.Name}' is connection-only (no launch spec); there is no child " +
+                "process environment to set.");
+        }
+
         return builder.Update(r => r with
         {
-            Launch = r.Launch with
+            Launch = r.Launch! with
             {
                 Env = new Dictionary<string, string>(r.Launch.Env, StringComparer.Ordinal)
                 {

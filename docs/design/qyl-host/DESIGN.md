@@ -170,9 +170,17 @@ mechanical, last-step change.
    orchestrator resolves `QylResource.ReadinessProbe ?? HttpHealthProbe` and a
    public `WithReadinessProbe(...)` builder door lets step 3 attach
    `McpHandshakeProbe` without touching the engine.
-3. **`Qyl.Host.Mcp`** — `McpHandshakeProbe` (initialize + tools/list), the
-   `/runner/mcp` passthrough, and a port of `telemetry.ts`. MCP support becomes an
-   opt-in package, not a core assumption.
+3. **`Qyl.Host.Mcp`** — ✅ DONE 2026-07-11 (repair-plan phase 4). Opt-in package:
+   `McpHandshakeProbe` (initialize + tools/list via the official
+   ModelContextProtocol.Core SDK), connection-only resource kinds
+   (stdio SDK-spawned / http / inproc over a stream pair — the C# SDK couples
+   server+transport at `McpServer.Create`, so the inproc factory is
+   `Func<ITransport, McpServer>` rather than the TS `Func<McpServer>`), the
+   `/runner/mcp` passthrough riding the new core `IQylRunnerRequestHandler`
+   seam (core stays GET-only), and `McpTelemetry` — the `telemetry.ts` port
+   (one CLIENT span per passthrough call, spec-hex ids, `QYL_MCP_*` gates).
+   Deferred, recorded: MCP liveness ping + reconnect supervision (TS
+   `startPing`) — connection-only resources have no restart loop yet.
 4. **`WaitFor`** — ✅ DONE 2026-07-11 (#510 ①②), implemented natively
    (dependency-held launches, terminal-failure propagation, cycle rejection at
    `Build()`); the self-telemetry pair wires it automatically. `withReference`

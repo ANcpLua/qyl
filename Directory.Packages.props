@@ -76,6 +76,9 @@
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9"/>
     <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
+    <!-- Qyl.Host.Mcp: official MCP C# SDK, Core only (client + low-level server; the full
+         ModelContextProtocol package adds reflection-based hosting the engine doesn't want). -->
+    <PackageVersion Include="ModelContextProtocol.Core" Version="1.4.1"/>
     <!-- eng/tools maintenance tooling (extracted from opentelemetry-dotnet-instrumentation).
          NuGet.ProjectModel matches the NuGet.Packaging 7.6.0 security override above. -->
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>

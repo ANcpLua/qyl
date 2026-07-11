@@ -117,9 +117,21 @@ public sealed class QylAppBuilder
         });
     }
 
+    /// <summary>
+    /// Registers a fully-composed resource. This is the raw door extension packages build on
+    /// (e.g. Qyl.Host.Mcp's connection-only MCP resources); the Add* conveniences above compose
+    /// through it implicitly. Name and port uniqueness are enforced like every other resource.
+    /// </summary>
+    public IQylResourceBuilder AddResource(QylResource resource)
+    {
+        Guard.NotNull(resource);
+        return Register(resource);
+    }
+
     public QylApp Build()
     {
         ValidateWaitForGraph();
+        ValidateConnectionOnlyResources();
         // Bound here, not in the ctor, so configuration sources added after Create() are still seen;
         // FromConfiguration validates imperatively, keeping the fail-fast of the old ValidateOnStart
         // without reflection-based binding. Retry policy for health probes lives in the orchestrator's
@@ -152,6 +164,18 @@ public sealed class QylAppBuilder
             Port = port,
             Launch = BuildLaunchSpec(project, name)
         });
+    }
+
+    // A connection-only resource (Launch = null) has no process whose health path a default probe
+    // could poll — without an explicit probe it could never become Ready. Composition bug; fail loudly.
+    private void ValidateConnectionOnlyResources()
+    {
+        foreach (var resource in _resources.Where(static r => r.Launch is null && r.ReadinessProbe is null))
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' has no launch spec and no readiness probe; a connection-only " +
+                "resource must declare how it becomes ready (WithReadinessProbe).");
+        }
     }
 
     // A WaitFor edge naming an unknown resource would wait forever; a cycle would deadlock the whole
@@ -210,8 +234,10 @@ public sealed class QylAppBuilder
             throw new InvalidOperationException($"Resource '{resource.Name}' was already added; names must be unique.");
         }
 
+        // Port 0 is not a claim: it means DynamicAllocation (launch-time claim) or a connection-only
+        // resource with no listening port at all — two zeros never collide.
         var portClash = _resources.FirstOrDefault(r =>
-            r.Port == resource.Port ||
+            (resource.Port > 0 && r.Port == resource.Port) ||
             (resource.OtlpHttpPort > 0 && (r.Port == resource.OtlpHttpPort || r.OtlpHttpPort == resource.OtlpHttpPort)) ||
             (resource.GrpcPort > 0 && (r.Port == resource.GrpcPort || r.GrpcPort == resource.GrpcPort)));
         if (portClash is not null)
