@@ -92,6 +92,8 @@ Ranked by reusability and relevance to qyl's observability / agent-instrumentati
 
 ## 4. What To Do Next
 
-- **First harvest for qyl:** items #1 (never-crash instrumentation), #3 (Welford/interval aggregation — already partially adopted), #4 (redactor), #5 (Wilson/z-test gates), and #7 (token/cost accounting). These map cleanly onto qyl's existing instrumentation, privacy, bounded-telemetry, and GenAI-cost surfaces and carry the lowest integration risk.
-- **Reference-only / study:** ArcticInference patch governance (#9) as a conceptual mirror of qyl's removed-symbol guards; autometrics pipeline/export (#14) if qyl ever ships exportable eval metrics.
-- **Sequencing:** treat this INDEX as the routing table — pull one pattern at a time behind qyl's existing verify gates (`BuildVerify`, instrumentation-bounded/redaction gates) rather than bulk-importing any project. The two pure-config repos (claude-plugins, and the manifest layer of anti-sameness-plugin) are templates, not code to vendor.
+**Superseded** — the qyl-side sweep completed 2026-07-08 and the routing table
+([`../yurekami-harvest.md`](../yurekami-harvest.md)) is the source of truth. It
+lists **only patterns qyl does not yet have** (implemented / already-present rows
+were pruned 2026-07-11 — *a reference is for what's missing*). Consult that table
+for what's still liftable; §1–§3 above remain the donor-side record.

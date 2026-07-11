@@ -8,6 +8,14 @@ namespace Qyl.Collector.Ingestion;
 ///     rename the old keys would be silently dropped at ingest. Runs BEFORE the allow-list
 ///     check; when both the old and the canonical key are present, the canonical value wins.
 ///     Keys are renamed, values pass through untouched in their original AnyValue shape.
+///     <para>
+///     NOT legacy support — current-ecosystem support: as of 2026-07-11 the latest OpenAI .NET
+///     SDK (2.12.0) still emits <c>gen_ai.system</c> with no <c>gen_ai.provider.name</c>, and
+///     Microsoft.Extensions.AI 10.7.0 still carries the legacy spelling — both are
+///     ActivitySources qyl subscribes to. The weekly <c>normalizer-expiry</c> workflow scans
+///     the latest stable of those packages and opens the deletion issue the week they are all
+///     clean; do not delete this type before that trigger fires.
+///     </para>
 /// </summary>
 internal static class DeprecatedAttributeNormalizer
 {

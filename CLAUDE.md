@@ -673,3 +673,15 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   before commit; the verify-your-verifier loop earned its cost. Residual grep: every
   remaining mcp-run/qyl-apps-server mention is a dated historical record or covered by
   the new banners.
+- 2026-07-11 — yurekami reference pruned to open rows only (Claude, user rule: "a
+  reference is for what's missing"). Six rows deleted from the harvest routing table:
+  the shipped #7 GenAI cost wiring plus the five patterns qyl already embodies (#1
+  never-crash instrumentation, #3 interval aggregation, #4 redaction-by-omission, #6
+  memoized pricing lookup, #9 removed-symbol governance); full dispositions preserved
+  at 8b08f757. The 9 remaining rows (5, 8, 10, 11, 12, 14, 15, 2, 13) are all
+  genuinely-missing patterns; every extraction dossier still backs ≥1 kept row, so
+  all 12 files under docs/reference/yurekami-extraction/ stay. The discipline is now
+  codified in the file itself: Legend has no LANDED state (a row that ships gets
+  deleted, git history keeps the evidence), Rule ends with "then delete the row",
+  INDEX.md §4 marked superseded by the table. CI on the derot commit 8b08f757
+  confirmed green (CI ✅ Links ✅) — the morning's billing blocker is resolved.
