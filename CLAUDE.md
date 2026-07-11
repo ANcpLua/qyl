@@ -709,3 +709,20 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   actionlint clean, collector build 0W/0E, content coherent with the 2026-07-11
   ingestion-normalization entry — kept, not reverted. Lesson recorded to memory: stage
   explicit paths, never `git add -A`, in this multi-session workspace.
+- 2026-07-11 — #510 MVP checklist ① + ② shipped (Claude). ① `AddCommand(name,
+  command, port, workingDirectory?, healthPath="/")` — arbitrary dev command as a
+  supervised resource (space-split argv, kind "command", readiness = GET healthPath);
+  minimal `WaitFor(deps...)` on IQylResourceBuilder: launch held until deps Ready,
+  dep terminal-failure fails the dependent ("Dependency 'x' reached state Failed
+  before becoming ready"), unknown names + cycles fail Build() (DFS). Registry gained
+  WhenReady(name) on the existing per-name TCS. ② selfTelemetry Apply() auto-wires
+  owner.WaitFor(sink) — closes the accepted-low unordered-start finding from the
+  hardening review. EVIDENCE: qyl.slnx 0W/0E; composition tests T1-T5 green
+  (AddCommand spec, auto WaitsFor=[diagnostics], self-wait/cycle/unknown-dep all
+  rejected); LIVE: `python3 -m http.server 8765` resource → "Resource 'web' ready";
+  host run → 'diagnostics' ready BEFORE 'collector'; child env verified via ps eww
+  (collector: OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:52975 = diagnostics'
+  claimed receiver; diagnostics: endpoint blank); one-way flow live (GET
+  /api/v1/sessions server span in diagnostics store). Note: a first flow check
+  read 0 traces — test-timing artifact (fresh run + ps-verified env + direct 202
+  probe all clean); flow re-proven twice.

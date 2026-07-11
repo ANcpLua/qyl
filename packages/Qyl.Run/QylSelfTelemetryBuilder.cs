@@ -143,6 +143,9 @@ public sealed class QylSelfTelemetryBuilder
         _owner
             .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint, endpoint.ToString().TrimEnd('/'))
             // The .NET OTLP exporter defaults to grpc; the target address is the OTLP/HTTP receiver.
-            .WithEnvironment(QylConstants.Env.OtelExporterOtlpProtocol, QylConstants.Collector.OtlpHttpProtobuf);
+            .WithEnvironment(QylConstants.Env.OtelExporterOtlpProtocol, QylConstants.Collector.OtlpHttpProtobuf)
+            // The sink comes up first so the owner's earliest self-telemetry — startup, the batches a
+            // diagnostics collector exists for — has somewhere to land instead of leaning on exporter retry.
+            .WaitFor(_target);
     }
 }

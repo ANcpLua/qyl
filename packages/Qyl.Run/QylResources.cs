@@ -17,6 +17,9 @@ public sealed record QylResource
 
     public int GrpcPort { get; init; }
 
+    // Names of resources that must report Ready before this resource's process is launched.
+    public IReadOnlyList<string> WaitsFor { get; init; } = [];
+
     public required QylLaunchSpec Launch { get; init; }
 }
 

@@ -22,6 +22,7 @@ public static class QylConstants
     {
         public const string Collector = "collector";
         public const string Project = "project";
+        public const string Command = "command";
     }
 
     public static class Environments

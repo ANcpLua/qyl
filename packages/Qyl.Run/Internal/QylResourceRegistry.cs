@@ -38,6 +38,10 @@ internal sealed class QylResourceRegistry(TimeProvider time)
         if (_subscribers.TryRemove(id, out var channel)) channel.Writer.TryComplete();
     }
 
+    // Completes when the named resource first reports Ready. Never completes for a resource that
+    // only ever fails — pair with Snapshot polling to observe terminal failure.
+    public Task WhenReady(string name) => Signal(name).Task;
+
     public void Publish(string name, ResourceLifecycle lifecycle, int? allocatedPort = null, Uri? endpoint = null,
         string? lastError = null)
     {

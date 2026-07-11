@@ -9,6 +9,29 @@ namespace Qyl.Run;
 /// </summary>
 public static class QylResourceBuilderExtensions
 {
+    /// <summary>
+    /// Holds this resource's launch until every dependency has reported Ready. A dependency that
+    /// terminally fails fails this resource too. Unknown names and cycles fail <c>Build()</c>.
+    /// </summary>
+    public static IQylResourceBuilder WaitFor(this IQylResourceBuilder builder,
+        params IQylResourceBuilder[] dependencies)
+    {
+        Guard.NotNull(builder);
+        Guard.NotNull(dependencies);
+
+        var names = dependencies.Select(static d => d.Resource.Name).ToArray();
+        if (names.Contains(builder.Resource.Name, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resource '{builder.Resource.Name}' cannot wait for itself.");
+        }
+
+        return builder.Update(r => r with
+        {
+            WaitsFor = [.. r.WaitsFor.Concat(names).Distinct(StringComparer.Ordinal)]
+        });
+    }
+
     /// <summary>Sets (or overrides) one environment variable in the resource's launch spec.</summary>
     public static IQylResourceBuilder WithEnvironment(this IQylResourceBuilder builder, string name, string value)
     {

@@ -22,8 +22,16 @@ app.AddCollector("collector", port: 5100, project: "services/qyl.collector",
 // Any other .NET project:
 app.AddProject("worker", "services/my.worker");
 
+// Any dev command as a resource — readiness is a successful GET on healthPath (default "/"):
+app.AddCommand("dashboard-dev", "npm run dev", port: 5173, workingDirectory: "services/qyl.dashboard");
+
 await app.Build().RunAsync();
 ```
+
+`WaitFor(dependencies...)` holds a resource's launch until every dependency reports Ready; a
+terminally failed dependency fails the dependent instead of hanging it, and unknown names or
+cycles fail `Build()`. The self-telemetry pair wires it automatically — the diagnostics sink
+comes up before the collector so the earliest self-telemetry has somewhere to land.
 
 `AddCollector` pins the child's ports through `QYL_PORT` / `QYL_OTLP_PORT` / `QYL_GRPC_PORT`
 (unique across the composition — the first collector keeps 4318/4317, later ones claim free

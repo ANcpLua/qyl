@@ -83,8 +83,43 @@ public sealed class QylAppBuilder
             project);
     }
 
+    /// <summary>
+    /// Adds an arbitrary dev command as a resource (e.g. <c>"npm run dev"</c> for a Vite dashboard).
+    /// The command is split on spaces — first token is the executable, the rest are arguments.
+    /// <paramref name="port"/> must be the port the command itself binds; readiness is a successful
+    /// GET on <paramref name="healthPath"/> (default <c>"/"</c> — dev servers rarely expose /health).
+    /// </summary>
+    public IQylResourceBuilder AddCommand(string name, string command, int port,
+        string? workingDirectory = null, string healthPath = "/")
+    {
+        Guard.NotNullOrWhiteSpace(name);
+        Guard.NotNullOrWhiteSpace(command);
+        Guard.NotNullOrWhiteSpace(healthPath);
+
+        var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return Register(new QylResource
+        {
+            Name = name,
+            Kind = QylConstants.ResourceKinds.Command,
+            Port = port,
+            Launch = new QylLaunchSpec
+            {
+                Executable = parts[0],
+                Args = new ReadOnlyCollection<string>([.. parts[1..]]),
+                WorkingDirectory = workingDirectory,
+                HealthPath = healthPath,
+                Env = new Dictionary<string, string>
+                {
+                    [QylConstants.Env.OtelServiceName] = name
+                }
+            }
+        });
+    }
+
     public QylApp Build()
     {
+        ValidateWaitForGraph();
         // Bound here, not in the ctor, so configuration sources added after Create() are still seen;
         // FromConfiguration validates imperatively, keeping the fail-fast of the old ValidateOnStart
         // without reflection-based binding. Retry policy for health probes lives in the orchestrator's
@@ -117,6 +152,39 @@ public sealed class QylAppBuilder
             Port = port,
             Launch = BuildLaunchSpec(project, name)
         });
+    }
+
+    // A WaitFor edge naming an unknown resource would wait forever; a cycle would deadlock the whole
+    // composition. Both are composition bugs, so both fail Build() loudly.
+    private void ValidateWaitForGraph()
+    {
+        var byName = _resources.ToDictionary(static r => r.Name, StringComparer.Ordinal);
+
+        foreach (var resource in _resources)
+        foreach (var dep in resource.WaitsFor.Where(dep => !byName.ContainsKey(dep)))
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' waits for unknown resource '{dep}'.");
+        }
+
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var done = new HashSet<string>(StringComparer.Ordinal);
+
+        void Visit(string name)
+        {
+            if (done.Contains(name)) return;
+            if (!visiting.Add(name))
+            {
+                throw new InvalidOperationException(
+                    $"WaitFor cycle detected involving resource '{name}' — a cycle can never become ready.");
+            }
+
+            foreach (var dep in byName[name].WaitsFor) Visit(dep);
+            visiting.Remove(name);
+            done.Add(name);
+        }
+
+        foreach (var resource in _resources) Visit(resource.Name);
     }
 
     // First caller of a well-known port keeps it; later collectors get freshly claimed ports so the

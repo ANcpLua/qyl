@@ -76,6 +76,8 @@ internal sealed partial class QylOrchestrator(
     {
         try
         {
+            if (!await WaitForDependenciesAsync(resource, stoppingToken).ConfigureAwait(false)) return;
+
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
 
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
@@ -118,6 +120,44 @@ internal sealed partial class QylOrchestrator(
         {
             FailResource(resource, ex);
         }
+    }
+
+    // Holds this resource in Pending until every WaitsFor dependency reports Ready. A dependency
+    // reaching a terminal non-Ready state (Failed/Stopped) fails this resource instead of hanging it —
+    // every dependency reaches a terminal state on its own (health-probe timeout or restart budget),
+    // so no extra timeout is layered here. Cancellation means shutdown, not failure.
+    private async Task<bool> WaitForDependenciesAsync(QylResource resource, CancellationToken stoppingToken)
+    {
+        foreach (var dep in resource.WaitsFor)
+        {
+            var ready = registry.WhenReady(dep);
+            while (!ready.IsCompleted)
+            {
+                if (stoppingToken.IsCancellationRequested) return false;
+
+                if (registry.Snapshot.TryGetValue(dep, out var state) &&
+                    state.Lifecycle is ResourceLifecycle.Failed or ResourceLifecycle.Stopped)
+                {
+                    registry.Publish(resource.Name, ResourceLifecycle.Failed,
+                        lastError: $"Dependency '{dep}' reached state {state.Lifecycle} before becoming ready");
+                    return false;
+                }
+
+                try
+                {
+                    await Task.WhenAny(ready,
+                            Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs),
+                                time, stoppingToken))
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private void FailResource(QylResource resource, Exception ex)
