@@ -2006,7 +2006,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "SpanClusterRow",
                 "BaggageJson",
                 "baggage_json",
-                "GenAiToolCallId",
+                // The pruned SpanColumn surface stays tombstoned via its column name and accessor
+                // pattern below; the bare PascalCase token was retired 2026-07-11 when the semantic
+                // catalog legitimately gained a GenAiToolCallId key constant (a different symbol).
                 "gen_ai_tool_call_id",
                 "GetValueOrDefault(GenAiAttributes.ToolCallId)",
                 "QylCapabilityPrefix",
