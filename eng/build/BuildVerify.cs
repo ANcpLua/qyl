@@ -1486,7 +1486,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 (storageRowsFile, "public required ulong TimeUnixNano"),
                 (storageRowsFile, "public ulong? ObservedTimeUnixNano"),
                 (storageRowsFile, "public required ulong DurationNano"),
-                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs"),
+                (mappersFile, "ulong startTimeUnixNano, ulong endTimeUnixNano,"),
                 (mappersFile, "TimestampsUnixNano = ParseUlongList(row.TimestampsJson)")
             };
 
