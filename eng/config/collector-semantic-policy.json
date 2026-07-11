@@ -11,7 +11,8 @@
     "incubatingPrefixes": [
       "gen_ai.",
       "messaging.",
-      "profile."
+      "profile.",
+      "rpc."
     ]
   },
   "logAttributeAllowList": {
@@ -24,7 +25,8 @@
     ],
     "incubatingPrefixes": [
       "gen_ai.",
-      "messaging."
+      "messaging.",
+      "rpc."
     ]
   },
   "profileAttributeAllowList": {
@@ -97,6 +99,12 @@
     "host.mac",
     "host.name",
     "mcp.session.id",
+    "rpc.connect_rpc.request.metadata",
+    "rpc.connect_rpc.response.metadata",
+    "rpc.grpc.request.metadata",
+    "rpc.grpc.response.metadata",
+    "rpc.request.metadata",
+    "rpc.response.metadata",
     "service.instance.id",
     "session.id",
     "session.previous_id",

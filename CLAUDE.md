@@ -560,3 +560,24 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   auth=Unsecured/exporter=''/isolated db); guard: `http://Mac:4318` (hostname alias) →
   fatal at boot, `http://telemetry.example.com:4318` → starts normally; live e2e:
   5100/5200 healthy, diagnostics=3 traces all service.name=collector, primary=0.
+- 2026-07-11 — RPC semconv admitted into the collector catalog (Claude, PR per user
+  request — exception to no-PR pattern). Context: OTel roadmap review found the
+  allowlist strips every rpc.* attribute; RPC conventions hit release_candidate at
+  v1.43.0 (span.rpc.call.client/server, rpc.{client,server}.call.duration). Change:
+  `rpc.` added to span + log incubatingPrefixes in collector-semantic-policy.json
+  (NOT stablePrefixes — nothing rpc.* is `stable` at 1.43.0; generator fails loud on
+  a zero-match lane) + 6 deniedExactKeys for the metadata templates
+  (rpc.{grpc,connect_rpc,}.{request,response}.metadata — header-equivalents, same
+  precedent as the denied http.request/response.header; upstream: "Including all
+  request metadata values can be a security risk"). rpc.jsonrpc.error_message +
+  rpc.message.* already dead via the `message` deniedKeyToken. Catalog regen picked
+  up PRE-EXISTING drift: df34f0c3 bumped SemanticConventions 3.2.0→3.3.0 without
+  regenerating, so VerifyCollectorSemanticAttributeCatalog was RED on main (proven
+  by stash-test); this regen fixes drift (db.* etc. full-3.3.0-surface keys) + adds
+  22 rpc keys to span/log allowlists (current-shape keys marked incubating;
+  deprecated rpc.system/rpc.service/rpc.grpc.status_code unmarked — ship in both
+  assemblies). Dashboard: getSpanColor/getSpanTypeLabel gained an RPC branch
+  (rpc.system.name || rpc.system → "RPC"/--span-rpc; dual-read deliberate — both
+  keys are catalog-admitted, unlike the removed gen_ai.system). Evidence:
+  VerifyCollectorSemanticAttributeCatalog + VerifyCollectorSemanticPolicyIsCatalogBacked
+  green; dotnet build qyl.collector 0W/0E; dashboard build + 18/18 tests green.
