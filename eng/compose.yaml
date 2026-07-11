@@ -5,14 +5,11 @@
 #   docker compose -f eng/compose.yaml up -d
 #   docker compose -f eng/compose.yaml down
 #
-# Services:
-#   - qyl-collector: Backend API + DuckDB + SSE streaming (port 5100)
-#   - qyl-dashboard: React frontend (port 5173 dev, 8080 prod)
+# One topology: the collector image embeds the dashboard, so a single service serves
+# UI + REST API + SSE on :5100 and OTLP ingest on :4317/:4318. The standalone
+# dashboard/nginx service was deleted 2026-07-11 (repair-plan phase 3).
 
 services:
-  # ============================================================================
-  # qyl.collector - AI Observability Backend
-  # ============================================================================
   qyl-collector:
     build:
       context: ..
@@ -30,30 +27,18 @@ services:
       - QYL_OTLP_PORT=4318
       - QYL_DATA_PATH=/data/qyl.duckdb
       - ASPNETCORE_URLS=http://+:5100
+      # Dev stack: without this the collector fails closed at boot (Production defaults
+      # OTLP auth to ApiKey and refuses to start with no keys configured). Set real keys
+      # via QYL_OTLP_PRIMARY_API_KEY instead when exposing this stack beyond localhost.
+      - QYL_OTLP_AUTH_MODE=Unsecured
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5100/health" ]
+      # curl, not wget: the runtime image installs curl only.
+      test: [ "CMD", "curl", "-sf", "http://localhost:5100/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  # ============================================================================
-  # qyl.dashboard - React Frontend (Production)
-  # ============================================================================
-  qyl-dashboard:
-    build:
-      context: ..
-      dockerfile: services/qyl.dashboard/Dockerfile
-    container_name: qyl-dashboard
-    ports:
-      - "8080:80"
-    depends_on:
-      qyl-collector:
-        condition: service_healthy
-    environment:
-      - VITE_API_URL=http://qyl-collector:5100
-    restart: unless-stopped
 
 volumes:
   qyl-data:

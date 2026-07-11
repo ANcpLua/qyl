@@ -1937,7 +1937,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Dockerfile",
                 RootDirectory / "services" / "qyl.collector" / "qyl.collector.csproj",
                 RootDirectory / "internal" / "qyl.instrumentation" / "qyl.instrumentation.csproj",
-                RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs"
+                RootDirectory / "internal" / "qyl.instrumentation.generators" / "ServiceDefaultsSourceGenerator.cs",
+                buildDirectory / "BuildInfra.cs",
+                RootDirectory / "eng" / "compose.yaml"
             ];
 
             string[] removedTokens =
@@ -1970,7 +1972,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "nuke Generate",
                 "nuke OtelConventions",
                 "Microsoft.AspNetCore.Authentication.JwtBearer",
-                "otel-conventions-api"
+                "otel-conventions-api",
+                // One topology (repair-plan phase 3): the collector embeds the dashboard; the
+                // standalone dashboard/nginx image, its compose service and its ImageSpec are gone.
+                "qyl-dashboard",
+                "qyl.dashboard/Dockerfile",
+                "ASPNETCORE_WEBROOT"
             ];
 
             string[] removedCollectorTokens =

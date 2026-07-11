@@ -11,12 +11,24 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- One topology: release builds embed the dashboard into the assembly, so the shipped
+         collector serves UI + API + OTLP from a single origin (:5100). Debug stays
+         dashboard-less for backend inner-loop work. -->
+    <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == '' AND '$(Configuration)' == 'Release'">true</QylEmbedDashboard>
     <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == ''">false</QylEmbedDashboard>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
     <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
   </ItemGroup>
+
+  <!-- Publishing the embed-enabled collector without a built dashboard would ship the single
+       origin with no UI in it - fail the publish loudly instead. Plain builds stay permissive
+       (the Exists gate above simply skips the embed) so backend-only CI lanes need no dist. -->
+  <Target Name="QylRequireDashboardDistForPublish" BeforeTargets="PrepareForPublish"
+          Condition="'$(QylEmbedDashboard)' == 'true' AND !Exists('..\qyl.dashboard\dist\index.html')">
+    <Error Text="QylEmbedDashboard=true but services/qyl.dashboard/dist/index.html does not exist. Build the dashboard first (npm run build in services/qyl.dashboard) or publish with -p:QylEmbedDashboard=false."/>
+  </Target>
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>

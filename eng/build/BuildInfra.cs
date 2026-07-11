@@ -26,10 +26,11 @@ interface IDocker : IHazSourcePaths
     [Parameter("Compose service name to target (used by DockerLogs)")]
     string? Service => TryGetValue(() => Service);
 
+    // One topology: the collector image embeds the dashboard (single origin). The standalone
+    // dashboard/nginx image was deleted 2026-07-11 (repair-plan phase 3).
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
-        ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector")),
-        ("qyl-dashboard", DashboardDirectory             / "Dockerfile", FormatImageName("qyl-dashboard"))
+        ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector"))
     ];
 
 

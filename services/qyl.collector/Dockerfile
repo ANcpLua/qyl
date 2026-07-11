@@ -48,9 +48,14 @@ COPY internal/qyl.instrumentation/ internal/qyl.instrumentation/
 COPY internal/qyl.instrumentation.generators/ internal/qyl.instrumentation.generators/
 COPY internal/qyl.collector.storage.generators/ internal/qyl.collector.storage.generators/
 
-# Publish
+# The dashboard build lands where the csproj embed gate expects it: a Release publish embeds
+# dist/** into the assembly (QylEmbedDashboard), and the publish fails loudly if dist is missing.
+COPY --from=dashboard /dashboard/dist services/qyl.dashboard/dist/
+
+# Publish (single-origin: dashboard is an embedded resource, no separate wwwroot)
 WORKDIR /src/services/qyl.collector
 RUN dotnet publish -c Release -o /app --no-restore \
+    -p:QylEmbedDashboard=true \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \
     -p:PublishTrimmed=false \
@@ -78,11 +83,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
 
 WORKDIR /app
 
-# Copy published .NET app
+# Copy published .NET app (the dashboard rides inside the assembly as embedded resources)
 COPY --from=build --chown=qyl:qyl /app .
-
-# Copy dashboard build to wwwroot
-COPY --from=dashboard --chown=qyl:qyl /dashboard/dist ./wwwroot/
 
 USER qyl
 
@@ -94,7 +96,6 @@ EXPOSE 5100 4317 4318
 ENV QYL_GRPC_PORT=4317 \
     QYL_OTLP_PORT=4318 \
     QYL_DATA_PATH=/data/qyl.duckdb \
-    ASPNETCORE_WEBROOT=/app/wwwroot \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_gcServer=1
 

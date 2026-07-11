@@ -59,8 +59,8 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
    false-positive class impossible rather than merely absent.
 2. ~~**Decide the product surface.**~~ SHIPPED 2026-07-11 — dashboard shrunk to the
    verified vertical (traces/sessions, logs, GenAI cost); see the progress-log entry.
-3. **One topology.** Embedded single-origin collector (`QylEmbedDashboard=true` for
-   release builds); delete the standalone dashboard Docker path; fix compose.
+3. ~~**One topology.**~~ SHIPPED 2026-07-11 — release builds embed the dashboard
+   (single origin :5100); standalone dashboard Docker path deleted; compose fixed.
 4. **`Qyl.Host` convergence + MCP wiring.** See `docs/design/qyl-host/`.
 5. **Auth + scoping.** gRPC ingest has no API-key boundary (HTTP does); the read API is
    unauthenticated; `ProjectScope.cs` hardcodes `"default"`.
@@ -864,3 +864,34 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   with no collector — truthful), /cost renders (summary cards + empty state),
   /issues redirects to /traces; residual grep: 0 functional references to deleted
   routes/endpoints outside generated api.ts and explanatory comments.
+- 2026-07-11 — **Repair-plan Phase 3 (one topology) SHIPPED** (Claude). The dashboard
+  ships exactly one way now: embedded in the collector assembly, single origin :5100.
+  (1) csproj: QylEmbedDashboard defaults TRUE for Release (Debug stays dashboard-less);
+  NEW publish gate QylRequireDashboardDistForPublish — an embed-enabled PUBLISH without
+  a built dist fails loudly, while plain builds stay permissive (backend CI lanes need
+  no dist). Proven both ways: published Release on :5151 served / + /traces (SPA) +
+  hashed asset (correct content-type via the embedded middleware) + /api/v1/traces +
+  /health JSON from ONE origin; publish with dist moved aside → hard MSBuild error
+  naming the fix.
+  (2) Standalone dashboard Docker path DELETED: services/qyl.dashboard/Dockerfile
+  (its nginx.conf.template COPY source didn't even exist on disk — the standalone
+  image could not have built), BuildInfra ImageSpecs down to qyl-collector only,
+  compose down to ONE service. Collector Dockerfile switched from wwwroot-copy +
+  ASPNETCORE_WEBROOT to the embedded mechanism (-p:QylEmbedDashboard=true, dist COPYd
+  into the build stage where the csproj gate expects it).
+  (3) compose FIXED, two real bugs: healthcheck used wget which the runtime image
+  never installed (curl only) — the old stack could never report healthy; and the
+  container fail-closed at boot (Production defaults OTLP auth to ApiKey with no keys)
+  — dev compose now sets QYL_OTLP_AUTH_MODE=Unsecured with a comment pointing at real
+  keys for anything beyond localhost. COMPOSE E2E (docker compose -f eng/compose.yaml
+  up -d --build): container reaches HEALTHY via the fixed check; / serves the
+  dashboard (200 text/html); /health JSON with duckdb entry; OTLP spec-hex JSON span →
+  202 → joinable by exact hex id via /api/v1/traces/{id}; down -v clean. PLATFORM
+  NOTE: image built as linux/amd64 (the deploy platform) — grpc.tools 2.81.1 protoc
+  segfaults (139) inside a linux_arm64 container publish, a PRE-EXISTING host-platform
+  issue in the unchanged publish step, not introduced here.
+  (4) Tombstones: VerifyNoRemovedBuildSurface scan set extended with
+  eng/build/BuildInfra.cs + eng/compose.yaml; new tokens qyl-dashboard,
+  qyl.dashboard/Dockerfile, ASPNETCORE_WEBROOT.
+  EVIDENCE: Verify --Configuration Release 38/38 Succeeded (incl. the extended
+  tombstone scan); local single-origin + negative publish + compose e2e above.
