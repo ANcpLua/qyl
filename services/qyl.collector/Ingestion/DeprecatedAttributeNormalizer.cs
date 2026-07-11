@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace Qyl.Collector.Ingestion;
 
 /// <summary>
@@ -9,32 +7,27 @@ namespace Qyl.Collector.Ingestion;
 ///     capture allow-lists are generated from the current semconv registry, so without this
 ///     rename the old keys would be silently dropped at ingest. Runs BEFORE the allow-list
 ///     check; when both the old and the canonical key are present, the canonical value wins.
+///     Keys are renamed, values pass through untouched in their original AnyValue shape.
 /// </summary>
 internal static class DeprecatedAttributeNormalizer
 {
-    internal static readonly FrozenDictionary<string, string> Mappings =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["gen_ai.system"] = "gen_ai.provider.name",
-            ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-            ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
-            ["agents.tool.call_id"] = "gen_ai.tool.call.id",
-            ["db.system"] = "db.system.name"
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-
     /// <summary>
     ///     Returns the canonical key for <paramref name="key" /> and whether it was renamed.
     ///     A renamed key must not overwrite a value already present under the canonical key.
     /// </summary>
     internal static bool TryNormalize(string key, out string canonical)
     {
-        if (Mappings.TryGetValue(key, out var mapped))
+        var mapped = key switch
         {
-            canonical = mapped;
-            return true;
-        }
+            "gen_ai.system" => "gen_ai.provider.name",
+            "gen_ai.usage.prompt_tokens" => "gen_ai.usage.input_tokens",
+            "gen_ai.usage.completion_tokens" => "gen_ai.usage.output_tokens",
+            "agents.tool.call_id" => "gen_ai.tool.call.id",
+            "db.system" => "db.system.name",
+            _ => null
+        };
 
-        canonical = key;
-        return false;
+        canonical = mapped ?? key;
+        return mapped is not null;
     }
 }
