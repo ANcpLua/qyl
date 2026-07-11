@@ -21,6 +21,10 @@ public sealed record QylResource
     public IReadOnlyList<string> WaitsFor { get; init; } = [];
 
     public required QylLaunchSpec Launch { get; init; }
+
+    // Optional per-resource readiness override; null means the default HTTP health probe against
+    // Launch.HealthPath. Set via QylResourceBuilderExtensions.WithReadinessProbe.
+    public IReadinessProbe? ReadinessProbe { get; init; }
 }
 
 public sealed record QylLaunchSpec

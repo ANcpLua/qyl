@@ -32,6 +32,18 @@ public static class QylResourceBuilderExtensions
         });
     }
 
+    /// <summary>
+    /// Replaces the resource's readiness check. The default (no call) is the HTTP health probe
+    /// against the launch spec's health path; a custom probe owns the entire readiness window —
+    /// retries and startup deadline included (see <see cref="IReadinessProbe"/>).
+    /// </summary>
+    public static IQylResourceBuilder WithReadinessProbe(this IQylResourceBuilder builder, IReadinessProbe probe)
+    {
+        Guard.NotNull(builder);
+        Guard.NotNull(probe);
+        return builder.Update(r => r with { ReadinessProbe = probe });
+    }
+
     /// <summary>Sets (or overrides) one environment variable in the resource's launch spec.</summary>
     public static IQylResourceBuilder WithEnvironment(this IQylResourceBuilder builder, string name, string value)
     {

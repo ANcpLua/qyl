@@ -91,7 +91,7 @@ internal sealed partial class QylOrchestrator(
             var process = launcher.Launch(resource, endpoint);
             _processes[resource.Name] = process;
 
-            if (await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false))
+            if (await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false))
             {
                 registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
                 LogReady(logger, resource.Name, endpoint);
@@ -227,7 +227,7 @@ internal sealed partial class QylOrchestrator(
                 return;
             }
 
-            var healthy = await PollHealthAsync(endpoint, resource.Launch.HealthPath, stoppingToken).ConfigureAwait(false);
+            var healthy = await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false);
             registry.Publish(resource.Name,
                 healthy ? ResourceLifecycle.Ready : ResourceLifecycle.Failed, port, endpoint,
                 healthy ? null : "Health probe timed out after restart");
@@ -271,33 +271,26 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    private async Task<bool> PollHealthAsync(Uri baseEndpoint, string healthPath, CancellationToken stoppingToken)
+    // Readiness is a per-resource strategy (IReadinessProbe); the default is the HTTP health poll
+    // this method used to inline. The probe receives a snapshot state carrying the endpoint it
+    // must judge — deliberately not the registry's published state, which may lag the launch.
+    private Task<bool> ProbeReadinessAsync(QylResource resource, int port, Uri endpoint,
+        CancellationToken stoppingToken)
     {
-        using var client = httpClientFactory.CreateClient(QylConstants.HttpClients.HealthProbe);
-        var deadline = time.GetUtcNow().AddSeconds(options.StartupTimeoutSeconds);
-        var probeUri = new Uri(baseEndpoint, healthPath);
+        var probe = resource.ReadinessProbe ?? new HttpHealthProbe(
+            httpClientFactory,
+            resource.Launch.HealthPath,
+            TimeSpan.FromSeconds(options.StartupTimeoutSeconds),
+            time);
 
-        while (!stoppingToken.IsCancellationRequested && time.GetUtcNow() < deadline)
+        return probe.IsReadyAsync(new QylResourceState
         {
-            try
-            {
-                using var response = await client.GetAsync(probeUri, stoppingToken).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode) return true;
-            }
-            catch (HttpRequestException)
-            {
-                // Service not yet listening — keep polling until stoppingToken fires.
-            }
-            catch (TaskCanceledException)
-            {
-                // Probe timeout or shutdown — let the next loop iteration handle it.
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(QylConstants.Orchestrator.HealthPollIntervalMs), time,
-                stoppingToken).ConfigureAwait(false);
-        }
-
-        return false;
+            Name = resource.Name,
+            Lifecycle = ResourceLifecycle.Starting,
+            Timestamp = time.GetUtcNow(),
+            AllocatedPort = port,
+            Endpoint = endpoint
+        }, stoppingToken);
     }
 
     private async Task StopAllAsync()

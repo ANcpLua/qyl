@@ -164,9 +164,12 @@ mechanical, last-step change.
 1. **`AddCommand(name, command, port, workingDirectory?, healthPath?)`** —
    ✅ DONE 2026-07-11 (#510 ①). The .NET-only lock is gone; `AddProject`/
    `AddCollector` stay as the .NET convenience wrappers.
-2. **`IReadinessProbe`** — extract today's `GET /health` poll behind an interface
-   (`HttpHealthProbe` as the default, behaviour unchanged). One method:
-   `Task<bool> IsReadyAsync(QylResourceState, CancellationToken)`.
+2. **`IReadinessProbe`** — ✅ DONE 2026-07-11 (repair-plan phase 4). The poll
+   moved verbatim into `HttpHealthProbe : IReadinessProbe` (one method:
+   `Task<bool> IsReadyAsync(QylResourceState, CancellationToken)`); the
+   orchestrator resolves `QylResource.ReadinessProbe ?? HttpHealthProbe` and a
+   public `WithReadinessProbe(...)` builder door lets step 3 attach
+   `McpHandshakeProbe` without touching the engine.
 3. **`Qyl.Host.Mcp`** — `McpHandshakeProbe` (initialize + tools/list), the
    `/runner/mcp` passthrough, and a port of `telemetry.ts`. MCP support becomes an
    opt-in package, not a core assumption.
