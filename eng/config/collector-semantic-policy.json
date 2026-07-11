@@ -152,6 +152,8 @@
     "gen_ai.tool.name"
   ],
   "projectionConstants": {
+    "DbSystemName": "db.system.name",
+    "GenAiToolCallId": "gen_ai.tool.call.id",
     "GenAiProviderName": "gen_ai.provider.name",
     "GenAiRequestModel": "gen_ai.request.model",
     "GenAiResponseModel": "gen_ai.response.model",

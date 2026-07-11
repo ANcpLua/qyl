@@ -622,6 +622,7 @@ internal static class CollectorSemanticAttributeCatalog
         "gen_ai.usage.reasoning.output_tokens" // incubating
     );
 
+    internal const string DbSystemName = "db.system.name";
     internal const string GenAiCacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens"; // incubating
     internal const string GenAiCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens"; // incubating
     internal const string GenAiInputTokens = "gen_ai.usage.input_tokens"; // incubating
@@ -632,6 +633,7 @@ internal static class CollectorSemanticAttributeCatalog
     internal const string GenAiResponseModel = "gen_ai.response.model"; // incubating
     internal const string GenAiStopReason = "gen_ai.response.finish_reasons"; // incubating
     internal const string GenAiTemperature = "gen_ai.request.temperature"; // incubating
+    internal const string GenAiToolCallId = "gen_ai.tool.call.id"; // incubating
     internal const string GenAiToolName = "gen_ai.tool.name"; // incubating
     internal const string HttpRequestMethod = "http.request.method";
     internal const string HttpRoute = "http.route";

@@ -17,13 +17,15 @@ internal static class DeprecatedAttributeNormalizer
     /// </summary>
     internal static bool TryNormalize(string key, out string canonical)
     {
+        // Left-hand keys are deprecated and deleted from the current registry, so they exist
+        // only here as literals; the canonical successors come from the generated catalog.
         var mapped = key switch
         {
-            "gen_ai.system" => "gen_ai.provider.name",
-            "gen_ai.usage.prompt_tokens" => "gen_ai.usage.input_tokens",
-            "gen_ai.usage.completion_tokens" => "gen_ai.usage.output_tokens",
-            "agents.tool.call_id" => "gen_ai.tool.call.id",
-            "db.system" => "db.system.name",
+            "gen_ai.system" => CollectorSemanticAttributeCatalog.GenAiProviderName,
+            "gen_ai.usage.prompt_tokens" => CollectorSemanticAttributeCatalog.GenAiInputTokens,
+            "gen_ai.usage.completion_tokens" => CollectorSemanticAttributeCatalog.GenAiOutputTokens,
+            "agents.tool.call_id" => CollectorSemanticAttributeCatalog.GenAiToolCallId,
+            "db.system" => CollectorSemanticAttributeCatalog.DbSystemName,
             _ => null
         };
 
