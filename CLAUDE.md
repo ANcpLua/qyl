@@ -581,3 +581,39 @@ claims, tool output is proof. When done, write a short "beta ready" note here an
   keys are catalog-admitted, unlike the removed gen_ai.system). Evidence:
   VerifyCollectorSemanticAttributeCatalog + VerifyCollectorSemanticPolicyIsCatalogBacked
   green; dotnet build qyl.collector 0W/0E; dashboard build + 18/18 tests green.
+- 2026-07-11 — FLAGGED GAPS CLOSED: deprecation-catalog drift-proofing (→ 3.4.0)
+  + ingestion normalization implemented (Claude, user-directed "fix the flagged
+  catalog and ingestion mapping gaps"). (a) SemanticConventions cf5cdc3/v3.4.0
+  (published, nuget-indexed): NEW verify_deprecated_catalog.py CI gate
+  cross-checks the hand-curated analyzer catalog against resolved-registry.json
+  (renames/deprecations/enum-member removals must agree; curated knowledge the
+  registry lacks stays hand-maintained — full generation is impossible: no
+  since-versions in the registry, GenAI keys deleted upstream). First run
+  caught 2 REAL drifts, fixed: db.elasticsearch.path_parts →
+  db.operation.parameter (bare template attr) and cpu.mode 'kernel' member
+  (removed in 1.42's container-cpu-states cleanup).
+  ExpectedCuratedMentionCount 156→157 (value entries count separately in the
+  Supplemental list — took a wrong 158 first), docs regenerated, renderer
+  label de-hardcoded. Evidence: build 0W/0E, Pipeline 17/17 +
+  SourceGeneration 60/60 tests, checker green from repo root, actionlint
+  clean, publish run 29137238464 success. (b) qyl collector:
+  Ingestion/DeprecatedAttributeNormalizer.cs implements VERSIONING.md's
+  DeprecatedMappings verbatim (gen_ai.system→provider.name, prompt/completion
+  →input/output tokens, agents.tool.call_id→gen_ai.tool.call.id,
+  db.system→db.system.name), wired into all 4 OtlpConverter extraction loops
+  BEFORE the allow-list check (old keys were previously silently DROPPED —
+  the 1.43-generated allow-list doesn't contain them); canonical key always
+  wins over a normalized deprecated twin (TryAdd). LIVE E2E EVIDENCE:
+  collector on :5100, OTLP JSON span with gen_ai.system=anthropic +
+  prompt_tokens=123 + completion_tokens=45 + db.system=postgresql +
+  conflicting gen_ai.provider.name → stored span has db.system.name,
+  gen_ai.provider.name (conflict: canonical won), zero deprecated keys; and
+  session 'legacy-norm-proof' genai_usage shows total_input_tokens=123,
+  total_output_tokens=45, providers_used=[anthropic] — normalized ints flow
+  through the typed StorageAttributeProjection into session analytics.
+  (Side observation, pre-existing: the trace API renders only STRING attr
+  values — int attrs live in typed columns/projections, not the attributes
+  JSON.) Pins: SemanticConventions(+Incubating) 3.3.0→3.4.0 (this commit);
+  VerifyCollectorSemanticAttributeCatalog green on 3.4.0 (no attribute-surface
+  change — 3.4.0 is analyzers/docs only). qyl-api-schema VERSIONING.md
+  (3970104) now records the collector implementation instead of prescribing it.

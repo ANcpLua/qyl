@@ -100,14 +100,14 @@ internal static class OtlpConverter
 
         foreach (var attr in resource.Attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key) ||
-                !AttributeKeySets.IsSafeResourceAttribute(attr.Key))
-            {
-                continue;
-            }
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.IsSafeResourceAttribute(key)) continue;
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is not null) attrs[attr.Key] = value;
+            if (value is null) continue;
+            if (renamed) attrs.TryAdd(key, value);
+            else attrs[key] = value;
         }
 
         return attrs;
@@ -124,14 +124,14 @@ internal static class OtlpConverter
 
         foreach (var attr in protoAttributes)
         {
-            if (string.IsNullOrEmpty(attr.Key) ||
-                !AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key))
-            {
-                continue;
-            }
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is not null) attributes[attr.Key] = value;
+            if (value is null) continue;
+            if (renamed) attributes.TryAdd(key, value);
+            else attributes[key] = value;
         }
 
         return attributes;
@@ -143,11 +143,14 @@ internal static class OtlpConverter
         var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var attr in protoAttributes)
         {
-            if (string.IsNullOrEmpty(attr.Key) || !AttributeKeySets.ShouldCaptureSpanAttribute(attr.Key))
-                continue;
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is not null) attributes[attr.Key] = value;
+            if (value is null) continue;
+            if (renamed) attributes.TryAdd(key, value);
+            else attributes[key] = value;
         }
 
         return attributes;
@@ -319,16 +322,18 @@ internal static class OtlpConverter
         var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
         foreach (var attr in attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key) ||
-                (!AttributeKeySets.IsSafeLogAttribute(attr.Key) &&
-                 !attr.Key.IsAny(AttributeKeySets.SessionCorrelation)))
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (!AttributeKeySets.IsSafeLogAttribute(key) &&
+                !key.IsAny(AttributeKeySets.SessionCorrelation))
             {
                 continue;
             }
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is not null)
-                dict[attr.Key] = value;
+            if (value is null) continue;
+            if (renamed) dict.TryAdd(key, value);
+            else dict[key] = value;
         }
 
         return dict;
