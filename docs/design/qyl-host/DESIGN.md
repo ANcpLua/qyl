@@ -56,11 +56,11 @@ Executable = QylConstants.Orchestrator.DotnetExecutable,   // "dotnet"
 Args = [ RunCommand, NoLaunchProfileFlag, ProjectFlag, project ]
 ```
 
-There is **no public API to set a custom executable** — `AddCollector`/`AddProject`
-take only name/project/port (plus collector self-telemetry wiring).
-`Qyl.Run.Host/Program.cs` states it plainly:
-*"resources are launched via `dotnet run --project <path>`, so only .NET projects
-can be added."* The mechanism is polyglot; the shipped surface is not.
+**The lock broke on 2026-07-11 (#510 ①):** `AddCommand(name, command, port,
+workingDirectory?, healthPath?)` is now the public door for arbitrary executables
+(space-split argv, readiness = GET on `healthPath`, default `/`) — `qyl run --dev`
+launches the Vite dashboard through it. `AddCollector`/`AddProject` remain the
+dotnet-shaped wrappers over the same launch spec. The shipped surface is polyglot.
 
 ### `mcp-run` (TypeScript) — MCP supervisor, polyglot
 
@@ -101,13 +101,14 @@ launches today.
 
 ## What each got right that the other lacks
 
-- **`mcp-run` has the dependency API `Qyl.Run` still lacks.** `waitFor` +
-  `withReference` with dependency-ordered startup and cycle detection
-  (`app-builder.ts:119`, `orchestrator.ts:68-91`) — no equivalent exists in
-  `Qyl.Run`. (Its README
-  once advertised `.WaitFor`, `.WithCollector`, `AddDashboard`, and a `[B]`
-  browser key that never existed in code; it was rewritten 2026-07-11 to the
-  real surface and is trustworthy again.)
+- **The dependency-API gap closed on 2026-07-11 (#510 ①②).** `Qyl.Run` now has
+  native `WaitFor(dependencies...)`: dependency-held launches, terminal-failure
+  propagation, unknown-name and cycle rejection at `Build()` — implemented
+  fresh, not ported from `app-builder.ts`. `withReference`-style automatic env
+  propagation was deliberately **cut** (#510 triage): the explicit
+  `WithEnvironment` + `GetEndpoint` primitives are the qyl-shaped equivalent.
+  A `[B]` open-browser key exists too (first Ready dev-command resource, falling
+  back to the collector's embedded dashboard).
 - **`mcp-run` has `/runner/mcp` passthrough + host-side OTLP self-monitoring**
   (`runner-api.ts:108-136`, `telemetry.ts`). `Qyl.Run` has neither.
 - **`Qyl.Run` has HTTP-health supervision, the Spectre TUI, AOT, and lives in the
@@ -124,11 +125,11 @@ lose the ability to supervise `qyl.collector`. Instead, absorb `mcp-run`'s
 packages/
   Qyl.Host                         ← the engine. polyglot, protocol-agnostic.
     QylLaunchSpec { Executable, Args, Env, Cwd }     (already exists — QylResources.cs:23)
-    AddExecutable(name, command, args, port?)        (the missing public door — ~15 lines)
+    AddCommand(name, command, port, cwd?, health?)   (✅ DONE 2026-07-11 — the public door, #510 ①)
     IReadinessProbe                                  (the missing abstraction)
       ├─ HttpHealthProbe   → GET /health             (what Qyl.Run does today)
       └─ McpHandshakeProbe → initialize + tools/list (what mcp-run does today)
-    waitFor / withReference + cycle detection        (port from app-builder.ts:119 + orchestrator.ts:68-91)
+    WaitFor + cycle detection                        (✅ DONE 2026-07-11 — native; withReference cut per #510)
     lifecycle · MaxRestarts=3 · log ring buffer · /runner SSE   (already exists)
 
   Qyl.Host.Mcp                     ← MCP as a plugin, not the core
@@ -160,19 +161,19 @@ mechanical, last-step change.
 
 ## Migration path — ordered, each step independently shippable
 
-1. **`AddExecutable(name, command, args, port?)`** — ends the .NET-only lock.
-   Additive, non-breaking; `AddProject`/`AddCollector` stay as the .NET
-   convenience wrappers over it. `QylLaunchSpec` already carries `Executable`;
-   this only adds the public door. **~15 lines. Do this first.**
+1. **`AddCommand(name, command, port, workingDirectory?, healthPath?)`** —
+   ✅ DONE 2026-07-11 (#510 ①). The .NET-only lock is gone; `AddProject`/
+   `AddCollector` stay as the .NET convenience wrappers.
 2. **`IReadinessProbe`** — extract today's `GET /health` poll behind an interface
    (`HttpHealthProbe` as the default, behaviour unchanged). One method:
    `Task<bool> IsReadyAsync(QylResourceState, CancellationToken)`.
 3. **`Qyl.Host.Mcp`** — `McpHandshakeProbe` (initialize + tools/list), the
    `/runner/mcp` passthrough, and a port of `telemetry.ts`. MCP support becomes an
    opt-in package, not a core assumption.
-4. **`waitFor` / `withReference`** — port dependency-ordered startup + cycle
-   detection from `orchestrator.ts:68-91`. This is the API the old `Qyl.Run`
-   README advertised (removed in the 2026-07-11 rewrite); make it real.
+4. **`WaitFor`** — ✅ DONE 2026-07-11 (#510 ①②), implemented natively
+   (dependency-held launches, terminal-failure propagation, cycle rejection at
+   `Build()`); the self-telemetry pair wires it automatically. `withReference`
+   cut per the #510 triage — explicit `WithEnvironment` + `GetEndpoint` instead.
 5. **`Qyl.Host.Console`** — converge `Qyl.Run.Console` and `mcp-run/dashboard`;
    keep the ext-apps MCP Apps rendering from the latter.
 6. **Rename `Qyl.Run` → `Qyl.Host`** — last, mechanical, once the surface is

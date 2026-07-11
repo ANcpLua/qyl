@@ -29,14 +29,15 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
    verb. MCP becomes a plugin (`Qyl.Host.Mcp`), not the substrate. Do NOT reuse
    the name `qyl.mcp` — it was deleted in `43d032f9` and the merged MCP repo
    `qyl-workspace/qyl.mcp` (qyl-apps-server's successor) already inherited it.
-2. **Step 1 is the load-bearing unlock: `AddExecutable(name, command, args, port?)`**
-   in `QylAppBuilder`. ~15 lines, additive, non-breaking. `QylLaunchSpec` already
-   carries `Executable`; this only adds the public door. `AddProject`/`AddCollector`
-   become thin wrappers over it. This ends the .NET-only lock. Build must stay
-   green (repo invariant — see `qyl/CLAUDE.md`).
-3. **Then** the ordered migration path in DESIGN.md §"Migration path": step 2
-   `IReadinessProbe`, step 3 `Qyl.Host.Mcp` (+ port `qyl.mcp/runner/src/telemetry.ts`), step 4
-   `waitFor`/`withReference`, step 5 Console convergence, step 6 rename last.
+2. ~~Step 1: the public-door unlock~~ — **✅ DONE 2026-07-11 (#510 ①)** as
+   `AddCommand(name, command, port, workingDirectory?, healthPath?)`; the
+   .NET-only lock is gone (`qyl run --dev` launches Vite through it), and
+   **`WaitFor` + cycle detection shipped the same day** (#510 ①②;
+   `withReference` cut per the #510 triage — explicit `WithEnvironment` +
+   `GetEndpoint` instead).
+3. **Remaining migration path** in DESIGN.md §"Migration path": step 2
+   `IReadinessProbe`, step 3 `Qyl.Host.Mcp` (+ port `qyl.mcp/runner/src/telemetry.ts`),
+   step 5 Console convergence, step 6 rename last.
 
 ## Repo state at handoff (2026-07-10)
 
@@ -59,9 +60,11 @@ Each is locked on the axis the other is free. The plan makes **runtime** and
 - **There is no `qyl.run.dashboard`.** The runner frontend is
   `packages/Qyl.Run.Console`; the product dashboard is `services/qyl.dashboard`.
 - **`Qyl.Run/README.md` is trustworthy again** — rewritten 2026-07-11 to the
-  real surface (`AddCollector`/`AddProject` + the self-telemetry composition
-  primitives); the old `AddDashboard`/`.WithCollector`/`.WaitFor`/`[B]` fiction
-  is gone. `waitFor`-style dependency ordering still does not exist in code.
+  real surface (`AddCollector`/`AddProject`/`AddCommand` + `WaitFor` + the
+  self-telemetry composition primitives). The old fiction became real code
+  later the same day (#510 ①–③): `WaitFor` dependency ordering and the `[B]`
+  browser key now EXIST; only `AddDashboard`/`.WithCollector` stay fiction
+  (dashboard-as-resource was cut in the #510 triage).
 - **Rename cost is zero externally.** `Qyl.Run` is not on nuget.org; its only
   consumer is `Qyl.Run.Host`.
 - **The autoinstrumentation goal is not a separate engine** — it is what

@@ -740,3 +740,14 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   curl 5173 → 200; vite proxy 5173/api/v1/logs → 200 from the collector;
   dashboard visually verified in Chrome via the vite endpoint (onboarding page,
   collector LIVE, OTLP 4318/4317 LIVE).
+- 2026-07-11 — Doc de-rot after #510 ①②③ + prep for the remaining ④⑤ (Claude,
+  user-directed "update the now stale docs, delete them"). DESIGN.md: ".NET-only
+  lock" section now records AddCommand as the shipped public door; "dependency API
+  Qyl.Run still lacks" → gap closed (native WaitFor; withReference cut per triage);
+  Qyl.Host ASCII + migration steps 1 & 4 marked ✅ DONE (remaining: IReadinessProbe,
+  Qyl.Host.Mcp, Console convergence, rename). qyl-host README.md handoff: step-2
+  unlock marked done, "waitFor still does not exist in code" corrected (it exists;
+  only AddDashboard/.WithCollector remain fiction — dashboard-as-resource cut).
+  Issue #510 body: §2/§3/§4 rows stamped shipped/cut/later per reality; §7 per-row
+  "_?_" triage table DELETED as superseded by the triage comment + §10 checklist.
+  Board state: ①②③ ticked, ④ synthetic workload + ⑤ --demo remain (0/2).
