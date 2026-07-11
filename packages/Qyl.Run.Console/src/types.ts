@@ -7,10 +7,14 @@ export interface ResourceState {
   name: string;
   lifecycle: ResourceLifecycle;
   timestamp: string;
+  kind: string | null;
   allocatedPort: number | null;
   endpoint: string | null;
   lastError: string | null;
 }
+
+/** Kinds served by Qyl.Host.Mcp — the console shows a tools panel for these. */
+export const MCP_KINDS = new Set(["stdio", "http", "inproc"]);
 
 export interface LogLine {
   resource: string;

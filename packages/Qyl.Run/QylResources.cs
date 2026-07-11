@@ -54,6 +54,11 @@ public sealed record QylResourceState
     public required string Name { get; init; }
     public required ResourceLifecycle Lifecycle { get; init; }
     public required DateTimeOffset Timestamp { get; init; }
+
+    // The composed resource's kind ("collector", "command", MCP kinds, …); the registry stamps it
+    // so consoles can render kind-aware UI (e.g. a tools panel only for MCP resources).
+    public string? Kind { get; init; }
+
     public int? AllocatedPort { get; init; }
     public Uri? Endpoint { get; init; }
     public string? LastError { get; init; }

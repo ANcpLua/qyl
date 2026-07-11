@@ -185,8 +185,13 @@ mechanical, last-step change.
    (dependency-held launches, terminal-failure propagation, cycle rejection at
    `Build()`); the self-telemetry pair wires it automatically. `withReference`
    cut per the #510 triage — explicit `WithEnvironment` + `GetEndpoint` instead.
-5. **`Qyl.Host.Console`** — converge `Qyl.Run.Console` and `mcp-run/dashboard`;
-   keep the ext-apps MCP Apps rendering from the latter.
+5. **`Qyl.Host.Console`** — ✅ DONE 2026-07-11 (repair-plan phase 4), scoped to
+   the C# engine's console: `Qyl.Run.Console` is MCP-aware — kind column
+   (`QylResourceState.Kind`, registry-stamped), tools panel + tool-call wired
+   to the C# `/runner/mcp` passthrough, proxy target env-overridable
+   (`QYL_RUNNER_ORIGIN`). The ext-apps MCP Apps sandbox rendering deliberately
+   STAYS with qyl.mcp's dashboard (the shipped MCP surface) until the C# runner
+   grows a sandbox origin — recorded alongside the liveness-ping deferral.
 6. **Rename `Qyl.Run` → `Qyl.Host`** — last, mechanical, once the surface is
    settled.
 

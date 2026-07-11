@@ -4,8 +4,12 @@ using System.Threading.Channels;
 
 namespace Qyl.Run.Internal;
 
-internal sealed class QylResourceRegistry(TimeProvider time)
+internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, TimeProvider time)
 {
+    // Kind is static per composition; stamping it here keeps every Publish call site kind-free.
+    private readonly Dictionary<string, string> _kinds =
+        resources.ToDictionary(static r => r.Name, static r => r.Kind, StringComparer.Ordinal);
+
     // Broadcast fan-out: every subscriber (the Spectre TUI, an SSE endpoint, …) owns its own channel.
     // Publish records the latest state and mirrors the event into every subscriber's channel, so a second
     // consumer never steals events from the first.
@@ -50,6 +54,7 @@ internal sealed class QylResourceRegistry(TimeProvider time)
             Name = name,
             Lifecycle = lifecycle,
             Timestamp = time.GetUtcNow(),
+            Kind = _kinds.GetValueOrDefault(name),
             AllocatedPort = allocatedPort,
             Endpoint = endpoint,
             LastError = lastError
