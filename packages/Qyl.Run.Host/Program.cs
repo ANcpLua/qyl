@@ -16,8 +16,6 @@ using Qyl.Run;
 //
 // No third collector, no feedback loop; RejectSelfReference additionally refuses any resolved
 // endpoint that would point back at the originating collector.
-//
-// Note: resources are launched via `dotnet run --project <path>`, so only .NET projects can be added as of 7th july 4pm.
 var app = QylAppBuilder.Create(args);
 
 var collector = app.AddCollector("collector", port: 5100, project: "services/qyl.collector", selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: 5200).RejectSelfReference());
@@ -30,6 +28,20 @@ if (args.Contains("--dev", StringComparer.Ordinal))
     // supervises (and health-probes) IPv4 loopback — bind where the probe looks.
     app.AddCommand("dashboard-dev", "npm run dev -- --host 127.0.0.1", port: 5173,
             workingDirectory: "services/qyl.dashboard")
+        .WaitFor(collector);
+}
+
+// `--demo`: also run the synthetic workload (#510 ④⑤) — gen_ai/http/db traces through the
+// SemConv generated surface, exported into the collector's OTLP receiver, so the dashboard is
+// populated on first run. Registered after the collector, so [B] keeps opening the dashboard;
+// OTEL_SERVICE_NAME=workload comes from the resource name, the OTLP endpoint from the
+// collector's composed receiver port (same primitives the self-telemetry wiring uses).
+if (args.Contains("--demo", StringComparer.Ordinal))
+{
+    app.AddProject("workload", "packages/Qyl.Run.Workload")
+        .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint,
+            collector.GetEndpoint(QylConstants.EndpointKinds.OtlpHttp).ToString().TrimEnd('/'))
+        .WithEnvironment(QylConstants.Env.OtelExporterOtlpProtocol, QylConstants.Collector.OtlpHttpProtobuf)
         .WaitFor(collector);
 }
 

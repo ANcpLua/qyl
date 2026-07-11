@@ -895,3 +895,38 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   qyl.dashboard/Dockerfile, ASPNETCORE_WEBROOT.
   EVIDENCE: Verify --Configuration Release 38/38 Succeeded (incl. the extended
   tombstone scan); local single-origin + negative publish + compose e2e above.
+- 2026-07-11 — **#510 MVP checklist ⑤ shipped: `qyl run --demo`** (Claude; second of the
+  two parallel sessions — all verification again clone-isolated, rebased onto d59a510a
+  after Phases 1-3 + Qyl.Host step 2 landed under it mid-flight). Qyl.Run.Host `--demo`
+  composes the ④ workload as an `AddProject` resource: OTLP endpoint from
+  `collector.GetEndpoint("otlp-http")` + `http/protobuf` via the same `QylConstants`
+  primitives the self-telemetry wiring uses, `.WaitFor(collector)`; registered after the
+  collector so `[B]` keeps opening the dashboard; `OTEL_SERVICE_NAME=workload` comes from
+  the resource name; readiness = the workload's own `/health` on the injected
+  ASPNETCORE_URLS port (zero Qyl.Run model changes). Also retired Program.cs's rotted
+  "only .NET projects can be added" note (stale since AddCommand). `--demo --dev` compose
+  cleanly together (4 resources). EVIDENCE (all on live runs): build 0W/0E + `Verify
+  --Configuration Release` all green on d59a510a+⑤; ready order diagnostics → collector →
+  workload (both WaitFor edges); workload child env verified via ps eww
+  (OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 = the collector's composed receiver,
+  protocol http/protobuf, ASPNETCORE_URLS=dynamic probe port); GET :5100/api/v1/sessions →
+  sessions keyed by demo session.id with non-zero genai_usage (peak: req 14, in 31151, out
+  14286, 5 providers, cost $0.5508); GET :5100/api/v1/traces → 35 traces, services=
+  [workload], POST/SELECT/chat span shapes, error traces present; :5200 diagnostics store
+  stayed exclusively service.name=collector (self-telemetry isolation intact under
+  --demo); DASHBOARD rendering the workload proven in Chrome on the `--dev` Vite surface
+  (traces page: POST /api/chat / /api/summarize / /api/agents/plan from `workload`,
+  realistic durations, ERROR badge) — in Debug the single-origin :5100 dashboard is
+  dashboard-less BY Phase-3 DESIGN (embed defaults true for Release only). OBSERVATIONS
+  for the repair stream, not fixed here: (a) Debug :5100 serves the SPA fallback
+  index.html 200 while /assets/* 404 — a blank page where a 404 or a dashboard would be
+  honest; (b) `dotnet run`-launched children rebuild on nearly every launch and two
+  collector resources rebuild the SAME project concurrently — harmless today but it cost
+  this session hours of embed-state whiplash (property-set changes invalidate the
+  up-to-date check; a stripped/embedded dll depends on the child build's env); the
+  publish-based single-origin path Phase 3 built is the structural fix. OPS GOTCHA
+  recorded: children run with cwd = project dir, so demo DuckDB files land in
+  services/qyl.collector/ — and a kill -9 mid-write corrupts the WAL, after which every
+  subsequent boot crash-loops on WAL replay ("Failure while replaying WAL … no default
+  database set"); the fix is deleting the orphaned *.duckdb*. #510 §10 is now 5/5 —
+  the MVP checklist is complete.
