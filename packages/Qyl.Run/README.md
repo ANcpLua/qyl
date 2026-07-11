@@ -66,7 +66,7 @@ v0.1.0 — qyl distributed-app runner
 │ collector   │   ●    │ 5100 │ http://127.0.0.1:5100/ │
 │ diagnostics │   ●    │ 5200 │ http://127.0.0.1:5200/ │
 ╰─────────────┴────────┴──────┴────────────────────────╯
-[S] Stop   [R] Restart   [H] Help
+[S] Stop   [R] Restart   [B] Open browser   [H] Help
 ```
 
 ## Weight

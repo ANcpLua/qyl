@@ -20,6 +20,17 @@ using Qyl.Run;
 // Note: resources are launched via `dotnet run --project <path>`, so only .NET projects can be added as of 7th july 4pm.
 var app = QylAppBuilder.Create(args);
 
-app.AddCollector("collector", port: 5100, project: "services/qyl.collector", selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: 5200).RejectSelfReference());
+var collector = app.AddCollector("collector", port: 5100, project: "services/qyl.collector", selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: 5200).RejectSelfReference());
+
+// `--dev`: also run the Vite dashboard (HMR) as a resource. It proxies /api + /v1 to the
+// collector (vite.config.ts), so it waits for the collector; [B] opens it once Ready.
+if (args.Contains("--dev", StringComparer.Ordinal))
+{
+    // --host 127.0.0.1: Node resolves `localhost` to ::1 only on this stack, but the runner
+    // supervises (and health-probes) IPv4 loopback — bind where the probe looks.
+    app.AddCommand("dashboard-dev", "npm run dev -- --host 127.0.0.1", port: 5173,
+            workingDirectory: "services/qyl.dashboard")
+        .WaitFor(collector);
+}
 
 await app.Build().RunAsync().ConfigureAwait(false);

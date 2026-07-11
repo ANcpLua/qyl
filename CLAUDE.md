@@ -726,3 +726,17 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   /api/v1/sessions server span in diagnostics store). Note: a first flow check
   read 0 traces — test-timing artifact (fresh run + ps-verified env + direct 202
   probe all clean); flow re-proven twice.
+- 2026-07-11 — #510 MVP checklist ③ shipped (Claude). `qyl run --dev`: Qyl.Run.Host
+  `--dev` flag adds the Vite dashboard as an AddCommand resource
+  (`npm run dev -- --host 127.0.0.1`, port 5173, cwd services/qyl.dashboard)
+  .WaitFor(collector); TUI gained `[B]` Open browser (first Ready command resource
+  wins over the collector's embedded dashboard; cross-platform open/cmd-start/
+  xdg-open; input-redirected hosts keep keys disabled by design so [B] is
+  code-reviewed, not headless-pressable). GOTCHA fixed en route: Node resolves
+  `localhost` to ::1-only on this stack, so plain `npm run dev` bound [::1]:5173
+  while the runner probes IPv4 — resource sat Failed; `--host 127.0.0.1` at the
+  composition level fixes it (probe and bind now agree). EVIDENCE: live run —
+  ready order diagnostics → collector → dashboard-dev (both WaitFor edges);
+  curl 5173 → 200; vite proxy 5173/api/v1/logs → 200 from the collector;
+  dashboard visually verified in Chrome via the vite endpoint (onboarding page,
+  collector LIVE, OTLP 4318/4317 LIVE).

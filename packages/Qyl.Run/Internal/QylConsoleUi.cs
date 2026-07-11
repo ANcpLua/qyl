@@ -10,7 +10,7 @@ internal sealed class QylConsoleUi(
     IHostApplicationLifetime lifetime) : BackgroundService
 {
     private const string Footer =
-        "[grey][[S]] Stop   [[R]] Restart   [[H]] Help   [[Esc]] Exit[/]";
+        "[grey][[S]] Stop   [[R]] Restart   [[B]] Open browser   [[H]] Help   [[Esc]] Exit[/]";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -136,8 +136,53 @@ internal sealed class QylConsoleUi(
                     lifetime.StopApplication();
                     return;
                 case QylConstants.Keys.Restart: RequestRestarts(); break;
+                case QylConstants.Keys.Browser: OpenBrowser(); break;
                 case QylConstants.Keys.Help: AnsiConsole.MarkupLine(Footer); break;
             }
+        }
+    }
+
+    // [B] opens the thing a developer is iterating on: the first Ready dev-command resource (a Vite
+    // dashboard in `--dev`) wins over the collector's embedded dashboard; with no command resources
+    // the first Ready endpoint (the collector, which serves the built dashboard) opens instead.
+    private void OpenBrowser()
+    {
+        var endpoint = resources
+            .OrderBy(static r => r.Kind == QylConstants.ResourceKinds.Command ? 0 : 1)
+            .Select(r => registry.Snapshot.GetValueOrDefault(r.Name))
+            .FirstOrDefault(static s => s is { Lifecycle: ResourceLifecycle.Ready, Endpoint: not null })
+            ?.Endpoint;
+
+        if (endpoint is null)
+        {
+            AnsiConsole.MarkupLine("[yellow]No ready resource with an endpoint to open yet.[/]");
+            return;
+        }
+
+        try
+        {
+            var url = endpoint.ToString();
+            var start = new ProcessStartInfo { UseShellExecute = false, CreateNoWindow = true };
+            if (OperatingSystem.IsWindows())
+            {
+                start.FileName = "cmd";
+                start.ArgumentList.Add("/c");
+                start.ArgumentList.Add("start");
+                start.ArgumentList.Add(string.Empty);
+                start.ArgumentList.Add(url);
+            }
+            else
+            {
+                start.FileName = OperatingSystem.IsMacOS() ? "open" : "xdg-open";
+                start.ArgumentList.Add(url);
+            }
+
+            using var _ = Process.Start(start);
+            AnsiConsole.MarkupLine($"[aqua]Opening {Markup.Escape(url)}[/]");
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or PlatformNotSupportedException)
+        {
+            AnsiConsole.MarkupLine($"[yellow]Could not open browser: {Markup.Escape(ex.Message)}[/]");
         }
     }
 
