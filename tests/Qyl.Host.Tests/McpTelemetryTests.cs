@@ -25,6 +25,7 @@ public sealed class McpTelemetryTests
         ActivitySource.AddActivityListener(listener);
 
         await using var services = new ServiceCollection().BuildServiceProvider();
+        var toolName = $"echo_{Guid.NewGuid():N}";
         var builder = QylAppBuilder.Create();
         builder.AddMcpInProcess("telemetry-server", transport =>
         {
@@ -32,7 +33,7 @@ public sealed class McpTelemetryTests
             {
                 McpServerTool.Create(
                     (Func<string, string>)(static value => value),
-                    new McpServerToolCreateOptions { Name = "echo" })
+                    new McpServerToolCreateOptions { Name = toolName })
             };
             var options = new McpServerOptions
             {
@@ -63,11 +64,11 @@ public sealed class McpTelemetryTests
         }
 
         var first = await client.CallToolAsync(
-            "echo",
+            toolName,
             new Dictionary<string, object?> { ["value"] = "first" },
             cancellationToken: timeout.Token);
         var second = await client.CallToolAsync(
-            "echo",
+            toolName,
             new Dictionary<string, object?> { ["value"] = "second" },
             cancellationToken: timeout.Token);
 
@@ -75,16 +76,18 @@ public sealed class McpTelemetryTests
         Assert.NotEqual(true, second.IsError);
 
         var callSpans = completed
-            .Where(static activity => Equals(activity.GetTagItem("mcp.method.name"), "tools/call"))
+            .Where(activity =>
+                Equals(activity.GetTagItem("mcp.method.name"), "tools/call") &&
+                Equals(activity.GetTagItem("gen_ai.tool.name"), toolName))
             .ToArray();
         var clientSpans = callSpans.Where(static activity => activity.Kind == ActivityKind.Client).ToArray();
         var serverSpans = callSpans.Where(static activity => activity.Kind == ActivityKind.Server).ToArray();
         Assert.Equal(2, clientSpans.Length);
         Assert.Equal(2, serverSpans.Length);
 
-        Assert.All(clientSpans, static activity =>
+        Assert.All(clientSpans, activity =>
         {
-            Assert.Equal("echo", activity.GetTagItem("gen_ai.tool.name"));
+            Assert.Equal(toolName, activity.GetTagItem("gen_ai.tool.name"));
             Assert.Equal("execute_tool", activity.GetTagItem("gen_ai.operation.name"));
             Assert.False(string.IsNullOrWhiteSpace(activity.GetTagItem("network.transport") as string));
             Assert.False(string.IsNullOrWhiteSpace(activity.GetTagItem("mcp.protocol.version") as string));
