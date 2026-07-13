@@ -11,10 +11,14 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);MCPEXP001</NoWarn>
-    <!-- IsAotCompatible deliberately NOT claimed: the engine (Qyl.Host) keeps the claim; this
-         package leans on the MCP SDK. tests/Qyl.Host.Mcp.AotSmoke publishes a host of this
-         package with PublishAot=true (zero IL/AOT warnings; the native binary composes both
-         MCP resource kinds), but a compile-time claim waits until a real handshake runs under AOT. -->
+    <!-- Verified by tests/Qyl.Host.Mcp.AotSmoke: the PublishAot=true native binary runs LIVE
+         initialize + tools/list + tools/call + resources/read handshakes over both the in-process
+         and stdio kinds through McpHandshakeProbe/McpClientRegistry/McpContractMapper, with zero
+         IL/AOT warnings from this assembly. Remaining publish-time warnings come from
+         Qyl.Api.Contracts' generated RunnerMcpResourceContentJsonConverter (reflection-annotated
+         Serialize/Deserialize overloads) — an upstream qyl-api-schema generation issue; the calls
+         resolve through source-gen options at runtime, and the smoke exercises that exact path. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,6 +35,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Qyl.Host.Tests"/>
+    <InternalsVisibleTo Include="Qyl.Host.Mcp.AotSmoke"/>
   </ItemGroup>
 
 </Project>

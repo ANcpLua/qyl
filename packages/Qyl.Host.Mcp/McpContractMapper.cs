@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ContractAudioContent = Qyl.Api.Contracts.Runner.Mcp.RunnerMcpAudioContent;
@@ -228,7 +229,7 @@ internal static class McpContractMapper
                     Role.Assistant => "assistant",
                     _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Unknown MCP audience role")
                 }).ToArray(),
-                McpJsonUtilities.DefaultOptions);
+                (JsonTypeInfo<string[]>)McpJsonUtilities.DefaultOptions.GetTypeInfo(typeof(string[])));
         Add(values, "priority", annotations.Priority);
         Add(values, "lastModified", annotations.LastModified?.ToString("O", CultureInfo.InvariantCulture));
         return values;
@@ -273,13 +274,25 @@ internal static class McpContractMapper
         return result;
     }
 
+    // Every branch resolves through McpJsonUtilities.DefaultOptions' source-gen metadata (or no
+    // serializer at all), so this stays warning-free under trim/AOT analysis. The runtime behavior
+    // is unchanged: a type outside the SDK's resolver throws, exactly as the reflection-annotated
+    // overloads already did under PublishAot.
     private static JsonElement ToElement(object? value) => value switch
     {
-        null => JsonSerializer.SerializeToElement<object?>(null, McpJsonUtilities.DefaultOptions),
+        null => NullElement(),
         JsonElement element => element.Clone(),
-        JsonNode node => JsonSerializer.SerializeToElement(node, McpJsonUtilities.DefaultOptions),
-        _ => JsonSerializer.SerializeToElement(value, value.GetType(), McpJsonUtilities.DefaultOptions)
+        JsonNode node => ParseElement(node.ToJsonString()),
+        _ => JsonSerializer.SerializeToElement(value, McpJsonUtilities.DefaultOptions.GetTypeInfo(value.GetType()))
     };
+
+    private static JsonElement NullElement() => ParseElement("null");
+
+    private static JsonElement ParseElement(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
 
     private static Uri ToAbsoluteUri(string value) => new(value, UriKind.Absolute);
 

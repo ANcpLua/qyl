@@ -30,6 +30,7 @@
          model internal prevents third-party packages from depending on runner storage shapes. -->
     <InternalsVisibleTo Include="Qyl.Host.Mcp"/>
     <InternalsVisibleTo Include="Qyl.Host.Tests"/>
+    <InternalsVisibleTo Include="Qyl.Host.Mcp.AotSmoke"/>
   </ItemGroup>
 
 </Project>
