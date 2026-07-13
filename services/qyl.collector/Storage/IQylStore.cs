@@ -1,5 +1,7 @@
 namespace Qyl.Collector.Storage;
 
+internal sealed class QylStoreUnavailableException(string message) : Exception(message);
+
 internal interface IQylStore : IAsyncDisposable
 {
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);

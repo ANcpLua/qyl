@@ -1,103 +1,80 @@
 # qyl
 
-qyl is an OpenTelemetry-compatible observability platform. OpenTelemetry is the ingestion and instrumentation layer; qyl's product identity is the collector, storage model, API, and dashboard built around telemetry investigation.
+qyl is an OpenTelemetry-compatible observability product for ingesting,
+investigating, and visualizing telemetry. The product is the collector, DuckDB
+storage, public investigation API, dashboard, and local distributed-app host.
+OpenTelemetry supplies the ingestion protocol and telemetry vocabulary; it is not
+Qyl's product API.
+
+qyl is pre-beta. The current repository favors a small, executable product surface
+over compatibility layers for unreleased experiments.
 
 ## Architecture
 
 ```text
-OpenTelemetry semantic conventions (Weaver-generated)
+OpenTelemetry semantic conventions
         |
         v
-Qyl.OpenTelemetry.SemanticConventions -> typed constants + the otel-keys projection
+Qyl.OpenTelemetry.SemanticConventions    typed vocabulary
         |
         v
-qyl-api-schema -> OpenAPI / JSON Schema / Qyl.Api.Contracts / TS contract types
+qyl-api-schema                           TypeSpec product contract
+        |
+        +----> Qyl.Api.Contracts         generated .NET contracts
+        +----> generated TS contracts    dashboard and other consumers
         |
         v
-qyl.collector -> DuckDB storage, REST API, OTLP ingest, SSE
+qyl.collector                            OTLP ingest -> DuckDB -> product API
         |
         v
-qyl.dashboard -> operator UI
+qyl.dashboard                            investigation UI
 ```
 
-## Projects
+The main components are:
 
-| Project | Purpose |
+| Path | Responsibility |
 | --- | --- |
-| `services/qyl.collector` | OTLP ingest (traces, logs, profiles), REST API, SSE streaming, DuckDB storage |
-| `services/qyl.dashboard` | React dashboard. Every page is backed by a live collector route: traces (incl. sessions), logs, GenAI cost (from session usage) — see [Product surface](#product-surface) |
-| `internal/qyl.instrumentation` | .NET instrumentation helpers and OpenTelemetry setup |
-| `internal/qyl.instrumentation.generators` | Roslyn source generator for service-defaults discovery and DB instrumentation |
-| `internal/qyl.collector.storage.generators` | DuckDB storage source generation |
-|  `packages/Qyl.Host` | local distributed-app runner library for collector/dashboard workflows |
-| `packages/Qyl.Run.Host` | executable host for the runner (`dotnet run --project packages/Qyl.Run.Host`) |
-| `packages/Qyl.Host.Console` | dev-only runner console — live resource view for the runner (Vite/React); not the product dashboard |
-| `eng/build` | build/verify pipeline (`BuildVerify` guards, semantic catalog) |
+| `services/qyl.collector` | Official OTLP wire ingestion, internal storage, and the generated-contract product API |
+| `services/qyl.dashboard` | React investigation interface backed by generated client contracts |
+| `internal/qyl.instrumentation` | Qyl service defaults and Qyl-specific telemetry |
+| `packages/Qyl.Host` | Unpublished local distributed-app runner |
+| `packages/Qyl.Host.Mcp` | Optional MCP hosting integration for the runner |
+| `eng/build` | Build, generation, verification, and packaging gates |
 
-## Product surface
+## Contract boundaries
 
-qyl is pre-beta. The dashboard is deliberately shrunk to the verified vertical —
-every page it ships is backed by a live collector route (repair-plan phase 2,
-2026-07-11). What the collector serves today, in full:
+Every client-visible Qyl request, response, stream event, and error is authored in
+the external [`qyl-api-schema`](https://github.com/ANcpLua/qyl-api-schema) TypeSpec
+repository. Qyl consumes the generated `Qyl.Api.Contracts` package and generated
+TypeScript contract artifacts; it does not maintain a second public DTO model in the collector.
 
-| Area | Routes |
-| --- | --- |
-| Traces | `GET /api/v1/traces`, `/traces/{traceId}`, `/traces/{traceId}/spans` |
-| Sessions | `GET /api/v1/sessions`, `/sessions/stats`, `/sessions/{sessionId}`, `/sessions/{sessionId}/traces` |
-| Logs | `GET /api/v1/logs`, `/stream/logs` (SSE) |
-| Profiles | `GET /api/v1/profiles`, `/profiles/{profileId}`, `/profiles/by-trace/{traceId}`, `/profiles/by-span/{spanId}` |
-| OTLP ingest | `POST /v1/traces`, `/v1/logs`, `/v1/profiles` |
+OTLP endpoints use the official OpenTelemetry protobuf contract. Collector storage
+rows, ingest batches, query models, and internal projections remain implementation
+details and are explicitly mapped to generated product contracts before crossing an
+HTTP, gRPC, MCP, streaming, or client boundary.
 
-GenAI token usage and cost are real, but they are enriched onto **sessions** — there
-is no separate cost API; the dashboard's Cost page reads them from `/api/v1/sessions`.
-Dashboard pages: Traces (sessions + waterfall), Logs (list + SSE stream), GenAI Cost,
-plus the onboarding page. The former unbacked pages (services, issues, alerts, errors,
-performance, conversations, agents, settings/GitHub) were deleted 2026-07-11 — no
-adapters, no stubs; a page returns only when a real endpoint ships. Profiles have
-API routes but no page yet. Note: the `qyl-api-schema` contract still declares some
-never-implemented route families (issues, errors, services, dashboards) — trimming
-the contract is tracked separately from the dashboard.
+## Instrumentation
 
-## Contracts
+[`Qyl.OpenTelemetry.AutoInstrumentation`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation)
+provides the managed compile-time instrumentation substrate. It uses Roslyn source
+interceptors, build assets, BCL telemetry primitives, and public diagnostic hooks;
+it does not use a CLR profiler or runtime IL rewriting. Its generated
+[`coverage-matrix.md`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation/blob/main/docs/coverage-matrix.md)
+is the detailed capability and evidence record. Qyl does not duplicate that matrix
+or turn configuration-only rows into runtime-coverage claims.
 
-qyl consumes API DTOs from `Qyl.Api.Contracts`, generated by the external `qyl-api-schema` TypeSpec repo.
+## Run locally
 
-The intended contract path is:
+Requirements: the .NET SDK selected by `global.json` and Node.js 20 or later.
 
-```text
-Schema -> OpenAPI -> DTO contracts -> clients
-```
-
-Do not recreate a second contract source in this monorepo. Update TypeSpec in `qyl-api-schema`, regenerate there, publish or locally pack `Qyl.Api.Contracts`, then update qyl's package reference.
-
-Do not add new public API request, response, DTO, or schema models in `qyl.collector`.
-Public API shapes belong in `qyl-api-schema` and must flow into qyl through
-`Qyl.Api.Contracts` or generated OpenAPI-derived client types. Runtime storage rows,
-ingest wire types, and internal projections may exist only when they are not returned
-as the product API contract.
-
-## Observability & Instrumentation
-
-qyl uses OpenTelemetry terminology precisely. In OTel terms: the **Instrumentation Library**
-(the thing that makes other libraries observable via **Automatic Instrumentation** — here,
-AOT-safe compile-time interceptors + `DiagnosticListener`, not a CLR profiler) is
-[`Qyl.OpenTelemetry.AutoInstrumentation`](https://github.com/ANcpLua/Qyl.OpenTelemetry.AutoInstrumentation);
-`internal/qyl.instrumentation` adds qyl's GenAI/agent **domain** instrumentation and composes
-it in; `Qyl.OpenTelemetry.SemanticConventions` is the emitted vocabulary; and `qyl.collector`
-is the backend that receives the signals.
-
-The OTel role mapping, the AOT automatic-instrumentation method, and the signal coverage
-(all three signals — traces, metrics, logs — implemented across the 60-item contract and
-NativeAOT-verified in the external `Qyl.OpenTelemetry.AutoInstrumentation` repo) are
-documented in **[`docs/observability.md`](docs/observability.md)**. That AOT claim scopes
-to the instrumentation library; the in-repo collector and `internal/qyl.instrumentation`
-are ASP.NET Core components that neither need nor claim NativeAOT.
-
-## Run Locally
+Start the collector:
 
 ```bash
-dotnet run --project services/qyl.collector
+QYL_BIND_ADDRESS=127.0.0.1 QYL_OTLP_AUTH_MODE=Unsecured \
+  dotnet run --project services/qyl.collector
 ```
+
+Start the dashboard in another terminal:
 
 ```bash
 cd services/qyl.dashboard
@@ -105,47 +82,40 @@ npm install
 npm run dev
 ```
 
-Or run the collector via the local runner, which also provisions a dedicated
-diagnostics collector on `:5200` for the collector's own self-telemetry:
+The browser dashboard is intentionally a loopback development surface and never
+stores the ingest-capable API key. `ApiKey` deployments expose only the generated
+product API and OTLP endpoints; use a generated client rather than the dashboard.
+
+Or run the local host, which composes the collector and its isolated diagnostics
+collector:
 
 ```bash
 dotnet run --project packages/Qyl.Run.Host
 ```
 
-The runner starts collectors, not the dashboard — run the dashboard's dev server
-separately (above). The collector serves the dashboard itself only when the built
-SPA is embedded into it, which needs both the build flag and a built `dist/`:
+Point an OTLP exporter at the collector:
 
 ```bash
-cd services/qyl.dashboard && npm run build && cd -
-dotnet run --project services/qyl.collector -p:QylEmbedDashboard=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
-Point OpenTelemetry exporters at the collector:
+| Port | Purpose |
+| --- | --- |
+| `5100` | Product API and OTLP/HTTP; embedded dashboard only in local `Unsecured` mode |
+| `4317` | OTLP/gRPC receiver |
+| `4318` | Dedicated OTLP/HTTP receiver |
+
+## Verify
+
+Run the repository gate before pushing:
 
 ```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:5100"
-export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+dotnet run --project eng/build/build.csproj -- Ci
 ```
 
-| Port | Protocol | Purpose |
-| --- | --- | --- |
-| 5100 | HTTP | REST API, dashboard host, OTLP/HTTP |
-| 4317 | gRPC | OTLP/gRPC ingestion |
-| 4318 | HTTP | OTLP HTTP/protobuf ingestion |
-
-## Development
-
-```bash
-dotnet build services/qyl.collector/qyl.collector.csproj
-```
-
-```bash
-cd services/qyl.dashboard
-npm run build
-```
-
-Generated files are not hand-edited. Fix the generator or schema input, regenerate, then commit the result.
+Generated files are outputs, not editing surfaces. Change the owning TypeSpec,
+protobuf input, generator, or manifest and regenerate in the same commit.
 
 ## License
 

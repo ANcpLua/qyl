@@ -3,11 +3,11 @@ using System.Collections.ObjectModel;
 
 namespace Qyl.Host;
 
-public sealed record QylResource
+internal sealed record QylResource
 {
     public required string Name { get; init; }
 
-    public required string Kind { get; init; }
+    public required QylResourceKind Kind { get; init; }
 
     public required int Port { get; init; }
 
@@ -30,7 +30,7 @@ public sealed record QylResource
     public IReadinessProbe? ReadinessProbe { get; init; }
 }
 
-public sealed record QylLaunchSpec
+internal sealed record QylLaunchSpec
 {
     public required string Executable { get; init; }
     public ReadOnlyCollection<string> Args { get; init; } = ReadOnlyCollection<string>.Empty;
@@ -39,7 +39,7 @@ public sealed record QylLaunchSpec
     public string HealthPath { get; init; } = QylConstants.Routes.Health;
 }
 
-public enum ResourceLifecycle
+internal enum ResourceLifecycle
 {
     Pending,
     Starting,
@@ -49,17 +49,39 @@ public enum ResourceLifecycle
     Failed
 }
 
-public sealed record QylResourceState
+internal sealed record QylResourceState
 {
     public required string Name { get; init; }
     public required ResourceLifecycle Lifecycle { get; init; }
     public required DateTimeOffset Timestamp { get; init; }
 
-    // The composed resource's kind ("collector", "command", MCP kinds, …); the registry stamps it
-    // so consoles can render kind-aware UI (e.g. a tools panel only for MCP resources).
-    public string? Kind { get; init; }
+    public QylResourceKind? Kind { get; init; }
 
     public int? AllocatedPort { get; init; }
     public Uri? Endpoint { get; init; }
     public string? LastError { get; init; }
+}
+
+internal enum QylResourceKind
+{
+    Collector,
+    Project,
+    Command,
+    McpStdio,
+    McpHttp,
+    McpInProcess
+}
+
+internal static class QylResourceKindExtensions
+{
+    internal static string ToWireName(this QylResourceKind kind) => kind switch
+    {
+        QylResourceKind.Collector => "collector",
+        QylResourceKind.Project => "project",
+        QylResourceKind.Command => "command",
+        QylResourceKind.McpStdio => "stdio",
+        QylResourceKind.McpHttp => "http",
+        QylResourceKind.McpInProcess => "inproc",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown resource kind")
+    };
 }

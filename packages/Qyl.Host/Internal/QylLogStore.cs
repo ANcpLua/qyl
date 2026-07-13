@@ -3,19 +3,26 @@ using System.Threading.Channels;
 
 namespace Qyl.Host.Internal;
 
-// Bounded, per-resource log buffer with broadcast fan-out — the log analogue of QylResourceRegistry.
+// Bounded, per-resource log buffer with lossy bounded broadcast fan-out. A slow live subscriber can
+// reconnect and replay the latest MaxLinesPerResource snapshot if older live frames were dropped.
 // Producers (the process launcher; the container `docker logs -f` follower) Append lines; consumers take a
 // Snapshot of recent lines and Subscribe for subsequent ones (the /runner API, and through it the runner console).
 internal sealed class QylLogStore
 {
     private const int MaxLinesPerResource = 500;
+    internal const int SubscriberCapacity = MaxLinesPerResource;
 
     private readonly ConcurrentDictionary<string, LineBuffer> _buffers = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Guid, LogSubscriber> _subscribers = new();
 
     public void Append(string resource, bool isError, string line)
     {
-        var entry = new QylLogLine { Resource = resource, Stream = isError ? "err" : "out", Line = line };
+        var entry = new QylLogLine
+        {
+            Resource = resource,
+            Stream = isError ? QylLogStream.Stderr : QylLogStream.Stdout,
+            Line = line
+        };
         _buffers.GetOrAdd(resource, static _ => new LineBuffer(MaxLinesPerResource)).Add(entry);
         foreach (var subscriber in _subscribers.Values)
         {
@@ -31,8 +38,13 @@ internal sealed class QylLogStore
 
     public QylLogSubscription Subscribe(string resource)
     {
-        var channel = Channel.CreateUnbounded<QylLogLine>(
-            new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+        var channel = Channel.CreateBounded<QylLogLine>(
+            new BoundedChannelOptions(SubscriberCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.DropOldest
+            });
         var id = Guid.NewGuid();
         _subscribers[id] = new LogSubscriber(resource, channel);
         return new QylLogSubscription(this, id, channel.Reader);
@@ -69,8 +81,14 @@ internal sealed class QylLogStore
 internal sealed record QylLogLine
 {
     public required string Resource { get; init; }
-    public required string Stream { get; init; }
+    public required QylLogStream Stream { get; init; }
     public required string Line { get; init; }
+}
+
+internal enum QylLogStream
+{
+    Stdout,
+    Stderr
 }
 
 internal sealed class QylLogSubscription(QylLogStore store, Guid id, ChannelReader<QylLogLine> reader) : IDisposable

@@ -1,88 +1,65 @@
-/**
- * qyl API Types
- * DO NOT edit api.ts directly - it's auto-generated from qyl-api-schema/generated/openapi/qyl.openapi.json
- *
- * Type Pipeline: TypeSpec -> OpenAPI -> openapi-typescript -> api.ts -> index.ts
- * Regenerate with: npm run generate:ts
- */
+import {
+    SpanStatusCodeValues,
+    type AttributeValue,
+    type SessionEntity,
+    type Span,
+    type SpanStatusCode,
+} from '@ancplua/qyl-api-schema/types';
 
-import type {components} from './api';
+export type {
+    CursorPageLogRecord,
+    CursorPageSessionEntity,
+    CursorPageSpan,
+    CursorPageTrace,
+    HealthReport,
+    LogRecord as ContractLogRecord,
+    LogStreamEvent,
+    SessionEntity,
+    Span,
+    SpanStatusCode,
+    Trace,
+} from '@ancplua/qyl-api-schema/types';
 
-// =============================================================================
-// Contract schema aliases.
-// =============================================================================
-
-// Enums
-export type SpanStatusCode = components['schemas']['OTel.Enums.SpanStatusCode'];
-
-// Models
-export type Span = components['schemas']['OTel.Traces.Span'];
-export type Trace = components['schemas']['OTel.Traces.Trace'];
-export type ContractLogRecord = components['schemas']['OTel.Logs.LogRecord'];
-
-// Session types
-export type SessionEntity = components['schemas']['Domains.Observe.Session.SessionEntity'];
-
-// =============================================================================
-// Utility Functions for Working with Span
-// =============================================================================
-
-/** Convert nanoseconds to milliseconds */
+/** Convert nanoseconds to milliseconds. */
 export function nsToMs(ns: number): number {
     return ns / 1_000_000;
 }
 
-/** Convert nanoseconds timestamp to ISO string */
+/** Convert a nanosecond Unix timestamp to ISO 8601. */
 export function nanoToIso(nanos: number): string {
     return new Date(nanos / 1_000_000).toISOString();
 }
 
-/** Get attributes from Span as a record */
+/** Get span attributes as a key/value record for UI lookup. */
 export function getAttributesRecord(span: Span): Record<string, unknown> {
     if (!span.attributes) return {};
     const result: Record<string, unknown> = {};
-    for (const attr of span.attributes) {
-        result[attr.key] = attr.value;
-    }
+    for (const attr of span.attributes) result[attr.key] = attr.value;
     return result;
 }
 
-/** Get primary service name from session */
 export function getPrimaryService(session: SessionEntity): string {
-    const services = (session as SessionEntity & { services?: string[] }).services;
-    return services?.[0] ?? 'unknown';
+    return session.services[0] ?? 'unknown';
 }
 
-// =============================================================================
-// Status Code Helpers
-// =============================================================================
+export const STATUS_ERROR: SpanStatusCode = SpanStatusCodeValues.error;
 
-/** StatusCode enum values (OTel uses integers: 0=UNSET, 1=OK, 2=ERROR) */
-export const STATUS_ERROR: SpanStatusCode = 2;
-
-/** Get status label from numeric code */
 export function getStatusLabel(code: SpanStatusCode): string {
     switch (code) {
-        case 0:
+        case SpanStatusCodeValues.unset:
             return 'unset';
-        case 1:
+        case SpanStatusCodeValues.ok:
             return 'ok';
-        case 2:
+        case SpanStatusCodeValues.error:
             return 'error';
-        default:
-            return 'unknown';
     }
 }
 
-// =============================================================================
-// Log Types (not in OpenAPI schema - logs endpoint TBD)
-// =============================================================================
-
-/** Log level for UI display */
+/** Display level derived from the OTel numeric/text severity pair. */
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
-/** Log record for LogsPage */
-export interface LogRecord {
+/** Dashboard-only projection optimized for rendering and filtering log rows. */
+export interface LogViewRecord {
     timestamp: string;
     observedTimestamp: string;
     traceId?: string;
@@ -90,7 +67,7 @@ export interface LogRecord {
     severityNumber: number;
     severityText: LogLevel;
     body: string;
-    attributes: Record<string, string | number | boolean | string[] | number[] | boolean[]>;
+    attributes: Record<string, AttributeValue>;
     serviceName: string;
     serviceVersion?: string;
 }

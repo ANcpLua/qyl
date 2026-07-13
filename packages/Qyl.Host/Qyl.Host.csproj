@@ -21,12 +21,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <PackageReference Include="Qyl.Api.Contracts"/>
     <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
+    <!-- Owned extension/test assemblies may use the internal composition model. Keeping that
+         model internal prevents third-party packages from depending on runner storage shapes. -->
+    <InternalsVisibleTo Include="Qyl.Host.Mcp"/>
+    <InternalsVisibleTo Include="Qyl.Host.Tests"/>
   </ItemGroup>
 
 </Project>

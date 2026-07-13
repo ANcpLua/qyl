@@ -13,7 +13,7 @@ internal sealed partial class QylOrchestrator(
     QylAppOptions options,
     IHttpClientFactory httpClientFactory,
     QylProcessLauncher launcher,
-    QylRestartRequests restartRequests,
+    QylResourceActions resourceActions,
     TimeProvider time,
     ILogger<QylOrchestrator> logger) : BackgroundService
 {
@@ -26,6 +26,10 @@ internal sealed partial class QylOrchestrator(
     // relaunches on the same port, and resets the crash budget instead of burning it.
     private readonly ConcurrentDictionary<string, byte> _userRestarts = new(StringComparer.Ordinal);
 
+    // A requested stop is terminal for this supervision loop. Without this marker, a killed child
+    // would be indistinguishable from a crash and would be relaunched by the normal bounded policy.
+    private readonly ConcurrentDictionary<string, byte> _userStops = new(StringComparer.Ordinal);
+
     [LoggerMessage(EventId = QylConstants.LogEvents.OrchestratorStarted, Level = LogLevel.Information,
         Message = "qyl.host orchestrator booting with {Count} resource(s)")]
     private static partial void LogBoot(ILogger logger, int count);
@@ -33,6 +37,10 @@ internal sealed partial class QylOrchestrator(
     [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,
         Message = "Resource '{Name}' ready on {Endpoint}")]
     private static partial void LogReady(ILogger logger, string name, Uri endpoint);
+
+    [LoggerMessage(EventId = QylConstants.LogEvents.ResourceReady, Level = LogLevel.Information,
+        Message = "Connection-only resource '{Name}' ready")]
+    private static partial void LogConnectionReady(ILogger logger, string name);
 
     [LoggerMessage(EventId = QylConstants.LogEvents.ResourceFailed, Level = LogLevel.Error,
         Message = "Resource '{Name}' failed to start: {Reason}")]
@@ -52,7 +60,7 @@ internal sealed partial class QylOrchestrator(
         foreach (var r in resources) registry.Publish(r.Name, ResourceLifecycle.Pending);
 
         var tasks = resources.Select(r => StartResourceAsync(r, stoppingToken))
-            .Append(ListenForRestartRequestsAsync(stoppingToken)).ToArray();
+            .Append(ListenForResourceActionsAsync(stoppingToken)).ToArray();
 
         try
         {
@@ -80,25 +88,25 @@ internal sealed partial class QylOrchestrator(
 
             registry.Publish(resource.Name, ResourceLifecycle.Starting);
 
+            // A connection-only resource has no runner-owned listener. Its SDK transport may be
+            // stdio, remote HTTP, or in-process, so publishing an allocated localhost endpoint
+            // would be fabricated client-visible data.
+            if (resource.Launch is null)
+            {
+                var connected = await ProbeReadinessAsync(resource, null, null, stoppingToken).ConfigureAwait(false);
+                registry.Publish(resource.Name,
+                    connected ? ResourceLifecycle.Ready : ResourceLifecycle.Failed,
+                    lastError: connected ? null : "Readiness probe timed out");
+                if (connected) LogConnectionReady(logger, resource.Name);
+                return;
+            }
+
             var port = resource.Port == QylConstants.Ports.DynamicAllocation
-                ? PortAllocator.ClaimFreePort(options.RunnerHost)
+                ? PortAllocator.ClaimFreePort(QylConstants.Network.Loopback)
                 : resource.Port;
 
             var endpoint =
-                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, options.RunnerHost, port));
-
-            // Connection-only resource (no launch spec): the probe owns the whole lifecycle-to-Ready
-            // story (for MCP kinds it connects, handshakes, and parks the live client in a registry).
-            // Nothing to supervise — there is no child process; the probe's transport owns any it made.
-            if (resource.Launch is null)
-            {
-                var connected = await ProbeReadinessAsync(resource, port, endpoint, stoppingToken).ConfigureAwait(false);
-                registry.Publish(resource.Name,
-                    connected ? ResourceLifecycle.Ready : ResourceLifecycle.Failed, port, endpoint,
-                    connected ? null : "Readiness probe timed out");
-                if (connected) LogReady(logger, resource.Name, endpoint);
-                return;
-            }
+                new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, QylConstants.Network.Loopback, port));
 
             // The launcher spawns a child process whose lifecycle we own via _processes.
             var process = launcher.Launch(resource, endpoint);
@@ -203,9 +211,16 @@ internal sealed partial class QylOrchestrator(
             var exitCode = current.ExitCode;
             current.Dispose();
 
+            if (_userStops.TryRemove(resource.Name, out _))
+            {
+                _processes.TryRemove(resource.Name, out _);
+                registry.Publish(resource.Name, ResourceLifecycle.Stopped, port, endpoint);
+                return;
+            }
+
             if (_userRestarts.TryRemove(resource.Name, out _))
             {
-                // Deliberate restart from the TUI: same port, same endpoint (bind-with-retry — the health
+                // Deliberate restart from a first-party control surface: same port, same endpoint (bind-with-retry — the health
                 // poll below gives the relaunched child the full startup window to reclaim the socket),
                 // and a fresh crash budget.
                 restarts = 0;
@@ -247,35 +262,13 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    // Consumes TUI restart requests: mark the name as a user restart, then kill the live process — its
-    // supervision loop observes the exit, sees the marker, and relaunches on the unchanged endpoint.
-    // Names without a live process (external endpoints, containers, already-failed) are ignored.
-    private async Task ListenForRestartRequestsAsync(CancellationToken stoppingToken)
+    private async Task ListenForResourceActionsAsync(CancellationToken stoppingToken)
     {
         try
         {
-            await foreach (var name in restartRequests.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            await foreach (var request in resourceActions.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
             {
-                // Only a Ready resource has a supervision loop waiting to relaunch it. Killing a child
-                // that is still Starting would orphan the resource in Failed with nobody to restart it.
-                if (!registry.Snapshot.TryGetValue(name, out var state) ||
-                    state.Lifecycle != ResourceLifecycle.Ready)
-                {
-                    continue;
-                }
-
-                if (!_processes.TryGetValue(name, out var process)) continue;
-
-                _userRestarts[name] = 0;
-                try
-                {
-                    if (!process.HasExited) process.Kill(true);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Exited between the check and the kill — supervision is already handling it, and the
-                    // marker turns that exit into the restart the user just asked for.
-                }
+                request.Complete(HandleResourceAction(request));
             }
         }
         catch (OperationCanceledException)
@@ -284,10 +277,75 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
+    private QylResourceActionResult HandleResourceAction(QylResourceActionRequest request)
+    {
+        var resource = resources.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, request.ResourceName, StringComparison.Ordinal));
+        if (resource is null)
+            return new QylResourceActionResult(QylResourceActionStatus.NotFound, "Resource does not exist.");
+
+        if (resource.Launch is null)
+            return new QylResourceActionResult(
+                QylResourceActionStatus.Conflict,
+                "Connection-only resources are controlled by their transport.");
+
+        if (!registry.Snapshot.TryGetValue(resource.Name, out var state) ||
+            state.Lifecycle != ResourceLifecycle.Ready ||
+            !_processes.TryGetValue(resource.Name, out var process))
+        {
+            return new QylResourceActionResult(
+                QylResourceActionStatus.Conflict,
+                "Resource must be a running Ready process.");
+        }
+
+        var marker = request.Action == QylResourceAction.Restart ? _userRestarts : _userStops;
+        marker[resource.Name] = 0;
+
+        try
+        {
+            if (process.HasExited)
+            {
+                marker.TryRemove(resource.Name, out _);
+                return new QylResourceActionResult(
+                    QylResourceActionStatus.Conflict,
+                    "Resource process has already exited.");
+            }
+
+            registry.Publish(
+                resource.Name,
+                request.Action == QylResourceAction.Restart
+                    ? ResourceLifecycle.Starting
+                    : ResourceLifecycle.Stopping,
+                state.AllocatedPort,
+                state.Endpoint,
+                request.Action == QylResourceAction.Restart ? "Restart requested" : null);
+            process.Kill(true);
+            return new QylResourceActionResult(QylResourceActionStatus.Accepted);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            marker.TryRemove(resource.Name, out _);
+            var transition = request.Action == QylResourceAction.Restart
+                ? ResourceLifecycle.Starting
+                : ResourceLifecycle.Stopping;
+            if (registry.Snapshot.GetValueOrDefault(resource.Name)?.Lifecycle == transition)
+            {
+                registry.Publish(
+                    resource.Name,
+                    state.Lifecycle,
+                    state.AllocatedPort,
+                    state.Endpoint,
+                    state.LastError);
+            }
+
+            return new QylResourceActionResult(QylResourceActionStatus.Failed, ex.Message);
+        }
+    }
+
     // Readiness is a per-resource strategy (IReadinessProbe); the default is the HTTP health poll
     // this method used to inline. The probe receives a snapshot state carrying the endpoint it
     // must judge — deliberately not the registry's published state, which may lag the launch.
-    private Task<bool> ProbeReadinessAsync(QylResource resource, int port, Uri endpoint,
+    private Task<bool> ProbeReadinessAsync(QylResource resource, int? port, Uri? endpoint,
         CancellationToken stoppingToken)
     {
         // Launch-less resources always carry an explicit probe (Build() enforces it); the default

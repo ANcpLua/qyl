@@ -7,4 +7,12 @@
        StrongNameKeyBase64File). Keeps the .snk text-encoded in source control. -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/StrongName.targets"/>
 
+  <!-- Publishable packages use the repository's one current product README. -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md"
+          Pack="true"
+          PackagePath="README.md"
+          Visible="false"/>
+  </ItemGroup>
+
 </Project>

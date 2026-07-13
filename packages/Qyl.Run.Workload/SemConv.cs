@@ -25,21 +25,3 @@ internal static partial class GenAiSpans;
 
 [SemanticConventionIncubatingActivities("session")]
 internal static partial class SessionSpans;
-
-[SemanticConventionMeters("http.server")]
-internal static partial class HttpServerMeters;
-
-[SemanticConventionIncubatingMeters("db.client")]
-internal static partial class DbClientMeters;
-
-[SemanticConventionIncubatingMeters("gen_ai.client")]
-internal static partial class GenAiClientMeters;
-
-[SemanticConventionIncubatingAttributes("gen_ai")]
-internal static partial class GenAiAttrs;
-
-[SemanticConventionAttributes("http")]
-internal static partial class HttpAttrs;
-
-[SemanticConventionAttributes("db")]
-internal static partial class DbAttrs;

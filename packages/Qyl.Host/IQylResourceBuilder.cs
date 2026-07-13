@@ -3,10 +3,7 @@ namespace Qyl.Host;
 
 public interface IQylResourceBuilder
 {
-    QylAppBuilder App { get; }
-    QylResource Resource { get; }
-
-    IQylResourceBuilder Update(Func<QylResource, QylResource> mutate);
+    string Name { get; }
 }
 
 internal sealed class QylResourceBuilder(
@@ -14,11 +11,13 @@ internal sealed class QylResourceBuilder(
     QylResource resource,
     Action<QylResource, QylResource> replace) : IQylResourceBuilder
 {
-    public QylAppBuilder App { get; } = app;
+    internal QylAppBuilder App { get; } = app;
 
-    public QylResource Resource { get; private set; } = resource;
+    internal QylResource Resource { get; private set; } = resource;
 
-    public IQylResourceBuilder Update(Func<QylResource, QylResource> mutate)
+    public string Name => Resource.Name;
+
+    internal IQylResourceBuilder Update(Func<QylResource, QylResource> mutate)
     {
         var updated = mutate(Resource);
         replace(Resource, updated);

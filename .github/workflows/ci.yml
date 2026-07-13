@@ -40,42 +40,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      # VerifyCollectorEndpointLimitsMatchOpenApi reads the API contract from the
-      # sibling qyl-api-schema repo (RootDirectory.Parent/qyl-api-schema/...). It is a
-      # separate PUBLIC repo with the generated OpenAPI committed, so a shallow,
-      # unauthenticated clone into the sibling path is all the Verify gate needs.
-      - name: Checkout API schema contract
-        run: |
-          # Self-hosted runners keep a persistent _work dir, so a leftover clone from a
-          # previous run would make `git clone` abort ("destination already exists").
-          # Clean the sibling path first so the checkout is idempotent across runs.
-          target="${{ github.workspace }}/../qyl-api-schema"
-          rm -rf "$target"
-          git clone --depth 1 https://github.com/ANcpLua/qyl-api-schema.git "$target"
-
       - name: Setup .NET
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
-          # No Actions NuGet cache on the self-hosted runner: ~/.nuget/packages already persists on
-          # the runner's local disk between jobs, so the cache is redundant. Worse, any change to a
-          # dependency file (e.g. a Directory.Packages.props version bump) misses the key and forces a
-          # post-job tar+upload of the accumulated multi-GB global packages folder (~17 min at ~5 MB/s),
-          # which serializes the whole PR behind one cache-save step. Restore stays fast from local disk.
-          cache: false
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+          cache-dependency-path: |
+            services/qyl.dashboard/package-lock.json
+            packages/Qyl.Host.Console/package-lock.json
 
       - name: Restore
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
 
       - name: Build
         run: dotnet build qyl.slnx --configuration Release --no-restore --configfile nuget.config
+
+      - name: Test
+        run: dotnet test qyl.slnx --configuration Release --no-build --no-restore
 
       - name: Verify
         run: ./eng/build.sh Verify --Configuration Release
@@ -93,7 +79,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+          cache-dependency-path: |
+            services/qyl.dashboard/package-lock.json
+            packages/Qyl.Host.Console/package-lock.json
 
       - name: Install
         working-directory: services/qyl.dashboard
@@ -111,6 +99,18 @@ jobs:
         working-directory: services/qyl.dashboard
         run: npm run build
 
+      - name: Install runner console
+        working-directory: packages/Qyl.Host.Console
+        run: npm ci
+
+      - name: Typecheck runner console
+        working-directory: packages/Qyl.Host.Console
+        run: npm run typecheck
+
+      - name: Build runner console
+        working-directory: packages/Qyl.Host.Console
+        run: npm run build
+
       - name: Coverage
         working-directory: services/qyl.dashboard
         run: npm run test:coverage
@@ -122,6 +122,47 @@ jobs:
           name: frontend-coverage
           path: services/qyl.dashboard/coverage
           retention-days: 14
+
+  product-e2e:
+    name: Embedded product (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/qyl.dashboard/package-lock.json
+
+      - name: Build dashboard
+        working-directory: services/qyl.dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore collector
+        run: dotnet restore services/qyl.collector/qyl.collector.csproj --configfile nuget.config -p:TreatWarningsAsErrors=false
+
+      - name: Build embedded Release collector
+        run: dotnet build services/qyl.collector/qyl.collector.csproj --configuration Release --no-restore -p:QylEmbedDashboard=true
+
+      - name: Install Chromium
+        working-directory: services/qyl.dashboard
+        run: npx playwright install --with-deps chromium
+
+      - name: Run product smoke
+        working-directory: services/qyl.dashboard
+        run: npm run e2e
 
   dependency-audit:
     name: Dependency Audit
@@ -141,7 +182,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: services/qyl.dashboard/package-lock.json
+          cache-dependency-path: |
+            services/qyl.dashboard/package-lock.json
+            packages/Qyl.Host.Console/package-lock.json
 
       - name: Restore
         run: dotnet restore qyl.slnx --configfile nuget.config -p:TreatWarningsAsErrors=false
@@ -167,4 +210,10 @@ jobs:
           # Audit production dependencies only. Dev tooling (vite, @babel/core, eslint, shadcn) is
           # never shipped to users, and its advisories — mostly Windows dev-server issues — should
           # not gate CI. Production deps currently audit clean at --audit-level=high.
+          npm audit --audit-level=high --omit=dev
+
+      - name: Audit runner-console packages
+        working-directory: packages/Qyl.Host.Console
+        run: |
+          npm ci
           npm audit --audit-level=high --omit=dev

@@ -5,8 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation</RootNamespace>
-    <!-- IsAotCompatible is intentionally NOT set: the QylAotSampler/QylTraceSampling path is AOT-clean
-         (0 IL2xxx/IL3xxx), but the OpenTelemetry Add*Instrumentation + OTLP exporter and ASP.NET
+    <!-- IsAotCompatible is intentionally NOT set: the OpenTelemetry Add*Instrumentation + OTLP exporter and ASP.NET
          minimal-API (MapGet delegate) surface have no upstream AOT annotations, so enabling the
          analyzers would fail Release/CI (TreatWarningsAsErrors) on warnings qyl cannot fix. -->
     <!-- Required for source generator interceptors -->
@@ -55,6 +54,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Qyl.Api.Contracts"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
 

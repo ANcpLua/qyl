@@ -6,7 +6,6 @@ import {
     CircleDollarSign,
     FileText,
     GitBranch,
-    Radio,
     Terminal,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
@@ -31,10 +30,9 @@ const navItems: NavItem[] = [
 interface SidebarProps {
     collapsed: boolean;
     onCollapsedChange: (collapsed: boolean) => void;
-    isLive: boolean;
 }
 
-export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
+export function Sidebar({collapsed, onCollapsedChange}: SidebarProps) {
     const location = useLocation();
 
     return (
@@ -60,20 +58,6 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         )}
                     </NavLink>
                 </div>
-
-                {/* Connection Status */}
-                {!collapsed && (
-                    <div className={cn(
-                        'px-3 py-1.5 border-b flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em]',
-                        isLive
-                            ? 'border-signal-green bg-signal-green/10 text-signal-green'
-                            : 'border-brutal-zinc/70 bg-brutal-dark/80 text-brutal-slate'
-                    )}>
-                        <Radio className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
-                        <span>{isLive ? 'STREAMING LIVE' : 'STREAM OFFLINE'}</span>
-                        {isLive && <span className="animate-cursor-blink">_</span>}
-                    </div>
-                )}
 
                 {/* Navigation */}
                 <nav className="flex-1 p-2 space-y-1" aria-label="Main navigation">

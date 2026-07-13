@@ -1,158 +1,189 @@
+import {execFile} from 'node:child_process';
+import {randomBytes} from 'node:crypto';
+import {promisify} from 'node:util';
 import {expect, test} from '@playwright/test';
+import Ajv2020, {type ValidateFunction} from 'ajv/dist/2020.js';
+import qylSchema from '@ancplua/qyl-api-schema/json-schema' with {type: 'json'};
+import {
+    ProblemDetailsMediaType,
+    type HealthReport,
+    type LogRecord,
+    type NotFoundError,
+    type Trace,
+    type ValidationError,
+} from '@ancplua/qyl-api-schema/types';
 
-test.describe('qyl dashboard smoke tests', () => {
-    test('health endpoint returns healthy', async ({request}) => {
-        const response = await request.get('/health/ui');
-        expect(response.ok()).toBeTruthy();
-        const body = await response.json();
+const schemaValidator = new Ajv2020({strict: false, validateFormats: false});
+const execFileAsync = promisify(execFile);
+schemaValidator.addSchema(qylSchema);
+const validateTrace = schemaValidator.compile<Trace>({
+    $ref: `${qylSchema.$id}#/$defs/OTel.Traces.Trace`,
+});
+const validateLog = schemaValidator.compile<LogRecord>({
+    $ref: `${qylSchema.$id}#/$defs/OTel.Logs.LogRecord`,
+});
+const validateHealth = schemaValidator.compile<HealthReport>({
+    $ref: `${qylSchema.$id}#/$defs/Health.HealthReport`,
+});
+const validateNotFound = schemaValidator.compile<NotFoundError>({
+    $ref: `${qylSchema.$id}#/$defs/Common.Errors.NotFoundError`,
+});
+const validateValidationError = schemaValidator.compile<ValidationError>({
+    $ref: `${qylSchema.$id}#/$defs/Common.Errors.ValidationError`,
+});
+
+function assertGeneratedContract<T>(validator: ValidateFunction<T>, value: unknown): asserts value is T {
+    expect(validator(value), JSON.stringify(validator.errors)).toBe(true);
+}
+
+function pageItems(value: unknown): unknown[] {
+    expect(value).toEqual(expect.objectContaining({items: expect.any(Array), has_more: expect.any(Boolean)}));
+    return (value as {items: unknown[]}).items;
+}
+
+function generatedPageItems<T>(validator: ValidateFunction<T>, value: unknown): T[] {
+    const items = pageItems(value);
+    for (const item of items) assertGeneratedContract(validator, item);
+    return items;
+}
+
+test.describe('qyl executable product surface', () => {
+    test('readiness is a real collector health report', async ({request}) => {
+        const response = await request.get('/health');
+        expect(response.status()).toBe(200);
+        expect(response.headers()['content-type']).toContain('application/json');
+
+        const body: unknown = await response.json();
+        assertGeneratedContract(validateHealth, body);
         expect(body.status).toBe('healthy');
-        expect(body.components).toBeDefined();
+        expect(body.entries.duckdb.status).toBe('healthy');
     });
 
-    test('landing page loads with sidebar and header', async ({page}) => {
+    test('root redirects to the traces product surface', async ({page}) => {
         await page.goto('/');
-        // Sidebar navigation should be visible
-        await expect(page.getByRole('navigation')).toBeVisible();
-        // Page should have a title/header area
-        await expect(page.locator('header')).toBeVisible();
+        await expect(page).toHaveURL(/\/traces$/);
+        await expect(page.getByRole('navigation', {name: 'Main navigation'})).toBeVisible();
+        await expect(page.getByRole('heading', {name: 'TRACES'})).toBeVisible();
     });
 
-    test('sidebar navigation works', async ({page}) => {
-        await page.goto('/');
+    test('only shipped navigation entries are exposed', async ({page}) => {
+        await page.goto('/traces');
 
-        // Navigate to Traces
-        await page.getByRole('link', {name: /traces/i}).click();
-        await expect(page).toHaveURL(/\/traces/);
-
-        // Navigate to Logs
-        await page.getByRole('link', {name: /logs/i}).click();
-        await expect(page).toHaveURL(/\/logs/);
-
-        // Navigate to Agents
-        await page.getByRole('link', {name: /agents/i}).click();
-        await expect(page).toHaveURL(/\/agents/);
+        await expect(page.getByRole('link', {name: /traces/i})).toBeVisible();
+        await expect(page.getByRole('link', {name: /logs/i})).toBeVisible();
+        await expect(page.getByRole('link', {name: /cost/i})).toBeVisible();
+        await expect(page.getByRole('link', {name: /agents/i})).toHaveCount(0);
+        await expect(page.getByRole('link', {name: /search/i})).toHaveCount(0);
     });
 
-    test('time range selector is interactive', async ({page}) => {
-        await page.goto('/');
-        // Time range buttons should be present
-        const timeRangeButton = page.getByRole('button', {name: /15m|1h|5m/});
-        await expect(timeRangeButton.first()).toBeVisible();
-    });
+    test('official SDK OTLP/protobuf is persisted and returned through generated product contracts', async ({request}) => {
+        test.setTimeout(90_000);
+        test.skip(Boolean(process.env.QYL_BASE_URL), 'Telemetry mutation is limited to the local ephemeral collector.');
 
-    test('theme toggle switches appearance', async ({page}) => {
-        await page.goto('/');
-        const html = page.locator('html');
+        const serviceName = `qyl-e2e-${randomBytes(6).toString('hex')}`;
+        const collector = 'http://127.0.0.1:5100';
 
-        // Find and click theme toggle
-        const themeToggle = page.getByRole('button', {name: /theme|dark|light/i});
-        if (await themeToggle.isVisible()) {
-            const classBefore = await html.getAttribute('class');
-            await themeToggle.click();
-            const classAfter = await html.getAttribute('class');
-            expect(classBefore).not.toBe(classAfter);
-        }
-    });
-
-    test('settings page loads', async ({page}) => {
-        await page.goto('/settings');
-        await expect(page).toHaveURL(/\/settings/);
-    });
-
-    test('search input is accessible', async ({page}) => {
-        await page.goto('/');
-        const searchInput = page.locator('[data-search-input]');
-        if (await searchInput.isVisible()) {
-            await searchInput.fill('test query');
-            await expect(searchInput).toHaveValue('test query');
-        }
-    });
-
-    test('compatibility endpoints are reachable', async ({request}) => {
-        const traces = await request.get('/api/v1/traces?limit=1');
-        expect(traces.ok()).toBeTruthy();
-
-        const search = await request.post('/api/v1/search/query', {
-            data: {
-                query: 'error',
-                limit: 10,
+        await execFileAsync(
+            'dotnet',
+            [
+                'run',
+                '--project',
+                '../../packages/Qyl.Run.Workload/Qyl.Run.Workload.csproj',
+                '--configuration',
+                'Release',
+                '--no-launch-profile',
+            ],
+            {
+                cwd: process.cwd(),
+                timeout: 75_000,
+                env: {
+                    ...process.env,
+                    ASPNETCORE_URLS: 'http://127.0.0.1:0',
+                    OTEL_EXPORTER_OTLP_ENDPOINT: collector,
+                    OTEL_EXPORTER_OTLP_PROTOCOL: 'http/protobuf',
+                    OTEL_SERVICE_NAME: serviceName,
+                    QYL_WORKLOAD_ONESHOT: '1',
+                },
             },
+        );
+
+        await expect.poll(async () => {
+            const response = await request.get('/api/v1/traces?limit=100');
+            expect(response.status()).toBe(200);
+            const traces = generatedPageItems(validateTrace, await response.json());
+            return traces.find(trace => trace.services.includes(serviceName));
+        }).toMatchObject({
+            services: [serviceName],
         });
-        expect(search.ok()).toBeTruthy();
+
+        await expect.poll(async () => {
+            const response = await request.get(
+                `/api/v1/logs?serviceName=${encodeURIComponent(serviceName)}&limit=100`,
+            );
+            expect(response.status()).toBe(200);
+            const logs = generatedPageItems(validateLog, await response.json());
+            return logs.find(log => log.resource['service.name'] === serviceName)?.body.string_value;
+        }, {timeout: 20_000}).toMatch(/^sha256:[0-9a-f]{16};chars:\d+;bytes:\d+$/);
     });
 
-    test('onboarding verify shows OTLP endpoint and can check telemetry', async ({page}) => {
-        await page.goto('/onboarding');
+    test('deleted speculative API is not silently served by the SPA', async ({request}) => {
+        const response = await request.post('/api/v1/search/query', {data: {query: 'error'}});
+        expect(response.status()).toBe(404);
+        expect(response.headers()['content-type'] ?? '').not.toContain('text/html');
 
-        for (let i = 0; i < 4; i++) {
-            await page.getByRole('button', {name: 'NEXT'}).click();
+        for (const protocolPath of ['/v1', '/v1development/nope']) {
+            const protocolResponse = await request.get(protocolPath);
+            expect(protocolResponse.status()).toBe(404);
+            expect(protocolResponse.headers()['content-type'] ?? '').not.toContain('text/html');
         }
-
-        await expect(page.getByText('EXPECTED ENDPOINT')).toBeVisible();
-        await expect(page.getByText('http://localhost:4318')).toBeVisible();
-
-        const verify = page.getByRole('button', {name: /CHECK FOR DATA/i});
-        await verify.click();
-
-        await expect(
-            page.getByRole('heading', {name: /DATA RECEIVED|NO DATA YET|LISTENING FOR TELEMETRY/i})
-        ).toBeVisible();
     });
 
-    test('search query interaction returns 200', async ({page}) => {
-        await page.goto('/search');
+    test('protobuf requests keep protobuf error envelopes', async ({request}) => {
+        const response = await request.post('http://127.0.0.1:5100/v1/traces', {
+            headers: {
+                'content-type': 'application/x-protobuf',
+                'content-encoding': 'br',
+            },
+            data: Buffer.alloc(0),
+        });
 
-        const responsePromise = page.waitForResponse(
-            (res) => res.url().includes('/api/v1/search/query') && res.request().method() === 'POST'
+        expect(response.status()).toBe(415);
+        expect(response.headers()['content-type']).toContain('application/x-protobuf');
+    });
+
+    test('product errors use the generated Problem Details contract and media type', async ({request}) => {
+        const response = await request.get('/api/v1/traces/00000000000000000000000000000000');
+        expect(response.status()).toBe(404);
+        expect(response.headers()['content-type']).toContain(ProblemDetailsMediaType);
+        const problem: unknown = await response.json();
+        assertGeneratedContract(validateNotFound, problem);
+        expect(problem.status).toBe(404);
+    });
+
+    test('malformed typed queries use the generated validation contract', async ({request}) => {
+        for (const [path, field, code] of [
+            ['/api/v1/sessions?isActive=perhaps', 'isActive', 'query.invalid_boolean'],
+            ['/api/v1/traces?limit=many', 'limit', 'query.invalid_integer'],
+            ['/api/v1/logs?startTime=yesterday', 'startTime', 'query.invalid_date_time'],
+        ] as const) {
+            const response = await request.get(path);
+            expect(response.status()).toBe(400);
+            expect(response.headers()['content-type']).toContain(ProblemDetailsMediaType);
+            const problem: unknown = await response.json();
+            assertGeneratedContract(validateValidationError, problem);
+            expect(problem.errors).toEqual([
+                expect.objectContaining({field, code}),
+            ]);
+        }
+    });
+
+    test('logs page connects to the real SSE route', async ({page}) => {
+        const stream = page.waitForResponse(
+            response => response.url().includes('/api/v1/stream/logs')
+                && response.request().method() === 'GET',
         );
 
-        const input = page.getByRole('textbox', {name: /Search telemetry data/i});
-        await input.fill('error');
-        await input.press('Enter');
-
-        const response = await responsePromise;
-        expect(response.status()).toBe(200);
-    });
-
-    test('logs page opens live stream endpoint', async ({page}) => {
         await page.goto('/logs');
-
-        const response = await page.waitForResponse(
-            (res) => res.url().includes('/api/v1/stream/logs') && res.request().method() === 'GET',
-            {timeout: 10_000}
-        );
-
-        expect(response.status()).toBe(200);
-    });
-
-    test('keyboard shortcuts navigate routes and open shortcuts modal', async ({page}) => {
-        await page.goto('/dashboards/external-apis');
-
-        await page.keyboard.press('a');
-        await expect(page).toHaveURL(/\/agents/);
-
-        await page.keyboard.press('b');
-        await expect(page).toHaveURL(/\/bot/);
-
-        await page.keyboard.press('/');
-        await expect(page).toHaveURL(/\/search/);
-
-        // Blur inputs so global shortcuts are active.
-        await page.locator('main').click();
-        await page.keyboard.press('Shift+/');
-
-        await expect(page.getByRole('dialog')).toBeVisible();
-        await expect(page.getByText('Keyboard Shortcuts')).toBeVisible();
-    });
-
-    test('external apis title and sidebar collapse semantics are correct', async ({page}) => {
-        await page.goto('/dashboards/external-apis');
-
-        await expect(page.getByRole('heading', {name: 'EXTERNAL APIS'})).toBeVisible();
-
-        const collapse = page.locator('aside button[aria-pressed]').first();
-        await expect(collapse).toHaveAttribute('aria-pressed', 'false');
-        await collapse.click();
-        await expect(collapse).toHaveAttribute('aria-pressed', 'true');
+        expect((await stream).status()).toBe(200);
     });
 });

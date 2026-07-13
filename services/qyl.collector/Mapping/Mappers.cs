@@ -199,14 +199,14 @@ internal static class SpanMapper
 
 internal static class LogMapper
 {
-    public static LogRecord ToContract(LogStorageRow record, string? bodyOverride = null) =>
+    public static LogRecord ToContract(LogStorageRow record) =>
         new()
         {
             TimeUnixNano = record.TimeUnixNano,
             ObservedTimeUnixNano = record.ObservedTimeUnixNano ?? record.TimeUnixNano,
             SeverityNumber = MapSeverityNumber(record.SeverityNumber),
             SeverityText = MapSeverityText(record.SeverityText, record.SeverityNumber),
-            Body = bodyOverride ?? record.Body ?? "",
+            Body = new LogBodyString { StringValue = record.Body ?? "" },
             Attributes = ContractJson.ParseAttributes(record.AttributesJson),
             TraceId = record.TraceId,
             SpanId = record.SpanId,

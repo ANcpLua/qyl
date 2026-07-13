@@ -1,28 +1,32 @@
 
+using System.Reflection;
+
 namespace Qyl.Host;
 
-public static class QylConstants
+internal static class QylConstants
 {
     public static class Product
     {
-        public const string Name = "qyl.run";
         public const string Banner = "qyl";
-        public const string Version = "0.1.0";
-        public const string UserAgent = $"{Name}/{Version}";
+        public static readonly string Version = GetVersion();
         public const string Tagline = "qyl distributed-app runner";
+
+        private static string GetVersion()
+        {
+            var informational = typeof(QylConstants).Assembly
+                                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                                    ?.InformationalVersion
+                                ?? typeof(QylConstants).Assembly.GetName().Version?.ToString()
+                                ?? "unknown";
+            var metadata = informational.IndexOf('+', StringComparison.Ordinal);
+            return metadata < 0 ? informational : informational[..metadata];
+        }
     }
 
     public static class Ports
     {
         public const int RunnerApi = 18888;
         public const int DynamicAllocation = 0;
-    }
-
-    public static class ResourceKinds
-    {
-        public const string Collector = "collector";
-        public const string Project = "project";
-        public const string Command = "command";
     }
 
     public static class Environments
@@ -48,6 +52,7 @@ public static class QylConstants
         public const string QylPort = "QYL_PORT";
         public const string QylOtlpPort = "QYL_OTLP_PORT";
         public const string QylGrpcPort = "QYL_GRPC_PORT";
+        public const string QylBindAddress = "QYL_BIND_ADDRESS";
         public const string QylDataPath = "QYL_DATA_PATH";
         public const string QylOtlpAuthMode = "QYL_OTLP_AUTH_MODE";
     }
@@ -59,13 +64,6 @@ public static class QylConstants
         public const string OtlpHttpProtobuf = "http/protobuf";
         public const string UnsecuredAuthMode = "Unsecured";
         public const string DataPathTemplate = "qyl.{0}.duckdb";
-    }
-
-    public static class EndpointKinds
-    {
-        public const string Api = "api";
-        public const string OtlpHttp = "otlp-http";
-        public const string OtlpGrpc = "otlp-grpc";
     }
 
     public static class Routes

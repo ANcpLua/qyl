@@ -1,5 +1,6 @@
 
 using Qyl.Instrumentation;
+using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Dashboard;
 
@@ -46,8 +47,9 @@ internal sealed partial class EmbeddedDashboardMiddleware
             path = path[_basePath.Length..].TrimStart('/');
         }
 
-        if (path.StartsWith("api/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("v1/", StringComparison.OrdinalIgnoreCase) ||
+        if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) ||
+            IsEndpointPath(path, "api") ||
+            OtlpConstants.IsOtlpNamespacePath("/" + path) ||
             IsEndpointPath(path, QylEndpoints.Health) ||
             IsEndpointPath(path, QylEndpoints.Alive))
         {

@@ -14,7 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {withApiKeyQuery} from '@/lib/api';
+import {consumeSse} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
@@ -22,7 +22,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/
 import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
-import type {LogLevel, LogRecord} from '@/types';
+import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
 
 // =============================================================================
 // Configuration
@@ -46,51 +46,26 @@ const LOG_LEVEL_CONFIG: Record<
 
 const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
-interface ContractAttribute {
-    key: string;
-    value: string | number | boolean | string[] | number[] | boolean[];
-}
-
-interface ContractLogRecord {
-    timeUnixNano?: number | string;
-    observedTimeUnixNano?: number | string | null;
-    traceId?: string | null;
-    spanId?: string | null;
-    severityNumber?: number;
-    severityText?: number | string | null;
-    body?: unknown;
-    attributes?: ContractAttribute[] | Record<string, string | number | boolean | string[] | number[] | boolean[]> | null;
-    resource?: { serviceName?: string | null } | null;
-    timestamp?: string;
-    observedTimestamp?: string;
-    serviceName?: string;
-}
-
-interface ContractLogStreamEvent {
-    type?: 'log';
-    data?: ContractLogRecord;
-    timestamp?: string;
-}
-
-function normalizeLogRecord(log: ContractLogRecord): LogRecord {
-    const timeUnixNano = log.timeUnixNano ?? 0;
-    const observedUnixNano = log.observedTimeUnixNano ?? timeUnixNano;
-    const severityNumber = log.severityNumber ?? 0;
+function normalizeLogRecord(log: ContractLogRecord): LogViewRecord {
+    const timeUnixNano = log.time_unix_nano;
+    const observedUnixNano = log.observed_time_unix_nano;
+    const severityNumber = log.severity_number;
 
     return {
-        timestamp: log.timestamp ?? unixNanoToIso(timeUnixNano),
-        observedTimestamp: log.observedTimestamp ?? unixNanoToIso(observedUnixNano),
-        traceId: log.traceId ?? undefined,
-        spanId: log.spanId ?? undefined,
+        timestamp: unixNanoToIso(timeUnixNano),
+        observedTimestamp: unixNanoToIso(observedUnixNano),
+        traceId: log.trace_id,
+        spanId: log.span_id,
         severityNumber,
-        severityText: normalizeSeverity(log.severityText, severityNumber),
+        severityText: normalizeSeverity(log.severity_text, severityNumber),
         body: normalizeBody(log.body),
         attributes: normalizeAttributes(log.attributes),
-        serviceName: log.serviceName ?? log.resource?.serviceName ?? 'unknown',
+        serviceName: log.resource['service.name'],
+        serviceVersion: log.resource['service.version'],
     };
 }
 
-function normalizeSeverity(severityText: number | string | null | undefined, severityNumber: number): LogLevel {
+function normalizeSeverity(severityText: ContractLogRecord['severity_text'], severityNumber: number): LogLevel {
     if (typeof severityText === 'string') {
         const normalized = severityText.trim().toLowerCase();
         if (LOG_LEVELS.includes(normalized as LogLevel)) return normalized as LogLevel;
@@ -104,36 +79,24 @@ function normalizeSeverity(severityText: number | string | null | undefined, sev
                         : 'trace';
 }
 
-function normalizeBody(body: unknown): string {
-    if (body === undefined || body === null) return '';
-    if (typeof body === 'string') return body;
-    if (typeof body === 'object' && 'stringValue' in body && typeof body.stringValue === 'string') return body.stringValue;
-    return JSON.stringify(body);
+function normalizeBody(body: ContractLogRecord['body']): string {
+    if ('string_value' in body) return body.string_value;
+    if ('bytes_value' in body) return body.bytes_value;
+    if ('array_value' in body) return JSON.stringify(body.array_value);
+    return JSON.stringify(Object.fromEntries(body.kv_list_value.map(attribute => [attribute.key, attribute.value])));
 }
 
 function normalizeAttributes(
     attributes?: ContractLogRecord['attributes'],
-): LogRecord['attributes'] {
+): LogViewRecord['attributes'] {
     if (!attributes) return {};
-    if (Array.isArray(attributes)) {
-        const record: LogRecord['attributes'] = {};
-        for (const attr of attributes) record[attr.key] = attr.value;
-        return record;
-    }
-    return attributes;
+    const record: LogViewRecord['attributes'] = {};
+    for (const attr of attributes) record[attr.key] = attr.value;
+    return record;
 }
 
-function unixNanoToIso(value: number | string | null | undefined): string {
-    if (typeof value === 'string' && value.length > 0) {
-        const millis = Number(BigInt(value) / 1_000_000n);
-        return new Date(millis).toISOString();
-    }
-
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return new Date(value / 1_000_000).toISOString();
-    }
-
-    return new Date(0).toISOString();
+function unixNanoToIso(value: number): string {
+    return new Date(value / 1_000_000).toISOString();
 }
 
 // =============================================================================
@@ -141,7 +104,7 @@ function unixNanoToIso(value: number | string | null | undefined): string {
 // =============================================================================
 
 interface LogRowProps {
-    log: LogRecord;
+    log: LogViewRecord;
     isExpanded: boolean;
     onToggle: () => void;
 }
@@ -285,13 +248,13 @@ interface UseLiveLogsOptions {
 }
 
 function useLiveLogs(
-    bufferRef: React.RefObject<RingBuffer<LogRecord>>,
+    bufferRef: React.RefObject<RingBuffer<LogViewRecord>>,
     setVersion: React.Dispatch<React.SetStateAction<number>>,
     options: UseLiveLogsOptions = {}
 ) {
     const {enabled = true, onError} = options;
 
-    const pendingLogsRef = useRef<LogRecord[]>([]);
+    const pendingLogsRef = useRef<LogViewRecord[]>([]);
     const rafIdRef = useRef<number | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -310,7 +273,7 @@ function useLiveLogs(
 
     // Queue logs for RAF batch
     const queueLogs = useCallback(
-        (logs: LogRecord[]) => {
+        (logs: LogViewRecord[]) => {
             pendingLogsRef.current.push(...logs);
 
             if (rafIdRef.current === null) {
@@ -323,56 +286,46 @@ function useLiveLogs(
     useEffect(() => {
         if (!enabled) return;
 
-        let eventSource: EventSource | null = null;
+        let controller: AbortController | null = null;
+        let disposed = false;
 
-        const connect = () => {
-            eventSource = new EventSource(withApiKeyQuery('/api/v1/stream/logs'));
-
-            eventSource.onopen = () => {
-                setIsConnected(true);
-            };
-
-            eventSource.addEventListener('log', (e) => {
-                try {
-                    const event = JSON.parse(e.data) as ContractLogStreamEvent;
-                    if (event.data) queueLogs([normalizeLogRecord(event.data)]);
-                } catch (err) {
-                    console.error('Failed to parse log event:', err);
-                }
-            });
-
-            // Also handle generic message events (fallback)
-            eventSource.onmessage = (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    if (data.body) queueLogs([normalizeLogRecord(data)]);
-                } catch {
-                    // Ignore parse errors for non-log messages
-                }
-            };
-
-            eventSource.onerror = () => {
+        const connect = async () => {
+            controller = new AbortController();
+            try {
+                await consumeSse(
+                    '/api/v1/stream/logs',
+                    controller.signal,
+                    () => setIsConnected(true),
+                    frame => {
+                        if (frame.event !== 'log') return;
+                        const event = JSON.parse(frame.data) as LogStreamEvent;
+                        queueLogs([normalizeLogRecord(event.data)]);
+                    },
+                );
+                if (disposed) return;
+                throw new Error('SSE connection closed');
+            } catch (error) {
+                if (disposed || controller.signal.aborted) return;
                 setIsConnected(false);
-                eventSource?.close();
-                onError?.(new Error('SSE connection lost'));
+                onError?.(error instanceof Error ? error : new Error('SSE connection lost'));
 
-                // Reconnect with backoff
                 reconnectTimeoutRef.current = window.setTimeout(() => {
-                    connect();
+                    void connect();
                 }, SSE_RECONNECT_DELAY);
-            };
+            }
         };
 
-        connect();
+        void connect();
 
         return () => {
+            disposed = true;
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }
             if (rafIdRef.current) {
                 cancelAnimationFrame(rafIdRef.current);
             }
-            eventSource?.close();
+            controller?.abort();
             setIsConnected(false);
         };
     }, [enabled, queueLogs, onError]);
@@ -388,7 +341,7 @@ export function LogsPage() {
     // -------------------------------------------------------------------------
     // Ring buffer state - O(1) append with automatic pruning
     // -------------------------------------------------------------------------
-    const logsBufferRef = useRef(new RingBuffer<LogRecord>(MAX_LOGS));
+    const logsBufferRef = useRef(new RingBuffer<LogViewRecord>(MAX_LOGS));
     const [logsVersion, setLogsVersion] = useState(0);
     const lastGenerationRef = useRef(0);
 
@@ -489,7 +442,7 @@ export function LogsPage() {
     // -------------------------------------------------------------------------
     // Composite key helper - survives buffer rotation
     // -------------------------------------------------------------------------
-    const getLogKey = useCallback((log: LogRecord) => {
+    const getLogKey = useCallback((log: LogViewRecord) => {
         return `${log.traceId ?? ''}:${log.timestamp}`;
     }, []);
 

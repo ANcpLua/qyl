@@ -14,11 +14,12 @@ using Qyl.Host;
 //     collector self-telemetry ──OTLP──> diagnostics collector
 //     diagnostics self-telemetry ──X──> nowhere
 //
-// No third collector, no feedback loop; RejectSelfReference additionally refuses any resolved
+// No third collector, no feedback loop; self-reference validation always rejects any resolved
 // endpoint that would point back at the originating collector.
 var app = QylAppBuilder.Create(args);
 
-var collector = app.AddCollector("collector", port: 5100, project: "services/qyl.collector", selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: 5200).RejectSelfReference());
+var collector = app.AddCollector("collector", "services/qyl.collector", port: 5100,
+    selfTelemetry: static telemetry => telemetry.ExportToDedicatedCollector("diagnostics", port: 5200));
 
 // `--dev`: also run the Vite dashboard (HMR) as a resource. It proxies /api + /v1 to the
 // collector (vite.config.ts), so it waits for the collector; [B] opens it once Ready.
@@ -26,12 +27,13 @@ if (args.Contains("--dev", StringComparer.Ordinal))
 {
     // --host 127.0.0.1: Node resolves `localhost` to ::1 only on this stack, but the runner
     // supervises (and health-probes) IPv4 loopback — bind where the probe looks.
-    app.AddCommand("dashboard-dev", "npm run dev -- --host 127.0.0.1", port: 5173,
+    app.AddCommand("dashboard-dev", "npm", port: 5173,
+            arguments: ["run", "dev", "--", "--host", "127.0.0.1"],
             workingDirectory: "services/qyl.dashboard")
         .WaitFor(collector);
 }
 
-// `--demo`: also run the synthetic workload (#510 ④⑤) — gen_ai/http/db traces through the
+// `--demo`: also run the synthetic workload — gen_ai/http/db traces through the
 // SemConv generated surface, exported into the collector's OTLP receiver, so the dashboard is
 // populated on first run. Registered after the collector, so [B] keeps opening the dashboard;
 // OTEL_SERVICE_NAME=workload comes from the resource name, the OTLP endpoint from the
@@ -39,10 +41,7 @@ if (args.Contains("--dev", StringComparer.Ordinal))
 if (args.Contains("--demo", StringComparer.Ordinal))
 {
     app.AddProject("workload", "packages/Qyl.Run.Workload")
-        .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint,
-            collector.GetEndpoint(QylConstants.EndpointKinds.OtlpHttp).ToString().TrimEnd('/'))
-        .WithEnvironment(QylConstants.Env.OtelExporterOtlpProtocol, QylConstants.Collector.OtlpHttpProtobuf)
-        .WaitFor(collector);
+        .WithOtlpExporter(collector);
 }
 
 await app.Build().RunAsync().ConfigureAwait(false);

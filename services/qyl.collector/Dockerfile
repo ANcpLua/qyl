@@ -93,7 +93,8 @@ EXPOSE 5100 4317 4318
 # Environment defaults (can be overridden at runtime)
 # QYL_GRPC_PORT=4317 enables gRPC OTLP ingestion by default (ADR-001)
 # QYL_DATA_PATH uses /data for volume mount compatibility
-ENV QYL_GRPC_PORT=4317 \
+ENV QYL_BIND_ADDRESS=0.0.0.0 \
+    QYL_GRPC_PORT=4317 \
     QYL_OTLP_PORT=4318 \
     QYL_DATA_PATH=/data/qyl.duckdb \
     DOTNET_RUNNING_IN_CONTAINER=true \

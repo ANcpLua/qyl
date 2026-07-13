@@ -39,12 +39,6 @@ accept = ["200..=299", "429"]
 # Actions IPs even with a browser UA (same link set passes and fails across
 # runs). The spec URLs are stable; excluding beats a flaky red check.
 #
-# github.com/ANcpLua/qyl.mobile is the private companion mobile repo. Its
-# source files (e.g. TelemetryObserver/…/TelemetryDashboardViewModel.swift,
-# referenced from docs/design/telemetry-fabric.md) 404 for the anonymous
-# link checker because the repo is private — a genuine cross-repo breadcrumb,
-# not rot. Excluded for the same reason as localhost/private-range URLs.
 exclude = [
   '^https?://opentelemetry\.io',
-  '^https?://github\.com/ANcpLua/qyl\.mobile',
 ]

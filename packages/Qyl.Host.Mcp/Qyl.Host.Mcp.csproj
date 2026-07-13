@@ -4,14 +4,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Qyl.Host.Mcp</RootNamespace>
     <PackageId>Qyl.Host.Mcp</PackageId>
-    <Description>MCP support for the qyl runner — McpHandshakeProbe readiness (initialize + tools/list), connection-only MCP resource kinds (stdio/http/inproc), the /runner/mcp passthrough, and OTLP self-monitoring of every passthrough call. Opt-in package; the engine has no MCP assumption.</Description>
+    <Description>MCP support for the qyl runner — initialize + tools/list readiness, connection-only stdio/HTTP/in-process resources, /runner/mcp passthrough, and OTLP export of the official MCP SDK ActivitySource. Opt-in package; the engine has no MCP assumption.</Description>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);MCPEXP001</NoWarn>
     <!-- IsAotCompatible deliberately NOT claimed: the engine (Qyl.Host) keeps the claim; this
-         package leans on the MCP SDK whose AOT posture is not verified here. -->
+         package leans on the MCP SDK. tests/Qyl.Host.Mcp.AotSmoke publishes a host of this
+         package with PublishAot=true (zero IL/AOT warnings; the native binary composes both
+         MCP resource kinds), but a compile-time claim waits until a real handshake runs under AOT. -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,13 +22,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="ModelContextProtocol.Core"/>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
+    <PackageReference Include="Qyl.Api.Contracts"/>
     <ProjectReference Include="..\Qyl.Host\Qyl.Host.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
+    <InternalsVisibleTo Include="Qyl.Host.Tests"/>
   </ItemGroup>
 
 </Project>

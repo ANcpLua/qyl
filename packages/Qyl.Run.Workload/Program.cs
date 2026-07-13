@@ -2,13 +2,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Qyl.Run.Workload;
 
-// Synthetic demo workload (#510 ④): continuously emits realistic gen_ai + http + db spans,
-// metrics and logs through the SemConv source-generated surface, exported over OTLP.
+// Synthetic conformance workload: continuously emits realistic gen_ai + http + db spans
+// and logs through the SemConv source-generated surface, exported over OTLP.
 //
 // Standalone: `dotnet run --project packages/Qyl.Run.Workload` against a collector on :4318.
 // Under `qyl run --demo`, Qyl.Run injects OTEL_EXPORTER_OTLP_ENDPOINT/_PROTOCOL,
@@ -26,20 +26,30 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OTEL_SERVICE_N
 }
 
 var builder = WebApplication.CreateSlimBuilder(args);
+var oneShot = string.Equals(Environment.GetEnvironmentVariable("QYL_WORKLOAD_ONESHOT"), "1",
+    StringComparison.Ordinal);
+var logsEndpoint = new Uri(
+    $"{Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")!.TrimEnd('/')}/v1/logs");
+builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(static level => level >= LogLevel.Trace);
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(static tracing => tracing
         .AddSource(WorkloadTelemetry.SourceName)
-        .AddOtlpExporter())
-    // The collector has no metrics signal today (traces/logs/profiles only) — it 404s
-    // /v1/metrics and the exporter drops the batch quietly. Shipping them anyway means the
-    // demo lights up the day the collector grows one, and the generated instrument
-    // factories are exercised end-to-end regardless.
-    .WithMetrics(static metrics => metrics
-        .AddMeter(WorkloadTelemetry.SourceName)
         .AddOtlpExporter());
 
-builder.Logging.AddOpenTelemetry(static logging => logging.AddOtlpExporter());
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.AddOtlpExporter((exporter, processor) =>
+    {
+        exporter.Endpoint = logsEndpoint;
+        exporter.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+        // The acceptance process exits immediately after one record. Export synchronously so its
+        // proof cannot depend on a batch timer; the long-running demo keeps the normal batch processor.
+        if (oneShot) processor.ExportProcessorType = ExportProcessorType.Simple;
+    });
+});
 
 builder.Services.AddHostedService<WorkloadEmitter>();
 

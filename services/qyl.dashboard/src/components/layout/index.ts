@@ -1,3 +1,3 @@
-export {DashboardLayout, useDashboardContext} from './DashboardLayout';
+export {DashboardLayout} from './DashboardLayout';
 export {Sidebar} from './Sidebar';
 export {TopBar} from './TopBar';

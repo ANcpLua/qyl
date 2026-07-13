@@ -152,6 +152,8 @@ body {
   padding: 0.15rem 0.6rem;
 }
 .tool-run:disabled { opacity: 0.5; cursor: default; }
+.tool-risk { color: #d97706; font-size: 0.75rem; }
+.tool-safe { color: #16a34a; font-size: 0.75rem; }
 .tool-result {
   border: 1px solid var(--line);
   border-radius: 4px;

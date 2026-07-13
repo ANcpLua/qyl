@@ -24,7 +24,6 @@ internal static class CollectorStorageExtensions
             dataPath,
             memoryLimit: config["QYL_DB_MEMORY_LIMIT"],
             threads: config.GetValue<int?>("QYL_DB_THREADS"),
-            tempDirectory: config["QYL_DB_TEMP_DIR"],
-            logger: services.GetService<ILogger<DuckDbStore>>());
+            tempDirectory: config["QYL_DB_TEMP_DIR"]);
     }
 }

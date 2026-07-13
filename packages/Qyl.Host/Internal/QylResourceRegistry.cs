@@ -7,13 +7,12 @@ namespace Qyl.Host.Internal;
 internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, TimeProvider time)
 {
     // Kind is static per composition; stamping it here keeps every Publish call site kind-free.
-    private readonly Dictionary<string, string> _kinds =
+    private readonly Dictionary<string, QylResourceKind> _kinds =
         resources.ToDictionary(static r => r.Name, static r => r.Kind, StringComparer.Ordinal);
 
-    // Broadcast fan-out: every subscriber (the Spectre TUI, an SSE endpoint, …) owns its own channel.
-    // Publish records the latest state and mirrors the event into every subscriber's channel, so a second
-    // consumer never steals events from the first.
-    private readonly ConcurrentDictionary<Guid, Channel<QylResourceState>> _subscribers = new();
+    // Broadcast fan-out: every subscriber owns one pending resync signal. State itself remains in
+    // _latest, so a burst is conflated without ever dropping a resource's final state.
+    private readonly ConcurrentDictionary<Guid, Channel<byte>> _subscribers = new();
 
     private readonly ConcurrentDictionary<string, QylResourceState> _latest = new(StringComparer.Ordinal);
 
@@ -23,13 +22,20 @@ internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, 
 
     public IReadOnlyDictionary<string, QylResourceState> Snapshot => _latest;
 
+    public bool Contains(string name) => _kinds.ContainsKey(name);
+
     // Subscribe first, THEN read Snapshot: an event racing the subscription is still delivered on the
     // channel, and because state is keyed by name (last-write-wins) a duplicate replay is idempotent.
     // Dispose the subscription to unsubscribe.
     public QylResourceSubscription Subscribe()
     {
-        var channel = Channel.CreateUnbounded<QylResourceState>(
-            new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+        var channel = Channel.CreateBounded<byte>(
+            new BoundedChannelOptions(1)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.DropWrite
+            });
 
         var id = Guid.NewGuid();
         _subscribers[id] = channel;
@@ -65,7 +71,7 @@ internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, 
     {
         _latest[state.Name] = state;
         if (state.Lifecycle == ResourceLifecycle.Ready) Signal(state.Name).TrySetResult();
-        foreach (var channel in _subscribers.Values) channel.Writer.TryWrite(state);
+        foreach (var channel in _subscribers.Values) channel.Writer.TryWrite(0);
     }
 
     public void Complete()
@@ -85,9 +91,9 @@ internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, 
 internal sealed class QylResourceSubscription(
     QylResourceRegistry registry,
     Guid id,
-    ChannelReader<QylResourceState> reader) : IDisposable
+    ChannelReader<byte> reader) : IDisposable
 {
-    public ChannelReader<QylResourceState> Events => reader;
+    public ChannelReader<byte> Events => reader;
 
     public void Dispose() => registry.Unsubscribe(id);
 }

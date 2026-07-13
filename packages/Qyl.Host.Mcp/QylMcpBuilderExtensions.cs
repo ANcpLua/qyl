@@ -1,9 +1,12 @@
 using System.IO.Pipelines;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OpenTelemetry;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Trace;
 using Qyl.Host;
 
 namespace Qyl.Host.Mcp;
@@ -12,10 +15,15 @@ namespace Qyl.Host.Mcp;
 /// MCP resource kinds for the qyl runner — the C# port of qyl.mcp's TS app-builder surface.
 /// All three are connection-only resources: readiness is <see cref="McpHandshakeProbe"/>
 /// (initialize + tools/list), the live client lands in <see cref="McpClientRegistry"/>, and
-/// the <c>/runner/mcp</c> passthrough (plus its OTLP self-monitoring) is wired on first use.
+/// the <c>/runner/mcp</c> passthrough (plus export of the official MCP SDK ActivitySource) is wired on first use.
 /// </summary>
 public static class QylMcpBuilderExtensions
 {
+    // ModelContextProtocol.Core 1.4.1 owns its ActivitySource under this name. The SDK keeps the
+    // constant internal, so this value is pinned by the exact package version. Its Meter uses the
+    // same name, but qyl has no metrics receiver yet and must not export it into a known 404.
+    internal const string OfficialDiagnosticsName = "Experimental.ModelContextProtocol";
+
     /// <summary>
     /// MCP server as an SDK-spawned stdio child (the SDK transport owns the process). Mirrors
     /// qyl.mcp's <c>addServer(kind: "stdio")</c>.
@@ -23,9 +31,9 @@ public static class QylMcpBuilderExtensions
     public static IQylResourceBuilder AddMcpStdio(this QylAppBuilder app, string name, string command,
         IEnumerable<string>? arguments = null, string? workingDirectory = null)
     {
-        Guard.NotNull(app);
-        Guard.NotNullOrWhiteSpace(name);
-        Guard.NotNullOrWhiteSpace(command);
+        QylGuard.NotNull(app);
+        QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(command);
 
         var options = new StdioClientTransportOptions
         {
@@ -35,8 +43,10 @@ public static class QylMcpBuilderExtensions
             Name = name
         };
 
-        return AddConnectionOnly(app, name, McpResourceKinds.Stdio,
-            (_, ct) => McpClient.CreateAsync(new StdioClientTransport(options), cancellationToken: ct));
+        return AddConnectionOnly(app, name, QylResourceKind.McpStdio, async (_, ct) =>
+            new McpConnection(await McpClient.CreateAsync(
+                    new StdioClientTransport(options), cancellationToken: ct)
+                .ConfigureAwait(false)));
     }
 
     /// <summary>
@@ -45,14 +55,15 @@ public static class QylMcpBuilderExtensions
     /// </summary>
     public static IQylResourceBuilder AddMcpHttp(this QylAppBuilder app, string name, Uri endpoint)
     {
-        Guard.NotNull(app);
-        Guard.NotNullOrWhiteSpace(name);
-        Guard.NotNull(endpoint);
+        QylGuard.NotNull(app);
+        QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNull(endpoint);
 
-        return AddConnectionOnly(app, name, McpResourceKinds.Http,
-            (_, ct) => McpClient.CreateAsync(
-                new HttpClientTransport(new HttpClientTransportOptions { Endpoint = endpoint, Name = name }),
-                cancellationToken: ct));
+        return AddConnectionOnly(app, name, QylResourceKind.McpHttp, async (_, ct) =>
+            new McpConnection(await McpClient.CreateAsync(
+                    new HttpClientTransport(new HttpClientTransportOptions { Endpoint = endpoint, Name = name }),
+                    cancellationToken: ct)
+                .ConfigureAwait(false)));
     }
 
     /// <summary>
@@ -63,33 +74,19 @@ public static class QylMcpBuilderExtensions
     /// <see cref="McpServer"/>, not an interface); return the created server and the runner
     /// runs it for the composition's lifetime.
     /// </summary>
-    public static IQylResourceBuilder AddMcpInProc(this QylAppBuilder app, string name,
+    public static IQylResourceBuilder AddMcpInProcess(this QylAppBuilder app, string name,
         Func<ITransport, McpServer> serverFactory)
     {
-        Guard.NotNull(app);
-        Guard.NotNullOrWhiteSpace(name);
-        Guard.NotNull(serverFactory);
+        QylGuard.NotNull(app);
+        QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNull(serverFactory);
 
-        return AddConnectionOnly(app, name, McpResourceKinds.InProc, async (state, ct) =>
-        {
-            var clientToServer = new Pipe();
-            var serverToClient = new Pipe();
-
-            var server = serverFactory(new StreamServerTransport(
-                clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream(), name));
-
-            // Runs until the composition shuts down and the pipes tear the transport down with it.
-            var serverLifetime = server.RunAsync(CancellationToken.None);
-
-            return await McpClient.CreateAsync(
-                    new StreamClientTransport(clientToServer.Writer.AsStream(), serverToClient.Reader.AsStream()),
-                    cancellationToken: ct)
-                .ConfigureAwait(false);
-        });
+        return AddConnectionOnly(app, name, QylResourceKind.McpInProcess,
+            (_, ct) => CreateInProcessConnectionAsync(name, serverFactory, ct));
     }
 
-    private static IQylResourceBuilder AddConnectionOnly(QylAppBuilder app, string name, string kind,
-        Func<QylResourceState, CancellationToken, Task<McpClient>> connect)
+    private static IQylResourceBuilder AddConnectionOnly(QylAppBuilder app, string name, QylResourceKind kind,
+        Func<QylResourceState, CancellationToken, Task<McpConnection>> connect)
     {
         var registry = EnsureMcpServices(app);
 
@@ -104,7 +101,7 @@ public static class QylMcpBuilderExtensions
         });
     }
 
-    // One registry / telemetry / passthrough wiring per composition, created on the first AddMcp*
+    // One registry / official SDK tracing / passthrough wiring per composition, created on the first AddMcp*
     // call. The registry instance must exist at composition time (the probes capture it), so it is
     // registered as an instance and rediscovered through the service collection on later calls.
     private static McpClientRegistry EnsureMcpServices(QylAppBuilder app)
@@ -115,13 +112,110 @@ public static class QylMcpBuilderExtensions
 
         var registry = new McpClientRegistry();
         app.Host.Services.AddSingleton(registry);
-        app.Host.Services.AddSingleton<McpTelemetry>();
-        app.Host.Services.AddHostedService(static sp => sp.GetRequiredService<McpTelemetry>());
+        app.Host.Services.AddHostedService(static sp => sp.GetRequiredService<McpClientRegistry>());
+        ConfigureOfficialMcpTelemetry(app.Host);
         app.Host.Services.AddSingleton<IQylRunnerRequestHandler>(static sp => new McpPassthroughHandler(
             sp.GetRequiredService<McpClientRegistry>(),
-            sp.GetRequiredService<IReadOnlyList<QylResource>>(),
-            sp.GetRequiredService<McpTelemetry>(),
-            sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<IReadOnlyList<QylResource>>()));
         return registry;
+    }
+
+    private static void ConfigureOfficialMcpTelemetry(HostApplicationBuilder host)
+    {
+        if (Environment.GetEnvironmentVariable("QYL_MCP_TELEMETRY") == "0") return;
+
+        var traceEndpoint = ResolveTraceEndpoint();
+        host.Services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing
+                .AddSource(OfficialDiagnosticsName)
+                .AddOtlpExporter(options =>
+                {
+                    options.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    options.Endpoint = traceEndpoint;
+                    options.ExportProcessorType = ExportProcessorType.Batch;
+                }));
+    }
+
+    internal static Uri ResolveTraceEndpoint()
+    {
+        var exact = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
+        if (!string.IsNullOrWhiteSpace(exact))
+            return RequireHttpEndpoint(exact);
+
+        var configured = Environment.GetEnvironmentVariable("QYL_OTLP_ENDPOINT")
+                         ?? Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
+                         ?? "http://127.0.0.1:4318";
+        var baseUri = RequireHttpEndpoint(configured);
+        if (baseUri.AbsolutePath.TrimEnd('/').EndsWith("/v1/traces", StringComparison.OrdinalIgnoreCase))
+            return baseUri;
+
+        var builder = new UriBuilder(baseUri);
+        var basePath = builder.Path.TrimEnd('/');
+        builder.Path = basePath + "/v1/traces";
+        return builder.Uri;
+    }
+
+    private static Uri RequireHttpEndpoint(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var endpoint) ||
+            endpoint.Scheme is not ("http" or "https"))
+        {
+            throw new InvalidOperationException(
+                $"The MCP OTLP endpoint must be an absolute HTTP(S) URI, but was '{value}'.");
+        }
+
+        return endpoint;
+    }
+
+    private static async Task<McpConnection> CreateInProcessConnectionAsync(
+        string name,
+        Func<ITransport, McpServer> serverFactory,
+        CancellationToken cancellationToken)
+    {
+        var clientToServer = new Pipe();
+        var serverToClient = new Pipe();
+        var serverLifetime = new CancellationTokenSource();
+        McpServer? server = null;
+        Task? serverLoop = null;
+        McpClient? client = null;
+        ITransport? serverTransport = null;
+
+        try
+        {
+#pragma warning disable CA2000 // ownership transfers to McpConnection (and the SDK server session)
+            serverTransport = new StreamServerTransport(
+                clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream(), name);
+#pragma warning restore CA2000
+            server = serverFactory(serverTransport);
+            serverLoop = Task.Run(() => server.RunAsync(serverLifetime.Token), serverLifetime.Token);
+            client = await McpClient.CreateAsync(
+                    new StreamClientTransport(clientToServer.Writer.AsStream(), serverToClient.Reader.AsStream()),
+                    cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return new McpConnection(client, server, serverLoop, serverLifetime, serverTransport);
+        }
+        catch
+        {
+            if (client is not null) await client.DisposeAsync().ConfigureAwait(false);
+            serverLifetime.Cancel();
+
+            if (serverLoop is not null)
+            {
+                try
+                {
+                    await serverLoop.ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is OperationCanceledException or IOException)
+                {
+                    // Expected cleanup for a failed handshake.
+                }
+            }
+
+            if (server is not null) await server.DisposeAsync().ConfigureAwait(false);
+            if (serverTransport is not null) await serverTransport.DisposeAsync().ConfigureAwait(false);
+            serverLifetime.Dispose();
+            throw;
+        }
     }
 }

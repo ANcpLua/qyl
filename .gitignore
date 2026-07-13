@@ -21,13 +21,6 @@ artifacts/
 *.nuget.targets
 project.lock.json
 
-# TypeSpec emitter outputs are tracked on purpose: alpha emitters
-# (`@typespec/http-client-csharp`, `@typespec/http-server-csharp`) are not yet
-# fully deterministic, and qyl's own emitters evolve with the .tsp inputs.
-# Committing the output makes fresh clones build from reviewed generated files,
-# turns every regen delta into a reviewable diff, and caps the blast radius
-# of emitter regressions. Do not hand-edit files under */Generated/.
-
 # .NET
 *.user
 *.rsuser
@@ -51,12 +44,8 @@ project.lock.json
 *.svclog
 *.scc
 
-# Claude Code local files (keep rules, workflows, skills, settings tracked for portability)
-.claude/*
-!.claude/rules/
-!.claude/qyl-workflows/
-!.claude/skills
-!.claude/settings.json
+# Local tool configuration. Repository-wide instructions live in AGENTS.md.
+.claude/
 
 # Plugin session state (Hades smart ledger, elegance pipeline, etc.)
 .smart/
@@ -113,6 +102,8 @@ appsettings.*.json
 
 # Test results
 TestResults/
+test-results/
+playwright-report/
 coverage/
 *.coverage
 *.coveragexml
@@ -137,18 +128,10 @@ coverage/
 *.tmp
 *~
 
-# Claude-mem auto-generated CLAUDE.md files
-# Only keep manually curated CLAUDE.md files
+# Per-tool instruction copies are forbidden. The only tracked CLAUDE.md is the
+# root symlink to AGENTS.md.
 **/CLAUDE.md
-# Whitelist important component docs
 !CLAUDE.md
-!core/CLAUDE.md
-!eng/CLAUDE.md
-!tests/CLAUDE.md
-!services/qyl.*/CLAUDE.md
-!internal/qyl.*/CLAUDE.md
-!packages/Qyl.*/CLAUDE.md
-!core/qyl.*/CLAUDE.md
 .mcp.json
 tmp/
 .tmp/
@@ -167,6 +150,3 @@ images/
 
 # Local agent scratchpads (objective.json etc.) — not repo content
 .blackboard/
-
-.DS_Store
-*.bak

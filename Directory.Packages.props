@@ -79,30 +79,24 @@
     <!-- Qyl.Host.Mcp: official MCP C# SDK, Core only (client + low-level server; the full
          ModelContextProtocol package adds reflection-based hosting the engine doesn't want). -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="1.4.1"/>
-    <!-- eng/tools maintenance tooling (extracted from opentelemetry-dotnet-instrumentation).
-         NuGet.ProjectModel matches the NuGet.Packaging 7.6.0 security override above. -->
+    <!-- Focused host contract and lifecycle tests run on Microsoft Testing Platform. -->
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2"/>
+    <!-- eng/tools maintenance tooling. -->
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>
     <!-- 18.0.2 floor: Nuke.Common 10.1.0 -> Nuke.ProjectModel requires it (NU1109 with
          transitive pinning below that). -->
     <PackageVersion Include="Microsoft.Build" Version="18.7.1"/>
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"/>
-    <PackageVersion Include="NuGet.ProjectModel" Version="7.6.0"/>
-    <PackageVersion Include="System.IO.Abstractions" Version="22.1.1"/>
     <PackageVersion Include="Valleysoft.DockerfileModel" Version="2.0.0"/>
     <PackageVersion Include="YamlDotNet" Version="18.1.0"/>
-    <!-- Qyl-private vendor-fork of the upstream OTel semantic-conventions source-generator
-         work in opentelemetry-dotnet-contrib#4424. Published-but-unlisted on nuget.org while
-         the contrib donation goes through its ~6-month review (see [[dual-target-otel-shipping]]).
-         When #4424 merges these PackageReference rows swap to the upstream id — type identities
-         preserved, so consumer code keeps compiling. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="4.1.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.4.0"/>
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.4.0"/>
-    <!-- Analyzer-only, consumed by the demo workload (#510 §5) — deliberately the first real
-         consumer of the [SemanticConvention*] source generators. -->
-    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.4.0"/>
+    <!-- Qyl's generated semantic-convention constants, analyzers, and runtime instrumentation. -->
+    <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="5.0.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.5.0"/>
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.5.0"/>
+    <!-- Analyzer-only source generation, exercised by the conformance workload. -->
+    <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.5.0"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
-    <PackageVersion Include="Qyl.Api.Contracts" Version="0.4.0"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="0.5.7"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>

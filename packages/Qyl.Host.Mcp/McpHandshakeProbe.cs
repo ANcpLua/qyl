@@ -11,8 +11,8 @@ namespace Qyl.Host.Mcp;
 /// the connected client is parked in the <see cref="McpClientRegistry"/> for the passthrough;
 /// an HTTP route appearing is meaningless for an MCP server, hence no HTTP health probe.
 /// </summary>
-public sealed class McpHandshakeProbe(
-    Func<QylResourceState, CancellationToken, Task<McpClient>> connect,
+internal sealed class McpHandshakeProbe(
+    Func<QylResourceState, CancellationToken, Task<McpConnection>> connect,
     McpClientRegistry registry,
     TimeSpan startupTimeout,
     TimeProvider time) : IReadinessProbe
@@ -25,14 +25,14 @@ public sealed class McpHandshakeProbe(
 
         while (!cancellationToken.IsCancellationRequested && time.GetUtcNow() < deadline)
         {
-            McpClient? client = null;
+            McpConnection? connection = null;
             try
             {
-                client = await connect(state, cancellationToken).ConfigureAwait(false);
-                _ = await client.ListToolsAsync(new ListToolsRequestParams(), cancellationToken)
+                connection = await connect(state, cancellationToken).ConfigureAwait(false);
+                _ = await connection.Client.ListToolsAsync(new ListToolsRequestParams(), cancellationToken)
                     .ConfigureAwait(false);
 
-                registry.Register(state.Name, client);
+                registry.Register(state.Name, connection);
                 return true;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -42,8 +42,8 @@ public sealed class McpHandshakeProbe(
             catch (Exception)
             {
                 // Server not up yet (connect refused, handshake failed, tools/list errored) — dispose
-                // any half-open client and retry until the deadline.
-                if (client is not null) await client.DisposeAsync().ConfigureAwait(false);
+                // the whole attempt (client plus any in-process server) before retrying.
+                if (connection is not null) await connection.DisposeAsync().ConfigureAwait(false);
             }
 
             await Task.Delay(s_retryInterval, time, cancellationToken).ConfigureAwait(false);

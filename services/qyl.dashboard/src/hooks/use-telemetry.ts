@@ -1,6 +1,11 @@
-import {useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type {SessionEntity, Span, Trace} from '@/types';
+import type {
+    CursorPageSessionEntity,
+    CursorPageSpan,
+    CursorPageTrace,
+    SessionEntity,
+    Span,
+} from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
 
@@ -19,27 +24,11 @@ export const telemetryKeys = {
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
-// API response types (actual API shape)
-interface ApiSessionsResponse {
-    items: SessionEntity[];
-    total?: number;
-}
-
-interface ApiSpanPage {
-    items: Span[];
-    has_more: boolean;
-}
-
-interface ApiTracePage {
-    items: Trace[];
-    has_more: boolean;
-}
-
 // Sessions - return array directly for components
 export function useSessions() {
     return useQuery({
         queryKey: telemetryKeys.sessions(),
-        queryFn: () => fetchJson<ApiSessionsResponse>('/api/v1/sessions'),
+        queryFn: () => fetchJson<CursorPageSessionEntity>('/api/v1/sessions'),
         select: (data): SessionEntity[] => data.items,
         refetchInterval: 10000,
     });
@@ -48,7 +37,7 @@ export function useSessions() {
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
-        queryFn: () => fetchJson<ApiTracePage>(`/api/v1/sessions/${sessionId}/traces`),
+        queryFn: () => fetchJson<CursorPageTrace>(`/api/v1/sessions/${sessionId}/traces`),
         select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
         enabled: !!sessionId,
     });
@@ -57,7 +46,7 @@ export function useSessionSpans(sessionId: string) {
 export function useTraceSpans(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.traceSpans(traceId),
-        queryFn: () => fetchJson<ApiSpanPage>(`/api/v1/traces/${traceId}/spans`),
+        queryFn: () => fetchJson<CursorPageSpan>(`/api/v1/traces/${traceId}/spans`),
         select: (data): TelemetrySpan[] => data.items,
         enabled: !!traceId,
     });
@@ -69,7 +58,7 @@ export function useTraceSpans(traceId: string) {
 export function useTraces(enabled = true) {
     return useQuery({
         queryKey: telemetryKeys.traces(),
-        queryFn: () => fetchJson<ApiTracePage>('/api/v1/traces'),
+        queryFn: () => fetchJson<CursorPageTrace>('/api/v1/traces'),
         select: (data): TelemetrySpan[] => data.items.flatMap((trace) => trace.spans),
         enabled,
         refetchInterval: 10000,
@@ -92,48 +81,6 @@ export function selectTraceViewSource(args: {
     return 'session';
 }
 
-// Live SSE Stream
-interface UseLiveStreamOptions {
-    onConnect?: () => void;
-    onDisconnect?: () => void;
-    enabled?: boolean;
-}
-
-export function useLiveStream(options: UseLiveStreamOptions = {}) {
-    const {onConnect, onDisconnect, enabled = true} = options;
-    const [isConnected, setIsConnected] = useState(false);
-    const [connectionId, setConnectionId] = useState<string | null>(null);
-    const [recentSpans, setRecentSpans] = useState<TelemetrySpan[]>([]);
-
-    const connect = useCallback(() => {
-        if (!enabled) {
-            setIsConnected(false);
-            setConnectionId(null);
-            onDisconnect?.();
-            return;
-        }
-
-        setIsConnected(false);
-        setConnectionId(null);
-        onConnect?.();
-    }, [enabled, onConnect, onDisconnect]);
-
-    const disconnect = useCallback(() => {
-        setIsConnected(false);
-        setConnectionId(null);
-        onDisconnect?.();
-    }, [onDisconnect]);
-
-    return {
-        isConnected,
-        connectionId,
-        recentSpans,
-        disconnect,
-        reconnect: connect,
-        clearSpans: () => setRecentSpans([]),
-    };
-}
-
 // Span utilities.
 export function getSpanColor(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
@@ -146,7 +93,7 @@ export function getSpanColor(span: TelemetrySpan): string {
         return 'hsl(var(--span-http))';
     }
     // Database spans
-    if (attrs['db.system']) {
+    if (hasDatabaseSystem(attrs)) {
         return 'hsl(var(--span-db))';
     }
     // Messaging spans
@@ -169,7 +116,7 @@ export function getSpanTypeLabel(span: TelemetrySpan): string {
     if (attrs['http.method'] || attrs['http.request.method']) {
         return 'HTTP';
     }
-    if (attrs['db.system']) {
+    if (hasDatabaseSystem(attrs)) {
         return 'Database';
     }
     if (attrs['messaging.system']) {
@@ -179,6 +126,10 @@ export function getSpanTypeLabel(span: TelemetrySpan): string {
         return 'RPC';
     }
     return 'Internal';
+}
+
+export function hasDatabaseSystem(attributes: Record<string, unknown>): boolean {
+    return Boolean(attributes['db.system.name'] ?? attributes['db.system']);
 }
 
 export function formatDuration(ms: number): string {

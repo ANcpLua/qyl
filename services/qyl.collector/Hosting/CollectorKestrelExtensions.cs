@@ -10,13 +10,13 @@ internal static class CollectorKestrelExtensions
     {
         webHost.ConfigureKestrel(options =>
         {
-            options.ListenAnyIP(ports.Http, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+            options.Listen(ports.BindAddress, ports.Http, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
 
             if (ports.OtlpHttp > 0 && ports.OtlpHttp != ports.Http)
-                options.ListenAnyIP(ports.OtlpHttp, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+                options.Listen(ports.BindAddress, ports.OtlpHttp, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
 
             if (ports.Grpc > 0)
-                options.ListenAnyIP(ports.Grpc, lo => lo.Protocols = HttpProtocols.Http2);
+                options.Listen(ports.BindAddress, ports.Grpc, lo => lo.Protocols = HttpProtocols.Http2);
         });
 
         return webHost;

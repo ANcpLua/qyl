@@ -1,7 +1,5 @@
 using DuckDB.NET.Data;
 
-using Qyl.Collector.Telemetry;
-
 using static System.Threading.Volatile;
 
 namespace Qyl.Collector.Storage;
@@ -16,15 +14,11 @@ internal sealed partial class DuckDbStore : IQylStore
     private const int MaxProfilesPerBatch = 50;
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
 
-    private static readonly Counter<long> s_droppedSpans = QylTelemetry.Meter.CreateCounter<long>(
-        "qyl.collector.spans.dropped", "{span}", "Spans dropped because the DuckDB write queue was full.");
-
     private readonly CancellationTokenSource _cts = new();
+    private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
     private readonly bool _isInMemory;
     private readonly int _jobQueueCapacity;
     private readonly Channel<WriteJob> _jobs;
-    private readonly ILogger<DuckDbStore>? _logger;
-
     private readonly Channel<IReadJob>? _reads;
     private readonly Thread[] _readerThreads;
     private readonly Task _writerTask;
@@ -41,11 +35,11 @@ internal sealed partial class DuckDbStore : IQylStore
         string? memoryLimit = null,
         int? threads = null,
         string? tempDirectory = null,
-        ILogger<DuckDbStore>? logger = null)
+        Func<CancellationToken, ValueTask>? beforeWrite = null)
     {
         _isInMemory = databasePath == ":memory:";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
-        _logger = logger;
+        _beforeWrite = beforeWrite;
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
         ConfigureDatabase(Connection, memoryLimit, threads, tempDirectory);
@@ -191,7 +185,7 @@ internal sealed partial class DuckDbStore : IQylStore
 
         var job = new ReadJob<T>(read, ct);
         await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
+        return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
 
 
@@ -199,11 +193,13 @@ internal sealed partial class DuckDbStore : IQylStore
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
+        ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation);
         Interlocked.Increment(ref _queuedWriteJobs);
         try
         {
-            await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+            if (!_jobs.Writer.TryWrite(job))
+                throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
         }
         catch
         {
@@ -211,13 +207,14 @@ internal sealed partial class DuckDbStore : IQylStore
             throw;
         }
 
-        return await job.Task.ConfigureAwait(false);
+        return await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
 
     private async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
+        ct.ThrowIfCancellationRequested();
         var job = new WriteJob<int>(async (con, token) =>
         {
             await operation(con, token).ConfigureAwait(false);
@@ -226,7 +223,8 @@ internal sealed partial class DuckDbStore : IQylStore
         Interlocked.Increment(ref _queuedWriteJobs);
         try
         {
-            await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+            if (!_jobs.Writer.TryWrite(job))
+                throw new QylStoreUnavailableException("DuckDB write queue is at capacity.");
         }
         catch
         {
@@ -234,36 +232,24 @@ internal sealed partial class DuckDbStore : IQylStore
             throw;
         }
 
-        await job.Task.ConfigureAwait(false);
+        await job.Task.WaitAsync(ct).ConfigureAwait(false);
     }
 
 
-    public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
+    public async ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         if (ct.IsCancellationRequested)
-            return ValueTask.FromCanceled(ct);
+            await ValueTask.FromCanceled(ct).ConfigureAwait(false);
         if (batch.Spans.Count is 0)
-            return ValueTask.CompletedTask;
-
-        var job = new FireAndForgetJob(
-            (con, token) => WriteBatchInternalAsync(con, batch, token));
-
-        Interlocked.Increment(ref _queuedWriteJobs);
-        if (!_jobs.Writer.TryWrite(job))
         {
-            Interlocked.Decrement(ref _queuedWriteJobs);
-
-            // The bounded write queue is full: shed this span batch rather than block ingest. The
-            // load-shedding is intentional, but it MUST be observable — record the loss as a metric
-            // and a warning so dropped telemetry never disappears silently.
-            var dropped = batch.Spans.Count;
-            s_droppedSpans.Add(dropped);
-            if (_logger is not null)
-                LogSpansDropped(_logger, dropped, _jobQueueCapacity);
+            return;
         }
 
-        return ValueTask.CompletedTask;
+        await ExecuteWriteAsync(
+                (con, token) => WriteBatchInternalAsync(con, batch, token),
+                ct)
+            .ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
@@ -598,6 +584,8 @@ internal sealed partial class DuckDbStore : IQylStore
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
+        if (limit is < 1 or > 1_000)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Profile limit must be between 1 and 1000.");
 
         return ExecuteReadAsync<IReadOnlyList<ProfileStorageRow>>(con =>
         {
@@ -623,7 +611,7 @@ internal sealed partial class DuckDbStore : IQylStore
                               + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
             qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 500) });
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -710,6 +698,8 @@ internal sealed partial class DuckDbStore : IQylStore
                 Interlocked.Decrement(ref _queuedWriteJobs);
                 try
                 {
+                    if (_beforeWrite is not null)
+                        await _beforeWrite(_cts.Token).ConfigureAwait(false);
                     await job.ExecuteAsync(Connection, _cts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -920,13 +910,6 @@ internal sealed partial class DuckDbStore : IQylStore
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 
-    [LoggerMessage(
-        EventId = 1001,
-        Level = LogLevel.Warning,
-        Message = "DuckDB write queue full (capacity {QueueCapacity}); dropped {DroppedSpans} spans.")]
-    private static partial void LogSpansDropped(ILogger logger, int droppedSpans, int queueCapacity);
-
-
     private abstract class WriteJob
     {
         public abstract ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct);
@@ -934,13 +917,6 @@ internal sealed partial class DuckDbStore : IQylStore
         public virtual void OnAborted(Exception error)
         {
         }
-    }
-
-    private sealed class FireAndForgetJob(
-        Func<DuckDBConnection, CancellationToken, ValueTask> action)
-        : WriteJob
-    {
-        public override ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct) => action(con, ct);
     }
 
     private sealed class WriteJob<TResult>(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action)

@@ -36,7 +36,7 @@ app.MapQylCollectorEndpoints();
 CollectorHealthGuard.ThrowIfHealthSurfaceUnwired(app);
 
 StartupBanner.Print(
-    $"http://localhost:{ports.Http}", ports.Http, ports.Grpc, ports.OtlpHttp,
+    $"http://localhost:{ports.Http}", ports.Grpc, ports.OtlpHttp,
     app.Services.GetRequiredService<OtlpCorsOptions>(),
     app.Services.GetRequiredService<OtlpApiKeyOptions>());
 

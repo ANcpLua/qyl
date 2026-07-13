@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
@@ -20,8 +19,10 @@ using OpenTelemetry.Trace;
 using Qyl.Instrumentation;
 using Qyl.Instrumentation.Discovery;
 using Qyl.Instrumentation.ErrorCapture;
-using Qyl.Instrumentation.Instrumentation.Inventory;
 using OtelSchemaUrl = Qyl.OpenTelemetry.SemanticConventions.SchemaUrl;
+using ContractHealthCheckEntry = Qyl.Api.Contracts.Health.HealthCheckEntry;
+using ContractHealthReport = Qyl.Api.Contracts.Health.HealthReport;
+using ContractHealthStatus = Qyl.Api.Contracts.Health.HealthStatus;
 
 namespace Qyl.Instrumentation.Instrumentation;
 
@@ -31,7 +32,6 @@ public static class QylServiceDefaultsExtensions
     [
         "qyl.genai",
         "qyl.db",
-        "qyl.agent",
         "Qyl.Instrumentation.ErrorCapture"
     ];
 
@@ -82,45 +82,40 @@ public static class QylServiceDefaultsExtensions
             app.MapOpenApi().CacheOutput();
         }
 
-        app.MapQylAgentInventory();
-
         return app;
     }
 
-    // The default health-check writer emits bare "Healthy"/"Unhealthy" text, which is
-    // indistinguishable from any other 200 body when probing through proxies. JSON with the
-    // per-entry breakdown makes the response self-evidently a health report and shows exactly
-    // which registered check (e.g. a database check) produced the status. Hand-rolled with
-    // Utf8JsonWriter: no serializer contract, no reflection.
     private static Task WriteHealthReportJsonAsync(HttpContext context, HealthReport report)
     {
-        context.Response.ContentType = "application/json; charset=utf-8";
-
-        var buffer = new ArrayBufferWriter<byte>(512);
-        using (var writer = new Utf8JsonWriter(buffer))
+        var contract = new ContractHealthReport
         {
-            writer.WriteStartObject();
-            writer.WriteString("status", report.Status.ToString());
-            writer.WriteNumber("totalDurationMs", report.TotalDuration.TotalMilliseconds);
-            writer.WriteStartObject("entries");
+            Status = ToContractStatus(report.Status),
+            TotalDurationMs = report.TotalDuration.TotalMilliseconds,
+            Entries = report.Entries.ToDictionary(
+                static pair => pair.Key,
+                static pair => new ContractHealthCheckEntry
+                {
+                    Status = ToContractStatus(pair.Value.Status),
+                    Description = pair.Value.Description,
+                    DurationMs = pair.Value.Duration.TotalMilliseconds
+                },
+                StringComparer.Ordinal)
+        };
 
-            foreach (var (name, entry) in report.Entries)
-            {
-                writer.WriteStartObject(name);
-                writer.WriteString("status", entry.Status.ToString());
-                if (!string.IsNullOrEmpty(entry.Description))
-                    writer.WriteString("description", entry.Description);
-
-                writer.WriteNumber("durationMs", entry.Duration.TotalMilliseconds);
-                writer.WriteEndObject();
-            }
-
-            writer.WriteEndObject();
-            writer.WriteEndObject();
-        }
-
-        return context.Response.Body.WriteAsync(buffer.WrittenMemory, context.RequestAborted).AsTask();
+        context.Response.ContentType = "application/json; charset=utf-8";
+        return JsonSerializer.SerializeAsync(
+            context.Response.Body,
+            contract,
+            QylHealthJsonContext.Default.HealthReport,
+            context.RequestAborted);
     }
+
+    private static ContractHealthStatus ToContractStatus(HealthStatus status) => status switch
+    {
+        HealthStatus.Healthy => ContractHealthStatus.Healthy,
+        HealthStatus.Degraded => ContractHealthStatus.Degraded,
+        _ => ContractHealthStatus.Unhealthy
+    };
 
 
     internal static void ConfigureServiceProvider<TBuilder>(TBuilder builder, QylOptions options)
@@ -147,7 +142,6 @@ public static class QylServiceDefaultsExtensions
             json.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             json.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
             json.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-            json.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 #if NET10_0_OR_GREATER
             json.RespectNullableAnnotations = true;
             json.RespectRequiredConstructorParameters = true;
@@ -221,8 +215,6 @@ public static class QylServiceDefaultsExtensions
 
                 metrics.AddMeter(ActivitySources.Db);
 
-                metrics.AddMeter(ActivitySources.Agent);
-
                 foreach (var meter in options.AdditionalMeterNames)
                     metrics.AddMeter(meter);
 
@@ -230,10 +222,6 @@ public static class QylServiceDefaultsExtensions
             })
             .WithTracing(tracing =>
             {
-                // Maximally AOT-native sealed sampler: inline parent-based + trace-id ratio, no
-                // nested sampler delegation, allocation-free and reflection-free per decision.
-                tracing.SetSampler(new QylAotSampler());
-
                 tracing
                     .AddSource(serviceName)
                     .AddAspNetCoreInstrumentation(aspnet =>
@@ -257,8 +245,6 @@ public static class QylServiceDefaultsExtensions
 
                 foreach (var source in options.AdditionalActivitySources)
                     tracing.AddSource(source);
-
-                tracing.AddProcessor<QylAgentActivityProcessor>();
 
                 options.ConfigureTracing?.Invoke(tracing);
 
@@ -305,8 +291,6 @@ public static class QylServiceDefaultsExtensions
             configure?.Invoke(options);
 
             builder.Services.TryAddSingleton(options);
-
-            builder.Services.AddQylAgentInventory();
 
             ConfigureServiceProvider(builder, options);
             ConfigureKestrel(builder.Services);
@@ -387,3 +371,10 @@ public sealed class QylOptions
 }
 
 internal sealed class QylServiceDefaultsMarker;
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    UseStringEnumConverter = true)]
+[JsonSerializable(typeof(ContractHealthReport))]
+internal sealed partial class QylHealthJsonContext : JsonSerializerContext;

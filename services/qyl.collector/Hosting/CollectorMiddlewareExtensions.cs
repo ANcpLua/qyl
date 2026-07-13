@@ -17,56 +17,60 @@ internal static class CollectorMiddlewareExtensions
 
         app.UseMiddleware<CollectorApiKeyMiddleware>(otlpApiKeyOptions);
 
-        app.UseRequestDecompression();
-
         app.UseExceptionHandler(static errorApp =>
         {
-            errorApp.Run(static async context =>
-            {
-                context.Response.StatusCode = 500;
-                context.Response.ContentType = "application/json";
-                var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
-
-                var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger("Qyl.Collector.ExceptionHandler");
-                var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
-                if (exceptionFeature?.Error is { } error)
-                {
-                    ExceptionHandlerLog.UnhandledException(
-                        logger,
-                        error,
-                        HttpTelemetryNames.NormalizeMethod(context.Request.Method));
-                }
-
-                context.Response.Headers["X-Trace-Id"] = traceId;
-                await context.Response.WriteAsJsonAsync(
-                    ContractErrorFactory.InternalServerError("collector.unhandled_exception"),
-                    QylSerializerContext.Default.ContractInternalServerError);
-            });
+            errorApp.Run(WriteUnhandledExceptionAsync);
         });
 
         app.UseQylTelemetry();
 
-        var webRoot = app.Environment.WebRootPath;
-        if (string.IsNullOrEmpty(webRoot))
+        // The embedded dashboard is deliberately a local, unsecured development surface. Never
+        // expose or accept the ingest-capable API key in browser storage; ApiKey deployments use
+        // generated API clients and do not serve the browser UI.
+        if (!otlpApiKeyOptions.IsApiKeyMode)
         {
-            var candidate = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            if (Directory.Exists(candidate))
-                webRoot = candidate;
-        }
+            var webRoot = app.Environment.WebRootPath;
+            if (string.IsNullOrEmpty(webRoot))
+            {
+                var candidate = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+                if (Directory.Exists(candidate))
+                    webRoot = candidate;
+            }
 
-        if (webRoot is { Length: > 0 } && File.Exists(Path.Combine(webRoot, "index.html")))
-        {
-            app.Environment.WebRootPath = webRoot;
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
-        }
-        else if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
-        {
-            app.UseEmbeddedDashboard();
+            if (webRoot is { Length: > 0 } && File.Exists(Path.Combine(webRoot, "index.html")))
+            {
+                app.Environment.WebRootPath = webRoot;
+                app.UseDefaultFiles();
+                app.UseStaticFiles();
+            }
+            else if (EmbeddedDashboardExtensions.HasEmbeddedDashboard())
+            {
+                app.UseEmbeddedDashboard();
+            }
         }
 
         return app;
+    }
+
+    internal static async Task WriteUnhandledExceptionAsync(HttpContext context)
+    {
+        var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Qyl.Collector.ExceptionHandler");
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        if (exceptionFeature?.Error is { } error)
+        {
+            ExceptionHandlerLog.UnhandledException(
+                logger,
+                error,
+                HttpTelemetryNames.NormalizeMethod(context.Request.Method));
+        }
+
+        context.Response.Headers["X-Trace-Id"] = traceId;
+        await ContractErrorResults.WriteInternalServerErrorAsync(
+            context.Response,
+            "collector.unhandled_exception").ConfigureAwait(false);
     }
 }
 

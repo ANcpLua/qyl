@@ -14,7 +14,7 @@ namespace Qyl.Host;
 /// Expected unreachability while the resource boots must be handled inside the probe, not
 /// thrown; cancellation propagates (it means runner shutdown, not failure).
 /// </remarks>
-public interface IReadinessProbe
+internal interface IReadinessProbe
 {
     Task<bool> IsReadyAsync(QylResourceState state, CancellationToken cancellationToken);
 }

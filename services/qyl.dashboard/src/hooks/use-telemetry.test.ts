@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {selectTraceViewSource} from './use-telemetry';
+import {hasDatabaseSystem, selectTraceViewSource} from './use-telemetry';
 
 describe('selectTraceViewSource', () => {
     it('uses the trace endpoint when a traceId deep-link is present', () => {
@@ -23,5 +23,15 @@ describe('selectTraceViewSource', () => {
     it('falls back to all traces when a resolved session has no retrievable traces', () => {
         expect(selectTraceViewSource({hasTraceId: false, sessionResolved: true, sessionSpanCount: 0}))
             .toBe('all-traces');
+    });
+});
+
+describe('hasDatabaseSystem', () => {
+    it('recognizes the canonical database semantic-convention key', () => {
+        expect(hasDatabaseSystem({'db.system.name': 'sqlite'})).toBe(true);
+    });
+
+    it('keeps recognizing the deprecated key before collector normalization', () => {
+        expect(hasDatabaseSystem({'db.system': 'sqlite'})).toBe(true);
     });
 });

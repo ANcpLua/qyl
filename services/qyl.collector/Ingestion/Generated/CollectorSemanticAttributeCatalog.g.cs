@@ -169,6 +169,10 @@ internal static class CollectorSemanticAttributeCatalog
         "http.target",
         "http.url",
         "http.user_agent",
+        "mcp.method.name", // incubating
+        "mcp.protocol.version", // incubating
+        "mcp.resource.uri", // incubating
+        "mcp.session.id", // incubating
         "messaging.batch.message_count", // incubating
         "messaging.client.id", // incubating
         "messaging.consumer.group.name", // incubating
@@ -215,6 +219,14 @@ internal static class CollectorSemanticAttributeCatalog
         "messaging.servicebus.message.delivery_count", // incubating
         "messaging.servicebus.message.enqueued_time", // incubating
         "messaging.system", // incubating
+        "network.local.address",
+        "network.local.port",
+        "network.peer.address",
+        "network.peer.port",
+        "network.protocol.name",
+        "network.protocol.version",
+        "network.transport",
+        "network.type",
         "otel.event.name",
         "otel.library.name",
         "otel.library.version",
@@ -246,7 +258,14 @@ internal static class CollectorSemanticAttributeCatalog
         "rpc.system",
         "rpc.system.name", // incubating
         "server.address",
-        "server.port"
+        "server.port",
+        "service.criticality", // incubating
+        "service.instance.id",
+        "service.name",
+        "service.namespace",
+        "service.peer.name", // incubating
+        "service.peer.namespace", // incubating
+        "service.version"
     );
 
     internal static readonly FrozenSet<string> LogAttributeAllowList = FrozenSet.Create(
@@ -558,6 +577,7 @@ internal static class CollectorSemanticAttributeCatalog
         "host.name", // incubating
         "http.request.header",
         "http.response.header",
+        "mcp.resource.uri", // incubating
         "mcp.session.id", // incubating
         "rpc.connect_rpc.request.metadata",
         "rpc.connect_rpc.response.metadata",

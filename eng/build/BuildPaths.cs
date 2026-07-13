@@ -16,6 +16,8 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath InternalDirectory => RootDirectory / "internal";
     AbsolutePath CollectorDirectory => ServicesDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => ServicesDirectory / "qyl.dashboard";
+    AbsolutePath HostConsoleDirectory => PackagesDirectory / "Qyl.Host.Console";
+    AbsolutePath[] FrontendDirectories => [DashboardDirectory, HostConsoleDirectory];
     AbsolutePath ComposeFile => RootDirectory / "eng" / "compose.yaml";
 
     /// <summary>

@@ -3,14 +3,15 @@ import { useResources } from "./useResources";
 import { useLogs } from "./useLogs";
 import { callTool, useTools } from "./useTools";
 import { MCP_KINDS, type ResourceLifecycle } from "./types";
+import { RunnerResourceLifecycleValues } from "@ancplua/qyl-api-schema/types";
 
 const DOT: Record<ResourceLifecycle, string> = {
-  Pending: "#6b7280",
-  Starting: "#d97706",
-  Ready: "#16a34a",
-  Stopping: "#d97706",
-  Stopped: "#6b7280",
-  Failed: "#dc2626",
+  [RunnerResourceLifecycleValues.pending]: "#6b7280",
+  [RunnerResourceLifecycleValues.starting]: "#d97706",
+  [RunnerResourceLifecycleValues.ready]: "#16a34a",
+  [RunnerResourceLifecycleValues.stopping]: "#d97706",
+  [RunnerResourceLifecycleValues.stopped]: "#6b7280",
+  [RunnerResourceLifecycleValues.failed]: "#dc2626",
 };
 
 export default function App() {
@@ -117,9 +118,24 @@ function ToolsPanel({ resource, tools }: { resource: string; tools: ReturnType<t
   const [argsJson, setArgsJson] = useState("{}");
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const selectedTool = tools.phase === "ready" ? tools.tools.find((candidate) => candidate.name === tool) : null;
+  const annotations = selectedTool?.annotations;
+  const isReadOnly = annotations?.readOnlyHint === true;
+  const isDestructive = annotations?.destructiveHint === true;
+  const needsConfirmation = !isReadOnly || isDestructive;
 
   const invoke = async () => {
     if (!tool) return;
+    if (
+      needsConfirmation &&
+      !window.confirm(
+        isDestructive
+          ? `The MCP server marks ${tool} as destructive. Run it?`
+          : `${tool} is not explicitly marked read-only. Run it?`,
+      )
+    ) {
+      return;
+    }
     setBusy(true);
     setResult(null);
     try {
@@ -171,6 +187,13 @@ function ToolsPanel({ resource, tools }: { resource: string; tools: ReturnType<t
             <button className="tool-run" disabled={busy} onClick={() => void invoke()}>
               {busy ? "calling…" : `call ${tool}`}
             </button>
+            <span className={needsConfirmation ? "tool-risk" : "tool-safe"}>
+              {isDestructive
+                ? "destructive — confirmation required"
+                : isReadOnly
+                  ? "read-only"
+                  : "not declared read-only — confirmation required"}
+            </span>
             {result ? <pre className="tool-result">{result}</pre> : null}
           </div>
         ) : null}

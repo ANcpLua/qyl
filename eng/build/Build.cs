@@ -1,4 +1,4 @@
-
+using System;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -38,9 +38,14 @@ sealed class Build : NukeBuild,
 
     Target Clean => d => d
         .Before<IRestore>(static x => x.Restore)
+        .Before<IPipeline>(static x => x.FrontendInstall)
         .Executes(() =>
         {
-            RootDirectory.GlobDirectories("**/bin", "**/obj").DeleteDirectories();
+            RootDirectory.GlobDirectories("**/bin", "**/obj")
+                .Where(static directory => !directory.ToString()
+                    .Replace('\\', '/')
+                    .Contains("/node_modules/", StringComparison.Ordinal))
+                .DeleteDirectories();
             From<IHazArtifacts>().ArtifactsDirectory.CreateOrCleanDirectory();
         });
 
@@ -65,10 +70,22 @@ sealed class Build : NukeBuild,
         .Description("Local CI gate: backend, frontend, and generated artifacts")
         .DependsOn(Clean)
         .DependsOn<ICompile>(static x => x.Compile)
+        .DependsOn(Test)
         .DependsOn<IVerify>(static x => x.Verify)
         .DependsOn<IHousekeeping>(static x => x.VerifySdkVersions)
         .DependsOn<IPipeline>(static x => x.FrontendBuild)
+        .DependsOn<IPipeline>(static x => x.FrontendTest)
+        .DependsOn<IPipeline>(static x => x.FrontendE2E)
         .DependsOn<IPipeline>(static x => x.FrontendLint);
+
+    Target Test => d => d
+        .Description("Run every .NET test project in the solution")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => DotNetTasks.DotNetTest(s => s
+            .SetProjectFile(From<IHazSolution>().Solution)
+            .SetConfiguration(From<IHazConfiguration>().Configuration)
+            .EnableNoBuild()
+            .EnableNoRestore()));
 
     Target Dev => d => d
         .Description("Start development environment (Docker + compile)")

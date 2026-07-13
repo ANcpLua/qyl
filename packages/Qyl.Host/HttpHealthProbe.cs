@@ -5,7 +5,7 @@ namespace Qyl.Host;
 /// 2xx or the startup deadline passes. Each attempt is bounded by the named health-probe
 /// client's own timeout; this loop is the retry policy.
 /// </summary>
-public sealed class HttpHealthProbe(
+internal sealed class HttpHealthProbe(
     IHttpClientFactory httpClientFactory,
     string healthPath,
     TimeSpan startupTimeout,

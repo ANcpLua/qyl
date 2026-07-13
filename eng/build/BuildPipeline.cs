@@ -3,6 +3,7 @@ using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Npm;
+using Nuke.Components;
 using Serilog;
 
 namespace Qyl.Build;
@@ -14,10 +15,13 @@ interface IPipeline : IHazSourcePaths
 
     Target FrontendInstall => d => d
         .Unlisted()
-        .Description("npm ci in services/qyl.dashboard")
+        .Description("Install every first-party frontend from its lock file")
         .Executes(() =>
-            ProcessTasks.StartProcess("npm", "ci", DashboardDirectory, logOutput: true)
-                .AssertZeroExitCode());
+        {
+            foreach (var directory in FrontendDirectories)
+                ProcessTasks.StartProcess("npm", "ci", directory, logOutput: true)
+                    .AssertZeroExitCode();
+        });
 
     Target FrontendDev => d => d
         .Description("Run the Vite dev server (hot reload at http://localhost:5173)")
@@ -29,10 +33,15 @@ interface IPipeline : IHazSourcePaths
     Target FrontendBuild => d => d
         .Description("Build the frontend for production (tsc + vite build)")
         .DependsOn(FrontendInstall)
+        .Before<ICompile>(static x => x.Compile)
         .Produces(DashboardDistDirectory / "**/*")
-        .Executes(() => NpmTasks.NpmRun(s => s
-            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
-            .SetCommand("build")));
+        .Executes(() =>
+        {
+            foreach (var directory in FrontendDirectories)
+                NpmTasks.NpmRun(s => s
+                    .SetProcessWorkingDirectory<NpmRunSettings>(directory)
+                    .SetCommand("build"));
+        });
 
     Target FrontendTest => d => d
         .Unlisted()
@@ -42,6 +51,14 @@ interface IPipeline : IHazSourcePaths
             .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
             .SetCommand("test")
             .SetArguments("--", "--run")));
+
+    Target FrontendE2E => d => d
+        .Description("Exercise the embedded Release collector, dashboard, product API, and OTLP routes")
+        .DependsOn(FrontendBuild)
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() => NpmTasks.NpmRun(s => s
+            .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+            .SetCommand("e2e")));
 
     Target FrontendLint => d => d
         .Unlisted()
@@ -56,7 +73,11 @@ interface IPipeline : IHazSourcePaths
         .Description("Clean frontend build artifacts")
         .Executes(() =>
         {
-            DashboardDistDirectory.DeleteDirectory();
-            Log.Information("Cleaned: {Directory}", DashboardDistDirectory);
+            foreach (var directory in FrontendDirectories)
+            {
+                var dist = directory / "dist";
+                dist.DeleteDirectory();
+                Log.Information("Cleaned: {Directory}", dist);
+            }
         });
 }

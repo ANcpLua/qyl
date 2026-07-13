@@ -7,6 +7,12 @@ using Qyl.Api.Contracts.Common.Pagination;
 using Qyl.Api.Contracts.Domains.Observe.Session;
 using Qyl.Api.Contracts.OTel.Logs;
 using Qyl.Api.Contracts.Streaming;
+using ExportLogsServiceRequest = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest;
+using ExportLogsServiceResponse = global::OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
+using ExportProfilesServiceRequest = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceRequest;
+using ExportProfilesServiceResponse = global::OpenTelemetry.Proto.Collector.Profiles.V1Development.ExportProfilesServiceResponse;
+using ExportTraceServiceRequest = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceRequest;
+using ExportTraceServiceResponse = global::OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
 
 namespace Qyl.Collector.Hosting;
 
@@ -21,7 +27,7 @@ internal static class CollectorEndpointExtensions
         var otlp = app.MapGroup("/v1");
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
-        otlp.MapPost("/profiles", IngestOtlpProfilesAsync);
+        app.MapPost("/v1development/profiles", IngestOtlpProfilesAsync);
 
         var api = app.MapGroup("/api/v1");
 
@@ -48,93 +54,206 @@ internal static class CollectorEndpointExtensions
     }
 
 
-    private static async Task<IResult> IngestOtlpTracesAsync(
+    internal static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         IQylStore store,
         ModelPricingService pricingService,
         CancellationToken ct)
     {
+        var encoding = OtlpPayloadEncoding.Json;
+        ExportTraceServiceRequest otlpData;
         try
         {
-            var otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, ct);
-            if (otlpData.ResourceSpans.Count is 0)
-                return Results.Accepted();
-
-            var traceBatch = OtlpConverter.ConvertTraceRequest(otlpData);
-            var spans = IngestionStorageMapper.ToSpanStorageRows(traceBatch);
-
-            if (spans.Count is 0) return Results.Accepted();
-
-            var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
-            await store.EnqueueAsync(batch, ct);
-
-            return Results.Accepted();
+            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
+            otlpData = await OtlpPayloadParser.ParseTraceRequestAsync(context.Request, encoding, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpTracesEndpoint");
+            OtlpTracesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status415UnsupportedMediaType,
+                encoding,
+                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
         }
         catch (Exception ex)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpTracesEndpoint");
             OtlpTracesLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest();
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP traces payload could not be decoded.");
+        }
+
+        try
+        {
+            if (otlpData.ResourceSpans.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportTraceServiceResponse());
+
+            var traceBatch = OtlpConverter.ConvertTraceRequest(otlpData);
+            var spans = IngestionStorageMapper.ToSpanStorageRows(traceBatch);
+
+            if (spans.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportTraceServiceResponse());
+
+            var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
+            await store.EnqueueAsync(batch, ct);
+
+            return OtlpHttpResult.Success(
+                encoding,
+                new ExportTraceServiceResponse());
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (InvalidDataException ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpTracesEndpoint");
+            OtlpTracesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP traces payload is invalid.");
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpTracesEndpoint");
+            OtlpTracesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                encoding,
+                "The collector could not persist the OTLP traces payload.");
         }
     }
 
-    private static async Task<IResult> IngestOtlpLogsAsync(
+    internal static async Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
         IQylStore store,
         CancellationToken ct)
     {
+        var encoding = OtlpPayloadEncoding.Json;
+        ExportLogsServiceRequest otlpData;
         try
         {
-            var otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, ct);
-            if (otlpData.ResourceLogs.Count is 0)
-                return Results.Accepted();
-
-            var logBatch = OtlpConverter.ConvertLogs(otlpData);
-            var logs = IngestionStorageMapper.ToLogStorageRows(logBatch);
-
-            if (logs.Count is 0) return Results.Accepted();
-
-            await store.InsertLogsAsync(logs, ct);
-            return Results.Accepted();
+            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
+            otlpData = await OtlpPayloadParser.ParseLogsRequestAsync(context.Request, encoding, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpLogsEndpoint");
+            OtlpLogsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status415UnsupportedMediaType,
+                encoding,
+                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
         }
         catch (Exception ex)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpLogsEndpoint");
             OtlpLogsLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest();
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP logs payload could not be decoded.");
+        }
+
+        try
+        {
+            if (otlpData.ResourceLogs.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportLogsServiceResponse());
+
+            var logBatch = OtlpConverter.ConvertLogs(otlpData);
+            var logs = IngestionStorageMapper.ToLogStorageRows(logBatch);
+
+            if (logs.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportLogsServiceResponse());
+
+            await store.InsertLogsAsync(logs, ct);
+            return OtlpHttpResult.Success(
+                encoding,
+                new ExportLogsServiceResponse());
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (InvalidDataException ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpLogsEndpoint");
+            OtlpLogsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP logs payload is invalid.");
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpLogsEndpoint");
+            OtlpLogsLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                encoding,
+                "The collector could not persist the OTLP logs payload.");
         }
     }
 
 
-    private static async Task<IResult> GetSessionsAsync(
+    internal static async Task<IResult> GetSessionsAsync(
         HttpContext httpContext,
         IQylStore store,
-        bool? isActive,
-        DateTimeOffset? startTime,
-        DateTimeOffset? endTime,
-        int? limit,
         string? cursor,
         CancellationToken ct)
     {
+        if (ContractQueryParser.ParseSessions(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
         if (!TryReadOffsetCursor(cursor, out var offset))
         {
-            return Results.BadRequest(ContractErrorFactory.Validation(
+            return ContractErrorResults.Validation(
                 "cursor",
                 "Cursor must be a non-negative integer offset.",
                 "cursor.invalid",
-                cursor));
+                cursor);
         }
 
-        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit);
+        if (!ContractLimits.TryResolve(query.Limit, ContractLimits.DefaultPageLimit, ContractLimits.SessionMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(query.Limit, ContractLimits.SessionMaxLimit);
+        }
         var sessions = await store.GetSessionsAsync(
             ResolveProjectScope(httpContext),
             boundedLimit + 1,
             offset,
-            isActive,
-            startTime,
-            endTime,
+            query.IsActive,
+            query.StartTime,
+            query.EndTime,
             ct: ct).ConfigureAwait(false);
 
         var hasMore = sessions.Count > boundedLimit;
@@ -160,17 +279,19 @@ internal static class CollectorEndpointExtensions
         IQylStore store,
         CancellationToken ct) =>
         await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is not { } session
-            ? Results.NotFound(ContractErrorFactory.NotFound("session", sessionId))
+            ? ContractErrorResults.NotFound("session", sessionId)
             : Results.Ok(SessionMapper.ToContract(session));
 
-    private static async Task<IResult> GetSessionStatsAsync(
+    internal static async Task<IResult> GetSessionStatsAsync(
         HttpContext httpContext,
         IQylStore store,
-        DateTimeOffset? startTime,
-        DateTimeOffset? endTime,
         CancellationToken ct)
     {
-        var stats = await store.GetSessionStatsAsync(ResolveProjectScope(httpContext), startTime, endTime, ct: ct)
+        if (ContractQueryParser.ParseSessionStats(httpContext.Request, out var query) is { } queryError)
+            return queryError;
+
+        var stats = await store.GetSessionStatsAsync(
+                ResolveProjectScope(httpContext), query.StartTime, query.EndTime, ct: ct)
             .ConfigureAwait(false);
         return Results.Ok(new SessionStats
         {
@@ -190,7 +311,7 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         if (await store.GetSessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false) is null)
-            return Results.NotFound(ContractErrorFactory.NotFound("session", sessionId));
+            return ContractErrorResults.NotFound("session", sessionId);
 
         var spans = await store.GetSpansBySessionAsync(sessionId, ResolveProjectScope(httpContext), ct: ct)
             .ConfigureAwait(false);
@@ -206,13 +327,19 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
     }
 
-    private static async Task<IResult> GetTracesAsync(
+    internal static async Task<IResult> GetTracesAsync(
         HttpContext httpContext,
         IQylStore store,
-        int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit);
+        if (ContractQueryParser.ParseTraces(httpContext.Request, out var limit) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(limit, ContractLimits.TraceMaxLimit);
+        }
         var spans = await store.GetSpansAsync(ResolveProjectScope(httpContext), limit: boundedLimit, ct: ct)
             .ConfigureAwait(false);
         var traces = spans
@@ -234,7 +361,7 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var spans = await store.GetTraceAsync(traceId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false);
-        if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
+        if (spans.Count is 0) return ContractErrorResults.NotFound("trace", traceId);
 
         var spanContracts = SpanMapper.ToContracts(spans);
         return Results.Ok(new CursorPageSpan { Items = spanContracts, HasMore = false });
@@ -247,14 +374,14 @@ internal static class CollectorEndpointExtensions
         CancellationToken ct)
     {
         var spans = await store.GetTraceAsync(traceId, ResolveProjectScope(httpContext), ct: ct).ConfigureAwait(false);
-        if (spans.Count is 0) return Results.NotFound(ContractErrorFactory.NotFound("trace", traceId));
+        if (spans.Count is 0) return ContractErrorResults.NotFound("trace", traceId);
 
         var spanContracts = SpanMapper.ToContracts(spans);
 
         return Results.Ok(SpanMapper.ToTrace(traceId, spanContracts));
     }
 
-    private static async Task<IResult> GetLogsAsync(
+    internal static async Task<IResult> GetLogsAsync(
         HttpContext httpContext,
         IQylStore store,
         string? sessionId,
@@ -262,22 +389,38 @@ internal static class CollectorEndpointExtensions
         string? serviceName,
         string? level,
         string? query,
-        int? severityMin,
-        DateTimeOffset? startTime,
-        DateTimeOffset? endTime,
-        int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.LogMaxLimit);
+        if (ContractQueryParser.ParseLogs(httpContext.Request, out var typedQuery) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(typedQuery.Limit, ContractLimits.DefaultPageLimit, ContractLimits.LogMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(typedQuery.Limit, ContractLimits.LogMaxLimit);
+        }
+
+        if (typedQuery.SeverityMin is < ContractLimits.MinimumLogSeverity or > ContractLimits.MaximumLogSeverity)
+        {
+            return ContractErrorResults.Validation(
+                "severityMin",
+                $"Severity must be between {ContractLimits.MinimumLogSeverity} and {ContractLimits.MaximumLogSeverity}.",
+                "severity.out_of_range",
+                typedQuery.SeverityMin.Value.ToString(CultureInfo.InvariantCulture));
+        }
         var logs = await store.GetLogsAsync(
             ResolveProjectScope(httpContext),
             sessionId: sessionId,
             traceId: traceId,
             severityText: level,
-            minSeverity: severityMin,
+            minSeverity: typedQuery.SeverityMin,
             search: query,
-            start: startTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(startTime.Value.ToUniversalTime()) : null,
-            before: endTime.HasValue ? QylTimeConversions.ToUnixNanoUnsigned(endTime.Value.ToUniversalTime()) : null,
+            start: typedQuery.StartTime.HasValue
+                ? QylTimeConversions.ToUnixNanoUnsigned(typedQuery.StartTime.Value.ToUniversalTime())
+                : null,
+            before: typedQuery.EndTime.HasValue
+                ? QylTimeConversions.ToUnixNanoUnsigned(typedQuery.EndTime.Value.ToUniversalTime())
+                : null,
             serviceName: serviceName,
             limit: boundedLimit,
             ct: ct);
@@ -285,14 +428,31 @@ internal static class CollectorEndpointExtensions
         return Results.Ok(new CursorPageLogRecord { Items = LogMapper.ToContracts(logs), HasMore = logs.Count >= boundedLimit });
     }
 
-    private static async Task StreamLogsAsync(
+    internal static async Task StreamLogsAsync(
         HttpContext context,
         IQylStore store,
         string? serviceName,
-        int? minSeverity,
         string? query,
         CancellationToken ct)
     {
+        if (ContractQueryParser.ParseLogStream(context.Request, out var minSeverity) is { } queryError)
+        {
+            await queryError.ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        if (minSeverity is < ContractLimits.MinimumStreamSeverity or > ContractLimits.MaximumLogSeverity)
+        {
+            await ContractErrorResults.WriteValidationAsync(
+                context.Response,
+                "minSeverity",
+                $"Severity must be between {ContractLimits.MinimumStreamSeverity} and {ContractLimits.MaximumLogSeverity}.",
+                "severity.out_of_range",
+                minSeverity.Value.ToString(CultureInfo.InvariantCulture),
+                ct).ConfigureAwait(false);
+            return;
+        }
+
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers.CacheControl = "no-cache,no-store";
@@ -408,40 +568,101 @@ internal static class CollectorEndpointExtensions
         IQylStore store,
         CancellationToken ct)
     {
+        var encoding = OtlpPayloadEncoding.Json;
+        ExportProfilesServiceRequest otlpData;
         try
         {
-            var otlpData = await OtlpPayloadParser.ParseProfilesRequestAsync(context.Request, ct);
-            if (otlpData.ResourceProfiles.Count is 0)
-                return Results.Accepted();
-
-            var profileBatch = OtlpConverter.ConvertProfiles(otlpData);
-            var results = IngestionStorageMapper.ToProfileStorageRows(profileBatch);
-
-            if (results.Count is 0) return Results.Accepted();
-
-            await store.InsertProfilesAsync(results, ct);
-            return Results.Accepted();
+            encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
+            otlpData = await OtlpPayloadParser.ParseProfilesRequestAsync(context.Request, encoding, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpProfilesEndpoint");
+            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status415UnsupportedMediaType,
+                encoding,
+                "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.");
         }
         catch (Exception ex)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger("OtlpProfilesEndpoint");
             OtlpProfilesLog.FailedToProcessPayload(logger, ex);
-            return Results.BadRequest();
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP profiles payload could not be decoded.");
+        }
+
+        try
+        {
+            if (otlpData.ResourceProfiles.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportProfilesServiceResponse());
+
+            var profileBatch = OtlpConverter.ConvertProfiles(otlpData);
+            var results = IngestionStorageMapper.ToProfileStorageRows(profileBatch);
+
+            if (results.Count is 0)
+                return OtlpHttpResult.Success(
+                    encoding,
+                    new ExportProfilesServiceResponse());
+
+            await store.InsertProfilesAsync(results, ct);
+            return OtlpHttpResult.Success(
+                encoding,
+                new ExportProfilesServiceResponse());
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (InvalidDataException ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpProfilesEndpoint");
+            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status400BadRequest,
+                encoding,
+                "The OTLP profiles payload is invalid.");
+        }
+        catch (Exception ex)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("OtlpProfilesEndpoint");
+            OtlpProfilesLog.FailedToProcessPayload(logger, ex);
+            return OtlpHttpResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                encoding,
+                "The collector could not persist the OTLP profiles payload.");
         }
     }
 
-    private static async Task<IResult> GetProfilesAsync(
+    internal static async Task<IResult> GetProfilesAsync(
         HttpContext httpContext,
         IQylStore store,
         string? sessionId,
         string? traceId,
         string? serviceName,
         string? sampleType,
-        int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
+        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
+        }
         var profiles = await store.GetProfilesAsync(
             ResolveProjectScope(httpContext),
             sessionId,
@@ -463,37 +684,55 @@ internal static class CollectorEndpointExtensions
         var detail = await store.GetProfileDetailAsync(profileId, ResolveProjectScope(httpContext), ct: ct);
         return detail is not null
             ? Results.Ok(ProfileMapper.ToContract(detail))
-            : Results.NotFound(ContractErrorFactory.NotFound("profile", profileId));
+            : ContractErrorResults.NotFound("profile", profileId);
     }
 
-    private static async Task<IResult> GetTraceProfilesAsync(
+    internal static async Task<IResult> GetTraceProfilesAsync(
         HttpContext httpContext,
         string traceId,
         IQylStore store,
         CancellationToken ct)
     {
-        var profiles = await store.GetProfilesAsync(ResolveProjectScope(httpContext), traceId: traceId, ct: ct);
+        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
+        }
+
+        var profiles = await store.GetProfilesAsync(
+            ResolveProjectScope(httpContext), traceId: traceId, limit: boundedLimit, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
-    private static async Task<IResult> GetSpanProfilesAsync(
+    internal static async Task<IResult> GetSpanProfilesAsync(
         HttpContext httpContext,
         string spanId,
         IQylStore store,
-        int? limit,
         CancellationToken ct)
     {
-        var boundedLimit = ContractLimits.Clamp(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit);
+        if (ContractQueryParser.ParseProfiles(httpContext.Request, out var limit) is { } queryError)
+            return queryError;
+
+        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.ProfileMaxLimit,
+                out var boundedLimit))
+        {
+            return InvalidLimit(limit, ContractLimits.ProfileMaxLimit);
+        }
+
         var profiles = await store.GetProfilesAsync(ResolveProjectScope(httpContext), spanId: spanId, limit: boundedLimit, ct: ct);
         return Results.Ok(ProfileMapper.ToContracts(profiles));
     }
 
+    private static IResult InvalidLimit(int? limit, int maximum) =>
+        ContractErrorResults.Validation(
+            "limit",
+            $"Limit must be between 1 and {maximum}.",
+            "limit.out_of_range",
+            limit?.ToString(CultureInfo.InvariantCulture));
 
-    // Phase-5 decision: the read API resolves its project scope from the X-Qyl-Project header,
-    // absent meaning "default" (ingest already persists real project ids from qyl.project.id /
-    // qyl.workspace.id resource attributes). Header-based selection is wire-compatible with the
-    // published contract; a formal contract axis goes through qyl-api-schema when multi-project
-    // goes public.
     private static string ResolveProjectScope(HttpContext httpContext) =>
         ProjectScope.Normalize(httpContext.Request.Headers["X-Qyl-Project"].FirstOrDefault());
 
@@ -501,9 +740,9 @@ internal static class CollectorEndpointExtensions
     {
         var path = context.Request.Path.Value ?? "/";
 
-        if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
+        if (IsPathOrDescendant(path, "/api") ||
+            OtlpConstants.IsOtlpNamespacePath(path) ||
+            IsPathOrDescendant(path, "/assets"))
         {
             context.Response.StatusCode = 404;
             return Task.CompletedTask;
@@ -536,6 +775,10 @@ internal static class CollectorEndpointExtensions
             "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
     }
 
+    private static bool IsPathOrDescendant(string path, string root) =>
+        path.Equals(root, StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase);
+
     private static class ContractLimits
     {
         public const int DefaultPageLimit = 100;
@@ -543,9 +786,15 @@ internal static class CollectorEndpointExtensions
         public const int TraceMaxLimit = 1_000;
         public const int LogMaxLimit = 10_000;
         public const int ProfileMaxLimit = 1_000;
+        public const int MinimumLogSeverity = 0;
+        public const int MinimumStreamSeverity = 1;
+        public const int MaximumLogSeverity = 24;
 
-        public static int Clamp(int? requested, int defaultValue, int maxValue) =>
-            Math.Clamp(requested ?? defaultValue, 1, maxValue);
+        public static bool TryResolve(int? requested, int defaultValue, int maxValue, out int resolved)
+        {
+            resolved = requested ?? defaultValue;
+            return resolved is >= 1 && resolved <= maxValue;
+        }
     }
 }
 

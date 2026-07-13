@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
+import type {
+  RunnerMcpTool,
+  RunnerMcpToolCallRequest,
+  RunnerMcpToolCallResponse,
+  RunnerMcpToolsResponse,
+} from "@ancplua/qyl-api-schema/types";
 
 // MCP tools for a selected resource, via the runner's /runner/mcp passthrough (Qyl.Host.Mcp).
 // Converged from qyl.mcp/dashboard's useTools; the ext-apps App rendering stays with that
 // dashboard until the C# runner grows a sandbox origin.
 
-export interface McpTool {
-  name: string;
-  description?: string;
-}
-
 export type ToolsState =
   | { phase: "idle" }
   | { phase: "loading" }
-  | { phase: "ready"; tools: McpTool[] }
+  | { phase: "ready"; tools: RunnerMcpTool[] }
   | { phase: "error"; message: string };
 
 export function useTools(resource: string | null, isMcp: boolean): ToolsState {
@@ -34,8 +35,8 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
           setState({ phase: "error", message: `HTTP ${res.status}` });
           return;
         }
-        const body = (await res.json()) as { tools?: McpTool[] };
-        if (!cancelled) setState({ phase: "ready", tools: body.tools ?? [] });
+        const body = (await res.json()) as RunnerMcpToolsResponse;
+        if (!cancelled) setState({ phase: "ready", tools: body.tools });
       })
       .catch((err: unknown) => {
         if (!cancelled) setState({ phase: "error", message: String(err) });
@@ -52,15 +53,16 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
 /** Calls a tool through the passthrough; returns the raw result JSON (pretty-printed). */
 export async function callTool(resource: string, tool: string, argsJson: string): Promise<string> {
   const args = argsJson.trim() ? (JSON.parse(argsJson) as Record<string, unknown>) : {};
+  const request: RunnerMcpToolCallRequest = { name: tool, arguments: args };
   const res = await fetch(`/runner/mcp/${encodeURIComponent(resource)}/tools/call`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name: tool, arguments: args }),
+    body: JSON.stringify(request),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
   try {
-    return JSON.stringify(JSON.parse(text), null, 2);
+    return JSON.stringify(JSON.parse(text) as RunnerMcpToolCallResponse, null, 2);
   } catch {
     return text;
   }

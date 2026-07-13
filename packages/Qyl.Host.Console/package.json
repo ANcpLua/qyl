@@ -3,13 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Dev-only runner console for Qyl.Host — a live resource view over the runner's read-only /runner state API. Dev tooling, NOT the qyl product dashboard (services/qyl.dashboard).",
+  "description": "Dev-only Qyl.Host runner console over the generated /runner contract; separate from the qyl product dashboard.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ancplua/qyl-api-schema": "0.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

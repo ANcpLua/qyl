@@ -1,5 +1,3 @@
-using ANcpLua.Roslyn.Utilities;
-
 namespace Qyl.Host;
 
 /// <summary>
@@ -10,8 +8,8 @@ namespace Qyl.Host;
 /// collector self-telemetry ──OTLP──&gt; diagnostics collector
 /// diagnostics self-telemetry ──X──&gt; nowhere
 /// </code>
-/// Safety is automatic: self-reference and cycle validation always runs at composition time
-/// (see <see cref="RejectSelfReference"/>), and the collector re-validates the resolved endpoint
+/// Safety is automatic: self-reference and cycle validation always runs at composition time,
+/// and the collector re-validates the resolved endpoint
 /// against its own ports at startup. A dedicated target (<see cref="ExportToDedicatedCollector"/>)
 /// additionally has its exporter force-disabled; an <see cref="ExportTo"/> target's exporter remains
 /// the caller's responsibility apart from the cycle guard.
@@ -20,10 +18,10 @@ public sealed class QylSelfTelemetryBuilder
 {
     private readonly QylAppBuilder _app;
     private readonly IQylResourceBuilder _owner;
-    private readonly string? _ownerProject;
+    private readonly string _ownerProject;
     private IQylResourceBuilder? _target;
 
-    internal QylSelfTelemetryBuilder(QylAppBuilder app, IQylResourceBuilder owner, string? ownerProject)
+    internal QylSelfTelemetryBuilder(QylAppBuilder app, IQylResourceBuilder owner, string ownerProject)
     {
         _app = app;
         _owner = owner;
@@ -38,11 +36,11 @@ public sealed class QylSelfTelemetryBuilder
     /// </summary>
     public QylSelfTelemetryBuilder ExportTo(IQylResourceBuilder collector)
     {
-        Guard.NotNull(collector);
+        QylGuard.NotNull(collector);
         if (_target is not null)
         {
             throw new InvalidOperationException(
-                $"Self-telemetry for '{_owner.Resource.Name}' already has an export target ('{_target.Resource.Name}').");
+                $"Self-telemetry for '{_owner.Name}' already has an export target ('{_target.Name}').");
         }
 
         _target = collector;
@@ -60,31 +58,20 @@ public sealed class QylSelfTelemetryBuilder
     /// </summary>
     public QylSelfTelemetryBuilder ExportToDedicatedCollector(string name, int? port = null)
     {
-        Guard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(name);
         if (_target is not null)
         {
             throw new InvalidOperationException(
-                $"Self-telemetry for '{_owner.Resource.Name}' already has an export target ('{_target.Resource.Name}').");
+                $"Self-telemetry for '{_owner.Name}' already has an export target ('{_target.Name}').");
         }
 
         // A dedicated diagnostics sink must also accept its owner's exporter, which sends no auth
         // headers: an inherited ApiKey mode would 401-drop every batch silently.
-        _target = _app.AddCollector(name, port, _ownerProject)
+        _target = _app.AddCollector(name, _ownerProject, port)
             .WithIsolatedStorage()
             .DisableSelfTelemetryExport()
             .WithEnvironment(QylConstants.Env.QylOtlpAuthMode, QylConstants.Collector.UnsecuredAuthMode);
 
-        return this;
-    }
-
-    /// <summary>
-    /// Kept for call-site readability: self-reference and cycle validation is ALWAYS enforced by
-    /// <c>Apply()</c> whether or not this is called — a resolved endpoint pointing back at any of
-    /// the owning collector's own ports (api / otlp-http / grpc), or a target that already exports
-    /// to the owner, fails composition unconditionally.
-    /// </summary>
-    public QylSelfTelemetryBuilder RejectSelfReference()
-    {
         return this;
     }
 
@@ -96,12 +83,12 @@ public sealed class QylSelfTelemetryBuilder
         if (_target is null)
         {
             throw new InvalidOperationException(
-                $"selfTelemetry for '{_owner.Resource.Name}' was configured without an export target; " +
+                $"selfTelemetry for '{_owner.Name}' was configured without an export target; " +
                 "call ExportTo(...) or ExportToDedicatedCollector(...).");
         }
 
-        var target = _target.Resource;
-        var owner = _owner.Resource;
+        var target = _target.GetResource();
+        var owner = _owner.GetResource();
 
         // Exporting a collector's telemetry into its own ingest pipeline re-ingests the ingest —
         // a feedback amplifier. Same-resource wiring is always nonsense, so it is always rejected.
@@ -140,7 +127,7 @@ public sealed class QylSelfTelemetryBuilder
                 "wiring both directions would be a feedback loop.");
         }
 
-        var endpoint = _target.GetEndpoint(QylConstants.EndpointKinds.OtlpHttp);
+        var endpoint = _target.GetOtlpHttpEndpoint();
 
         _owner
             .WithEnvironment(QylConstants.Env.OtelExporterOtlpEndpoint, endpoint.ToString().TrimEnd('/'))

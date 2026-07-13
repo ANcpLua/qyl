@@ -64,6 +64,7 @@ internal sealed class OtlpCorsMiddleware
         if (!_allowAll)
         {
             response.Headers["Access-Control-Allow-Credentials"] = "true";
+            response.Headers.Append("Vary", "Origin");
         }
     }
 }

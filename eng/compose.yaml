@@ -7,7 +7,7 @@
 #
 # One topology: the collector image embeds the dashboard, so a single service serves
 # UI + REST API + SSE on :5100 and OTLP ingest on :4317/:4318. The standalone
-# dashboard/nginx service was deleted 2026-07-11 (repair-plan phase 3).
+# dashboard/nginx service is intentionally absent.
 
 services:
   qyl-collector:
@@ -16,13 +16,15 @@ services:
       dockerfile: services/qyl.collector/Dockerfile
     container_name: qyl-collector
     ports:
-      - "5100:5100"    # Dashboard + REST API + SSE
-      - "4317:4317"    # OTLP gRPC
-      - "4318:4318"    # OTLP HTTP
+      # This development stack deliberately uses Unsecured OTLP, so publish only on host loopback.
+      - "127.0.0.1:5100:5100"    # Dashboard + REST API + SSE
+      - "127.0.0.1:4317:4317"    # OTLP gRPC
+      - "127.0.0.1:4318:4318"    # OTLP HTTP
     volumes:
       - qyl-data:/data
     environment:
       - QYL_PORT=5100
+      - QYL_BIND_ADDRESS=0.0.0.0
       - QYL_GRPC_PORT=4317
       - QYL_OTLP_PORT=4318
       - QYL_DATA_PATH=/data/qyl.duckdb

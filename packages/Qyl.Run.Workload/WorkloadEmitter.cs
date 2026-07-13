@@ -5,11 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace Qyl.Run.Workload;
 
 /// <summary>
-/// Continuously emits realistic gen_ai + http + db traces (plus metrics and logs) so a demo
-/// collector has something to show. Every attribute key and instrument flows through the
-/// SemConv source-generated surface — no hand-rolled attribute strings.
+/// Continuously emits realistic gen_ai + http + db traces and logs so a demo
+/// collector has something to show. Every span attribute flows through the SemConv
+/// source-generated surface — no hand-rolled attribute strings.
 /// </summary>
-internal sealed partial class WorkloadEmitter(ILogger<WorkloadEmitter> logger) : BackgroundService
+internal sealed partial class WorkloadEmitter(
+    ILogger<WorkloadEmitter> logger,
+    IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     // A handful of concurrent "users"; each runs conversations under a rotating session.id.
     private const int SessionLoops = 3;
@@ -35,16 +37,17 @@ internal sealed partial class WorkloadEmitter(ILogger<WorkloadEmitter> logger) :
 
     private static readonly string[] Tables = ["conversations", "messages", "embeddings"];
 
-    private readonly Histogram<double> _httpServerDuration = WorkloadTelemetry.Meter.CreateHttpServerRequestDurationHistogram();
-
-    private readonly Histogram<double> _dbOperationDuration = WorkloadTelemetry.Meter.CreateDbClientOperationDurationHistogram();
-
-    private readonly Histogram<double> _genAiOperationDuration = WorkloadTelemetry.Meter.CreateGenAiClientOperationDurationHistogram();
-
-    private readonly Histogram<long> _genAiTokenUsage = WorkloadTelemetry.Meter.CreateGenAiClientTokenUsageHistogram();
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (string.Equals(Environment.GetEnvironmentVariable("QYL_WORKLOAD_ONESHOT"), "1",
+                StringComparison.Ordinal))
+        {
+            await EmitConversationTurnAsync($"acceptance-{Guid.NewGuid():N}"[..28], stoppingToken)
+                .ConfigureAwait(false);
+            applicationLifetime.StopApplication();
+            return;
+        }
+
         LogWorkloadStarted(logger, SessionLoops);
         try
         {
@@ -104,19 +107,13 @@ internal sealed partial class WorkloadEmitter(ILogger<WorkloadEmitter> logger) :
             root.SetStatus(ActivityStatusCode.Error, "upstream model rate limited");
         }
 
-        root.Stop();
-        _httpServerDuration.Record(root.Duration.TotalSeconds,
-            new(HttpAttrs.AttributeHttpRequestMethod, HttpSpans.HttpRequestMethodValues.Post),
-            new(HttpAttrs.AttributeHttpResponseStatusCode, statusCode),
-            new(HttpAttrs.AttributeHttpRoute, route));
-
         if (failed)
         {
             LogTurnFailed(logger, profile.Provider, profile.Model, latencyMs);
         }
     }
 
-    private async Task EmitDbSpanAsync(string sessionId, CancellationToken stoppingToken)
+    private static async Task EmitDbSpanAsync(string sessionId, CancellationToken stoppingToken)
     {
         var table = Tables[Random.Shared.Next(Tables.Length)];
         var durationMs = Random.Shared.Next(2, 28);
@@ -129,11 +126,6 @@ internal sealed partial class WorkloadEmitter(ILogger<WorkloadEmitter> logger) :
             .SetSessionId(sessionId);
 
         await Task.Delay(durationMs, stoppingToken).ConfigureAwait(false);
-
-        _dbOperationDuration.Record(durationMs / 1000.0,
-            new(DbAttrs.AttributeDbSystemName, "postgresql"),
-            new(DbAttrs.AttributeDbOperationName, "SELECT"),
-            new(DbAttrs.AttributeDbCollectionName, table));
     }
 
     private async Task<int> EmitGenAiSpanAsync(string sessionId, ModelProfile profile, bool failed,
@@ -164,21 +156,8 @@ internal sealed partial class WorkloadEmitter(ILogger<WorkloadEmitter> logger) :
                 .SetGenAiUsageInputTokens(inputTokens)
                 .SetGenAiUsageOutputTokens(outputTokens);
 
-            _genAiTokenUsage.Record(inputTokens,
-                new(GenAiAttrs.AttributeGenAiTokenType, GenAiAttrs.GenAiTokenTypeValues.Input),
-                new(GenAiAttrs.AttributeGenAiProviderName, profile.Provider),
-                new(GenAiAttrs.AttributeGenAiRequestModel, profile.Model));
-            _genAiTokenUsage.Record(outputTokens,
-                new(GenAiAttrs.AttributeGenAiTokenType, GenAiAttrs.GenAiTokenTypeValues.Output),
-                new(GenAiAttrs.AttributeGenAiProviderName, profile.Provider),
-                new(GenAiAttrs.AttributeGenAiRequestModel, profile.Model));
             LogTurnCompleted(logger, profile.Provider, profile.Model, inputTokens, outputTokens, latencyMs);
         }
-
-        _genAiOperationDuration.Record(latencyMs / 1000.0,
-            new(GenAiAttrs.AttributeGenAiOperationName, GenAiSpans.GenAiOperationNameValues.Chat),
-            new(GenAiAttrs.AttributeGenAiProviderName, profile.Provider),
-            new(GenAiAttrs.AttributeGenAiRequestModel, profile.Model));
 
         return latencyMs;
     }

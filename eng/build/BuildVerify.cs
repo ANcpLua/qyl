@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -30,57 +31,80 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            Log.Information("Verifying frontend TypeScript types...");
+            foreach (var directory in FrontendDirectories)
+            {
+                Log.Information("Verifying TypeScript types in {Directory}...", directory);
+                NpmTasks.NpmRun(s => s
+                    .SetProcessWorkingDirectory<NpmRunSettings>(directory)
+                    .SetCommand("typecheck"));
+            }
 
-            NpmTasks.NpmRun(s => s
-                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
-                .SetCommand("typecheck"));
-
-            Log.Information("Frontend TypeScript types: VALID");
+            Log.Information("First-party frontend TypeScript types: VALID");
         });
 
     Target VerifyFrontendApiTypes => d => d
         .Unlisted()
-        .Description("Verify generated dashboard API types match qyl-api-schema OpenAPI")
+        .Description("Verify first-party frontends consume one exact generated API-contract package")
         .DependsOn<IPipeline>(static x => x.FrontendInstall)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var committed = DashboardDirectory / "src" / "types" / "api.ts";
-            if (!committed.FileExists())
-                throw new FileNotFoundException("Missing generated dashboard API types", committed.ToString());
-
-            var tempDir = Path.Combine(Path.GetTempPath(), $"qyl-api-types-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(tempDir);
-            var generated = Path.Combine(tempDir, "api.ts");
-
-            try
+            const string packageName = "@ancplua/qyl-api-schema";
+            string? sharedVersion = null;
+            foreach (var directory in FrontendDirectories)
             {
-                ProcessTasks.StartProcess(
-                        "npm",
-                        "run generate:ts",
-                        DashboardDirectory,
-                        environmentVariables: new Dictionary<string, string>
-                        {
-                            ["PATH"] = Environment.GetEnvironmentVariable("PATH") ?? "",
-                            ["QYL_API_TYPES_OUTPUT"] = generated
-                        },
-                        logOutput: true)
-                    .AssertZeroExitCode();
-
-                if (string.Equals(File.ReadAllText(committed), File.ReadAllText(generated), StringComparison.Ordinal))
+                var packageFile = directory / "package.json";
+                using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageFile));
+                if (!packageDocument.RootElement.TryGetProperty("dependencies", out var dependencies) ||
+                    !dependencies.TryGetProperty(packageName, out var dependency))
                 {
-                    Log.Information("Generated dashboard API types match qyl-api-schema OpenAPI");
-                    return;
+                    throw new InvalidOperationException($"{directory} must depend on {packageName}.");
                 }
 
+                var version = dependency.GetString();
+                if (version is null || !Version.TryParse(version, out _))
+                    throw new InvalidOperationException(
+                        $"{directory} must pin {packageName} to one exact stable version; found '{version}'.");
+
+                if (sharedVersion is not null && !string.Equals(sharedVersion, version, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"First-party frontends disagree on {packageName}: {sharedVersion} versus {version}.");
+                sharedVersion = version;
+
+                var lockFile = directory / "package-lock.json";
+                using var lockDocument = JsonDocument.Parse(File.ReadAllText(lockFile));
+                var lockedVersion = lockDocument.RootElement.GetProperty("packages")
+                    .GetProperty($"node_modules/{packageName}")
+                    .GetProperty("version")
+                    .GetString();
+                if (!string.Equals(version, lockedVersion, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"{directory} lock file resolves {packageName} {lockedVersion}, expected {version}.");
+
+                var installedPackageFile = directory / "node_modules" / "@ancplua" / "qyl-api-schema" / "package.json";
+                using var installedDocument = JsonDocument.Parse(File.ReadAllText(installedPackageFile));
+                var installedVersion = installedDocument.RootElement.GetProperty("version").GetString();
+                if (!string.Equals(version, installedVersion, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"{directory} installed {packageName} {installedVersion}, expected {version}.");
+
+                var importsGeneratedContracts = directory.GlobFiles("src/**/*.ts", "src/**/*.tsx")
+                    .Any(file => File.ReadAllText(file).Contains(packageName, StringComparison.Ordinal));
+                if (!importsGeneratedContracts)
+                    throw new InvalidOperationException($"{directory} does not import generated {packageName} contracts.");
+            }
+
+            AbsolutePath[] forbiddenCopies =
+            [
+                DashboardDirectory / "src" / "types" / "api.ts",
+                DashboardDirectory / "scripts" / "generate-api-types.mjs"
+            ];
+            var existingCopies = forbiddenCopies.Where(static path => path.FileExists()).ToArray();
+            if (existingCopies.Length > 0)
                 throw new InvalidOperationException(
-                    "services/qyl.dashboard/src/types/api.ts is stale. Run `npm run generate:ts` in services/qyl.dashboard and commit the regenerated file.");
-            }
-            finally
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
+                    $"Remove copied API contract surfaces: {string.Join(", ", existingCopies)}");
+
+            Log.Information("First-party frontends consume {Package} {Version} directly", packageName, sharedVersion);
         });
 
     Target VerifyCollectorPublicApiIsExplicit => d => d
@@ -428,13 +452,22 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
     Target VerifyCollectorEndpointLimitsMatchOpenApi => d => d
         .Unlisted()
         .Description("Verify collector endpoint pagination limits match qyl-api-schema OpenAPI")
+        .DependsOn<IPipeline>(static x => x.FrontendInstall)
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
             var endpointFile = CollectorDirectory / "Hosting" / "CollectorEndpointExtensions.cs";
-            var openApiFile = RootDirectory.Parent / "qyl-api-schema" / "generated" / "openapi" / "qyl.openapi.json";
+            var packageDirectory = DashboardDirectory / "node_modules" / "@ancplua" / "qyl-api-schema";
+            using var packageDocument = JsonDocument.Parse(File.ReadAllText(packageDirectory / "package.json"));
+            var openApiExport = packageDocument.RootElement.GetProperty("exports")
+                .GetProperty("./openapi")
+                .GetProperty("default")
+                .GetString() ?? throw new InvalidOperationException(
+                "The installed qyl-api-schema package does not export ./openapi.");
+            var openApiFile = packageDirectory / openApiExport.TrimStart('.', '/');
             if (!openApiFile.FileExists())
-                throw new FileNotFoundException("Missing qyl-api-schema OpenAPI contract", openApiFile.ToString());
+                throw new FileNotFoundException(
+                    "The exact installed qyl-api-schema package is missing its OpenAPI contract", openApiFile.ToString());
 
             var constants = ReadContractLimitConstants(endpointFile);
             using var document = JsonDocument.Parse(File.ReadAllText(openApiFile));
@@ -1164,6 +1197,51 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             throw new InvalidOperationException(
                 "Do not handwrite per-row storage insert loops for generated row types. Use InsertRowsBatchedAsync " +
                 "with each row type's generated AddParameters and BuildMultiRowInsertSql helpers.");
+        });
+
+    Target VerifyOtlpProtoSourcesPinned => d => d
+        .Unlisted()
+        .Description("Verify vendored protocol inputs match pinned upstream files")
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            var protoRoot = CollectorDirectory / "Protos";
+            var lockFile = protoRoot / "upstream.lock.json";
+            if (!lockFile.FileExists())
+                throw new FileNotFoundException("Missing OTLP protobuf provenance lock", lockFile.ToString());
+
+            using var document = JsonDocument.Parse(File.ReadAllText(lockFile));
+            var expected = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var source in document.RootElement.GetProperty("sources").EnumerateArray())
+            foreach (var file in source.GetProperty("files").EnumerateArray())
+            {
+                var path = file.GetProperty("path").GetString()
+                           ?? throw new InvalidOperationException("Protocol lock contains an empty path.");
+                var sha256 = file.GetProperty("sha256").GetString()
+                             ?? throw new InvalidOperationException($"Protocol lock contains no hash for {path}.");
+                if (!expected.TryAdd(path, sha256))
+                    throw new InvalidOperationException($"Protocol lock contains duplicate path {path}.");
+            }
+
+            var actualPaths = protoRoot.GlobFiles("**/*.proto")
+                .Select(file => protoRoot.GetRelativePathTo(file).ToString().Replace('\\', '/'))
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+            var expectedPaths = expected.Keys.Order(StringComparer.Ordinal).ToArray();
+            if (!actualPaths.SequenceEqual(expectedPaths, StringComparer.Ordinal))
+                throw new InvalidOperationException(
+                    "The vendored protocol file set differs from Protos/upstream.lock.json. Update the pin and every hash together.");
+
+            foreach (var (path, expectedHash) in expected)
+            {
+                var bytes = File.ReadAllBytes(protoRoot / path);
+                var actualHash = Convert.ToHexStringLower(SHA256.HashData(bytes));
+                if (!string.Equals(actualHash, expectedHash, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"Vendored protocol input {path} does not match its pinned upstream SHA-256. Expected {expectedHash}, got {actualHash}.");
+            }
+
+            Log.Information("Vendored OTLP and google.rpc protocol inputs match pinned upstream revisions");
         });
 
     Target VerifyNoHandwrittenOtlpWireParser => d => d
@@ -1946,10 +2024,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             [
                 "Nuke.OpenTelemetry.Conventions",
                 "Qyl.Client",
-                // Qyl.OpenTelemetry.SemanticConventions.SourceGeneration was tombstoned here when the
-                // collector's semantic handwiring was pruned (84a034e1). Un-tombstoned 2026-07-11 for
-                // #510 §5: the demo workload consumes the generator on purpose. The collector itself
-                // stays off it via VerifyCollectorUsesSemanticConstants (catalog-only consumption).
                 "Scalar.Kiota",
                 "core/specs",
                 "core/openapi",
@@ -1973,8 +2047,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "nuke OtelConventions",
                 "Microsoft.AspNetCore.Authentication.JwtBearer",
                 "otel-conventions-api",
-                // One topology (repair-plan phase 3): the collector embeds the dashboard; the
-                // standalone dashboard/nginx image, its compose service and its ImageSpec are gone.
+                // The collector owns the single product origin. Keep the removed standalone
+                // dashboard/nginx image, compose service, and ImageSpec from returning.
                 "qyl-dashboard",
                 "qyl.dashboard/Dockerfile",
                 "ASPNETCORE_WEBROOT"
@@ -2052,7 +2126,6 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "JsonFormatter.Default.Format(profile)",
                 ".Select(ConvertProtoAnyValueToString)",
                 ".ToDictionary(",
-                "ToByteArray()",
                 "Serialize(attributes, ShouldPersistSpanAttribute)",
                 "span_clusters",
                 "ServiceMaterializerService",
@@ -2453,6 +2526,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
         .DependsOn(VerifyCollectorStorageReadsUseGeneratedColumnLists)
         .DependsOn(VerifyCollectorStorageTablesUseGeneratedDdl)
         .DependsOn(VerifyCollectorStorageWritesUseGeneratedBatchHelper)
+        .DependsOn(VerifyOtlpProtoSourcesPinned)
         .DependsOn(VerifyNoHandwrittenOtlpWireParser)
         .DependsOn(VerifyOtlpConverterHotPath)
         .DependsOn(VerifyOtlpProfileSymbolsAreResolved)
@@ -3172,7 +3246,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
 
         foreach (var parameter in parameters.EnumerateArray())
         {
-            if (parameter.GetProperty("name").GetString() != parameterName)
+            if (!parameter.TryGetProperty("name", out var name) || name.GetString() != parameterName)
                 continue;
 
             return parameter.GetProperty("schema").GetProperty(schemaProperty).GetInt32();

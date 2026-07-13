@@ -3,17 +3,22 @@ using Microsoft.Extensions.Hosting;
 
 namespace Qyl.Host;
 
-public sealed class QylApp(IHost host) : IAsyncDisposable
+public sealed class QylApp : IAsyncDisposable
 {
-    public IServiceProvider Services => host.Services;
+    private readonly IHost _host;
+
+    internal QylApp(IHost host)
+    {
+        _host = host;
+    }
 
     public ValueTask DisposeAsync()
     {
-        return ((IAsyncDisposable)host).DisposeAsync();
+        return ((IAsyncDisposable)_host).DisposeAsync();
     }
 
     public Task RunAsync(CancellationToken cancellationToken = default)
     {
-        return host.RunAsync(cancellationToken);
+        return _host.RunAsync(cancellationToken);
     }
 }

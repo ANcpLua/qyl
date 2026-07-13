@@ -1,1 +1,3 @@
 core/specs/emitters/qyl-semconv-lint/data/otel-attribute-registry.json linguist-generated=true
+# Pinned upstream protobuf inputs retain their exact bytes, including upstream EOF whitespace.
+services/qyl.collector/Protos/**/*.proto whitespace=-blank-at-eof

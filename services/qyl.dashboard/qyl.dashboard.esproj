@@ -42,7 +42,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Script Include="SKILL.md"/>
         <Script Include="vitest.config.ts"/>
     </ItemGroup>
 

@@ -5,14 +5,17 @@
       "error.",
       "exception.",
       "http.",
+      "network.",
       "otel.",
       "server."
     ],
     "incubatingPrefixes": [
       "gen_ai.",
+      "mcp.",
       "messaging.",
       "profile.",
-      "rpc."
+      "rpc.",
+      "service."
     ]
   },
   "logAttributeAllowList": {
@@ -98,6 +101,7 @@
     "host.ip",
     "host.mac",
     "host.name",
+    "mcp.resource.uri",
     "mcp.session.id",
     "rpc.connect_rpc.request.metadata",
     "rpc.connect_rpc.response.metadata",

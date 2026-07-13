@@ -18,8 +18,6 @@ internal static class CollectorCoreExtensions
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default);
         });
 
-        services.AddRequestDecompression();
-
         services.AddGrpc(static options =>
         {
             options.ResponseCompressionLevel = CompressionLevel.Optimal;

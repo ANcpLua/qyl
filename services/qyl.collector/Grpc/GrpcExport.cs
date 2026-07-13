@@ -5,8 +5,8 @@ namespace Qyl.Collector.Grpc;
 internal static class GrpcExport
 {
     // Single source of truth for the OTLP gRPC export error contract: cancellation -> Cancelled,
-    // shutdown -> Unavailable, malformed payload (bad id lengths) -> InvalidArgument,
-    // anything else -> Internal.
+    // shutdown or a post-decode processing failure -> Unavailable so exporters retry;
+    // malformed payload (bad id lengths) -> InvalidArgument so exporters do not retry.
     public static async Task<T> ExecuteAsync<T>(Func<Task<T>> export, string dataKind)
     {
         try
@@ -29,7 +29,7 @@ internal static class GrpcExport
         }
         catch (Exception)
         {
-            throw new RpcException(new Status(StatusCode.Internal, $"Failed to process {dataKind} data."));
+            throw new RpcException(new Status(StatusCode.Unavailable, $"Failed to process {dataKind} data."));
         }
     }
 }

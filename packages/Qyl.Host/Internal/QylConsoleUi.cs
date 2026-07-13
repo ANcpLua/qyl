@@ -6,7 +6,7 @@ namespace Qyl.Host.Internal;
 internal sealed class QylConsoleUi(
     IReadOnlyList<QylResource> resources,
     QylResourceRegistry registry,
-    QylRestartRequests restartRequests,
+    QylResourceActions resourceActions,
     IHostApplicationLifetime lifetime) : BackgroundService
 {
     private const string Footer =
@@ -135,7 +135,7 @@ internal sealed class QylConsoleUi(
                 case QylConstants.Keys.Stop:
                     lifetime.StopApplication();
                     return;
-                case QylConstants.Keys.Restart: RequestRestarts(); break;
+                case QylConstants.Keys.Restart: await RequestRestartsAsync(stoppingToken).ConfigureAwait(false); break;
                 case QylConstants.Keys.Browser: OpenBrowser(); break;
                 case QylConstants.Keys.Help: AnsiConsole.MarkupLine(Footer); break;
             }
@@ -148,7 +148,7 @@ internal sealed class QylConsoleUi(
     private void OpenBrowser()
     {
         var endpoint = resources
-            .OrderBy(static r => r.Kind == QylConstants.ResourceKinds.Command ? 0 : 1)
+            .OrderBy(static r => r.Kind == QylResourceKind.Command ? 0 : 1)
             .Select(r => registry.Snapshot.GetValueOrDefault(r.Name))
             .FirstOrDefault(static s => s is { Lifecycle: ResourceLifecycle.Ready, Endpoint: not null })
             ?.Endpoint;
@@ -186,20 +186,20 @@ internal sealed class QylConsoleUi(
         }
     }
 
-    // Restart is keyboard-only by design (never a /runner HTTP verb). The table has no row selection, so
-    // [R] restarts every launched process resource — the dev-inner-loop "bounce my apps" gesture (the
-    // orchestrator also ignores names it holds no live process for).
-    private void RequestRestarts()
+    // The table has no row selection, so [R] requests every launched process resource. The same
+    // acknowledged orchestrator path backs the loopback HTTP action endpoint.
+    private async Task RequestRestartsAsync(CancellationToken cancellationToken)
     {
-        var requested = 0;
-        foreach (var resource in resources)
+        var accepted = 0;
+        foreach (var resource in resources.Where(static resource => resource.Launch is not null))
         {
-            restartRequests.Request(resource.Name);
-            requested++;
+            var result = await resourceActions.RequestAsync(
+                resource.Name, QylResourceAction.Restart, cancellationToken).ConfigureAwait(false);
+            if (result.Status == QylResourceActionStatus.Accepted) accepted++;
         }
 
-        AnsiConsole.MarkupLine(requested == 0
-            ? "[yellow]No restartable process resources.[/]"
-            : $"[aqua]Restart requested for {requested} process resource(s).[/]");
+        AnsiConsole.MarkupLine(accepted == 0
+            ? "[yellow]No ready process resources accepted a restart.[/]"
+            : $"[aqua]Restart accepted for {accepted} process resource(s).[/]");
     }
 }

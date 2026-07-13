@@ -8,7 +8,7 @@ internal static class OtlpApiKeyValidator
 {
     public static bool IsValid(string? candidate, OtlpApiKeyOptions options)
     {
-        if (string.IsNullOrEmpty(candidate)) return false;
+        if (string.IsNullOrWhiteSpace(candidate)) return false;
 
         return FixedTimeEquals(candidate, options.PrimaryApiKey) ||
                FixedTimeEquals(candidate, options.SecondaryApiKey);
@@ -16,7 +16,7 @@ internal static class OtlpApiKeyValidator
 
     private static bool FixedTimeEquals(string candidate, string? expected)
     {
-        if (string.IsNullOrEmpty(expected) || candidate.Length != expected.Length)
+        if (string.IsNullOrWhiteSpace(expected) || candidate.Length != expected.Length)
             return false;
 
         var diff = 0;

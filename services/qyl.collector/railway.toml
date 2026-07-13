@@ -19,8 +19,13 @@ restartPolicyMaxRetries = 10
 #
 # PORT                           Injected automatically by Railway; qyl.collector reads it
 #                                via CollectorPortOptions.FromConfiguration (Http tier).
+# QYL_BIND_ADDRESS               Set to `0.0.0.0` for Railway. The local default is loopback.
 # QYL_DATA_PATH                  Mount a Railway volume at /data and set this to
 #                                `/data/qyl.duckdb` for DuckDB persistence across deploys.
+# QYL_OTLP_AUTH_MODE             Required: set to `ApiKey`. ApiKey deployments intentionally
+#                                expose the product API + OTLP only; the local dashboard is disabled.
+# QYL_OTLP_PRIMARY_API_KEY       Required Railway secret: a strong ingest/read credential. Use
+#                                QYL_OTLP_SECONDARY_API_KEY only during an intentional key rotation.
 # QYL_GRPC_PORT                  OTLP/gRPC ingestion port — unset to disable, or expose a
 #                                second Railway TCP endpoint for it (Railway supports
 #                                multiple ports per service since 2025-Q3).

@@ -1,19 +1,12 @@
 import {useEffect, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {Clock, Pause, Play, RefreshCw, Zap} from 'lucide-react';
-import {cn} from '@/lib/utils';
+import {Clock, RefreshCw, Zap} from 'lucide-react';
 import {Button} from '@/components/ui/button';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {ThemeToggle} from '@/components/ui/theme-toggle';
 import {HealthIndicator} from '@/components/health';
 
 interface TopBarProps {
-    isLive: boolean;
-    streamConnected: boolean;
-    onLiveToggle: () => void;
     onRefresh: () => void;
-    timeRange: string;
-    onTimeRangeChange: (range: string) => void;
 }
 
 const pageTitle: Record<string, string> = {
@@ -22,25 +15,8 @@ const pageTitle: Record<string, string> = {
     '/cost': 'GENAI COST',
 };
 
-const timeRanges = [
-    {value: '5m', label: '5 MIN'},
-    {value: '15m', label: '15 MIN'},
-    {value: '30m', label: '30 MIN'},
-    {value: '1h', label: '1 HOUR'},
-    {value: '3h', label: '3 HOURS'},
-    {value: '6h', label: '6 HOURS'},
-    {value: '12h', label: '12 HOURS'},
-    {value: '24h', label: '24 HOURS'},
-    {value: '7d', label: '7 DAYS'},
-];
-
 export function TopBar({
-                           isLive,
-                           streamConnected,
-                           onLiveToggle,
                            onRefresh,
-                           timeRange,
-                           onTimeRangeChange,
                        }: TopBarProps) {
     const location = useLocation();
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -83,52 +59,6 @@ export function TopBar({
                 <Clock className="w-4 h-4 text-signal-cyan"/>
                 <span className="font-mono text-xs text-signal-cyan">{formatTime(currentTime)}</span>
             </div>
-
-            {/* Time range selector - BRUTALIST */}
-            <Select value={timeRange} onValueChange={onTimeRangeChange}>
-                <SelectTrigger
-                    className="h-8 md:h-9 w-24 md:w-28 bg-brutal-dark/85 border border-brutal-zinc text-xs font-semibold tracking-[0.08em] text-brutal-white hover:border-signal-orange">
-                    <SelectValue/>
-                </SelectTrigger>
-                <SelectContent className="bg-brutal-carbon border border-brutal-zinc">
-                    {timeRanges.map((range) => (
-                        <SelectItem
-                            key={range.value}
-                            value={range.value}
-                            className="text-xs font-semibold tracking-[0.08em] text-brutal-white hover:bg-brutal-dark focus:bg-signal-orange/20 focus:text-signal-orange"
-                        >
-                            {range.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-
-            {/* Live toggle - BRUTALIST button */}
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={onLiveToggle}
-                className={cn(
-                    'h-8 md:h-9 border text-[11px] font-semibold tracking-[0.08em] transition-colors',
-                    isLive
-                        ? (streamConnected
-                            ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
-                            : 'bg-signal-yellow/20 border-signal-yellow text-signal-yellow hover:bg-signal-yellow/30')
-                        : 'bg-brutal-dark/85 border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'
-                )}
-            >
-                {isLive ? (
-                    <>
-                        <Pause className="w-4 h-4 mr-2"/>
-                        {streamConnected ? 'LIVE' : 'CONNECTING'}
-                    </>
-                ) : (
-                    <>
-                        <Play className="w-4 h-4 mr-2"/>
-                        PAUSED
-                    </>
-                )}
-            </Button>
 
             {/* Health indicator */}
             <HealthIndicator/>

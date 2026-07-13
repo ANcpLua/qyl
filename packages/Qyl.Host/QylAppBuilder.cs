@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qyl.Host.Internal;
@@ -17,17 +16,20 @@ public sealed class QylAppBuilder
 
     public HostApplicationBuilder Host { get; }
 
-    public IReadOnlyList<QylResource> Resources => _resources;
+    internal IReadOnlyList<QylResource> Resources => _resources;
 
     public static QylAppBuilder Create(string[]? args = null)
     {
         return new QylAppBuilder(Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(args ?? []));
     }
 
-    public IQylResourceBuilder AddCollector(string name, int? port = null, string? project = null,
+    public IQylResourceBuilder AddCollector(string name, string project, int? port = null,
         Action<QylSelfTelemetryBuilder>? selfTelemetry = null)
     {
-        Guard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(project);
+        if (port is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port), port, "Collector port must be in the range 1..65535.");
 
         // Collectors resolve to a concrete port at composition time: the child only learns its API
         // port through QYL_PORT, so deferring to launch-time DynamicAllocation would health-probe a
@@ -46,7 +48,10 @@ public sealed class QylAppBuilder
             // Pin the ports the resource record advertises, so ambient QYL_OTLP_PORT/QYL_GRPC_PORT
             // in the runner's environment cannot desync child reality from composition.
             [QylConstants.Env.QylOtlpPort] = otlpHttpPort.ToString(CultureInfo.InvariantCulture),
-            [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture)
+            [QylConstants.Env.QylGrpcPort] = grpcPort.ToString(CultureInfo.InvariantCulture),
+            // Host-run collectors deliberately disable ingest auth for local development. Pin every
+            // listener to loopback so that choice can never expose an unauthenticated LAN endpoint.
+            [QylConstants.Env.QylBindAddress] = QylConstants.Network.Loopback
         };
 
         // The runner launches children with ASPNETCORE_ENVIRONMENT=dev, which is not "Development",
@@ -60,7 +65,7 @@ public sealed class QylAppBuilder
         var builder = Register(new QylResource
         {
             Name = name,
-            Kind = QylConstants.ResourceKinds.Collector,
+            Kind = QylResourceKind.Collector,
             Port = apiPort,
             OtlpHttpPort = otlpHttpPort,
             GrpcPort = grpcPort,
@@ -79,34 +84,35 @@ public sealed class QylAppBuilder
 
     public IQylResourceBuilder AddProject(string name, string project, int? port = null)
     {
-        return AddCore(name, QylConstants.ResourceKinds.Project, port ?? QylConstants.Ports.DynamicAllocation,
+        return AddCore(name, QylResourceKind.Project, port ?? QylConstants.Ports.DynamicAllocation,
             project);
     }
 
     /// <summary>
-    /// Adds an arbitrary dev command as a resource (e.g. <c>"npm run dev"</c> for a Vite dashboard).
-    /// The command is split on spaces — first token is the executable, the rest are arguments.
+    /// Adds an arbitrary dev command as a resource (e.g. executable <c>npm</c> with arguments
+    /// <c>["run", "dev"]</c> for a Vite dashboard). Arguments are passed directly to
+    /// <see cref="ProcessStartInfo.ArgumentList"/>; no shell parsing or whitespace splitting occurs.
     /// <paramref name="port"/> must be the port the command itself binds; readiness is a successful
     /// GET on <paramref name="healthPath"/> (default <c>"/"</c> — dev servers rarely expose /health).
     /// </summary>
-    public IQylResourceBuilder AddCommand(string name, string command, int port,
-        string? workingDirectory = null, string healthPath = "/")
+    public IQylResourceBuilder AddCommand(string name, string executable, int port,
+        IReadOnlyList<string>? arguments = null, string? workingDirectory = null, string healthPath = "/")
     {
-        Guard.NotNullOrWhiteSpace(name);
-        Guard.NotNullOrWhiteSpace(command);
-        Guard.NotNullOrWhiteSpace(healthPath);
-
-        var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        QylGuard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(executable);
+        QylGuard.NotNullOrWhiteSpace(healthPath);
+        if (port is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port), port, "Command port must be in the range 1..65535.");
 
         return Register(new QylResource
         {
             Name = name,
-            Kind = QylConstants.ResourceKinds.Command,
+            Kind = QylResourceKind.Command,
             Port = port,
             Launch = new QylLaunchSpec
             {
-                Executable = parts[0],
-                Args = new ReadOnlyCollection<string>([.. parts[1..]]),
+                Executable = executable,
+                Args = new ReadOnlyCollection<string>(arguments?.ToArray() ?? []),
                 WorkingDirectory = workingDirectory,
                 HealthPath = healthPath,
                 Env = new Dictionary<string, string>
@@ -122,9 +128,9 @@ public sealed class QylAppBuilder
     /// (e.g. Qyl.Host.Mcp's connection-only MCP resources); the Add* conveniences above compose
     /// through it implicitly. Name and port uniqueness are enforced like every other resource.
     /// </summary>
-    public IQylResourceBuilder AddResource(QylResource resource)
+    internal IQylResourceBuilder AddResource(QylResource resource)
     {
-        Guard.NotNull(resource);
+        QylGuard.NotNull(resource);
         return Register(resource);
     }
 
@@ -145,7 +151,7 @@ public sealed class QylAppBuilder
             client.Timeout = TimeSpan.FromSeconds(QylConstants.Orchestrator.HealthProbeAttemptTimeoutSeconds));
 #pragma warning restore AL1105
         Host.Services.AddSingleton<QylResourceRegistry>();
-        Host.Services.AddSingleton<QylRestartRequests>();
+        Host.Services.AddSingleton<QylResourceActions>();
         Host.Services.AddSingleton<QylLogStore>();
         Host.Services.AddSingleton<QylProcessLauncher>();
         Host.Services.AddHostedService<QylOrchestrator>();
@@ -154,9 +160,9 @@ public sealed class QylAppBuilder
         return new QylApp(Host.Build());
     }
 
-    private QylResourceBuilder AddCore(string name, string kind, int port, string? project)
+    private QylResourceBuilder AddCore(string name, QylResourceKind kind, int port, string? project)
     {
-        Guard.NotNullOrWhiteSpace(name);
+        QylGuard.NotNullOrWhiteSpace(name);
         return Register(new QylResource
         {
             Name = name,
@@ -236,10 +242,15 @@ public sealed class QylAppBuilder
 
         // Port 0 is not a claim: it means DynamicAllocation (launch-time claim) or a connection-only
         // resource with no listening port at all — two zeros never collide.
-        var portClash = _resources.FirstOrDefault(r =>
-            (resource.Port > 0 && r.Port == resource.Port) ||
-            (resource.OtlpHttpPort > 0 && (r.Port == resource.OtlpHttpPort || r.OtlpHttpPort == resource.OtlpHttpPort)) ||
-            (resource.GrpcPort > 0 && (r.Port == resource.GrpcPort || r.GrpcPort == resource.GrpcPort)));
+        var declaredPorts = DeclaredPorts(resource).ToHashSet();
+        if (declaredPorts.Count != DeclaredPorts(resource).Count())
+        {
+            throw new InvalidOperationException(
+                $"Resource '{resource.Name}' assigns the same port to more than one endpoint.");
+        }
+
+        var portClash = _resources.FirstOrDefault(existing =>
+            DeclaredPorts(existing).Any(declaredPorts.Contains));
         if (portClash is not null)
         {
             throw new InvalidOperationException(
@@ -252,6 +263,13 @@ public sealed class QylAppBuilder
             var index = _resources.IndexOf(oldResource);
             if (index >= 0) _resources[index] = newResource;
         });
+    }
+
+    private static IEnumerable<int> DeclaredPorts(QylResource resource)
+    {
+        if (resource.Port > 0) yield return resource.Port;
+        if (resource.OtlpHttpPort > 0) yield return resource.OtlpHttpPort;
+        if (resource.GrpcPort > 0) yield return resource.GrpcPort;
     }
 
     private static QylLaunchSpec BuildLaunchSpec(string? project, string serviceName,
