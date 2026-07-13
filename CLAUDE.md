@@ -1046,11 +1046,39 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   (TRACEPARENT/TRACESTATE) promoted Beta → **Release Candidate**; Qyl.Host's
   copy-env-inject-spawn composition is exactly the now-blessed application-side
   pattern, and injecting TRACEPARENT so child telemetry joins a runner-side trace is
-  the natural extension. DECIDED (user-confirmed): record, don't implement — no
-  reachable consumer (the #510 f0e01c82 rule), the .NET SDK doesn't ship the carrier
-  yet (hand-rolling extraction in qyl.instrumentation = the delegate-to-SDK
-  anti-pattern), and RC surface still churns (this very release renamed
-  threshold_reliable). WAKE-UP TRIGGER, now two-headed: implement when (a) a real
+  the natural extension. DECIDED (user-confirmed): record, don't implement — RC
+  surface still churns (this very release renamed threshold_reliable) and qyl has no
+  non-HTTP propagation need today. [CORRECTED 2026-07-13, user feedback: this entry
+  originally cited "no reachable consumer" + "hand-rolling = delegate-to-SDK
+  anti-pattern" as reasons. Both framings were wrong. Delegate-to-SDK only covers
+  patterns the SDK ALREADY ships — building the missing pieces is
+  Qyl.OpenTelemetry.AutoInstrumentation's entire charter (compile-time interception
+  replacing anti-AOT runtime-agent behavior with generated, tested,
+  matrix-documented code; closest precedent: OTel Go's compile-time injector,
+  reference clone at qyl-references/opentelemetry-go-compile-instrumentation). If
+  env-carrier extraction is built pre-SDK, its correct home is that AOT-native
+  surface as a legitimate gap-fill, not "an anti-pattern". And "no reachable
+  consumer" is not a build-blocker under the ship-full-verticals rule below.]
+  WAKE-UP TRIGGER, now two-headed: implement when (a) a real
   non-HTTP traceparent gap is hit (the original #510 "later" trigger), OR (b) the
   OTel .NET SDK ships env-carrier extraction — whichever comes first makes Qyl.Host
   TRACEPARENT injection a one-liner on the existing WithEnvironment primitive.
+- 2026-07-13 — **The "reachable consumer" rule REWRITTEN to ship-full-verticals**
+  (Claude, user-directed — the user rejected my generalization "never build a
+  capability until something real needs it"). Archaeology first: f0e01c82
+  (2026-07-09, prior session) deleted ~586 lines in packages/Qyl.Run ONLY —
+  container path, external-endpoint branch, AddDashboard, WithReference/WaitFor —
+  all SKETCH-level: zero tests, zero callers, "ran only over empty sets" (the
+  commit's own words). #510 §9 wrote the rule ~7h later; it never propagated to
+  the sub-package repos (phrase absent from all three; AutoInstrumentation's own
+  unreachable-path deletion adf9527 predates it by a week, independent decision).
+  THE ADJUSTED RULE (supersedes #510 §9's wording): **Ship full verticals, not
+  sketches.** A capability lands when it is built end-to-end, tested, and wired to
+  its first consumer IN THE SAME STREAM — and pre-launch, qyl itself is a valid
+  first consumer ("imaginary consumer" is fine while solo-dev; a feature must
+  exist and be tested before any consumer CAN adopt it — 99% built is 0%, it only
+  works at 100%). What stays banned is exactly the f0e01c82 class: half-built
+  surface with no test and no caller left lying in the tree. Pre-launch,
+  published-experimental APIs remain freely adjustable; that freedom ends when
+  real external consumers sit on public APIs — breaking-change discipline starts
+  at launch, not before. (#510 updated with the same text.)
