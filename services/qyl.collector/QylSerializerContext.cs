@@ -51,6 +51,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ValidationError))]
 [JsonSerializable(typeof(ValidationErrorDetail))]
 [JsonSerializable(typeof(UnauthorizedError))]
+[JsonSerializable(typeof(ServiceUnavailableError))]
 [JsonSerializable(typeof(LogStreamEvent))]
 [JsonSerializable(typeof(HeartbeatEvent))]
 [JsonSerializable(typeof(ContractInternalServerError), TypeInfoPropertyName = "ContractInternalServerError")]

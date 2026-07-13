@@ -117,7 +117,7 @@ internal sealed partial record ModelPricingRow
 }
 
 [DuckDbTable("logs",
-    Indexes = "ProjectId,TimeUnixNano;ProjectId,TraceId;ProjectId,SessionId",
+    Indexes = "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId",
     OnConflict = """
     ON CONFLICT (project_id, log_id) DO UPDATE SET
         trace_id = EXCLUDED.trace_id,
@@ -159,6 +159,11 @@ internal sealed partial record LogStorageRow
 
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
     public DateTimeOffset? CreatedAt { get; init; }
+
+    // Monotonic collector arrival order. Event timestamps are supplied by producers and may arrive
+    // late or out of order, so they cannot be used as a lossless live-stream cursor.
+    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "nextval('logs_ingest_sequence')")]
+    public long IngestSequence { get; init; }
 }
 
 [DuckDbTable("profiles",

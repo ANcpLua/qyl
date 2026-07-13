@@ -257,6 +257,8 @@ function useLiveLogs(
     const pendingLogsRef = useRef<LogViewRecord[]>([]);
     const rafIdRef = useRef<number | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
+    const lastEventIdRef = useRef<string | undefined>(undefined);
+    const seenEventIdsRef = useRef<Set<string>>(new Set());
     const [isConnected, setIsConnected] = useState(false);
 
     // RAF-batched flush - coalesces all logs received in a frame into single state update
@@ -298,9 +300,21 @@ function useLiveLogs(
                     () => setIsConnected(true),
                     frame => {
                         if (frame.event !== 'log') return;
+                        if (frame.id && seenEventIdsRef.current.has(frame.id)) return;
                         const event = JSON.parse(frame.data) as LogStreamEvent;
                         queueLogs([normalizeLogRecord(event.data)]);
+                        if (frame.id) {
+                            lastEventIdRef.current = frame.id;
+                            const seen = seenEventIdsRef.current;
+                            seen.add(frame.id);
+                            while (seen.size > MAX_LOGS) {
+                                const oldest = seen.values().next().value;
+                                if (oldest === undefined) break;
+                                seen.delete(oldest);
+                            }
+                        }
                     },
+                    lastEventIdRef.current,
                 );
                 if (disposed) return;
                 throw new Error('SSE connection closed');

@@ -14,11 +14,13 @@ internal sealed class QylLogStore
 
     private readonly ConcurrentDictionary<string, LineBuffer> _buffers = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Guid, LogSubscriber> _subscribers = new();
+    private long _nextSequence;
 
     public void Append(string resource, bool isError, string line)
     {
         var entry = new QylLogLine
         {
+            Sequence = Interlocked.Increment(ref _nextSequence),
             Resource = resource,
             Stream = isError ? QylLogStream.Stderr : QylLogStream.Stdout,
             Line = line
@@ -35,6 +37,11 @@ internal sealed class QylLogStore
 
     public IReadOnlyList<QylLogLine> Snapshot(string resource) =>
         _buffers.TryGetValue(resource, out var buffer) ? buffer.Snapshot() : [];
+
+    public IReadOnlyList<QylLogLine> SnapshotAfter(string resource, long sequence) =>
+        _buffers.TryGetValue(resource, out var buffer)
+            ? buffer.SnapshotAfter(sequence)
+            : [];
 
     public QylLogSubscription Subscribe(string resource)
     {
@@ -75,11 +82,17 @@ internal sealed class QylLogStore
         {
             lock (_gate) return [.. _lines];
         }
+
+        public IReadOnlyList<QylLogLine> SnapshotAfter(long sequence)
+        {
+            lock (_gate) return [.. _lines.Where(line => line.Sequence > sequence)];
+        }
     }
 }
 
 internal sealed record QylLogLine
 {
+    public required long Sequence { get; init; }
     public required string Resource { get; init; }
     public required QylLogStream Stream { get; init; }
     public required string Line { get; init; }

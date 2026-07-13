@@ -12,6 +12,10 @@ internal readonly record struct ParsedSessionStatsParameters(
     DateTimeOffset? StartTime,
     DateTimeOffset? EndTime);
 
+internal readonly record struct ParsedTracesParameters(
+    int? Limit,
+    string? Cursor);
+
 internal readonly record struct ParsedLogsParameters(
     int? SeverityMin,
     DateTimeOffset? StartTime,
@@ -44,8 +48,16 @@ internal static class ContractQueryParser
         return null;
     }
 
-    internal static IResult? ParseTraces(HttpRequest request, out int? limit) =>
-        new QueryReader(request.Query).ReadInteger("limit", out limit);
+    internal static IResult? ParseTraces(HttpRequest request, out ParsedTracesParameters parsed)
+    {
+        parsed = default;
+        var reader = new QueryReader(request.Query);
+        if (reader.ReadInteger("limit", out var limit) is { } limitError) return limitError;
+        if (reader.ReadString("cursor", out var cursor) is { } cursorError) return cursorError;
+
+        parsed = new ParsedTracesParameters(limit, cursor);
+        return null;
+    }
 
     internal static IResult? ParseLogs(HttpRequest request, out ParsedLogsParameters parsed)
     {
@@ -103,6 +115,23 @@ internal static class ContractQueryParser
                 name,
                 "Value must be a single boolean ('true' or 'false').",
                 "query.invalid_boolean",
+                rejectedValue);
+        }
+
+        public IResult? ReadString(string name, out string? value)
+        {
+            value = null;
+            if (!TryReadSingle(name, out var raw, out var rejectedValue)) return null;
+            if (raw is not null)
+            {
+                value = raw;
+                return null;
+            }
+
+            return Invalid(
+                name,
+                "Value must be a single non-empty string.",
+                "query.invalid_string",
                 rejectedValue);
         }
 

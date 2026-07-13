@@ -18,6 +18,7 @@ public sealed class ContractQueryParserTests
             { QueryEndpoint.SessionStats, "startTime", "now", "query.invalid_date_time" },
             { QueryEndpoint.SessionStats, "endTime", "later", "query.invalid_date_time" },
             { QueryEndpoint.Traces, "limit", "1.5", "query.invalid_integer" },
+            { QueryEndpoint.Traces, "cursor", "not-a-qyl-cursor", "cursor.invalid" },
             { QueryEndpoint.Logs, "severityMin", "info", "query.invalid_integer" },
             { QueryEndpoint.Logs, "startTime", "13/07/2026", "query.invalid_date_time" },
             { QueryEndpoint.Logs, "endTime", "2026-07-13T10:00:00", "query.invalid_date_time" },
@@ -137,7 +138,12 @@ public sealed class ContractQueryParserTests
         if (endpoint is QueryEndpoint.LogStream)
         {
             await CollectorEndpointExtensions.StreamLogsAsync(
-                context, null!, null, null, TestContext.Current.CancellationToken);
+                context,
+                null!,
+                new CollectorStreamCapacity(),
+                null,
+                null,
+                TestContext.Current.CancellationToken);
         }
         else
         {

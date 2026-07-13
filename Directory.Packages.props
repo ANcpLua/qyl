@@ -96,7 +96,7 @@
     <!-- Analyzer-only source generation, exercised by the conformance workload. -->
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.5.0"/>
     <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
-    <PackageVersion Include="Qyl.Api.Contracts" Version="0.5.7"/>
+    <PackageVersion Include="Qyl.Api.Contracts" Version="0.5.10"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]"/>

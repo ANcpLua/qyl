@@ -3,6 +3,7 @@
 export interface SseEvent {
     event: string;
     data: string;
+    id?: string;
 }
 
 export async function consumeSse(
@@ -10,10 +11,14 @@ export async function consumeSse(
     signal: AbortSignal,
     onOpen: () => void,
     onEvent: (event: SseEvent) => void,
+    lastEventId?: string,
 ): Promise<void> {
+    const headers: Record<string, string> = {Accept: 'text/event-stream'};
+    if (lastEventId) headers['Last-Event-ID'] = lastEventId;
+
     const response = await fetch(url, {
         credentials: 'include',
-        headers: {Accept: 'text/event-stream'},
+        headers,
         cache: 'no-store',
         signal,
     });
@@ -36,13 +41,15 @@ export async function consumeSse(
             buffer = buffer.slice(boundary + 2);
 
             let event = 'message';
+            let id: string | undefined;
             const data: string[] = [];
             for (const line of frame.split('\n')) {
                 if (line.startsWith('event:')) event = line.slice(6).trimStart();
+                if (line.startsWith('id:')) id = line.slice(3).trimStart();
                 if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
             }
 
-            if (data.length > 0) onEvent({event, data: data.join('\n')});
+            if (data.length > 0) onEvent({event, data: data.join('\n'), id});
         }
 
         if (done) break;

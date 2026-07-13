@@ -1,5 +1,6 @@
 using Google.Protobuf;
 using System.IO.Compression;
+using System.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
@@ -16,12 +17,13 @@ internal static class OtlpPayloadParser
 
     public static OtlpPayloadEncoding GetEncoding(string? contentType)
     {
-        if (!string.IsNullOrWhiteSpace(contentType) &&
-            contentType.StartsWith(ProtobufContentType, StringComparison.OrdinalIgnoreCase))
+        if (!MediaTypeHeaderValue.TryParse(contentType, out var parsed) || parsed.MediaType is null)
+            throw new OtlpUnsupportedMediaTypeException(contentType);
+
+        if (string.Equals(parsed.MediaType, ProtobufContentType, StringComparison.OrdinalIgnoreCase))
             return OtlpPayloadEncoding.Protobuf;
 
-        if (!string.IsNullOrWhiteSpace(contentType) &&
-            contentType.StartsWith(JsonContentType, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(parsed.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase))
             return OtlpPayloadEncoding.Json;
 
         throw new OtlpUnsupportedMediaTypeException(contentType);

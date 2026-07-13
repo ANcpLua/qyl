@@ -14,6 +14,14 @@ internal sealed class QylConsoleUi(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (ShouldUseHeadlessUi(Console.IsOutputRedirected, AnsiConsole.Profile.Capabilities.Interactive))
+        {
+            Console.WriteLine(
+                $"{QylConstants.Product.Banner} v{QylConstants.Product.Version} — {QylConstants.Product.Tagline}");
+            await WaitForShutdownAsync(stoppingToken).ConfigureAwait(false);
+            return;
+        }
+
         RenderBanner();
 
         var keyTask = Task.Run(() => HandleKeysAsync(stoppingToken), stoppingToken);
@@ -37,6 +45,21 @@ internal sealed class QylConsoleUi(
             }).ConfigureAwait(false);
 
         await keyTask.ConfigureAwait(false);
+    }
+
+    internal static bool ShouldUseHeadlessUi(bool outputRedirected, bool interactive) =>
+        outputRedirected || !interactive;
+
+    private static async Task WaitForShutdownAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Normal host shutdown.
+        }
     }
 
     private static void RenderBanner()

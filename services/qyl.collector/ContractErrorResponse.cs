@@ -60,6 +60,17 @@ internal static class ContractErrorResults
             StatusCodes.Status500InternalServerError,
             cancellationToken);
 
+    internal static Task WriteServiceUnavailableAsync(
+        HttpResponse response,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        WriteAsync(
+            response,
+            CreateServiceUnavailable(reason),
+            QylSerializerContext.Default.ServiceUnavailableError,
+            StatusCodes.Status503ServiceUnavailable,
+            cancellationToken);
+
     private static NotFoundError CreateNotFound(string resourceType, string resourceId) =>
         new()
         {
@@ -108,6 +119,16 @@ internal static class ContractErrorResults
             Title = "Internal Server Error",
             Status = StatusCodes.Status500InternalServerError,
             ErrorCode = errorCode
+        };
+
+    private static ServiceUnavailableError CreateServiceUnavailable(string reason) =>
+        new()
+        {
+            ProblemType = new Uri("about:blank"),
+            Title = "Service Unavailable",
+            Status = StatusCodes.Status503ServiceUnavailable,
+            Detail = "The collector has reached its bounded live-stream capacity. Retry after a stream closes.",
+            Reason = reason
         };
 
     private static Task WriteAsync<T>(

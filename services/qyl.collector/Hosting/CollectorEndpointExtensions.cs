@@ -332,26 +332,53 @@ internal static class CollectorEndpointExtensions
         IQylStore store,
         CancellationToken ct)
     {
-        if (ContractQueryParser.ParseTraces(httpContext.Request, out var limit) is { } queryError)
+        if (ContractQueryParser.ParseTraces(httpContext.Request, out var parameters) is { } queryError)
             return queryError;
 
-        if (!ContractLimits.TryResolve(limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit,
+        if (!ContractLimits.TryResolve(parameters.Limit, ContractLimits.DefaultPageLimit, ContractLimits.TraceMaxLimit,
                 out var boundedLimit))
         {
-            return InvalidLimit(limit, ContractLimits.TraceMaxLimit);
+            return InvalidLimit(parameters.Limit, ContractLimits.TraceMaxLimit);
         }
-        var spans = await store.GetSpansAsync(ResolveProjectScope(httpContext), limit: boundedLimit, ct: ct)
-            .ConfigureAwait(false);
-        var traces = spans
-            .GroupBy(static span => span.TraceId, StringComparer.Ordinal)
-            .Select(static group =>
-            {
-                var spanContracts = SpanMapper.ToContracts(group);
-                return SpanMapper.ToTrace(group.Key, spanContracts);
-            })
-            .ToList();
 
-        return Results.Ok(new CursorPageTrace { Items = traces, HasMore = false });
+        TracePageCursor? cursor = null;
+        if (parameters.Cursor is { } encodedCursor)
+        {
+            if (!TracePageCursorCodec.TryDecode(encodedCursor, out var decodedCursor))
+            {
+                return ContractErrorResults.Validation(
+                    "cursor",
+                    "Cursor is not a valid qyl trace-page cursor.",
+                    "cursor.invalid",
+                    encodedCursor);
+            }
+
+            cursor = decodedCursor;
+        }
+
+        var page = await store.GetTracePageAsync(
+                ResolveProjectScope(httpContext),
+                cursor,
+                boundedLimit,
+                ct)
+            .ConfigureAwait(false);
+        var traces = page.Items.Select(static item =>
+        {
+            var spanContracts = SpanMapper.ToContracts(item.Spans);
+            return SpanMapper.ToTrace(item.TraceId, spanContracts);
+        }).ToList();
+        var nextCursor = page.HasMore && page.Items.Count > 0
+            ? TracePageCursorCodec.Encode(new TracePageCursor(
+                page.Items[^1].ActivityUnixNano,
+                page.Items[^1].TraceId))
+            : null;
+
+        return Results.Ok(new CursorPageTrace
+        {
+            Items = traces,
+            HasMore = page.HasMore,
+            NextCursor = nextCursor
+        });
     }
 
     private static async Task<IResult> GetTraceSpansAsync(
@@ -431,6 +458,7 @@ internal static class CollectorEndpointExtensions
     internal static async Task StreamLogsAsync(
         HttpContext context,
         IQylStore store,
+        CollectorStreamCapacity streamCapacity,
         string? serviceName,
         string? query,
         CancellationToken ct)
@@ -453,12 +481,30 @@ internal static class CollectorEndpointExtensions
             return;
         }
 
+        using var streamLease = streamCapacity.TryAcquire();
+        if (streamLease is null)
+        {
+            await ContractErrorResults.WriteServiceUnavailableAsync(
+                context.Response,
+                "collector.log_stream_capacity",
+                ct).ConfigureAwait(false);
+            return;
+        }
+
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers.CacheControl = "no-cache,no-store";
         context.Response.Headers.Pragma = "no-cache";
 
-        await foreach (var streamEvent in StreamLogEventsAsync(store, ResolveProjectScope(context), serviceName, minSeverity, query, ct)
+        var afterIngestSequence = ParseLastEventId(context.Request.Headers["Last-Event-ID"].ToString());
+        await foreach (var streamEvent in StreamLogEventsAsync(
+                           store,
+                           ResolveProjectScope(context),
+                           serviceName,
+                           minSeverity,
+                           query,
+                           afterIngestSequence,
+                           ct)
                            .ConfigureAwait(false))
         {
             if (streamEvent.Log is { } log)
@@ -466,6 +512,7 @@ internal static class CollectorEndpointExtensions
                 await WriteSseEventAsync(
                     context.Response,
                     streamEvent.EventType,
+                    streamEvent.EventId,
                     log,
                     QylSerializerContext.Default.LogStreamEvent,
                     ct).ConfigureAwait(false);
@@ -475,6 +522,7 @@ internal static class CollectorEndpointExtensions
                 await WriteSseEventAsync(
                     context.Response,
                     streamEvent.EventType,
+                    null,
                     heartbeat,
                     QylSerializerContext.Default.HeartbeatEvent,
                     ct).ConfigureAwait(false);
@@ -482,57 +530,48 @@ internal static class CollectorEndpointExtensions
         }
     }
 
-    private static async IAsyncEnumerable<(string EventType, LogStreamEvent? Log, HeartbeatEvent? Heartbeat)>
+    internal static async IAsyncEnumerable<(
+        string EventType,
+        long? EventId,
+        LogStreamEvent? Log,
+        HeartbeatEvent? Heartbeat)>
         StreamLogEventsAsync(
         IQylStore store,
         string projectId,
         string? serviceName,
         int? minSeverity,
         string? query,
+        long? afterIngestSequence,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var hasCursor = false;
-        ulong? afterTimeUnixNano = null;
-        string? afterLogId = null;
         while (!ct.IsCancellationRequested)
         {
-            var rows = await store.GetLogsAsync(
+            var rows = await store.GetLogStreamPageAsync(
                 projectId,
-                sessionId: null,
-                traceId: null,
-                severityText: null,
-                minSeverity,
-                search: query,
                 serviceName: serviceName,
-                after: afterTimeUnixNano,
-                afterLogId: afterLogId,
-                ascending: hasCursor,
-                latestPageAscending: !hasCursor,
+                minSeverity: minSeverity,
+                search: query,
+                afterIngestSequence: afterIngestSequence,
                 limit: 250,
                 ct: ct).ConfigureAwait(false);
 
             if (rows.Count > 0)
             {
-                LogStorageRow? last = null;
                 foreach (var log in rows)
                 {
-                    last = log;
-                    yield return ("log", new LogStreamEvent
+                    yield return ("log", log.IngestSequence, new LogStreamEvent
                         {
                             Type = "log",
                             Data = LogMapper.ToContract(log),
                             Timestamp = QylTimeConversions.NanosToDateTimeOffset(log.TimeUnixNano)
                         },
                         null);
+                    afterIngestSequence = log.IngestSequence;
                 }
-
-                hasCursor = true;
-                afterTimeUnixNano = last!.TimeUnixNano;
-                afterLogId = last.LogId;
             }
             else
             {
-                yield return ("heartbeat", null, new HeartbeatEvent
+                yield return ("heartbeat", null, null, new HeartbeatEvent
                 {
                     Type = "heartbeat",
                     Timestamp = TimeProvider.System.GetUtcNow()
@@ -543,13 +582,26 @@ internal static class CollectorEndpointExtensions
         }
     }
 
+    private static long? ParseLastEventId(string? value) =>
+        long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence >= 0
+            ? sequence
+            : null;
+
     private static async Task WriteSseEventAsync<T>(
         HttpResponse response,
         string eventType,
+        long? eventId,
         T streamEvent,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken ct)
     {
+        if (eventId.HasValue)
+        {
+            await response.WriteAsync("id: ", ct).ConfigureAwait(false);
+            await response.WriteAsync(eventId.Value.ToString(CultureInfo.InvariantCulture), ct).ConfigureAwait(false);
+            await response.WriteAsync("\n", ct).ConfigureAwait(false);
+        }
+
         await response.WriteAsync("event: ", ct).ConfigureAwait(false);
         await response.WriteAsync(eventType, ct).ConfigureAwait(false);
         await response.WriteAsync("\ndata: ", ct).ConfigureAwait(false);

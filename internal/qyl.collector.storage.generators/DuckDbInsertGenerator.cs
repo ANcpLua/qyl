@@ -89,8 +89,10 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             if (columnInfo is not null)
             {
                 columns.Add(columnInfo.Value);
-                if (!columnInfo.Value.ExcludeFromInsert)
-                    ordinal++;
+                // Reader ordinals follow SelectColumnList, which includes server-generated columns
+                // excluded from INSERT. Advancing only for insert columns aliases every subsequent
+                // generated column onto the preceding ordinal.
+                ordinal++;
             }
         }
 

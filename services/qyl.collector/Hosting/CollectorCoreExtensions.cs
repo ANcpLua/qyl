@@ -12,6 +12,7 @@ internal static class CollectorCoreExtensions
         var ports = CollectorPortOptions.FromConfiguration(config);
         services.AddSingleton(ports);
         services.AddSingleton<ModelPricingService>();
+        services.AddSingleton<CollectorStreamCapacity>();
 
         services.ConfigureHttpJsonOptions(static options =>
         {

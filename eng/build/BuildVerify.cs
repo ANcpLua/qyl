@@ -730,7 +730,11 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             if (!endpointFile.FileExists())
                 throw new FileNotFoundException("Missing collector endpoint mapping", endpointFile.ToString());
 
-            var text = File.ReadAllText(endpointFile);
+            var endpointText = File.ReadAllText(endpointFile);
+            var storageFile = CollectorDirectory / "Storage" / "DuckDbStore.cs";
+            if (!storageFile.FileExists())
+                throw new FileNotFoundException("Missing collector storage implementation", storageFile.ToString());
+            var storageText = File.ReadAllText(storageFile);
             string[] forbiddenTokens =
             [
                 ".OrderBy(static l => l.TimeUnixNano)",
@@ -738,12 +742,22 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
             ];
 
             var offenders = forbiddenTokens
-                .Where(token => text.Contains(token, StringComparison.Ordinal))
+                .Where(token => endpointText.Contains(token, StringComparison.Ordinal))
                 .ToList();
 
-            var hasStorageOrdering = text.Contains("latestPageAscending: !hasCursor", StringComparison.Ordinal);
+            string[] requiredStorageOrdering =
+            [
+                "store.GetLogStreamPageAsync(",
+                "ingest_sequence > $N",
+                "ORDER BY ingest_sequence ASC LIMIT",
+                "ORDER BY ingest_sequence DESC LIMIT"
+            ];
+            var missingStorageOrdering = requiredStorageOrdering
+                .Where(token => !endpointText.Contains(token, StringComparison.Ordinal) &&
+                                !storageText.Contains(token, StringComparison.Ordinal))
+                .ToList();
 
-            if (offenders.Count is 0 && hasStorageOrdering)
+            if (offenders.Count is 0 && missingStorageOrdering.Count is 0)
             {
                 Log.Information("Collector log streaming uses storage ordering");
                 return;
@@ -754,12 +768,12 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                     RootDirectory.GetRelativePathTo(endpointFile),
                     offender);
 
-            if (!hasStorageOrdering)
-                Log.Error("  Log streaming does not request storage-backed latest-page ordering in {File}",
-                    RootDirectory.GetRelativePathTo(endpointFile));
+            foreach (var missing in missingStorageOrdering)
+                Log.Error("  Log streaming storage-ordering invariant is missing: {Token}", missing);
 
             throw new InvalidOperationException(
-                "Do not sort and materialize every log stream poll in the endpoint. Keep ordering in DuckDbStore.GetLogsAsync.");
+                "Do not sort and materialize every log stream poll in the endpoint. " +
+                "Keep monotonic replay and latest-page ordering in DuckDbStore.GetLogStreamPageAsync.");
         });
 
     Target VerifyCollectorSessionFacetsAreBounded => d => d
@@ -2125,7 +2139,9 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "ExtractBaggageJson",
                 "JsonFormatter.Default.Format(profile)",
                 ".Select(ConvertProtoAnyValueToString)",
-                ".ToDictionary(",
+                // Generic ToDictionary use is valid outside the OTLP conversion hot path. The
+                // allocation regression remains enforced against OtlpConverter.cs by the scoped
+                // VerifyOtlpConverterHotPath target.
                 "Serialize(attributes, ShouldPersistSpanAttribute)",
                 "span_clusters",
                 "ServiceMaterializerService",

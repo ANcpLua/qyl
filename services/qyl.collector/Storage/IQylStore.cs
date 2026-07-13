@@ -2,6 +2,17 @@ namespace Qyl.Collector.Storage;
 
 internal sealed class QylStoreUnavailableException(string message) : Exception(message);
 
+internal readonly record struct TracePageCursor(ulong ActivityUnixNano, string TraceId);
+
+internal sealed record TraceStoragePage(
+    IReadOnlyList<TraceStoragePageItem> Items,
+    bool HasMore);
+
+internal sealed record TraceStoragePageItem(
+    string TraceId,
+    ulong ActivityUnixNano,
+    IReadOnlyList<SpanStorageRow> Spans);
+
 internal interface IQylStore : IAsyncDisposable
 {
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
@@ -45,6 +56,12 @@ internal interface IQylStore : IAsyncDisposable
         int limit = 100,
         CancellationToken ct = default);
 
+    Task<TraceStoragePage> GetTracePageAsync(
+        string projectId,
+        TracePageCursor? cursor,
+        int limit,
+        CancellationToken ct = default);
+
     Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default);
 
     Task<long> GetModelPricingCountAsync(CancellationToken ct = default);
@@ -64,13 +81,18 @@ internal interface IQylStore : IAsyncDisposable
         int? minSeverity = null,
         string? search = null,
         ulong? start = null,
-        ulong? after = null,
-        string? afterLogId = null,
         ulong? before = null,
         string? serviceName = null,
-        bool ascending = false,
-        bool latestPageAscending = false,
         int limit = 500,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<LogStorageRow>> GetLogStreamPageAsync(
+        string projectId,
+        string? serviceName = null,
+        int? minSeverity = null,
+        string? search = null,
+        long? afterIngestSequence = null,
+        int limit = 250,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<ProfileStorageRow>> GetProfilesAsync(

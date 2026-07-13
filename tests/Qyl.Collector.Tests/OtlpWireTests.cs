@@ -1,5 +1,7 @@
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +14,9 @@ using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Mapping;
+using Qyl.Collector.Cost;
+using Qyl.Collector.Hosting;
+using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using OtlpProfile = OpenTelemetry.Proto.Profiles.V1Development.Profile;
 using OtlpProfileLink = OpenTelemetry.Proto.Profiles.V1Development.Link;
@@ -26,6 +31,44 @@ namespace Qyl.Collector.Tests;
 
 public sealed class OtlpWireTests
 {
+    [Theory]
+    [InlineData("application/json", "Json")]
+    [InlineData("APPLICATION/JSON; charset=utf-8", "Json")]
+    [InlineData("application/x-protobuf", "Protobuf")]
+    [InlineData("Application/X-Protobuf; version=1", "Protobuf")]
+    public void Otlp_content_type_accepts_only_the_declared_media_types_with_optional_parameters(
+        string contentType,
+        string expected)
+    {
+        Assert.Equal(expected, OtlpPayloadParser.GetEncoding(contentType).ToString());
+    }
+
+    [Theory]
+    [InlineData("application/jsonp")]
+    [InlineData("application/json-patch+json")]
+    [InlineData("application/x-protobufevil")]
+    public async Task Otlp_trace_wire_rejects_media_type_prefixes_with_415(string contentType)
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var context = NewOtlpEndpointContext(contentType, new ExportTraceServiceRequest().ToByteArray());
+        var pricing = new ModelPricingService(store, NullLogger<ModelPricingService>.Instance);
+
+        var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
+            context,
+            store,
+            pricing,
+            TestContext.Current.CancellationToken);
+        await result.ExecuteAsync(context);
+
+        Assert.Equal(StatusCodes.Status415UnsupportedMediaType, context.Response.StatusCode);
+        Assert.Equal(OtlpPayloadParser.JsonContentType, context.Response.ContentType);
+        var status = JsonParser.Default.Parse<RpcStatus>(
+            Encoding.UTF8.GetString(ResponseBytes(context)));
+        Assert.Equal(
+            "Content-Type must be application/x-protobuf or application/json; Content-Encoding must be gzip, identity, or absent.",
+            status.Message);
+    }
+
     [Fact]
     public async Task Official_protobuf_trace_decodes_and_converts_without_a_qyl_wire_mirror()
     {
@@ -379,6 +422,16 @@ public sealed class OtlpWireTests
     {
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
+        return context;
+    }
+
+    private static DefaultHttpContext NewOtlpEndpointContext(string contentType, byte[] payload)
+    {
+        var context = NewResponseContext();
+        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
+        context.Request.ContentType = contentType;
+        context.Request.ContentLength = payload.Length;
+        context.Request.Body = new MemoryStream(payload);
         return context;
     }
 

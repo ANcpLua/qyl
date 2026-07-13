@@ -334,6 +334,103 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct);
     }
 
+    public Task<TraceStoragePage> GetTracePageAsync(
+        string projectId,
+        TracePageCursor? cursor,
+        int limit,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (limit < 1)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Trace page limit must be positive.");
+
+        return ExecuteReadAsync(con =>
+        {
+            var heads = new List<(string TraceId, ulong ActivityUnixNano)>(limit + 1);
+            using (var headCommand = con.CreateCommand())
+            {
+                headCommand.CommandText = cursor.HasValue
+                    ? """
+                      WITH trace_heads AS (
+                          SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
+                          FROM spans
+                          WHERE project_id = $1
+                          GROUP BY trace_id
+                      )
+                      SELECT trace_id, activity_unix_nano
+                      FROM trace_heads
+                      WHERE activity_unix_nano < $2
+                         OR (activity_unix_nano = $2 AND trace_id < $3)
+                      ORDER BY activity_unix_nano DESC, trace_id DESC
+                      LIMIT $4
+                      """
+                    : """
+                      WITH trace_heads AS (
+                          SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
+                          FROM spans
+                          WHERE project_id = $1
+                          GROUP BY trace_id
+                      )
+                      SELECT trace_id, activity_unix_nano
+                      FROM trace_heads
+                      ORDER BY activity_unix_nano DESC, trace_id DESC
+                      LIMIT $2
+                      """;
+                headCommand.Parameters.Add(new DuckDBParameter { Value = projectId });
+                if (cursor is { } after)
+                {
+                    headCommand.Parameters.Add(new DuckDBParameter { Value = (decimal)after.ActivityUnixNano });
+                    headCommand.Parameters.Add(new DuckDBParameter { Value = after.TraceId });
+                }
+
+                headCommand.Parameters.Add(new DuckDBParameter { Value = limit + 1 });
+                using var headReader = headCommand.ExecuteReader();
+                while (headReader.Read())
+                {
+                    heads.Add((
+                        DuckDbValueReader.ReadString(headReader, 0, string.Empty),
+                        DuckDbValueReader.ReadUInt64(headReader, 1, 0)));
+                }
+            }
+
+            var hasMore = heads.Count > limit;
+            if (hasMore) heads.RemoveRange(limit, heads.Count - limit);
+            if (heads.Count is 0) return new TraceStoragePage([], HasMore: false);
+
+            var spansByTrace = heads.ToDictionary(
+                static head => head.TraceId,
+                static _ => new List<SpanStorageRow>(),
+                StringComparer.Ordinal);
+            using (var spansCommand = con.CreateCommand())
+            {
+                var placeholders = string.Join(", ",
+                    Enumerable.Range(2, heads.Count).Select(static index =>
+                        "$" + index.ToString(CultureInfo.InvariantCulture)));
+                spansCommand.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
+                                           + " FROM spans WHERE project_id = $1 AND trace_id IN ("
+                                           + placeholders
+                                           + ") ORDER BY trace_id DESC, start_time_unix_nano ASC, span_id ASC";
+                spansCommand.Parameters.Add(new DuckDBParameter { Value = projectId });
+                foreach (var head in heads)
+                    spansCommand.Parameters.Add(new DuckDBParameter { Value = head.TraceId });
+
+                using var spanReader = spansCommand.ExecuteReader();
+                while (spanReader.Read())
+                {
+                    var span = SpanStorageRow.MapFromReader(spanReader);
+                    spansByTrace[span.TraceId].Add(span);
+                }
+            }
+
+            return new TraceStoragePage(
+                [.. heads.Select(head => new TraceStoragePageItem(
+                    head.TraceId,
+                    head.ActivityUnixNano,
+                    spansByTrace[head.TraceId]))],
+                hasMore);
+        }, ct);
+    }
+
 
     public Task<StorageStats> GetStorageStatsAsync(
         string projectId,
@@ -437,12 +534,8 @@ internal sealed partial class DuckDbStore : IQylStore
         int? minSeverity = null,
         string? search = null,
         ulong? start = null,
-        ulong? after = null,
-        string? afterLogId = null,
         ulong? before = null,
         string? serviceName = null,
-        bool ascending = false,
-        bool latestPageAscending = false,
         int limit = 500,
         CancellationToken ct = default)
     {
@@ -468,45 +561,68 @@ internal sealed partial class DuckDbStore : IQylStore
                 qb.Add("service_name = $N", serviceName);
             if (start.HasValue)
                 qb.Add("time_unix_nano >= $N", (decimal)start.Value);
-            if (after.HasValue)
-            {
-                if (string.IsNullOrEmpty(afterLogId))
-                    throw new ArgumentException(
-                        "A log id tie-breaker is required when querying after a timestamp.",
-                        nameof(afterLogId));
-
-                qb.Add(
-                    "(time_unix_nano > $N OR (time_unix_nano = $N AND log_id > $N))",
-                    (decimal)after.Value,
-                    (decimal)after.Value,
-                    afterLogId);
-            }
-
             if (before.HasValue)
                 qb.Add("time_unix_nano <= $N", (decimal)before.Value);
 
             using var cmd = con.CreateCommand();
-            var sortDirection = ascending ? "ASC" : "DESC";
-            if (latestPageAscending)
-            {
-                if (after.HasValue)
-                    throw new ArgumentException(
-                        "Latest-page ascending log queries cannot be combined with an after cursor.",
-                        nameof(after));
+            cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
+                              + " FROM logs " + qb.WhereClause
+                              + " ORDER BY time_unix_nano DESC, log_id DESC LIMIT "
+                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
 
+            qb.ApplyTo(cmd);
+            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                logs.Add(LogStorageRow.MapFromReader(reader));
+
+            return logs;
+        }, ct);
+    }
+
+    public Task<IReadOnlyList<LogStorageRow>> GetLogStreamPageAsync(
+        string projectId,
+        string? serviceName = null,
+        int? minSeverity = null,
+        string? search = null,
+        long? afterIngestSequence = null,
+        int limit = 250,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return ExecuteReadAsync<IReadOnlyList<LogStorageRow>>(con =>
+        {
+            var logs = new List<LogStorageRow>();
+            var qb = new QueryBuilder();
+
+            qb.Add("project_id = $N", projectId);
+            if (!string.IsNullOrEmpty(serviceName))
+                qb.Add("service_name = $N", serviceName);
+            if (minSeverity.HasValue)
+                qb.Add("severity_number >= $N", minSeverity.Value);
+            if (!string.IsNullOrWhiteSpace(search))
+                qb.Add("(body ILIKE $N OR severity_text ILIKE $N OR service_name ILIKE $N OR attributes_json ILIKE $N)",
+                    $"%{search}%");
+            if (afterIngestSequence.HasValue)
+                qb.Add("ingest_sequence > $N", afterIngestSequence.Value);
+
+            using var cmd = con.CreateCommand();
+            if (afterIngestSequence.HasValue)
+            {
                 cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
-                                  + " FROM (SELECT " + LogStorageRow.SelectColumnList
                                   + " FROM logs " + qb.WhereClause
-                                  + " ORDER BY time_unix_nano DESC, log_id DESC LIMIT "
-                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture)
-                                  + ") AS latest_logs ORDER BY time_unix_nano ASC, log_id ASC";
+                                  + " ORDER BY ingest_sequence ASC LIMIT "
+                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture);
             }
             else
             {
                 cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
+                                  + " FROM (SELECT " + LogStorageRow.SelectColumnList
                                   + " FROM logs " + qb.WhereClause
-                                  + " ORDER BY time_unix_nano " + sortDirection + ", log_id " + sortDirection + " LIMIT "
-                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture);
+                                  + " ORDER BY ingest_sequence DESC LIMIT "
+                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture)
+                                  + ") AS latest_logs ORDER BY ingest_sequence ASC";
             }
 
             qb.ApplyTo(cmd);
@@ -819,6 +935,12 @@ internal sealed partial class DuckDbStore : IQylStore
     // index may target a column the migration just added.
     private static void InitializeSchema(DuckDBConnection con)
     {
+        // The live log stream needs a collector-owned monotonic cursor. Producer event timestamps
+        // are routinely delayed/out of order, so assign arrival order inside DuckDB instead.
+        using var logSequenceCmd = con.CreateCommand();
+        logSequenceCmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS logs_ingest_sequence START 1";
+        logSequenceCmd.ExecuteNonQuery();
+
         using var logsCmd = con.CreateCommand();
         logsCmd.CommandText = string.Concat(
             LogStorageRow.CreateTableDdl, "\n",

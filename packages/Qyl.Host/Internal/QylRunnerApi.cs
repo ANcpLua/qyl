@@ -9,6 +9,7 @@ using ContractForbiddenError = Qyl.Api.Contracts.Common.Errors.ForbiddenError;
 using ContractInternalServerError = Qyl.Api.Contracts.Common.Errors.InternalServerError;
 using ContractNotFoundError = Qyl.Api.Contracts.Common.Errors.NotFoundError;
 using ContractProblemDetailsMediaType = Qyl.Api.Contracts.Common.Errors.ProblemDetailsMediaType;
+using ContractServiceUnavailableError = Qyl.Api.Contracts.Common.Errors.ServiceUnavailableError;
 using ContractLogLine = Qyl.Api.Contracts.Runner.RunnerLogLine;
 using ContractResourceState = Qyl.Api.Contracts.Runner.RunnerResourceState;
 
@@ -29,6 +30,12 @@ internal sealed partial class QylRunnerApi(
     IEnumerable<IQylRunnerRequestHandler> requestHandlers,
     ILogger<QylRunnerApi> logger) : BackgroundService
 {
+    internal const int MaxConcurrentRequests = 32;
+    internal const int MaxConcurrentStreams = 8;
+
+    private int _activeRequests;
+    private int _activeStreams;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var prefix = $"{QylConstants.Network.HttpScheme}://{QylConstants.Network.Loopback}:{options.RunnerPort}{QylConstants.Routes.Runner}/";
@@ -69,10 +76,74 @@ internal sealed partial class QylRunnerApi(
             }
 
             handlers.RemoveAll(static task => task.IsCompleted);
-            handlers.Add(HandleAsync(context, stoppingToken));
+
+            var isStream = IsStreamingRequest(context.Request);
+            if (!TryAcquireCapacity(isStream))
+            {
+                try
+                {
+                    await RespondServiceUnavailableAsync(
+                            context,
+                            isStream
+                                ? "runner.stream_capacity"
+                                : "runner.request_capacity")
+                        .ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    AbortResponse(context);
+                }
+
+                continue;
+            }
+
+            handlers.Add(HandleWithCapacityLeaseAsync(context, isStream, stoppingToken));
         }
 
         await Task.WhenAll(handlers).ConfigureAwait(false);
+    }
+
+    private async Task HandleWithCapacityLeaseAsync(
+        HttpListenerContext context,
+        bool isStream,
+        CancellationToken stoppingToken)
+    {
+        try
+        {
+            await HandleAsync(context, stoppingToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (isStream) Interlocked.Decrement(ref _activeStreams);
+            Interlocked.Decrement(ref _activeRequests);
+        }
+    }
+
+    private bool TryAcquireCapacity(bool isStream)
+    {
+        if (!TryIncrementBounded(ref _activeRequests, MaxConcurrentRequests)) return false;
+        if (!isStream || TryIncrementBounded(ref _activeStreams, MaxConcurrentStreams)) return true;
+
+        Interlocked.Decrement(ref _activeRequests);
+        return false;
+    }
+
+    private static bool TryIncrementBounded(ref int value, int maximum)
+    {
+        while (true)
+        {
+            var current = Volatile.Read(ref value);
+            if (current >= maximum) return false;
+            if (Interlocked.CompareExchange(ref value, current + 1, current) == current) return true;
+        }
+    }
+
+    private static bool IsStreamingRequest(HttpListenerRequest request)
+    {
+        var path = (request.Url?.AbsolutePath ?? string.Empty).TrimEnd('/');
+        const string resourcesRoot = QylConstants.Routes.Runner + "/resources";
+        return string.Equals(path, resourcesRoot + "/stream", StringComparison.Ordinal) ||
+               path.EndsWith("/logs/stream", StringComparison.Ordinal);
     }
 
     private async Task HandleAsync(HttpListenerContext context, CancellationToken stoppingToken)
@@ -309,25 +380,31 @@ internal sealed partial class QylRunnerApi(
         context.Response.Headers["Cache-Control"] = "no-cache";
         context.Response.SendChunked = true;
 
+        var lastSequence = ParseLastEventId(context.Request.Headers["Last-Event-ID"]);
         using var subscription = logStore.Subscribe(resource);
         var stream = context.Response.OutputStream;
 
         try
         {
-            foreach (var line in logStore.Snapshot(resource))
+            foreach (var line in logStore.SnapshotAfter(resource, lastSequence))
             {
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
-                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), stoppingToken)
+                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
+                    stoppingToken)
                     .ConfigureAwait(false);
+                lastSequence = line.Sequence;
             }
 
             await foreach (var line in subscription.Events.ReadAllAsync(stoppingToken).ConfigureAwait(false))
             {
+                if (line.Sequence <= lastSequence) continue;
                 var contract = QylRunnerContractMapper.ToContract(line);
                 await WriteFrameAsync(stream,
-                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), stoppingToken)
+                    JsonSerializer.Serialize(contract, QylRunnerJsonContext.Default.RunnerLogLine), line.Sequence,
+                    stoppingToken)
                     .ConfigureAwait(false);
+                lastSequence = line.Sequence;
             }
         }
         catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or IOException)
@@ -346,6 +423,11 @@ internal sealed partial class QylRunnerApi(
             }
         }
     }
+
+    private static long ParseLastEventId(string? value) =>
+        long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence >= 0
+            ? sequence
+            : 0;
 
     private static void NotFound(HttpListenerContext context)
     {
@@ -406,7 +488,7 @@ internal sealed partial class QylRunnerApi(
         ContractResourceState state,
         CancellationToken cancellationToken) =>
         WriteFrameAsync(stream, JsonSerializer.Serialize(state, QylRunnerJsonContext.Default.RunnerResourceState),
-            cancellationToken);
+            eventId: null, cancellationToken);
 
     private static Task RespondNotFoundAsync(HttpListenerContext context, string resource) =>
         RespondProblemAsync(
@@ -468,6 +550,20 @@ internal sealed partial class QylRunnerApi(
             },
             QylRunnerJsonContext.Default.InternalServerError);
 
+    private static Task RespondServiceUnavailableAsync(HttpListenerContext context, string reason) =>
+        RespondProblemAsync(
+            context,
+            HttpStatusCode.ServiceUnavailable,
+            new ContractServiceUnavailableError
+            {
+                ProblemType = new Uri("about:blank"),
+                Title = "Service Unavailable",
+                Status = (int)HttpStatusCode.ServiceUnavailable,
+                Detail = "The runner has reached its bounded concurrent request capacity. Retry after a request completes.",
+                Reason = reason
+            },
+            QylRunnerJsonContext.Default.ServiceUnavailableError);
+
     private static async Task RespondProblemAsync<T>(
         HttpListenerContext context,
         HttpStatusCode status,
@@ -483,11 +579,18 @@ internal sealed partial class QylRunnerApi(
         context.Response.Close();
     }
 
-    private static async Task WriteFrameAsync(Stream stream, string json, CancellationToken cancellationToken)
+    private static async Task WriteFrameAsync(
+        Stream stream,
+        string json,
+        long? eventId,
+        CancellationToken cancellationToken)
     {
         // The TypeSpec SSE variants are explicitly named "message"; EventSource still dispatches
         // that standard event through onmessage while the wire remains contract-exact.
-        var frame = Encoding.UTF8.GetBytes($"event: message\ndata: {json}\n\n");
+        var idLine = eventId.HasValue
+            ? $"id: {eventId.Value.ToString(CultureInfo.InvariantCulture)}\n"
+            : string.Empty;
+        var frame = Encoding.UTF8.GetBytes($"{idLine}event: message\ndata: {json}\n\n");
         await stream.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -517,4 +620,5 @@ internal sealed partial class QylRunnerApi(
 [JsonSerializable(typeof(ContractForbiddenError))]
 [JsonSerializable(typeof(ContractConflictError))]
 [JsonSerializable(typeof(ContractInternalServerError))]
+[JsonSerializable(typeof(ContractServiceUnavailableError))]
 internal sealed partial class QylRunnerJsonContext : JsonSerializerContext;
