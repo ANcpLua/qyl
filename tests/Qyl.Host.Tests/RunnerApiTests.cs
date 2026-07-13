@@ -9,6 +9,7 @@ using Qyl.Host.Internal;
 
 namespace Qyl.Host.Tests;
 
+[Collection(RunnerNetworkTestGroup.Name)]
 public sealed class RunnerApiTests
 {
     [Fact]
@@ -123,14 +124,14 @@ public sealed class RunnerApiTests
             Assert.Equal("Not Found", notFound.Title);
             Assert.Equal("missing", notFound.ResourceId);
 
-            using var streamResponse = await client.GetAsync(
-                new Uri($"http://127.0.0.1:{port}/runner/resources/stream"),
-                HttpCompletionOption.ResponseHeadersRead,
-                lifetime.Token);
-            Assert.Equal(HttpStatusCode.OK, streamResponse.StatusCode);
-            await using (var stream = await streamResponse.Content.ReadAsStreamAsync(lifetime.Token))
-            using (var reader = new StreamReader(stream))
+            using (var streamResponse = await client.GetAsync(
+                       new Uri($"http://127.0.0.1:{port}/runner/resources/stream"),
+                       HttpCompletionOption.ResponseHeadersRead,
+                       lifetime.Token))
             {
+                Assert.Equal(HttpStatusCode.OK, streamResponse.StatusCode);
+                await using var stream = await streamResponse.Content.ReadAsStreamAsync(lifetime.Token);
+                using var reader = new StreamReader(stream);
                 Assert.Equal("event: message", await reader.ReadLineAsync(lifetime.Token));
                 var data = Assert.IsType<string>(await reader.ReadLineAsync(lifetime.Token));
                 Assert.StartsWith("data: ", data, StringComparison.Ordinal);
@@ -139,10 +140,23 @@ public sealed class RunnerApiTests
                 Assert.Equal(string.Empty, await reader.ReadLineAsync(lifetime.Token));
             }
 
+            using var securityHandler = new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                UseProxy = false
+            };
+            using var securityClient = new HttpClient(securityHandler, disposeHandler: false)
+            {
+                DefaultRequestVersion = HttpVersion.Version11,
+                DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
+                Timeout = TimeSpan.FromSeconds(2)
+            };
             using var badHostRequest = new HttpRequestMessage(HttpMethod.Get, resourcesUri);
             badHostRequest.Headers.Host = "attacker.example";
-            using var badHostResponse = await client.SendAsync(badHostRequest, lifetime.Token);
-            Assert.NotEqual(HttpStatusCode.OK, badHostResponse.StatusCode);
+            using var badHostResponse = await securityClient.SendAsync(badHostRequest, lifetime.Token);
+            Assert.Contains(
+                badHostResponse.StatusCode,
+                new[] { HttpStatusCode.Forbidden, HttpStatusCode.NotFound });
 
             using var crossOrigin = new HttpRequestMessage(
                 HttpMethod.Post,
@@ -150,7 +164,7 @@ public sealed class RunnerApiTests
             crossOrigin.Headers.Add("Origin", "https://attacker.example");
             crossOrigin.Headers.Add("Sec-Fetch-Site", "cross-site");
             crossOrigin.Content = JsonContent.Create(new { });
-            using var crossOriginResponse = await client.SendAsync(crossOrigin, lifetime.Token);
+            using var crossOriginResponse = await securityClient.SendAsync(crossOrigin, lifetime.Token);
             Assert.Equal(HttpStatusCode.Forbidden, crossOriginResponse.StatusCode);
             Assert.Equal(ProblemDetailsMediaType.Value, crossOriginResponse.Content.Headers.ContentType?.MediaType);
             var forbidden = await crossOriginResponse.Content.ReadFromJsonAsync<ForbiddenError>(lifetime.Token);
@@ -164,7 +178,7 @@ public sealed class RunnerApiTests
             {
                 Content = new FormUrlEncodedContent([])
             };
-            using var simpleFormResponse = await client.SendAsync(simpleForm, lifetime.Token);
+            using var simpleFormResponse = await securityClient.SendAsync(simpleForm, lifetime.Token);
             Assert.Equal(HttpStatusCode.Forbidden, simpleFormResponse.StatusCode);
         }
         finally

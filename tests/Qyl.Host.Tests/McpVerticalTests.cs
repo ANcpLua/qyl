@@ -14,6 +14,7 @@ using Qyl.Host.Mcp;
 
 namespace Qyl.Host.Tests;
 
+[Collection(RunnerNetworkTestGroup.Name)]
 public sealed class McpVerticalTests
 {
     [Fact]

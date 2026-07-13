@@ -6,6 +6,7 @@ using Qyl.Host.Internal;
 
 namespace Qyl.Host.Tests;
 
+[Collection(RunnerNetworkTestGroup.Name)]
 public sealed class RunnerControlTests
 {
     [Fact]
