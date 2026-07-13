@@ -20,7 +20,9 @@ extensions = ["md"]
 exclude_all_private = true
 
 # Verify that #anchors actually exist in the target document.
-include_fragments = true
+# lychee >= 0.24.2 (action v2.9.0): string enum none|anchor-only|text-only|full;
+# "anchor-only" is the exact semantics of the former `= true`.
+include_fragments = "anchor-only"
 
 timeout = 20
 max_retries = 3
