@@ -1029,3 +1029,28 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   0 hits) — nothing ships publicly until experimental public beta, per the SSOT rule.
   The repo nuget.config stays single-source; the local feed lives only in the
   scratch consumer's config (the trap note in nuget.config remains the guidance).
+- 2026-07-13 — OTel **spec** v1.59.0 assessed: ZERO action across all qyl repos
+  (Claude, on request; grounded against the real v1.58.0…v1.59.0 file diffs, not the
+  changelog alone). It is a specification-repo release — no semconv registry change,
+  no proto change, no wire change — and every qyl surface tracks the REGISTRY pin
+  (1.43.0), which didn't move. Per target: SemanticConventions no regen (watch
+  registry 1.44+, not spec releases); qyl-api-schema untouched (OtelKeysVersion
+  machine-check unaffected); AutoInstrumentation ships NO samplers or env carriers
+  (grep over all 138 .cs: zero) — the clarified Composite/Composable sampler
+  algorithm (`threshold_reliable`→`adjusted_count_reliable`, explicit ShouldSample
+  steps) arrives via a future OTel .NET SDK bump, not code here;
+  storage/instrumentation generators have no spec dependency; profiles change is
+  data-model DOCUMENTATION of the existing v1development format (the breaking event
+  remains proto graduation out of v1development — not yet). TRIGGER SHARPENED, NOT
+  FIRED: "Environment Variables as Context Propagation Carriers"
+  (TRACEPARENT/TRACESTATE) promoted Beta → **Release Candidate**; Qyl.Host's
+  copy-env-inject-spawn composition is exactly the now-blessed application-side
+  pattern, and injecting TRACEPARENT so child telemetry joins a runner-side trace is
+  the natural extension. DECIDED (user-confirmed): record, don't implement — no
+  reachable consumer (the #510 f0e01c82 rule), the .NET SDK doesn't ship the carrier
+  yet (hand-rolling extraction in qyl.instrumentation = the delegate-to-SDK
+  anti-pattern), and RC surface still churns (this very release renamed
+  threshold_reliable). WAKE-UP TRIGGER, now two-headed: implement when (a) a real
+  non-HTTP traceparent gap is hit (the original #510 "later" trigger), OR (b) the
+  OTel .NET SDK ships env-carrier extraction — whichever comes first makes Qyl.Host
+  TRACEPARENT injection a one-liner on the existing WithEnvironment primitive.
