@@ -1082,3 +1082,30 @@ Phase 0 (instruments) is **done**: CI is green and the hygiene sweep landed — 
   published-experimental APIs remain freely adjustable; that freedom ends when
   real external consumers sit on public APIs — breaking-change discipline starts
   at launch, not before. (#510 updated with the same text.)
+- 2026-07-13 — **AutoInstrumentation caught up to the 1.43.0 lockstep; v4.1.0 published +
+  consumed** (Claude, follow-through on the rule-rewrite conversation; two audit agents,
+  findings verified). AUDITS: Qyl.OpenTelemetry.SemanticConventions Analyzers confirmed
+  CURRENT at 1.43.0 — all 1.42 gen_ai split migrations + enum-value deprecations in the
+  catalog, machine-enforced by verify_deprecated_catalog.py against the pinned 1.43.0
+  resolved-registry.json every CI run (1.43.0 itself: zero breaking changes upstream, so
+  "nothing new" is the verified answer); only nit fixed — the Analyzers package README now
+  cites the registry pin + drift gate (e743ce4 in that repo). AutoInstrumentation
+  coverage-matrix.md / COVERAGE_LEDGER.md NOT rotted (generated from docs/contracts/*.yaml,
+  sample-claims code-backed) — but its SemanticConventions pin was 3.0.2 (1.41-era), the
+  lone lockstep straggler. SHIPPED as AutoInstrumentation v4.1.0 (0e46eec, publish run
+  29257125066 success, nuget-indexed): pins 3.0.2→3.4.0; six db.system.name well-known
+  values repointed to the .Incubating assembly (3.3.0 removed non-registry-stable enum
+  members from stable — the exact break the 2026-07-11 matrix pass predicted);
+  WIRE-NEUTRAL PROVEN by the repo's own OTLP verified fixture: the only diff in emitted
+  telemetry was the instrumentation-scope version stamp. En route fixed a latent
+  version-truth failure: the verify-version-sync gate (added in #21) was RED on HEAD —
+  v4.0.1..v4.0.3 were tagged without bumping the Directory.Build.props floor; floor+README
+  now 4.1.0, and CHANGELOG backfilled the missing v4.0.1/v4.0.2/v4.0.3 sections (the old
+  [Unreleased] content had actually shipped in v4.0.3). Full no-Docker validation floor
+  green incl. BOTH otlp fixture gates (note: the goal-gate skip token "otlp collector
+  fixtures" does not cover the differently-named "otlp verified fixtures" gate). Branch
+  hygiene: 4 stale branches deleted (3 git-cherry-merged + otel-terminology squash-merged
+  via #19); fix/dbcontract-default-throw-and-dead-field KEPT — PR #26 closed UNMERGED, so
+  it is genuinely unfinished work (TCG receiver-types feature + generator fix). qyl side
+  (this commit): Directory.Packages.props AutoInstrumentation 4.0.3→4.1.0 restored from
+  nuget.org; build 0W/0E; Verify green.
