@@ -20,6 +20,7 @@ import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
+import {OnboardingHint} from '@/components/OnboardingHint';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
 import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
@@ -639,7 +640,13 @@ export function LogsPage() {
                 className="flex-1 overflow-auto relative"
                 style={{contain: 'strict'}}
             >
-                {filteredLogs.length === 0 ? (
+                {logs.length === 0 ? (
+                    <OnboardingHint
+                        icon={FileText}
+                        title="No logs found"
+                        description="Wait for new logs or connect a service"
+                    />
+                ) : filteredLogs.length === 0 ? (
                     <div className="py-12 text-center text-brutal-slate">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-50"/>
                         <p>No logs found</p>

@@ -9,6 +9,7 @@ import {Input} from '@/components/ui/input';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
 import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
+import {OnboardingHint} from '@/components/OnboardingHint';
 import {
     formatDuration,
     formatTimestamp,
@@ -419,8 +420,11 @@ export function TracesPage() {
         const result: FlattenedSpan[] = [];
         const filterLower = filterText.toLowerCase();
 
+        // Partial trace data may omit ancestors; treat spans whose parent is not
+        // loaded as roots so they still render.
+        const loadedSpanIds = new Set(spans.map((s) => s.span_id));
         const rootSpans = spans
-            .filter((s) => !s.parent_span_id)
+            .filter((s) => !s.parent_span_id || !loadedSpanIds.has(s.parent_span_id))
             .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
 
         const matchesFilter = (span: TelemetrySpan): boolean => {
@@ -549,11 +553,11 @@ export function TracesPage() {
                             <div className="animate-spin h-8 w-8 border-b-2 border-primary"/>
                         </div>
                     ) : spans.length === 0 ? (
-                        <div className="py-12 text-center text-brutal-slate">
-                            <Network className="w-12 h-12 mx-auto mb-4 opacity-50"/>
-                            <p>No traces found</p>
-                            <p className="text-sm">Select a session or wait for telemetry data</p>
-                        </div>
+                        <OnboardingHint
+                            icon={Network}
+                            title="No traces found"
+                            description="Select a session or wait for telemetry data"
+                        />
                     ) : (
                         <div
                             style={{

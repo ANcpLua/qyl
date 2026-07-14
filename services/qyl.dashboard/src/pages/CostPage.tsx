@@ -3,6 +3,7 @@ import {CircleDollarSign} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
+import {OnboardingHint} from '@/components/OnboardingHint';
 import {useSessions} from '@/hooks/use-telemetry';
 import type {SessionEntity} from '@/types';
 
@@ -138,10 +139,11 @@ export function CostPage() {
                     {isLoading ? (
                         <div className="p-6 text-sm text-brutal-slate">Loading sessions…</div>
                     ) : rows.length === 0 ? (
-                        <div className="p-6 text-sm text-brutal-slate">
-                            No GenAI usage recorded yet. Sessions gain cost data once spans carry
-                            gen_ai token usage and a pricing profile matches the model.
-                        </div>
+                        <OnboardingHint
+                            icon={CircleDollarSign}
+                            title="No GenAI usage recorded yet"
+                            description="Sessions gain cost data once spans carry gen_ai token usage and a pricing profile matches the model."
+                        />
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
