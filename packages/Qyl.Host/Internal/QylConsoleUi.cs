@@ -165,9 +165,6 @@ internal sealed class QylConsoleUi(
         }
     }
 
-    // [B] opens the thing a developer is iterating on: the first Ready dev-command resource (a Vite
-    // dashboard in `--dev`) wins over the collector's embedded dashboard; with no command resources
-    // the first Ready endpoint (the collector, which serves the built dashboard) opens instead.
     private void OpenBrowser()
     {
         var endpoint = resources
@@ -209,8 +206,6 @@ internal sealed class QylConsoleUi(
         }
     }
 
-    // The table has no row selection, so [R] requests every launched process resource. The same
-    // acknowledged orchestrator path backs the loopback HTTP action endpoint.
     private async Task RequestRestartsAsync(CancellationToken cancellationToken)
     {
         var accepted = 0;

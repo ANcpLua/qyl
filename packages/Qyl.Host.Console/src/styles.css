@@ -117,7 +117,6 @@ body {
 .logline { white-space: pre-wrap; word-break: break-word; color: #c9d4e0; }
 .logline.err-line { color: #f87171; }
 
-/* MCP tools panel (Qyl.Host.Mcp passthrough) */
 .tool {
   background: none;
   border: 1px solid var(--line);

@@ -12,10 +12,6 @@ Set-StrictMode -Version 2.0; $ErrorActionPreference = "Stop"; $ConfirmPreference
 }
 $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent
 
-###########################################################################
-# CONFIGURATION
-###########################################################################
-
 $BuildProjectFile = "$PSScriptRoot\build\build.csproj"
 $TempDirectory = "$PSScriptRoot\\.nuke\temp"
 
@@ -26,10 +22,6 @@ $DotNetChannel = "STS"
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = 1
 $env:DOTNET_NOLOGO = 1
 
-###########################################################################
-# EXECUTION
-###########################################################################
-
 function ExecSafe([scriptblock] $cmd)
 {
     & $cmd
@@ -39,7 +31,6 @@ function ExecSafe([scriptblock] $cmd)
     }
 }
 
-# If dotnet CLI is installed globally and it matches requested version, use for execution
 if ($null -ne (Get-Command "dotnet" -ErrorAction SilentlyContinue) -and             `
                  $( dotnet --version ) -and $LASTEXITCODE -eq 0)
 {
@@ -47,13 +38,11 @@ if ($null -ne (Get-Command "dotnet" -ErrorAction SilentlyContinue) -and         
 }
 else
 {
-    # Download install script
     $DotNetInstallFile = "$TempDirectory\dotnet-install.ps1"
     New-Item -ItemType Directory -Path $TempDirectory -Force | Out-Null
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     (New-Object System.Net.WebClient).DownloadFile($DotNetInstallUrl, $DotNetInstallFile)
 
-    # If global.json exists, load expected version
     if (Test-Path $DotNetGlobalFile)
     {
         $DotNetGlobal = $( Get-Content $DotNetGlobalFile | Out-String | ConvertFrom-Json )
@@ -63,7 +52,6 @@ else
         }
     }
 
-    # Install by channel or version
     $DotNetDirectory = "$TempDirectory\dotnet-win"
     if (!(Test-Path variable:DotNetVersion))
     {

@@ -135,11 +135,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
 
-        // Wire qyl ServiceDefaults (conventions, generated service + health-check registration, and
-        // default endpoints) at the single WebApplicationBuilder.Build() call site, then build the host.
-        // The OTel ASP.NET Core server-span middleware is registered independently via
-        // AddQylAspNetCoreInstrumentation() (an IStartupFilter); composing it here would contend with the
-        // OTel package for the Build() call site (CS9153 duplicate interceptor).
+        // Keep ASP.NET Core instrumentation registration independent; composing it into this
+        // Build() interceptor collides with OpenTelemetry's interceptor (CS9153).
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}

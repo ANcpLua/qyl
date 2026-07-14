@@ -99,7 +99,6 @@ void Check(string label, bool ok)
 
 internal static class SmokeServer
 {
-    // Same server shape as McpVerticalTests: one echo tool, one static resource.
     public static McpServerOptions Options() => new()
     {
         ServerInfo = new Implementation { Name = "aot-smoke-server", Version = "1.0.0" },

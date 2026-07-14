@@ -20,17 +20,14 @@ export type {
     Trace,
 } from '@ancplua/qyl-api-schema/types';
 
-/** Convert nanoseconds to milliseconds. */
 export function nsToMs(ns: number): number {
     return ns / 1_000_000;
 }
 
-/** Convert a nanosecond Unix timestamp to ISO 8601. */
 export function nanoToIso(nanos: number): string {
     return new Date(nanos / 1_000_000).toISOString();
 }
 
-/** Get span attributes as a key/value record for UI lookup. */
 export function getAttributesRecord(span: Span): Record<string, unknown> {
     if (!span.attributes) return {};
     const result: Record<string, unknown> = {};
@@ -55,10 +52,8 @@ export function getStatusLabel(code: SpanStatusCode): string {
     }
 }
 
-/** Display level derived from the OTel numeric/text severity pair. */
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
-/** Dashboard-only projection optimized for rendering and filtering log rows. */
 export interface LogViewRecord {
     timestamp: string;
     observedTimestamp: string;

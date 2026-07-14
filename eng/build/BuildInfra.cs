@@ -26,7 +26,6 @@ interface IDocker : IHazSourcePaths
     [Parameter("Compose service name to target (used by DockerLogs)")]
     string? Service => TryGetValue(() => Service);
 
-    // The collector image embeds the dashboard and owns the single product origin.
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [
         ("qyl-collector", CollectorDirectory / "Dockerfile", FormatImageName("qyl-collector"))

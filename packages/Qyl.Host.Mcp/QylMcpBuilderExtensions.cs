@@ -12,10 +12,9 @@ using Qyl.Host;
 namespace Qyl.Host.Mcp;
 
 /// <summary>
-/// MCP resource kinds for the qyl runner — the C# port of qyl.mcp's TS app-builder surface.
-/// All three are connection-only resources: readiness is <see cref="McpHandshakeProbe"/>
-/// (initialize + tools/list), the live client lands in <see cref="McpClientRegistry"/>, and
-/// the <c>/runner/mcp</c> passthrough (plus export of the official MCP SDK ActivitySource) is wired on first use.
+/// Adds connection-only MCP resources. Readiness requires initialize plus tools/list;
+/// connected clients back <c>/runner/mcp</c> passthrough, and official SDK tracing is
+/// configured once.
 /// </summary>
 public static class QylMcpBuilderExtensions
 {
@@ -25,8 +24,7 @@ public static class QylMcpBuilderExtensions
     internal const string OfficialDiagnosticsName = "Experimental.ModelContextProtocol";
 
     /// <summary>
-    /// MCP server as an SDK-spawned stdio child (the SDK transport owns the process). Mirrors
-    /// qyl.mcp's <c>addServer(kind: "stdio")</c>.
+    /// Starts an MCP stdio child whose process lifecycle is owned by the SDK transport.
     /// </summary>
     public static IQylResourceBuilder AddMcpStdio(this QylAppBuilder app, string name, string command,
         IEnumerable<string>? arguments = null, string? workingDirectory = null)
@@ -50,8 +48,7 @@ public static class QylMcpBuilderExtensions
     }
 
     /// <summary>
-    /// Already-running MCP server reached over HTTP (streamable HTTP / SSE). Mirrors qyl.mcp's
-    /// <c>addServer(kind: "http")</c>.
+    /// Connects to an already-running MCP server over Streamable HTTP or SSE.
     /// </summary>
     public static IQylResourceBuilder AddMcpHttp(this QylAppBuilder app, string name, Uri endpoint)
     {
@@ -67,12 +64,9 @@ public static class QylMcpBuilderExtensions
     }
 
     /// <summary>
-    /// MCP server hosted inside the runner process over an in-memory stream pair — qyl.mcp's
-    /// <c>addInProcessServer(name, serverFactory)</c> (its <c>InMemoryTransport.createLinkedPair()</c>).
-    /// The factory receives the server-side transport because the C# SDK couples server and
-    /// transport at <see cref="McpServer.Create"/> (and its Core package exposes the abstract
-    /// <see cref="McpServer"/>, not an interface); return the created server and the runner
-    /// runs it for the composition's lifetime.
+    /// Hosts an MCP server over linked in-memory transports. Because
+    /// <see cref="McpServer.Create"/> binds the server to its transport, the factory receives
+    /// the server-side transport; the runner owns the returned server for the composition lifetime.
     /// </summary>
     public static IQylResourceBuilder AddMcpInProcess(this QylAppBuilder app, string name,
         Func<ITransport, McpServer> serverFactory)

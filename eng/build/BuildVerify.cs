@@ -2381,6 +2381,7 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "PdbSourceResolver.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocation.cs",
                 RootDirectory / "services" / "qyl.collector" / "Ingestion" / "SourceLocationCache.cs",
+                RootDirectory / "services" / "qyl.dashboard" / "railway.toml",
                 RootDirectory / "services" / "qyl.dashboard" / "src" / "lib" / "semconv.ts",
                 RootDirectory / "eng" / "build" / "BuildTest.cs",
                 RootDirectory / "eng" / "build" / "BuildCoverage.cs",

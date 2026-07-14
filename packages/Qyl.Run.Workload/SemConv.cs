@@ -2,11 +2,8 @@ using Qyl.OpenTelemetry.SemanticConventions.SourceGeneration;
 
 namespace Qyl.Run.Workload;
 
-// The generator fuses typed members onto these partials from the embedded semconv
-// registry (core 1.43.0 + dev GenAI). gen_ai and session are development-stability,
-// so they need the Incubating markers — a stable marker would generate an empty class.
-// One tier per prefix per namespace: stable + incubating together would make the
-// generated extension-method signatures ambiguous at call sites.
+// Each prefix must use one stability tier; mixing stable and incubating markers
+// generates ambiguous extension methods. gen_ai and session are incubating.
 
 [SemanticConventionActivities("http")]
 internal static partial class HttpSpans;

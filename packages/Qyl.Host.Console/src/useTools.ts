@@ -6,10 +6,6 @@ import type {
   RunnerMcpToolsResponse,
 } from "@ancplua/qyl-api-schema/types";
 
-// MCP tools for a selected resource, via the runner's /runner/mcp passthrough (Qyl.Host.Mcp).
-// Converged from qyl.mcp/dashboard's useTools; the ext-apps App rendering stays with that
-// dashboard until the C# runner grows a sandbox origin.
-
 export type ToolsState =
   | { phase: "idle" }
   | { phase: "loading" }
@@ -50,7 +46,6 @@ export function useTools(resource: string | null, isMcp: boolean): ToolsState {
   return state;
 }
 
-/** Calls a tool through the passthrough; returns the raw result JSON (pretty-printed). */
 export async function callTool(resource: string, tool: string, argsJson: string): Promise<string> {
   const args = argsJson.trim() ? (JSON.parse(argsJson) as Record<string, unknown>) : {};
   const request: RunnerMcpToolCallRequest = { name: tool, arguments: args };

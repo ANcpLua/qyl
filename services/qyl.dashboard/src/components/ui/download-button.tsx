@@ -5,26 +5,15 @@ import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 import {downloadData, type ExportFormat} from '@/lib/download';
 
 export interface DownloadButtonProps<T extends Record<string, unknown>> {
-    /** Function that returns the data to export (called when user clicks download) */
     getData: () => T[];
-    /** Prefix for the filename (e.g., 'logs', 'traces', 'genai-spans') */
     filenamePrefix: string;
-    /** Optional array of column keys to include in CSV export */
     columns?: string[];
-    /** Button variant */
     variant?: 'default' | 'outline' | 'secondary' | 'ghost';
-    /** Button size */
     size?: 'default' | 'sm' | 'lg' | 'icon';
-    /** Whether the button is disabled */
     disabled?: boolean;
-    /** Custom class name */
     className?: string;
 }
 
-/**
- * Download button with dropdown for format selection (JSON/CSV).
- * Uses browser download API - no backend changes required.
- */
 export function DownloadButton<T extends Record<string, unknown>>({
                                                                       getData,
                                                                       filenamePrefix,

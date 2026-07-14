@@ -12,13 +12,11 @@ export function DashboardLayout() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    // Keyboard shortcuts
     const keyboard = useKeyboardShortcuts();
     useNavigationShortcuts(navigate, keyboard.registerShortcut);
     const {isModalOpen, setModalOpen} = keyboard;
 
     const handleRefresh = useCallback(() => {
-        // Invalidate all telemetry queries and dispatch refresh event
         queryClient.invalidateQueries({queryKey: telemetryKeys.all});
         window.dispatchEvent(new CustomEvent('qyl:refresh'));
     }, [queryClient]);
@@ -42,7 +40,6 @@ export function DashboardLayout() {
                 </div>
             </div>
 
-            {/* Keyboard Shortcuts Help Modal */}
             <KeyboardShortcutsModal
                 open={isModalOpen}
                 onOpenChange={setModalOpen}

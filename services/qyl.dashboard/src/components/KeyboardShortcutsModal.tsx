@@ -7,13 +7,11 @@ interface ShortcutItem {
 }
 
 const shortcuts: ShortcutItem[] = [
-    // Navigation
     {key: 'R', description: 'Go to Resources', category: 'navigation'},
     {key: 'T', description: 'Go to Traces', category: 'navigation'},
     {key: 'C', description: 'Go to Console / Logs', category: 'navigation'},
     {key: 'A', description: 'Go to Agents', category: 'navigation'},
     {key: ',', description: 'Open Settings', category: 'navigation'},
-    // Actions
     {key: '?', description: 'Show keyboard shortcuts', category: 'actions'},
     {key: 'Esc', description: 'Close panel / Clear selection', category: 'actions'},
 ];
@@ -41,7 +39,6 @@ export function KeyboardShortcutsModal({
                 </DialogHeader>
 
                 <div className="space-y-6">
-                    {/* Navigation */}
                     <div>
                         <h3 className="section-header mb-3">Navigation</h3>
                         <div className="space-y-2">
@@ -55,7 +52,6 @@ export function KeyboardShortcutsModal({
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div>
                         <h3 className="section-header mb-3">Actions</h3>
                         <div className="space-y-2">
@@ -87,7 +83,6 @@ function ShortcutRow({
     shortcutKey: string;
     description: string;
 }) {
-    // Split compound keys (e.g., "Ctrl + /")
     const keys = shortcutKey.split(' + ');
 
     return (

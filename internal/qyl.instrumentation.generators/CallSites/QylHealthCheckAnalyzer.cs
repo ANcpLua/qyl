@@ -25,7 +25,6 @@ internal static class QylHealthCheckAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol { IsAbstract: false } classSymbol)
             return null;
 
-        // ForAttributeWithMetadataName already filtered to [QylHealthCheck]; read the match directly.
         if (context.Attributes is not [{ } attr, ..])
             return null;
 

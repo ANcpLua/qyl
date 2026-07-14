@@ -47,8 +47,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         if (!typeDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
             return null;
 
-        // ForAttributeWithMetadataName already guarantees this target carries [DuckDbTable],
-        // so read the matched attribute directly instead of re-resolving its type per target.
         if (ctx.Attributes is not [{ } tableAttr, ..])
             return null;
 
@@ -75,7 +73,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         if (tableName is not { Length: > 0 })
             return null;
 
-        // Resolve the per-property attribute types once per table, not once per property.
         var compilation = ctx.SemanticModel.Compilation;
         var columnAttributeType = compilation.GetTypeByMetadataName(DuckDbColumnAttribute);
         var ignoreAttributeType = compilation.GetTypeByMetadataName(DuckDbIgnoreAttribute);

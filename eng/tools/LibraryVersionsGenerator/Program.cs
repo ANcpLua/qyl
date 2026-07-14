@@ -53,7 +53,6 @@ internal static class Program
                 {
                     var isPlatformSpecific = false;
 
-                    // Collects versions with platform specific flag
                     if (version.SupportedPlatforms.Length != 0)
                     {
                         isPlatformSpecific = true;
@@ -72,7 +71,6 @@ internal static class Program
 
                     if (version.GetType() == typeof(PackageVersion))
                     {
-                        // Filter platform specific version
                         if (!isPlatformSpecific)
                         {
                             xUnitFileStringBuilder.AddVersion(calculatedVersion, version.SupportedExecutionFrameworks);
@@ -82,7 +80,6 @@ internal static class Program
                     }
                     else
                     {
-                        // Filter platform specific version
                         if (!isPlatformSpecific)
                         {
                             xUnitFileStringBuilder.AddVersionWithDependencies(calculatedVersion, GetDependencies(version), version.SupportedExecutionFrameworks, version.SupportedPlatforms);
@@ -96,7 +93,6 @@ internal static class Program
             xUnitFileStringBuilder.EndTestPackage();
             buildFileStringBuilder.EndTestPackage();
 
-            // Generates platform specific entry
             if (platformVersions.Count != 0)
             {
                 foreach (var platform in platformVersions)
@@ -116,7 +112,6 @@ internal static class Program
             }
         }
 
-        // Generate map for all properties
         xUnitFileStringBuilder.BuildLookupMap(PackageVersionDefinitions.Definitions, additionalPlatforms);
 
         xUnitFileStringBuilder.EndClass();

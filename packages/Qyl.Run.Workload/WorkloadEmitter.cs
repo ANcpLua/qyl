@@ -4,16 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Qyl.Run.Workload;
 
-/// <summary>
-/// Continuously emits realistic gen_ai + http + db traces and logs so a demo
-/// collector has something to show. Every span attribute flows through the SemConv
-/// source-generated surface — no hand-rolled attribute strings.
-/// </summary>
 internal sealed partial class WorkloadEmitter(
     ILogger<WorkloadEmitter> logger,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
-    // A handful of concurrent "users"; each runs conversations under a rotating session.id.
     private const int SessionLoops = 3;
 
     private const int ErrorPercent = 7;
@@ -77,10 +71,8 @@ internal sealed partial class WorkloadEmitter(
     }
 
     /// <summary>
-    /// One trace: an inbound HTTP request that reads conversation state from the database,
-    /// then calls a model. The gen_ai span carries session.id + token usage — the keys the
-    /// collector projects into session analytics. Span names never start with "invoke_agent"
-    /// (the session aggregates exclude those as double-counting roll-ups).
+    /// Avoids the <c>invoke_agent</c> prefix because session aggregation treats those spans
+    /// as roll-ups and would double-count them.
     /// </summary>
     private async Task EmitConversationTurnAsync(string sessionId, CancellationToken stoppingToken)
     {

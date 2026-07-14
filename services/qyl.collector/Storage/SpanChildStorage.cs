@@ -3,7 +3,6 @@ using Qyl.Collector.Ingestion;
 
 namespace Qyl.Collector.Storage;
 
-/// <summary>Persisted JSON shape for a span event: name, timestamp, and its (safe) attributes JSON.</summary>
 internal sealed class SpanEventJson
 {
     public string Name { get; set; } = "";
@@ -11,7 +10,6 @@ internal sealed class SpanEventJson
     public string? AttributesJson { get; set; }
 }
 
-/// <summary>Persisted JSON shape for a span link: linked trace/span ids and its (safe) attributes JSON.</summary>
 internal sealed class SpanLinkJson
 {
     public string TraceId { get; set; } = "";
@@ -19,10 +17,6 @@ internal sealed class SpanLinkJson
     public string? AttributesJson { get; set; }
 }
 
-/// <summary>
-/// Serializes a span's events and links to JSON for the spans row. Each child's attributes reuse the
-/// same safe-attribute JSON as the span.
-/// </summary>
 internal static class SpanChildStorage
 {
     public static string? SerializeEvents(IReadOnlyList<SpanEventIngest> events)

@@ -5,11 +5,9 @@ using Qyl.Host;
 namespace Qyl.Host.Mcp;
 
 /// <summary>
-/// MCP readiness: a server is ready when it completes the <c>initialize</c> handshake
-/// (performed by <see cref="McpClient.CreateAsync"/>) AND answers <c>tools/list</c> — the
-/// same two-step gate qyl.mcp's TS orchestrator applies before publishing Ready. On success
-/// the connected client is parked in the <see cref="McpClientRegistry"/> for the passthrough;
-/// an HTTP route appearing is meaningless for an MCP server, hence no HTTP health probe.
+/// Readiness requires an initialized client that answers <c>tools/list</c>; HTTP
+/// reachability is insufficient. Successful connections are registered in
+/// <see cref="McpClientRegistry"/> for passthrough.
 /// </summary>
 internal sealed class McpHandshakeProbe(
     Func<QylResourceState, CancellationToken, Task<McpConnection>> connect,

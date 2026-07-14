@@ -1,5 +1,3 @@
-// UI Component Barrel Export
-// Re-exports all shadcn/ui components for convenient importing
 
 export {Badge, badgeVariants, type BadgeProps} from './badge';
 export {Button, buttonVariants, type ButtonProps} from './button';

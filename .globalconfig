@@ -1,117 +1,78 @@
-# =============================================================================
-# qyl Global Analyzer Config - Baseline Severities
-# =============================================================================
-# This file sets project-wide analyzer defaults.
-# EditorConfig (.editorconfig) entries win if they conflict.
-# global_level = 100 ensures this overrides SDK-bundled configs (which use 0)
-# =============================================================================
+# Level 100 gives this file precedence over lower-level SDK global analyzer configs.
 
 is_global = true
 global_level = 100
 
-# =============================================================================
-# ASYNC ANALYZERS (VSTHRD)
-# =============================================================================
+dotnet_diagnostic.VSTHRD001.severity = error
+dotnet_diagnostic.VSTHRD002.severity = error
+dotnet_diagnostic.VSTHRD003.severity = error
+dotnet_diagnostic.VSTHRD010.severity = error
+dotnet_diagnostic.VSTHRD011.severity = error
+dotnet_diagnostic.VSTHRD100.severity = error
+dotnet_diagnostic.VSTHRD101.severity = error
+dotnet_diagnostic.VSTHRD102.severity = error
+dotnet_diagnostic.VSTHRD103.severity = error
+dotnet_diagnostic.VSTHRD104.severity = error
+dotnet_diagnostic.VSTHRD105.severity = error
+dotnet_diagnostic.VSTHRD106.severity = error
+dotnet_diagnostic.VSTHRD107.severity = error
+dotnet_diagnostic.VSTHRD110.severity = error
+dotnet_diagnostic.VSTHRD111.severity = warning
+dotnet_diagnostic.VSTHRD200.severity = error
 
-dotnet_diagnostic.VSTHRD001.severity = error   # Avoid legacy thread switching
-dotnet_diagnostic.VSTHRD002.severity = error   # Avoid problematic synchronous waits
-dotnet_diagnostic.VSTHRD003.severity = error   # Avoid awaiting foreign Tasks
-dotnet_diagnostic.VSTHRD010.severity = error   # Invoke single-threaded types on Main thread
-dotnet_diagnostic.VSTHRD011.severity = error   # Use AsyncLazy<T>
-dotnet_diagnostic.VSTHRD100.severity = error   # Avoid async void methods
-dotnet_diagnostic.VSTHRD101.severity = error   # Avoid unsupported async delegates
-dotnet_diagnostic.VSTHRD102.severity = error   # Implement internal logic asynchronously
-dotnet_diagnostic.VSTHRD103.severity = error   # Call async methods when in async method
-dotnet_diagnostic.VSTHRD104.severity = error   # Offer async option
-dotnet_diagnostic.VSTHRD105.severity = error   # Avoid implicit Task.Result
-dotnet_diagnostic.VSTHRD106.severity = error   # Use InvokeAsync for async callbacks
-dotnet_diagnostic.VSTHRD107.severity = error   # Await Task within using
-dotnet_diagnostic.VSTHRD110.severity = error   # Observe result of async calls
-dotnet_diagnostic.VSTHRD111.severity = warning # ConfigureAwait (warning, not error)
-dotnet_diagnostic.VSTHRD200.severity = error   # Use Async suffix
+# ASP.NET Core has no SynchronizationContext; packable libraries re-enable CA2007 in .editorconfig.
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA2008.severity = error
+dotnet_diagnostic.CA2012.severity = error
+dotnet_diagnostic.CA2016.severity = error
 
-# =============================================================================
-# ASYNC ANALYZERS (CA)
-# =============================================================================
-
-dotnet_diagnostic.CA2007.severity = none    # ConfigureAwait - not needed in ASP.NET Core (no SynchronizationContext)
-dotnet_diagnostic.CA2008.severity = error   # Do not create tasks without TaskScheduler
-dotnet_diagnostic.CA2012.severity = error   # Use ValueTasks correctly
-dotnet_diagnostic.CA2016.severity = error   # Forward CancellationToken
-
-# =============================================================================
-# CODE QUALITY (CA)
-# =============================================================================
-
-dotnet_diagnostic.CA1816.severity = error   # Dispose pattern
-dotnet_diagnostic.CA1822.severity = warning # Mark members as static
-dotnet_diagnostic.CA1848.severity = warning # Use LoggerMessage delegates
-dotnet_diagnostic.CA1860.severity = error   # Avoid using 'Enumerable.Any()' extension method
-dotnet_diagnostic.CA1861.severity = error   # Avoid constant arrays as arguments
-dotnet_diagnostic.CA2254.severity = warning # Template should be static
-
-# =============================================================================
-# NAMING (IDE)
-# =============================================================================
+dotnet_diagnostic.CA1816.severity = error
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1848.severity = warning
+dotnet_diagnostic.CA1860.severity = error
+dotnet_diagnostic.CA1861.severity = error
+dotnet_diagnostic.CA2254.severity = warning
 
 # Allow 'qyl' brand namespace (lowercase is intentional brand decision)
 # Per dotnet/roslyn#29944: Brand names are legitimate exceptions
 dotnet_diagnostic.IDE1006.severity = suggestion
 
-# =============================================================================
-# STYLE (IDE) - Static lambdas
-# =============================================================================
+dotnet_diagnostic.IDE0200.severity = warning
 
-dotnet_diagnostic.IDE0200.severity = warning  # Lambda can be made static
+dotnet_diagnostic.CS1591.severity = none
 
-# =============================================================================
-# COMPILER DIAGNOSTICS (CS)
-# =============================================================================
-
-dotnet_diagnostic.CS1591.severity = none # Missing XML comment (disabled globally)
-
-# =============================================================================
-# ANcpLua.Analyzers (AL) — sorted by ascending rule ID
-# =============================================================================
-
-dotnet_diagnostic.AL1000.severity = error      # Primary constructor reassignment
-dotnet_diagnostic.AL1001.severity = warning    # Repeated negated patterns
-dotnet_diagnostic.AL1002.severity = error      # Division by zero
-dotnet_diagnostic.AL1003.severity = warning    # Span pattern matching
-dotnet_diagnostic.AL1004.severity = warning    # Span SequenceEqual
-dotnet_diagnostic.AL1005.severity = warning    # Field/parameter name conflict
-dotnet_diagnostic.AL1006.severity = error      # GetSchema explicit implementation
-dotnet_diagnostic.AL1007.severity = error      # GetSchema returns null
-dotnet_diagnostic.AL1008.severity = error      # Don't call GetSchema
-dotnet_diagnostic.AL1009.severity = warning    # Lock on non-Lock
-dotnet_diagnostic.AL1010.severity = suggestion # Pattern matching style
-dotnet_diagnostic.AL1011.severity = suggestion # Null-guard style
-dotnet_diagnostic.AL1012.severity = suggestion # Declaration + null-check
-dotnet_diagnostic.AL1100.severity = error      # IFormCollection attribute
-dotnet_diagnostic.AL1101.severity = error      # Multiple form sources
-dotnet_diagnostic.AL1102.severity = error      # Mixed form collection/DTO
-dotnet_diagnostic.AL1103.severity = error      # Unsupported form type
-dotnet_diagnostic.AL1104.severity = error      # Form/body conflict
+dotnet_diagnostic.AL1000.severity = error
+dotnet_diagnostic.AL1001.severity = warning
+dotnet_diagnostic.AL1002.severity = error
+dotnet_diagnostic.AL1003.severity = warning
+dotnet_diagnostic.AL1004.severity = warning
+dotnet_diagnostic.AL1005.severity = warning
+dotnet_diagnostic.AL1006.severity = error
+dotnet_diagnostic.AL1007.severity = error
+dotnet_diagnostic.AL1008.severity = error
+dotnet_diagnostic.AL1009.severity = warning
+dotnet_diagnostic.AL1010.severity = suggestion
+dotnet_diagnostic.AL1011.severity = suggestion
+dotnet_diagnostic.AL1012.severity = suggestion
+dotnet_diagnostic.AL1100.severity = error
+dotnet_diagnostic.AL1101.severity = error
+dotnet_diagnostic.AL1102.severity = error
+dotnet_diagnostic.AL1103.severity = error
+dotnet_diagnostic.AL1104.severity = error
 # AL1600: Hardcoded version rule is for SDK development, not consumer projects using CPM
 dotnet_diagnostic.AL1600.severity = none
-dotnet_diagnostic.AL1700.severity = warning    # Static lambda
-
-# =============================================================================
-# ANALYZER INFRASTRUCTURE (RS)
-# =============================================================================
+dotnet_diagnostic.AL1700.severity = warning
 
 # RS0030 severity is controlled by SDK (warning) + EditorConfig patterns
 # Do NOT set to error here - globalconfig at level 100 overrides EditorConfig
 # patterns for generated files, causing false positives from MS source generators
 
-# =============================================================================
-# DTO/WIRE FORMAT EXCEPTIONS
-# Per dotnet/roslyn-analyzers#1705: DTOs and protobuf types are legitimate exceptions
-# =============================================================================
+# Keep DTO, protobuf, and builder-shape diagnostics reviewable rather than build-blocking.
 
-dotnet_diagnostic.CA1002.severity = suggestion # List<T> OK for DTOs/protobuf
-dotnet_diagnostic.CA1819.severity = suggestion # Array properties OK for DTOs
-dotnet_diagnostic.CA1034.severity = suggestion # Nested types OK for builders
-dotnet_diagnostic.CA1054.severity = suggestion # String URLs OK for JSON DTOs
-dotnet_diagnostic.CA1056.severity = suggestion # String URL properties OK for JSON
-dotnet_diagnostic.CA2100.severity = suggestion # SQL review - verified parameterized
+dotnet_diagnostic.CA1002.severity = suggestion
+dotnet_diagnostic.CA1819.severity = suggestion
+dotnet_diagnostic.CA1034.severity = suggestion
+dotnet_diagnostic.CA1054.severity = suggestion
+dotnet_diagnostic.CA1056.severity = suggestion
+# Dynamic SQL is closed or generated; request data is bound and operator SET literals are escaped.
+dotnet_diagnostic.CA2100.severity = suggestion

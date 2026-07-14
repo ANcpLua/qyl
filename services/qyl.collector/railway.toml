@@ -1,8 +1,5 @@
-# Railway deployment config for qyl.collector.
-# Point your Railway service's "Root Directory" at `services/qyl.collector/` and it will
-# pick this file up automatically; the build context is still the repo root because
-# `dockerfilePath` is relative to it (the Dockerfile COPYs from `packages/`, `internal/`,
-# etc.).
+# Keep Railway's Root Directory at `/` so the Docker build can copy sibling projects.
+# Set the service config path to `/services/qyl.collector/railway.toml`.
 
 [build]
 builder = "DOCKERFILE"
@@ -15,19 +12,8 @@ healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
-# --- Variables to set in Railway UI ---
-#
-# PORT                           Injected automatically by Railway; qyl.collector reads it
-#                                via CollectorPortOptions.FromConfiguration (Http tier).
-# QYL_BIND_ADDRESS               Set to `0.0.0.0` for Railway. The local default is loopback.
-# QYL_DATA_PATH                  Mount a Railway volume at /data and set this to
-#                                `/data/qyl.duckdb` for DuckDB persistence across deploys.
-# QYL_OTLP_AUTH_MODE             Required: set to `ApiKey`. ApiKey deployments intentionally
-#                                expose the product API + OTLP only; the local dashboard is disabled.
-# QYL_OTLP_PRIMARY_API_KEY       Required Railway secret: a strong ingest/read credential. Use
-#                                QYL_OTLP_SECONDARY_API_KEY only during an intentional key rotation.
-# QYL_GRPC_PORT                  OTLP/gRPC ingestion port — unset to disable, or expose a
-#                                second Railway TCP endpoint for it (Railway supports
-#                                multiple ports per service since 2025-Q3).
-# OTEL_EXPORTER_OTLP_ENDPOINT    If you want qyl.collector to fan-forward its own
-#                                telemetry somewhere else. Usually left unset in prod.
+# Railway injects PORT; set QYL_BIND_ADDRESS=0.0.0.0.
+# Point QYL_DATA_PATH at a mounted volume for persistence.
+# Production defaults QYL_OTLP_AUTH_MODE to ApiKey; store QYL_OTLP_PRIMARY_API_KEY
+# as a secret and reserve QYL_OTLP_SECONDARY_API_KEY for key rotation.
+# Set QYL_GRPC_PORT=0 unless a separate gRPC endpoint is exposed.

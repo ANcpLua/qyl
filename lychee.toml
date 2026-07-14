@@ -1,9 +1,4 @@
-# Link checker configuration (lychee) — run by .github/workflows/links.yml.
-# Checks markdown files for local file links that do not resolve, #fragments
-# that do not exist in the target document, and dead external URLs.
 
-# Build output / dependency folders (belt and braces — directory traversal
-# already respects .gitignore).
 exclude_path = [
   "node_modules",
   "artifacts",
@@ -19,8 +14,6 @@ extensions = ["md"]
 # OTLP endpoints), not web links.
 exclude_all_private = true
 
-# Verify that #anchors exist in the target document without matching fragment text.
-# lychee >= 0.24.2 uses the string enum none|anchor-only|text-only|full.
 include_fragments = "anchor-only"
 
 timeout = 20
@@ -37,7 +30,6 @@ accept = ["200..=299", "429"]
 # opentelemetry.io's CDN intermittently resets connections from GitHub
 # Actions IPs even with a browser UA (same link set passes and fails across
 # runs). The spec URLs are stable; excluding beats a flaky red check.
-#
 exclude = [
   '^https?://opentelemetry\.io',
 ]

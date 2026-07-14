@@ -1,80 +1,8 @@
-# =============================================================================
-# renovate-auto-review — autonomous AI review + gated approval for bot deps PRs
-# -----------------------------------------------------------------------------
-# WHY THIS EXISTS
-#   Renovate already self-merges its PRs here: the shared preset
-#   (github>ANcpLua/github-settings-automation) sets platformAutomerge:true, so
-#   a renovate PR merges itself once the required checks go green — no human.
-#   (Proven: PR #502 was merged by app/renovate.) This workflow is the QUALITY
-#   GATE that layer was missing: an AI reviewer that reads every dependency diff,
-#   APPROVES safe patch/minor bumps (so the merge stays fully autonomous even if
-#   branch protection's "1 approval" is ever enforced), and HOLDS majors or any
-#   diff that strays outside dependency manifests for a human to look at.
-#
-#   CodeRabbit is not active on this repo (the app isn't installed; the codex
-#   connector only comments), so the review gate is Claude — anthropics/
-#   claude-code-action, the GA (@v1) action — per the "claude review trick".
-#
-# SECURITY / TRUST MODEL
-#   Renovate branches (renovate/*) live IN THIS REPO, not on a fork, so the
-#   plain `pull_request` event already grants a write-scoped token — we do NOT
-#   need pull_request_target and its untrusted-code footguns. The job is hard-
-#   scoped to renovate/* branches authored by renovate[bot]; nothing else runs.
-#   The branch IS checked out (the action needs git context to diff), but Claude
-#   is restricted to `gh pr` READ commands + the single review action via
-#   allowedTools — it never builds or executes the PR's code.
-#
-# APPROVER IDENTITY
-#   The approving review is authored by github-actions[bot] via the default
-#   GITHUB_TOKEN. This repo has "Allow GitHub Actions to create and approve pull
-#   requests" ON (can_approve_pull_request_reviews=true), so that review posts
-#   fine; renovate is the PR author, so a different identity is doing the approve.
-#   NOTE: the approval is belt-and-suspenders — empirically these PRs already
-#   reach mergeStateStatus=CLEAN and renovate self-merges them on green checks
-#   with no approval, so even if a stricter config ever discounts a bot approval,
-#   the merge path does not depend on it. (An earlier revision tried the AUTOMERGE
-#   GitHub App as approver, but AUTOMERGE_APP_ID is not installed on this repo —
-#   "Integration not found" — so GITHUB_TOKEN it is.) The `review` job is NOT a
-#   required status check, so if an org ever disables Actions approvals the failed
-#   approve call cannot block the merge.
-#
-# FIRST-RUN VERIFICATION — trigger manually against any PR (no need to wait for
-# a renovate PR), then inspect:
-#   gh workflow run renovate-auto-review.yml -f pr=<n> --repo ANcpLua/qyl
-#   gh pr view <n> --json reviewDecision,reviews \
-#     -q '{decision:.reviewDecision, who:[.reviews[]|{a:.author.login,s:.state}]}'
-#   Expect a review authored by github-actions[bot] (APPROVE for a safe
-#   patch/minor manifest-only bump, COMMENT for a major / non-manifest diff).
-#
-# IF NO github-actions REVIEW APPEARS, the failure is one of three — check in
-# this order, because two of them are GREEN-but-inert:
-#
-#   1. Job RED, log says "Workflow initiated by non-human actor: renovate
-#      (type: Bot)". The `allowed_bots` input below is empty or missing. This
-#      killed every renovate PR from 2026-07-08 to 2026-07-11.
-#   2. Job GREEN, log says "Skipping action due to workflow validation error".
-#      The PR modifies THIS file, and the action refuses to run a workflow that
-#      differs from the one on the default branch. Expected and unavoidable —
-#      judge a fix to this file only on the NEXT renovate PR, never on the PR
-#      that changes it.
-#   3. Job GREEN, log has `"is_error": true` / `"total_cost_usd": 0` /
-#      num_turns:1. The model call was rejected before Claude acted — a stale
-#      CLAUDE_CODE_OAUTH_TOKEN. Regenerate with `claude setup-token` and update
-#      the repo secret. (Happened once, resolved 2026-07-08.)
-#
-# The action reports the STEP as success in cases 2 and 3, so the gate can
-# degrade silently; the merge still happens via renovate on green checks.
-# =============================================================================
-
 name: renovate-auto-review
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  # Manual test hook: run the gate against any PR by number — the operator-driven
-  # way to exercise the loop without waiting for a renovate PR. The operator picks
-  # the PR, so the renovate/* + author scoping below is relaxed for this path
-  # (and the bot-actor check never fires, since the actor is a human).
   workflow_dispatch:
     inputs:
       pr:
@@ -82,7 +10,6 @@ on:
         required: true
         type: string
 
-# Least privilege at the top; the job elevates only pull-requests:write.
 permissions:
   contents: read
 
@@ -104,13 +31,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write   # claude_code_oauth_token is exchanged via OIDC
+      id-token: write # Exchanges OIDC for the short-lived Claude GitHub App token.
     env:
       PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr }}
     steps:
-      # The action needs git context (it fetches the base branch to diff).
-      # Safe here: renovate/* is an in-repo trusted branch and Claude is limited
-      # to `gh pr` READ commands (see allowedTools) — it never runs PR code.
+      # Checkout supplies git context for the diff. The in-repository branch is not built
+      # or executed; Bash is restricted to the four gh pr operations used below.
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
@@ -120,10 +46,7 @@ jobs:
         uses: anthropics/claude-code-action@f1bd27ca5b54584506e40e17884d90bdaaa1a9b3 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # The action refuses non-human actors unless they are listed here
-          # (default "" = no bots), so every renovate[bot] run died on
-          # "Workflow initiated by non-human actor". Named actor, never '*':
-          # on a public repo '*' would let any external App invoke this action
+          # Name Renovate explicitly; '*' would let any external App invoke the action
           # with a prompt it controls.
           allowed_bots: "renovate"
           # Default GITHUB_TOKEN: gh calls (incl. the approve) run as
@@ -163,4 +86,4 @@ jobs:
             Your only side effect must be the single `gh pr review` command.
           claude_args: >-
             --max-turns 20
-            --allowedTools "Bash(gh:*)"
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr review:*)"

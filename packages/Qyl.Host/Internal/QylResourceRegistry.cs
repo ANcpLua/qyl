@@ -6,7 +6,6 @@ namespace Qyl.Host.Internal;
 
 internal sealed class QylResourceRegistry(IReadOnlyList<QylResource> resources, TimeProvider time)
 {
-    // Kind is static per composition; stamping it here keeps every Publish call site kind-free.
     private readonly Dictionary<string, QylResourceKind> _kinds =
         resources.ToDictionary(static r => r.Name, static r => r.Kind, StringComparer.Ordinal);
 

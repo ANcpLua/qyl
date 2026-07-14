@@ -1,7 +1,7 @@
 
 (function () {
     'use strict';
-    if (window.__qylConsole) return; // Already loaded
+    if (window.__qylConsole) return;
     window.__qylConsole = true;
 
     const cfg = {
@@ -52,7 +52,7 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({logs}), keepalive: true
             }).catch(() => {
-            }); // Silently fail - don't log our own errors
+            });
         } catch {
         }
     }

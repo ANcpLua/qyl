@@ -86,7 +86,7 @@ function SpanRow({
                      onSelect,
                  }: SpanRowProps) {
     const totalDuration = timelineEnd - timelineStart;
-    const spanStart = span.start_time_unix_nano / 1_000_000; // Convert to ms
+    const spanStart = span.start_time_unix_nano / 1_000_000;
     const spanEnd = span.end_time_unix_nano / 1_000_000;
 
     const leftPercent = totalDuration > 0 ? ((spanStart - timelineStart) / totalDuration) * 100 : 0;
@@ -392,7 +392,7 @@ export function TracesPage() {
         let maxTime = -Infinity;
 
         for (const span of spans) {
-            const startTime = span.start_time_unix_nano / 1_000_000; // Convert to ms
+            const startTime = span.start_time_unix_nano / 1_000_000;
             const endTime = span.end_time_unix_nano / 1_000_000;
             minTime = Math.min(minTime, startTime);
             maxTime = Math.max(maxTime, endTime);
@@ -485,7 +485,7 @@ export function TracesPage() {
     const rowVirtualizer = useVirtualizer({
         count: flattenedSpans.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => 52, // Fixed row height
+        estimateSize: () => 52,
         overscan: 10,
     });
 

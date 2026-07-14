@@ -23,7 +23,6 @@ export function useTheme() {
         applyTheme(newTheme);
     }, []);
 
-    // Apply theme on mount and when system preference changes
     useEffect(() => {
         applyTheme(theme);
 

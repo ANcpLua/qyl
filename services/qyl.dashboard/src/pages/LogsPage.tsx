@@ -25,7 +25,7 @@ import {RingBuffer} from '@/lib/RingBuffer';
 import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
 
 const MAX_LOGS = 10_000;
-const AUTO_SCROLL_THRESHOLD = 100; // px from bottom to consider "attached"
+const AUTO_SCROLL_THRESHOLD = 100;
 const SSE_RECONNECT_DELAY = 3000;
 
 const LOG_LEVEL_CONFIG: Record<
@@ -357,7 +357,6 @@ export function LogsPage() {
     }, [logsVersion]);
 
     const logs = useMemo(() => {
-        void logsVersion; // Dependency trigger - version change means buffer updated
         return logsBufferRef.current.toArray();
     }, [logsVersion]);
 

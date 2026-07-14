@@ -38,8 +38,7 @@ internal static class VersionComparer
 
     private static bool CompareVersion(string expectedVersion, string? extractedVersion)
     {
-        // For some of the workflows, singular version of SDK is used
-        // e.g. in dotnet-format.yml, so extracted version might be missing.
+        // Workflows with one SDK version omit the extracted value, which counts as a match.
         if (extractedVersion is not null && extractedVersion != expectedVersion)
         {
             Console.WriteLine($".NET SDK Version mismatch: expected={expectedVersion}, actual={extractedVersion}");

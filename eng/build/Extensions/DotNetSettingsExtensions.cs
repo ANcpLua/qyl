@@ -57,7 +57,6 @@ internal static class DotNetSettingsExtensions
     /// </summary>
     public static DotNetBuildSettings[] CombineWithBuildInfos(this DotNetBuildSettings settings, IReadOnlyCollection<PackageBuildInfo> buildInfos, string? targetFramework = null)
     {
-        // NOTE: SetProperty creates internally a new instance!
         return settings.CombineWith(
             buildInfos.Where(buildInfo => targetFramework is null || buildInfo.SupportedFrameworks.Length == 0 || buildInfo.SupportedFrameworks.Contains(targetFramework)),
             (p, buildInfo) =>
@@ -80,7 +79,6 @@ internal static class DotNetSettingsExtensions
 
     public static DotNetRestoreSettings[] CombineWithBuildInfos(this DotNetRestoreSettings settings, IReadOnlyCollection<PackageBuildInfo> buildInfos)
     {
-        // NOTE: SetProperty creates internally a new instance!
         return settings.CombineWith(buildInfos, (p, buildInfo) =>
         {
             p = p.SetProperty("LibraryVersion", buildInfo.LibraryVersion);

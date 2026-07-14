@@ -1,8 +1,5 @@
-# Build outputs (UseArtifactsOutput centralizes to artifacts/)
 artifacts/
 !src/**/Artifacts/
-# Loom/Claude agent worktrees (`git worktree add .agents/worktrees/<slug> …`); the
-# worktree directory itself isn't checked in — only the trees it spawns live there.
 .agents/worktrees/
 [Bb]in/
 [Oo]bj/
@@ -14,14 +11,12 @@ artifacts/
 *.exe
 *.pdb
 
-# NuGet
 *.nupkg
 *.snupkg
 *.nuget.props
 *.nuget.targets
 project.lock.json
 
-# .NET
 *.user
 *.rsuser
 *.suo
@@ -30,12 +25,10 @@ project.lock.json
 *.sln.docstates
 **/Properties/launchSettings.json
 
-# Rider/JetBrains
 .idea/
 *.sln.iml
 *.DotSettings.user
 
-# Visual Studio
 .vs/
 *.vspscc
 *.vssscc
@@ -44,19 +37,14 @@ project.lock.json
 *.svclog
 *.scc
 
-# Local tool configuration. Repository-wide instructions live in AGENTS.md.
 .claude/
 
-# Plugin session state (Hades smart ledger, elegance pipeline, etc.)
 .smart/
 
-# Git worktrees (canonical dev worktrees under .worktrees/)
 .worktrees/
 
-# Playwright MCP logs
 .playwright-mcp/
 
-# Node.js / npm
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -66,12 +54,10 @@ yarn-error.log*
 .yarn/
 *.tsbuildinfo
 
-# Frontend build output
 dist/
 dist-extension/
 .vite/
 
-# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -80,11 +66,9 @@ dist-extension/
 ehthumbs.db
 Thumbs.db
 
-# Nuke build temp / logs
 .nuke/temp/
 .nuke/build.schema.json
 
-# qyl data files
 *.duckdb
 *.duckdb.wal
 *.parquet
@@ -92,7 +76,6 @@ qyl.duckdb/
 .qyl/binlogs/
 .qyl/build-failures-spool.jsonl
 
-# Environment and secrets
 .env
 .env.*
 !.env.example
@@ -100,7 +83,6 @@ qyl.duckdb/
 appsettings.*.json
 !appsettings.Development.json.example
 
-# Test results
 TestResults/
 test-results/
 playwright-report/
@@ -108,38 +90,29 @@ coverage/
 *.coverage
 *.coveragexml
 
-# Archives
 *.zip
 *.tar.gz
 *.rar
 
-# MSBuild debug dumps
 **/preprocess.xml
 
-# LSP config (local to each developer)
 .lsp.json
 
-# Python virtualenvs
 **/venv/
 
-# Misc
 *.bak
 *.swp
 *.tmp
 *~
 
-# Per-tool instruction copies are forbidden. The only tracked CLAUDE.md is the
-# root symlink to AGENTS.md.
 **/CLAUDE.md
 !CLAUDE.md
 .mcp.json
 tmp/
 .tmp/
 
-# Q&A session documents
 QA*.md
 
-# Research screenshots
 images/
 *.png
 /eng/Benchmark.Large/Benchmark.cs
@@ -148,5 +121,4 @@ images/
 /eng/Benchmark.Large/Types.cs
 /docs/api-docs/
 
-# Local agent scratchpads (objective.json etc.) — not repo content
 .blackboard/

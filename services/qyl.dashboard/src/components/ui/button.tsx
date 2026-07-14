@@ -35,7 +35,6 @@ const buttonVariants = cva(
 export interface ButtonProps
     extends ButtonHTMLAttributes<HTMLButtonElement>,
         VariantProps<typeof buttonVariants> {
-    /** Render a different element with button styling. Pass a ReactElement to replace the default <button>. */
     render?: ReactElement<Record<string, unknown>>
 }
 

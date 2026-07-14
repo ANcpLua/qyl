@@ -1141,23 +1141,6 @@ internal sealed partial class DuckDbStore : IQylStore
             _parameters.Add(new DuckDBParameter { Value = value });
         }
 
-        public void Add(string condition, object first, object second, object third)
-        {
-            _conditions.Add(ReplaceNextParam(ReplaceNextParam(ReplaceNextParam(condition))));
-            _parameters.Add(new DuckDBParameter { Value = first });
-            _parameters.Add(new DuckDBParameter { Value = second });
-            _parameters.Add(new DuckDBParameter { Value = third });
-        }
-
-        private string ReplaceNextParam(string condition)
-        {
-            var index = condition.IndexOf("$N", StringComparison.Ordinal);
-            if (index < 0)
-                throw new ArgumentException("Condition does not contain a $N parameter placeholder.", nameof(condition));
-
-            return condition[..index] + $"${_paramIndex++}" + condition[(index + 2)..];
-        }
-
         public readonly string WhereClause =>
             _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";
 

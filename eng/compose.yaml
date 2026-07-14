@@ -1,14 +1,3 @@
-﻿# qyl. - AI Observability Platform
-# Development Docker Compose - Run from repository root
-#
-# Usage:
-#   docker compose -f eng/compose.yaml up -d
-#   docker compose -f eng/compose.yaml down
-#
-# One topology: the collector image embeds the dashboard, so a single service serves
-# UI + REST API + SSE on :5100 and OTLP ingest on :4317/:4318. The standalone
-# dashboard/nginx service is intentionally absent.
-
 services:
   qyl-collector:
     build:
@@ -17,9 +6,9 @@ services:
     container_name: qyl-collector
     ports:
       # This development stack deliberately uses Unsecured OTLP, so publish only on host loopback.
-      - "127.0.0.1:5100:5100"    # Dashboard + REST API + SSE
-      - "127.0.0.1:4317:4317"    # OTLP gRPC
-      - "127.0.0.1:4318:4318"    # OTLP HTTP
+      - "127.0.0.1:5100:5100"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
     volumes:
       - qyl-data:/data
     environment:

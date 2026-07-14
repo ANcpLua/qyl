@@ -1,11 +1,3 @@
-# =============================================================================
-# Link check (lychee)
-# -----------------------------------------------------------------------------
-# Fails when a markdown file references a local path that does not exist, a
-# #fragment that does not resolve, or an external URL that is dead — README
-# rot fails the build instead of accumulating. Config: lychee.toml. The
-# weekly cron catches external links that die without a commit.
-# =============================================================================
 
 name: Links
 
@@ -15,7 +7,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: "17 6 * * 1" # Mondays 06:17 UTC — external rot check without a commit
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 permissions:

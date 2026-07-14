@@ -1,9 +1,4 @@
-# =============================================================================
-# qyl EditorConfig - ROOT (Formatting + Path Exceptions)
-# =============================================================================
-# Baseline analyzer severities are in .globalconfig
-# This file handles formatting + path-based overrides only
-# =============================================================================
+# Analyzer defaults live in .globalconfig; this file adds formatting, naming, and file-pattern overrides.
 
 root = true
 
@@ -15,67 +10,46 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-# =============================================================================
-# C# FILES - FORMATTING
-# =============================================================================
-
 [*.cs]
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
-# Modern-C# style pins — preference direction is set, diagnostics disabled so
-# existing code doesn't nag. Explicit "Reformat Code" / "Code Cleanup" will
-# steer toward the preferred direction; passive editing leaves files alone.
-csharp_using_directive_placement = outside_namespace # modern C# 10+ convention with file-scoped namespaces
+# Style values guide explicit cleanup; the IDE diagnostic severities below control passive enforcement.
+csharp_using_directive_placement = outside_namespace
 dotnet_diagnostic.IDE0065.severity = warning
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = none
 csharp_prefer_braces = when_multiline
 dotnet_diagnostic.IDE0011.severity = none
 
-# =============================================================================
-# ANcpLua.Analyzers (AL) - Rules with Code Fixes
-# =============================================================================
-# Code fixes are automatically available when diagnostics are enabled.
-# Severity must be at least 'suggestion' for IDE code fixes to appear.
-# Sorted by ascending rule ID.
-# =============================================================================
-
-dotnet_diagnostic.AL1000.severity = error # Primary constructor reassignment → fix: remove reassignment
-dotnet_diagnostic.AL1001.severity = warning # Repeated negated patterns → fix: simplify
-dotnet_diagnostic.AL1002.severity = error # Division by zero → fix: add zero check
-dotnet_diagnostic.AL1003.severity = warning # Span pattern matching → fix: use span overload
-dotnet_diagnostic.AL1004.severity = warning # Span SequenceEqual → fix: use SequenceEqual
-dotnet_diagnostic.AL1005.severity = warning # Field/parameter name conflict → fix: rename
-dotnet_diagnostic.AL1006.severity = error # GetSchema explicit impl → fix: make implicit
-dotnet_diagnostic.AL1007.severity = error # GetSchema returns null → fix: return proper schema
-dotnet_diagnostic.AL1008.severity = error # Don't call GetSchema → fix: remove call
-dotnet_diagnostic.AL1009.severity = warning # Lock on non-Lock → fix: use Lock type
-dotnet_diagnostic.AL1010.severity = suggestion # Pattern matching style → fix: modernize pattern
-dotnet_diagnostic.AL1011.severity = suggestion # Null-guard style → fix: use ArgumentNullException.ThrowIfNull
-dotnet_diagnostic.AL1012.severity = suggestion # Declaration + null-check → fix: combine
-dotnet_diagnostic.AL1100.severity = error # IFormCollection attribute → fix: add attribute
-dotnet_diagnostic.AL1101.severity = error # Multiple form sources → fix: consolidate
-dotnet_diagnostic.AL1102.severity = error # Mixed form collection/DTO → fix: separate
-dotnet_diagnostic.AL1103.severity = error # Unsupported form type → fix: use supported type
-dotnet_diagnostic.AL1104.severity = error # Form/body conflict → fix: remove conflict
+dotnet_diagnostic.AL1000.severity = error
+dotnet_diagnostic.AL1001.severity = warning
+dotnet_diagnostic.AL1002.severity = error
+dotnet_diagnostic.AL1003.severity = warning
+dotnet_diagnostic.AL1004.severity = warning
+dotnet_diagnostic.AL1005.severity = warning
+dotnet_diagnostic.AL1006.severity = error
+dotnet_diagnostic.AL1007.severity = error
+dotnet_diagnostic.AL1008.severity = error
+dotnet_diagnostic.AL1009.severity = warning
+dotnet_diagnostic.AL1010.severity = suggestion
+dotnet_diagnostic.AL1011.severity = suggestion
+dotnet_diagnostic.AL1012.severity = suggestion
+dotnet_diagnostic.AL1100.severity = error
+dotnet_diagnostic.AL1101.severity = error
+dotnet_diagnostic.AL1102.severity = error
+dotnet_diagnostic.AL1103.severity = error
+dotnet_diagnostic.AL1104.severity = error
 # AL1600: Hardcoded version - disabled for CPM projects
 dotnet_diagnostic.AL1600.severity = none
 # AL1601: Version.props not imported - disabled (qyl manages its own props)
 dotnet_diagnostic.AL1601.severity = none
 dotnet_diagnostic.AL1700.severity = warning
-dotnet_diagnostic.AL1701.severity = warning # DateTime.Now/UtcNow
-dotnet_diagnostic.AL1702.severity = warning # Newtonsoft.Json
+dotnet_diagnostic.AL1701.severity = warning
+dotnet_diagnostic.AL1702.severity = warning
 
-# =============================================================================
-# NAMING CONVENTIONS — dotnet/runtime style
-# =============================================================================
-# ANcpLua.NET.Sdk injects Config/NamingConvention.editorconfig into SDK-based
-# projects. This mirror gives plain Microsoft.NET.Sdk build-tool and test
-# projects the same rules.
-# =============================================================================
+# Mirror ANcpLua.NET.Sdk naming rules for build and test projects that use Microsoft.NET.Sdk directly.
 
-# const fields → PascalCase
 dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
 dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case_style
@@ -83,10 +57,8 @@ dotnet_naming_symbols.constant_fields.applicable_kinds   = field
 dotnet_naming_symbols.constant_fields.required_modifiers = const
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
-# private/internal static fields (incl. readonly) → s_camelCase
-# Matches dotnet/runtime: private/internal static readonly is NOT PascalCase —
-# the const rule above keeps const fields PascalCase; the fallback rule at the
-# bottom keeps public/protected static (readonly) fields PascalCase.
+# Static-field rules deliberately split: private/internal fields use s_camelCase,
+# while const and public/protected static fields resolve to PascalCase.
 dotnet_naming_rule.static_fields_should_have_prefix.severity = suggestion
 dotnet_naming_rule.static_fields_should_have_prefix.symbols  = static_fields
 dotnet_naming_rule.static_fields_should_have_prefix.style    = static_prefix_style
@@ -96,8 +68,6 @@ dotnet_naming_symbols.static_fields.applicable_accessibilities = private, intern
 dotnet_naming_style.static_prefix_style.required_prefix = s_
 dotnet_naming_style.static_prefix_style.capitalization = camel_case
 
-# private/internal instance fields → _camelCase
-# The static rule above is more specific and wins for static fields.
 dotnet_naming_rule.camel_case_for_private_internal_fields.severity = suggestion
 dotnet_naming_rule.camel_case_for_private_internal_fields.symbols  = private_internal_fields
 dotnet_naming_rule.camel_case_for_private_internal_fields.style    = camel_case_underscore_style
@@ -106,28 +76,24 @@ dotnet_naming_symbols.private_internal_fields.applicable_accessibilities = priva
 dotnet_naming_style.camel_case_underscore_style.required_prefix = _
 dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
 
-# const locals → PascalCase
 dotnet_naming_rule.constant_variables_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.constant_variables_should_be_pascal_case.symbols  = constant_variables
 dotnet_naming_rule.constant_variables_should_be_pascal_case.style    = pascal_case_style
 dotnet_naming_symbols.constant_variables.applicable_kinds   = local
 dotnet_naming_symbols.constant_variables.required_modifiers = const
 
-# locals + parameters → camelCase
 dotnet_naming_rule.locals_should_be_camel_case.severity = suggestion
 dotnet_naming_rule.locals_should_be_camel_case.symbols = locals_and_parameters
 dotnet_naming_rule.locals_should_be_camel_case.style = camel_case_style
 dotnet_naming_symbols.locals_and_parameters.applicable_kinds = parameter, local
 dotnet_naming_style.camel_case_style.capitalization = camel_case
 
-# local functions → PascalCase
 dotnet_naming_rule.local_functions_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.local_functions_should_be_pascal_case.symbols = local_functions
 dotnet_naming_rule.local_functions_should_be_pascal_case.style = non_private_static_field_style
 dotnet_naming_symbols.local_functions.applicable_kinds = local_function
 dotnet_naming_style.non_private_static_field_style.capitalization = pascal_case
 
-# type parameters → TPascalCase
 dotnet_naming_style.type_parameter_style.capitalization = pascal_case
 dotnet_naming_style.type_parameter_style.required_prefix = T
 dotnet_naming_rule.type_parameter_naming.symbols = type_parameter_symbol
@@ -136,7 +102,6 @@ dotnet_naming_rule.type_parameter_naming.severity = warning
 dotnet_naming_symbols.type_parameter_symbol.applicable_kinds = type_parameter
 dotnet_naming_symbols.type_parameter_symbol.applicable_accessibilities = *
 
-# interfaces → IPascalCase
 dotnet_naming_style.interface_style.capitalization = pascal_case
 dotnet_naming_style.interface_style.required_prefix = I
 dotnet_naming_rule.interface_should_be_begins_with_i.severity = warning
@@ -145,15 +110,10 @@ dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface_symbols
 dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
 dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
 
-# fallback for everything else → PascalCase
 dotnet_naming_rule.members_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.members_should_be_pascal_case.symbols = all_members
 dotnet_naming_rule.members_should_be_pascal_case.style = non_private_static_field_style
 dotnet_naming_symbols.all_members.applicable_kinds = *
-
-# =============================================================================
-# GENERATED CODE EXCLUSIONS
-# =============================================================================
 
 [*.g.cs]
 dotnet_analyzer_diagnostic.severity = none
@@ -189,17 +149,14 @@ generated_code = true
 [**/openapi/openapi.yaml]
 generated_code = true
 
-# =============================================================================
-# BUILD TOOLING (eng/build/)
-# =============================================================================
-
 [eng/build/**/*.cs]
-dotnet_diagnostic.CA1822.severity = none # Static members not applicable
-dotnet_diagnostic.CS0649.severity = none # Unassigned fields (Nuke DI)
-dotnet_diagnostic.CS0169.severity = none # Unused fields (Nuke DI)
-dotnet_diagnostic.CA1050.severity = none # Declare types in namespaces (Nuke)
-dotnet_diagnostic.CA2211.severity = none # Non-constant fields (Nuke)
-dotnet_diagnostic.IDE1006.severity = none # Naming (Nuke conventions)
+# Nuke injects fields and uses a top-level build type, so its generated conventions require these suppressions.
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CS0649.severity = none
+dotnet_diagnostic.CS0169.severity = none
+dotnet_diagnostic.CA1050.severity = none
+dotnet_diagnostic.CA2211.severity = none
+dotnet_diagnostic.IDE1006.severity = none
 
 dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning
@@ -211,19 +168,10 @@ csharp_style_expression_bodied_properties = true:warning
 csharp_style_expression_bodied_indexers = true:warning
 csharp_style_expression_bodied_accessors = true:warning
 
-# =============================================================================
-# PACKAGES (NuGet library code)
-# =============================================================================
-# ANcpLua.NET.Sdk silences CA2007 globally (dotnet_diagnostic.CA2007.severity = none)
-# citing MA0004 as the preferred alternative. qyl does not install MA0004, so that
-# leaves ConfigureAwait unenforced in library code. Re-enable here so
-# packages/Directory.Build.props can promote CA2007 to error for IsPackable=true projects.
+# ANcpLua.NET.Sdk disables CA2007 in favor of MA0004, which qyl does not install;
+# re-enable CA2007 so packable projects can promote it to an error.
 [packages/**/*.cs]
 dotnet_diagnostic.CA2007.severity = warning
-
-# =============================================================================
-# FILE TYPES
-# =============================================================================
 
 [*.json]
 indent_size = 2
