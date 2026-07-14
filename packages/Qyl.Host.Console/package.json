@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Dev-only Qyl.Host runner console over the generated /runner contract; separate from the qyl product dashboard.",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

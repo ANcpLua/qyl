@@ -70,12 +70,9 @@ dotnet_diagnostic.AL1702.severity = warning # Newtonsoft.Json
 # =============================================================================
 # NAMING CONVENTIONS — dotnet/runtime style
 # =============================================================================
-# Canonical source: ANcpLua.NET.Sdk/src/Config/NamingConvention.editorconfig
-# (injected as a global config into all SDK-using projects). Mirror kept here
-# so the four projects on plain Microsoft.NET.Sdk (eng/build/build.csproj,
-# packages/Qyl.Run, packages/Qyl.Client, packages/Qyl.OpenTelemetry.Sema-
-# nticConventions.Analyzers + its Tests, packages/Qyl.Client/Generated/src)
-# also see the same rules. Update both files together.
+# ANcpLua.NET.Sdk injects Config/NamingConvention.editorconfig into SDK-based
+# projects. This mirror gives plain Microsoft.NET.Sdk build-tool and test
+# projects the same rules.
 # =============================================================================
 
 # const fields → PascalCase

@@ -65,7 +65,7 @@ or turn configuration-only rows into runtime-coverage claims.
 
 ## Run locally
 
-Requirements: the .NET SDK selected by `global.json` and Node.js 20 or later.
+Requirements: the .NET SDK selected by `global.json` and Node.js `^20.19.0` or `>=22.12.0`.
 
 Start the collector:
 
