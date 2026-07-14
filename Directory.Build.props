@@ -1,61 +1,40 @@
 <Project>
-  <!-- =======================================================================
-       qyl Root Build Properties
-       .NET 10.0 | C# 14 | Single-TFM
-       Uses ANcpLua.NET.Sdk for shared infrastructure
-       ======================================================================= -->
-
-  <!-- AL1601 (Version.props not imported) is disabled in .editorconfig — qyl manages its own props. -->
-
-  <!-- Central Package Management (native .NET 8+) -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
-  <!-- Centralized build output — no scattered obj/bin -->
   <PropertyGroup>
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
 
-  <!-- Language & Framework (SDK provides LangVersion=latest, Nullable=enable, ImplicitUsings=enable) -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <!-- LangVersion, Nullable, ImplicitUsings: Let SDK own these for net10.0 -->
   </PropertyGroup>
 
-  <!-- SDK Configuration -->
   <PropertyGroup>
-    <!-- Guard.NotNull() etc. from ANcpLua.Roslyn.Utilities -->
     <InjectSharedThrow>false</InjectSharedThrow>
   </PropertyGroup>
 
-  <!-- Quality -->
   <PropertyGroup>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
-    <!-- GenerateDocumentationFile is provided by ANcpLua.NET.Sdk (Common.props) with the same value. -->
     <WarningsAsErrors>CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Packaging (default off) -->
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <!-- Supply-chain audit at restore time (pattern from opentelemetry-dotnet-instrumentation):
-       audit direct AND transitive references down to low-severity advisories. Findings surface
-       as NU19xx restore warnings; the security overrides in Directory.Packages.props are how
-       they get resolved. -->
+  <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->
   <PropertyGroup>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
     <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>
 
-  <!-- NuGet Package Metadata (for publishable packages) -->
   <PropertyGroup>
     <Authors>ancplua</Authors>
     <Company>qyl</Company>
@@ -68,10 +47,6 @@
     <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
   </PropertyGroup>
 
-  <!-- CI detection (ContinuousIntegrationBuild) is provided by ANcpLua.NET.Sdk
-       (ContinuousIntegrationBuild.props) covering GITHUB_ACTIONS, TF_BUILD, CI and ~10 more. -->
-
-  <!-- Import qyl-specific Props (OTel config, etc.) -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
 
 </Project>

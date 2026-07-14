@@ -1,11 +1,4 @@
 <Project>
-  <!-- =======================================================================
-       qyl Central Package Versions
-       MAF (Microsoft.Agents.AI.*) versions live in ANcpLua.NET.Sdk truth and
-       are imported from the source tree below. qyl-specific versions live in
-       Version.props. SDK truth is imported first so qyl/Version.props can
-       override on conflict.
-       ======================================================================= -->
   <Import Project="$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props"
           Condition="Exists('$(MSBuildThisFileDirectory)../framework/ANcpLua.NET.Sdk/src/Build/Common/Version.props')"/>
   <Import Project="Version.props"/>
@@ -13,22 +6,17 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <!-- OpenTelemetry -->
     <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
-    <!-- Instrumentation packages ship on a slower cadence than the SDK. Keep
-         AspNetCore explicit while Http and Runtime use the shared instrumentation
-         version until their release cadence converges. -->
+    <!-- Instrumentation packages do not share the SDK release line. -->
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryAspNetCoreInstrumentationVersion)"/>
-    <!-- Microsoft.Extensions -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AI.Evaluation" Version="$(MicrosoftExtensionsAiVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
-    <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->
     <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
@@ -37,65 +25,41 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
-
-
-    <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
-    <!-- Transitive security override: Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which
-         has GHSA-v5pm-xwqc-g5wc (NU1903, high). 2.7.5 is the first patched 2.x. Not functionally exercised
-         (collector runs with EnableOpenApi=false); this only lifts the transitive off the vulnerable range. -->
-    <!-- Pinned to 2.x: Microsoft.OpenApi 3.x makes IOpenApiMediaType.Example read-only, which the .NET SDK's
-         Microsoft.AspNetCore.OpenApi source generator still assigns (CS0200) — v3 is ahead of the SDK's support.
-         2.9.0 also clears the GHSA-v5pm-xwqc-g5wc advisory (NU1903). Revert of the Renovate v3 bump (#462). -->
+    <!-- Microsoft.AspNetCore.OpenApi still generates assignments incompatible with Microsoft.OpenApi 3.x; 2.10.0 is patched for GHSA-v5pm-xwqc-g5wc. -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.10.0"/>
-    <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
-    <!-- DuckDB -->
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
-    <!-- gRPC & Protobuf -->
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
     <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
-    <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Agents" Version="$(ANcpLuaAgentsVersion)"/>
-    <!-- Microsoft.Agents.AI -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsAIVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsAIHostingVersion)"/>
-    <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0"/>
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>
-    <!-- Transitive security overrides (via Nuke.Common): force patched versions that
-         close GHSA-g4vj-cjjj-v7hg (NuGet.Packaging 6.12.1) and GHSA-37gx-xxp4-5rgx /
-         GHSA-w3x6-4m5h-cxqf (System.Security.Cryptography.Xml 9.0.0). -->
+    <!-- Override vulnerable Nuke.Common transitives. -->
     <PackageVersion Include="NuGet.Packaging" Version="7.6.0"/>
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9"/>
-    <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <!-- Qyl.Host.Mcp: official MCP C# SDK, Core only (client + low-level server; the full
-         ModelContextProtocol package adds reflection-based hosting the engine doesn't want). -->
+    <!-- Core avoids the reflection-based server hosting in the full MCP package. -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="1.4.1"/>
-    <!-- Focused host contract and lifecycle tests run on Microsoft Testing Platform. -->
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2"/>
-    <!-- eng/tools maintenance tooling. -->
     <PackageVersion Include="McMaster.Extensions.CommandLineUtils" Version="5.1.0"/>
-    <!-- 18.0.2 floor: Nuke.Common 10.1.0 -> Nuke.ProjectModel requires it (NU1109 with
-         transitive pinning below that). -->
+    <!-- Nuke.ProjectModel requires this floor under transitive pinning. -->
     <PackageVersion Include="Microsoft.Build" Version="18.7.1"/>
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"/>
     <PackageVersion Include="Valleysoft.DockerfileModel" Version="2.0.0"/>
     <PackageVersion Include="YamlDotNet" Version="18.1.0"/>
-    <!-- Qyl's generated semantic-convention constants, analyzers, and runtime instrumentation. -->
     <PackageVersion Include="Qyl.OpenTelemetry.AutoInstrumentation" Version="5.0.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions" Version="3.5.0"/>
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" Version="3.5.0"/>
-    <!-- Analyzer-only source generation, exercised by the conformance workload. -->
     <PackageVersion Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" Version="3.5.0"/>
-    <!-- C# API contract types emitted from @ancplua/qyl-api-schema. -->
     <PackageVersion Include="Qyl.Api.Contracts" Version="0.5.10"/>
   </ItemGroup>
   <ItemGroup>

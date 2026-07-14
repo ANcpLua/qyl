@@ -19,7 +19,6 @@ function getShortcutKey(e: KeyboardEvent): string {
     return parts.join('+');
 }
 
-// Global state for modal - shared across hook instances
 let globalModalOpen = false;
 const modalListeners = new Set<(open: boolean) => void>();
 
@@ -30,10 +29,9 @@ function setGlobalModalOpen(open: boolean) {
 
 export function useKeyboardShortcuts() {
     const [isModalOpen, setIsModalOpen] = useState(globalModalOpen);
-    // Use ref instead of module-level Map to avoid memory leaks with HMR/StrictMode
+    // Instance-local handlers avoid HMR and StrictMode leaks.
     const shortcutsRef = useRef<Map<string, ShortcutHandler>>(new Map());
 
-    // Subscribe to global modal state
     useEffect(() => {
         const listener = (open: boolean) => setIsModalOpen(open);
         modalListeners.add(listener);
@@ -67,7 +65,6 @@ export function useKeyboardShortcuts() {
         const shortcuts = shortcutsRef.current;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Don't trigger shortcuts when typing in inputs
             const target = e.target as HTMLElement;
             if (
                 target.tagName === 'INPUT' ||
@@ -77,7 +74,6 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
-            // Show shortcut help with ? (Shift + /)
             if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
                 e.preventDefault();
                 setGlobalModalOpen(!globalModalOpen);
@@ -112,35 +108,29 @@ export function useNavigationShortcuts(
 
     useEffect(() => {
         const unsubscribes = [
-            // T = Traces
             registerShortcut({
                 key: 't',
                 description: 'Go to Traces',
                 handler: () => navigate('/traces'),
             }),
-            // C = Console / Logs
             registerShortcut({
                 key: 'c',
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // $ = GenAI cost
             registerShortcut({
                 key: '$',
                 description: 'Go to GenAI Cost',
                 handler: () => navigate('/cost'),
             }),
-            // Escape = Close panel / Clear selection
             registerShortcut({
                 key: 'escape',
                 description: 'Close panel / Clear selection',
                 handler: () => {
-                    // Close modal if open
                     if (globalModalOpen) {
                         setGlobalModalOpen(false);
                         return;
                     }
-                    // Dispatch custom event for panels to handle
                     window.dispatchEvent(new CustomEvent('qyl:escape'));
                 },
             }),

@@ -72,7 +72,7 @@ internal sealed partial class QylOrchestrator(
         }
         catch (OperationCanceledException)
         {
-            // Shutdown signaled via stoppingToken — fall through to StopAllAsync.
+            // Normal shutdown.
         }
         finally
         {
@@ -108,7 +108,6 @@ internal sealed partial class QylOrchestrator(
             var endpoint =
                 new Uri(string.Format(CultureInfo.InvariantCulture, s_urlFormat, QylConstants.Network.Loopback, port));
 
-            // The launcher spawns a child process whose lifecycle we own via _processes.
             var process = launcher.Launch(resource, endpoint);
             _processes[resource.Name] = process;
 
@@ -117,7 +116,6 @@ internal sealed partial class QylOrchestrator(
                 registry.Publish(resource.Name, ResourceLifecycle.Ready, port, endpoint);
                 LogReady(logger, resource.Name, endpoint);
 
-                // Own a launched process for the rest of its life: restart it if it crashes (bounded).
                 await SuperviseProcessAsync(resource, process, port, endpoint, stoppingToken).ConfigureAwait(false);
             }
             else
@@ -273,7 +271,7 @@ internal sealed partial class QylOrchestrator(
         }
         catch (OperationCanceledException)
         {
-            // shutdown — nothing to drain
+            // Normal shutdown.
         }
     }
 
@@ -381,7 +379,7 @@ internal sealed partial class QylOrchestrator(
             }
             catch (InvalidOperationException)
             {
-                // Process already exited between HasExited and Kill — nothing to clean up.
+                // The process exited before termination.
             }
 
             registry.Publish(name, ResourceLifecycle.Stopped);

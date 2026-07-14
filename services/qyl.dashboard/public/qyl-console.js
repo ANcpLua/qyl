@@ -1,9 +1,3 @@
-// qyl. Console Bridge - Frontend Shim
-// Drop this into any webapp to send console logs to qyl.collector
-// Agents can then see frontend errors without browser MCP
-//
-// Usage: <script src="/qyl-console.js" data-endpoint="http://localhost:5100"></script>
-// Or: window.QylConsole.init({ endpoint: 'http://localhost:5100', sessionId: 'abc' })
 
 (function () {
     'use strict';
@@ -24,7 +18,6 @@
         const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
         const entry = {level, message: msg, sessionId: cfg.sessionId, url: location.href};
 
-        // Capture stack for errors
         if (level === 'error') {
             try {
                 throw new Error();
@@ -53,7 +46,7 @@
     }
 
     function post(logs) {
-        // Don't let our own errors cause infinite loops
+        // A failed export must not recurse through the patched console.
         try {
             fetch(cfg.endpoint + '/api/v1/console', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -64,7 +57,6 @@
         }
     }
 
-    // Wrap console methods
     ['debug', 'log', 'info', 'warn', 'error'].forEach(level => {
         console[level] = function (...args) {
             orig[level].apply(console, args);
@@ -72,7 +64,6 @@
         };
     });
 
-    // Catch unhandled errors
     window.addEventListener('error', e => {
         send('error', [`Uncaught: ${e.message} at ${e.filename}:${e.lineno}`]);
     });
@@ -80,10 +71,8 @@
         send('error', [`Unhandled rejection: ${e.reason}`]);
     });
 
-    // Flush on page unload
     window.addEventListener('beforeunload', flush);
 
-    // Public API
     window.QylConsole = {
         init: opts => Object.assign(cfg, opts),
         setSession: id => cfg.sessionId = id,

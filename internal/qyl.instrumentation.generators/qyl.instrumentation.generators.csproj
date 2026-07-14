@@ -1,26 +1,22 @@
 <Project Sdk="ANcpLua.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <!-- netstandard2.0 defaults to C# 7.3, but we use modern features (required, init, file-scoped namespaces) -->
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation.Generators</RootNamespace>
 
-    <!-- Analyzer/Generator settings -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- AOT not supported for netstandard2.0 (required for Roslyn analyzer compatibility) -->
     <IsAotCompatible>false</IsAotCompatible>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
 
-    <!-- Enable C# 12 interceptors (auto-suppresses RSEXPERIMENTAL002) -->
     <UseInterceptors>true</UseInterceptors>
-    <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
+    <!-- Transitive targets load the generator and its dependency from output. -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
-    <!-- self-describe the Roslyn reference; SDK name-matching injection is fragile under IDE LSPs -->
+    <!-- Explicit Roslyn references also work under IDE language-server builds. -->
     <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
     <InjectTimeProviderPolyfill>false</InjectTimeProviderPolyfill>
   </PropertyGroup>

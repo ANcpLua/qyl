@@ -21,7 +21,6 @@ export function TopBar({
     const location = useLocation();
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    // Update time every second
     useEffect(() => {
         const interval = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(interval);
@@ -41,32 +40,25 @@ export function TopBar({
     return (
         <header
             className="h-12 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-3.5 gap-2.5 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
-            {/* Page title - BRUTALIST style */}
             <div className="flex items-center gap-2 shrink-0">
                 <Zap className="w-4 h-4 text-signal-orange"/>
                 <h1 className="text-xs md:text-sm font-semibold tracking-[0.14em] text-brutal-white">{title}</h1>
             </div>
 
-            {/* Separator */}
             <div className="hidden md:block w-px h-5 bg-brutal-zinc/70"/>
 
-            {/* Spacer */}
             <div className="flex-1"/>
 
-            {/* Current time display */}
             <div
                 className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-brutal-dark/85 border border-brutal-zinc">
                 <Clock className="w-4 h-4 text-signal-cyan"/>
                 <span className="font-mono text-xs text-signal-cyan">{formatTime(currentTime)}</span>
             </div>
 
-            {/* Health indicator */}
             <HealthIndicator/>
 
-            {/* Theme toggle */}
             <ThemeToggle/>
 
-            {/* Refresh - BRUTALIST */}
             <Button
                 variant="outline"
                 size="icon"

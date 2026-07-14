@@ -5,10 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Instrumentation</RootNamespace>
-    <!-- IsAotCompatible is intentionally NOT set: the OpenTelemetry Add*Instrumentation + OTLP exporter and ASP.NET
-         minimal-API (MapGet delegate) surface have no upstream AOT annotations, so enabling the
-         analyzers would fail Release/CI (TreatWarningsAsErrors) on warnings qyl cannot fix. -->
-    <!-- Required for source generator interceptors -->
+    <!-- Upstream instrumentation/exporter APIs are not annotated as AOT-compatible. -->
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
 
@@ -21,7 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ASP.NET Core -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
@@ -29,17 +25,13 @@
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="ANcpLua.Agents"/>
 
-    <!-- Microsoft.Extensions.AI for IChatClient instrumentation -->
     <PackageReference Include="Microsoft.Extensions.AI"/>
 
-    <!-- Microsoft.Agents.AI for AIAgentBuilder + UseLogging + UseOpenTelemetry (agent-layer) -->
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
 
-    <!-- .NET 10 Telemetry (Enrichment, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
 
-    <!-- OpenTelemetry -->
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore"/>
@@ -47,7 +39,6 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime"/>
   </ItemGroup>
 
-  <!-- MSBuild property toggles for source generator pipelines -->
   <ItemGroup>
     <CompilerVisibleProperty Include="QylGenAi"/>
     <CompilerVisibleProperty Include="QylAgent"/>
@@ -58,7 +49,6 @@
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating"/>
 
-    <!-- Source generator for auto-instrumentation -->
     <ProjectReference Include="../../internal/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

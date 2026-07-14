@@ -15,13 +15,7 @@ using ContractResourceState = Qyl.Api.Contracts.Runner.RunnerResourceState;
 
 namespace Qyl.Host.Internal;
 
-// Loopback-only HTTP surface exposing runner state and acknowledged resource actions to first-party consoles.
-// Deliberate choices, all traceable to the design constraints:
-//   - HttpListener (pure BCL) not Kestrel  -> AOT-clean, zero added dependency, no builder restructuring.
-//   - loopback + Host/origin/content-type validation -> mutable routes reject remote peers,
-//                                                        DNS rebinding, and cross-site form POSTs.
-//   - source-generated JSON                -> AOT/trim-safe serialization.
-// Binding failure is non-fatal: the Spectre TUI remains the primary control surface.
+// Loopback, Host, origin, and content-type checks protect mutable routes from rebinding and cross-site POSTs.
 internal sealed partial class QylRunnerApi(
     QylResourceRegistry registry,
     QylLogStore logStore,
@@ -228,7 +222,6 @@ internal sealed partial class QylRunnerApi(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // runner shutting down — nothing to report
             AbortResponse(context);
         }
         catch (Exception ex)
@@ -261,7 +254,7 @@ internal sealed partial class QylRunnerApi(
         }
         catch (Exception)
         {
-            // response already gone
+            // The response is already unusable.
         }
     }
 
@@ -409,7 +402,7 @@ internal sealed partial class QylRunnerApi(
         }
         catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or IOException)
         {
-            // client disconnected or the runner is shutting down — end the stream quietly
+            // Client disconnect or runner shutdown ends the stream.
         }
         finally
         {
@@ -419,7 +412,7 @@ internal sealed partial class QylRunnerApi(
             }
             catch (Exception)
             {
-                // connection already torn down
+                // The connection is already closed.
             }
         }
     }
@@ -461,7 +454,7 @@ internal sealed partial class QylRunnerApi(
         }
         catch (Exception ex) when (ex is OperationCanceledException or HttpListenerException or IOException)
         {
-            // client disconnected or the runner is shutting down — end the stream quietly
+            // Client disconnect or runner shutdown ends the stream.
         }
         finally
         {
@@ -471,7 +464,7 @@ internal sealed partial class QylRunnerApi(
             }
             catch (Exception)
             {
-                // connection already torn down
+                // The connection is already closed.
             }
         }
     }

@@ -1,13 +1,7 @@
 <Project>
-  <!-- =======================================================================
-       qyl Root Build Targets
-       ======================================================================= -->
-
-  <!-- Strong-naming support (dormant until a project sets SignAssembly=true and
-       StrongNameKeyBase64File). Keeps the .snk text-encoded in source control. -->
+  <!-- Materializes an opted-in base64 signing key only in intermediate output. -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/StrongName.targets"/>
 
-  <!-- Publishable packages use the repository's one current product README. -->
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(MSBuildThisFileDirectory)README.md"
           Pack="true"

@@ -24,15 +24,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Core NUKE (versions via CPM) -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="Nuke.Common"/>
     <PackageReference Include="Nuke.Components"/>
-    <!-- Reflected by BuildCollectorSemanticCatalog to emit collector-local semantic key policy. -->
+    <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions" PrivateAssets="all"/>
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
-    <!-- Transitive security overrides (pulled in by Nuke.Common but with vulnerable
-         versions; see Directory.Packages.props for the advisories). -->
+    <!-- Override vulnerable Nuke.Common transitives. -->
     <PackageReference Include="NuGet.Packaging"/>
     <PackageReference Include="System.Security.Cryptography.Xml"/>
   </ItemGroup>

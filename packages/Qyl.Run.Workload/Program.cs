@@ -7,13 +7,6 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
 using Qyl.Run.Workload;
 
-// Synthetic conformance workload: continuously emits realistic gen_ai + http + db spans
-// and logs through the SemConv source-generated surface, exported over OTLP.
-//
-// Standalone: `dotnet run --project packages/Qyl.Run.Workload` against a collector on :4318.
-// Under `qyl run --demo`, Qyl.Run injects OTEL_EXPORTER_OTLP_ENDPOINT/_PROTOCOL,
-// OTEL_SERVICE_NAME and ASPNETCORE_URLS; the env defaults below only fill the standalone gap
-// (composition-declared env always wins — it is set before this process starts).
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")))
 {
     Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318");
@@ -55,7 +48,6 @@ builder.Services.AddHostedService<WorkloadEmitter>();
 
 var app = builder.Build();
 
-// Qyl.Run AddProject readiness = 2xx on /health at the injected ASPNETCORE_URLS port.
 app.MapGet("/health", static () => Results.Text("healthy"));
 
 await app.RunAsync().ConfigureAwait(false);

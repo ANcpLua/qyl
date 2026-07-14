@@ -27,21 +27,17 @@ import {
 import type {Span} from '@/types';
 import {getStatusLabel} from '@/types';
 
-// Dashboard span type.
 type TelemetrySpan = Span;
 
-// Helper to get service name from resource
 function getServiceName(span: Span): string {
     const attr = span.resource?.attributes?.find(a => a.key === 'service.name');
     return (attr?.value as string) ?? 'unknown';
 }
 
-// Helper to calculate duration
 function getDurationNs(span: Span): number {
     return span.end_time_unix_nano - span.start_time_unix_nano;
 }
 
-// Helper to get GenAI attributes
 function getGenAiAttrs(span: Span) {
     const attrs = getAttributesRecord(span);
     return {
@@ -53,7 +49,6 @@ function getGenAiAttrs(span: Span) {
     };
 }
 
-// Helper to get total tokens
 function getTotalTokens(span: Span): number | null {
     const genai = getGenAiAttrs(span);
     if (genai.inputTokens === undefined && genai.outputTokens === undefined) return null;
@@ -188,7 +183,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
 
     return (
         <div className="p-4 space-y-4">
-            {/* Header */}
             <div>
                 <div className="flex items-center gap-2">
                     <Badge
@@ -207,7 +201,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
 
             <Separator/>
 
-            {/* Timing */}
             <div>
                 <h4 className="text-sm font-medium mb-2">Timing</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -232,7 +225,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
 
             <Separator/>
 
-            {/* IDs */}
             <div>
                 <h4 className="text-sm font-medium mb-2">IDs</h4>
                 <div className="space-y-1 text-sm">
@@ -271,7 +263,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
 
             <Separator/>
 
-            {/* Attributes */}
             <div>
                 <h4 className="text-sm font-medium mb-2">Attributes</h4>
                 <div className="space-y-2 text-sm">
@@ -307,7 +298,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
                 </div>
             </div>
 
-            {/* Investigate in Claude Code */}
             <div>
                 <a
                     href={`claude-cli://open?q=${encodeURIComponent(`analyze trace ${span.trace_id} span ${span.span_id}\n\nspan name: ${span.name}\nservice: ${getServiceName(span)}\nstatus: ${getStatusLabel(span.status.code)}\nduration: ${formatDuration(nsToMs(getDurationNs(span)))}`)}`}
@@ -320,7 +310,6 @@ function SpanDetails({span}: { span: TelemetrySpan }) {
 
             <Separator/>
 
-            {/* GenAI specific */}
             {genai.provider && (
                 <>
                     <Separator/>
@@ -378,16 +367,12 @@ export function TracesPage() {
 
     const {data: sessions = []} = useSessions();
 
-    // When traceId is present, fetch spans for that trace directly;
-    // otherwise load the selected session's traces.
     const sessionSpanQuery = useSessionSpans(
         traceId ? '' : (sessionId || sessions[0]?.['session.id'] || '')
     );
     const traceSpanQuery = useTraceSpans(traceId);
 
-    // A session can legitimately surface zero traces (e.g. plain HTTP telemetry with no session
-    // join), which would otherwise render an empty waterfall. In that case fall back to recent
-    // project-wide traces so the telemetry stays visible.
+    // Sessionless telemetry falls back to recent project-wide traces.
     const source = selectTraceViewSource({
         hasTraceId: !!traceId,
         sessionResolved: !sessionSpanQuery.isLoading,
@@ -401,7 +386,6 @@ export function TracesPage() {
                 : sessionSpanQuery;
     const {data: spans = [], isLoading} = activeQuery;
 
-    // Build span tree and compute timeline bounds
     const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {
         const childrenMap = new Map<string, TelemetrySpan[]>();
         let minTime = Infinity;
@@ -420,7 +404,6 @@ export function TracesPage() {
             }
         }
 
-        // Sort children by start time
         for (const siblings of childrenMap.values()) {
             siblings.sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
         }
@@ -432,12 +415,10 @@ export function TracesPage() {
         };
     }, [spans]);
 
-    // Flatten visible tree for virtualization
     const flattenedSpans = useMemo(() => {
         const result: FlattenedSpan[] = [];
         const filterLower = filterText.toLowerCase();
 
-        // Get root spans (no parent)
         const rootSpans = spans
             .filter((s) => !s.parent_span_id)
             .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
@@ -457,7 +438,6 @@ export function TracesPage() {
             const hasChildren = children.length > 0;
             const isExpanded = expandedSpans.has(span.span_id);
 
-            // Include if matches filter or has matching descendants
             const matches = matchesFilter(span);
             const hasMatchingDescendant =
                 hasChildren &&
@@ -502,7 +482,6 @@ export function TracesPage() {
         });
     }, []);
 
-    // Virtualization
     const rowVirtualizer = useVirtualizer({
         count: flattenedSpans.length,
         getScrollElement: () => parentRef.current,
@@ -512,9 +491,7 @@ export function TracesPage() {
 
     return (
         <div className="flex h-full">
-            {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Toolbar */}
                 <div className="flex items-center gap-4 p-4 border-b border-border">
                     <div className="relative flex-1 max-w-sm">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
@@ -543,7 +520,6 @@ export function TracesPage() {
                         Collapse All
                     </Button>
 
-                    {/* Download button */}
                     <DownloadButton
                         getData={() => spans.map(span => {
                             const attrs = getAttributesRecord(span);
@@ -567,7 +543,6 @@ export function TracesPage() {
                     />
                 </div>
 
-                {/* Virtualized trace waterfall */}
                 <div ref={parentRef} className="flex-1 overflow-auto" style={{contain: 'strict'}}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
@@ -620,7 +595,6 @@ export function TracesPage() {
                 </div>
             </div>
 
-            {/* Details panel */}
             {selectedSpan && (
                 <div className="w-96 border-l border-border bg-brutal-dark">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border">

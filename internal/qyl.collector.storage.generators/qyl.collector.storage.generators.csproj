@@ -1,29 +1,23 @@
 <Project Sdk="ANcpLua.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <!-- netstandard2.0 defaults to C# 7.3, but we use modern features (required, init, file-scoped namespaces) -->
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.Collector.Storage.Generators</RootNamespace>
 
-    <!-- Analyzer/Generator settings -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- AOT not supported for netstandard2.0 (required for Roslyn analyzer compatibility) -->
     <IsAotCompatible>false</IsAotCompatible>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
 
-    <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
-    <!-- self-describe the Roslyn reference; SDK name-matching injection is fragile under IDE LSPs -->
+    <!-- Explicit Roslyn references also work under IDE language-server builds. -->
     <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
 
-    <!-- RS0030: BannedApiAnalyzers fires on the ANcpLua.Roslyn.Utilities.Sources
-         polyfills (TimeProvider, ByteSize) which use DateTimeOffset.UtcNow and
-         Math.Round(double, int). We don't own that source — suppress here. -->
+    <!-- RS0030 originates in compiled-in ANcpLua.Roslyn.Utilities polyfills. -->
     <NoWarn>$(NoWarn);RS0030</NoWarn>
   </PropertyGroup>
 

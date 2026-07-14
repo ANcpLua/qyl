@@ -4,7 +4,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Qyl.Run.Workload</RootNamespace>
-    <!-- Synthetic conformance workload for qyl's demo mode; never packed. -->
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,8 +18,6 @@
   <ItemGroup>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
-    <!-- Analyzer-only: emits the [SemanticConvention*] markers and typed setters/instrument
-         factories from the embedded semconv registry. This workload exercises that surface. -->
     <PackageReference Include="Qyl.OpenTelemetry.SemanticConventions.SourceGeneration" PrivateAssets="all"/>
   </ItemGroup>
 

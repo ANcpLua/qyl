@@ -9,10 +9,8 @@ import type {
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 import {fetchJson} from '@/lib/api';
 
-// Dashboard span type.
 type TelemetrySpan = Span;
 
-// Query keys
 export const telemetryKeys = {
     all: ['telemetry'] as const,
     sessions: () => [...telemetryKeys.all, 'sessions'] as const,
@@ -24,7 +22,6 @@ export const telemetryKeys = {
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
-// Sessions - return array directly for components
 export function useSessions() {
     return useQuery({
         queryKey: telemetryKeys.sessions(),
@@ -52,9 +49,6 @@ export function useTraceSpans(traceId: string) {
     });
 }
 
-// Project-wide recent traces, flattened to spans. Used as the TracesPage fallback when a session
-// surfaces no retrievable traces (e.g. plain HTTP telemetry without a session join), so the
-// waterfall stays populated instead of showing "No traces found".
 export function useTraces(enabled = true) {
     return useQuery({
         queryKey: telemetryKeys.traces(),
@@ -67,10 +61,6 @@ export function useTraces(enabled = true) {
 
 export type TraceViewSource = 'trace' | 'session' | 'all-traces';
 
-// Decides which span source feeds the trace waterfall:
-//   - 'trace'      a ?traceId= deep-link is present
-//   - 'all-traces' the selected session resolved with zero traces (fallback)
-//   - 'session'    default: the session's own traces (incl. while still loading)
 export function selectTraceViewSource(args: {
     hasTraceId: boolean;
     sessionResolved: boolean;
@@ -81,30 +71,24 @@ export function selectTraceViewSource(args: {
     return 'session';
 }
 
-// Span utilities.
 export function getSpanColor(span: TelemetrySpan): string {
     const attrs = getAttributesRecord(span);
-    // GenAI spans
     if (attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
     }
-    // HTTP spans
     if (attrs['http.method'] || attrs['http.request.method']) {
         return 'hsl(var(--span-http))';
     }
-    // Database spans
     if (hasDatabaseSystem(attrs)) {
         return 'hsl(var(--span-db))';
     }
-    // Messaging spans
     if (attrs['messaging.system']) {
         return 'hsl(var(--span-message))';
     }
-    // RPC spans (rpc.system is the pre-1.43 key still emitted by shipping instrumentations)
+    // Shipping instrumentations still emit the pre-1.43 rpc.system key.
     if (attrs['rpc.system.name'] || attrs['rpc.system']) {
         return 'hsl(var(--span-rpc))';
     }
-    // Default
     return 'hsl(var(--span-internal))';
 }
 
@@ -150,5 +134,4 @@ export function formatTimestamp(iso: string): string {
     });
 }
 
-// Re-export utilities for convenience
 export {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR};

@@ -1,14 +1,5 @@
 <Project>
-  <!-- =======================================================================
-       Strong-name signing from a text-encoded key
-       Extracted from open-telemetry/opentelemetry-dotnet-instrumentation
-       (Apache-2.0) Common.props. The .snk lives base64-encoded in source
-       control and is materialized only into ignored intermediate output.
-
-       Opt in per project:
-         <SignAssembly>true</SignAssembly>
-         <StrongNameKeyBase64File>path/to/key.snk.base64</StrongNameKeyBase64File>
-       ======================================================================= -->
+  <!-- Adapted from OpenTelemetry .NET instrumentation (Apache-2.0); decoded keys stay in intermediate output. -->
 
   <UsingTask
     TaskName="DecodeBase64File"

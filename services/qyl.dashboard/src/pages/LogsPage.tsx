@@ -24,10 +24,6 @@ import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
 import type {ContractLogRecord, LogLevel, LogStreamEvent, LogViewRecord} from '@/types';
 
-// =============================================================================
-// Configuration
-// =============================================================================
-
 const MAX_LOGS = 10_000;
 const AUTO_SCROLL_THRESHOLD = 100; // px from bottom to consider "attached"
 const SSE_RECONNECT_DELAY = 3000;
@@ -99,10 +95,6 @@ function unixNanoToIso(value: number): string {
     return new Date(value / 1_000_000).toISOString();
 }
 
-// =============================================================================
-// LogRow Component (memoized for virtualization performance)
-// =============================================================================
-
 interface LogRowProps {
     log: LogViewRecord;
     isExpanded: boolean;
@@ -133,7 +125,6 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                     }
                 }}
             >
-                {/* Expand icon */}
                 <div className="pt-0.5">
                     {isExpanded ? (
                         <ChevronDown className="w-4 h-4 text-brutal-slate"/>
@@ -142,31 +133,25 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                     )}
                 </div>
 
-                {/* Timestamp */}
                 <span className="font-mono text-xs text-brutal-slate w-24 flex-shrink-0">
           {formatTimestamp(log.timestamp)}
         </span>
 
-                {/* Level */}
                 <Badge variant="outline" className={cn('text-xs', config.className)}>
                     <Icon className="w-3 h-3 mr-1"/>
                     {log.severityText.toUpperCase()}
                 </Badge>
 
-                {/* Service */}
                 <span className="text-sm text-brutal-slate w-28 truncate flex-shrink-0">
           {log.serviceName}
         </span>
 
-                {/* Message */}
                 <span className="text-sm flex-1 truncate font-mono">{log.body}</span>
             </div>
 
-            {/* Expanded details */}
             {isExpanded && (
                 <div className="px-4 py-3 bg-brutal-dark/30 border-t border-border">
                     <div className="pl-8 space-y-3">
-                        {/* Full message */}
                         <div>
                             <h4 className="text-xs font-medium text-brutal-slate mb-1">Message</h4>
                             {isStructuredContent(log.body) ? (
@@ -184,7 +169,6 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                             )}
                         </div>
 
-                        {/* Trace context */}
                         {log.traceId && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -211,7 +195,6 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                             </div>
                         )}
 
-                        {/* Attributes */}
                         {Object.keys(log.attributes).length > 0 && (
                             <div>
                                 <h4 className="text-xs font-medium text-brutal-slate mb-1">Attributes</h4>
@@ -238,10 +221,6 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
     );
 });
 
-// =============================================================================
-// useLiveLogs Hook - SSE connection with RAF batching
-// =============================================================================
-
 interface UseLiveLogsOptions {
     enabled?: boolean;
     onError?: (error: Error) => void;
@@ -261,7 +240,7 @@ function useLiveLogs(
     const seenEventIdsRef = useRef<Set<string>>(new Set());
     const [isConnected, setIsConnected] = useState(false);
 
-    // RAF-batched flush - coalesces all logs received in a frame into single state update
+    // Coalesce all logs received in one frame into one state update.
     const flushPending = useCallback(() => {
         const pending = pendingLogsRef.current;
         pendingLogsRef.current = [];
@@ -273,7 +252,6 @@ function useLiveLogs(
         }
     }, [bufferRef, setVersion]);
 
-    // Queue logs for RAF batch
     const queueLogs = useCallback(
         (logs: LogViewRecord[]) => {
             pendingLogsRef.current.push(...logs);
@@ -347,87 +325,56 @@ function useLiveLogs(
     return {isConnected};
 }
 
-// =============================================================================
-// LogsPage Component
-// =============================================================================
-
 export function LogsPage() {
-    // -------------------------------------------------------------------------
-    // Ring buffer state - O(1) append with automatic pruning
-    // -------------------------------------------------------------------------
     const logsBufferRef = useRef(new RingBuffer<LogViewRecord>(MAX_LOGS));
     const [logsVersion, setLogsVersion] = useState(0);
     const lastGenerationRef = useRef(0);
 
-    // -------------------------------------------------------------------------
-    // UI state
-    // -------------------------------------------------------------------------
-    // Use composite keys (traceId + timestamp) instead of indices - survives buffer wrap
+    // Composite keys remain stable when the ring buffer wraps.
     const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
     const [filterText, setFilterText] = useState('');
     const [minLevel, setMinLevel] = useState<LogLevel>('trace');
     const [selectedService, setSelectedService] = useState<string>('all');
     const [isLive, setIsLive] = useState(true);
 
-    // -------------------------------------------------------------------------
-    // Auto-scroll (tail-f) state
-    // -------------------------------------------------------------------------
     const [isAutoScroll, setIsAutoScroll] = useState(true);
     const [newLogsCount, setNewLogsCount] = useState(0);
     const isAutoScrollRef = useRef(isAutoScroll);
     isAutoScrollRef.current = isAutoScroll;
 
-    // -------------------------------------------------------------------------
-    // Refs
-    // -------------------------------------------------------------------------
     const parentRef = useRef<HTMLDivElement>(null);
     const expandedLogsRef = useRef(expandedLogs);
     expandedLogsRef.current = expandedLogs;
 
-    // -------------------------------------------------------------------------
-    // SSE connection with RAF batching
-    // -------------------------------------------------------------------------
     const {isConnected} = useLiveLogs(logsBufferRef, setLogsVersion, {
         enabled: isLive,
     });
 
-    // Track new logs when not auto-scrolling
     useEffect(() => {
         if (!isAutoScrollRef.current && logsVersion > 0) {
-            // Approximate: we don't know exact count, but version change means new logs
             setNewLogsCount((c) => c + 1);
         }
     }, [logsVersion]);
 
-    // -------------------------------------------------------------------------
-    // Derived data
-    // -------------------------------------------------------------------------
-
-    // Get logs from buffer (re-runs when version changes)
     const logs = useMemo(() => {
         void logsVersion; // Dependency trigger - version change means buffer updated
         return logsBufferRef.current.toArray();
     }, [logsVersion]);
 
-    // Unique services for filter dropdown
     const services = useMemo(() => {
         const set = new Set(logs.map((l) => l.serviceName));
         return Array.from(set).sort();
     }, [logs]);
 
-    // Filtered logs for display
     const filteredLogs = useMemo(() => {
         const minLevelIndex = LOG_LEVELS.indexOf(minLevel);
 
         return logs.filter((log) => {
-            // Level filter
             const levelIndex = LOG_LEVELS.indexOf(log.severityText);
             if (levelIndex < minLevelIndex) return false;
 
-            // Service filter
             if (selectedService !== 'all' && log.serviceName !== selectedService) return false;
 
-            // Text filter
             if (filterText) {
                 const searchLower = filterText.toLowerCase();
                 const matches =
@@ -443,7 +390,6 @@ export function LogsPage() {
         });
     }, [logs, minLevel, selectedService, filterText]);
 
-    // Stats
     const stats = useMemo(() => {
         return {
             total: logs.length,
@@ -453,16 +399,10 @@ export function LogsPage() {
         };
     }, [logs]);
 
-    // -------------------------------------------------------------------------
-    // Composite key helper - survives buffer rotation
-    // -------------------------------------------------------------------------
     const getLogKey = useCallback((log: LogViewRecord) => {
         return `${log.traceId ?? ''}:${log.timestamp}`;
     }, []);
 
-    // -------------------------------------------------------------------------
-    // Virtualizer
-    // -------------------------------------------------------------------------
     const rowVirtualizer = useVirtualizer({
         count: filteredLogs.length,
         getScrollElement: () => parentRef.current,
@@ -474,14 +414,12 @@ export function LogsPage() {
         overscan: 20,
     });
 
-    // Remeasure when expanded set changes
     const prevExpandedRef = useRef(expandedLogs);
     if (prevExpandedRef.current !== expandedLogs) {
         prevExpandedRef.current = expandedLogs;
         queueMicrotask(() => rowVirtualizer.measure());
     }
 
-    // Remeasure on buffer wrap-around (indices shifted)
     useEffect(() => {
         const currentGen = logsBufferRef.current.generation;
         if (currentGen !== lastGenerationRef.current) {
@@ -490,9 +428,6 @@ export function LogsPage() {
         }
     }, [logsVersion, rowVirtualizer]);
 
-    // -------------------------------------------------------------------------
-    // Scroll handling for tail-f
-    // -------------------------------------------------------------------------
     const handleScroll = useCallback(() => {
         const el = parentRef.current;
         if (!el) return;
@@ -517,8 +452,7 @@ export function LogsPage() {
         return () => el.removeEventListener('scroll', handleScroll);
     }, [handleScroll]);
 
-    // Auto-scroll to bottom when new logs arrive (if attached)
-    // useLayoutEffect runs BEFORE browser paint - prevents scroll position flicker
+    // Layout timing prevents a visible scroll-position flicker.
     useLayoutEffect(() => {
         if (isAutoScroll && filteredLogs.length > 0) {
             rowVirtualizer.scrollToIndex(filteredLogs.length - 1, {
@@ -528,9 +462,6 @@ export function LogsPage() {
         }
     }, [filteredLogs.length, isAutoScroll, rowVirtualizer]);
 
-    // -------------------------------------------------------------------------
-    // Handlers
-    // -------------------------------------------------------------------------
     const toggleLog = useCallback((logKey: string) => {
         setExpandedLogs((prev) => {
             const next = new Set(prev);
@@ -560,14 +491,9 @@ export function LogsPage() {
         setExpandedLogs(new Set());
     }, []);
 
-    // -------------------------------------------------------------------------
-    // Render
-    // -------------------------------------------------------------------------
     return (
         <div className="flex flex-col h-full">
-            {/* Toolbar */}
             <div className="flex items-center gap-4 p-4 border-b border-border">
-                {/* Search */}
                 <div className="relative flex-1 max-w-sm">
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
@@ -579,7 +505,6 @@ export function LogsPage() {
                     />
                 </div>
 
-                {/* Level filter */}
                 <Select value={minLevel} onValueChange={(v) => setMinLevel(v as LogLevel)}>
                     <SelectTrigger className="w-32">
                         <SelectValue placeholder="Min Level"/>
@@ -593,7 +518,6 @@ export function LogsPage() {
                     </SelectContent>
                 </Select>
 
-                {/* Service filter */}
                 <Select value={selectedService} onValueChange={setSelectedService}>
                     <SelectTrigger className="w-40">
                         <SelectValue placeholder="Service"/>
@@ -608,7 +532,6 @@ export function LogsPage() {
                     </SelectContent>
                 </Select>
 
-                {/* Stats */}
                 <div className="flex items-center gap-4 text-sm">
           <span className="text-brutal-slate">
             {filteredLogs.length.toLocaleString()} / {stats.total.toLocaleString()} logs
@@ -623,12 +546,10 @@ export function LogsPage() {
                     )}
                 </div>
 
-                {/* Clear button */}
                 <Button variant="outline" size="sm" onClick={clearLogs}>
                     Clear
                 </Button>
 
-                {/* Download button */}
                 <DownloadButton
                     getData={() => filteredLogs.map(log => ({
                         timestamp: log.timestamp,
@@ -644,7 +565,6 @@ export function LogsPage() {
                     disabled={filteredLogs.length === 0}
                 />
 
-                {/* Live toggle */}
                 <Button
                     variant={isLive ? 'default' : 'outline'}
                     size="sm"
@@ -661,7 +581,6 @@ export function LogsPage() {
                 </Button>
             </div>
 
-            {/* Active Filters */}
             {(filterText || minLevel !== 'trace' || selectedService !== 'all') && (
                 <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
                     <span className="text-xs text-brutal-slate">Active filters:</span>
@@ -716,7 +635,6 @@ export function LogsPage() {
                 </div>
             )}
 
-            {/* Virtualized Logs */}
             <div
                 ref={parentRef}
                 className="flex-1 overflow-auto relative"
@@ -763,7 +681,6 @@ export function LogsPage() {
                     </div>
                 )}
 
-                {/* Jump to bottom button (shown when scrolled away from bottom) */}
                 {!isAutoScroll && filteredLogs.length > 0 && (
                     <Button
                         className="absolute bottom-4 right-4 shadow-brutal"

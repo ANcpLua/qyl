@@ -1,11 +1,4 @@
 <Project>
-  <!-- =======================================================================
-       qyl Engineering Tools - shared properties
-       Standalone maintenance tools extracted from
-       open-telemetry/opentelemetry-dotnet-instrumentation (Apache-2.0).
-       They inherit the repo root props (CPM, artifacts output, analyzers)
-       and relax only what vendored tool code needs.
-       ======================================================================= -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
 
   <PropertyGroup>
@@ -13,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!-- CA1303: internal console tools have no localization story. -->
+    <!-- Internal console tools do not localize diagnostics. -->
     <NoWarn>$(NoWarn);CA1303</NoWarn>
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>

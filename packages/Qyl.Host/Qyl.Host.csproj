@@ -11,8 +11,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- The orchestrator core must stay honestly AOT-clean: no reflection config binding, no resilience
-         pipeline, source-generated JSON only. The analyzers keep that claim checked at build time. -->
+    <!-- Keep the orchestration core source-generated and AOT-compatible. -->
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
@@ -26,8 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Owned extension/test assemblies may use the internal composition model. Keeping that
-         model internal prevents third-party packages from depending on runner storage shapes. -->
+    <!-- Only owned assemblies may compose against internal runner shapes. -->
     <InternalsVisibleTo Include="Qyl.Host.Mcp"/>
     <InternalsVisibleTo Include="Qyl.Host.Tests"/>
     <InternalsVisibleTo Include="Qyl.Host.Mcp.AotSmoke"/>

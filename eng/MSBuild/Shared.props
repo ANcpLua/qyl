@@ -1,14 +1,5 @@
 <Project>
-  <!-- =======================================================================
-       qyl Shared Properties - Imported by Directory.Build.props
-       OTel configuration and qyl-specific settings
-       Guard.NotNull() etc. from ANcpLua.Roslyn.Utilities
-       ======================================================================= -->
-
-  <!-- Global Usings for OTel (modern TFMs only — netstandard2.0 lacks System.Diagnostics.Metrics).
-       Gated on ImplicitUsings so projects that explicitly opt out get the disable-honored
-       contract they expect. Mirrors ANcpLua.NET.Sdk's Common.targets which guards its own
-       <Using Include="..."/> block the same way. -->
+  <!-- Respect projects that disable implicit usings; netstandard2.0 lacks Metrics. -->
   <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' AND ('$(ImplicitUsings)' == 'true' OR '$(ImplicitUsings)' == 'enable')">
     <Using Include="System.Diagnostics"/>
     <Using Include="System.Diagnostics.Metrics"/>

@@ -58,7 +58,7 @@ internal sealed class QylConsoleUi(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // Normal host shutdown.
+            // Normal shutdown.
         }
     }
 
@@ -130,7 +130,7 @@ internal sealed class QylConsoleUi(
             }
             catch (OperationCanceledException)
             {
-                // shutdown requested
+                // Normal shutdown.
             }
 
             return;

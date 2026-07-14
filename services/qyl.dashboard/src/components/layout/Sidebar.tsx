@@ -19,8 +19,6 @@ interface NavItem {
     shortcut: string;
 }
 
-// One entry per shipped product surface: traces (incl. sessions), logs, GenAI cost.
-// A page returns here only when a real collector endpoint backs it.
 const navItems: NavItem[] = [
     {to: '/traces', icon: GitBranch, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
@@ -43,7 +41,6 @@ export function Sidebar({collapsed, onCollapsedChange}: SidebarProps) {
                     collapsed ? 'w-14' : 'w-52'
                 )}
             >
-                {/* BRUTALIST Logo */}
                 <div className="flex items-center h-12 px-3 border-b border-brutal-zinc/70 bg-brutal-dark/90">
                     <NavLink to="/" className="flex items-center gap-1.5">
                         <div
@@ -59,7 +56,6 @@ export function Sidebar({collapsed, onCollapsedChange}: SidebarProps) {
                     </NavLink>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 p-2 space-y-1" aria-label="Main navigation">
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.to;
@@ -103,12 +99,9 @@ export function Sidebar({collapsed, onCollapsedChange}: SidebarProps) {
                     })}
                 </nav>
 
-                {/* Separator line */}
                 <div className="border-t border-brutal-zinc/70"/>
 
-                {/* Bottom section */}
                 <div className="p-2 space-y-1">
-                    {/* Collapse toggle */}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -132,7 +125,6 @@ export function Sidebar({collapsed, onCollapsedChange}: SidebarProps) {
                     </Button>
                 </div>
 
-                {/* Footer */}
                 {!collapsed && (
                     <div className="px-4 py-2 border-t border-brutal-zinc/70 bg-brutal-dark/80">
                         <div className="text-[11px] text-brutal-slate tracking-[0.15em] leading-relaxed">

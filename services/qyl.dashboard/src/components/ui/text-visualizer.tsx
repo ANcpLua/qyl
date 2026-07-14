@@ -7,7 +7,6 @@ import {Tooltip, TooltipContent, TooltipTrigger} from "./tooltip";
 import {cn} from "@/lib/utils";
 import {toast} from "sonner";
 
-// Content type detection
 type ContentType = "json" | "xml" | "text";
 
 function detectContentType(content: string): ContentType {
@@ -26,7 +25,6 @@ function detectContentType(content: string): ContentType {
     return "text";
 }
 
-// Format content based on type
 function formatContent(content: string, type: ContentType): string {
     if (type === "json") {
         try {
@@ -41,7 +39,6 @@ function formatContent(content: string, type: ContentType): string {
     return content;
 }
 
-// Simple XML formatter
 function formatXml(xml: string): string {
     let formatted = "";
     let indent = 0;
@@ -51,14 +48,12 @@ function formatXml(xml: string): string {
         const trimmed = token.trim();
         if (!trimmed) continue;
 
-        // Decrease indent for closing tags
         if (trimmed.startsWith("</")) {
             indent = Math.max(0, indent - 1);
         }
 
         formatted += "  ".repeat(indent) + trimmed + "\n";
 
-        // Increase indent for opening tags (not self-closing or closing)
         if (
             trimmed.startsWith("<") &&
             !trimmed.startsWith("</") &&
@@ -74,7 +69,6 @@ function formatXml(xml: string): string {
     return formatted.trim();
 }
 
-// JSON Tree View Component
 interface JsonTreeNodeProps {
     name: string;
     value: unknown;
@@ -154,7 +148,6 @@ function JsonTreeNode({name, value, depth, isLast}: JsonTreeNodeProps) {
     );
 }
 
-// Token types for safe syntax highlighting
 type TokenType =
     "key"
     | "string"
@@ -234,7 +227,7 @@ const tokenClassMap: Record<TokenType, string | null> = {
     plain: null,
 };
 
-// Syntax highlighting for formatted content — renders React elements, no innerHTML
+// Render syntax tokens as React elements; never inject HTML.
 function SyntaxHighlighter({content, type}: { content: string; type: ContentType }) {
     const tokens = useMemo(() => {
         if (type === "json") return tokenizeJson(content);
@@ -258,7 +251,6 @@ function SyntaxHighlighter({content, type}: { content: string; type: ContentType
     );
 }
 
-// Main TextVisualizer component
 interface TextVisualizerProps {
     content: string;
     label?: string;
@@ -313,7 +305,6 @@ export function TextVisualizer({
 
     return (
         <div className={cn("group relative bg-brutal-carbon border border-brutal-zinc", className)}>
-            {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-brutal-zinc bg-brutal-dark">
                 <div className="flex items-center gap-2">
                     <TypeIcon className="w-4 h-4 text-brutal-slate"/>
@@ -325,7 +316,6 @@ export function TextVisualizer({
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
-                    {/* Tree view toggle (JSON only) */}
                     {showTreeView && contentType === "json" && parsedJson && (
                         <Tooltip>
                             <TooltipTrigger
@@ -349,7 +339,6 @@ export function TextVisualizer({
                         </Tooltip>
                     )}
 
-                    {/* Expand/Collapse toggle */}
                     {needsCollapse && (
                         <Tooltip>
                             <TooltipTrigger
@@ -373,7 +362,6 @@ export function TextVisualizer({
                         </Tooltip>
                     )}
 
-                    {/* Copy button */}
                     <Tooltip>
                         <TooltipTrigger
                             render={<Button
@@ -397,7 +385,6 @@ export function TextVisualizer({
                 </div>
             </div>
 
-            {/* Content */}
             <Collapsible open={isExpanded || !needsCollapse}>
                 <div className="relative">
                     <CollapsibleContent keepMounted>
@@ -425,14 +412,12 @@ export function TextVisualizer({
                         </div>
                     </CollapsibleContent>
 
-                    {/* Fade overlay when collapsed */}
                     {!isExpanded && needsCollapse && (
                         <div
                             className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-brutal-carbon to-transparent pointer-events-none"/>
                     )}
                 </div>
 
-                {/* Expand trigger */}
                 {needsCollapse && (
                     <CollapsibleTrigger
                         render={<button
@@ -458,11 +443,9 @@ export function TextVisualizer({
     );
 }
 
-// Utility function to check if content should use TextVisualizer
 export function isStructuredContent(content: string): boolean {
     const type = detectContentType(content);
     return type === "json" || type === "xml";
 }
 
-// Export content type detection for external use
 export {detectContentType, type ContentType};
