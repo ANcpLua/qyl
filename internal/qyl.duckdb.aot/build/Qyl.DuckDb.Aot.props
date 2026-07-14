@@ -1,0 +1,24 @@
+<Project>
+  <!-- Import this from any project that publishes with PublishAot=true while referencing
+       DuckDB.NET.Data (directly or transitively). Shaped as a buildTransitive props file so
+       the project can later ship as a NuGet package without the consumer changing anything
+       beyond the reference.
+
+       DuckDB.NET.Data 1.5.3 is not annotated (no IsTrimmable/IsAotCompatible), so ILC emits
+       assembly-level rollups: IL2104 (trim) and IL3053 (AOT). The individual sites behind the
+       rollups are enumerated and mitigated by Qyl.DuckDb.Aot.DuckDbAot.Warmup() — which also
+       verifies the mitigation at startup against a real in-memory database, so a regression
+       fails loudly instead of shipping silently. Upstream annotation request:
+       https://github.com/Giorgi/DuckDB.NET/issues/339 — when that lands and the package is
+       bumped, delete this NoWarn and re-run an AOT publish with -p:TrimmerSingleWarn=false
+       to confirm the rollups are gone.
+
+       Scope note: NoWarn is project-wide, but IL2104/IL3053 are emitted per offending
+       *referenced assembly* and DuckDB.NET.Data is the only unannotated assembly this shim
+       takes responsibility for. Re-enumerate after every DuckDB.NET version bump:
+       dotnet publish -p:TrimmerSingleWarn=false and diff the IL warnings against
+       internal/qyl.duckdb.aot/README.md. -->
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <NoWarn>$(NoWarn);IL2104;IL3053</NoWarn>
+  </PropertyGroup>
+</Project>

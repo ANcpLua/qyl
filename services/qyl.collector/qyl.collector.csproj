@@ -4,11 +4,36 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <PublishAot>false</PublishAot>
-    <PublishTrimmed>false</PublishTrimmed>
     <IsAotCompatible>false</IsAotCompatible>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Native AOT publish is opt-in: dotnet publish -p:QylAot=true -p:QylEmbedDashboard=false.
+         QylAot (not PublishAot) is the CLI switch because a CLI global PublishAot=true would
+         propagate into the two netstandard2.0 generator ProjectReferences below and fail with
+         NETSDK1207; QylAot is a property nothing else reads, and PublishAot set HERE stays
+         project-local. DuckDB.NET's generic read paths are rooted and startup-verified by
+         Qyl.DuckDb.Aot.DuckDbAot.Warmup() (see internal/qyl.duckdb.aot/README.md).
+         Trim/AOT analysis warnings from unannotated upstream packages (OpenTelemetry
+         exporters, Microsoft.Extensions.Telemetry) are suppressed for this lane; the
+         executable owner is the native runtime smoke (eng/scripts/collector-aot-smoke.sh),
+         not the analyzer. -->
+    <PublishAot Condition="'$(QylAot)' == 'true'">true</PublishAot>
+    <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
+    <SuppressTrimAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressTrimAnalysisWarnings>
+    <SuppressAotAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressAotAnalysisWarnings>
+    <!-- PublishAot enables the ConfigurationBindingGenerator interceptor, whose generated code
+         uses ArgumentNullException.ThrowIfNull. The .editorconfig [*.g.cs] RS0030 exemption
+         cannot match in-memory generated trees (pseudo paths outside the editorconfig cone),
+         so the banned-API rule must be silenced for this lane only; the default JIT lane keeps
+         full RS0030 enforcement, which catches any hand-written drift. -->
+    <NoWarn Condition="'$(QylAot)' == 'true'">$(NoWarn);RS0030</NoWarn>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
+  </PropertyGroup>
+
+  <Import Project="..\..\internal\qyl.duckdb.aot\build\Qyl.DuckDb.Aot.props"/>
 
   <PropertyGroup>
     <!-- Release artifacts serve dashboard, API, and OTLP from one origin. -->
@@ -55,6 +80,7 @@
     <PackageReference Include="Qyl.Api.Contracts"/>
     <PackageReference Include="Qyl.OpenTelemetry.AutoInstrumentation"/>
     <ProjectReference Include="..\..\internal\qyl.instrumentation\qyl.instrumentation.csproj"/>
+    <ProjectReference Include="..\..\internal\qyl.duckdb.aot\qyl.duckdb.aot.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,22 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Qyl.DuckDb.Aot</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Designed for extraction into a standalone package: no qyl project references,
+         only DuckDB.NET.Data.Full. See README.md for the mechanism and the upstream
+         annotation issue (Giorgi/DuckDB.NET#339) this shim bridges. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
+  </ItemGroup>
+
+</Project>
