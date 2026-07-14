@@ -2,9 +2,9 @@ namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 /// API-key boundary for the collector's HTTP surface. In ApiKey mode it
-/// guards BOTH the OTLP ingest routes (<c>/v1/*</c>) and the read API (<c>/api/v1/*</c>) with
-/// the same key pair — one collector credential, sent as the <c>x-otlp-api-key</c> header
-/// (historical name, kept as the single header on purpose). <c>/health</c>, <c>/alive</c> and
+/// guards both the OTLP ingest routes (<c>/v1/*</c>) and the read API (<c>/api/v1/*</c>) with
+/// one collector credential sent as the generated contract's <c>x-otlp-api-key</c> header.
+/// <c>/health</c>, <c>/alive</c>, and
 /// the SPA stay open: liveness must be probeable without credentials, and the dashboard shell
 /// carries no data.
 /// </summary>

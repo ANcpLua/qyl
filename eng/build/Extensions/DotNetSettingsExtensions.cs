@@ -1,6 +1,6 @@
 // Extracted from open-telemetry/opentelemetry-dotnet-instrumentation (Apache-2.0).
-// qyl adaptation: target frameworks are plain strings (qyl is single-TFM today);
-// the matrix helpers stay so multi-version library testing can be wired later.
+// qyl adaptation: target frameworks are plain strings and package-build metadata is
+// applied consistently across supported framework matrices.
 
 using System.Collections.Generic;
 using System.Linq;

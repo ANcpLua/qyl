@@ -52,8 +52,7 @@ anything serialized across a boundary is a contract.
 - `Version.props` owns the Qyl product version; central package versions live in
   `Directory.Packages.props`. Do not hardcode package or banner versions elsewhere.
 - The toolchain is the `global.json` SDK (`10.0.301`, `latestFeature`) and C# 14.
-  Interceptors are a supported Roslyn feature on this SDK; do not revive obsolete
-  preview-only assumptions.
+  Interceptors are supported on this SDK; use the current Roslyn APIs.
 - Never hand-edit generated C#, protobuf output, TypeScript contracts, or generated
   reports. Analyzer release manifests are maintained inputs and change with their
   analyzer rules.

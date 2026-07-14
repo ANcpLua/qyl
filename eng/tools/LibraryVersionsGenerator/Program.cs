@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // qyl adaptation: package versions are resolved from the repo root
 // Directory.Packages.props (CPM source of truth) and both generated files land in
-// an output directory (default: Artifacts/generated) instead of hardcoded
-// test/build paths — qyl has no multi-version integration-test rig yet, so the
-// generated matrix is an opt-in artifact rather than committed source.
+// an output directory (default: Artifacts/generated). The repository has no
+// multi-version integration-test rig, so the generated matrix is an opt-in artifact.
 
 using System.Reflection;
 using System.Runtime.CompilerServices;

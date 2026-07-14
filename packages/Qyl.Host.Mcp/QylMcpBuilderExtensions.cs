@@ -21,7 +21,7 @@ public static class QylMcpBuilderExtensions
 {
     // ModelContextProtocol.Core 1.4.1 owns its ActivitySource under this name. The SDK keeps the
     // constant internal, so this value is pinned by the exact package version. Its Meter uses the
-    // same name, but qyl has no metrics receiver yet and must not export it into a known 404.
+    // same name, but qyl exposes no metrics receiver and therefore does not export that signal.
     internal const string OfficialDiagnosticsName = "Experimental.ModelContextProtocol";
 
     /// <summary>

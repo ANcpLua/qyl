@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="qyl Product Version">
     <!-- The single owner of the qyl product version. It flows to every project as
-         assembly, file, and package version. Any future publishing must remain CI-owned. -->
+         assembly, file, and package version. Publishing is CI-owned. -->
     <QylVersion>0.1.0-beta.1</QylVersion>
     <Version>$(QylVersion)</Version>
   </PropertyGroup>

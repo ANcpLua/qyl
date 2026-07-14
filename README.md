@@ -6,8 +6,8 @@ storage, public investigation API, dashboard, and local distributed-app host.
 OpenTelemetry supplies the ingestion protocol and telemetry vocabulary; it is not
 Qyl's product API.
 
-qyl is pre-beta. The current repository favors a small, executable product surface
-over compatibility layers for unreleased experiments.
+qyl is pre-beta. Unpublished surfaces converge directly on a small, executable
+product; compatibility requires a proven consumer.
 
 ## Architecture
 

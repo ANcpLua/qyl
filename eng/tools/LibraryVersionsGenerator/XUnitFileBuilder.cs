@@ -49,7 +49,7 @@ internal sealed class XUnitFileBuilder : CSharpFileBuilder
 
     public override CSharpFileBuilder AddVersionWithDependencies(string version, Dictionary<string, string> dependencies, string[] supportedFrameworks, string[] supportedPlatforms)
     {
-        // Dependencies info is currently not usable here. Build is located based on main package version string.
+        // The lookup is keyed by the main package version; dependency metadata does not affect this projection.
         return AddVersion(version, supportedFrameworks, supportedPlatforms);
     }
 

@@ -10,10 +10,9 @@ internal sealed class QylAppOptions
 
     public int StartupTimeoutSeconds { get; init; } = QylConstants.Orchestrator.StartupTimeoutSeconds;
 
-    // Manual, reflection-free bind: ConfigurationBinder and DataAnnotations validation both walk the type
-    // via reflection, which the trimmer cannot see through. Reading the known keys explicitly keeps
-    // env-var/appsettings overrides working while the options path stays trim/AOT-clean, and calling this
-    // from Build() keeps the old ValidateOnStart fail-fast semantics.
+    // ConfigurationBinder and DataAnnotations validation both walk the type through reflection, which the
+    // trimmer cannot see. Reading the known keys explicitly keeps env-var/appsettings overrides working,
+    // keeps the options path trim/AOT-clean, and lets Build() validate before resource startup.
     public static QylAppOptions FromConfiguration(IConfiguration configuration)
     {
         var section = configuration.GetSection(SectionName);

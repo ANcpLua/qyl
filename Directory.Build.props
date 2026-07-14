@@ -37,7 +37,6 @@
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <!-- GenerateDocumentationFile is provided by ANcpLua.NET.Sdk (Common.props) with the same value. -->
-    <!-- Critical async/dispose rules - VSTHRD* removed (analyzer never installed) -->
     <WarningsAsErrors>CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
   </PropertyGroup>
 

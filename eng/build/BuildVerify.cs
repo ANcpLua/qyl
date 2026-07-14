@@ -2061,8 +2061,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "nuke OtelConventions",
                 "Microsoft.AspNetCore.Authentication.JwtBearer",
                 "otel-conventions-api",
-                // The collector owns the single product origin. Keep the removed standalone
-                // dashboard/nginx image, compose service, and ImageSpec from returning.
+                // The collector owns the single product origin. Reject standalone dashboard/nginx
+                // images, compose services, and ImageSpec surfaces.
                 "qyl-dashboard",
                 "qyl.dashboard/Dockerfile",
                 "ASPNETCORE_WEBROOT"
@@ -2105,9 +2105,8 @@ interface IVerify : IHazSourcePaths, ICollectorSemanticCatalog
                 "SpanClusterRow",
                 "BaggageJson",
                 "baggage_json",
-                // The pruned SpanColumn surface stays tombstoned via its column name and accessor
-                // pattern below; the bare PascalCase token was retired 2026-07-11 when the semantic
-                // catalog legitimately gained a GenAiToolCallId key constant (a different symbol).
+                // Reject the disallowed span-column/accessor surface without banning the valid
+                // GenAiToolCallId semantic-catalog constant.
                 "gen_ai_tool_call_id",
                 "GetValueOrDefault(GenAiAttributes.ToolCallId)",
                 "QylCapabilityPrefix",

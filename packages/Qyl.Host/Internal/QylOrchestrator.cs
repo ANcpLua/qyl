@@ -342,8 +342,8 @@ internal sealed partial class QylOrchestrator(
         }
     }
 
-    // Readiness is a per-resource strategy (IReadinessProbe); the default is the HTTP health poll
-    // this method used to inline. The probe receives a snapshot state carrying the endpoint it
+    // Readiness is a per-resource strategy (IReadinessProbe); HTTP health polling is the default.
+    // The probe receives a snapshot state carrying the endpoint it
     // must judge — deliberately not the registry's published state, which may lag the launch.
     private Task<bool> ProbeReadinessAsync(QylResource resource, int? port, Uri? endpoint,
         CancellationToken stoppingToken)

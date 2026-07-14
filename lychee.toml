@@ -19,9 +19,8 @@ extensions = ["md"]
 # OTLP endpoints), not web links.
 exclude_all_private = true
 
-# Verify that #anchors actually exist in the target document.
-# lychee >= 0.24.2 (action v2.9.0): string enum none|anchor-only|text-only|full;
-# "anchor-only" is the exact semantics of the former `= true`.
+# Verify that #anchors exist in the target document without matching fragment text.
+# lychee >= 0.24.2 uses the string enum none|anchor-only|text-only|full.
 include_fragments = "anchor-only"
 
 timeout = 20

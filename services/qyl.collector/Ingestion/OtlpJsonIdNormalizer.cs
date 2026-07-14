@@ -22,7 +22,7 @@ internal static class OtlpJsonIdNormalizer
 
     public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
     {
-        // The previous StreamReader-based path tolerated a UTF-8 BOM; keep that tolerance.
+        // Accept an optional UTF-8 BOM before protojson parsing.
         ReadOnlySpan<byte> utf8Bom = [0xEF, 0xBB, 0xBF];
         if (utf8Json.StartsWith(utf8Bom))
             utf8Json = utf8Json[utf8Bom.Length..];

@@ -138,11 +138,10 @@ public sealed class QylAppBuilder
     {
         ValidateWaitForGraph();
         ValidateConnectionOnlyResources();
-        // Bound here, not in the ctor, so configuration sources added after Create() are still seen;
-        // FromConfiguration validates imperatively, keeping the fail-fast of the old ValidateOnStart
-        // without reflection-based binding. Retry policy for health probes lives in the orchestrator's
-        // poll loop; the client timeout only bounds a single attempt so a hung connect cannot eat the
-        // whole startup deadline.
+        // Bound here so configuration sources added after Create() are included. FromConfiguration
+        // validates eagerly without reflection-based binding. The orchestrator's poll loop owns
+        // health-probe retries; the client timeout bounds one attempt so a hung connect cannot eat
+        // the whole startup deadline.
         Host.Services.AddSingleton(QylAppOptions.FromConfiguration(Host.Configuration));
         Host.Services.AddSingleton(TimeProvider.System);
         Host.Services.AddSingleton<IReadOnlyList<QylResource>>(new ReadOnlyCollection<QylResource>([.. _resources]));
