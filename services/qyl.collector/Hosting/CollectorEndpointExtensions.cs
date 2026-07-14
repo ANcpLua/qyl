@@ -1,5 +1,4 @@
 using Qyl.Collector;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Grpc;
 using Qyl.Api.Contracts;
@@ -57,7 +56,6 @@ internal static class CollectorEndpointExtensions
     internal static async Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         IQylStore store,
-        ModelPricingService pricingService,
         CancellationToken ct)
     {
         var encoding = OtlpPayloadEncoding.Json;
@@ -107,8 +105,7 @@ internal static class CollectorEndpointExtensions
                     encoding,
                     new ExportTraceServiceResponse());
 
-            var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
-            await store.EnqueueAsync(batch, ct);
+            await store.EnqueueAsync(new SpanBatch(spans), ct);
 
             return OtlpHttpResult.Success(
                 encoding,

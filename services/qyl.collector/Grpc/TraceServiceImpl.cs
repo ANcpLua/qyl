@@ -1,11 +1,8 @@
-using Qyl.Collector.Cost;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Qyl.Collector.Grpc;
 
-internal sealed class TraceServiceImpl(
-    IQylStore store,
-    ModelPricingService pricingService)
+internal sealed class TraceServiceImpl(IQylStore store)
     : TraceService.TraceServiceBase
 {
     public override Task<ExportTraceServiceResponse> Export(
@@ -18,9 +15,7 @@ internal sealed class TraceServiceImpl(
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
 
-            var batch = pricingService.EnrichBatchWithCost(new SpanBatch(spans));
-
-            await store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
+            await store.EnqueueAsync(new SpanBatch(spans), context.CancellationToken).ConfigureAwait(false);
 
             return new ExportTraceServiceResponse();
         }, "trace");

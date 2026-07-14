@@ -64,15 +64,6 @@ internal interface IQylStore : IAsyncDisposable
 
     Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default);
 
-    Task<long> GetModelPricingCountAsync(CancellationToken ct = default);
-
-    Task<IReadOnlyList<ModelPricingRow>> GetActiveModelPricingAsync(CancellationToken ct = default);
-
-    Task InsertModelPricingSeedsAsync(
-        IReadOnlyList<ModelPricingRow> entries,
-        DateTimeOffset validFrom,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
         string projectId,
         string? sessionId = null,

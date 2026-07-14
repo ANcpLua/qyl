@@ -474,49 +474,6 @@ internal sealed partial class DuckDbStore : IQylStore
         }, ct);
     }
 
-    public Task<long> GetModelPricingCountAsync(CancellationToken ct = default) =>
-        ExecuteReadAsync(static con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM model_pricing";
-            return (long)cmd.ExecuteScalar()!;
-        }, ct);
-
-    public Task<IReadOnlyList<ModelPricingRow>> GetActiveModelPricingAsync(CancellationToken ct = default) =>
-        ExecuteReadAsync<IReadOnlyList<ModelPricingRow>>(static con =>
-        {
-            var result = new List<ModelPricingRow>();
-
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = $"""
-                               SELECT {ModelPricingRow.SelectColumnList}
-                               FROM model_pricing
-                               WHERE valid_to IS NULL
-                               ORDER BY valid_from DESC
-                               """;
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                result.Add(ModelPricingRow.MapFromReader(reader));
-            }
-
-            return result;
-        }, ct);
-
-    public async Task InsertModelPricingSeedsAsync(
-        IReadOnlyList<ModelPricingRow> entries,
-        DateTimeOffset validFrom,
-        CancellationToken ct = default) =>
-        await ExecuteWriteAsync(async (con, wct) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(wct).ConfigureAwait(false);
-            var rows = entries.Select(entry => entry with { ValidFrom = validFrom, ValidTo = null }).ToList();
-            await InsertRowsBatchedAsync(con, tx, rows, ModelPricingRow.AddParameters,
-                ModelPricingRow.BuildMultiRowInsertSql, rows.Count, wct);
-            await tx.CommitAsync(wct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-
     private static void AddShutdownError(ref List<Exception>? errors, Exception error)
     {
         errors ??= [];
@@ -986,12 +943,6 @@ internal sealed partial class DuckDbStore : IQylStore
             SpanStorageRow.IndexesDdl);
         cmd.ExecuteNonQuery();
 
-        using var costCmd = con.CreateCommand();
-        costCmd.CommandText = string.Concat(
-            ModelPricingRow.CreateTableDdl, "\n",
-            ModelPricingRow.MigrateTableDdl);
-        costCmd.ExecuteNonQuery();
-
         VerifyPersistedPrimaryKeys(con);
     }
 
@@ -1010,7 +961,6 @@ internal sealed partial class DuckDbStore : IQylStore
         VerifyPersistedPrimaryKey(con, ProfileMappingRow.TableName, ProfileMappingRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileSampleRow.TableName, ProfileSampleRow.PrimaryKeyColumnsCsv);
         VerifyPersistedPrimaryKey(con, ProfileStackRow.TableName, ProfileStackRow.PrimaryKeyColumnsCsv);
-        VerifyPersistedPrimaryKey(con, ModelPricingRow.TableName, ModelPricingRow.PrimaryKeyColumnsCsv);
     }
 
     private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string tableName, string expectedCsv)

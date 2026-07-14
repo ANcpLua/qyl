@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {CircleDollarSign} from 'lucide-react';
+import {Gauge} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -7,12 +7,11 @@ import {OnboardingHint} from '@/components/OnboardingHint';
 import {useSessions} from '@/hooks/use-telemetry';
 import type {SessionEntity} from '@/types';
 
-// GenAI cost, sourced exclusively from the real session surface (/api/v1/sessions →
-// genai_usage). The collector aggregates per-session request counts, token totals and
-// estimated cost through its pricing pipeline; anything beyond that (per-model cost split,
-// budgets, time series) has no backing endpoint and deliberately does not appear here.
+// Observed GenAI usage, sourced exclusively from the real session surface
+// (/api/v1/sessions → genai_usage). Dollar attribution is intentionally absent until
+// a provider-owned billing or catalog feed can attach explicit provenance.
 
-interface SessionCostRow {
+interface SessionUsageRow {
     sessionId: string;
     state: string;
     requests: number;
@@ -20,10 +19,9 @@ interface SessionCostRow {
     outputTokens: number;
     models: string[];
     providers: string[];
-    costUsd: number | undefined;
 }
 
-function toCostRow(session: SessionEntity): SessionCostRow | null {
+function toUsageRow(session: SessionEntity): SessionUsageRow | null {
     const usage = session.genai_usage;
     if (!usage) return null;
     return {
@@ -34,12 +32,8 @@ function toCostRow(session: SessionEntity): SessionCostRow | null {
         outputTokens: usage.total_output_tokens,
         models: usage.models_used,
         providers: usage.providers_used,
-        costUsd: usage.estimated_cost_usd,
     };
 }
-
-const usd = (value: number) =>
-    value.toLocaleString('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 4});
 
 const count = (value: number) => value.toLocaleString('en-US');
 
@@ -66,9 +60,10 @@ export function CostPage() {
 
     const rows = useMemo(
         () => sessions
-            .map(toCostRow)
-            .filter((row): row is SessionCostRow => row !== null)
-            .sort((a, b) => (b.costUsd ?? 0) - (a.costUsd ?? 0)),
+            .map(toUsageRow)
+            .filter((row): row is SessionUsageRow => row !== null)
+            .sort((a, b) => b.requests - a.requests
+                || (b.inputTokens + b.outputTokens) - (a.inputTokens + a.outputTokens)),
         [sessions]
     );
 
@@ -78,8 +73,6 @@ export function CostPage() {
         let requests = 0;
         let inputTokens = 0;
         let outputTokens = 0;
-        let costUsd = 0;
-        let hasCost = false;
 
         for (const row of rows) {
             requests += row.requests;
@@ -87,34 +80,31 @@ export function CostPage() {
             outputTokens += row.outputTokens;
             row.providers.forEach((p) => providers.add(p));
             row.models.forEach((m) => models.add(m));
-            if (row.costUsd !== undefined) {
-                costUsd += row.costUsd;
-                hasCost = true;
-            }
         }
 
-        return {requests, inputTokens, outputTokens, costUsd, hasCost, providers, models};
+        return {requests, inputTokens, outputTokens, providers, models};
     }, [rows]);
 
     return (
         <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
-                <CircleDollarSign className="w-4 h-4 text-signal-orange"/>
-                <h2 className="text-sm font-semibold tracking-[0.14em] text-brutal-white">GENAI COST</h2>
+                <Gauge className="w-4 h-4 text-signal-orange"/>
+                <h2 className="text-sm font-semibold tracking-[0.14em] text-brutal-white">GENAI USAGE</h2>
                 <span className="text-[11px] text-brutal-slate tracking-[0.08em]">
-                    FROM SESSION USAGE · ESTIMATED VIA MODEL PRICING
+                    OBSERVED OTLP TOKEN COUNTERS · COST UNPRICED
                 </span>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <SummaryCard
-                    label="Estimated cost"
-                    value={totals.hasCost ? usd(totals.costUsd) : '—'}
-                    accent
-                />
-                <SummaryCard label="GenAI requests" value={count(totals.requests)}/>
+                <SummaryCard label="GenAI requests" value={count(totals.requests)} accent/>
                 <SummaryCard label="Input tokens" value={count(totals.inputTokens)}/>
                 <SummaryCard label="Output tokens" value={count(totals.outputTokens)}/>
+                <SummaryCard label="Models" value={count(totals.models.size)}/>
+            </div>
+
+            <div className="border border-signal-orange/35 bg-signal-orange/5 px-4 py-3 text-xs leading-5 text-brutal-slate">
+                Dollar cost is unavailable until a provider-owned billing or official catalog feed supplies
+                the value with source and retrieval provenance. Missing price data is never treated as zero.
             </div>
 
             {(totals.providers.size > 0 || totals.models.size > 0) && (
@@ -140,9 +130,9 @@ export function CostPage() {
                         <div className="p-6 text-sm text-brutal-slate">Loading sessions…</div>
                     ) : rows.length === 0 ? (
                         <OnboardingHint
-                            icon={CircleDollarSign}
+                            icon={Gauge}
                             title="No GenAI usage recorded yet"
-                            description="Sessions gain cost data once spans carry gen_ai token usage and a pricing profile matches the model."
+                            description="Sessions appear once spans carry GenAI request and token usage attributes."
                         />
                     ) : (
                         <div className="overflow-x-auto">
@@ -155,7 +145,6 @@ export function CostPage() {
                                     <th className="px-4 py-2.5 font-semibold text-right">Tokens in</th>
                                     <th className="px-4 py-2.5 font-semibold text-right">Tokens out</th>
                                     <th className="px-4 py-2.5 font-semibold">Providers</th>
-                                    <th className="px-4 py-2.5 font-semibold text-right">Est. cost</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -168,9 +157,6 @@ export function CostPage() {
                                         <td className="px-4 py-2 text-right font-mono text-brutal-white">{count(row.inputTokens)}</td>
                                         <td className="px-4 py-2 text-right font-mono text-brutal-white">{count(row.outputTokens)}</td>
                                         <td className="px-4 py-2 text-brutal-slate">{row.providers.join(', ')}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-signal-orange">
-                                            {row.costUsd !== undefined ? usd(row.costUsd) : '—'}
-                                        </td>
                                     </tr>
                                 ))}
                                 </tbody>

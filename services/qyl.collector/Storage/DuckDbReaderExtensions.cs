@@ -15,7 +15,6 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,
         gen_ai_cache_creation_input_tokens = EXCLUDED.gen_ai_cache_creation_input_tokens,
         gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,
-        gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
         schema_url = EXCLUDED.schema_url,
@@ -50,7 +49,6 @@ internal sealed partial record SpanStorageRow
     public long? GenAiCacheReadInputTokens { get; init; }
     public long? GenAiCacheCreationInputTokens { get; init; }
     public long? GenAiReasoningTokens { get; init; }
-    public double? GenAiCostUsd { get; init; }
 
     [DuckDbColumn(SqlType = "JSON")]
     public string? AttributesJson { get; init; }
@@ -85,35 +83,6 @@ internal sealed record SessionStatsRow
     public long SessionsWithErrors { get; init; }
     public long SessionsWithGenAi { get; init; }
     public double BounceRate { get; init; }
-}
-
-[DuckDbTable("model_pricing", OnConflict = "ON CONFLICT DO NOTHING")]
-internal sealed partial record ModelPricingRow
-{
-    [JsonPropertyName("provider")]
-    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
-    public required string Provider { get; init; }
-
-    [JsonPropertyName("model")]
-    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
-    public required string Model { get; init; }
-
-    [JsonPropertyName("input_cost")] public required decimal InputCost { get; init; }
-
-    [JsonPropertyName("output_cost")] public required decimal OutputCost { get; init; }
-
-    [JsonPropertyName("reasoning_cost")] public decimal? ReasoningCost { get; init; }
-
-    [JsonPropertyName("cache_read_cost")] public decimal? CacheReadCost { get; init; }
-
-    [JsonPropertyName("cache_write_cost")] public decimal? CacheWriteCost { get; init; }
-
-    [JsonIgnore]
-    [DuckDbColumn(PrimaryKeyOrdinal = 2)]
-    public DateTimeOffset ValidFrom { get; init; }
-
-    [JsonIgnore]
-    public DateTimeOffset? ValidTo { get; init; }
 }
 
 [DuckDbTable("logs",

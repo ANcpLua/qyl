@@ -2,11 +2,9 @@ using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Ingestion;
@@ -29,12 +27,9 @@ public sealed class OtlpPersistenceTests
         context.Request.ContentType = OtlpPayloadParser.ProtobufContentType;
         context.Request.ContentLength = payload.Length;
         context.Request.Body = new MemoryStream(payload);
-        var pricing = new ModelPricingService(store, NullLogger<ModelPricingService>.Instance);
-
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            pricing,
             TestContext.Current.CancellationToken);
         await result.ExecuteAsync(context);
 
@@ -54,12 +49,9 @@ public sealed class OtlpPersistenceTests
         context.Request.ContentType = OtlpPayloadParser.ProtobufContentType;
         context.Request.ContentLength = payload.Length;
         context.Request.Body = new MemoryStream(payload);
-        var pricing = new ModelPricingService(store, NullLogger<ModelPricingService>.Instance);
-
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            pricing,
             TestContext.Current.CancellationToken);
         await result.ExecuteAsync(context);
 

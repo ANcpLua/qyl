@@ -1,7 +1,6 @@
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -14,7 +13,6 @@ using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Qyl.Collector.Ingestion;
 using Qyl.Collector.Mapping;
-using Qyl.Collector.Cost;
 using Qyl.Collector.Hosting;
 using Qyl.Collector.Storage;
 using OtlpLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
@@ -51,12 +49,9 @@ public sealed class OtlpWireTests
     {
         await using var store = new DuckDbStore(":memory:");
         var context = NewOtlpEndpointContext(contentType, new ExportTraceServiceRequest().ToByteArray());
-        var pricing = new ModelPricingService(store, NullLogger<ModelPricingService>.Instance);
-
         var result = await CollectorEndpointExtensions.IngestOtlpTracesAsync(
             context,
             store,
-            pricing,
             TestContext.Current.CancellationToken);
         await result.ExecuteAsync(context);
 

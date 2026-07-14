@@ -12,7 +12,7 @@ internal sealed partial class WorkloadEmitter(
 
     private const int ErrorPercent = 7;
 
-    // Providers/models the collector's pricing seed knows, so sessions get non-zero cost.
+    // Representative provider/model identities for exercising GenAI usage aggregation.
     private static readonly ModelProfile[] Profiles =
     [
         new("anthropic", "claude-opus-4-6", 800, 6000, 300, 2200, 900, 3200),

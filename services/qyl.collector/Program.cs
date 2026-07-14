@@ -29,7 +29,6 @@ builder.WebHost.ConfigureQylCollectorKestrel(ports);
 
 var app = builder.Build();
 
-await app.InitializeQylCollectorAsync().ConfigureAwait(false);
 app.UseQylCollectorMiddleware();
 
 app.MapQylCollectorEndpoints();

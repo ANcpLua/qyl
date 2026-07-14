@@ -16,11 +16,10 @@ internal sealed partial class DuckDbStore
                                                         SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
                                                         -- Exclude the GenAI agent roll-up span (operation 'invoke_agent'): it reports the
                                                         -- aggregate usage of its child model calls, so summing it with the chat spans
-                                                        -- double-counts tokens/cost/requests for an agent session.
+                                                        -- double-counts tokens/requests for an agent session.
                                                         COALESCE(SUM(gen_ai_input_tokens) FILTER (WHERE name NOT LIKE 'invoke_agent%'), 0) AS input_tokens,
                                                         COALESCE(SUM(gen_ai_output_tokens) FILTER (WHERE name NOT LIKE 'invoke_agent%'), 0) AS output_tokens,
                                                         COUNT(*) FILTER (WHERE gen_ai_provider_name IS NOT NULL AND name NOT LIKE 'invoke_agent%') AS genai_request_count,
-                                                        COALESCE(SUM(gen_ai_cost_usd) FILTER (WHERE name NOT LIKE 'invoke_agent%'), 0) AS total_cost_usd,
                                                         MIN(DISTINCT gen_ai_provider_name, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_provider_name IS NOT NULL) AS providers,
                                                         MIN(DISTINCT gen_ai_request_model, {{SessionFacetValueLimit}}) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
                                                         MIN(DISTINCT service_name, {{SessionFacetValueLimit}}) FILTER (WHERE service_name IS NOT NULL) AS services
@@ -181,10 +180,9 @@ internal sealed partial class DuckDbStore
                 OutputTokens = outputTokens,
                 TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = DuckDbValueReader.ReadInt64(reader, 8, 0),
-                TotalCostUsd = DuckDbValueReader.ReadDouble(reader, 9, 0),
-                Providers = ReadStringList(reader, 10),
-                Models = ReadStringList(reader, 11),
-                Services = ReadStringList(reader, 12)
+                Providers = ReadStringList(reader, 9),
+                Models = ReadStringList(reader, 10),
+                Services = ReadStringList(reader, 11)
             });
         }
 
@@ -220,7 +218,6 @@ internal sealed record SessionQueryRow
     public long OutputTokens { get; init; }
     public long TotalTokens { get; init; }
     public long GenAiRequestCount { get; init; }
-    public double TotalCostUsd { get; init; }
     public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];
     public IReadOnlyList<string> Services { get; init; } = [];

@@ -434,8 +434,7 @@ internal static class SessionMapper
                 TotalInputTokens = summary.InputTokens,
                 TotalOutputTokens = summary.OutputTokens,
                 ModelsUsed = [.. summary.Models],
-                ProvidersUsed = [.. summary.Providers],
-                EstimatedCostUsd = summary.TotalCostUsd
+                ProvidersUsed = [.. summary.Providers]
             }
         };
     }

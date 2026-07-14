@@ -1,4 +1,3 @@
-using Qyl.Collector.Cost;
 using Qyl.Collector.Grpc;
 
 namespace Qyl.Collector.Hosting;
@@ -11,7 +10,6 @@ internal static class CollectorCoreExtensions
     {
         var ports = CollectorPortOptions.FromConfiguration(config);
         services.AddSingleton(ports);
-        services.AddSingleton<ModelPricingService>();
         services.AddSingleton<CollectorStreamCapacity>();
 
         services.ConfigureHttpJsonOptions(static options =>
