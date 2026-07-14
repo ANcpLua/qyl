@@ -12,7 +12,7 @@ RUN npm run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
 # DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.
-FROM mcr.microsoft.com/dotnet/sdk:10.0-aot@sha256:47f56dc3e5bf7b62d878c98aa7b31848ac9167462789fa73220adcd1af064e37 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-aot@sha256:977c117b98abe301eeb4c2ed3f8deebf8b8f11e65549ee7886581d2b41641adb AS build
 
 WORKDIR /src
 
@@ -49,7 +49,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
     && test -f /app/libduckdb.so \
     || (echo "ERROR: Native AOT publish did not produce the expected collector artifacts" && exit 1)
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:ebf77bcda11592a859834333025c23c44a812d7a120c7bf290a19ca32697c40e AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:894098eafc82e5fa02ba9f2b71d426dc78252876b9e914caae77ed95cfce185a AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
