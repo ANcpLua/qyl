@@ -80,7 +80,7 @@ curl -sf "$BASE/api/v1/traces/$TRACE_ID" | grep -q "$SPAN_ID" || { echo "[smoke]
 echo "[smoke] Span detail OK"
 
 # Sessions aggregate → DuckDB LIST(VARCHAR) columns → the provider's generic list
-# materialization under Native AOT. This is the query shape the AOT shim exists for.
+# materialization under Native AOT. This is the most reflection-dependent DuckDB read shape qyl uses.
 SESSIONS=$(curl -sf "$BASE/api/v1/sessions")
 echo "$SESSIONS" | grep -q '"services":\["aot-smoke"\]' || { echo "[smoke] FAIL: services LIST aggregate missing: $SESSIONS"; exit 1; }
 echo "$SESSIONS" | grep -q '"models_used":\["claude-fable-5"\]' || { echo "[smoke] FAIL: models_used LIST aggregate missing: $SESSIONS"; exit 1; }

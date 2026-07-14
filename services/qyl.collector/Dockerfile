@@ -11,8 +11,8 @@ COPY services/qyl.dashboard/ ./
 RUN npm run build && \
     test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
-# Using Debian (not Alpine) because DuckDB native libs require glibc
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:ea8bde36c11b6e7eec2656d0e59101d4462f6bd630730f2c8201ed0572b295d5 AS build
+# DuckDB.NET ships glibc native assets; the AOT SDK supplies clang and zlib for ILC.
+FROM mcr.microsoft.com/dotnet/sdk:10.0-aot@sha256:47f56dc3e5bf7b62d878c98aa7b31848ac9167462789fa73220adcd1af064e37 AS build
 
 WORKDIR /src
 
@@ -25,7 +25,7 @@ COPY internal/qyl.instrumentation.generators/*.csproj internal/qyl.instrumentati
 COPY internal/qyl.collector.storage.generators/*.csproj internal/qyl.collector.storage.generators/
 
 WORKDIR /src/services/qyl.collector
-RUN dotnet restore
+RUN dotnet restore -p:QylAot=true -p:TreatWarningsAsErrors=false
 
 WORKDIR /src
 COPY services/qyl.collector/ services/qyl.collector/
@@ -39,17 +39,17 @@ COPY --from=dashboard /dashboard/dist services/qyl.dashboard/dist/
 
 WORKDIR /src/services/qyl.collector
 RUN dotnet publish -c Release -o /app --no-restore \
+    -p:QylAot=true \
     -p:QylEmbedDashboard=true \
     -p:TreatWarningsAsErrors=false \
-    -p:PublishAot=false \
-    -p:PublishTrimmed=false \
-    -p:EnableTrimAnalyzer=false \
     -p:RunAnalyzers=false \
     -p:RunAnalyzersDuringBuild=false \
-    -p:WarningLevel=0 \
-    && test -f /app/qyl.collector.dll || (echo "ERROR: .NET publish failed" && exit 1)
+    && test -x /app/qyl.collector \
+    && test ! -e /app/qyl.collector.dll \
+    && test -f /app/libduckdb.so \
+    || (echo "ERROR: Native AOT publish did not produce the expected collector artifacts" && exit 1)
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:7644f992230d35cf230017189d4038c0ae0f7388b13f4f7ae1900a155bafb597 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0@sha256:ebf77bcda11592a859834333025c23c44a812d7a120c7bf290a19ca32697c40e AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
@@ -79,4 +79,4 @@ ENV QYL_BIND_ADDRESS=0.0.0.0 \
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
     CMD curl -sf "http://localhost:${PORT:-5100}/health" || exit 1
 
-ENTRYPOINT ["dotnet", "qyl.collector.dll"]
+ENTRYPOINT ["/app/qyl.collector"]

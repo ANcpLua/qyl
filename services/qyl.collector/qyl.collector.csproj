@@ -9,14 +9,15 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Native AOT publish is opt-in: dotnet publish -p:QylAot=true -p:QylEmbedDashboard=false.
-         QylAot (not PublishAot) is the CLI switch because a CLI global PublishAot=true would
+    <!-- Native AOT is the collector's publish contract. QylAot defaults on and remains the
+         project-specific switch because a CLI global PublishAot=true would
          propagate into the two netstandard2.0 generator ProjectReferences below and fail with
          NETSDK1207; QylAot is a property nothing else reads, and PublishAot set HERE stays
          project-local. The collector reads DuckDB results only through boxed GetValue/Convert
          (DuckDbValueReader) and LIST(VARCHAR), which survive ILC without extra rooting; the
          executable owner of this lane is the native runtime smoke
          (eng/scripts/collector-aot-smoke.sh), not the analyzer. -->
+    <QylAot Condition="'$(QylAot)' == ''">true</QylAot>
     <PublishAot Condition="'$(QylAot)' == 'true'">true</PublishAot>
     <PublishTrimmed Condition="'$(QylAot)' == 'true'">true</PublishTrimmed>
     <SuppressTrimAnalysisWarnings Condition="'$(QylAot)' == 'true'">true</SuppressTrimAnalysisWarnings>
@@ -24,8 +25,8 @@
     <!-- PublishAot enables the ConfigurationBindingGenerator interceptor, whose generated code
          uses ArgumentNullException.ThrowIfNull. The .editorconfig [*.g.cs] RS0030 exemption
          cannot match in-memory generated trees (pseudo paths outside the editorconfig cone),
-         so the banned-API rule must be silenced for this lane only; the default JIT lane keeps
-         full RS0030 enforcement, which catches any hand-written drift. -->
+         so the banned-API rule must be silenced while QylAot is enabled; an explicit
+         QylAot=false diagnostic build keeps full RS0030 enforcement for hand-written code. -->
     <NoWarn Condition="'$(QylAot)' == 'true'">$(NoWarn);RS0030</NoWarn>
     <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>

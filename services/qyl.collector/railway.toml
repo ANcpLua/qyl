@@ -6,7 +6,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "services/qyl.collector/Dockerfile"
 
 [deploy]
-startCommand = "dotnet qyl.collector.dll"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
