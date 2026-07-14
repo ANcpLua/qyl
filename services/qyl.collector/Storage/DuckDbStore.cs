@@ -272,8 +272,16 @@ internal sealed partial class DuckDbStore : IQylStore
             // non-session telemetry (e.g. plain HTTP) persists with a NULL session_id and is keyed
             // by its trace_id, so a strict `session_id = $2` would drop the very spans the session's
             // trace_count/span_count were derived from.
+            //
+            // The membership match runs as a subquery over trace ids, not over spans directly:
+            // a session key is often stamped on a single span per trace (e.g. an app tagging only
+            // its request-handler span), and the session view must return the FULL traces the
+            // session touched — parents, children, and gen_ai spans included — or trace trees
+            // render empty and token/cost spans silently vanish from the session.
             cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))"
+                                        + " FROM spans WHERE project_id = $1 AND trace_id IN ("
+                                        + "SELECT DISTINCT trace_id FROM spans WHERE project_id = $1"
+                                        + " AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2)))"
                                         + " ORDER BY start_time_unix_nano ASC";
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });

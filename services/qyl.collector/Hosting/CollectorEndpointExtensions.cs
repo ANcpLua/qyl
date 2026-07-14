@@ -812,7 +812,7 @@ internal static class CollectorEndpointExtensions
         {
             context.Response.StatusCode = 404;
             return context.Response.WriteAsync(
-                "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
+                "Dashboard not found. Build with: dotnet run --project eng/build/build.csproj -- FrontendBuild");
         }
 
         var indexPath = Path.Combine(webRootPath, "index.html");
@@ -824,7 +824,7 @@ internal static class CollectorEndpointExtensions
 
         context.Response.StatusCode = 404;
         return context.Response.WriteAsync(
-            "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
+            "Dashboard not found. Build with: dotnet run --project eng/build/build.csproj -- FrontendBuild");
     }
 
     private static bool IsPathOrDescendant(string path, string root) =>
