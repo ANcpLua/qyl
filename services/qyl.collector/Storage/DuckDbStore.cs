@@ -37,11 +37,6 @@ internal sealed partial class DuckDbStore : IQylStore
         string? tempDirectory = null,
         Func<CancellationToken, ValueTask>? beforeWrite = null)
     {
-        // Under Native AOT this roots and startup-verifies DuckDB.NET's generic read paths
-        // (nullable scalars, LIST materialization); under JIT it folds to a no-op branch.
-        if (!System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
-            Qyl.DuckDb.Aot.DuckDbAot.Warmup();
-
         _isInMemory = databasePath == ":memory:";
         _jobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;

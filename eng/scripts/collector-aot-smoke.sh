@@ -4,8 +4,7 @@
 # Publishes with -p:QylAot=true (unless SKIP_PUBLISH=1 and a binary exists), boots the native
 # binary, ingests a real OTLP/JSON span, and reads it back through the product API — including
 # the sessions surface, whose MIN(DISTINCT …) aggregates exercise DuckDB LIST(VARCHAR)
-# materialization, the provider's most reflection-dependent read path under Native AOT
-# (see internal/qyl.duckdb.aot/README.md).
+# materialization, the provider's most reflection-dependent read path under Native AOT.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
