@@ -104,13 +104,6 @@
     <Protobuf Include="Protos/opentelemetry/proto/collector/profiles/v1development/profiles_service.proto" ProtoRoot="Protos" GrpcServices="Server"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Update="data/model-pricing.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <_VersionString>$(InformationalVersion)</_VersionString>
