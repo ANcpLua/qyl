@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DuckDB.NET.Data;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
@@ -21,6 +22,13 @@ public sealed class MetricContractProjectionTests
     public async Task Every_metric_variant_preserves_the_generated_contract_projection()
     {
         var request = BuildCompleteRequest();
+        request.ResourceMetrics[0].Resource.EntityRefs.Add(new EntityRef
+        {
+            SchemaUrl = "https://opentelemetry.io/schemas/1.38.0",
+            Type = "service",
+            IdKeys = { "service.name" },
+            DescriptionKeys = { "service.namespace" }
+        });
         var rows = IngestionStorageMapper.ToMetricStorageRows(OtlpConverter.ConvertMetrics(request));
         Assert.Equal(5, rows.Count);
         Assert.All(rows, static row =>
@@ -48,6 +56,11 @@ public sealed class MetricContractProjectionTests
         Assert.Equal<uint>(2, gauge.Flags);
         Assert.Equal("https://opentelemetry.io/schemas/1.38.0", gauge.ResourceSchemaUrl);
         Assert.Equal(2, gauge.Resource.DroppedAttributesCount);
+        var entityRef = Assert.Single(gauge.Resource.EntityRefs!);
+        Assert.Equal("https://opentelemetry.io/schemas/1.38.0", entityRef.SchemaUrl);
+        Assert.Equal("service", entityRef.Type);
+        Assert.Equal(["service.name"], entityRef.IdKeys);
+        Assert.Equal(["service.namespace"], entityRef.DescriptionKeys);
         Assert.Contains(gauge.Metadata!, static attribute =>
             attribute.Key == "translation.schema" && Equals(attribute.Value, "v1"));
         var scope = Assert.IsType<Qyl.Api.Contracts.Common.InstrumentationScope>(gauge.InstrumentationScope);
@@ -165,6 +178,19 @@ public sealed class MetricContractProjectionTests
         Assert.Equal(
             RowsByName(entityReferences)["test.gauge"].MetricId,
             RowsByName(reorderedEntityReferences)["test.gauge"].MetricId);
+
+        var descriptionChanged = entityReferences.Clone();
+        descriptionChanged.ResourceMetrics[0].Resource.EntityRefs[0].DescriptionKeys.Add("service.namespace");
+        Assert.Equal(
+            RowsByName(entityReferences)["test.gauge"].MetricId,
+            RowsByName(descriptionChanged)["test.gauge"].MetricId);
+
+        var schemaChanged = entityReferences.Clone();
+        schemaChanged.ResourceMetrics[0].Resource.EntityRefs[0].SchemaUrl =
+            "https://opentelemetry.io/schemas/1.38.0";
+        Assert.NotEqual(
+            RowsByName(entityReferences)["test.gauge"].MetricId,
+            RowsByName(schemaChanged)["test.gauge"].MetricId);
     }
 
     [Fact]
@@ -192,6 +218,83 @@ public sealed class MetricContractProjectionTests
     }
 
     [Fact]
+    public void Tagged_attribute_values_are_reconstructed_without_type_loss_and_malformed_rows_fail_closed()
+    {
+        var request = BuildCompleteRequest();
+        var point = request.ResourceMetrics[0].ScopeMetrics[0].Metrics
+            .Single(static metric => metric.Name == "test.gauge").Gauge.DataPoints[0];
+        point.Attributes.Add(new KeyValue
+        {
+            Key = "db.cassandra.page_size",
+            Value = new AnyValue { IntValue = long.MaxValue }
+        });
+        point.Attributes.Add(new KeyValue
+        {
+            Key = "db.client.connections.state",
+            Value = new AnyValue { DoubleValue = double.PositiveInfinity }
+        });
+        point.Attributes.Add(new KeyValue
+        {
+            Key = "db.collection.name",
+            Value = new AnyValue { BytesValue = ByteString.CopyFrom([0, 127, 255]) }
+        });
+        point.Attributes.Add(new KeyValue
+        {
+            Key = "db.namespace",
+            Value = new AnyValue
+            {
+                ArrayValue = new ArrayValue
+                {
+                    Values =
+                    {
+                        new AnyValue { IntValue = 7 },
+                        new AnyValue { DoubleValue = double.NaN }
+                    }
+                }
+            }
+        });
+        point.Attributes.Add(new KeyValue
+        {
+            Key = "dotnet.gc.heap.generation",
+            Value = new AnyValue
+            {
+                KvlistValue = new KeyValueList
+                {
+                    Values =
+                    {
+                        new KeyValue { Key = "nested", Value = new AnyValue { IntValue = -9 } }
+                    }
+                }
+            }
+        });
+
+        var row = RowsByName(request)["test.gauge"];
+        var gauge = Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(row));
+        var attributes = gauge.Attributes!.ToDictionary(static item => item.Key, static item => item.Value);
+        Assert.Equal(long.MaxValue, Assert.IsType<Qyl.Api.Contracts.Common.AttributeIntValue>(
+            attributes["db.cassandra.page_size"]).Value);
+        Assert.Equal(double.PositiveInfinity, Assert.IsType<Qyl.Api.Contracts.Common.AttributeDoubleValue>(
+            attributes["db.client.connections.state"]).Value);
+        Assert.Equal(
+            new byte[] { 0, 127, 255 },
+            Assert.IsType<Qyl.Api.Contracts.Common.AttributeBytesValue>(attributes["db.collection.name"]).Base64.ToArray());
+        var array = Assert.IsType<object?[]>(attributes["db.namespace"]);
+        Assert.Equal(7, Assert.IsType<Qyl.Api.Contracts.Common.AttributeIntValue>(array[0]).Value);
+        Assert.True(double.IsNaN(Assert.IsType<Qyl.Api.Contracts.Common.AttributeDoubleValue>(array[1]).Value));
+        var kvlist = Assert.IsType<Qyl.Api.Contracts.Common.AttributeKeyValueListValue>(
+            attributes["dotnet.gc.heap.generation"]);
+        Assert.Equal(-9, Assert.IsType<Qyl.Api.Contracts.Common.AttributeIntValue>(kvlist.Values["nested"]).Value);
+
+        Assert.False(MetricMapper.TryToContract(row with { AttributesJson = """{"bad":42}""" }, out _));
+        Assert.False(MetricMapper.TryToContract(
+            row with { AttributesJson = """{"bad":{"type":"int","value":1}}""" },
+            out _));
+        Assert.False(MetricMapper.TryToContract(
+            row with { AttributesJson = """{"bad":{"type":"bytes","base64":"***"}}""" },
+            out _));
+    }
+
+    [Fact]
     public void No_recorded_value_points_discard_measurements_and_exemplars()
     {
         var request = BuildCompleteRequest();
@@ -214,6 +317,19 @@ public sealed class MetricContractProjectionTests
         Assert.Null(Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(rows["test.gauge"])).Value);
         Assert.Null(Assert.IsType<SumMetricPoint>(MetricMapper.ToContract(rows["test.sum"])).Value);
         Assert.Empty(Assert.IsType<SummaryMetricPoint>(MetricMapper.ToContract(rows["test.summary"])).QuantileValues);
+
+        Assert.False(MetricMapper.TryToContract(
+            rows["test.histogram"] with { Sum = 0 },
+            out _));
+        Assert.False(MetricMapper.TryToContract(
+            rows["test.exponential"] with { ExponentialHistogramZeroThreshold = 0.001 },
+            out _));
+        Assert.False(MetricMapper.TryToContract(
+            rows["test.summary"] with
+            {
+                SummaryQuantilesJson = """[{"quantile":0.5,"value":0}]"""
+            },
+            out _));
     }
 
     [Fact]
@@ -231,6 +347,69 @@ public sealed class MetricContractProjectionTests
         };
 
         Assert.False(MetricMapper.TryToContract(legacy, out _));
+    }
+
+    [Fact]
+    public async Task Existing_metric_tables_gain_entity_references_and_round_trip_projection_v2()
+    {
+        var databasePath = Path.Combine(
+            Path.GetTempPath(),
+            $"qyl-metric-entity-ref-migration-{Guid.NewGuid():N}.duckdb");
+        try
+        {
+            await using (var initialized = new DuckDbStore(databasePath, maxConcurrentReads: 1))
+            {
+            }
+
+            await using (var connection = new DuckDBConnection($"DataSource={databasePath}"))
+            {
+                await connection.OpenAsync(TestContext.Current.CancellationToken);
+                var indexNames = new List<string>();
+                await using (var listIndexes = connection.CreateCommand())
+                {
+                    listIndexes.CommandText =
+                        "SELECT index_name FROM duckdb_indexes() WHERE table_name = 'metrics'";
+                    await using var reader = await listIndexes.ExecuteReaderAsync(
+                        TestContext.Current.CancellationToken);
+                    while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+                        indexNames.Add(reader.GetString(0));
+                }
+
+                foreach (var indexName in indexNames)
+                {
+                    await using var dropIndex = connection.CreateCommand();
+                    dropIndex.CommandText = $"DROP INDEX \"{indexName.Replace("\"", "\"\"")}\"";
+                    await dropIndex.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+                }
+
+                await using var dropColumn = connection.CreateCommand();
+                dropColumn.CommandText = "ALTER TABLE metrics DROP COLUMN resource_entity_refs_json";
+                await dropColumn.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            }
+
+            var request = BuildCompleteRequest();
+            request.ResourceMetrics[0].Resource.EntityRefs.Add(new EntityRef
+            {
+                Type = "service",
+                IdKeys = { "service.name" },
+                DescriptionKeys = { "service.namespace" }
+            });
+            var row = RowsByName(request)["test.gauge"];
+            Assert.Equal<byte?>((byte)2, row.ContractProjectionVersion);
+
+            await using var migrated = new DuckDbStore(databasePath, maxConcurrentReads: 1);
+            await migrated.InsertMetricsAsync([row], TestContext.Current.CancellationToken);
+            var stored = Assert.Single(await migrated.GetMetricsAsync(
+                "default",
+                ct: TestContext.Current.CancellationToken));
+            var contract = Assert.IsType<GaugeMetricPoint>(MetricMapper.ToContract(stored));
+            Assert.Equal("service", Assert.Single(contract.Resource.EntityRefs!).Type);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+            File.Delete($"{databasePath}.wal");
+        }
     }
 
     [Fact]
@@ -300,6 +479,21 @@ public sealed class MetricContractProjectionTests
         });
         AssertInvalid(request => request.ResourceMetrics[0].Resource.EntityRefs.Add(
             new EntityRef { Type = "service", IdKeys = { "missing.attribute" } }));
+        AssertInvalid(request =>
+        {
+            request.ResourceMetrics[0].Resource.EntityRefs.Add(new EntityRef
+            {
+                Type = "service",
+                IdKeys = { "service.name" }
+            });
+            request.ResourceMetrics[0].Resource.EntityRefs.Add(new EntityRef
+            {
+                SchemaUrl = "https://opentelemetry.io/schemas/1.38.0",
+                Type = "service",
+                IdKeys = { "service.name" },
+                DescriptionKeys = { "service.namespace" }
+            });
+        });
     }
 
     private static Dictionary<string, MetricStorageRow> RowsByName(ExportMetricsServiceRequest request) =>

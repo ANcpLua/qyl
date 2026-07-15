@@ -22,6 +22,7 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
         gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
+        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,
         schema_url = EXCLUDED.schema_url,
         status_message = EXCLUDED.status_message,
         events_json = EXCLUDED.events_json,
@@ -62,6 +63,8 @@ internal sealed partial record SpanStorageRow
     public string? AttributesJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ResourceEntityRefsJson { get; init; }
 
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
@@ -108,7 +111,8 @@ internal sealed record SessionStatsRow
         body = EXCLUDED.body,
         service_name = EXCLUDED.service_name,
         attributes_json = EXCLUDED.attributes_json,
-        resource_json = EXCLUDED.resource_json
+        resource_json = EXCLUDED.resource_json,
+        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json
     """)]
 internal sealed partial record LogStorageRow
 {
@@ -135,6 +139,8 @@ internal sealed partial record LogStorageRow
     public string? AttributesJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ResourceEntityRefsJson { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
     public DateTimeOffset? CreatedAt { get; init; }
@@ -184,11 +190,12 @@ internal sealed partial record LogStorageRow
         aggregation_temporality = EXCLUDED.aggregation_temporality,
         service_name = EXCLUDED.service_name,
         attributes_json = EXCLUDED.attributes_json,
-        resource_json = EXCLUDED.resource_json
+        resource_json = EXCLUDED.resource_json,
+        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json
     """)]
 internal sealed partial record MetricStorageRow
 {
-    public const byte CurrentContractProjectionVersion = 1;
+    public const byte CurrentContractProjectionVersion = 2;
 
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
@@ -252,6 +259,8 @@ internal sealed partial record MetricStorageRow
     public string? AttributesJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ResourceEntityRefsJson { get; init; }
 
     [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "CURRENT_TIMESTAMP")]
     public DateTimeOffset? CreatedAt { get; init; }
@@ -273,6 +282,7 @@ internal sealed partial record MetricStorageRow
         service_name = EXCLUDED.service_name,
         attributes_json = EXCLUDED.attributes_json,
         resource_json = EXCLUDED.resource_json,
+        resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,
         schema_url = EXCLUDED.schema_url
     """)]
 internal sealed partial record ProfileStorageRow
@@ -299,6 +309,8 @@ internal sealed partial record ProfileStorageRow
     public string? AttributesJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceJson { get; init; }
+    [DuckDbColumn(SqlType = "JSON")]
+    public string? ResourceEntityRefsJson { get; init; }
     [DuckDbColumn(SqlType = "VARCHAR(256)")]
     public string? SchemaUrl { get; init; }
 

@@ -18,8 +18,8 @@ internal static class MetricStorageTypes
 
 internal sealed record MetricIngestionBatch(IReadOnlyList<MetricIngestionRecord> Metrics);
 
-// One record per OTLP metric data point. Gauge/Sum points carry Value; Histogram and
-// ExponentialHistogram points carry Count/Sum/Min/Max (bucket layout is preserved as JSON).
+// One record per OTLP metric data point. Gauge/Sum points carry exactly one numeric value unless
+// NO_RECORDED_VALUE is set; distribution points retain their complete OTLP payload.
 internal sealed record MetricIngestionRecord
 {
     public string? ProjectIdHint { get; init; }
@@ -59,9 +59,7 @@ internal sealed record MetricIngestionRecord
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
-    // Canonical identity of OTLP Resource.entity_refs. The public 0.5.15 contract cannot expose
-    // entity references yet, but they must still distinguish otherwise-identical metric points.
-    public required string ResourceEntityRefsIdentity { get; init; }
+    public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
 }
 
 internal sealed record MetricExemplarIngestionRecord
@@ -80,6 +78,12 @@ internal sealed record MetricExponentialHistogramBucketsIngestionRecord(
 
 internal readonly record struct MetricSummaryQuantileIngestionRecord(double Quantile, double Value);
 
+internal sealed record ResourceEntityRefIngestionRecord(
+    string? SchemaUrl,
+    string Type,
+    IReadOnlyList<string> IdKeys,
+    IReadOnlyList<string> DescriptionKeys);
+
 internal sealed record SpanIngestionRecord
 {
     public string? ProjectIdHint { get; init; }
@@ -94,6 +98,7 @@ internal sealed record SpanIngestionRecord
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
+    public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
     public string? SchemaUrl { get; init; }
     public string? StatusMessage { get; init; }
     public IReadOnlyList<SpanEventIngest> Events { get; init; } = [];
@@ -124,6 +129,7 @@ internal sealed record LogIngestionRecord
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
+    public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
 }
 
 internal sealed record ProfileIngestionRecord
@@ -142,6 +148,7 @@ internal sealed record ProfileIngestionRecord
     public required string ServiceName { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
+    public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
     public string? SchemaUrl { get; init; }
     public required IReadOnlyList<ProfileFunctionIngestionRecord> Functions { get; init; }
     public required IReadOnlyList<ProfileLocationIngestionRecord> Locations { get; init; }

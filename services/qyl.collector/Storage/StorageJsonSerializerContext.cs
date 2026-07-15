@@ -9,6 +9,7 @@ namespace Qyl.Collector.Storage;
 [JsonSerializable(typeof(List<ProfileLocationLineJson>), TypeInfoPropertyName = "ProfileLocationLineJsonList")]
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
 [JsonSerializable(typeof(List<SpanLinkJson>), TypeInfoPropertyName = "SpanLinkJsonList")]
+[JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]
 [JsonSerializable(typeof(MetricHistogramBucketsJson))]
 [JsonSerializable(typeof(MetricExponentialHistogramBucketsJson))]
 [JsonSerializable(typeof(List<MetricExemplarJson>), TypeInfoPropertyName = "MetricExemplarJsonList")]

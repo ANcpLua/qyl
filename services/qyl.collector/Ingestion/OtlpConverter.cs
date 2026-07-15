@@ -7,6 +7,7 @@ using OpenTelemetry.Proto.Collector.Profiles.V1Development;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
+using ProtoDataPointFlags = OpenTelemetry.Proto.Metrics.V1.DataPointFlags;
 using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
@@ -34,7 +35,7 @@ internal static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceSpan.Resource);
-            var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
+            var resource = ExtractResourceProjection(resourceSpan.Resource);
             var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
@@ -52,7 +53,8 @@ internal static class OtlpConverter
                             projectIdHint,
                             serviceName,
                             attributes,
-                            resourceAttrs,
+                            resource.Attributes,
+                            resource.EntityRefs,
                             effectiveSchemaUrl);
                     spans.Add(spanRecord);
                 }
@@ -99,25 +101,118 @@ internal static class OtlpConverter
         return null;
     }
 
-    private static Dictionary<string, OtlpAttributeValue> ExtractResourceAttributesFromProto(ProtoResource? resource)
+    private static ResourceProjection ExtractResourceProjection(ProtoResource? resource)
     {
         var attrs = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
-        if (resource is null) return attrs;
+        if (resource is null) return new ResourceProjection(attrs, []);
+
+        var sourceKeys = new HashSet<string>(StringComparer.Ordinal);
+        var projectedKeys = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var attr in resource.Attributes)
         {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            if (string.IsNullOrWhiteSpace(attr.Key))
+                throw new InvalidDataException("OTLP resource attribute key must not be empty.");
+            if (!sourceKeys.Add(attr.Key))
+                throw new InvalidDataException($"OTLP resource contains duplicate attribute key '{attr.Key}'.");
+
+            DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
             if (!AttributeKeySets.IsSafeResourceAttribute(key)) continue;
 
-            var value = ConvertProtoAnyValue(attr.Value);
-            if (value is null) continue;
-            if (renamed) attrs.TryAdd(key, value);
-            else attrs[key] = value;
+            if (!attrs.TryAdd(key, ConvertProtoAnyValue(attr.Value)))
+            {
+                throw new InvalidDataException(
+                    $"OTLP resource contains attribute keys that normalize to duplicate key '{key}'.");
+            }
+
+            projectedKeys.Add(attr.Key, key);
         }
 
-        return attrs;
+        return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
     }
+
+    private static IReadOnlyList<ResourceEntityRefIngestionRecord> ExtractResourceEntityRefs(
+        ProtoResource resource,
+        IReadOnlyDictionary<string, string> projectedKeys,
+        IReadOnlyDictionary<string, OtlpAttributeValue> projectedAttributes)
+    {
+        if (resource.EntityRefs.Count is 0) return [];
+
+        var entityRefs = new List<(string Identity, ResourceEntityRefIngestionRecord Value)>(
+            resource.EntityRefs.Count);
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entityRef in resource.EntityRefs)
+        {
+            if (string.IsNullOrWhiteSpace(entityRef.Type))
+                throw new InvalidDataException("OTLP resource entity type must not be empty.");
+            if (entityRef.IdKeys.Count is 0)
+                throw new InvalidDataException("OTLP resource entity must contain at least one id_key.");
+
+            var idKeys = NormalizeEntityReferenceKeys(entityRef.IdKeys, projectedKeys, "id_key");
+            var descriptionKeys = NormalizeEntityReferenceKeys(
+                entityRef.DescriptionKeys,
+                projectedKeys,
+                "description_key");
+            var value = new ResourceEntityRefIngestionRecord(
+                NullIfEmpty(entityRef.SchemaUrl),
+                entityRef.Type,
+                idKeys,
+                descriptionKeys);
+            var identity = GetEntityReferenceIdentity(value, projectedAttributes);
+            if (!identities.Add(identity))
+                throw new InvalidDataException("OTLP resource contains a duplicate entity reference.");
+            entityRefs.Add((identity, value));
+        }
+
+        entityRefs.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Identity, right.Identity));
+        return [.. entityRefs.Select(static item => item.Value)];
+    }
+
+    private static IReadOnlyList<string> NormalizeEntityReferenceKeys(
+        RepeatedField<string> keys,
+        IReadOnlyDictionary<string, string> projectedKeys,
+        string fieldName)
+    {
+        var normalized = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var key in keys)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidDataException($"OTLP resource entity {fieldName} must not be empty.");
+            if (!projectedKeys.TryGetValue(key, out var projectedKey))
+            {
+                throw new InvalidDataException(
+                    $"OTLP resource entity {fieldName} '{key}' does not reference a persisted resource attribute.");
+            }
+
+            if (!normalized.Add(projectedKey))
+            {
+                throw new InvalidDataException(
+                    $"OTLP resource entity contains duplicate {fieldName} '{projectedKey}'.");
+            }
+        }
+
+        return [.. normalized.Order(StringComparer.Ordinal)];
+    }
+
+    private static string GetEntityReferenceIdentity(
+        ResourceEntityRefIngestionRecord entityRef,
+        IReadOnlyDictionary<string, OtlpAttributeValue> resourceAttributes)
+    {
+        var builder = new StringBuilder();
+        AppendCanonicalSegment(builder, entityRef.Type);
+        builder.Append(entityRef.IdKeys.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+        foreach (var key in entityRef.IdKeys)
+        {
+            AppendCanonicalSegment(builder, key);
+            AppendCanonicalSegment(builder, resourceAttributes[key].ToIdentityString());
+        }
+
+        return builder.ToString();
+    }
+
+    private sealed record ResourceProjection(
+        Dictionary<string, OtlpAttributeValue> Attributes,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> EntityRefs);
 
     private static Dictionary<string, OtlpAttributeValue> ExtractAttributesFromProto(
         RepeatedField<ProtoKeyValue> protoAttributes,
@@ -135,7 +230,6 @@ internal static class OtlpConverter
             if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is null) continue;
             if (renamed) attributes.TryAdd(key, value);
             else attributes[key] = value;
         }
@@ -154,7 +248,6 @@ internal static class OtlpConverter
             if (!AttributeKeySets.ShouldCaptureSpanAttribute(key)) continue;
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is null) continue;
             if (renamed) attributes.TryAdd(key, value);
             else attributes[key] = value;
         }
@@ -189,7 +282,7 @@ internal static class OtlpConverter
         return links;
     }
 
-    private static OtlpAttributeValue? ConvertProtoAnyValue(ProtoAnyValue? value)
+    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value)
     {
         if (value is null) return OtlpAttributeValue.Empty;
 
@@ -212,7 +305,7 @@ internal static class OtlpConverter
         var items = new List<OtlpAttributeValue>(value.Values.Count);
         foreach (var item in value.Values)
         {
-            items.Add(ConvertProtoAnyValue(item)!);
+            items.Add(ConvertProtoAnyValue(item));
         }
 
         return OtlpAttributeValue.FromArray(items);
@@ -226,7 +319,7 @@ internal static class OtlpConverter
             if (string.IsNullOrWhiteSpace(item.Key))
                 throw new InvalidDataException("OTLP key-value-list contains an empty key.");
 
-            if (!items.TryAdd(item.Key, ConvertProtoAnyValue(item.Value)!))
+            if (!items.TryAdd(item.Key, ConvertProtoAnyValue(item.Value)))
                 throw new InvalidDataException($"OTLP key-value-list contains duplicate key '{item.Key}'.");
         }
 
@@ -239,6 +332,7 @@ internal static class OtlpConverter
         string serviceName,
         Dictionary<string, OtlpAttributeValue> attributes,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         string? schemaUrl) =>
         new()
         {
@@ -255,6 +349,7 @@ internal static class OtlpConverter
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
+            ResourceEntityRefs = resourceEntityRefs,
             SchemaUrl = schemaUrl,
             Events = BuildSpanEvents(span),
             Links = BuildSpanLinks(span)
@@ -300,13 +395,17 @@ internal static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceLogs.Resource);
-
-            var resourceAttrs = ExtractResourceAttributesFromProto(resourceLogs.Resource);
+            var resource = ExtractResourceProjection(resourceLogs.Resource);
 
             foreach (var scopeLogs in resourceLogs.ScopeLogs)
             foreach (var log in scopeLogs.LogRecords)
             {
-                logs.Add(CreateLogRecord(log, projectIdHint, serviceName, resourceAttrs));
+                logs.Add(CreateLogRecord(
+                    log,
+                    projectIdHint,
+                    serviceName,
+                    resource.Attributes,
+                    resource.EntityRefs));
             }
         }
 
@@ -317,7 +416,8 @@ internal static class OtlpConverter
         ProtoLogRecord log,
         string? projectIdHint,
         string serviceName,
-        Dictionary<string, OtlpAttributeValue> resourceAttributes)
+        Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs)
     {
         var attributes = ExtractLogAttributes(log.Attributes);
 
@@ -333,10 +433,11 @@ internal static class OtlpConverter
             ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
-            BodyText = ConvertProtoAnyValue(log.Body)?.ToStableString(),
+            BodyText = ConvertProtoAnyValue(log.Body).ToStableString(),
             ServiceName = serviceName,
             Attributes = attributes,
-            ResourceAttributes = resourceAttributes
+            ResourceAttributes = resourceAttributes,
+            ResourceEntityRefs = resourceEntityRefs
         };
     }
 
@@ -354,7 +455,6 @@ internal static class OtlpConverter
             }
 
             var value = ConvertProtoAnyValue(attr.Value);
-            if (value is null) continue;
             if (renamed) dict.TryAdd(key, value);
             else dict[key] = value;
         }
@@ -374,8 +474,7 @@ internal static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceMetrics.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceMetrics.Resource);
-            var resourceEntityRefsIdentity = ExtractMetricResourceEntityRefsIdentity(resourceMetrics.Resource);
-            var resourceAttrs = ExtractResourceAttributesFromProto(resourceMetrics.Resource);
+            var resource = ExtractResourceProjection(resourceMetrics.Resource);
 
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
@@ -386,8 +485,8 @@ internal static class OtlpConverter
                         metric,
                         projectIdHint,
                         serviceName,
-                        resourceAttrs,
-                        resourceEntityRefsIdentity,
+                        resource.Attributes,
+                        resource.EntityRefs,
                         resourceMetrics,
                         scopeMetrics);
                 }
@@ -403,7 +502,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
-        string resourceEntityRefsIdentity,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics)
     {
@@ -427,7 +526,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
-                        resourceEntityRefsIdentity,
+                        resourceEntityRefs,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -450,7 +549,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
-                        resourceEntityRefsIdentity,
+                        resourceEntityRefs,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -493,7 +592,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
-                        resourceEntityRefsIdentity,
+                        resourceEntityRefs,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -545,7 +644,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
-                        resourceEntityRefsIdentity,
+                        resourceEntityRefs,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -590,7 +689,7 @@ internal static class OtlpConverter
                         projectIdHint,
                         serviceName,
                         resourceAttributes,
-                        resourceEntityRefsIdentity,
+                        resourceEntityRefs,
                         resourceMetrics,
                         scopeMetrics,
                         metadata,
@@ -616,7 +715,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
-        string resourceEntityRefsIdentity,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics,
         IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
@@ -635,7 +734,7 @@ internal static class OtlpConverter
             projectIdHint,
             serviceName,
             resourceAttributes,
-            resourceEntityRefsIdentity,
+            resourceEntityRefs,
             resourceMetrics,
             scopeMetrics,
             metadata,
@@ -667,7 +766,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
-        string resourceEntityRefsIdentity,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         ProtoResourceMetrics resourceMetrics,
         ProtoScopeMetrics scopeMetrics,
         IReadOnlyDictionary<string, OtlpAttributeValue> metadata,
@@ -700,7 +799,7 @@ internal static class OtlpConverter
             ServiceName = serviceName,
             Attributes = ExtractMetricAttributes(attributes),
             ResourceAttributes = resourceAttributes,
-            ResourceEntityRefsIdentity = resourceEntityRefsIdentity
+            ResourceEntityRefs = resourceEntityRefs
         };
     }
 
@@ -746,7 +845,7 @@ internal static class OtlpConverter
             : throw new InvalidDataException(
                 $"OTLP metric '{metricName}' has an unspecified aggregation temporality.");
 
-    private const uint NoRecordedValueMask = 1;
+    private const uint NoRecordedValueMask = (uint)ProtoDataPointFlags.NoRecordedValueMask;
 
     private static bool HasNoRecordedValue(uint flags) => (flags & NoRecordedValueMask) is not 0;
 
@@ -910,7 +1009,7 @@ internal static class OtlpConverter
                 throw new InvalidDataException($"OTLP metric contains duplicate attribute key '{attr.Key}'.");
 
             DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            var value = ConvertProtoAnyValue(attr.Value)!;
+            var value = ConvertProtoAnyValue(attr.Value);
             if (!dict.TryAdd(key, value))
             {
                 throw new InvalidDataException(
@@ -919,91 +1018,6 @@ internal static class OtlpConverter
         }
 
         return dict;
-    }
-
-    private static string ExtractMetricResourceEntityRefsIdentity(ProtoResource? resource)
-    {
-        if (resource is null) return string.Empty;
-
-        var resourceAttributeKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var attribute in resource.Attributes)
-        {
-            if (string.IsNullOrWhiteSpace(attribute.Key))
-                throw new InvalidDataException("OTLP metric resource attribute key must not be empty.");
-            if (!resourceAttributeKeys.Add(attribute.Key))
-            {
-                throw new InvalidDataException(
-                    $"OTLP metric resource contains duplicate attribute key '{attribute.Key}'.");
-            }
-        }
-
-        if (resource.EntityRefs.Count is 0) return string.Empty;
-
-        var identities = new List<string>(resource.EntityRefs.Count);
-        var uniqueIdentities = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entityRef in resource.EntityRefs)
-        {
-            if (string.IsNullOrWhiteSpace(entityRef.Type))
-                throw new InvalidDataException("OTLP metric resource entity type must not be empty.");
-            if (entityRef.IdKeys.Count is 0)
-                throw new InvalidDataException("OTLP metric resource entity must contain at least one id_key.");
-
-            var idKeys = ValidateEntityReferenceKeys(
-                entityRef.IdKeys,
-                resourceAttributeKeys,
-                "id_key");
-            var descriptionKeys = ValidateEntityReferenceKeys(
-                entityRef.DescriptionKeys,
-                resourceAttributeKeys,
-                "description_key");
-
-            var builder = new StringBuilder();
-            AppendCanonicalSegment(builder, entityRef.SchemaUrl);
-            AppendCanonicalSegment(builder, entityRef.Type);
-            AppendCanonicalSegments(builder, idKeys);
-            AppendCanonicalSegments(builder, descriptionKeys);
-            var identity = builder.ToString();
-            if (!uniqueIdentities.Add(identity))
-                throw new InvalidDataException("OTLP metric resource contains a duplicate entity reference.");
-            identities.Add(identity);
-        }
-
-        identities.Sort(StringComparer.Ordinal);
-        var result = new StringBuilder();
-        AppendCanonicalSegments(result, identities);
-        return result.ToString();
-    }
-
-    private static IReadOnlyList<string> ValidateEntityReferenceKeys(
-        RepeatedField<string> keys,
-        IReadOnlySet<string> resourceAttributeKeys,
-        string fieldName)
-    {
-        var unique = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var key in keys)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                throw new InvalidDataException($"OTLP metric resource entity {fieldName} must not be empty.");
-            if (!unique.Add(key))
-            {
-                throw new InvalidDataException(
-                    $"OTLP metric resource entity contains duplicate {fieldName} '{key}'.");
-            }
-            if (!resourceAttributeKeys.Contains(key))
-            {
-                throw new InvalidDataException(
-                    $"OTLP metric resource entity {fieldName} '{key}' does not reference a resource attribute.");
-            }
-        }
-
-        return [.. unique.Order(StringComparer.Ordinal)];
-    }
-
-    private static void AppendCanonicalSegments(StringBuilder builder, IReadOnlyList<string> values)
-    {
-        builder.Append(values.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
-        foreach (var value in values)
-            AppendCanonicalSegment(builder, value);
     }
 
     private static void AppendCanonicalSegment(StringBuilder builder, string value) =>
@@ -1025,8 +1039,7 @@ internal static class OtlpConverter
         {
             var serviceName = ExtractServiceNameFromProto(resourceProfiles.Resource);
             var projectIdHint = ExtractProjectIdHintFromProto(resourceProfiles.Resource);
-
-            var resourceAttrs = ExtractResourceAttributesFromProto(resourceProfiles.Resource);
+            var resource = ExtractResourceProjection(resourceProfiles.Resource);
             var schemaUrl = resourceProfiles.SchemaUrl;
 
             foreach (var scopeProfiles in resourceProfiles.ScopeProfiles)
@@ -1037,7 +1050,13 @@ internal static class OtlpConverter
 
                 foreach (var profile in scopeProfiles.Profiles)
                 {
-                    results.Add(CreateProfileRecord(profile, dictionary, projectIdHint, serviceName, resourceAttrs,
+                    results.Add(CreateProfileRecord(
+                        profile,
+                        dictionary,
+                        projectIdHint,
+                        serviceName,
+                        resource.Attributes,
+                        resource.EntityRefs,
                         effectiveSchemaUrl));
                 }
             }
@@ -1052,6 +1071,7 @@ internal static class OtlpConverter
         string? projectIdHint,
         string serviceName,
         Dictionary<string, OtlpAttributeValue> resourceAttributes,
+        IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         string? schemaUrl)
     {
         var profileId = RequireIdOrAbsent(profile.ProfileId, 16, "profile_id") ?? "";
@@ -1149,6 +1169,7 @@ internal static class OtlpConverter
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
+            ResourceEntityRefs = resourceEntityRefs,
             SchemaUrl = schemaUrl,
             Functions = functions,
             Locations = locations,
@@ -1192,9 +1213,7 @@ internal static class OtlpConverter
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attribute.Value);
-            if (value is not null)
-                attributes[key] = value;
+            attributes[key] = ConvertProtoAnyValue(attribute.Value);
         }
 
         return attributes;

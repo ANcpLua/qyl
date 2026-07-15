@@ -50,6 +50,7 @@ internal static class IngestionStorageMapper
             ? span.EndTimeUnixNano - span.StartTimeUnixNano
             : 0UL;
         var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span.Attributes);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
         return new SpanStorageRow
         {
@@ -77,6 +78,7 @@ internal static class IngestionStorageMapper
             GenAiReasoningTokens = projection.GenAiReasoningTokens,
             AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes, projection),
             ResourceJson = PersistedAttributePolicy.SerializeResourceAttributes(span.ResourceAttributes),
+            ResourceEntityRefsJson = resourceEntityRefsJson,
             SchemaUrl = span.SchemaUrl,
             StatusMessage = span.StatusMessage,
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
@@ -95,6 +97,10 @@ internal static class IngestionStorageMapper
         var body = ToSafeLogBody(log.BodyText);
         var attributesJson = PersistedAttributePolicy.SerializeLogAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(log.ResourceAttributes);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(log.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            log.ResourceEntityRefs,
+            log.ResourceAttributes);
 
         return new LogStorageRow
         {
@@ -114,6 +120,7 @@ internal static class IngestionStorageMapper
                 AppendIdentityPart(builder, log.ServiceName);
                 AppendIdentityPart(builder, attributesJson);
                 AppendIdentityPart(builder, resourceJson);
+                AppendIdentityPart(builder, resourceEntityRefsIdentity);
             }),
             TraceId = log.TraceId,
             SpanId = log.SpanId,
@@ -126,7 +133,8 @@ internal static class IngestionStorageMapper
             Body = body,
             ServiceName = log.ServiceName,
             AttributesJson = attributesJson,
-            ResourceJson = resourceJson
+            ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson
         };
     }
 
@@ -135,6 +143,10 @@ internal static class IngestionStorageMapper
         var projectId = ProjectScope.Normalize(metric.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeMetricAttributes(metric.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(metric.ResourceAttributes);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(metric.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            metric.ResourceEntityRefs,
+            metric.ResourceAttributes);
         var metadataJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.Metadata);
         var scopeAttributesJson = PersistedAttributePolicy.SerializeMetricAuxiliaryAttributes(metric.ScopeAttributes);
 
@@ -166,8 +178,7 @@ internal static class IngestionStorageMapper
                 // data points differing only in a non-persisted dimension stay distinct rows.
                 AppendIdentityAttributes(builder, metric.Attributes);
                 AppendIdentityAttributes(builder, metric.ResourceAttributes);
-                if (metric.ResourceEntityRefsIdentity.Length > 0)
-                    AppendIdentityPart(builder, metric.ResourceEntityRefsIdentity);
+                AppendIdentityPart(builder, resourceEntityRefsIdentity);
                 AppendIdentityAttributes(builder, metric.ScopeAttributes);
             }),
             ContractProjectionVersion = MetricStorageRow.CurrentContractProjectionVersion,
@@ -217,7 +228,8 @@ internal static class IngestionStorageMapper
                 : null,
             ServiceName = metric.ServiceName,
             AttributesJson = attributesJson,
-            ResourceJson = resourceJson
+            ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson
         };
     }
 
@@ -226,7 +238,16 @@ internal static class IngestionStorageMapper
         var projectId = ProjectScope.Normalize(profile.ProjectIdHint);
         var attributesJson = PersistedAttributePolicy.SerializeProfileAttributes(profile.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeResourceAttributes(profile.ResourceAttributes);
-        var profileId = ResolveProfileId(projectId, profile, attributesJson, resourceJson);
+        var resourceEntityRefsJson = SerializeResourceEntityRefs(profile.ResourceEntityRefs);
+        var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
+            profile.ResourceEntityRefs,
+            profile.ResourceAttributes);
+        var profileId = ResolveProfileId(
+            projectId,
+            profile,
+            attributesJson,
+            resourceJson,
+            resourceEntityRefsIdentity);
         var header = new ProfileStorageRow
         {
             ProjectId = projectId,
@@ -243,6 +264,7 @@ internal static class IngestionStorageMapper
             ServiceName = profile.ServiceName,
             AttributesJson = attributesJson,
             ResourceJson = resourceJson,
+            ResourceEntityRefsJson = resourceEntityRefsJson,
             SchemaUrl = profile.SchemaUrl
         };
 
@@ -311,7 +333,8 @@ internal static class IngestionStorageMapper
         string projectId,
         ProfileIngestionRecord profile,
         string? attributesJson,
-        string? resourceJson)
+        string? resourceJson,
+        string? resourceEntityRefsIdentity)
     {
         if (!string.IsNullOrWhiteSpace(profile.ProfileId))
             return profile.ProfileId;
@@ -331,6 +354,7 @@ internal static class IngestionStorageMapper
             AppendIdentityPart(builder, profile.ServiceName);
             AppendIdentityPart(builder, attributesJson);
             AppendIdentityPart(builder, resourceJson);
+            AppendIdentityPart(builder, resourceEntityRefsIdentity);
             AppendIdentityPart(builder, profile.SchemaUrl);
 
             AppendIdentityPart(builder, profile.Functions.Count);
@@ -514,6 +538,50 @@ internal static class IngestionStorageMapper
         >= 21 => "FATAL",
         _ => "UNSPECIFIED"
     };
+
+    private static string? SerializeResourceEntityRefs(
+        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs) =>
+        entityRefs.Count is 0
+            ? null
+            : JsonSerializer.Serialize(
+                entityRefs as List<ResourceEntityRefIngestionRecord> ?? [.. entityRefs],
+                StorageJsonSerializerContext.Default.ResourceEntityRefIngestionRecordList);
+
+    private static string? GetResourceEntityRefsIdentity(
+        IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,
+        IReadOnlyDictionary<string, OtlpAttributeValue> resourceAttributes)
+    {
+        if (entityRefs.Count is 0) return null;
+
+        var identities = new List<string>(entityRefs.Count);
+        foreach (var entityRef in entityRefs)
+        {
+            var identity = new StringBuilder();
+            AppendIdentityPart(identity, entityRef.SchemaUrl);
+            AppendIdentityPart(identity, entityRef.Type);
+            var idKeys = entityRef.IdKeys.Order(StringComparer.Ordinal).ToArray();
+            AppendIdentityPart(identity, idKeys.Length);
+            foreach (var key in idKeys)
+            {
+                if (!resourceAttributes.TryGetValue(key, out var value))
+                {
+                    throw new InvalidDataException(
+                        $"Resource entity id_key '{key}' does not reference a persisted resource attribute.");
+                }
+
+                AppendIdentityPart(identity, key);
+                AppendIdentityPart(identity, value.ToIdentityString());
+            }
+            identities.Add(identity.ToString());
+        }
+
+        identities.Sort(StringComparer.Ordinal);
+        var result = new StringBuilder();
+        AppendIdentityPart(result, identities.Count);
+        foreach (var identity in identities)
+            AppendIdentityPart(result, identity);
+        return result.ToString();
+    }
 
     private static string SerializeHistogramBuckets(
         IReadOnlyList<double> explicitBounds,
