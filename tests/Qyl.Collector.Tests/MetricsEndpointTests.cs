@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -96,6 +97,14 @@ public sealed class MetricsEndpointTests
         var sum = Assert.IsType<SumMetricPoint>(Assert.Single(Assert.IsType<CursorPageMetricPoint>(page).Items));
         Assert.Equal("sum.metric", sum.Name);
         Assert.Equal(2.5, Assert.IsType<MetricDoubleValue>(sum.Value).AsDouble);
+        var exemplar = Assert.Single(sum.Exemplars!);
+        Assert.Equal(2_900_000_000UL, exemplar.TimeUnixNano);
+        Assert.Equal("00112233445566778899aabbccddeeff", exemplar.TraceId);
+        Assert.Equal("0011223344556677", exemplar.SpanId);
+        Assert.Equal(7.5, Assert.IsType<MetricDoubleValue>(exemplar.Value).AsDouble);
+        var exemplarAttribute = Assert.Single(exemplar.FilteredAttributes!);
+        Assert.Equal("mcp.method.name", exemplarAttribute.Key);
+        Assert.Equal("tools/call", Assert.IsType<JsonElement>(exemplarAttribute.Value).GetString());
         Assert.False(page.HasMore);
         Assert.Null(page.NextCursor);
 
@@ -150,7 +159,27 @@ public sealed class MetricsEndpointTests
                             {
                                 StartTimeUnixNano = 1_000_000_000,
                                 TimeUnixNano = SumTime,
-                                AsDouble = 2.5
+                                AsDouble = 2.5,
+                                Exemplars =
+                                {
+                                    new Exemplar
+                                    {
+                                        TimeUnixNano = 2_900_000_000,
+                                        AsDouble = 7.5,
+                                        TraceId = ByteString.CopyFrom(
+                                            Convert.FromHexString("00112233445566778899aabbccddeeff")),
+                                        SpanId = ByteString.CopyFrom(
+                                            Convert.FromHexString("0011223344556677")),
+                                        FilteredAttributes =
+                                        {
+                                            new KeyValue
+                                            {
+                                                Key = "mcp.method.name",
+                                                Value = new AnyValue { StringValue = "tools/call" }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
